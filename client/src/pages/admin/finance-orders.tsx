@@ -48,6 +48,10 @@ import {
   AlertCircle,
   Activity,
   BarChart3,
+  X,
+  User,
+  Package,
+  ImageIcon,
   Wrench,
   Upload,
   HelpCircle,
@@ -320,7 +324,7 @@ function FinanceOrders() {
     return searchMatch && statusMatch;
   });
 
-  // Filter transferred orders
+  // Filter transferred orders and sort by creation date (oldest first)
   const filteredTransferredOrders = transferredOrders.filter(order => {
     const searchMatch = !searchTerm || 
       order.customer?.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -329,18 +333,18 @@ function FinanceOrders() {
       order.customerOrderId?.toString().includes(searchTerm);
     
     return searchMatch;
-  });
+  }).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
-  // Separate orders by status for tabs
+  // Separate orders by status for tabs and sort by creation date (oldest first)
   const pendingOrders = filteredOrders.filter(order => 
     ['pending', 'pending_payment', 'payment_uploaded', 'financial_reviewing'].includes(order.currentStatus)
-  );
+  ).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   
   const rejectedOrders = filteredOrders.filter(order => 
     order.currentStatus === 'financial_rejected'
-  );
+  ).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
-  // Separate wallet orders for special display
+  // Separate wallet orders for special display (already sorted by pendingOrders)
   const walletOrders = pendingOrders.filter(order => 
     order.paymentMethod === 'wallet_full' || order.paymentMethod === 'wallet_partial'
   );
