@@ -157,9 +157,9 @@ export default function WhatsAppCRM() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  const customers = customersData?.data?.customers || [];
-  const pagination = customersData?.data?.pagination || {};
-  const stats = statsData?.data as WhatsAppStats;
+  const customers = (customersData as any)?.data?.customers || [];
+  const pagination = (customersData as any)?.data?.pagination || {};
+  const stats = (statsData as any)?.data as WhatsAppStats;
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
