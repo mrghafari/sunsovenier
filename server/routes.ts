@@ -52091,41 +52091,49 @@ momtazchem.com
     try {
       const { accessKeyId, secretAccessKey, region, bucketName, isActive, endpoint, usePathStyle, publicUrl, description } = req.body;
 
+      // Check if settings already exist
+      const existingSettings = await storage.getActiveAwsS3Settings();
+
       // Validate required fields
-      if (!accessKeyId || !secretAccessKey || !region || !bucketName) {
+      if (!region || !bucketName) {
         return res.status(400).json({
           success: false,
-          message: 'تمام فیلدهای ضروری را پر کنید'
+          message: 'Region و Bucket Name الزامی هستند'
+        });
+      }
+
+      // For new settings, keys are required
+      if (!existingSettings && (!accessKeyId || !secretAccessKey)) {
+        return res.status(400).json({
+          success: false,
+          message: 'برای ایجاد تنظیمات جدید، Access Key و Secret Key الزامی هستند'
         });
       }
 
       // Import encryption functions
       const { encrypt } = await import('./aws-s3-service');
 
-      // Check if settings already exist
-      const existingSettings = await storage.getActiveAwsS3Settings();
-
       let savedSettings;
       if (existingSettings) {
         // Update existing settings
-        // Only encrypt if not already masked
-        const encryptedAccessKey = accessKeyId === '••••••••' 
-          ? existingSettings.accessKeyId 
-          : encrypt(accessKeyId);
-        const encryptedSecretKey = secretAccessKey === '••••••••' 
-          ? existingSettings.secretAccessKey 
-          : encrypt(secretAccessKey);
+        // Use existing keys if not provided or if masked
+        const encryptedAccessKey = (accessKeyId && accessKeyId !== '••••••••') 
+          ? encrypt(accessKeyId) 
+          : existingSettings.accessKeyId;
+        const encryptedSecretKey = (secretAccessKey && secretAccessKey !== '••••••••') 
+          ? encrypt(secretAccessKey) 
+          : existingSettings.secretAccessKey;
 
         savedSettings = await storage.updateAwsS3Settings(existingSettings.id, {
           accessKeyId: encryptedAccessKey,
           secretAccessKey: encryptedSecretKey,
           region,
           bucketName,
-          isActive: isActive !== undefined ? isActive : true,
-          endpoint: endpoint || undefined,
-          usePathStyle: usePathStyle || false,
-          publicUrl: publicUrl || undefined,
-          description: description || undefined
+          isActive: isActive !== undefined ? isActive : existingSettings.isActive,
+          endpoint: endpoint !== undefined ? endpoint : existingSettings.endpoint,
+          usePathStyle: usePathStyle !== undefined ? usePathStyle : existingSettings.usePathStyle,
+          publicUrl: publicUrl !== undefined ? publicUrl : existingSettings.publicUrl,
+          description: description !== undefined ? description : existingSettings.description
         });
       } else {
         // Create new settings
@@ -52164,7 +52172,6 @@ momtazchem.com
       });
     }
   });
-
   // Test AWS S3 connection
   app.post("/api/admin/aws-s3/test", requireAuth, async (req, res) => {
     try {
