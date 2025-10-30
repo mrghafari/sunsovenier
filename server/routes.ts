@@ -16870,10 +16870,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (finalPaymentStatus === 'grace_period') {
           managementStatus = 'payment_grace_period';
         } else if (finalPaymentStatus === 'paid' && Math.round(remainingAmount) <= 1) {
-          // Pure wallet payment - go directly to warehouse
-          managementStatus = 'warehouse_pending';
-          department = 'warehouse';
-          console.log(`🏪 [PURE WALLET ROUTING] Order ${orderNumber} routed directly to warehouse (paid with wallet)`);
+          // Pure wallet payment - must be approved by financial department
+          managementStatus = 'finance_pending';
+          department = 'financial';
+          console.log(`🏪 [PURE WALLET ROUTING] Order ${orderNumber} routed to financial department (paid with wallet)`);
         }
 
         let orderMgmtData = {
@@ -16947,12 +16947,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // CRITICAL FIX: Check for full wallet payment first (remainingAmount = 0)
       if (finalPaymentStatus === "paid" && Math.round(remainingAmount) <= 1) {
-        console.log(`🏪 [WAREHOUSE DIRECT] Full wallet payment completed - sending order ${orderNumber} directly to warehouse`);
+        console.log(`🏪 [FINANCIAL REVIEW] Full wallet payment completed - sending order ${orderNumber} to financial department`);
         console.log(`💰 [PAYMENT COMPLETE] Wallet: ${walletAmountUsed} IQD, Remaining: ${remainingAmount} IQD`);
         
         return res.json({
           success: true,
-          message: 'سفارش با موفقیت ثبت شد - ارسال به انبار',
+          message: 'سفارش با موفقیت ثبت شد - در انتظار تایید واحد مالی',
           orderId: order.id,
           orderNumber: orderNumber,
           totalAmount: Math.round(totalAmount),
@@ -17060,9 +17060,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         
-        // 🏭 [AUTO WAREHOUSE] Send confirmed wallet payment directly to warehouse
+        // 🏭 [FINANCIAL HOLD] Wallet payment must be reviewed by financial department
         try {
-          await customerStorage.updateOrderStatus(order.id, 'warehouse_pending');
+          await customerStorage.updateOrderStatus(order.id, 'confirmed');
           
           // Update payment status and method directly in database
           await db
@@ -17074,14 +17074,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             })
             .where(eq(customerOrders.id, order.id));
             
-          console.log(`🏭 [WALLET PAYMENT] Order ${order.orderNumber} sent directly to warehouse`);
+          console.log(`🏭 [WALLET PAYMENT] Order ${order.orderNumber} waiting for financial approval`);
         } catch (error) {
-          console.error('❌ Error sending wallet payment to warehouse:', error);
+          console.error('❌ Error updating wallet payment status:', error);
         }
         
         return res.json({
           success: true,
-          message: "سفارش با کیف پول به طور کامل پرداخت شد و به انبار ارسال شد",
+          message: "سفارش با کیف پول به طور کامل پرداخت شد - در انتظار تایید واحد مالی",
           paymentMethod: 'wallet_full',
           order: {
             id: order.id,
@@ -17118,7 +17118,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // 🏭 [AUTO WAREHOUSE] Send confirmed full wallet payment directly to warehouse
           try {
-            await customerStorage.updateOrderStatus(order.id, 'warehouse_pending');
+            await customerStorage.updateOrderStatus(order.id, 'confirmed');
             
             // Update payment status and method directly in database
             await db
@@ -17130,14 +17130,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
               })
               .where(eq(customerOrders.id, order.id));
               
-            console.log(`🏭 [WALLET_FULL] Order ${order.orderNumber} sent directly to warehouse`);
+            console.log(`🏭 [WALLET_FULL] Order ${order.orderNumber} waiting for financial approval`);
           } catch (error) {
-            console.error('❌ Error sending full wallet payment to warehouse:', error);
+            console.error('❌ Error updating full wallet payment status:', error);
           }
           
           return res.json({
             success: true,
-            message: "سفارش با کیف پول به طور کامل پرداخت شد و به انبار ارسال شد",
+            message: "سفارش با کیف پول به طور کامل پرداخت شد - در انتظار تایید واحد مالی",
             paymentMethod: 'wallet_full',
             order: {
               id: order.id,
