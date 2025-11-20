@@ -63,10 +63,10 @@ interface CategoryProductSettings {
 
 interface TawkSettings {
   id: number;
-  is_enabled: boolean;
-  script_code: string;
-  property_id?: string;
-  widget_id?: string;
+  isEnabled: boolean;
+  scriptCode: string;
+  propertyId?: string;
+  widgetId?: string;
   notes?: string;
   created_at: string;
   updated_at: string;
@@ -281,7 +281,7 @@ export default function ContentManagement() {
 
   // Mutation for updating Tawk.to support chat settings
   const updateTawkMutation = useMutation({
-    mutationFn: async (data: { is_enabled: boolean; script_code: string; notes?: string }) => {
+    mutationFn: async (data: { isEnabled: boolean; scriptCode: string; notes?: string }) => {
       return apiRequest('/api/admin/tawk-support', {
         method: 'PUT',
         body: data
@@ -1520,7 +1520,7 @@ export default function ContentManagement() {
                         </div>
                         <Switch
                           id="tawk-enabled"
-                          checked={editingTawk.is_enabled}
+                          checked={editingTawk.isEnabled}
                           onCheckedChange={(checked) => 
                             setEditingTawk({ ...editingTawk, is_enabled: checked })
                           }
@@ -1538,7 +1538,7 @@ export default function ContentManagement() {
                         </p>
                         <Textarea
                           id="tawk-script"
-                          value={editingTawk.script_code}
+                          value={editingTawk.scriptCode}
                           onChange={(e) => 
                             setEditingTawk({ ...editingTawk, script_code: e.target.value })
                           }
@@ -1559,12 +1559,12 @@ s0.parentNode.insertBefore(s1,s0);
                       </div>
 
                       {/* Auto-extracted IDs (read-only display) */}
-                      {editingTawk.property_id && editingTawk.widget_id && (
+                      {editingTawk.propertyId && editingTawk.widgetId && (
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <Label className="text-sm font-medium">Property ID</Label>
                             <Input
-                              value={editingTawk.property_id}
+                              value={editingTawk.propertyId}
                               readOnly
                               className="bg-muted font-mono text-sm"
                               data-testid="input-property-id"
@@ -1573,7 +1573,7 @@ s0.parentNode.insertBefore(s1,s0);
                           <div className="space-y-2">
                             <Label className="text-sm font-medium">Widget ID</Label>
                             <Input
-                              value={editingTawk.widget_id}
+                              value={editingTawk.widgetId}
                               readOnly
                               className="bg-muted font-mono text-sm"
                               data-testid="input-widget-id"
@@ -1607,8 +1607,8 @@ s0.parentNode.insertBefore(s1,s0);
                         <Button
                           onClick={() => {
                             updateTawkMutation.mutate({
-                              is_enabled: editingTawk.is_enabled,
-                              script_code: editingTawk.script_code,
+                              is_enabled: editingTawk.isEnabled,
+                              script_code: editingTawk.scriptCode,
                               notes: editingTawk.notes
                             });
                           }}
