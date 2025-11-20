@@ -52976,23 +52976,12 @@ momtazchem.com
   });
 
   // Register FIB payment routes
-  registerFibRoutes(app);
-  app.all('/api/*', (req, res) => {
-    console.log(`❌ 404 - Unmatched API route: ${req.method} ${req.originalUrl}`);
-    res.status(404).json({
-      success: false,
-      message: 'API endpoint not found',
-      path: req.originalUrl,
-      method: req.method
-    });
-  });
-
 
   // ========================================
-  // Tawk.to Live Chat Management Routes
+  // Tawk.to Live Chat Management Routes  
   // ========================================
 
-  // GET /api/admin/tawk-support - Get Tawk.to Support Chat Settings (Admin only)
+  // GET /api/admin/tawk-support - Get Tawk.to settings (Admin only)
   app.get('/api/admin/tawk-support', requireAdmin, async (req, res) => {
     try {
       const [settings] = await db
@@ -53024,12 +53013,12 @@ momtazchem.com
     }
   });
 
-  // PUT /api/admin/tawk-support - Update Tawk.to Support Chat Settings (Admin only)
+  // PUT /api/admin/tawk-support - Update Tawk.to settings (Admin only)
   app.put('/api/admin/tawk-support', requireAdmin, async (req, res) => {
     try {
       const { is_enabled, script_code, notes } = req.body;
       
-      console.log('📝 [TAWK UPDATE] Received:', { is_enabled, script_code: script_code?.substring(0, 50) + '...', notes });
+      console.log('📝 [TAWK] Saving:', { is_enabled, has_script: !!script_code });
       
       let property_id = null;
       let widget_id = null;
@@ -53039,7 +53028,6 @@ momtazchem.com
         if (match) {
           property_id = match[1];
           widget_id = match[2];
-          console.log('🔍 [TAWK UPDATE] Extracted IDs:', { property_id, widget_id });
         }
       }
       
@@ -53049,32 +53037,22 @@ momtazchem.com
         .orderBy(desc(schema.tawkSupportChat.id))
         .limit(1);
       
-      console.log('📊 [TAWK UPDATE] Existing:', existing?.id);
-      
       let result;
       
       if (existing) {
-        const updateData = {
-          is_enabled,
-          script_code,
-          property_id,
-          widget_id,
-          notes,
-          updated_at: new Date()
-        };
-        
-        console.log('🔄 [TAWK UPDATE] Updating...');
-        
         [result] = await db
           .update(schema.tawkSupportChat)
-          .set(updateData)
+          .set({
+            is_enabled,
+            script_code,
+            property_id,
+            widget_id,
+            notes,
+            updated_at: new Date()
+          })
           .where(eq(schema.tawkSupportChat.id, existing.id))
           .returning();
-          
-        console.log('✅ [TAWK UPDATE] Updated:', result?.id);
       } else {
-        console.log('➕ [TAWK UPDATE] Creating new...');
-        
         [result] = await db
           .insert(schema.tawkSupportChat)
           .values({
@@ -53085,13 +53063,12 @@ momtazchem.com
             notes
           })
           .returning();
-          
-        console.log('✅ [TAWK UPDATE] Created:', result?.id);
       }
       
+      console.log('✅ [TAWK] Saved successfully');
       res.json({ success: true, data: result });
     } catch (error) {
-      console.error('❌ [TAWK UPDATE] Error:', error);
+      console.error('❌ [TAWK] Error:', error);
       res.status(500).json({ 
         success: false, 
         message: 'Failed to update Tawk.to settings' 
@@ -53099,7 +53076,7 @@ momtazchem.com
     }
   });
 
-  // GET /api/tawk-support - Public API for frontend widget loading
+  // GET /api/tawk-support - Public API for frontend widget
   app.get('/api/tawk-support', async (req, res) => {
     try {
       const [settings] = await db
@@ -53123,6 +53100,17 @@ momtazchem.com
         message: 'Failed to fetch Tawk.to settings' 
       });
     }
+  });
+
+  registerFibRoutes(app);
+  app.all('/api/*', (req, res) => {
+    console.log(`❌ 404 - Unmatched API route: ${req.method} ${req.originalUrl}`);
+    res.status(404).json({
+      success: false,
+      message: 'API endpoint not found',
+      path: req.originalUrl,
+      method: req.method
+    });
   });
 
   return httpServer;
