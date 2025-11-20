@@ -12805,28 +12805,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         WHERE id = $1
       `, [documentId]);
 
-      // Download from S3
-      const s3Service = getAwsS3Service();
-      const s3Key = document.file_path; // file_path contains the S3 key
-      
-      try {
-        const fileStream = await s3Service.getFileStream(s3Key);
-        
-        res.setHeader('Content-Disposition', `attachment; filename="${document.file_name}"`);
-        res.setHeader('Content-Type', document.file_type || 'application/octet-stream');
-        
-        // Stream file to client
-        fileStream.pipe(res);
-      } catch (s3Error: any) {
-        console.error('❌ [S3 DOWNLOAD ERROR] Failed to download from S3:', s3Error);
-        return res.status(500).json({ success: false, message: "Failed to download file from storage" });
+      // Handle both absolute and relative paths
+      let filePath = document.file_path;
+      if (!path.isAbsolute(filePath)) {
+        filePath = path.resolve(process.cwd(), filePath);
       }
+
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ success: false, message: "File not found on server" });
+      }
+
+      res.setHeader('Content-Disposition', `attachment; filename="${document.file_name}"`);
+      res.setHeader('Content-Type', document.file_type || 'application/octet-stream');
+      
+      res.sendFile(filePath);
 
     } catch (error) {
       console.error("Error downloading safety protocol document:", error);
       res.status(500).json({ success: false, message: "Internal server error" });
     }
   });
+
+  // Delete safety protocol document
   app.delete("/api/procedures/safety-protocols/documents/:documentId", requireAuth, async (req, res) => {
     try {
       const { documentId } = req.params;
@@ -12853,15 +12853,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         WHERE id = $1
       `, [documentId]);
 
-      // Delete file from S3
+      // Optionally delete the physical file
       try {
-        const s3Service = getAwsS3Service();
-        const s3Key = document.file_path; // file_path contains the S3 key
-        await s3Service.deleteFile(s3Key);
-        console.log(`✅ [S3 DELETE] Safety protocol document deleted from S3: ${s3Key}`);
-      } catch (s3Error: any) {
-        console.error('❌ [S3 DELETE ERROR] Could not delete file from S3:', s3Error);
-        // Continue even if S3 deletion fails - file is already marked inactive
+        let filePath = document.file_path;
+        if (!path.isAbsolute(filePath)) {
+          filePath = path.resolve(process.cwd(), filePath);
+        }
+        
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      } catch (fileError) {
+        console.log('Could not delete physical file:', fileError);
+        // Continue even if file deletion fails
       }
 
       res.json({
@@ -19897,28 +19901,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         WHERE id = $1
       `, [documentId]);
 
-      // Download from S3
-      const s3Service = getAwsS3Service();
-      const s3Key = document.file_path; // file_path contains the S3 key
-      
-      try {
-        const fileStream = await s3Service.getFileStream(s3Key);
-        
-        res.setHeader('Content-Disposition', `attachment; filename="${document.file_name}"`);
-        res.setHeader('Content-Type', document.file_type || 'application/octet-stream');
-        
-        // Stream file to client
-        fileStream.pipe(res);
-      } catch (s3Error: any) {
-        console.error('❌ [S3 DOWNLOAD ERROR] Failed to download from S3:', s3Error);
-        return res.status(500).json({ success: false, message: "Failed to download file from storage" });
+      // Handle both absolute and relative paths
+      let filePath = document.file_path;
+      if (!path.isAbsolute(filePath)) {
+        filePath = path.resolve(process.cwd(), filePath);
       }
+
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ success: false, message: "File not found on server" });
+      }
+
+      res.setHeader('Content-Disposition', `attachment; filename="${document.file_name}"`);
+      res.setHeader('Content-Type', document.file_type || 'application/octet-stream');
+      
+      res.sendFile(filePath);
 
     } catch (error) {
       console.error("Error downloading document:", error);
       res.status(500).json({ success: false, message: "Internal server error" });
     }
   });
+
   // Upload procedure document
   app.post("/api/procedures/:procedureId/documents", requireAuth, upload.single('document'), async (req, res) => {
     try {
@@ -19980,7 +19983,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete procedure document
-  // Delete procedure document
   app.delete("/api/procedures/documents/:documentId", requireAuth, async (req, res) => {
     try {
       const { documentId } = req.params;
@@ -20007,15 +20009,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         WHERE id = $1
       `, [documentId]);
 
-      // Delete file from S3
+      // Optionally delete the physical file
       try {
-        const s3Service = getAwsS3Service();
-        const s3Key = document.file_path; // file_path contains the S3 key
-        await s3Service.deleteFile(s3Key);
-        console.log(`✅ [S3 DELETE] Procedure document deleted from S3: ${s3Key}`);
-      } catch (s3Error: any) {
-        console.error('❌ [S3 DELETE ERROR] Could not delete file from S3:', s3Error);
-        // Continue even if S3 deletion fails - file is already marked inactive
+        let filePath = document.file_path;
+        if (!path.isAbsolute(filePath)) {
+          filePath = path.resolve(process.cwd(), filePath);
+        }
+        
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      } catch (fileError) {
+        console.log('Could not delete physical file:', fileError);
+        // Continue even if file deletion fails
       }
 
       res.json({
@@ -34450,114 +34456,6 @@ momtazchem.com
     }
   });
 
-  // =============================================================================
-  // TAWK.TO SUPPORT CHAT SETTINGS
-  // =============================================================================
-
-  // Get Tawk.to settings
-  app.get('/api/admin/tawk/settings', requireAuth, async (req, res) => {
-    try {
-      const { pool } = await import('./db');
-      
-      const result = await pool.query(`
-        SELECT id, is_enabled, script_code, property_id, widget_id, notes, created_at, updated_at
-        FROM tawk_settings
-        ORDER BY id DESC
-        LIMIT 1
-      `);
-      
-      if (result.rows.length === 0) {
-        // Create default settings
-        const defaultResult = await pool.query(`
-          INSERT INTO tawk_settings (is_enabled, script_code, notes)
-          VALUES (false, '', 'Configure Tawk.to live chat script from your Tawk.to dashboard')
-          RETURNING id, is_enabled, script_code, property_id, widget_id, notes, created_at, updated_at
-        `);
-        
-        return res.json({ success: true, data: defaultResult.rows[0] });
-      }
-      
-      res.json({ success: true, data: result.rows[0] });
-    } catch (error) {
-      console.error('Error fetching Tawk.to settings:', error);
-      res.status(500).json({ success: false, message: 'Failed to fetch Tawk.to settings' });
-    }
-  });
-
-  // Update Tawk.to settings
-  app.put('/api/admin/tawk/settings', requireAuth, async (req, res) => {
-    try {
-      const { isEnabled, scriptCode, propertyId, widgetId, notes } = req.body;
-      
-      const { pool } = await import('./db');
-      
-      // Check if settings exist
-      const checkResult = await pool.query('SELECT id FROM tawk_settings LIMIT 1');
-      
-      let result;
-      if (checkResult.rows.length === 0) {
-        // Insert new settings
-        result = await pool.query(`
-          INSERT INTO tawk_settings (is_enabled, script_code, property_id, widget_id, notes, updated_at)
-          VALUES ($1, $2, $3, $4, $5, NOW())
-          RETURNING id, is_enabled, script_code, property_id, widget_id, notes, created_at, updated_at
-        `, [isEnabled || false, scriptCode || '', propertyId || '', widgetId || '', notes || '']);
-      } else {
-        // Update existing settings
-        result = await pool.query(`
-          UPDATE tawk_settings
-          SET is_enabled = $1,
-              script_code = $2,
-              property_id = $3,
-              widget_id = $4,
-              notes = $5,
-              updated_at = NOW()
-          WHERE id = $6
-          RETURNING id, is_enabled, script_code, property_id, widget_id, notes, created_at, updated_at
-        `, [isEnabled || false, scriptCode || '', propertyId || '', widgetId || '', notes || '', checkResult.rows[0].id]);
-      }
-      
-      res.json({ 
-        success: true, 
-        data: result.rows[0],
-        message: 'Tawk.to settings updated successfully' 
-      });
-    } catch (error) {
-      console.error('Error updating Tawk.to settings:', error);
-      res.status(500).json({ success: false, message: 'Failed to update Tawk.to settings' });
-    }
-  });
-
-  // Public endpoint to get Tawk.to script if enabled
-  app.get('/api/public/tawk/settings', async (req, res) => {
-    try {
-      const { pool } = await import('./db');
-      
-      const result = await pool.query(`
-        SELECT is_enabled, script_code, property_id, widget_id
-        FROM tawk_settings
-        WHERE is_enabled = true
-        ORDER BY id DESC
-        LIMIT 1
-      `);
-      
-      if (result.rows.length === 0 || !result.rows[0].is_enabled) {
-        return res.json({ success: true, enabled: false });
-      }
-      
-      res.json({ 
-        success: true, 
-        enabled: true,
-        scriptCode: result.rows[0].script_code 
-      });
-    } catch (error) {
-      console.error('Error fetching public Tawk.to settings:', error);
-      res.json({ success: true, enabled: false }); // Fail silently
-    }
-  });
-
-
-
   // Public API for footer settings (for frontend footer component)
   app.get('/api/footer-settings', async (req, res) => {
     try {
@@ -34589,148 +34487,6 @@ momtazchem.com
       res.status(500).json({ success: false, message: 'Failed to fetch footer settings' });
     }
   });
-
-  // Public API for Tawk.to settings (for frontend widget loading)
-  app.get('/api/tawk-support', async (req, res) => {
-    try {
-      const [settings] = await db
-        .select({
-          is_enabled: tawkSupportChat.is_enabled,
-          script_code: tawkSupportChat.script_code
-        })
-        .from(schema.tawkSupportChat)
-        .orderBy(desc(schema.tawkSupportChat.id))
-        .limit(1);
-      
-      if (!settings) {
-        return res.json({ 
-          success: true, 
-          data: { is_enabled: false, script_code: '' } 
-        });
-      }
-      
-      // Only return script code if chat is enabled
-      res.json({ 
-        success: true, 
-        data: {
-          is_enabled: settings.is_enabled,
-          script_code: settings.is_enabled ? settings.script_code : ''
-        }
-      });
-    } catch (error) {
-      console.error('Error fetching Tawk.to settings:', error);
-      res.status(500).json({ 
-        success: false, 
-        message: 'Failed to fetch Tawk.to settings' 
-      });
-    }
-  });
-  // =============================================================================
-  // TAWK.TO SUPPORT CHAT SETTINGS
-  // =============================================================================
-
-  // Get Tawk.to settings
-  app.get('/api/admin/tawk/settings', requireAuth, async (req, res) => {
-    try {
-      const { pool } = await import('./db');
-      
-      const result = await pool.query(`
-        SELECT id, is_enabled, script_code, property_id, widget_id, notes, created_at, updated_at
-        FROM tawk_settings
-        ORDER BY id DESC
-        LIMIT 1
-      `);
-      
-      if (result.rows.length === 0) {
-        // Create default settings
-        const defaultResult = await pool.query(`
-          INSERT INTO tawk_settings (is_enabled, script_code, notes)
-          VALUES (false, '', 'Configure Tawk.to live chat script from your Tawk.to dashboard')
-          RETURNING id, is_enabled, script_code, property_id, widget_id, notes, created_at, updated_at
-        `);
-        
-        return res.json({ success: true, data: defaultResult.rows[0] });
-      }
-      
-      res.json({ success: true, data: result.rows[0] });
-    } catch (error) {
-      console.error('Error fetching Tawk.to settings:', error);
-      res.status(500).json({ success: false, message: 'Failed to fetch Tawk.to settings' });
-    }
-  });
-
-  // Update Tawk.to settings
-  app.put('/api/admin/tawk/settings', requireAuth, async (req, res) => {
-    try {
-      const { isEnabled, scriptCode, propertyId, widgetId, notes } = req.body;
-      
-      const { pool } = await import('./db');
-      
-      // Check if settings exist
-      const checkResult = await pool.query('SELECT id FROM tawk_settings LIMIT 1');
-      
-      let result;
-      if (checkResult.rows.length === 0) {
-        // Insert new settings
-        result = await pool.query(`
-          INSERT INTO tawk_settings (is_enabled, script_code, property_id, widget_id, notes, updated_at)
-          VALUES ($1, $2, $3, $4, $5, NOW())
-          RETURNING id, is_enabled, script_code, property_id, widget_id, notes, created_at, updated_at
-        `, [isEnabled || false, scriptCode || '', propertyId || '', widgetId || '', notes || '']);
-      } else {
-        // Update existing settings
-        result = await pool.query(`
-          UPDATE tawk_settings
-          SET is_enabled = $1,
-              script_code = $2,
-              property_id = $3,
-              widget_id = $4,
-              notes = $5,
-              updated_at = NOW()
-          WHERE id = $6
-          RETURNING id, is_enabled, script_code, property_id, widget_id, notes, created_at, updated_at
-        `, [isEnabled || false, scriptCode || '', propertyId || '', widgetId || '', notes || '', checkResult.rows[0].id]);
-      }
-      
-      res.json({ 
-        success: true, 
-        data: result.rows[0],
-        message: 'Tawk.to settings updated successfully' 
-      });
-    } catch (error) {
-      console.error('Error updating Tawk.to settings:', error);
-      res.status(500).json({ success: false, message: 'Failed to update Tawk.to settings' });
-    }
-  });
-
-  // Public endpoint to get Tawk.to script if enabled
-  app.get('/api/public/tawk/settings', async (req, res) => {
-    try {
-      const { pool } = await import('./db');
-      
-      const result = await pool.query(`
-        SELECT is_enabled, script_code, property_id, widget_id
-        FROM tawk_settings
-        WHERE is_enabled = true
-        ORDER BY id DESC
-        LIMIT 1
-      `);
-      
-      if (result.rows.length === 0 || !result.rows[0].is_enabled) {
-        return res.json({ success: true, enabled: false });
-      }
-      
-      res.json({ 
-        success: true, 
-        enabled: true,
-        scriptCode: result.rows[0].script_code 
-      });
-    } catch (error) {
-      console.error('Error fetching public Tawk.to settings:', error);
-      res.json({ success: true, enabled: false }); // Fail silently
-    }
-  });
-
 
   // Mark invoice as paid
   app.post('/api/invoices/:id/mark-paid', requireAuth, async (req, res) => {
@@ -53221,12 +52977,22 @@ momtazchem.com
 
   // Register FIB payment routes
   registerFibRoutes(app);
+  app.all('/api/*', (req, res) => {
+    console.log(`❌ 404 - Unmatched API route: ${req.method} ${req.originalUrl}`);
+    res.status(404).json({
+      success: false,
+      message: 'API endpoint not found',
+      path: req.originalUrl,
+      method: req.method
+    });
+  });
+
 
   // ========================================
-  // Tawk.to Support Chat Management Routes
+  // Tawk.to Live Chat Management Routes
   // ========================================
 
-  // GET /api/admin/tawk-support - Fetch Tawk.to Support Chat Settings
+  // GET /api/admin/tawk-support - Get Tawk.to Support Chat Settings (Admin only)
   app.get('/api/admin/tawk-support', requireAdmin, async (req, res) => {
     try {
       const [settings] = await db
@@ -53236,10 +53002,16 @@ momtazchem.com
         .limit(1);
       
       if (!settings) {
-        return res.status(404).json({ 
-          success: false, 
-          message: 'Tawk.to settings not found' 
-        });
+        const [newSettings] = await db
+          .insert(schema.tawkSupportChat)
+          .values({
+            is_enabled: false,
+            script_code: '',
+            notes: 'Initial setup - add your Tawk.to script code here'
+          })
+          .returning();
+        
+        return res.json({ success: true, data: newSettings });
       }
       
       res.json({ success: true, data: settings });
@@ -53252,12 +53024,13 @@ momtazchem.com
     }
   });
 
-  // PUT /api/admin/tawk-support - Update Tawk.to Support Chat Settings
+  // PUT /api/admin/tawk-support - Update Tawk.to Support Chat Settings (Admin only)
   app.put('/api/admin/tawk-support', requireAdmin, async (req, res) => {
     try {
       const { is_enabled, script_code, notes } = req.body;
       
-      // Extract Property ID and Widget ID from script code
+      console.log('📝 [TAWK UPDATE] Received:', { is_enabled, script_code: script_code?.substring(0, 50) + '...', notes });
+      
       let property_id = null;
       let widget_id = null;
       
@@ -53266,34 +53039,42 @@ momtazchem.com
         if (match) {
           property_id = match[1];
           widget_id = match[2];
+          console.log('🔍 [TAWK UPDATE] Extracted IDs:', { property_id, widget_id });
         }
       }
       
-      // Get existing settings to update or create new
       const [existing] = await db
         .select()
         .from(schema.tawkSupportChat)
         .orderBy(desc(schema.tawkSupportChat.id))
         .limit(1);
       
+      console.log('📊 [TAWK UPDATE] Existing:', existing?.id);
+      
       let result;
       
       if (existing) {
-        // Update existing
+        const updateData = {
+          is_enabled,
+          script_code,
+          property_id,
+          widget_id,
+          notes,
+          updated_at: new Date()
+        };
+        
+        console.log('🔄 [TAWK UPDATE] Updating...');
+        
         [result] = await db
           .update(schema.tawkSupportChat)
-          .set({
-            is_enabled,
-            script_code,
-            property_id,
-            widget_id,
-            notes,
-            updated_at: new Date()
-          })
+          .set(updateData)
           .where(eq(schema.tawkSupportChat.id, existing.id))
           .returning();
+          
+        console.log('✅ [TAWK UPDATE] Updated:', result?.id);
       } else {
-        // Create new
+        console.log('➕ [TAWK UPDATE] Creating new...');
+        
         [result] = await db
           .insert(schema.tawkSupportChat)
           .values({
@@ -53304,11 +53085,13 @@ momtazchem.com
             notes
           })
           .returning();
+          
+        console.log('✅ [TAWK UPDATE] Created:', result?.id);
       }
       
       res.json({ success: true, data: result });
     } catch (error) {
-      console.error('Error updating Tawk.to settings:', error);
+      console.error('❌ [TAWK UPDATE] Error:', error);
       res.status(500).json({ 
         success: false, 
         message: 'Failed to update Tawk.to settings' 
@@ -53316,50 +53099,30 @@ momtazchem.com
     }
   });
 
-  // Public API for Tawk.to settings (for frontend widget loading)
+  // GET /api/tawk-support - Public API for frontend widget loading
   app.get('/api/tawk-support', async (req, res) => {
     try {
       const [settings] = await db
         .select({
-          is_enabled: tawkSupportChat.is_enabled,
-          script_code: tawkSupportChat.script_code
+          is_enabled: schema.tawkSupportChat.is_enabled,
+          script_code: schema.tawkSupportChat.script_code
         })
         .from(schema.tawkSupportChat)
         .orderBy(desc(schema.tawkSupportChat.id))
         .limit(1);
       
       if (!settings) {
-        return res.json({ 
-          success: true, 
-          data: { is_enabled: false, script_code: '' } 
-        });
+        return res.json({ success: false, data: null });
       }
       
-      // Only return script code if chat is enabled
-      res.json({ 
-        success: true, 
-        data: {
-          is_enabled: settings.is_enabled,
-          script_code: settings.is_enabled ? settings.script_code : ''
-        }
-      });
+      res.json({ success: true, data: settings });
     } catch (error) {
-      console.error('Error fetching Tawk.to settings:', error);
+      console.error('Error fetching public Tawk.to settings:', error);
       res.status(500).json({ 
         success: false, 
         message: 'Failed to fetch Tawk.to settings' 
       });
     }
-  });
-
-  app.all('/api/*', (req, res) => {
-    console.log(`❌ 404 - Unmatched API route: ${req.method} ${req.originalUrl}`);
-    res.status(404).json({
-      success: false,
-      message: 'API endpoint not found',
-      path: req.originalUrl,
-      method: req.method
-    });
   });
 
   return httpServer;
