@@ -634,6 +634,56 @@ export function createVendorRouter() {
     }
   });
 
+  // Get vendor orders
+  router.get("/orders", ...vendorAuth, async (req, res) => {
+    try {
+      if (!req.vendorUser) {
+        return res.status(401).json({
+          success: false,
+          message: "Not authenticated"
+        });
+      }
+
+      const orders = await vendorStorage.getVendorOrders(req.vendorUser.vendorId);
+
+      res.json({
+        success: true,
+        orders
+      });
+    } catch (error: any) {
+      console.error("Error getting vendor orders:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error getting orders"
+      });
+    }
+  });
+
+  // Get vendor order statistics
+  router.get("/orders/stats", ...vendorAuth, async (req, res) => {
+    try {
+      if (!req.vendorUser) {
+        return res.status(401).json({
+          success: false,
+          message: "Not authenticated"
+        });
+      }
+
+      const stats = await vendorStorage.getVendorOrderStats(req.vendorUser.vendorId);
+
+      res.json({
+        success: true,
+        stats
+      });
+    } catch (error: any) {
+      console.error("Error getting vendor order stats:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error getting order statistics"
+      });
+    }
+  });
+
   // Get vendor statistics
   router.get("/statistics", ...vendorAuth, async (req, res) => {
     try {
@@ -646,6 +696,7 @@ export function createVendorRouter() {
 
       const vendor = await vendorStorage.getVendorById(req.vendorUser.vendorId);
       const productCount = await vendorStorage.getVendorProductCount(req.vendorUser.vendorId);
+      const orderStats = await vendorStorage.getVendorOrderStats(req.vendorUser.vendorId);
 
       if (!vendor) {
         return res.status(404).json({
@@ -662,7 +713,12 @@ export function createVendorRouter() {
           rating: vendor.rating,
           totalReviews: vendor.totalReviews,
           isApproved: vendor.isApproved,
-          isActive: vendor.isActive
+          isActive: vendor.isActive,
+          // Add order statistics
+          totalOrders: orderStats.totalOrders,
+          totalRevenue: orderStats.totalRevenue,
+          pendingOrders: orderStats.pendingOrders,
+          completedOrders: orderStats.completedOrders
         }
       });
     } catch (error: any) {

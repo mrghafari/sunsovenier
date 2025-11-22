@@ -10,8 +10,14 @@ import {
   type ShowcaseProduct,
   type ShopProduct
 } from "@shared/schema";
+import {
+  customerOrders,
+  orderItems,
+  type CustomerOrder,
+  type OrderItem
+} from "@shared/customer-schema";
 import { db } from "./db";
-import { eq, desc, and, or, like, sql, count } from "drizzle-orm";
+import { eq, desc, and, or, like, sql, count, inArray } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
 export interface IVendorStorage {
@@ -50,6 +56,15 @@ export interface IVendorStorage {
   searchVendorProducts(vendorId: number, query: string): Promise<{
     showcaseProducts: ShowcaseProduct[];
     shopProducts: ShopProduct[];
+  }>;
+  
+  // Vendor orders management
+  getVendorOrders(vendorId: number): Promise<Array<CustomerOrder & { items: OrderItem[] }>>;
+  getVendorOrderStats(vendorId: number): Promise<{
+    totalOrders: number;
+    totalRevenue: string;
+    pendingOrders: number;
+    completedOrders: number;
   }>;
 }
 
@@ -411,6 +426,105 @@ export class VendorStorage implements IVendorStorage {
     return {
       showcaseProducts: showcaseResults,
       shopProducts: shopResults
+    };
+  }
+  
+  // ============================================================================
+  // VENDOR ORDERS MANAGEMENT
+  // ============================================================================
+  
+  async getVendorOrders(vendorId: number): Promise<Array<CustomerOrder & { items: OrderItem[] }>> {
+    // Get order items that reference vendor's showcase products
+    const showcaseOrderItems = await db
+      .select({
+        orderItem: orderItems,
+        productId: showcaseProducts.id
+      })
+      .from(orderItems)
+      .innerJoin(showcaseProducts, and(
+        eq(orderItems.productId, showcaseProducts.id),
+        eq(showcaseProducts.vendorId, vendorId)
+      ));
+    
+    // Get order items that reference vendor's shop products
+    const shopOrderItems = await db
+      .select({
+        orderItem: orderItems,
+        productId: shopProducts.id
+      })
+      .from(orderItems)
+      .innerJoin(shopProducts, and(
+        eq(orderItems.productId, shopProducts.id),
+        eq(shopProducts.vendorId, vendorId)
+      ));
+    
+    // Combine all vendor order items
+    const allVendorOrderItems = [
+      ...showcaseOrderItems.map(item => item.orderItem),
+      ...shopOrderItems.map(item => item.orderItem)
+    ];
+    
+    if (allVendorOrderItems.length === 0) {
+      return [];
+    }
+    
+    // Get unique order IDs
+    const orderIds = Array.from(new Set(allVendorOrderItems.map(item => item.orderId)));
+    
+    // Get all orders with these IDs
+    const orders = await db
+      .select()
+      .from(customerOrders)
+      .where(inArray(customerOrders.id, orderIds))
+      .orderBy(desc(customerOrders.createdAt));
+    
+    // Group items by order and attach to orders (only vendor's items)
+    const ordersWithItems = orders.map(order => {
+      const items = allVendorOrderItems.filter(item => item.orderId === order.id);
+      
+      return {
+        ...order,
+        items
+      };
+    });
+    
+    return ordersWithItems;
+  }
+  
+  async getVendorOrderStats(vendorId: number): Promise<{
+    totalOrders: number;
+    totalRevenue: string;
+    pendingOrders: number;
+    completedOrders: number;
+  }> {
+    const orders = await this.getVendorOrders(vendorId);
+    
+    // Calculate total revenue from vendor's items only
+    let totalRevenue = 0;
+    let pendingOrders = 0;
+    let completedOrders = 0;
+    
+    orders.forEach(order => {
+      // Sum only vendor's items in this order
+      const vendorItemsTotal = order.items.reduce((sum, item) => {
+        return sum + parseFloat(item.totalPrice.toString());
+      }, 0);
+      
+      totalRevenue += vendorItemsTotal;
+      
+      // Count order status
+      if (order.status === 'delivered' || order.status === 'completed') {
+        completedOrders++;
+      } else if (order.status !== 'cancelled') {
+        pendingOrders++;
+      }
+    });
+    
+    return {
+      totalOrders: orders.length,
+      totalRevenue: totalRevenue.toFixed(2),
+      pendingOrders,
+      completedOrders
     };
   }
 }
