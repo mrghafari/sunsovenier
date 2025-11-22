@@ -119,6 +119,9 @@ export default function VendorDashboard() {
     activeProducts: 0,
     totalOrders: 0,
     totalRevenue: 0,
+    recognizedRevenue: 0,
+    pendingOrders: 0,
+    completedOrders: 0,
   };
 
   return (
@@ -187,15 +190,15 @@ export default function VendorDashboard() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">درآمد</CardTitle>
+              <CardTitle className="text-sm font-medium">درآمد شناسایی شده</CardTitle>
               <DollarSign className="w-4 h-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {stats.totalRevenue?.toLocaleString()} IQD
+              <div className="text-2xl font-bold text-green-600">
+                {stats.recognizedRevenue?.toLocaleString()} IQD
               </div>
               <p className="text-xs text-muted-foreground">
-                کل درآمد
+                بعد از خروج از انبار
               </p>
             </CardContent>
           </Card>
@@ -387,11 +390,20 @@ export default function VendorDashboard() {
                       })}
                       
                       {/* Total Summary */}
-                      <div className="border-t pt-4 mt-4">
+                      <div className="border-t pt-4 mt-4 space-y-3">
                         <div className="flex justify-between items-center">
-                          <span className="text-lg font-semibold">مجموع درآمد از سفارشات:</span>
-                          <span className="text-2xl font-bold text-green-600" data-testid="total-revenue">
+                          <span className="text-base font-medium text-muted-foreground">کل درآمد سفارشات:</span>
+                          <span className="text-xl font-bold" data-testid="total-revenue">
                             {stats.totalRevenue?.toLocaleString()} IQD
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <div className="flex flex-col">
+                            <span className="text-lg font-semibold">درآمد شناسایی شده:</span>
+                            <span className="text-xs text-muted-foreground">(بعد از خروج از انبار)</span>
+                          </div>
+                          <span className="text-2xl font-bold text-green-600" data-testid="recognized-revenue">
+                            {stats.recognizedRevenue?.toLocaleString()} IQD
                           </span>
                         </div>
                       </div>
