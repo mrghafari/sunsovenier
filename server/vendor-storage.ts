@@ -16,6 +16,10 @@ import {
   type CustomerOrder,
   type OrderItem
 } from "@shared/customer-schema";
+import {
+  orderManagement,
+  orderStatuses
+} from "@shared/order-management-schema";
 import { db } from "./db";
 import { eq, desc, and, or, like, sql, count, inArray } from "drizzle-orm";
 import bcrypt from "bcryptjs";
@@ -494,13 +498,37 @@ export class VendorStorage implements IVendorStorage {
   async getVendorOrderStats(vendorId: number): Promise<{
     totalOrders: number;
     totalRevenue: string;
+    recognizedRevenue: string;
     pendingOrders: number;
     completedOrders: number;
   }> {
     const orders = await this.getVendorOrders(vendorId);
     
-    // Calculate total revenue from vendor's items only
+    // Get order management data for all vendor orders
+    const orderIds = orders.map(o => o.id);
+    const orderMgmt = await db
+      .select()
+      .from(orderManagement)
+      .where(inArray(orderManagement.customerOrderId, orderIds));
+    
+    // Create a map of order ID to current status
+    const statusMap = new Map(
+      orderMgmt.map(om => [om.customerOrderId, om.currentStatus])
+    );
+    
+    // Statuses that indicate warehouse exit (revenue recognition point)
+    const warehouseExitStatuses = [
+      orderStatuses.WAREHOUSE_APPROVED,
+      orderStatuses.LOGISTICS_ASSIGNED,
+      orderStatuses.LOGISTICS_PROCESSING,
+      orderStatuses.LOGISTICS_DISPATCHED,
+      orderStatuses.LOGISTICS_DELIVERED,
+      orderStatuses.COMPLETED
+    ];
+    
+    // Calculate total revenue and recognized revenue from vendor's items only
     let totalRevenue = 0;
+    let recognizedRevenue = 0;
     let pendingOrders = 0;
     let completedOrders = 0;
     
@@ -512,10 +540,18 @@ export class VendorStorage implements IVendorStorage {
       
       totalRevenue += vendorItemsTotal;
       
+      // Get current status from order management
+      const currentStatus = statusMap.get(order.id);
+      
+      // Recognize revenue only after warehouse exit
+      if (currentStatus && warehouseExitStatuses.includes(currentStatus as any)) {
+        recognizedRevenue += vendorItemsTotal;
+      }
+      
       // Count order status
-      if (order.status === 'delivered' || order.status === 'completed') {
+      if (currentStatus === orderStatuses.COMPLETED || currentStatus === orderStatuses.LOGISTICS_DELIVERED) {
         completedOrders++;
-      } else if (order.status !== 'cancelled') {
+      } else if (currentStatus !== orderStatuses.CANCELLED) {
         pendingOrders++;
       }
     });
@@ -523,6 +559,7 @@ export class VendorStorage implements IVendorStorage {
     return {
       totalOrders: orders.length,
       totalRevenue: totalRevenue.toFixed(2),
+      recognizedRevenue: recognizedRevenue.toFixed(2),
       pendingOrders,
       completedOrders
     };
