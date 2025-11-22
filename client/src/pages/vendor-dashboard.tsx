@@ -49,10 +49,10 @@ export default function VendorDashboard() {
     },
   });
 
-  // Fetch vendor orders - disabled for now (not implemented yet)
+  // Fetch vendor orders
   const { data: ordersData, isLoading: isLoadingOrders } = useQuery({
     queryKey: ["/api/vendors/orders"],
-    enabled: false, // Disabled - endpoint not implemented yet
+    enabled: !!vendorData?.user,
     queryFn: async () => {
       const response = await fetch("/api/vendors/orders");
       if (!response.ok) throw new Error("خطا در دریافت سفارشات");
@@ -298,46 +298,108 @@ export default function VendorDashboard() {
 
           {/* Orders Tab */}
           <TabsContent value="orders">
-            <Card>
-              <CardHeader>
-                <CardTitle>سفارشات</CardTitle>
-                <CardDescription>
-                  لیست سفارشات محصولات شما
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {isLoadingOrders ? (
-                  <div className="text-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
-                  </div>
-                ) : orders.length === 0 ? (
-                  <div className="text-center py-12">
-                    <ShoppingCart className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">هنوز سفارشی ثبت نشده است</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {orders.map((order: any) => (
-                      <div
-                        key={order.id}
-                        className="flex items-center justify-between p-4 border rounded-lg"
-                      >
-                        <div>
-                          <h3 className="font-medium">سفارش #{order.orderNumber}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {order.customerName}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-medium">{order.total?.toLocaleString()} IQD</p>
-                          <Badge>{order.status}</Badge>
+            <div className="space-y-6">
+              {/* Order Statistics */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">کل سفارشات</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{stats.totalOrders || 0}</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">سفارشات در حال پردازش</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-blue-600">{stats.pendingOrders || 0}</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">سفارشات تکمیل شده</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-green-600">{stats.completedOrders || 0}</div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Orders List */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>سفارشات اخیر</CardTitle>
+                  <CardDescription>
+                    لیست سفارشاتی که شامل محصولات شما هستند
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingOrders ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+                    </div>
+                  ) : orders.length === 0 ? (
+                    <div className="text-center py-12">
+                      <ShoppingCart className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">هنوز سفارشی ثبت نشده است</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {orders.map((order: any) => {
+                        // Calculate vendor's portion of this order
+                        const vendorTotal = order.items?.reduce((sum: number, item: any) => 
+                          sum + parseFloat(item.totalPrice || 0), 0) || 0;
+                        
+                        return (
+                          <div
+                            key={order.id}
+                            className="flex flex-col md:flex-row md:items-center md:justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                            data-testid={`order-${order.id}`}
+                          >
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <h3 className="font-medium">سفارش #{order.orderNumber}</h3>
+                                <Badge variant={
+                                  order.status === 'delivered' || order.status === 'completed' ? 'default' :
+                                  order.status === 'cancelled' ? 'destructive' :
+                                  'secondary'
+                                }>
+                                  {order.status}
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-muted-foreground mb-1">
+                                تاریخ: {new Date(order.createdAt).toLocaleDateString('fa-IR')}
+                              </p>
+                              <div className="text-sm text-muted-foreground">
+                                <span className="font-medium">{order.items?.length || 0}</span> محصول از شما در این سفارش
+                              </div>
+                            </div>
+                            <div className="text-right mt-3 md:mt-0">
+                              <p className="text-lg font-bold text-purple-600" data-testid={`order-total-${order.id}`}>
+                                {vendorTotal.toLocaleString()} IQD
+                              </p>
+                              <p className="text-xs text-muted-foreground">سهم شما از سفارش</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      
+                      {/* Total Summary */}
+                      <div className="border-t pt-4 mt-4">
+                        <div className="flex justify-between items-center">
+                          <span className="text-lg font-semibold">مجموع درآمد از سفارشات:</span>
+                          <span className="text-2xl font-bold text-green-600" data-testid="total-revenue">
+                            {stats.totalRevenue?.toLocaleString()} IQD
+                          </span>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           {/* Profile Tab */}
