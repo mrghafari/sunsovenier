@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>معماری سیستم Momtazchem</title>
+    <style>
+        @page {
+            margin: 2cm;
+            size: A4;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Tahoma', 'Arial', sans-serif;
+            line-height: 1.8;
+            color: #1a1a1a;
+            background: white;
+            direction: rtl;
+            text-align: right;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        h1 {
+            color: #2563eb;
+            font-size: 28px;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #2563eb;
+            page-break-after: avoid;
+        }
+        
+        h2 {
+            color: #1e40af;
+            font-size: 22px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            page-break-after: avoid;
+        }
+        
+        h3 {
+            color: #3730a3;
+            font-size: 18px;
+            margin-top: 20px;
+            margin-bottom: 12px;
+            page-break-after: avoid;
+        }
+        
+        h4 {
+            color: #4338ca;
+            font-size: 16px;
+            margin-top: 15px;
+            margin-bottom: 10px;
+            page-break-after: avoid;
+        }
+        
+        p {
+            margin-bottom: 12px;
+            text-align: justify;
+        }
+        
+        ul, ol {
+            margin: 15px 0 15px 30px;
+        }
+        
+        li {
+            margin-bottom: 8px;
+        }
+        
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #e5e7eb;
+            border-right: 4px solid #2563eb;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            page-break-inside: avoid;
+            direction: ltr;
+            text-align: left;
+        }
+        
+        .highlight {
+            background: #fef3c7;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        
+        .box {
+            background: #eff6ff;
+            border: 2px solid #3b82f6;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            page-break-inside: avoid;
+        }
+        
+        .box-title {
+            color: #1e40af;
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        
+        .warning {
+            background: #fef2f2;
+            border: 2px solid #ef4444;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            page-break-inside: avoid;
+        }
+        
+        .warning-title {
+            color: #dc2626;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .success {
+            background: #f0fdf4;
+            border: 2px solid #22c55e;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            page-break-inside: avoid;
+        }
+        
+        .diagram {
+            background: white;
+            border: 2px solid #d1d5db;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            page-break-inside: avoid;
+            direction: ltr;
+            white-space: pre;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            page-break-inside: avoid;
+        }
+        
+        th, td {
+            border: 1px solid #d1d5db;
+            padding: 12px;
+            text-align: right;
+        }
+        
+        th {
+            background: #3b82f6;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #e5e7eb;
+            text-align: center;
+            color: #6b7280;
+            font-size: 14px;
+        }
+        
+        .tech-badge {
+            display: inline-block;
+            background: #3b82f6;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 5px;
+            font-size: 13px;
+            margin: 3px;
+        }
+        
+        .page-break {
+            page-break-before: always;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏗️ معماری سیستم Momtazchem</h1>
+        <p style="font-size: 16px; color: #6b7280; margin-bottom: 30px;">
+            مستندات کامل معماری پلتفرم جامع مدیریت شیمیایی
+        </p>
+
+        <h2>📋 خلاصه اجرایی</h2>
+        <div class="box">
+            <div class="box-title">نوع معماری: Full-Stack Monolithic با تفکیک واضح لایه‌ها</div>
+            <p><strong>الگوی اصلی:</strong> MVC + Service Layer + Repository Pattern</p>
+            <p><strong>Stack Technology:</strong> MERN-like (TypeScript + React + Express + PostgreSQL)</p>
+            <p><strong>Database:</strong> PostgreSQL (Neon Cloud) + Drizzle ORM</p>
+            <p><strong>Authentication:</strong> Session-Based با PostgreSQL Store</p>
+        </div>
+
+        <h2>🎯 معماری کلی سیستم</h2>
+        <div class="diagram">┌─────────────────────────────────────────────────────────┐
+│                    CLIENT (Frontend)                     │
+│              React 18 + TypeScript + Vite               │
+└──────────────────────┬──────────────────────────────────┘
+                       │ HTTP/REST API
+┌──────────────────────▼──────────────────────────────────┐
+│                   SERVER (Backend)                       │
+│            Express.js + TypeScript + Node.js             │
+│  ┌──────────────┬──────────────┬──────────────────┐    │
+│  │   Routes     │   Storage    │    Services      │    │
+│  │  (API Layer) │  (Data Layer)│  (Business Logic)│    │
+│  └──────────────┴──────────────┴──────────────────┘    │
+└──────────────────────┬──────────────────────────────────┘
+                       │ SQL via Drizzle ORM
+┌──────────────────────▼──────────────────────────────────┐
+│                DATABASE (PostgreSQL)                     │
+│                   Neon Cloud Hosted                      │
+└─────────────────────────────────────────────────────────┘</div>
+
+        <h2>📁 ساختار پروژه (Project Structure)</h2>
+        
+        <h3>1. پوشه client/ - فرانت‌اند</h3>
+        <div class="code-block">client/
+├── src/
+│   ├── components/       # کامپوننت‌های قابل استفاده مجدد
+│   │   ├── ui/          # Shadcn/ui components
+│   │   ├── layout/      # Header, Footer, Sidebar
+│   │   └── ...          # Custom components
+│   ├── pages/           # صفحات اصلی برنامه
+│   │   ├── admin/       # پنل ادمین
+│   │   ├── customer/    # پنل مشتری
+│   │   ├── vendor/      # پنل فروشنده
+│   │   └── ...
+│   ├── lib/             # توابع کمکی
+│   │   ├── queryClient.ts  # TanStack Query setup
+│   │   └── utils.ts     # Helper functions
+│   ├── hooks/           # Custom React Hooks
+│   └── App.tsx          # Main app + routing
+└── public/              # فایل‌های استاتیک</div>
+
+        <h3>2. پوشه server/ - بک‌اند</h3>
+        <div class="code-block">server/
+├── routes.ts                    # 🔴 MAIN API ROUTES
+├── vendor-routes.ts             # API فروشندگان
+├── admin-vendor-routes.ts       # مدیریت فروشندگان
+├── auth-routes.ts               # Authentication
+├── *-storage.ts                 # 📦 Data Access Layer
+│   ├── customer-storage.ts
+│   ├── shop-storage.ts
+│   ├── vendor-storage.ts
+│   └── order-management-storage.ts
+├── *-service.ts                 # 🔧 Business Logic
+│   ├── email-service.ts
+│   ├── sms-service.ts
+│   └── aws-s3-service.ts
+├── *-auth.ts                    # 🔐 Authentication
+│   ├── admin-auth.ts
+│   ├── department-auth.ts
+│   └── vendor-middleware.ts
+├── index.ts                     # 🚀 Entry point
+└── db.ts                        # Database connection</div>
+
+        <h3>3. پوشه shared/ - اشتراکی</h3>
+        <div class="code-block">shared/
+├── schema.ts                    # Main schemas
+├── customer-schema.ts           # Customer & Orders
+├── shop-schema.ts              # E-commerce
+├── showcase-schema.ts          # Product showcase
+├── order-management-schema.ts  # Order workflow
+└── vendor-schema.ts            # Vendor marketplace</div>
+
+        <div class="page-break"></div>
+
+        <h2>🏗️ لایه‌های معماری</h2>
+
+        <h3>Layer 1: Frontend (React + TypeScript)</h3>
+        
+        <h4>تکنولوژی‌های استفاده شده:</h4>
+        <div style="margin: 15px 0;">
+            <span class="tech-badge">React 18</span>
+            <span class="tech-badge">TypeScript</span>
+            <span class="tech-badge">Vite</span>
+            <span class="tech-badge">Wouter</span>
+            <span class="tech-badge">TanStack Query v5</span>
+            <span class="tech-badge">React Hook Form</span>
+            <span class="tech-badge">Zod</span>
+            <span class="tech-badge">Tailwind CSS</span>
+            <span class="tech-badge">Shadcn/ui</span>
+            <span class="tech-badge">Framer Motion</span>
+            <span class="tech-badge">Lucide React</span>
+        </div>
+
+        <h4>الگوهای طراحی Frontend:</h4>
+        <ul>
+            <li><strong>Component Composition:</strong> کامپوننت‌های کوچک و قابل استفاده مجدد</li>
+            <li><strong>Custom Hooks:</strong> useAuth(), useToast(), useQuery(), useMutation()</li>
+            <li><strong>Server State vs Client State:</strong> TanStack Query برای server state</li>
+            <li><strong>Form Management:</strong> React Hook Form + Zod Validation</li>
+        </ul>
+
+        <div class="box">
+            <div class="box-title">نمونه کد: Form Management</div>
+            <div class="code-block">const form = useForm&lt;InsertProduct&gt;({
+  resolver: zodResolver(insertProductSchema),
+  defaultValues: {...}
+});
+
+&lt;Form {...form}&gt;
+  &lt;FormField
+    control={form.control}
+    name="productName"
+    render={({ field }) =&gt; (
+      &lt;FormItem&gt;
+        &lt;FormLabel&gt;نام محصول&lt;/FormLabel&gt;
+        &lt;FormControl&gt;
+          &lt;Input {...field} /&gt;
+        &lt;/FormControl&gt;
+      &lt;/FormItem&gt;
+    )}
+  /&gt;
+&lt;/Form&gt;</div>
+        </div>
+
+        <h3>Layer 2: API Routes (Express.js)</h3>
+
+        <h4>ساختار RESTful API:</h4>
+        <div class="code-block">// Pattern: RESTful API
+router.get('/api/products', async (req, res) => {...});
+router.post('/api/products', async (req, res) => {...});
+router.patch('/api/products/:id', async (req, res) => {...});
+router.delete('/api/products/:id', async (req, res) => {...});</div>
+
+        <h4>انواع Routes:</h4>
+        <table>
+            <thead>
+                <tr>
+                    <th>نوع Route</th>
+                    <th>توضیحات</th>
+                    <th>Authentication</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Public Routes</td>
+                    <td>دسترسی عمومی</td>
+                    <td>❌ خیر</td>
+                </tr>
+                <tr>
+                    <td>Customer Routes</td>
+                    <td>پنل مشتری</td>
+                    <td>✅ Customer Login</td>
+                </tr>
+                <tr>
+                    <td>Admin Routes</td>
+                    <td>پنل مدیریت</td>
+                    <td>✅ Admin Login</td>
+                </tr>
+                <tr>
+                    <td>Vendor Routes</td>
+                    <td>پنل فروشنده</td>
+                    <td>✅ Vendor Login</td>
+                </tr>
+                <tr>
+                    <td>Department Routes</td>
+                    <td>واحدهای مختلف</td>
+                    <td>✅ Department Access</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h4>Middleware Stack:</h4>
+        <ul>
+            <li><strong>requireAuth():</strong> بررسی ورود کاربر</li>
+            <li><strong>requireAdmin():</strong> بررسی دسترسی ادمین</li>
+            <li><strong>requireVendor():</strong> بررسی دسترسی فروشنده</li>
+            <li><strong>requireDepartment():</strong> بررسی دسترسی واحد</li>
+            <li><strong>upload.single('image'):</strong> آپلود فایل (Multer)</li>
+            <li><strong>validateRequest(schema):</strong> اعتبارسنجی (Zod)</li>
+        </ul>
+
+        <div class="page-break"></div>
+
+        <h3>Layer 3: Storage Layer (Data Access)</h3>
+
+        <div class="box">
+            <div class="box-title">الگوی Repository Pattern</div>
+            <p>هر فایل *-storage.ts یک Repository است که تمام عملیات دیتابیس یک domain را مدیریت می‌کند.</p>
+        </div>
+
+        <div class="code-block">// مثال: customer-storage.ts
+class CustomerStorage {
+  // CRUD Operations
+  async createCustomer(data: InsertCustomer): Promise&lt;Customer&gt;
+  async getCustomerById(id: number): Promise&lt;Customer | undefined&gt;
+  async updateCustomer(id: number, data: Partial&lt;Customer&gt;)
+  async deleteCustomer(id: number): Promise&lt;void&gt;
+  
+  // Business queries
+  async getCustomerOrders(customerId: number): Promise&lt;Order[]&gt;
+  async getCustomerWallet(customerId: number): Promise&lt;Wallet&gt;
+}</div>
+
+        <h4>مزایای الگوی Repository:</h4>
+        <div class="success">
+            <ul>
+                <li>✅ <strong>Separation of Concerns:</strong> منطق دیتابیس از routes جدا است</li>
+                <li>✅ <strong>Reusability:</strong> قابل استفاده در چند route</li>
+                <li>✅ <strong>Testability:</strong> راحت‌تر قابل تست</li>
+                <li>✅ <strong>Type Safety:</strong> TypeScript types برای همه عملیات</li>
+            </ul>
+        </div>
+
+        <h3>Layer 4: Service Layer (Business Logic)</h3>
+
+        <h4>سرویس‌های کلیدی:</h4>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>سرویس</th>
+                    <th>مسئولیت</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Email Service</td>
+                    <td>ارسال ایمیل‌های تایید، فاکتور، یادآوری</td>
+                </tr>
+                <tr>
+                    <td>SMS Service</td>
+                    <td>ارسال پیامک‌های اطلاع‌رسانی</td>
+                </tr>
+                <tr>
+                    <td>AWS S3 Service</td>
+                    <td>مدیریت فایل‌ها در فضای ابری</td>
+                </tr>
+                <tr>
+                    <td>Auto Approval Service</td>
+                    <td>تایید خودکار سفارشات بعد از 5 دقیقه</td>
+                </tr>
+                <tr>
+                    <td>Inventory Sync Service</td>
+                    <td>همگام‌سازی موجودی Kardex با Shop</td>
+                </tr>
+                <tr>
+                    <td>FIB Payment Service</td>
+                    <td>پرداخت آنلاین بانک عراق</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Layer 5: Database (PostgreSQL + Drizzle ORM)</h3>
+
+        <h4>طراحی Schema - Domain-Driven Design (DDD):</h4>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Schema File</th>
+                    <th>جداول اصلی</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>customer-schema.ts</td>
+                    <td>customers, customer_orders, order_items, customer_wallets</td>
+                </tr>
+                <tr>
+                    <td>shop-schema.ts</td>
+                    <td>shop_products, shop_categories, shop_settings</td>
+                </tr>
+                <tr>
+                    <td>showcase-schema.ts</td>
+                    <td>showcase_products, product_batches, inventory_movements</td>
+                </tr>
+                <tr>
+                    <td>order-management-schema.ts</td>
+                    <td>order_management, order_status_history</td>
+                </tr>
+                <tr>
+                    <td>vendor-schema.ts</td>
+                    <td>vendors, vendor_users</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="code-block">// Drizzle ORM Schema Definition
+export const customers = pgTable("customers", {
+  id: serial("id").primaryKey(),
+  fullName: text("full_name").notNull(),
+  email: text("email").unique(),
+  phoneNumber: text("phone_number").notNull(),
+  passwordHash: text("password_hash").notNull(),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+// Drizzle Query
+const customer = await db
+  .select()
+  .from(customers)
+  .where(eq(customers.email, email))
+  .limit(1);</div>
+
+        <div class="page-break"></div>
+
+        <h2>🔐 معماری Authentication & Authorization</h2>
+
+        <h3>Session-Based Authentication:</h3>
+        <div class="code-block">// Express Session + PostgreSQL Store
+app.use(session({
+  store: new (connectPg(session))({
+    pool: db,
+    tableName: 'user_sessions'
+  }),
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: false,  // true در production
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));</div>
+
+        <h3>Multi-Role Authentication:</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>نوع کاربر</th>
+                    <th>Login Endpoint</th>
+                    <th>Session Key</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>مشتری</td>
+                    <td>/api/customers/login</td>
+                    <td>req.session.customerId</td>
+                </tr>
+                <tr>
+                    <td>ادمین</td>
+                    <td>/api/admin/login</td>
+                    <td>req.session.adminId</td>
+                </tr>
+                <tr>
+                    <td>فروشنده</td>
+                    <td>/api/vendors/login</td>
+                    <td>req.session.vendorId</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="warning">
+            <div class="warning-title">⚠️ نکته امنیتی مهم:</div>
+            <p>در سیستم Multi-Vendor، همیشه باید با <span class="highlight">vendorId</span> فیلتر کنید تا Cross-Vendor Data Leakage رخ ندهد!</p>
+        </div>
+
+        <h2>🛒 معماری E-Commerce Workflow</h2>
+
+        <h3>Order Processing Pipeline:</h3>
+        <div class="diagram">1. Customer Cart
+        ↓
+2. Checkout
+        ↓
+3. Payment (Bank Gateway / Wallet / Bank Transfer)
+        ↓
+4. Order Created
+        ↓
+5. Order Management Workflow:
+   ├─ Financial Review (تایید مالی)
+   │     ↓
+   ├─ Warehouse Processing (پردازش انبار)
+   │     ↓
+   └─ Logistics Delivery (تحویل)
+        ↓
+6. Order Completed</div>
+
+        <h3>Order Management States:</h3>
+        <ul>
+            <li><strong>Payment:</strong> pending_payment, payment_uploaded</li>
+            <li><strong>Financial:</strong> financial_reviewing, financial_approved</li>
+            <li><strong>Warehouse:</strong> warehouse_pending, warehouse_approved</li>
+            <li><strong>Logistics:</strong> logistics_dispatched, logistics_delivered</li>
+            <li><strong>Final:</strong> completed, cancelled</li>
+        </ul>
+
+        <div class="page-break"></div>
+
+        <h2>🏪 معماری Multi-Vendor Marketplace</h2>
+
+        <h3>الگوی Vendor Isolation:</h3>
+
+        <div class="warning">
+            <div class="warning-title">🔒 امنیت = اولویت اول!</div>
+            <p>همیشه از INNER JOIN با vendorId استفاده کنید تا فقط داده‌های مربوط به آن vendor نمایش داده شود.</p>
+        </div>
+
+        <div class="code-block">// ✅ SECURE: INNER JOIN با vendorId
+const vendorProducts = await db
+  .select()
+  .from(shopProducts)
+  .innerJoin(vendors, and(
+    eq(shopProducts.vendorId, vendors.id),
+    eq(vendors.id, req.session.vendorId)
+  ));
+
+// ❌ INSECURE: بدون فیلتر vendorId
+const allProducts = await db
+  .select()
+  .from(shopProducts); // همه محصولات!</div>
+
+        <h3>شناسایی درآمد فروشنده (Revenue Recognition):</h3>
+
+        <div class="box">
+            <div class="box-title">منطق کسب‌وکار جدید</div>
+            <p>درآمد فروشنده فقط بعد از <strong>خروج از انبار</strong> شناسایی می‌شود.</p>
+        </div>
+
+        <div class="code-block">// وضعیت‌های شناسایی درآمد
+const warehouseExitStatuses = [
+  'warehouse_approved',
+  'logistics_assigned',
+  'logistics_dispatched',
+  'logistics_delivered',
+  'completed'
+];
+
+// محاسبه درآمد شناسایی شده
+if (warehouseExitStatuses.includes(orderStatus)) {
+  recognizedRevenue += vendorItemsTotal;
+}</div>
+
+        <h2>📦 معماری File Storage</h2>
+
+        <h3>AWS S3 Integration - سه سطح امنیت:</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>سطح</th>
+                    <th>نوع فایل</th>
+                    <th>دسترسی</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1. Public</td>
+                    <td>تصاویر محصول، کاتالوگ</td>
+                    <td>URL مستقیم S3</td>
+                </tr>
+                <tr>
+                    <td>2. Protected</td>
+                    <td>فیش پرداخت</td>
+                    <td>Signed URL با expiry</td>
+                </tr>
+                <tr>
+                    <td>3. Sensitive</td>
+                    <td>اسناد داخلی، پروسیجرها</td>
+                    <td>Pre-signed URL + Auth</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>File Upload Flow:</h3>
+        <div class="diagram">User Upload
+    ↓
+Multer Middleware
+    ↓
+Virus Scan (ClamAV)
+    ↓
+S3 Upload
+    ↓
+Save URL in Database</div>
+
+        <h2>🌍 معماری Multilingual</h2>
+
+        <h3>استراتژی i18n:</h3>
+        <ul>
+            <li><strong>Frontend:</strong> تغییر دینامیک متن</li>
+            <li><strong>Database:</strong> ستون‌های چندزبانه (nameEn, nameAr, nameKu, nameTr)</li>
+            <li><strong>RTL/LTR Support:</strong> Tailwind CSS direction utilities</li>
+        </ul>
+
+        <div class="code-block">// نمونه ساختار چندزبانه در دیتابیس
+{
+  nameEn: "Product Name",
+  nameAr: "اسم المنتج",
+  nameKu: "ناوی بەرهەم",
+  nameTr: "Ürün Adı"
+}</div>
+
+        <h2>⚡ ویژگی‌های Real-Time</h2>
+
+        <h3>WebRTC برای GPS Tracking:</h3>
+        <ul>
+            <li>Socket.IO برای real-time communication</li>
+            <li>GPS coordinates: راننده → سرور → پنل لجستیک</li>
+        </ul>
+
+        <h3>Database Triggers:</h3>
+        <div class="code-block">-- همگام‌سازی خودکار
+CREATE TRIGGER sync_order_management_realtime
+AFTER UPDATE ON customer_orders
+FOR EACH ROW
+EXECUTE FUNCTION sync_order_management_realtime();</div>
+
+        <div class="page-break"></div>
+
+        <h2>🔧 ابزارها و شیوه‌های توسعه</h2>
+
+        <h3>TypeScript Configuration:</h3>
+        <ul>
+            <li>Strict mode enabled</li>
+            <li>Path aliases: @/, @shared/, @server/</li>
+        </ul>
+
+        <h3>اصول کدنویسی:</h3>
+        <div class="success">
+            <ul>
+                <li>✅ <strong>DRY Principle:</strong> تکرار کد ممنوع</li>
+                <li>✅ <strong>Single Responsibility:</strong> هر فایل یک مسئولیت</li>
+                <li>✅ <strong>Dependency Injection:</strong> Services قابل تعویض</li>
+                <li>✅ <strong>Type Safety:</strong> استفاده کامل از TypeScript</li>
+            </ul>
+        </div>
+
+        <h3>Error Handling Pattern:</h3>
+        <div class="code-block">try {
+  // Business logic
+  const result = await storage.getData();
+  res.json({ success: true, data: result });
+} catch (error) {
+  console.error('[ERROR]', error);
+  res.status(500).json({ 
+    error: 'خطای سرور',
+    details: process.env.NODE_ENV === 'development' 
+      ? error.message 
+      : undefined
+  });
+}</div>
+
+        <h2>🎨 معماری UI/UX</h2>
+
+        <h3>Design System:</h3>
+        <ul>
+            <li><strong>Shadcn/ui Components:</strong> یکپارچگی visual</li>
+            <li><strong>Tailwind Utility Classes:</strong> سرعت در توسعه</li>
+            <li><strong>Dark Mode Support:</strong> با next-themes</li>
+            <li><strong>Responsive Design:</strong> Mobile-first approach</li>
+            <li><strong>RTL/LTR Support:</strong> پشتیبانی کامل از راست‌چین و چپ‌چین</li>
+        </ul>
+
+        <h2>📊 خلاصه Stack Technology</h2>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>لایه</th>
+                    <th>تکنولوژی‌های اصلی</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Frontend</td>
+                    <td>React 18, TypeScript, Vite, TanStack Query, Tailwind CSS, Shadcn/ui</td>
+                </tr>
+                <tr>
+                    <td>Backend</td>
+                    <td>Node.js, Express.js, TypeScript</td>
+                </tr>
+                <tr>
+                    <td>Database</td>
+                    <td>PostgreSQL (Neon), Drizzle ORM</td>
+                </tr>
+                <tr>
+                    <td>Authentication</td>
+                    <td>Express Session, Bcrypt, Passport.js</td>
+                </tr>
+                <tr>
+                    <td>File Storage</td>
+                    <td>AWS S3</td>
+                </tr>
+                <tr>
+                    <td>Email</td>
+                    <td>Nodemailer + Zoho SMTP</td>
+                </tr>
+                <tr>
+                    <td>Payment</td>
+                    <td>First Iraqi Bank (FIB) SDK</td>
+                </tr>
+                <tr>
+                    <td>PDF Generation</td>
+                    <td>Puppeteer, PDFKit, pdfMake</td>
+                </tr>
+                <tr>
+                    <td>Real-time</td>
+                    <td>Socket.IO, WebRTC</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>🎯 نتیجه‌گیری</h2>
+
+        <div class="box">
+            <p>این معماری یک سیستم <strong>مقیاس‌پذیر، امن، و قابل نگهداری</strong> را فراهم می‌کند که:</p>
+            <ul style="margin-top: 10px;">
+                <li>✅ از بهترین روش‌های صنعت (Best Practices) استفاده می‌کند</li>
+                <li>✅ تفکیک واضح مسئولیت‌ها (Separation of Concerns) دارد</li>
+                <li>✅ قابلیت توسعه و نگهداری آسان</li>
+                <li>✅ امنیت در تمام لایه‌ها رعایت شده</li>
+                <li>✅ پشتیبانی کامل از چند زبان و چند فروشنده</li>
+            </ul>
+        </div>
+
+        <div class="footer">
+            <p><strong>سیستم Momtazchem Chemical Solutions Platform</strong></p>
+            <p>مستندات معماری فنی - نسخه 1.0</p>
+            <p>تاریخ: نوامبر 2024</p>
+        </div>
+    </div>
+</body>
+</html>
