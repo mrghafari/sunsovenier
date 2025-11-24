@@ -151,6 +151,7 @@ import VendorRegistration from "@/pages/vendor-registration";
 import VendorLogin from "@/pages/vendor-login";
 import VendorDashboard from "@/pages/vendor-dashboard";
 import VendorAddProduct from "@/pages/vendor-add-product";
+import VendorEditProduct from "@/pages/vendor-edit-product";
 import VendorPortal from "@/pages/vendor-portal";
 import VehicleHistoryPage from "@/pages/admin/vehicle-history";
 import BlogManagement from "@/pages/admin/blog-management";
@@ -179,6 +180,7 @@ function Router() {
           <Route path="/vendor/login" component={VendorLogin} />
           <Route path="/vendor/dashboard" component={VendorDashboard} />
           <Route path="/vendor/products/new" component={VendorAddProduct} />
+          <Route path="/vendor/products/edit/:id" component={VendorEditProduct} />
           <Route path="/blog" component={Blog} />
           <Route path="/blog/:slug" component={BlogPost} />
           <Route path="/payment-options" component={PaymentOptionsPage} />
