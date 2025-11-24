@@ -93,6 +93,8 @@ export const showcaseProducts = pgTable("showcase_products", {
   model3dKey: text("model3d_key"), // S3 key for 3D model file (GLB/GLTF format)
   model3dFileName: text("model3d_file_name"), // Original filename for display
   model3dUploadDate: timestamp("model3d_upload_date"), // When 3D model was uploaded
+  // Transportation temperature requirements
+  transportationTemperature: text("transportation_temperature"), // frozen, chilled, cool, dry (ambient)
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
