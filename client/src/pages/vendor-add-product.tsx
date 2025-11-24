@@ -203,13 +203,14 @@ export default function VendorAddProduct() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>دمای حمل کالا</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || undefined}>
+                        <Select onValueChange={field.onChange} value={field.value || "none"}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="بدون محدودیت" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
+                            <SelectItem value="none">⚪ بدون محدودیت دمایی</SelectItem>
                             <SelectItem value="frozen">🧊 منجمد (Frozen): -18°C تا 0°C</SelectItem>
                             <SelectItem value="chilled">❄️ خنک (Chilled): +2°C تا +8°C</SelectItem>
                             <SelectItem value="cool">🌡️ خنک (Cool): +8°C تا +15°C</SelectItem>
