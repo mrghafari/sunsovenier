@@ -75,6 +75,8 @@ const formSchema = insertShowcaseProductSchema.extend({
   isNonChemical: z.boolean().default(false),
   // Flammable product flag
   isFlammable: z.boolean().default(false),
+  // Transportation temperature
+  transportationTemperature: z.string().optional(),
   // Display Mode fields
   displayMode: z.enum(['images', '3d_model']).default('images'),
   model3dKey: z.string().optional(),
@@ -625,6 +627,8 @@ export default function ProductsPage() {
       isNonChemical: false,
       // Flammable product flag
       isFlammable: false,
+      // Transportation temperature
+      transportationTemperature: "",
       // Display Mode fields
       displayMode: "images" as const,
       model3dKey: "",
@@ -1161,6 +1165,7 @@ export default function ProductsPage() {
       showWhenOutOfStock: product.showWhenOutOfStock ?? false,
       isNonChemical: product.isNonChemical ?? false,
       isFlammable: product.isFlammable ?? false,
+      transportationTemperature: product.transportationTemperature || "",
       isActive: product.isActive !== false,
     });
     
@@ -1807,6 +1812,17 @@ export default function ProductsPage() {
                               <span>{parseFloat(product.weight).toFixed(1)} {product.weightUnit || 'kg'}</span>
                             </div>
                           )}
+                          {product.transportationTemperature && (
+                            <div className="flex items-center gap-1">
+                              <span className="font-medium">دمای حمل:</span>
+                              <span>
+                                {product.transportationTemperature === 'frozen' && '🧊 منجمد (-18°C تا 0°C)'}
+                                {product.transportationTemperature === 'chilled' && '❄️ خنک (+2°C تا +8°C)'}
+                                {product.transportationTemperature === 'cool' && '🌡️ خنک (+8°C تا +15°C)'}
+                                {product.transportationTemperature === 'dry' && '🌤️ دمای محیط (15°C تا 25°C)'}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       )}
 
@@ -1975,6 +1991,30 @@ export default function ProductsPage() {
                             className="border-orange-400"
                           />
                         </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="transportationTemperature"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-medium">دمای حمل کالا</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || ""}>
+                          <FormControl>
+                            <SelectTrigger className="h-9">
+                              <SelectValue placeholder="انتخاب دمای حمل" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="">بدون محدودیت دمایی</SelectItem>
+                            <SelectItem value="frozen">🧊 منجمد (Frozen): -18°C تا 0°C</SelectItem>
+                            <SelectItem value="chilled">❄️ خنک (Chilled): +2°C تا +8°C</SelectItem>
+                            <SelectItem value="cool">🌡️ خنک (Cool): +8°C تا +15°C</SelectItem>
+                            <SelectItem value="dry">🌤️ دمای محیط (Dry): 15°C تا 25°C</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </FormItem>
                     )}
                   />
