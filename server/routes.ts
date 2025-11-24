@@ -444,6 +444,51 @@ const requireProductManagerAuth = async (req: Request, res: Response, next: Next
   });
 };
 
+// 🔒 VENDOR SECURITY HELPERS
+// Helper to get vendorId from session (for vendor marketplace)
+async function getVendorIdFromSession(req: Request): Promise<number | null> {
+  if (!req.session?.vendorUserId) {
+    return null;
+  }
+  
+  try {
+    const vendorUser = await db
+      .select({ vendorId: vendorUsers.vendorId })
+      .from(vendorUsers)
+      .where(eq(vendorUsers.id, req.session.vendorUserId))
+      .limit(1);
+    
+    if (vendorUser && vendorUser.length > 0) {
+      return vendorUser[0].vendorId;
+    }
+  } catch (err) {
+    console.error("Error fetching vendor ID from session:", err);
+  }
+  
+  return null;
+}
+
+// Helper to verify vendor owns a product (for PATCH/DELETE operations)
+async function verifyVendorOwnsProduct(req: Request, productId: number): Promise<boolean> {
+  // Admin has full access
+  if (req.session?.isAuthenticated && req.session?.adminId) {
+    return true;
+  }
+  
+  // Vendor must own the product
+  const vendorId = await getVendorIdFromSession(req);
+  if (!vendorId) {
+    return false;
+  }
+  
+  const product = await storage.getProductById(productId);
+  if (!product) {
+    return false;
+  }
+  
+  return product.vendorId === vendorId;
+}
+
 // Customer authentication middleware with improved error handling
 
 
@@ -4410,13 +4455,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`✅ New batch registration: Barcode ${barcode} + Batch ${productData.batchNumber || 'No Batch'} + Stock ${productData.stockQuantity || 0}`);
       
       // Detect vendor_id from session (for vendor marketplace)
-      let vendorId: number | null = null;
-      if (req.session?.vendorUserId && !req.session?.isSuperAdmin) {
-        // Regular vendor creating their product
-        vendorId = Number(req.session.vendorUserId);
+      // Detect vendor_id from session (for vendor marketplace)
+      const vendorId: number | null = await getVendorIdFromSession(req);
+      if (vendorId) {
         console.log(`🏪 [VENDOR PRODUCT] Creating product for vendor ID: ${vendorId}`);
       }
-      // Super admin or normal admin: vendorId stays null (company products)
+      // Admin or normal admin: vendorId stays null (company products)
       
       // Create product in showcase_products table (کاردکس)
       const showcaseProductData = {
@@ -4482,11 +4526,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { category } = req.query;
       let products;
       
-      // Use showcase_products table for admin products interface
+      // Check if vendor is authenticated via vendor session
+      const isVendorRequest = !!req.session?.vendorUserId;
+      let vendorId: number | undefined;
+      
+      if (isVendorRequest) {
+        // Get vendor ID from vendor_users table
+        try {
+          const vendorUser = await db
+            .select()
+            .from(vendorUsers)
+            .where(eq(vendorUsers.id, req.session.vendorUserId))
+            .limit(1);
+          
+          if (vendorUser && vendorUser.length > 0) {
+            vendorId = vendorUser[0].vendorId;
+            console.log(`🏪 [VENDOR PRODUCTS] Vendor ${vendorId} accessing products`);
+          }
+        } catch (err) {
+          console.error("Error fetching vendor user:", err);
+        }
+      }
+      
+      // Use showcase_products table for admin/vendor products interface
       if (category && typeof category === 'string') {
         products = await storage.getProductsByCategory(category);
       } else {
         products = await storage.getProducts();
+      }
+      
+      // 🔒 SECURITY: Filter products by vendorId if vendor is making request
+      if (isVendorRequest && vendorId) {
+        products = products.filter(p => p.vendorId === vendorId);
+        console.log(`🔒 [VENDOR FILTER] Showing ${products.length} products for vendor ${vendorId}`);
       }
       
       // Enrich products with vendor information
@@ -4598,12 +4670,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: "Invalid product ID" 
         });
       }
+      const hasOwnership = await verifyVendorOwnsProduct(req, id);
+      if (!hasOwnership) {
+        console.log(`🚫 [VENDOR SECURITY] Vendor attempted to modify product they dont own: ${id}`);
+        return res.status(403).json({
+          success: false,
+          message: "شما مجاز به ویرایش این محصول نیستید"
+        });
+      }
 
-      const productData = req.body;
       
       // Handle batch addition requests (skip all validations except batch-specific ones)
       const isBatchAddition = productData.inventoryAddition && productData.newBatchNumber;
-      
+      const productData = req.body;
       if (isBatchAddition) {
         // Get old product data for batch creation
         const oldProduct = await storage.getProductById(id);
@@ -5220,11 +5299,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // 🔒 SECURITY: Verify vendor owns this product
+      const hasOwnership = await verifyVendorOwnsProduct(req, id);
+      if (!hasOwnership) {
+        console.log(`🚫 [VENDOR SECURITY] Vendor attempted to delete product they dont own: ${id}`);
+        return res.status(403).json({
+          success: false,
+          message: "شما مجاز به حذف این محصول نیستید"
+        });
+      }
+
       // Get product name before deletion for shop cleanup
       const productToDelete = await storage.getProductById(id);
-      
-      // Delete from showcase products (admin interface)
-      await storage.deleteProduct(id);
       
       // Also remove from shop if it exists there (by barcode matching for better accuracy)
       if (productToDelete) {
