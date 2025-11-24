@@ -1812,7 +1812,7 @@ export default function ProductsPage() {
                               <span>{parseFloat(product.weight).toFixed(1)} {product.weightUnit || 'kg'}</span>
                             </div>
                           )}
-                          {product.transportationTemperature && (
+                          {product.transportationTemperature && product.transportationTemperature !== 'none' && (
                             <div className="flex items-center gap-1">
                               <span className="font-medium">دمای حمل:</span>
                               <span>
@@ -2001,13 +2001,14 @@ export default function ProductsPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-sm font-medium">دمای حمل کالا</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || undefined}>
+                        <Select onValueChange={field.onChange} value={field.value || "none"}>
                           <FormControl>
                             <SelectTrigger className="h-9">
                               <SelectValue placeholder="بدون محدودیت" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
+                            <SelectItem value="none">⚪ بدون محدودیت دمایی</SelectItem>
                             <SelectItem value="frozen">🧊 منجمد (Frozen): -18°C تا 0°C</SelectItem>
                             <SelectItem value="chilled">❄️ خنک (Chilled): +2°C تا +8°C</SelectItem>
                             <SelectItem value="cool">🌡️ خنک (Cool): +8°C تا +15°C</SelectItem>
