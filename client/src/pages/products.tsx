@@ -2001,14 +2001,13 @@ export default function ProductsPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-sm font-medium">دمای حمل کالا</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || ""}>
+                        <Select onValueChange={field.onChange} value={field.value || undefined}>
                           <FormControl>
                             <SelectTrigger className="h-9">
-                              <SelectValue placeholder="انتخاب دمای حمل" />
+                              <SelectValue placeholder="بدون محدودیت" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="">بدون محدودیت دمایی</SelectItem>
                             <SelectItem value="frozen">🧊 منجمد (Frozen): -18°C تا 0°C</SelectItem>
                             <SelectItem value="chilled">❄️ خنک (Chilled): +2°C تا +8°C</SelectItem>
                             <SelectItem value="cool">🌡️ خنک (Cool): +8°C تا +15°C</SelectItem>
