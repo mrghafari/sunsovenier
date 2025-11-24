@@ -1,0 +1,46 @@
+🚀 Starting complete migration to Amazon S3...
+
+🔧 Initializing S3 service...
+✅ AWS S3 Client initialized successfully
+✅ AWS S3 Service initialized from database
+✅ S3 service ready
+
+📚 MIGRATING CATALOGS...
+
+   Found 1 products with catalogs
+  🔄 Migrating catalog for product 501: /uploads/catalogs/catalog-1753205405002-922660167.pdf
+  ❌ Failed: Request failed with status code 404
+
+📋 MIGRATING MSDS FILES...
+
+   Found 1 products with MSDS files
+  ✅ Already in S3: https://momtazchem.s3.eu-central-1.amazonaws.com/msds/1762286033276-6b50bd2908eed155.pdf
+  🔄 Converted to local URL: /uploads/msds/1762286033276-6b50bd2908eed155.pdf
+
+💰 MIGRATING PAYMENT RECEIPTS...
+
+   Found 3 orders with payment receipts
+  🔄 Migrating receipt for order 307: /replit-objstore-856cec4a-23d1-4681-8212-8745c0b8fd08/.private/uploads/9105cd8d-14c3-4c19-bdb9-04515c8c86e4
+✅ File uploaded successfully to S3: payment-receipts/1762286365731-8c0883c3101a6be5.private/uploads/9105cd8d-14c3-4c19-bdb9-04515c8c86e4
+  ✅ Migrated receipt for order 307: /uploads/receipts/9105cd8d-14c3-4c19-bdb9-04515c8c86e4
+  🔄 Migrating receipt for order 298: /replit-objstore-856cec4a-23d1-4681-8212-8745c0b8fd08/.private/uploads/c21330f6-5a1d-4ad6-8032-904860538425
+✅ File uploaded successfully to S3: payment-receipts/1762286366413-f0ded0ada0f09ece.private/uploads/c21330f6-5a1d-4ad6-8032-904860538425
+  ✅ Migrated receipt for order 298: /uploads/receipts/c21330f6-5a1d-4ad6-8032-904860538425
+  🔄 Migrating receipt for order 352: /replit-objstore-856cec4a-23d1-4681-8212-8745c0b8fd08/.private/uploads/33be07c8-89f8-4ac6-9299-4b27ddb77d57
+✅ File uploaded successfully to S3: payment-receipts/1762286366600-8f450c32b5b3c52b.private/uploads/33be07c8-89f8-4ac6-9299-4b27ddb77d57
+  ✅ Migrated receipt for order 352: /uploads/receipts/33be07c8-89f8-4ac6-9299-4b27ddb77d57
+
+📄 Migration report saved to: complete-migration-report.json
+
+============================================================
+📊 COMPLETE MIGRATION SUMMARY
+============================================================
+Total files processed: 5
+✅ Successfully migrated: 3
+❌ Failed: 1
+
+⚠️  Errors (1):
+   1. Catalog 501: Request failed with status code 404
+============================================================
+
+✅ Migration completed!
