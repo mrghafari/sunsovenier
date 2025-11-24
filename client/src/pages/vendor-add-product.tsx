@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
@@ -21,6 +22,7 @@ const productSchema = z.object({
   stockQuantity: z.number().min(0, "موجودی نمی‌تواند منفی باشد"),
   unitPrice: z.number().min(0, "قیمت نمی‌تواند منفی باشد"),
   description: z.string().optional(),
+  transportationTemperature: z.string().optional(),
 });
 
 type ProductForm = z.infer<typeof productSchema>;
@@ -39,6 +41,7 @@ export default function VendorAddProduct() {
       stockQuantity: 0,
       unitPrice: 0,
       description: "",
+      transportationTemperature: "",
     },
   });
 
@@ -189,6 +192,30 @@ export default function VendorAddProduct() {
                             onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                           />
                         </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="transportationTemperature"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>دمای حمل کالا</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="انتخاب دمای حمل" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="frozen">منجمد (Frozen): -18°C تا 0°C</SelectItem>
+                            <SelectItem value="chilled">خنک (Chilled): +2°C تا +8°C</SelectItem>
+                            <SelectItem value="cool">خنک (Cool): +8°C تا +15°C</SelectItem>
+                            <SelectItem value="dry">دمای محیط (Dry): 15°C تا 25°C</SelectItem>
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
