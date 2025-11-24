@@ -480,6 +480,52 @@ export function createVendorRouter() {
     }
   });
 
+  // Get single product (vendor must own the product)
+  router.get("/products/:id", ...vendorAuth, async (req, res) => {
+    try {
+      if (!req.vendorUser) {
+        return res.status(401).json({
+          success: false,
+          message: "Not authenticated"
+        });
+      }
+
+      const productId = parseInt(req.params.id);
+      const { db } = await import("./db");
+      const { showcaseProducts: products } = await import("@shared/showcase-schema");
+      const { eq, and } = await import("drizzle-orm");
+
+      // Get product and verify ownership
+      const [product] = await db
+        .select()
+        .from(products)
+        .where(
+          and(
+            eq(products.id, productId),
+            eq(products.vendorId, req.vendorUser.vendorId)
+          )
+        );
+
+      if (!product) {
+        return res.status(404).json({
+          success: false,
+          message: "Product not found"
+        });
+      }
+
+      res.json({
+        success: true,
+        product
+      });
+    } catch (error: any) {
+      console.error("Error fetching product:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error fetching product"
+      });
+    }
+  });
+
   // Create new product (uses main products table like admin does)
   router.post("/products", ...vendorProductAuth, async (req, res) => {
     try {
@@ -520,6 +566,68 @@ export function createVendorRouter() {
       res.status(500).json({
         success: false,
         message: error.message || "Error creating product"
+      });
+    }
+  });
+
+  // Update product (vendor must own the product)
+  router.patch("/products/:id", ...vendorProductAuth, async (req, res) => {
+    try {
+      if (!req.vendorUser) {
+        return res.status(401).json({
+          success: false,
+          message: "Not authenticated"
+        });
+      }
+
+      const productId = parseInt(req.params.id);
+      const { db } = await import("./db");
+      const { showcaseProducts: products } = await import("@shared/showcase-schema");
+      const { eq, and } = await import("drizzle-orm");
+
+      // Verify product belongs to this vendor
+      const [existingProduct] = await db
+        .select()
+        .from(products)
+        .where(
+          and(
+            eq(products.id, productId),
+            eq(products.vendorId, req.vendorUser.vendorId)
+          )
+        );
+
+      if (!existingProduct) {
+        return res.status(404).json({
+          success: false,
+          message: "Product not found or you don't have permission to edit it"
+        });
+      }
+
+      // Extract product data from body and IGNORE any vendorId sent by client
+      const { vendorId: _ignored, id: _id, createdAt: _createdAt, ...bodyData } = req.body;
+      
+      // Update the product
+      const updateData = {
+        ...bodyData,
+        updatedAt: new Date()
+      };
+
+      const [product] = await db
+        .update(products)
+        .set(updateData)
+        .where(eq(products.id, productId))
+        .returning();
+
+      res.json({
+        success: true,
+        message: "Product updated successfully",
+        product
+      });
+    } catch (error: any) {
+      console.error("Error updating product:", error);
+      res.status(500).json({
+        success: false,
+        message: error.message || "Error updating product"
       });
     }
   });
