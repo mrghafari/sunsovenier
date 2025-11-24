@@ -1,0 +1,701 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Momtazchem - Leading Chemical Solutions Provider</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        'primary': '#1565C0',
+                        'primary-dark': '#0D47A1',
+                        'secondary': '#2E7D32',
+                        'secondary-dark': '#1B5E20',
+                        'accent': '#FF6F00',
+                        'accent-dark': '#E65100',
+                    }
+                }
+            }
+        };
+    </script>
+</head>
+<body class="font-inter bg-gray-50">
+    <!-- @COMPONENT: Header [navigation, logo, contact info] -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center">
+                    <div class="text-2xl font-bold text-primary">
+                        <span class="text-secondary">Momtaz</span><span class="text-primary">chem</span>
+                    </div>
+                </div>
+                
+                <nav class="hidden md:flex space-x-8">
+                    <a href="#home" class="text-gray-700 hover:text-primary transition-colors duration-200 font-medium">Home</a>
+                    <div class="relative group">
+                        <a href="#products" class="text-gray-700 hover:text-primary transition-colors duration-200 font-medium flex items-center">
+                            Products <i class="fas fa-chevron-down ml-1 text-xs"></i>
+                        </a>
+                        <div class="absolute top-full left-0 mt-2 w-64 bg-white shadow-lg rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                            <div class="py-2">
+                                <a href="#fuel-additives" class="block px-4 py-2 text-gray-700 hover:bg-gray-50 hover:text-primary">Fuel Additives</a>
+                                <a href="#water-treatment" class="block px-4 py-2 text-gray-700 hover:bg-gray-50 hover:text-primary">Water Treatment</a>
+                                <a href="#paint-thinner" class="block px-4 py-2 text-gray-700 hover:bg-gray-50 hover:text-primary">Paint & Thinner</a>
+                                <a href="#agricultural-fertilizers" class="block px-4 py-2 text-gray-700 hover:bg-gray-50 hover:text-primary">Agricultural Fertilizers</a>
+                            </div>
+                        </div>
+                    </div>
+                    <a href="#about" class="text-gray-700 hover:text-primary transition-colors duration-200 font-medium">About</a>
+                    <a href="#services" class="text-gray-700 hover:text-primary transition-colors duration-200 font-medium">Services</a>
+                    <a href="#contact" class="text-gray-700 hover:text-primary transition-colors duration-200 font-medium">Contact</a>
+                </nav>
+
+                <div class="hidden lg:flex items-center space-x-4">
+                    <div class="text-sm text-gray-600">
+                        <i class="fas fa-phone text-primary mr-2"></i>
+                        <span data-bind="company.phone">+1 (555) 123-4567</span>
+                    </div>
+                    <button class="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary-dark transition-colors duration-200 font-medium">
+                        Get Quote
+                    </button>
+                </div>
+
+                <!-- Mobile menu button -->
+                <button class="md:hidden text-gray-700" data-event="click:toggleMobileMenu">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile menu -->
+        <div class="md:hidden bg-white border-t hidden" id="mobile-menu">
+            <div class="px-4 py-3 space-y-3">
+                <a href="#home" class="block text-gray-700 hover:text-primary">Home</a>
+                <a href="#products" class="block text-gray-700 hover:text-primary">Products</a>
+                <a href="#about" class="block text-gray-700 hover:text-primary">About</a>
+                <a href="#services" class="block text-gray-700 hover:text-primary">Services</a>
+                <a href="#contact" class="block text-gray-700 hover:text-primary">Contact</a>
+            </div>
+        </div>
+    </header>
+    <!-- @END_COMPONENT: Header -->
+
+    <!-- @COMPONENT: Hero Section [main banner, value proposition] -->
+    <section id="home" class="relative min-h-screen flex items-center">
+        <!-- Advanced chemical manufacturing facility with modern equipment and clean industrial setting -->
+        <div class="absolute inset-0 bg-cover bg-center bg-no-repeat" style="background-image: linear-gradient(rgba(21, 101, 192, 0.8), rgba(46, 125, 50, 0.6)), url('https://images.unsplash.com/photo-1581092921461-eab62e97a780?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80');"></div>
+        
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-white">
+            <div class="max-w-3xl">
+                <h1 class="text-5xl md:text-6xl font-bold mb-6 leading-tight">
+                    Advanced Chemical <span class="text-yellow-400">Solutions</span> for Industry
+                </h1>
+                <p class="text-xl md:text-2xl mb-8 text-gray-100 leading-relaxed">
+                    Leading manufacturer of premium fuel additives, water treatment systems, paint & thinner products, and agricultural fertilizers for global industries.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <button class="bg-accent text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-accent-dark transition-colors duration-200 flex items-center justify-center">
+                        <i class="fas fa-flask mr-3"></i>
+                        Explore Products
+                    </button>
+                    <button class="border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white hover:text-primary transition-all duration-200 flex items-center justify-center">
+                        <i class="fas fa-phone mr-3"></i>
+                        Contact Sales
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scroll indicator -->
+        <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-white animate-bounce">
+            <i class="fas fa-chevron-down text-2xl"></i>
+        </div>
+    </section>
+    <!-- @END_COMPONENT: Hero Section -->
+
+    <!-- @COMPONENT: Stats Section [key metrics, achievements] -->
+    <section class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+                <div class="text-center">
+                    <div class="text-4xl font-bold text-primary mb-2" data-bind="stats.yearsExperience">25+</div>
+                    <div class="text-gray-600 font-medium">Years Experience</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-4xl font-bold text-secondary mb-2" data-bind="stats.countries">40+</div>
+                    <div class="text-gray-600 font-medium">Countries Served</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-4xl font-bold text-accent mb-2" data-bind="stats.products">200+</div>
+                    <div class="text-gray-600 font-medium">Product Lines</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-4xl font-bold text-primary mb-2" data-bind="stats.certifications">ISO</div>
+                    <div class="text-gray-600 font-medium">Certified Quality</div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- @END_COMPONENT: Stats Section -->
+
+    <!-- @COMPONENT: Products Section [main product categories] -->
+    <section id="products" class="py-20 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-bold text-gray-900 mb-4">Our Product Portfolio</h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                    Comprehensive chemical solutions across four key industries, engineered for performance and reliability.
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-8">
+                <!-- Fuel Additives -->
+                <div class="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden group">
+                    <!-- Industrial fuel additives in modern laboratory setting with chemical equipment -->
+                    <div class="h-64 bg-cover bg-center group-hover:scale-105 transition-transform duration-500" style="background-image: url('https://images.unsplash.com/photo-1559827260-dc66d52bef19?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1000&q=80');"></div>
+                    <div class="p-8">
+                        <div class="flex items-center mb-4">
+                            <div class="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mr-4">
+                                <i class="fas fa-gas-pump text-white text-xl"></i>
+                            </div>
+                            <h3 class="text-2xl font-bold text-gray-900">Fuel Additives</h3>
+                        </div>
+                        <p class="text-gray-600 mb-6 leading-relaxed">
+                            High-performance fuel additives designed to enhance combustion efficiency, reduce emissions, and extend engine life across automotive and industrial applications.
+                        </p>
+                        <ul class="space-y-2 mb-6">
+                            <li class="flex items-center text-gray-700">
+                                <i class="fas fa-check text-secondary mr-3"></i>
+                                Octane Boosters
+                            </li>
+                            <li class="flex items-center text-gray-700">
+                                <i class="fas fa-check text-secondary mr-3"></i>
+                                Anti-icing Additives
+                            </li>
+                            <li class="flex items-center text-gray-700">
+                                <i class="fas fa-check text-secondary mr-3"></i>
+                                Fuel Stabilizers
+                            </li>
+                        </ul>
+                        <button class="text-primary font-semibold hover:text-primary-dark transition-colors duration-200 flex items-center">
+                            Learn More <i class="fas fa-arrow-right ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Water Treatment -->
+                <div class="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden group">
+                    <!-- Modern water treatment facility with large filtration tanks and purification systems -->
+                    <div class="h-64 bg-cover bg-center group-hover:scale-105 transition-transform duration-500" style="background-image: url('https://pixabay.com/get/ga2d76d06804bd9fd51e0d7c7e73dfed3e905c3de88030c290d967471b6c5e47d2182f93da064d8ad50a27153fb0482648cad1d9f9c343e6acef4b579ebfc91df_1280.jpg');"></div>
+                    <div class="p-8">
+                        <div class="flex items-center mb-4">
+                            <div class="w-12 h-12 bg-secondary rounded-lg flex items-center justify-center mr-4">
+                                <i class="fas fa-tint text-white text-xl"></i>
+                            </div>
+                            <h3 class="text-2xl font-bold text-gray-900">Water Treatment</h3>
+                        </div>
+                        <p class="text-gray-600 mb-6 leading-relaxed">
+                            Comprehensive water treatment solutions for municipal, industrial, and residential applications, ensuring clean and safe water for all uses.
+                        </p>
+                        <ul class="space-y-2 mb-6">
+                            <li class="flex items-center text-gray-700">
+                                <i class="fas fa-check text-secondary mr-3"></i>
+                                Coagulants & Flocculants
+                            </li>
+                            <li class="flex items-center text-gray-700">
+                                <i class="fas fa-check text-secondary mr-3"></i>
+                                Disinfectants
+                            </li>
+                            <li class="flex items-center text-gray-700">
+                                <i class="fas fa-check text-secondary mr-3"></i>
+                                pH Adjusters
+                            </li>
+                        </ul>
+                        <button class="text-primary font-semibold hover:text-primary-dark transition-colors duration-200 flex items-center">
+                            Learn More <i class="fas fa-arrow-right ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Paint & Thinner -->
+                <div class="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden group">
+                    <!-- Professional paint and coating products displayed in industrial manufacturing setting -->
+                    <div class="h-64 bg-cover bg-center group-hover:scale-105 transition-transform duration-500" style="background-image: url('https://images.unsplash.com/photo-1572981779307-38b8cabb2407?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1000&q=80');"></div>
+                    <div class="p-8">
+                        <div class="flex items-center mb-4">
+                            <div class="w-12 h-12 bg-accent rounded-lg flex items-center justify-center mr-4">
+                                <i class="fas fa-paint-brush text-white text-xl"></i>
+                            </div>
+                            <h3 class="text-2xl font-bold text-gray-900">Paint & Thinner</h3>
+                        </div>
+                        <p class="text-gray-600 mb-6 leading-relaxed">
+                            Premium paint formulations and thinners for automotive, architectural, and industrial applications with superior durability and finish quality.
+                        </p>
+                        <ul class="space-y-2 mb-6">
+                            <li class="flex items-center text-gray-700">
+                                <i class="fas fa-check text-secondary mr-3"></i>
+                                Industrial Coatings
+                            </li>
+                            <li class="flex items-center text-gray-700">
+                                <i class="fas fa-check text-secondary mr-3"></i>
+                                Automotive Paints
+                            </li>
+                            <li class="flex items-center text-gray-700">
+                                <i class="fas fa-check text-secondary mr-3"></i>
+                                Specialty Thinners
+                            </li>
+                        </ul>
+                        <button class="text-primary font-semibold hover:text-primary-dark transition-colors duration-200 flex items-center">
+                            Learn More <i class="fas fa-arrow-right ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Agricultural Fertilizers -->
+                <div class="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden group">
+                    <!-- Modern agricultural facility with fertilizer production and storage equipment -->
+                    <div class="h-64 bg-cover bg-center group-hover:scale-105 transition-transform duration-500" style="background-image: url('https://images.unsplash.com/photo-1625246333195-78d9c38ad449?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1000&q=80');"></div>
+                    <div class="p-8">
+                        <div class="flex items-center mb-4">
+                            <div class="w-12 h-12 bg-secondary rounded-lg flex items-center justify-center mr-4">
+                                <i class="fas fa-seedling text-white text-xl"></i>
+                            </div>
+                            <h3 class="text-2xl font-bold text-gray-900">Agricultural Fertilizers</h3>
+                        </div>
+                        <p class="text-gray-600 mb-6 leading-relaxed">
+                            Advanced fertilizer solutions designed to maximize crop yields while promoting sustainable farming practices and soil health enhancement.
+                        </p>
+                        <ul class="space-y-2 mb-6">
+                            <li class="flex items-center text-gray-700">
+                                <i class="fas fa-check text-secondary mr-3"></i>
+                                NPK Complex Fertilizers
+                            </li>
+                            <li class="flex items-center text-gray-700">
+                                <i class="fas fa-check text-secondary mr-3"></i>
+                                Micronutrient Solutions
+                            </li>
+                            <li class="flex items-center text-gray-700">
+                                <i class="fas fa-check text-secondary mr-3"></i>
+                                Organic Amendments
+                            </li>
+                        </ul>
+                        <button class="text-primary font-semibold hover:text-primary-dark transition-colors duration-200 flex items-center">
+                            Learn More <i class="fas fa-arrow-right ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- @END_COMPONENT: Products Section -->
+
+    <!-- @COMPONENT: About Section [company overview, mission, values] -->
+    <section id="about" class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid lg:grid-cols-2 gap-12 items-center">
+                <div>
+                    <h2 class="text-4xl font-bold text-gray-900 mb-6">About Momtazchem</h2>
+                    <p class="text-lg text-gray-600 mb-6 leading-relaxed">
+                        With over 25 years of excellence in chemical manufacturing, Momtazchem has established itself as a trusted partner for industries worldwide. Our commitment to innovation, quality, and sustainability drives everything we do.
+                    </p>
+                    <p class="text-lg text-gray-600 mb-8 leading-relaxed">
+                        From our state-of-the-art facilities, we develop and produce high-quality chemical solutions that meet the evolving needs of fuel, water treatment, paint, and agricultural industries.
+                    </p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div class="flex items-start">
+                            <div class="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
+                                <i class="fas fa-award text-white"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-gray-900 mb-2">Quality Excellence</h4>
+                                <p class="text-gray-600 text-sm">ISO certified processes ensuring consistent high-quality products.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="w-12 h-12 bg-secondary rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
+                                <i class="fas fa-leaf text-white"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-gray-900 mb-2">Sustainability</h4>
+                                <p class="text-gray-600 text-sm">Environmentally responsible manufacturing and products.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="bg-primary text-white px-8 py-3 rounded-lg hover:bg-primary-dark transition-colors duration-200 font-semibold">
+                        Learn More About Us
+                    </button>
+                </div>
+
+                <div class="relative">
+                    <!-- Modern chemical laboratory with scientists working on research and development -->
+                    <img src="https://images.unsplash.com/photo-1582719471384-894fbb16e074?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&q=80" alt="Chemical research laboratory" class="rounded-2xl shadow-lg w-full h-auto">
+                    
+                    <!-- Floating stats card -->
+                    <div class="absolute -bottom-6 -left-6 bg-white rounded-xl shadow-xl p-6 border border-gray-100">
+                        <div class="text-3xl font-bold text-primary mb-2">99.8%</div>
+                        <div class="text-gray-600 font-medium">Customer Satisfaction</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- @END_COMPONENT: About Section -->
+
+    <!-- @COMPONENT: Services Section [capabilities, support, custom solutions] -->
+    <section id="services" class="py-20 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-bold text-gray-900 mb-4">Our Services & Capabilities</h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                    Comprehensive support from research and development to delivery and technical assistance.
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="bg-white rounded-xl shadow-lg p-8 hover:shadow-xl transition-shadow duration-300">
+                    <div class="w-16 h-16 bg-primary rounded-lg flex items-center justify-center mb-6 mx-auto">
+                        <i class="fas fa-flask text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-4 text-center">R&D Services</h3>
+                    <p class="text-gray-600 text-center mb-6">
+                        Custom formulation development and product optimization to meet specific industry requirements.
+                    </p>
+                    <ul class="space-y-2">
+                        <li class="flex items-center text-gray-600">
+                            <i class="fas fa-check text-secondary mr-2"></i>
+                            <span class="text-sm">Custom Formulations</span>
+                        </li>
+                        <li class="flex items-center text-gray-600">
+                            <i class="fas fa-check text-secondary mr-2"></i>
+                            <span class="text-sm">Product Testing</span>
+                        </li>
+                        <li class="flex items-center text-gray-600">
+                            <i class="fas fa-check text-secondary mr-2"></i>
+                            <span class="text-sm">Performance Analysis</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-lg p-8 hover:shadow-xl transition-shadow duration-300">
+                    <div class="w-16 h-16 bg-secondary rounded-lg flex items-center justify-center mb-6 mx-auto">
+                        <i class="fas fa-truck text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-4 text-center">Global Distribution</h3>
+                    <p class="text-gray-600 text-center mb-6">
+                        Reliable supply chain and logistics network ensuring timely delivery worldwide.
+                    </p>
+                    <ul class="space-y-2">
+                        <li class="flex items-center text-gray-600">
+                            <i class="fas fa-check text-secondary mr-2"></i>
+                            <span class="text-sm">40+ Countries</span>
+                        </li>
+                        <li class="flex items-center text-gray-600">
+                            <i class="fas fa-check text-secondary mr-2"></i>
+                            <span class="text-sm">Express Shipping</span>
+                        </li>
+                        <li class="flex items-center text-gray-600">
+                            <i class="fas fa-check text-secondary mr-2"></i>
+                            <span class="text-sm">Bulk Orders</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-lg p-8 hover:shadow-xl transition-shadow duration-300">
+                    <div class="w-16 h-16 bg-accent rounded-lg flex items-center justify-center mb-6 mx-auto">
+                        <i class="fas fa-headset text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-4 text-center">Technical Support</h3>
+                    <p class="text-gray-600 text-center mb-6">
+                        Expert technical assistance and consultation for optimal product application and performance.
+                    </p>
+                    <ul class="space-y-2">
+                        <li class="flex items-center text-gray-600">
+                            <i class="fas fa-check text-secondary mr-2"></i>
+                            <span class="text-sm">24/7 Support</span>
+                        </li>
+                        <li class="flex items-center text-gray-600">
+                            <i class="fas fa-check text-secondary mr-2"></i>
+                            <span class="text-sm">Application Training</span>
+                        </li>
+                        <li class="flex items-center text-gray-600">
+                            <i class="fas fa-check text-secondary mr-2"></i>
+                            <span class="text-sm">Documentation</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- @END_COMPONENT: Services Section -->
+
+    <!-- @COMPONENT: Contact Section [contact form, company info, locations] -->
+    <section id="contact" class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-bold text-gray-900 mb-4">Get In Touch</h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                    Ready to discuss your chemical solution needs? Our team of experts is here to help.
+                </p>
+            </div>
+
+            <div class="grid lg:grid-cols-2 gap-12">
+                <!-- Contact Form -->
+                <div class="bg-gray-50 rounded-2xl p-8">
+                    <h3 class="text-2xl font-bold text-gray-900 mb-6">Send Us a Message</h3>
+                    <form class="space-y-6" data-event="submit:handleContactForm">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">First Name</label>
+                                <input type="text" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="John" data-bind="form.firstName">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
+                                <input type="text" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Doe" data-bind="form.lastName">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                            <input type="email" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="john@company.com" data-bind="form.email">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Company</label>
+                            <input type="text" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Your Company" data-bind="form.company">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Product Interest</label>
+                            <select class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" data-bind="form.productInterest">
+                                <option>Select a product category</option>
+                                <option>Fuel Additives</option>
+                                <option>Water Treatment</option>
+                                <option>Paint & Thinner</option>
+                                <option>Agricultural Fertilizers</option>
+                                <option>Custom Solutions</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Message</label>
+                            <textarea rows="4" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Tell us about your requirements..." data-bind="form.message"></textarea>
+                        </div>
+                        <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg hover:bg-primary-dark transition-colors duration-200 font-semibold">
+                            Send Message
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Contact Information -->
+                <div class="space-y-8">
+                    <div>
+                        <h3 class="text-2xl font-bold text-gray-900 mb-6">Contact Information</h3>
+                        
+                        <div class="space-y-6">
+                            <div class="flex items-start">
+                                <div class="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
+                                    <i class="fas fa-map-marker-alt text-white"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-gray-900 mb-1">Headquarters</h4>
+                                    <p class="text-gray-600" data-bind="company.address">
+                                        123 Chemical Industry Blvd<br>
+                                        Industrial Zone, City 12345<br>
+                                        Country
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-start">
+                                <div class="w-12 h-12 bg-secondary rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
+                                    <i class="fas fa-phone text-white"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-gray-900 mb-1">Phone</h4>
+                                    <p class="text-gray-600" data-bind="company.phone">+1 (555) 123-4567</p>
+                                    <p class="text-gray-600" data-bind="company.fax">Fax: +1 (555) 123-4568</p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-start">
+                                <div class="w-12 h-12 bg-accent rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
+                                    <i class="fas fa-envelope text-white"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-gray-900 mb-1">Email</h4>
+                                    <p class="text-gray-600" data-bind="company.email">info@momtazchem.com</p>
+                                    <p class="text-gray-600" data-bind="company.salesEmail">sales@momtazchem.com</p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-start">
+                                <div class="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
+                                    <i class="fas fa-clock text-white"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-gray-900 mb-1">Business Hours</h4>
+                                    <p class="text-gray-600">Monday - Friday: 8:00 AM - 6:00 PM</p>
+                                    <p class="text-gray-600">Saturday: 9:00 AM - 1:00 PM</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Certifications -->
+                    <div class="bg-gray-50 rounded-xl p-6">
+                        <h4 class="font-semibold text-gray-900 mb-4">Our Certifications</h4>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="text-center p-4 bg-white rounded-lg">
+                                <i class="fas fa-certificate text-primary text-2xl mb-2"></i>
+                                <div class="text-sm font-medium">ISO 9001:2015</div>
+                            </div>
+                            <div class="text-center p-4 bg-white rounded-lg">
+                                <i class="fas fa-shield-alt text-secondary text-2xl mb-2"></i>
+                                <div class="text-sm font-medium">ISO 14001</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- @END_COMPONENT: Contact Section -->
+
+    <!-- @COMPONENT: Footer [links, social media, legal] -->
+    <footer class="bg-gray-900 text-white py-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <!-- Company Info -->
+                <div class="lg:col-span-1">
+                    <div class="text-2xl font-bold mb-4">
+                        <span class="text-secondary">Momtaz</span><span class="text-white">chem</span>
+                    </div>
+                    <p class="text-gray-400 mb-6 leading-relaxed">
+                        Leading provider of advanced chemical solutions for fuel, water treatment, paint, and agricultural industries worldwide.
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-primary transition-colors duration-200">
+                            <i class="fab fa-linkedin"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-primary transition-colors duration-200">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center hover:bg-primary transition-colors duration-200">
+                            <i class="fab fa-facebook"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Products -->
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Products</h3>
+                    <ul class="space-y-3">
+                        <li><a href="#fuel-additives" class="text-gray-400 hover:text-white transition-colors duration-200">Fuel Additives</a></li>
+                        <li><a href="#water-treatment" class="text-gray-400 hover:text-white transition-colors duration-200">Water Treatment</a></li>
+                        <li><a href="#paint-thinner" class="text-gray-400 hover:text-white transition-colors duration-200">Paint & Thinner</a></li>
+                        <li><a href="#agricultural-fertilizers" class="text-gray-400 hover:text-white transition-colors duration-200">Agricultural Fertilizers</a></li>
+                    </ul>
+                </div>
+
+                <!-- Company -->
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Company</h3>
+                    <ul class="space-y-3">
+                        <li><a href="#about" class="text-gray-400 hover:text-white transition-colors duration-200">About Us</a></li>
+                        <li><a href="#services" class="text-gray-400 hover:text-white transition-colors duration-200">Services</a></li>
+                        <li><a href="#careers" class="text-gray-400 hover:text-white transition-colors duration-200">Careers</a></li>
+                        <li><a href="#news" class="text-gray-400 hover:text-white transition-colors duration-200">News & Updates</a></li>
+                    </ul>
+                </div>
+
+                <!-- Support -->
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Support</h3>
+                    <ul class="space-y-3">
+                        <li><a href="#contact" class="text-gray-400 hover:text-white transition-colors duration-200">Contact Us</a></li>
+                        <li><a href="#technical-support" class="text-gray-400 hover:text-white transition-colors duration-200">Technical Support</a></li>
+                        <li><a href="#documentation" class="text-gray-400 hover:text-white transition-colors duration-200">Documentation</a></li>
+                        <li><a href="#safety-data" class="text-gray-400 hover:text-white transition-colors duration-200">Safety Data Sheets</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="border-t border-gray-800 mt-12 pt-8">
+                <div class="flex flex-col md:flex-row justify-between items-center">
+                    <div class="text-gray-400 text-sm mb-4 md:mb-0">
+                        © 2024 Momtazchem. All rights reserved.
+                    </div>
+                    <div class="flex space-x-6 text-sm">
+                        <a href="#privacy" class="text-gray-400 hover:text-white transition-colors duration-200">Privacy Policy</a>
+                        <a href="#terms" class="text-gray-400 hover:text-white transition-colors duration-200">Terms of Service</a>
+                        <a href="#cookies" class="text-gray-400 hover:text-white transition-colors duration-200">Cookie Policy</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+    <!-- @END_COMPONENT: Footer -->
+
+    <script>
+        (function() {
+            // Mobile menu toggle
+            const mobileMenuButton = document.querySelector('[data-event="click:toggleMobileMenu"]');
+            const mobileMenu = document.getElementById('mobile-menu');
+            
+            if (mobileMenuButton && mobileMenu) {
+                mobileMenuButton.addEventListener('click', function() {
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+
+            // Smooth scrolling for anchor links
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                });
+            });
+
+            // Contact form handling
+            const contactForm = document.querySelector('[data-event="submit:handleContactForm"]');
+            if (contactForm) {
+                contactForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    // Form submission logic would go here
+                    alert('Thank you for your message. We will get back to you soon!');
+                });
+            }
+
+            // Header scroll effect
+            let lastScrollTop = 0;
+            const header = document.querySelector('header');
+            
+            window.addEventListener('scroll', function() {
+                let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                
+                if (scrollTop > lastScrollTop && scrollTop > 100) {
+                    header.style.transform = 'translateY(-100%)';
+                } else {
+                    header.style.transform = 'translateY(0)';
+                }
+                
+                lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
+            });
+
+            // Add transition to header
+            header.style.transition = 'transform 0.3s ease-in-out';
+        })();
+    </script>
+</body>
+</html>
