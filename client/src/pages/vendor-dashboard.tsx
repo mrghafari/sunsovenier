@@ -285,10 +285,10 @@ export default function VendorDashboard() {
                           <Badge variant={product.isActive ? "default" : "secondary"}>
                             {product.isActive ? "فعال" : "غیرفعال"}
                           </Badge>
-                          <Link href={`/vendor/products/edit/${product.id}`}>
-                            <Button size="sm" variant="outline" data-testid={`button-edit-product-${product.id}`}>
+                          <Link href="/vendor/products">
+                            <Button size="sm" variant="outline" data-testid={`button-manage-products-${product.id}`}>
                               <Edit className="w-4 h-4 mr-1" />
-                              ویرایش
+                              مدیریت محصولات
                             </Button>
                           </Link>
                         </div>

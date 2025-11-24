@@ -181,6 +181,7 @@ function Router() {
           <Route path="/vendor/dashboard" component={VendorDashboard} />
           <Route path="/vendor/products/new" component={VendorAddProduct} />
           <Route path="/vendor/products/edit/:id" component={VendorEditProduct} />
+          <Route path="/vendor/products" component={ProductsPage} />
           <Route path="/blog" component={Blog} />
           <Route path="/blog/:slug" component={BlogPost} />
           <Route path="/payment-options" component={PaymentOptionsPage} />
