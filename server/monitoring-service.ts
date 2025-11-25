@@ -20,6 +20,7 @@ export interface SystemHealth {
     s3Storage: HealthStatus;
     fibPaymentGateway: HealthStatus;
     server: HealthStatus;
+    serverIp: HealthStatus;
   };
   metrics: {
     uptime: number;
@@ -220,18 +221,67 @@ class MonitoringService {
     }
   }
 
+  // 🌐 Server IP Health Check
+  async checkServerIpHealth(): Promise<HealthStatus> {
+    const startTime = Date.now();
+    try {
+      const serverIp = process.env.SERVER_IP || '0.0.0.0';
+      const http = await import('http');
+      const os = await import('os');
+
+      // Get network interfaces
+      const networkInterfaces = os.networkInterfaces();
+      const activeIps: string[] = [];
+      
+      for (const name of Object.keys(networkInterfaces)) {
+        const iface = networkInterfaces[name];
+        if (iface) {
+          for (const addr of iface) {
+            if (addr.family === 'IPv4' && !addr.internal) {
+              activeIps.push(addr.address);
+            }
+          }
+        }
+      }
+
+      const responseTime = Date.now() - startTime;
+
+      return {
+        status: 'healthy',
+        message: `سرور روی ${serverIp} در دسترس است`,
+        responseTime,
+        details: {
+          configuredIp: serverIp,
+          activeNetworkIps: activeIps,
+          isWildcard: serverIp === '0.0.0.0',
+          platform: process.platform
+        }
+      };
+    } catch (error) {
+      return {
+        status: 'degraded',
+        message: 'خطا در بررسی IP سرور',
+        responseTime: Date.now() - startTime,
+        details: {
+          error: error instanceof Error ? error.message : String(error)
+        }
+      };
+    }
+  }
+
   // 📊 Get Complete System Health
   async getSystemHealth(): Promise<SystemHealth> {
-    const [database, s3Storage, fibPaymentGateway] = await Promise.all([
+    const [database, s3Storage, fibPaymentGateway, serverIp] = await Promise.all([
       this.checkDatabaseHealth(),
       this.checkS3Health(),
-      this.checkFIBHealth()
+      this.checkFIBHealth(),
+      this.checkServerIpHealth()
     ]);
 
     const server = this.getServerHealth();
 
     // Determine overall status
-    const services = { database, s3Storage, fibPaymentGateway, server };
+    const services = { database, s3Storage, fibPaymentGateway, server, serverIp };
     const statuses = Object.values(services).map(s => s.status);
     
     let overall: 'healthy' | 'degraded' | 'down';
