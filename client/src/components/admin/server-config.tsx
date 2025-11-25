@@ -28,6 +28,7 @@ import {
 
 interface ServerConfig {
   frontendUrl: string;
+  serverIp: string;
   databaseUrl: string;
   sessionSecret: string;
   nodeEnv: string;
@@ -40,6 +41,7 @@ interface ServerConfig {
 export default function ServerConfig() {
   const [config, setConfig] = useState<ServerConfig>({
     frontendUrl: '',
+    serverIp: '0.0.0.0',
     databaseUrl: '',
     sessionSecret: '',
     nodeEnv: 'production',
@@ -92,6 +94,9 @@ export default function ServerConfig() {
 
 # Domain Configuration
 FRONTEND_URL=${config.frontendUrl || 'https://www.momtazchem.com'}
+
+# Server Configuration
+SERVER_IP=${config.serverIp || '0.0.0.0'}
 
 # Database Configuration  
 DATABASE_URL=${config.databaseUrl || 'your_postgresql_connection_string'}
@@ -268,7 +273,21 @@ CORS_ORIGIN=${config.frontendUrl || 'https://www.momtazchem.com'}
                     value={config.frontendUrl}
                     onChange={(e) => setConfig({...config, frontendUrl: e.target.value})}
                     placeholder="https://www.momtazchem.com"
+                    data-testid="input-frontend-url"
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="serverIp">آدرس IP سرور</Label>
+                  <Input
+                    id="serverIp"
+                    value={config.serverIp}
+                    onChange={(e) => setConfig({...config, serverIp: e.target.value})}
+                    placeholder="0.0.0.0"
+                    data-testid="input-server-ip"
+                  />
+                  <p className="text-xs text-gray-500">
+                    0.0.0.0 برای دسترسی عمومی، 127.0.0.1 فقط localhost
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="nodeEnv">محیط سرور</Label>
@@ -277,6 +296,7 @@ CORS_ORIGIN=${config.frontendUrl || 'https://www.momtazchem.com'}
                     value={config.nodeEnv}
                     onChange={(e) => setConfig({...config, nodeEnv: e.target.value})}
                     placeholder="production"
+                    data-testid="input-node-env"
                   />
                 </div>
                 <div className="space-y-2">
@@ -287,6 +307,7 @@ CORS_ORIGIN=${config.frontendUrl || 'https://www.momtazchem.com'}
                     value={config.sessionSecret}
                     onChange={(e) => setConfig({...config, sessionSecret: e.target.value})}
                     placeholder="رمز قوی و منحصر به فرد"
+                    data-testid="input-session-secret"
                   />
                 </div>
               </div>
