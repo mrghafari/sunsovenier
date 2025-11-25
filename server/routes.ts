@@ -53579,15 +53579,6 @@ momtazchem.com
 
 
   registerFibRoutes(app);
-  app.all('/api/*', (req, res) => {
-    console.log(`❌ 404 - Unmatched API route: ${req.method} ${req.originalUrl}`);
-    res.status(404).json({
-      success: false,
-      message: 'API endpoint not found',
-      path: req.originalUrl,
-      method: req.method
-    });
-  });
 
   // 🔍 SYSTEM MONITORING ENDPOINTS
   // Real-time health checks for all critical services (portable - works on any platform)
@@ -53674,5 +53665,4 @@ momtazchem.com
 
   console.log('✅ [MONITORING] System monitoring endpoints registered');
   return httpServer;
-
 }
