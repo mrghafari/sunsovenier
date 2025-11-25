@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import SystemMonitoring from './system-monitoring';
 import TerminalMonitor from './terminal-monitor';
+import BIMonitoringDashboard from './bi-monitoring-dashboard';
 import { 
   Server, 
   Database, 
@@ -238,6 +239,21 @@ CORS_ORIGIN=${config.frontendUrl || 'https://www.momtazchem.com'}
         </TabsList>
 
         <TabsContent value="monitoring" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="w-5 h-5 text-blue-500" />
+                داشبورد تحلیلی (BI Dashboard)
+              </CardTitle>
+              <CardDescription>
+                نمایش بصری و تحلیلی وضعیت سیستم با نمودارها و شاخصu200cهای کلیدی
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <BIMonitoringDashboard />
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

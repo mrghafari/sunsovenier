@@ -32,6 +32,7 @@ interface SystemHealth {
     s3Storage: HealthStatus;
     fibPaymentGateway: HealthStatus;
     server: HealthStatus;
+    serverIp: HealthStatus;
   };
   metrics: {
     uptime: number;
@@ -230,7 +231,7 @@ const SystemMonitoring: React.FC = () => {
             <div className="text-center">
               {getStatusBadge(health.overall)}
               <p className="text-sm text-gray-500 mt-2">
-                {Object.values(health.services).filter(s => s.status === 'healthy').length}/4 سرویس سالم
+                {Object.values(health.services).filter(s => s.status === 'healthy').length}/5 سرویس سالم
               </p>
             </div>
           </CardContent>
@@ -373,6 +374,41 @@ const SystemMonitoring: React.FC = () => {
               </>
             )}
           </CardContent>
+        </Card>
+
+        {/* Server IP */}
+        <Card data-testid="card-serverip-status">
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Server className="w-5 h-5 text-pink-600" />
+                آدرس IP سرور
+              </div>
+              {getStatusIcon(health.services.serverIp.status)}
+            </CardTitle>
+            <CardDescription>{health.services.serverIp.message}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span>IP تنظیم شده:</span>
+              <Badge variant="outline" className="font-mono">{serverIp}</Badge>
+            </div>
+            {health.services.serverIp.details && (
+              <>
+                {health.services.serverIp.details.activeNetworkIps && health.services.serverIp.details.activeNetworkIps.length > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span>IP های شبکه:</span>
+                    <span className="text-xs font-mono">{health.services.serverIp.details.activeNetworkIps.join(', ')}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-sm">
+                  <span>حالت:</span>
+                  <Badge variant="outline">{health.services.serverIp.details.isWildcard ? 'همه رابط‌ها (0.0.0.0)' : 'مشخص شده'}</Badge>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
         </Card>
       </div>
     </div>
