@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import SystemMonitoring from './system-monitoring';
 import { 
   Server, 
   Database, 
@@ -21,7 +22,8 @@ import {
   Info,
   Upload,
   Download,
-  RefreshCw
+  RefreshCw,
+  Activity
 } from 'lucide-react';
 
 interface ServerConfig {
@@ -201,8 +203,12 @@ CORS_ORIGIN=${config.frontendUrl || 'https://www.momtazchem.com'}
         </div>
       </div>
 
-      <Tabs defaultValue="config" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+      <Tabs defaultValue="monitoring" className="w-full">
+        <TabsList className="grid w-full grid-cols-6">
+          <TabsTrigger value="monitoring" className="flex items-center gap-2" data-testid="tab-monitoring">
+            <Activity className="w-4 h-4" />
+            مانیتورینگ
+          </TabsTrigger>
           <TabsTrigger value="config" className="flex items-center gap-2">
             <Settings className="w-4 h-4" />
             کانفیگ سرور
@@ -228,6 +234,23 @@ CORS_ORIGIN=${config.frontendUrl || 'https://www.momtazchem.com'}
         <TabsContent value="config" className="space-y-6">
           <Card>
             <CardHeader>
+        <TabsContent value="monitoring" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="w-5 h-5" />
+                مانیتورینگ لحظه‌ای سیستم
+              </CardTitle>
+              <CardDescription>
+                وضعیت سلامت سرویس‌های حیاتی - سازگار با هر پلتفرم (Replit، AWS، VPS)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SystemMonitoring />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
               <CardTitle className="flex items-center gap-2">
                 <Settings className="w-5 h-5" />
                 تنظیمات اصلی سرور

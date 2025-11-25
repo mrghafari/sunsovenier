@@ -53589,8 +53589,89 @@ momtazchem.com
     });
   });
 
+  // 🔍 SYSTEM MONITORING ENDPOINTS
+  // Real-time health checks for all critical services (portable - works on any platform)
+  console.log('🔍 [MONITORING] Registering system monitoring endpoints...');
+  
+  // Complete system health check (admin only)
+  app.get("/api/monitoring/health", requireAuth, async (req, res) => {
+    try {
+      const { monitoringService } = await import('./monitoring-service');
+      const health = await monitoringService.getSystemHealth();
+      
+      res.json({
+        success: true,
+        data: health
+      });
+    } catch (error) {
+      console.error("❌ [MONITORING] Error getting system health:", error);
+      res.status(500).json({
+        success: false,
+        message: "خطا در دریافت وضعیت سیستم"
+      });
+    }
+  });
+
+  // Quick health check endpoint (for load balancers, no auth required)
+  app.get("/api/health", async (req, res) => {
+    try {
+      const { monitoringService } = await import('./monitoring-service');
+      const health = await monitoringService.quickHealthCheck();
+      
+      if (health.healthy) {
+        res.status(200).json(health);
+      } else {
+        res.status(503).json(health);
+      }
+    } catch (error) {
+      res.status(503).json({
+        healthy: false,
+        status: 'Service Unavailable'
+      });
+    }
+  });
+
+  // Individual service health checks (admin only)
+  app.get("/api/monitoring/database", requireAuth, async (req, res) => {
+    try {
+      const { monitoringService } = await import('./monitoring-service');
+      const health = await monitoringService.checkDatabaseHealth();
+      res.json({ success: true, data: health });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "خطا در بررسی دیتابیس" });
+    }
+  });
+
+  app.get("/api/monitoring/s3", requireAuth, async (req, res) => {
+    try {
+      const { monitoringService } = await import('./monitoring-service');
+      const health = await monitoringService.checkS3Health();
+      res.json({ success: true, data: health });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "خطا در بررسی AWS S3" });
+    }
+  });
+
+  app.get("/api/monitoring/fib", requireAuth, async (req, res) => {
+    try {
+      const { monitoringService } = await import('./monitoring-service');
+      const health = await monitoringService.checkFIBHealth();
+      res.json({ success: true, data: health });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "خطا در بررسی سرویس بانکی" });
+    }
+  });
+
+  app.get("/api/monitoring/server", requireAuth, async (req, res) => {
+    try {
+      const { monitoringService } = await import('./monitoring-service');
+      const health = monitoringService.getServerHealth();
+      res.json({ success: true, data: health });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "خطا در بررسی سرور" });
+    }
+  });
+
+  console.log('✅ [MONITORING] System monitoring endpoints registered');
   return httpServer;
-}
 
-
-  // Temporary endpoint to list S3 files
