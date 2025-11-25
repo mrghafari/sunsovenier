@@ -231,9 +231,6 @@ CORS_ORIGIN=${config.frontendUrl || 'https://www.momtazchem.com'}
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="config" className="space-y-6">
-          <Card>
-            <CardHeader>
         <TabsContent value="monitoring" className="space-y-6">
           <Card>
             <CardHeader>
@@ -251,6 +248,9 @@ CORS_ORIGIN=${config.frontendUrl || 'https://www.momtazchem.com'}
           </Card>
         </TabsContent>
 
+        <TabsContent value="config" className="space-y-6">
+          <Card>
+            <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Settings className="w-5 h-5" />
                 تنظیمات اصلی سرور
