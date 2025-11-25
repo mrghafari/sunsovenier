@@ -9204,6 +9204,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const config = {
         frontendUrl: process.env.FRONTEND_URL || CONFIG.getBaseUrl(req),
+        serverIp: process.env.SERVER_IP || '0.0.0.0',
         nodeEnv: process.env.NODE_ENV || 'development',
         smtpHost: process.env.SMTP_HOST || 'smtp.zoho.com',
         smtpPort: process.env.SMTP_PORT || '587',

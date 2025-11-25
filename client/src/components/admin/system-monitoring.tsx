@@ -53,7 +53,13 @@ const SystemMonitoring: React.FC = () => {
     refetchInterval: autoRefresh ? 30000 : false, // Auto refresh every 30 seconds
   });
 
+  // Fetch server config for IP address
+  const { data: serverConfigData } = useQuery<{ success: boolean; config: { serverIp: string } }>({
+    queryKey: ['/api/server/config'],
+  });
+
   const health = healthData?.data;
+  const serverIp = serverConfigData?.config?.serverIp || '0.0.0.0';
 
   const getStatusIcon = (status: 'healthy' | 'degraded' | 'down') => {
     switch (status) {
@@ -348,6 +354,10 @@ const SystemMonitoring: React.FC = () => {
           <CardContent className="space-y-2">
             {health.services.server.details && (
               <>
+                <div className="flex justify-between text-sm">
+                  <span>آدرس IP سرور:</span>
+                  <Badge variant="outline" className="font-mono">{serverIp}</Badge>
+                </div>
                 <div className="flex justify-between text-sm">
                   <span>مدت زمان فعالیت:</span>
                   <span>{health.services.server.details.uptime}</span>

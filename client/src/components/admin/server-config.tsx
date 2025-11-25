@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import SystemMonitoring from './system-monitoring';
+import TerminalMonitor from './terminal-monitor';
 import { 
   Server, 
   Database, 
@@ -249,6 +250,21 @@ CORS_ORIGIN=${config.frontendUrl || 'https://www.momtazchem.com'}
             </CardHeader>
             <CardContent>
               <SystemMonitoring />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Server className="w-5 h-5 text-green-500" />
+                مانیتور ترمینال لحظه‌ای
+              </CardTitle>
+              <CardDescription>
+                نمایش real-time لاگ‌های سیستم با ظاهر ترمینال
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <TerminalMonitor />
             </CardContent>
           </Card>
         </TabsContent>
