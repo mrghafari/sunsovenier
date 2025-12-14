@@ -93,7 +93,7 @@ export default function Blog() {
 
   // Truncate excerpt to 150 characters
   const truncateExcerpt = (text: string, maxLength = 150) => {
-    if (text.length <= maxLength) return text;
+    if (!text) return ""; if (text.length <= maxLength) return text;
     return text.substring(0, maxLength).trim() + '...';
   };
 
