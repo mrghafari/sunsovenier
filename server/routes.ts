@@ -53741,60 +53741,73 @@ momtazchem.com
       const now = new Date();
       
       // Get recent orders
-      const ordersResult = await pool.query(`
-        SELECT id, order_number, status, customer_name, created_at 
-        FROM customer_orders 
-        ORDER BY created_at DESC 
-        LIMIT 10
-      `);
-      ordersResult.rows.forEach((order: any) => {
-        logs.push({
-          id: order.id,
-          timestamp: new Date(order.created_at).toLocaleTimeString('en-US', { hour12: false }),
-          type: 'order',
-          action: 'سفارش جدید',
-          details: `سفارش ${order.order_number} - ${order.customer_name} - وضعیت: ${order.status}`,
-          user: order.customer_name
-        });
-      });
-      
-      // Get recent user logins from admin_users
-      const loginsResult = await pool.query(`
-        SELECT id, username, last_login 
-        FROM admin_users 
-        WHERE last_login IS NOT NULL 
-        ORDER BY last_login DESC 
-        LIMIT 5
-      `);
-      loginsResult.rows.forEach((user: any) => {
-        if (user.last_login) {
+      try {
+        const ordersResult = await pool.query(`
+          SELECT id, order_number, status, customer_name, created_at 
+          FROM customer_orders 
+          ORDER BY created_at DESC 
+          LIMIT 10
+        `);
+        ordersResult.rows.forEach((order: any) => {
           logs.push({
-            id: user.id + 10000,
-            timestamp: new Date(user.last_login).toLocaleTimeString('en-US', { hour12: false }),
-            type: 'login',
-            action: 'ورود کاربر',
-            details: `${user.username} وارد سیستم شد`,
-            user: user.username
+            id: order.id,
+            timestamp: new Date(order.created_at).toLocaleTimeString('en-US', { hour12: false }),
+            type: 'order',
+            action: 'سفارش جدید',
+            details: `سفارش ${order.order_number} - ${order.customer_name} - وضعیت: ${order.status}`,
+            user: order.customer_name
           });
-        }
-      });
-      
-      // Get recent payments
-      const paymentsResult = await pool.query(`
-        SELECT id, amount, status, created_at 
-        FROM payments 
-        ORDER BY created_at DESC 
-        LIMIT 5
-      `);
-      paymentsResult.rows.forEach((payment: any) => {
-        logs.push({
-          id: payment.id + 20000,
-          timestamp: new Date(payment.created_at).toLocaleTimeString('en-US', { hour12: false }),
-          type: 'payment',
-          action: 'پرداخت',
-          details: `مبلغ: ${payment.amount} - وضعیت: ${payment.status}`,
         });
-      });
+      } catch (e) {
+        console.log("[ACTIVITY] Orders query skipped:", (e as Error).message);
+      }
+      
+      // Get recent user logins from users table
+      try {
+        const loginsResult = await pool.query(`
+          SELECT id, username, last_login_at 
+          FROM users 
+          WHERE last_login_at IS NOT NULL 
+          ORDER BY last_login_at DESC 
+          LIMIT 5
+        `);
+        loginsResult.rows.forEach((user: any) => {
+          if (user.last_login_at) {
+            logs.push({
+              id: user.id + 10000,
+              timestamp: new Date(user.last_login_at).toLocaleTimeString('en-US', { hour12: false }),
+              type: 'login',
+              action: 'ورود کاربر',
+              details: `${user.username} وارد سیستم شد`,
+              user: user.username
+            });
+          }
+        });
+      } catch (e) {
+        console.log("[ACTIVITY] Logins query skipped:", (e as Error).message);
+      }
+      
+      // Get recent payment receipts
+      try {
+        const paymentsResult = await pool.query(`
+          SELECT pr.id, co.total_amount as amount, co.status, pr.uploaded_at as created_at 
+          FROM payment_receipts pr
+          LEFT JOIN customer_orders co ON pr.customer_order_id = co.id
+          ORDER BY pr.uploaded_at DESC 
+          LIMIT 5
+        `);
+        paymentsResult.rows.forEach((payment: any) => {
+          logs.push({
+            id: payment.id + 20000,
+            timestamp: new Date(payment.created_at).toLocaleTimeString('en-US', { hour12: false }),
+            type: 'payment',
+            action: 'رسید پرداخت',
+            details: `مبلغ: ${payment.amount || 'نامشخص'} - وضعیت: ${payment.status || 'نامشخص'}`,
+          });
+        });
+      } catch (e) {
+        console.log("[ACTIVITY] Payments query skipped:", (e as Error).message);
+      }
       
       // Add system status
       logs.push({
