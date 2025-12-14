@@ -92,6 +92,8 @@ export default function DatabaseManagement() {
   const [isCreatingBackup, setIsCreatingBackup] = useState(false);
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<BackupSchedule | null>(null);
+  const [restoreConfirmText, setRestoreConfirmText] = useState("");
+  const [restoreFilename, setRestoreFilename] = useState<string | null>(null);
   const [scheduleForm, setScheduleForm] = useState({
     name: "",
     frequency: "daily" as "daily" | "weekly" | "monthly",
@@ -214,7 +216,10 @@ export default function DatabaseManagement() {
 
   // Restore database from backup mutation
   const restoreBackupMutation = useMutation({
-    mutationFn: (filename: string) => apiRequest(`/api/admin/backup/restore/${filename}`, { method: "POST" }),
+    mutationFn: (filename: string) => apiRequest(`/api/admin/backup/restore/${filename}`, { 
+      method: "POST",
+      body: { confirmRestore: "RESTORE_DATABASE" }
+    }),
     onSuccess: (_, filename) => {
       toast({
         title: "بک‌آپ بازگردانی شد",
@@ -222,6 +227,8 @@ export default function DatabaseManagement() {
       });
       refetchBackups();
       queryClient.invalidateQueries({ queryKey: ["/api/admin/database/stats"] });
+      setRestoreConfirmText("");
+      setRestoreFilename(null);
     },
     onError: (error: any) => {
       toast({
@@ -229,6 +236,8 @@ export default function DatabaseManagement() {
         title: "خطا در بازگردانی بک‌آپ",
         description: error?.message || "مشکلی در بازگردانی بک‌آپ رخ داده است",
       });
+      setRestoreConfirmText("");
+      setRestoreFilename(null);
     },
   });
 
@@ -588,37 +597,69 @@ export default function DatabaseManagement() {
                           <Download className="h-4 w-4" />
                           دانلود
                         </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex items-center gap-2"
-                              data-testid={`button-restore-${backup.filename}`}
-                            >
-                              <RotateCcw className="h-4 w-4" />
-                              بازگردانی
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>بازگردانی بک‌آپ</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                آیا مطمئن هستید که می‌خواهید از بک‌آپ "{backup.filename}" بازگردانی کنید؟ این عمل تمامی داده‌های فعلی را بدل خواهد کرد!
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>لغو</AlertDialogCancel>
-                              <AlertDialogAction
+                        <Dialog open={restoreFilename === backup.filename} onOpenChange={(open) => {
+                          if (!open) {
+                            setRestoreFilename(null);
+                            setRestoreConfirmText("");
+                          }
+                        }}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center gap-2"
+                            onClick={() => setRestoreFilename(backup.filename)}
+                            data-testid={`button-restore-${backup.filename}`}
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                            بازگردانی
+                          </Button>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>بازگردانی بک‌آپ</DialogTitle>
+                              <DialogDescription>
+                                آیا مطمئن هستید که می‌خواهید از بک‌آپ "{backup.filename}" بازگردانی کنید؟ این عمل تمامی داده‌های فعلی را جایگزین خواهد کرد!
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                              <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                                <p className="text-sm text-red-800">
+                                  <strong>هشدار:</strong> این عمل غیرقابل بازگشت است. تمامی داده‌های فعلی با داده‌های بک‌آپ جایگزین خواهند شد.
+                                </p>
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="restore-confirm">
+                                  برای تأیید، عبارت <strong>RESTORE</strong> را تایپ کنید:
+                                </Label>
+                                <Input
+                                  id="restore-confirm"
+                                  value={restoreConfirmText}
+                                  onChange={(e) => setRestoreConfirmText(e.target.value)}
+                                  placeholder="RESTORE"
+                                  data-testid="input-restore-confirm"
+                                />
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <Button
+                                variant="outline"
+                                onClick={() => {
+                                  setRestoreFilename(null);
+                                  setRestoreConfirmText("");
+                                }}
+                              >
+                                لغو
+                              </Button>
+                              <Button
                                 onClick={() => restoreBackupMutation.mutate(backup.filename)}
                                 className="bg-orange-600 hover:bg-orange-700"
-                                disabled={restoreBackupMutation.isPending}
+                                disabled={restoreConfirmText !== "RESTORE" || restoreBackupMutation.isPending}
+                                data-testid="button-confirm-restore"
                               >
                                 {restoreBackupMutation.isPending ? "در حال بازگردانی..." : "بازگردانی"}
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button
