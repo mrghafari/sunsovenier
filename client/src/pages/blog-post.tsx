@@ -66,7 +66,21 @@ export default function BlogPost() {
         }
         throw new Error('Failed to fetch blog post');
       }
-      return response.json();
+      const json = await response.json();
+      if (!json.success || !json.data) {
+        throw new Error('Invalid response');
+      }
+      // Flatten translation data for easier access
+      const { translation, ...postData } = json.data;
+      return {
+        ...postData,
+        title: translation?.title || '',
+        slug: translation?.slug || '',
+        excerpt: translation?.excerpt || '',
+        content: translation?.content || '',
+        metaTitle: translation?.metaTitle,
+        metaDescription: translation?.metaDescription,
+      };
     },
     enabled: !!slug,
   });
