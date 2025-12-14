@@ -6875,7 +6875,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-
   // Restore database from backup
   app.post("/api/admin/backup/restore/:filename", requireAuth, async (req, res) => {
     try {
@@ -6890,8 +6889,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Security check - only allow .sql files and prevent directory traversal
-      if (!filename.endsWith('.sql') || filename.includes('..' ) || filename.includes('/')) {
+      // Security check - only allow .sql or .sql.gz files and prevent directory traversal
+      if ((!filename.endsWith('.sql') && !filename.endsWith('.sql.gz')) || filename.includes('..') || filename.includes('/')) {
         return res.status(400).json({
           success: false,
           message: 'Invalid filename'
@@ -6907,56 +6906,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const databaseUrl = process.env.DATABASE_URL;
-      if (!databaseUrl) {
-        return res.status(500).json({
-          success: false,
-          message: "Database URL not configured"
+      console.log(`🔄 [RESTORE] Starting database restore from: ${filename}`);
+      
+      // Read backup file content
+      let sqlContent: string;
+      try {
+        if (filename.endsWith('.sql.gz')) {
+          const zlib = await import('zlib');
+          const gzipData = fs.readFileSync(backupPath);
+          sqlContent = zlib.gunzipSync(gzipData).toString('utf-8');
+        } else {
+          sqlContent = fs.readFileSync(backupPath, 'utf-8');
+        }
+      } catch (readError) {
+        console.error("Error reading backup file:", readError);
+        return res.status(500).json({ 
+          success: false, 
+          message: "Failed to read backup file" 
         });
       }
       
-      console.log(`🔄 [RESTORE] Starting database restore from: ${filename}`);
+      // Filter out psql-specific backslash commands that pool.query can't handle
+      const lines = sqlContent.split('\n');
+      const filteredLines = lines.filter(line => !line.trim().startsWith('\\'));
+      const cleanedSql = filteredLines.join('\n');
       
-      // Create a backup before restore (safety measure)
-      const { spawn } = await import('child_process');
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
-      const preRestoreBackup = `pre_restore_backup_${timestamp}.sql`;
-      const preRestorePath = path.join('./backups', preRestoreBackup);
+      const { pool } = await import('./db');
       
-      // Execute restore using psql
-      const psql = spawn('psql', [databaseUrl, '-f', backupPath]);
-      
-      let output = '';
-      let errorOutput = '';
-      
-      psql.stdout?.on('data', (data: Buffer) => {
-        output += data.toString();
-      });
-      
-      psql.stderr?.on('data', (data: Buffer) => {
-        errorOutput += data.toString();
-      });
-      
-      psql.on('close', async (code: number | null) => {
-        if (code === 0 || output.length > 0) {
-          console.log(`✅ [RESTORE] Database restore completed from: ${filename}`);
-          res.json({
-            success: true,
-            message: 'Database restored successfully from ' + filename,
-            details: {
-              output: output.substring(0, 1000),
-              warnings: errorOutput.substring(0, 500)
-            }
-          });
-        } else {
-          console.error(`❌ [RESTORE] Database restore failed:`, errorOutput);
-          res.status(500).json({
-            success: false,
-            message: 'Failed to restore database',
-            error: errorOutput.substring(0, 500)
-          });
-        }
-      });
+      try {
+        await pool.query(cleanedSql);
+        console.log(`✅ [RESTORE] Database restore completed from: ${filename}`);
+        res.json({
+          success: true,
+          message: 'Database restored successfully from ' + filename,
+          restoredAt: new Date().toISOString()
+        });
+      } catch (sqlError: any) {
+        console.error(`❌ [RESTORE] Database restore failed:`, sqlError);
+        res.status(500).json({
+          success: false,
+          message: 'Failed to restore database: ' + (sqlError.message || 'Unknown error')
+        });
+      }
       
     } catch (error) {
       console.error("Error restoring backup:", error);
@@ -7017,60 +7008,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       `, [userId, permissionName]);
       return result.rows.length > 0;
     } catch (error) {
-
-  // Restore database from local backup
-  app.post("/api/admin/backup/restore/:filename", requireAuth, async (req, res) => {
-    try {
-      const { filename } = req.params;
-      if ((!filename.endsWith(".sql") && !filename.endsWith(".sql.gz")) || filename.includes("..") || filename.includes("/")) {
-        return res.status(400).json({ success: false, message: "Invalid filename" });
-      }
-      const backupPath = path.join("./backups", filename);
-      if (!fs.existsSync(backupPath)) {
-        return res.status(404).json({ success: false, message: "Backup file not found" });
-      }
-
-      let sqlContent: string;
-      try {
-        if (filename.endsWith(".sql.gz")) {
-          const zlib = await import("zlib");
-          const gzipData = fs.readFileSync(backupPath);
-          sqlContent = zlib.gunzipSync(gzipData).toString('utf-8');
-        } else {
-          sqlContent = fs.readFileSync(backupPath, 'utf-8');
-        }
-      } catch (readError) {
-        console.error("Error reading backup file:", readError);
-        return res.status(500).json({ success: false, message: "خطا در خواندن فایل بک‌آپ" });
-      }
-
-      // Filter out psql-specific backslash commands
-      const lines = sqlContent.split('\n');
-      const filteredLines = lines.filter(line => !line.trim().startsWith('\\'));
-      const cleanedSql = filteredLines.join('\n');
-
-      const { pool } = await import('./db');
-      
-      try {
-        await pool.query(cleanedSql);
-        console.log(`✅ Database successfully restored from ${filename}`);
-        res.json({ success: true, message: "بک‌آپ با موفقیت بازگردانی شد", restoredAt: new Date().toISOString() });
-      } catch (sqlError: any) {
-        console.error(`❌ Restore failed for ${filename}:`, sqlError);
-        res.status(500).json({ success: false, message: "خطا در بازگردانی بک‌آپ: " + (sqlError.message || "Unknown error") });
-      }
-    } catch (error) {
-      console.error("Error restoring backup:", error);
-      res.status(500).json({ success: false, message: "Internal server error" });
-    }
-  });
-
       console.error('Error checking permission:', error);
       return false;
     }
   };
 
-  // Use the requireSuperAdmin middleware already defined above
 
   // Get all admin users
   app.get("/api/admin/users", requireSuperAdmin, async (req, res) => {
