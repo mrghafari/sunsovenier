@@ -6745,6 +6745,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       `, [userId, permissionName]);
       return result.rows.length > 0;
     } catch (error) {
+
+  // Restore database from local backup
+  app.post("/api/admin/backup/restore/:filename", requireAuth, async (req, res) => {
+    try {
+      const { filename } = req.params;
+      if ((!filename.endsWith(".sql") && !filename.endsWith(".sql.gz")) || filename.includes("..") || filename.includes("/")) {
+        return res.status(400).json({ success: false, message: "Invalid filename" });
+      }
+      const backupPath = path.join("./backups", filename);
+      if (!fs.existsSync(backupPath)) {
+        return res.status(404).json({ success: false, message: "Backup file not found" });
+      }
+      const databaseUrl = process.env.DATABASE_URL;
+      if (!databaseUrl) return res.status(500).json({ success: false, message: "Database URL not configured" });
+      const { spawn } = await import("child_process");
+      const readStream = fs.createReadStream(backupPath);
+      const psqlRestore = spawn("psql", [databaseUrl]);
+      readStream.pipe(psqlRestore.stdin);
+      let errorOutput = "";
+      psqlRestore.stderr?.on("data", (data: Buffer) => { errorOutput += data.toString(); });
+      psqlRestore.on("close", (code: number | null) => {
+        if (code === 0) {
+          res.json({ success: true, message: "Database restored from " + filename, restoredAt: new Date().toISOString() });
+        } else {
+          res.status(500).json({ success: false, message: "Failed to restore database", error: errorOutput });
+        }
+      });
+    } catch (error) {
+      console.error("Error restoring backup:", error);
+      res.status(500).json({ success: false, message: "Internal server error" });
+    }
+  });
+
       console.error('Error checking permission:', error);
       return false;
     }
