@@ -112,8 +112,10 @@ export default function BlogPost() {
     return Math.ceil(wordCount / 200);
   }, [post?.content]);
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return '';
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '';
     if (language === 'ar') {
       return format(date, 'dd MMMM yyyy', { locale: ar });
     }
