@@ -19,6 +19,7 @@ export * from "./persistent-cart-schema";
 export * from "./logistics-schema";
 export * from "./webrtc-schema";
 export * from "./blog-schema";
+export * from "./email-schema";
 
 // =============================================================================
 // AI API SETTINGS SYSTEM
