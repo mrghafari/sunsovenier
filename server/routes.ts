@@ -49,6 +49,7 @@ import { deliveryVerificationStorage } from "./delivery-verification-storage";
 import { gpsDeliveryStorage } from "./gps-delivery-storage";
 import { gpsDeliveryConfirmations } from "@shared/gps-delivery-schema";
 import ProformaInvoiceConverter from "./proforma-invoice-converter";
+import { migrateBlogImagesToS3 } from "./migrate-blog-images-to-s3";
 import { AutoInvoiceConverter } from "./auto-invoice-converter";
 import { secureObjectStorageService } from "./secureObjectStorage";
 import { fileSecurityService, productImageSecurityService } from "./fileSecurityService";
@@ -31645,6 +31646,21 @@ ${message ? `Additional Requirements:\n${message}` : ''}
     }
   });
 
+
+  // Migrate blog images to S3
+  app.post("/api/admin/migrate-blog-images", requireAdmin, async (req, res) => {
+    try {
+      console.log("🔄 [ADMIN] Starting blog images migration to S3...");
+      const result = await migrateBlogImagesToS3();
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error migrating blog images:", error);
+      res.status(500).json({
+        success: false,
+        message: "خطا در انتقال تصاویر بلاگ: " + error.message
+      });
+    }
+  });
   // [REMOVED] Removed duplicate endpoint - using the comprehensive one above (line 25196)
 
   // Process financial order
