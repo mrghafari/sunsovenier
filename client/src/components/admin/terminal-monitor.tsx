@@ -28,78 +28,229 @@ export default function TerminalMonitor() {
   useEffect(() => {
     if (healthData?.data) {
       const health = healthData.data;
+      const metrics = health.metrics;
       const now = new Date().toLocaleTimeString('en-US', { hour12: false });
       
       const newLogs: TerminalLog[] = [
         {
           timestamp: now,
           type: 'info',
-          message: `=== 🚀 MOMTAZ CHEM MONITOR ===`
+          message: `═══════════════════════════════════════════════════════`
+        },
+        {
+          timestamp: now,
+          type: 'info',
+          message: `              🚀 MOMTAZ CHEM SYSTEM MONITOR`
+        },
+        {
+          timestamp: now,
+          type: 'info',
+          message: `═══════════════════════════════════════════════════════`
         },
         {
           timestamp: now,
           type: health.overall === 'healthy' ? 'success' : health.overall === 'degraded' ? 'warning' : 'error',
-          message: `Overall Status: ${health.overall.toUpperCase()}`
+          message: `  Overall Status: ${health.overall.toUpperCase()}`
         },
         {
           timestamp: now,
           type: 'info',
-          message: `┌─────────────────────────────────────────┐`
+          message: ``
+        },
+        {
+          timestamp: now,
+          type: 'info',
+          message: `┌── 🔌 SERVICES ──────────────────────────────────────────┐`
         },
         {
           timestamp: now,
           type: health.services.database.status === 'healthy' ? 'success' : 'error',
-          message: `│ 🗄️  PostgreSQL Database: ${health.services.database.status.padEnd(10)} ${health.services.database.responseTime}ms`
+          message: `│ 🗄️  PostgreSQL Database: ${health.services.database.status.padEnd(10)} ${(health.services.database.responseTime || 0).toString().padStart(4)}ms`
         },
         {
           timestamp: now,
           type: health.services.s3Storage.status === 'healthy' ? 'success' : 'error',
-          message: `│ ☁️  AWS S3 Storage: ${health.services.s3Storage.status.padEnd(14)} ${health.services.s3Storage.responseTime}ms`
+          message: `│ ☁️  AWS S3 Storage:      ${health.services.s3Storage.status.padEnd(10)} ${(health.services.s3Storage.responseTime || 0).toString().padStart(4)}ms`
         },
         {
           timestamp: now,
           type: health.services.fibPaymentGateway.status === 'healthy' ? 'success' : 'error',
-          message: `│ 💳 FIB Payment Gateway: ${health.services.fibPaymentGateway.status.padEnd(10)} ${health.services.fibPaymentGateway.responseTime}ms`
+          message: `│ 💳 FIB Payment Gateway: ${health.services.fibPaymentGateway.status.padEnd(10)} ${(health.services.fibPaymentGateway.responseTime || 0).toString().padStart(4)}ms`
         },
         {
           timestamp: now,
           type: health.services.server.status === 'healthy' ? 'success' : 'error',
-          message: `│ 🖥️  Node.js Server: ${health.services.server.status.padEnd(14)} Active`
+          message: `│ 🖥️  Node.js Server:      ${health.services.server.status.padEnd(10)} Active`
         },
         {
           timestamp: now,
           type: 'info',
-          message: `└─────────────────────────────────────────┘`
+          message: `└─────────────────────────────────────────────────────────┘`
         },
         {
           timestamp: now,
           type: 'info',
-          message: `📊 System Metrics:`
+          message: ``
         },
         {
           timestamp: now,
           type: 'info',
-          message: `   Server IP: ${serverConfigData?.config?.serverIp || '0.0.0.0'}`
+          message: `┌── 📊 SYSTEM METRICS ────────────────────────────────────┐`
         },
         {
           timestamp: now,
           type: 'info',
-          message: `   Uptime: ${formatUptime(health.metrics.uptime)}`
-        },
-        {
-          timestamp: now,
-          type: health.metrics.memoryUsage.percentage > 80 ? 'warning' : 'success',
-          message: `   Memory: ${(health.metrics.memoryUsage.used / (1024 * 1024)).toFixed(0)}MB / ${(health.metrics.memoryUsage.total / (1024 * 1024)).toFixed(0)}MB (${health.metrics.memoryUsage.percentage.toFixed(1)}%)`
+          message: `│ 🌐 Server IP: ${serverConfigData?.config?.serverIp || '0.0.0.0'}`
         },
         {
           timestamp: now,
           type: 'info',
-          message: `   Platform: ${health.services.server.details?.platform || 'N/A'} | Node: ${health.services.server.details?.nodeVersion || 'N/A'}`
+          message: `│ ⏱️  Uptime: ${formatUptime(metrics.uptime)}`
+        },
+        {
+          timestamp: now,
+          type: 'info',
+          message: `│ 🖥️  Platform: ${health.services.server.details?.platform || 'N/A'} | Node: ${health.services.server.details?.nodeVersion || 'N/A'}`
+        },
+        {
+          timestamp: now,
+          type: 'info',
+          message: `└─────────────────────────────────────────────────────────┘`
+        },
+        {
+          timestamp: now,
+          type: 'info',
+          message: ``
+        },
+        {
+          timestamp: now,
+          type: 'info',
+          message: `┌── 💾 MEMORY & CPU ──────────────────────────────────────┐`
+        },
+        {
+          timestamp: now,
+          type: metrics.memoryUsage.percentage > 80 ? 'warning' : 'success',
+          message: `│ 📦 Heap Memory: ${(metrics.memoryUsage.used / (1024 * 1024)).toFixed(0)}MB / ${(metrics.memoryUsage.total / (1024 * 1024)).toFixed(0)}MB (${metrics.memoryUsage.percentage.toFixed(1)}%)`
+        },
+        {
+          timestamp: now,
+          type: metrics.systemLoad?.systemMemoryPercentage > 85 ? 'warning' : 'success',
+          message: `│ 🧠 System RAM:  ${((metrics.systemLoad?.totalMemory - metrics.systemLoad?.freeMemory) / (1024 * 1024 * 1024)).toFixed(1)}GB / ${(metrics.systemLoad?.totalMemory / (1024 * 1024 * 1024)).toFixed(1)}GB (${metrics.systemLoad?.systemMemoryPercentage?.toFixed(1) || 0}%)`
+        },
+        {
+          timestamp: now,
+          type: (metrics.cpuLoadAverage?.[0] || 0) > (metrics.cpuCores || 1) ? 'warning' : 'success',
+          message: `│ ⚡ CPU Load:    ${(metrics.cpuLoadAverage?.[0] || 0).toFixed(2)} | ${(metrics.cpuLoadAverage?.[1] || 0).toFixed(2)} | ${(metrics.cpuLoadAverage?.[2] || 0).toFixed(2)} (${metrics.cpuCores || 0} cores)`
+        },
+        {
+          timestamp: now,
+          type: 'info',
+          message: `└─────────────────────────────────────────────────────────┘`
+        },
+        {
+          timestamp: now,
+          type: 'info',
+          message: ``
+        },
+        {
+          timestamp: now,
+          type: 'info',
+          message: `┌── 🗄️  DATABASE POOL ─────────────────────────────────────┐`
         },
         {
           timestamp: now,
           type: 'success',
-          message: `✓ Monitoring refresh completed`
+          message: `│ 🔗 Total Connections:  ${metrics.databasePool?.totalConnections || 0}`
+        },
+        {
+          timestamp: now,
+          type: 'info',
+          message: `│ 💤 Idle Connections:   ${metrics.databasePool?.idleConnections || 0}`
+        },
+        {
+          timestamp: now,
+          type: (metrics.databasePool?.waitingClients || 0) > 0 ? 'warning' : 'success',
+          message: `│ ⏳ Waiting Clients:    ${metrics.databasePool?.waitingClients || 0}`
+        },
+        {
+          timestamp: now,
+          type: 'info',
+          message: `└─────────────────────────────────────────────────────────┘`
+        },
+        {
+          timestamp: now,
+          type: 'info',
+          message: ``
+        },
+        {
+          timestamp: now,
+          type: 'info',
+          message: `┌── 📈 REQUEST STATS ──────────────────────────────────────┐`
+        },
+        {
+          timestamp: now,
+          type: 'info',
+          message: `│ 📊 Total Requests:     ${metrics.requestStats?.totalRequests || 0}`
+        },
+        {
+          timestamp: now,
+          type: 'success',
+          message: `│ ⚡ Requests/min:       ${metrics.requestStats?.requestsPerMinute || 0}`
+        },
+        {
+          timestamp: now,
+          type: (metrics.requestStats?.errorRate || 0) > 5 ? 'warning' : 'success',
+          message: `│ ❌ Error Rate:         ${(metrics.requestStats?.errorRate || 0).toFixed(2)}%`
+        },
+        {
+          timestamp: now,
+          type: 'info',
+          message: `└─────────────────────────────────────────────────────────┘`
+        },
+        {
+          timestamp: now,
+          type: 'info',
+          message: ``
+        },
+        {
+          timestamp: now,
+          type: 'info',
+          message: `┌── 👥 SESSIONS & ORDERS ──────────────────────────────────┐`
+        },
+        {
+          timestamp: now,
+          type: 'success',
+          message: `│ 👤 Active Sessions:    ${metrics.activeSessions || 0}`
+        },
+        {
+          timestamp: now,
+          type: 'info',
+          message: `│ 📦 Orders Today:       ${metrics.recentOrders?.today || 0}`
+        },
+        {
+          timestamp: now,
+          type: (metrics.recentOrders?.pending || 0) > 10 ? 'warning' : 'info',
+          message: `│ ⏳ Pending Orders:     ${metrics.recentOrders?.pending || 0}`
+        },
+        {
+          timestamp: now,
+          type: 'success',
+          message: `│ 🔄 Processing Orders:  ${metrics.recentOrders?.processing || 0}`
+        },
+        {
+          timestamp: now,
+          type: 'info',
+          message: `└─────────────────────────────────────────────────────────┘`
+        },
+        {
+          timestamp: now,
+          type: 'info',
+          message: ``
+        },
+        {
+          timestamp: now,
+          type: 'success',
+          message: `✓ Monitoring refresh completed at ${now}`
         },
         {
           timestamp: now,
