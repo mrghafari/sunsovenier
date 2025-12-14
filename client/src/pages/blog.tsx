@@ -307,14 +307,14 @@ export default function Blog() {
             
             <Card 
               className="overflow-hidden rounded-3xl shadow-2xl hover:shadow-3xl transition-all duration-500 cursor-pointer group border-0 bg-white dark:bg-slate-800"
-              onClick={() => handleReadMore(featuredPost.slug)}
+              onClick={() => handleReadMore(featuredPost.translation?.slug)}
               data-testid={`blog-featured-${featuredPost.id}`}
             >
               <div className="grid md:grid-cols-2 gap-0">
                 <div className="relative h-80 md:h-auto overflow-hidden">
                   <img
                     src={featuredPost.featuredImage || getFallbackImage(0)}
-                    alt={featuredPost.title}
+                    alt={featuredPost.translation?.title || featuredPost.title}
                     className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = getFallbackImage(0);
@@ -338,11 +338,11 @@ export default function Blog() {
                   )}
                   
                   <h2 className="text-3xl md:text-4xl font-bold mb-4 text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                    {featuredPost.title}
+                    {featuredPost.translation?.title || featuredPost.title}
                   </h2>
                   
                   <p className="text-lg text-slate-600 dark:text-slate-300 mb-6 leading-relaxed">
-                    {truncateExcerpt(featuredPost.excerpt, 200)}
+                    {truncateExcerpt(featuredPost.translation?.excerpt || featuredPost.excerpt, 200)}
                   </p>
                   
                   <div className="flex flex-wrap items-center gap-6 text-sm text-slate-500 dark:text-slate-400 mb-8">
@@ -384,14 +384,14 @@ export default function Blog() {
                 <motion.div key={post.id} variants={itemVariants}>
                   <Card 
                     className="overflow-hidden rounded-2xl hover:shadow-xl transition-all duration-500 flex flex-col h-full cursor-pointer group border-0 bg-white dark:bg-slate-800 shadow-lg"
-                    onClick={() => handleReadMore(post.slug)}
+                    onClick={() => handleReadMore(post.translation?.slug)}
                     data-testid={`blog-card-${post.id}`}
                   >
                     {/* Featured Image */}
                     <div className="relative h-56 overflow-hidden">
                       <img
                         src={post.featuredImage || getFallbackImage(index + 1)}
-                        alt={post.title}
+                        alt={post.translation?.title || post.title}
                         className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                         onError={(e) => {
                           (e.target as HTMLImageElement).src = getFallbackImage(index + 1);
@@ -403,7 +403,7 @@ export default function Blog() {
                       {/* Reading time badge */}
                       <div className="absolute top-4 right-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        <span>{getReadingTime(post.content || post.excerpt) || 3} {t.blogPost?.minutes || "min"}</span>
+                        <span>{getReadingTime(post.translation?.content || post.translation?.excerpt || '') || 3} {t.blogPost?.minutes || "min"}</span>
                       </div>
                       
                       {/* Tags on image */}
@@ -429,7 +429,7 @@ export default function Blog() {
                         className="text-xl font-bold mb-3 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
                         data-testid={`blog-title-${post.id}`}
                       >
-                        {post.title}
+                        {post.translation?.title || post.title}
                       </CardTitle>
 
                       {/* Excerpt */}
@@ -437,7 +437,7 @@ export default function Blog() {
                         className="text-sm text-slate-600 dark:text-slate-400 line-clamp-3 leading-relaxed"
                         data-testid={`blog-excerpt-${post.id}`}
                       >
-                        {truncateExcerpt(post.excerpt)}
+                        {truncateExcerpt(post.translation?.excerpt || post.excerpt)}
                       </CardDescription>
                     </CardHeader>
 
@@ -463,7 +463,7 @@ export default function Blog() {
                       <Button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleReadMore(post.slug);
+                          handleReadMore(post.translation?.slug);
                         }}
                         className="w-full group/btn rounded-full"
                         data-testid={`blog-read-more-${post.id}`}
