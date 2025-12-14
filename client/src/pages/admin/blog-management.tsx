@@ -327,7 +327,7 @@ export default function BlogManagement() {
   };
 
   // Handle image upload to S3
-  const handleImageUpload = async (file: File) => {
+  const handleImageUpload = async (file: File, targetField: "featuredImage" | "ogImageEn" | "ogImageAr" = "featuredImage") => {
     setIsUploadingImage(true);
     try {
       const formData = new FormData();
@@ -342,7 +342,7 @@ export default function BlogManagement() {
       const data = await response.json();
       
       if (data.success && data.url) {
-        form.setValue("featuredImage", data.url);
+        form.setValue(targetField, data.url);
         toast({
           title: language === "en" ? "Success" : "نجاح",
           description: language === "en" ? "Image uploaded successfully" : "تم رفع الصورة بنجاح",
@@ -1076,13 +1076,56 @@ export default function BlogManagement() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>OG Image URL</FormLabel>
-                        <FormControl>
-                          <Input 
-                            {...field} 
-                            data-testid="input-og-image-en"
-                            placeholder="https://example.com/og-image.jpg"
-                          />
-                        </FormControl>
+                        <div className="space-y-3">
+                          <div className="flex gap-2">
+                            <FormControl>
+                              <Input 
+                                {...field} 
+                                data-testid="input-og-image-en"
+                                placeholder="https://example.com/og-image.jpg"
+                                className="flex-1"
+                              />
+                            </FormControl>
+                            <div className="relative">
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                data-testid="input-upload-og-image-en"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handleImageUpload(file, "ogImageEn");
+                                }}
+                                disabled={isUploadingImage}
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                disabled={isUploadingImage}
+                                data-testid="button-upload-og-image-en"
+                              >
+                                {isUploadingImage ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Upload className="w-4 h-4" />
+                                )}
+                                <span className="ml-2">Upload</span>
+                              </Button>
+                            </div>
+                          </div>
+                          {field.value && (
+                            <div className="relative w-full h-24 bg-gray-100 rounded-lg overflow-hidden">
+                              <img 
+                                src={field.value} 
+                                alt="OG Image preview"
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display = 'none';
+                                }}
+                              />
+                            </div>
+                          )}
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -1240,14 +1283,57 @@ export default function BlogManagement() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>رابط صورة OG</FormLabel>
-                        <FormControl>
-                          <Input 
-                            {...field} 
-                            data-testid="input-og-image-ar"
-                            placeholder="https://example.com/og-image.jpg"
-                            dir="rtl"
-                          />
-                        </FormControl>
+                        <div className="space-y-3">
+                          <div className="flex gap-2">
+                            <FormControl>
+                              <Input 
+                                {...field} 
+                                data-testid="input-og-image-ar"
+                                placeholder="https://example.com/og-image.jpg"
+                                dir="rtl"
+                                className="flex-1"
+                              />
+                            </FormControl>
+                            <div className="relative">
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                data-testid="input-upload-og-image-ar"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handleImageUpload(file, "ogImageAr");
+                                }}
+                                disabled={isUploadingImage}
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                disabled={isUploadingImage}
+                                data-testid="button-upload-og-image-ar"
+                              >
+                                {isUploadingImage ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Upload className="w-4 h-4" />
+                                )}
+                                <span className="ml-2">رفع</span>
+                              </Button>
+                            </div>
+                          </div>
+                          {field.value && (
+                            <div className="relative w-full h-24 bg-gray-100 rounded-lg overflow-hidden">
+                              <img 
+                                src={field.value} 
+                                alt="OG Image preview"
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display = 'none';
+                                }}
+                              />
+                            </div>
+                          )}
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}
