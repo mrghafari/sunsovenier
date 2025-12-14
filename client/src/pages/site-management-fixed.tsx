@@ -238,6 +238,14 @@ export default function SiteManagement() {
       moduleId: "content_management"
     },
     {
+      id: "ai-settings",
+      label: "AI Settings",
+      icon: Brain,
+      onClick: () => trackButtonClick("ai-settings", () => setLocation("/admin/ai-settings")),
+      className: "border-violet-300 text-violet-600 hover:bg-violet-50 hover:text-violet-800",
+      moduleId: "ai_settings"
+    },
+    {
       id: "marketplace-management",
       label: "Marketplace Management",
       icon: Store,
