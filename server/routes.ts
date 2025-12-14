@@ -53160,12 +53160,18 @@ momtazchem.com
       }
 
       // Update blog post
+      // Update blog post - convert dates from strings to Date objects
+      const postData = {
+        ...post,
+        updatedAt: new Date(),
+      };
+      // Convert publishDate string to Date if provided
+      if (post.publishDate) {
+        postData.publishDate = new Date(post.publishDate);
+      }
       const [updatedPost] = await db
         .update(blogPosts)
-        .set({
-          ...post,
-          updatedAt: new Date(),
-        })
+        .set(postData)
         .where(eq(blogPosts.id, postId))
         .returning();
 
