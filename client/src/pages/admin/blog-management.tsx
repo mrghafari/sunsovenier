@@ -71,10 +71,17 @@ import {
 } from "lucide-react";
 import type { BlogPostWithTranslations } from "@shared/blog-schema";
 
+// Custom validation for image URLs (allows both full URLs and relative paths)
+const imageUrlSchema = z.string().refine((val) => {
+  if (!val || val === "") return true;
+  // Allow full URLs or relative paths starting with /uploads/
+  return val.startsWith("http://") || val.startsWith("https://") || val.startsWith("/uploads/");
+}, "Invalid image URL").optional().or(z.literal(""));
+
 // Form validation schema
 const blogFormSchema = z.object({
   authorName: z.string().min(1, "Author name is required"),
-  featuredImage: z.string().url().optional().or(z.literal("")),
+  featuredImage: imageUrlSchema,
   tags: z.string().optional(),
   status: z.enum(["draft", "published"]),
   publishDate: z.string().optional(),
@@ -86,7 +93,7 @@ const blogFormSchema = z.object({
   contentEn: z.string().min(1, "English content is required"),
   metaTitleEn: z.string().optional(),
   metaDescriptionEn: z.string().optional(),
-  ogImageEn: z.string().url().optional().or(z.literal("")),
+  ogImageEn: imageUrlSchema,
   
   // Arabic translation
   titleAr: z.string().min(1, "Arabic title is required"),
@@ -95,7 +102,7 @@ const blogFormSchema = z.object({
   contentAr: z.string().min(1, "Arabic content is required"),
   metaTitleAr: z.string().optional(),
   metaDescriptionAr: z.string().optional(),
-  ogImageAr: z.string().url().optional().or(z.literal("")),
+  ogImageAr: imageUrlSchema,
 });
 
 type BlogFormData = z.infer<typeof blogFormSchema>;
