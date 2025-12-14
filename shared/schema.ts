@@ -191,6 +191,20 @@ export const insertProformaReminderScheduleSchema = createInsertSchema(proformaR
 export type InsertProformaReminderSchedule = z.infer<typeof insertProformaReminderScheduleSchema>;
 export type ProformaReminderSchedule = typeof proformaReminderSchedule.$inferSelect;
 
+// Proforma Reminder Logs table for tracking sent reminders
+export const proformaReminderLogs = pgTable("proforma_reminder_logs", {
+  id: serial("id").primaryKey(),
+  orderId: integer("order_id").notNull(), // Reference to the order
+  scheduleId: integer("schedule_id").notNull(), // Reference to the schedule used
+  customerEmail: text("customer_email").notNull(), // Email address the reminder was sent to
+  sentAt: timestamp("sent_at").notNull().defaultNow(), // When the reminder was sent
+  notificationType: varchar("notification_type", { length: 20 }).default("email"), // Type of notification (email, sms, etc.)
+});
+
+export const insertProformaReminderLogsSchema = createInsertSchema(proformaReminderLogs);
+export type InsertProformaReminderLogs = z.infer<typeof insertProformaReminderLogsSchema>;
+export type ProformaReminderLogs = typeof proformaReminderLogs.$inferSelect;
+
 // =============================================================================
 // SEO MANAGEMENT SCHEMA
 // =============================================================================
