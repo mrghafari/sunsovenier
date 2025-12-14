@@ -173,11 +173,13 @@ export default function BlogManagement() {
     mutationFn: async (data: BlogFormData) => {
       const tagsArray = data.tags ? data.tags.split(",").map(t => t.trim()) : [];
       const payload = {
-        authorName: data.authorName,
-        featuredImage: data.featuredImage || null,
-        tags: tagsArray,
-        status: data.status,
-        publishDate: data.publishDate || null,
+        post: {
+          authorName: data.authorName,
+          featuredImage: data.featuredImage || null,
+          tags: tagsArray,
+          status: data.status,
+          publishDate: data.publishDate || null,
+        },
         translations: [
           {
             language: "en",
@@ -227,11 +229,13 @@ export default function BlogManagement() {
     mutationFn: async ({ id, data }: { id: number; data: BlogFormData }) => {
       const tagsArray = data.tags ? data.tags.split(",").map(t => t.trim()) : [];
       const payload = {
-        authorName: data.authorName,
-        featuredImage: data.featuredImage || null,
-        tags: tagsArray,
-        status: data.status,
-        publishDate: data.publishDate || null,
+        post: {
+          authorName: data.authorName,
+          featuredImage: data.featuredImage || null,
+          tags: tagsArray,
+          status: data.status,
+          publishDate: data.publishDate || null,
+        },
         translations: [
           {
             language: "en",
