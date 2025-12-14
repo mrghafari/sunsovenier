@@ -1,7 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useQuery } from '@tanstack/react-query';
 import { Terminal, Play, Pause, Trash2, Maximize2, Minimize2 } from 'lucide-react';
 
 interface ConsoleLogEntry {
@@ -15,33 +14,49 @@ interface ConsoleLogEntry {
 export default function ActivityLog() {
   const [isRunning, setIsRunning] = useState(true);
   const [logs, setLogs] = useState<ConsoleLogEntry[]>([]);
-  const [lastId, setLastId] = useState(0);
   const [isMaximized, setIsMaximized] = useState(false);
   const logRef = useRef<HTMLDivElement>(null);
+  const lastIdRef = useRef(0);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const { data: consoleData } = useQuery<{ success: boolean; logs: ConsoleLogEntry[] }>({
-    queryKey: ['/api/admin/console-logs'],
-    queryFn: async () => {
-      const response = await fetch(`/api/admin/console-logs?lastId=${lastId}&limit=100`);
-      if (!response.ok) throw new Error('Failed to fetch logs');
-      return response.json();
-    },
-    refetchInterval: isRunning ? 2000 : false,
-    enabled: isRunning,
-  });
+  const fetchLogs = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/admin/console-logs?lastId=${lastIdRef.current}&limit=100`);
+      if (!response.ok) return;
+      
+      const data = await response.json();
+      if (data?.logs && data.logs.length > 0) {
+        setLogs(prev => {
+          const newLogs = [...prev, ...data.logs];
+          return newLogs.slice(-500);
+        });
+        const maxId = Math.max(...data.logs.map((l: ConsoleLogEntry) => l.id));
+        if (maxId > lastIdRef.current) {
+          lastIdRef.current = maxId;
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch logs:', error);
+    }
+  }, []);
 
   useEffect(() => {
-    if (consoleData?.logs && consoleData.logs.length > 0) {
-      setLogs(prev => {
-        const newLogs = [...prev, ...consoleData.logs];
-        return newLogs.slice(-500);
-      });
-      const maxId = Math.max(...consoleData.logs.map(l => l.id));
-      if (maxId > lastId) {
-        setLastId(maxId);
+    if (isRunning) {
+      fetchLogs();
+      intervalRef.current = setInterval(fetchLogs, 2000);
+    } else {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
     }
-  }, [consoleData]);
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [isRunning, fetchLogs]);
 
   useEffect(() => {
     if (logRef.current) {
@@ -65,7 +80,7 @@ export default function ActivityLog() {
 
   const clearLogs = () => {
     setLogs([]);
-    setLastId(0);
+    lastIdRef.current = 0;
   };
 
   return (
