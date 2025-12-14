@@ -20,13 +20,14 @@ export default function ActivityLog() {
   const logRef = useRef<HTMLDivElement>(null);
 
   const { data: consoleData } = useQuery<{ success: boolean; logs: ConsoleLogEntry[] }>({
-    queryKey: ['/api/admin/console-logs', lastId],
+    queryKey: ['/api/admin/console-logs'],
     queryFn: async () => {
       const response = await fetch(`/api/admin/console-logs?lastId=${lastId}&limit=100`);
       if (!response.ok) throw new Error('Failed to fetch logs');
       return response.json();
     },
     refetchInterval: isRunning ? 2000 : false,
+    enabled: isRunning,
   });
 
   useEffect(() => {
