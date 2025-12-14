@@ -3665,6 +3665,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
+  // Blog image upload endpoint
+  app.post("/api/upload/blog-image", requireAdmin, uploadImage.single('image'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "No image file uploaded" 
+        });
+      }
+
+      const s3Service = getAwsS3Service();
+      const uploadResult = await s3Service.uploadPublicFile(
+        req.file.buffer,
+        req.file.originalname,
+        req.file.mimetype,
+        'blog-images'
+      );
+
+      if (!uploadResult.success) {
+        return res.status(500).json({
+          success: false,
+          message: uploadResult.message || "Failed to upload image to S3"
+        });
+      }
+
+      console.log(`✅ [S3 UPLOAD] Blog image uploaded: ${uploadResult.key}`);
+
+      res.json({ 
+        success: true, 
+        url: uploadResult.url,
+        key: uploadResult.key,
+        originalName: req.file.originalname,
+        size: req.file.size
+      });
+    } catch (error) {
+      console.error('❌ [S3 UPLOAD] Blog image upload error:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Failed to upload blog image to S3",
+        error: error.message
+      });
+    }
+  });
+
   // 3D Model upload endpoint
   app.post("/api/upload/model3d", requireProductManagerAuth, uploadModel3d.single('model3d'), async (req, res) => {
     try {
