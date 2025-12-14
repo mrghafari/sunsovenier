@@ -13,6 +13,21 @@ class LogBuffer {
   private originalConsoleLog: typeof console.log;
   private originalConsoleError: typeof console.error;
   private originalConsoleWarn: typeof console.warn;
+  private lastMessage: string = '';
+  private duplicateCount: number = 0;
+
+  // Patterns to filter out (noisy/repetitive status logs)
+  private filterPatterns: RegExp[] = [
+    /^\[health\]/i,
+    /^\[status\]/i,
+    /^\[heartbeat\]/i,
+    /^\[ping\]/i,
+    /GET \/api\/admin\/console-logs/i,
+    /GET \/api\/health/i,
+    /checking status/i,
+    /status check/i,
+    /polling/i,
+  ];
 
   constructor() {
     this.originalConsoleLog = console.log.bind(console);
@@ -39,6 +54,16 @@ class LogBuffer {
     };
   }
 
+  private shouldFilter(message: string): boolean {
+    // Filter out noisy patterns
+    for (const pattern of this.filterPatterns) {
+      if (pattern.test(message)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   private addLog(type: 'info' | 'error' | 'warning', args: any[]) {
     const message = args.map(arg => {
       if (typeof arg === 'object') {
@@ -50,6 +75,30 @@ class LogBuffer {
       }
       return String(arg);
     }).join(' ');
+
+    // Skip filtered messages (except errors and warnings)
+    if (type === 'info' && this.shouldFilter(message)) {
+      return;
+    }
+
+    // Handle duplicate messages - show count instead of repeating
+    if (message === this.lastMessage && type === 'info') {
+      this.duplicateCount++;
+      // Update last log entry with count
+      if (this.logs.length > 0) {
+        const lastLog = this.logs[this.logs.length - 1];
+        if (!lastLog.message.includes('(repeated')) {
+          lastLog.message = `${message} (repeated ${this.duplicateCount + 1}x)`;
+        } else {
+          lastLog.message = message.replace(/\s*\(repeated \d+x\)$/, '') + ` (repeated ${this.duplicateCount + 1}x)`;
+        }
+      }
+      return;
+    }
+
+    // Reset duplicate tracking for new message
+    this.lastMessage = message;
+    this.duplicateCount = 0;
 
     const prefix = this.extractPrefix(message);
     const logType = this.determineType(message, type);
@@ -117,6 +166,8 @@ class LogBuffer {
 
   clear() {
     this.logs = [];
+    this.lastMessage = '';
+    this.duplicateCount = 0;
   }
 }
 
