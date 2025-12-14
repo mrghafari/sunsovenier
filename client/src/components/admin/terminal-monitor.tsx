@@ -107,13 +107,17 @@ export default function TerminalMonitor() {
         }
       ];
 
-      setLogs(prev => [...newLogs, ...prev.slice(0, 200)]);
+      setLogs(prev => [...prev.slice(-200), ...newLogs]);
     }
   }, [healthData, serverConfigData]);
 
+  // Auto-scroll to bottom when new logs arrive
   useEffect(() => {
     if (terminalRef.current) {
-      terminalRef.current.scrollTop = 0;
+      terminalRef.current.scrollTo({
+        top: terminalRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
     }
   }, [logs]);
 
