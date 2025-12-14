@@ -1,6 +1,7 @@
 import express, { type Express, Request, Response, NextFunction } from "express";
 import { registerFibRoutes } from "./fib-routes";
 import { createServer, type Server } from "http";
+import { logBuffer } from "./log-buffer";
 import bcrypt from "bcryptjs";
 import multer from "multer";
 import path from "path";
@@ -53832,7 +53833,7 @@ momtazchem.com
   // Real-time server console logs endpoint
   app.get("/api/admin/console-logs", requireAuth, async (req, res) => {
     try {
-      const { logBuffer } = await import('./log-buffer');
+      // Using imported logBuffer
       const lastId = parseInt(req.query.lastId as string) || 0;
       const limit = parseInt(req.query.limit as string) || 100;
       
