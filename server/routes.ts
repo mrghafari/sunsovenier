@@ -53197,14 +53197,25 @@ momtazchem.com
         })
       );
 
+      // Get total count
+      const [countResult] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(blogPosts)
+        .where(eq(blogPosts.status, "published"));
+      
+      // Get all unique tags
+      const allPosts = await db
+        .select({ tags: blogPosts.tags })
+        .from(blogPosts)
+        .where(eq(blogPosts.status, "published"));
+      
+      const allTags = [...new Set(allPosts.flatMap(p => p.tags || []))];
+
       res.json({
         success: true,
-        data: postsWithTranslation,
-        pagination: {
-          limit,
-          offset,
-          total: posts.length,
-        },
+        posts: postsWithTranslation,
+        total: Number(countResult?.count || 0),
+        tags: allTags,
       });
     } catch (error: any) {
       console.error("Error fetching published blog posts:", error);
