@@ -1,0 +1,676 @@
+ Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ Auth check result: Object
+ 📥 Loading Tawk.to widget at bottom-left position...
+ ✅ Tawk.to Live Chat loaded successfully at bottom-left
+ 
+value @ twk-chunk-common.js:2
+128x128?text=WeChat+QR:1  Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] useEffect triggered, userPermissions: undefined
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] useEffect triggered, userPermissions: Object
+ 🔍 [DEBUG] userPermissions modules: Array(36)
+ 🔍 [DEBUG] Full userPermissions response: Object
+ 🔍 [DEBUG] userPermissions.modules: Array(36)
+ 🔍 [DEBUG] userPermissions.permissions: Array(36)
+ 🔍 [DEBUG] Total allButtons count: 40
+ 🔍 [DEBUG] AI Settings exists in allButtons: true
+ 🔍 [DEBUG] Content Management exists in allButtons: true
+ 🔍 [DEBUG] allowedModules: Array(36)
+ 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+ 🔍 [DEBUG] management_dashboard in allowedModules? true
+ 🔍 [DEBUG] finance in allowedModules? true
+ 🔍 [DEBUG] geography_analytics in allowedModules? true
+ 🔍 [DEBUG] ai_settings in allowedModules? true
+ 🔍 [DEBUG] content_management in allowedModules? true
+ 🔍 [CRITICAL] Missing button detection:
+ 🔍 [MISSING] marketplace-management Marketplace Management moduleId: marketplace_management
+ 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+ 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+ 🔍 [CRITICAL] Missing buttons count: 3
+ 🔍 [DEBUG] finance button found in allButtons? Object
+ 🔍 [DEBUG] geography_analytics button found in allButtons? Object
+ 🔍 [DEBUG] ai_settings button found in allButtons? Object
+ 🔍 [DEBUG] content_management button found in allButtons? Object
+ 🔍 [DEBUG] finance button in filtered? Object
+ 🔍 [DEBUG] geography_analytics button in filtered? Object
+ 🔍 [DEBUG] ai_settings button in filtered? Object
+ 🔍 [DEBUG] content_management button in filtered? Object
+ 🔍 [DEBUG] filtered buttons count: 37
+ 🔍 [DEBUG] First 5 filtered buttons: Array(5)
+ 🔍 [DEBUG] AI Control button in filtered: Object
+ 🔍 [DEBUG] Content Management button in filtered: Object
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] Full userPermissions response: Object
+ 🔍 [DEBUG] userPermissions.modules: Array(36)
+ 🔍 [DEBUG] userPermissions.permissions: Array(36)
+ 🔍 [DEBUG] Total allButtons count: 40
+ 🔍 [DEBUG] AI Settings exists in allButtons: true
+ 🔍 [DEBUG] Content Management exists in allButtons: true
+ 🔍 [DEBUG] allowedModules: Array(36)
+ 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+ 🔍 [DEBUG] management_dashboard in allowedModules? true
+ 🔍 [DEBUG] finance in allowedModules? true
+ 🔍 [DEBUG] geography_analytics in allowedModules? true
+ 🔍 [DEBUG] ai_settings in allowedModules? true
+ 🔍 [DEBUG] content_management in allowedModules? true
+ 🔍 [CRITICAL] Missing button detection:
+ 🔍 [MISSING] marketplace-management Marketplace Management moduleId: marketplace_management
+ 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+ 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+ 🔍 [CRITICAL] Missing buttons count: 3
+ 🔍 [DEBUG] finance button found in allButtons? Object
+ 🔍 [DEBUG] geography_analytics button found in allButtons? Object
+ 🔍 [DEBUG] ai_settings button found in allButtons? Object
+ 🔍 [DEBUG] content_management button found in allButtons? Object
+ 🔍 [DEBUG] finance button in filtered? Object
+ 🔍 [DEBUG] geography_analytics button in filtered? Object
+ 🔍 [DEBUG] ai_settings button in filtered? Object
+ 🔍 [DEBUG] content_management button in filtered? Object
+ Auth check result: Object
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] useEffect triggered, userPermissions: undefined
+ Auth check result: Object
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] useEffect triggered, userPermissions: Object
+ 🔍 [DEBUG] userPermissions modules: Array(36)
+ 🔍 [DEBUG] Full userPermissions response: Object
+ 🔍 [DEBUG] userPermissions.modules: Array(36)
+ 🔍 [DEBUG] userPermissions.permissions: Array(36)
+ 🔍 [DEBUG] Total allButtons count: 40
+ 🔍 [DEBUG] AI Settings exists in allButtons: true
+ 🔍 [DEBUG] Content Management exists in allButtons: true
+ 🔍 [DEBUG] allowedModules: Array(36)
+ 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+ 🔍 [DEBUG] management_dashboard in allowedModules? true
+ 🔍 [DEBUG] finance in allowedModules? true
+ 🔍 [DEBUG] geography_analytics in allowedModules? true
+ 🔍 [DEBUG] ai_settings in allowedModules? true
+ 🔍 [DEBUG] content_management in allowedModules? true
+ 🔍 [CRITICAL] Missing button detection:
+ 🔍 [MISSING] marketplace-management Marketplace Management moduleId: marketplace_management
+ 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+ 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+ 🔍 [CRITICAL] Missing buttons count: 3
+ 🔍 [DEBUG] finance button found in allButtons? Object
+ 🔍 [DEBUG] geography_analytics button found in allButtons? Object
+ 🔍 [DEBUG] ai_settings button found in allButtons? Object
+ 🔍 [DEBUG] content_management button found in allButtons? Object
+ 🔍 [DEBUG] finance button in filtered? Object
+ 🔍 [DEBUG] geography_analytics button in filtered? Object
+ 🔍 [DEBUG] ai_settings button in filtered? Object
+ 🔍 [DEBUG] content_management button in filtered? Object
+ 🔍 [DEBUG] filtered buttons count: 37
+ 🔍 [DEBUG] First 5 filtered buttons: Array(5)
+ 🔍 [DEBUG] AI Control button in filtered: Object
+ 🔍 [DEBUG] Content Management button in filtered: Object
+ 🔍 [DEBUG] Site Management component initialized
+ Loading category data: undefined undefined
+ 🔍 [DEBUG] Full userPermissions response: Object
+ 🔍 [DEBUG] userPermissions.modules: Array(36)
+ 🔍 [DEBUG] userPermissions.permissions: Array(36)
+ 🔍 [DEBUG] Total allButtons count: 40
+ 🔍 [DEBUG] AI Settings exists in allButtons: true
+ 🔍 [DEBUG] Content Management exists in allButtons: true
+ 🔍 [DEBUG] allowedModules: Array(36)
+ 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+ 🔍 [DEBUG] management_dashboard in allowedModules? true
+ 🔍 [DEBUG] finance in allowedModules? true
+ 🔍 [DEBUG] geography_analytics in allowedModules? true
+ 🔍 [DEBUG] ai_settings in allowedModules? true
+ 🔍 [DEBUG] content_management in allowedModules? true
+ 🔍 [CRITICAL] Missing button detection:
+ 🔍 [MISSING] marketplace-management Marketplace Management moduleId: marketplace_management
+ 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+ 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+ 🔍 [CRITICAL] Missing buttons count: 3
+ 🔍 [DEBUG] finance button found in allButtons? Object
+ 🔍 [DEBUG] geography_analytics button found in allButtons? Object
+ 🔍 [DEBUG] ai_settings button found in allButtons? Object
+ 🔍 [DEBUG] content_management button found in allButtons? Object
+ 🔍 [DEBUG] finance button in filtered? Object
+ 🔍 [DEBUG] geography_analytics button in filtered? Object
+ 🔍 [DEBUG] ai_settings button in filtered? Object
+ 🔍 [DEBUG] content_management button in filtered? Object
+ Categories API Response: Object
+ Email Status Light Debug: Admin & General Contact null
+ No SMTP data for category: Admin & General Contact
+ Email Status Light Debug: Agricultural Fertilizers Department null
+ No SMTP data for category: Agricultural Fertilizers Department
+ Email Status Light Debug: Fuel Additives Department null
+ No SMTP data for category: Fuel Additives Department
+ Email Status Light Debug: Inventory Alerts null
+ No SMTP data for category: Inventory Alerts
+ Email Status Light Debug: Paint & Thinner Department null
+ No SMTP data for category: Paint & Thinner Department
+ Email Status Light Debug: Password Reset null
+ No SMTP data for category: Password Reset
+ Email Status Light Debug: Sales department null
+ No SMTP data for category: Sales department
+ Email Status Light Debug: Support null
+ No SMTP data for category: Support
+ Email Status Light Debug: Water Treatment Department null
+ No SMTP data for category: Water Treatment Department
+ Email Status Light Debug: Admin & General Contact null
+ No SMTP data for category: Admin & General Contact
+ Email Status Light Debug: Agricultural Fertilizers Department null
+ No SMTP data for category: Agricultural Fertilizers Department
+ Email Status Light Debug: Fuel Additives Department null
+ No SMTP data for category: Fuel Additives Department
+ Email Status Light Debug: Inventory Alerts null
+ No SMTP data for category: Inventory Alerts
+ Email Status Light Debug: Paint & Thinner Department null
+ No SMTP data for category: Paint & Thinner Department
+ Email Status Light Debug: Password Reset null
+ No SMTP data for category: Password Reset
+ Email Status Light Debug: Sales department null
+ No SMTP data for category: Sales department
+ Email Status Light Debug: Support null
+ No SMTP data for category: Support
+ Email Status Light Debug: Water Treatment Department null
+ No SMTP data for category: Water Treatment Department
+ Loading category data: Admin & General Contact null
+ Email Status Light Debug: Admin & General Contact null
+ No SMTP data for category: Admin & General Contact
+ Email Status Light Debug: Agricultural Fertilizers Department null
+ No SMTP data for category: Agricultural Fertilizers Department
+ Email Status Light Debug: Fuel Additives Department null
+ No SMTP data for category: Fuel Additives Department
+ Email Status Light Debug: Inventory Alerts null
+ No SMTP data for category: Inventory Alerts
+ Email Status Light Debug: Paint & Thinner Department null
+ No SMTP data for category: Paint & Thinner Department
+ Email Status Light Debug: Password Reset null
+ No SMTP data for category: Password Reset
+ Email Status Light Debug: Sales department null
+ No SMTP data for category: Sales department
+ Email Status Light Debug: Support null
+ No SMTP data for category: Support
+ Email Status Light Debug: Water Treatment Department null
+ No SMTP data for category: Water Treatment Department
+ Email Status Light Debug: Admin & General Contact null
+ No SMTP data for category: Admin & General Contact
+ Email Status Light Debug: Agricultural Fertilizers Department null
+ No SMTP data for category: Agricultural Fertilizers Department
+ Email Status Light Debug: Fuel Additives Department null
+ No SMTP data for category: Fuel Additives Department
+ Email Status Light Debug: Inventory Alerts null
+ No SMTP data for category: Inventory Alerts
+ Email Status Light Debug: Paint & Thinner Department null
+ No SMTP data for category: Paint & Thinner Department
+ Email Status Light Debug: Password Reset null
+ No SMTP data for category: Password Reset
+ Email Status Light Debug: Sales department null
+ No SMTP data for category: Sales department
+ Email Status Light Debug: Support null
+ No SMTP data for category: Support
+ Email Status Light Debug: Water Treatment Department null
+ No SMTP data for category: Water Treatment Department
+ Email Status Light Debug: Admin & General Contact null
+ No SMTP data for category: Admin & General Contact
+ Email Status Light Debug: Agricultural Fertilizers Department null
+ No SMTP data for category: Agricultural Fertilizers Department
+ Email Status Light Debug: Fuel Additives Department null
+ No SMTP data for category: Fuel Additives Department
+ Email Status Light Debug: Inventory Alerts null
+ No SMTP data for category: Inventory Alerts
+ Email Status Light Debug: Paint & Thinner Department null
+ No SMTP data for category: Paint & Thinner Department
+ Email Status Light Debug: Password Reset null
+ No SMTP data for category: Password Reset
+ Email Status Light Debug: Sales department null
+ No SMTP data for category: Sales department
+ Email Status Light Debug: Support null
+ No SMTP data for category: Support
+ Email Status Light Debug: Water Treatment Department null
+ No SMTP data for category: Water Treatment Department
+ Email Status Light Debug: Admin & General Contact null
+ No SMTP data for category: Admin & General Contact
+ Email Status Light Debug: Agricultural Fertilizers Department null
+ No SMTP data for category: Agricultural Fertilizers Department
+ Email Status Light Debug: Fuel Additives Department null
+ No SMTP data for category: Fuel Additives Department
+ Email Status Light Debug: Inventory Alerts null
+ No SMTP data for category: Inventory Alerts
+ Email Status Light Debug: Paint & Thinner Department null
+ No SMTP data for category: Paint & Thinner Department
+ Email Status Light Debug: Password Reset null
+ No SMTP data for category: Password Reset
+ Email Status Light Debug: Sales department null
+ No SMTP data for category: Sales department
+ Email Status Light Debug: Support null
+ No SMTP data for category: Support
+ Email Status Light Debug: Water Treatment Department null
+ No SMTP data for category: Water Treatment Department
+ Email Status Light Debug: Admin & General Contact null
+ No SMTP data for category: Admin & General Contact
+ Email Status Light Debug: Agricultural Fertilizers Department null
+ No SMTP data for category: Agricultural Fertilizers Department
+ Email Status Light Debug: Fuel Additives Department null
+ No SMTP data for category: Fuel Additives Department
+ Email Status Light Debug: Inventory Alerts null
+ No SMTP data for category: Inventory Alerts
+ Email Status Light Debug: Paint & Thinner Department null
+ No SMTP data for category: Paint & Thinner Department
+ Email Status Light Debug: Password Reset null
+ No SMTP data for category: Password Reset
+ Email Status Light Debug: Sales department null
+ No SMTP data for category: Sales department
+ Email Status Light Debug: Support null
+ No SMTP data for category: Support
+ Email Status Light Debug: Water Treatment Department null
+ No SMTP data for category: Water Treatment Department
+ Email Status Light Debug: Admin & General Contact null
+ No SMTP data for category: Admin & General Contact
+ Email Status Light Debug: Agricultural Fertilizers Department null
+ No SMTP data for category: Agricultural Fertilizers Department
+ Email Status Light Debug: Fuel Additives Department null
+ No SMTP data for category: Fuel Additives Department
+ Email Status Light Debug: Inventory Alerts null
+ No SMTP data for category: Inventory Alerts
+ Email Status Light Debug: Paint & Thinner Department null
+ No SMTP data for category: Paint & Thinner Department
+ Email Status Light Debug: Password Reset null
+ No SMTP data for category: Password Reset
+ Email Status Light Debug: Sales department null
+ No SMTP data for category: Sales department
+ Email Status Light Debug: Support null
+ No SMTP data for category: Support
+ Email Status Light Debug: Water Treatment Department null
+ No SMTP data for category: Water Treatment Department
+ Loading category data: Agricultural Fertilizers Department null
+ Email Status Light Debug: Admin & General Contact null
+ No SMTP data for category: Admin & General Contact
+ Email Status Light Debug: Agricultural Fertilizers Department null
+ No SMTP data for category: Agricultural Fertilizers Department
+ Email Status Light Debug: Fuel Additives Department null
+ No SMTP data for category: Fuel Additives Department
+ Email Status Light Debug: Inventory Alerts null
+ No SMTP data for category: Inventory Alerts
+ Email Status Light Debug: Paint & Thinner Department null
+ No SMTP data for category: Paint & Thinner Department
+ Email Status Light Debug: Password Reset null
+ No SMTP data for category: Password Reset
+ Email Status Light Debug: Sales department null
+ No SMTP data for category: Sales department
+ Email Status Light Debug: Support null
+ No SMTP data for category: Support
+ Email Status Light Debug: Water Treatment Department null
+ No SMTP data for category: Water Treatment Department
+ Email Status Light Debug: Admin & General Contact null
+ No SMTP data for category: Admin & General Contact
+ Email Status Light Debug: Agricultural Fertilizers Department null
+ No SMTP data for category: Agricultural Fertilizers Department
+ Email Status Light Debug: Fuel Additives Department null
+ No SMTP data for category: Fuel Additives Department
+ Email Status Light Debug: Inventory Alerts null
+ No SMTP data for category: Inventory Alerts
+ Email Status Light Debug: Paint & Thinner Department null
+ No SMTP data for category: Paint & Thinner Department
+ Email Status Light Debug: Password Reset null
+ No SMTP data for category: Password Reset
+ Email Status Light Debug: Sales department null
+ No SMTP data for category: Sales department
+ Email Status Light Debug: Support null
+ No SMTP data for category: Support
+ Email Status Light Debug: Water Treatment Department null
+ No SMTP data for category: Water Treatment Department
+ Loading category data: Fuel Additives Department null
+ Email Status Light Debug: Admin & General Contact null
+ No SMTP data for category: Admin & General Contact
+ Email Status Light Debug: Agricultural Fertilizers Department null
+ No SMTP data for category: Agricultural Fertilizers Department
+ Email Status Light Debug: Fuel Additives Department null
+ No SMTP data for category: Fuel Additives Department
+ Email Status Light Debug: Inventory Alerts null
+ No SMTP data for category: Inventory Alerts
+ Email Status Light Debug: Paint & Thinner Department null
+ No SMTP data for category: Paint & Thinner Department
+ Email Status Light Debug: Password Reset null
+ No SMTP data for category: Password Reset
+ Email Status Light Debug: Sales department null
+ No SMTP data for category: Sales department
+ Email Status Light Debug: Support null
+ No SMTP data for category: Support
+ Email Status Light Debug: Water Treatment Department null
+ No SMTP data for category: Water Treatment Department
+ Email Status Light Debug: Admin & General Contact null
+ No SMTP data for category: Admin & General Contact
+ Email Status Light Debug: Agricultural Fertilizers Department null
+ No SMTP data for category: Agricultural Fertilizers Department
+ Email Status Light Debug: Fuel Additives Department null
+ No SMTP data for category: Fuel Additives Department
+ Email Status Light Debug: Inventory Alerts null
+ No SMTP data for category: Inventory Alerts
+ Email Status Light Debug: Paint & Thinner Department null
+ No SMTP data for category: Paint & Thinner Department
+ Email Status Light Debug: Password Reset null
+ No SMTP data for category: Password Reset
+ Email Status Light Debug: Sales department null
+ No SMTP data for category: Sales department
+ Email Status Light Debug: Support null
+ No SMTP data for category: Support
+ Email Status Light Debug: Water Treatment Department null
+ No SMTP data for category: Water Treatment Department
+ Loading category data: Inventory Alerts null
+ Email Status Light Debug: Admin & General Contact null
+ No SMTP data for category: Admin & General Contact
+ Email Status Light Debug: Agricultural Fertilizers Department null
+ No SMTP data for category: Agricultural Fertilizers Department
+ Email Status Light Debug: Fuel Additives Department null
+ No SMTP data for category: Fuel Additives Department
+ Email Status Light Debug: Inventory Alerts null
+ No SMTP data for category: Inventory Alerts
+ Email Status Light Debug: Paint & Thinner Department null
+ No SMTP data for category: Paint & Thinner Department
+ Email Status Light Debug: Password Reset null
+ No SMTP data for category: Password Reset
+ Email Status Light Debug: Sales department null
+ No SMTP data for category: Sales department
+ Email Status Light Debug: Support null
+ No SMTP data for category: Support
+ Email Status Light Debug: Water Treatment Department null
+ No SMTP data for category: Water Treatment Department
+ Email Status Light Debug: Admin & General Contact null
+ No SMTP data for category: Admin & General Contact
+ Email Status Light Debug: Agricultural Fertilizers Department null
+ No SMTP data for category: Agricultural Fertilizers Department
+ Email Status Light Debug: Fuel Additives Department null
+ No SMTP data for category: Fuel Additives Department
+ Email Status Light Debug: Inventory Alerts null
+ No SMTP data for category: Inventory Alerts
+ Email Status Light Debug: Paint & Thinner Department null
+ No SMTP data for category: Paint & Thinner Department
+ Email Status Light Debug: Password Reset null
+ No SMTP data for category: Password Reset
+ Email Status Light Debug: Sales department null
+ No SMTP data for category: Sales department
+ Email Status Light Debug: Support null
+ No SMTP data for category: Support
+ Email Status Light Debug: Water Treatment Department null
+ No SMTP data for category: Water Treatment Department
+ Loading category data: Paint & Thinner Department null
+ Email Status Light Debug: Admin & General Contact null
+ No SMTP data for category: Admin & General Contact
+ Email Status Light Debug: Agricultural Fertilizers Department null
+ No SMTP data for category: Agricultural Fertilizers Department
+ Email Status Light Debug: Fuel Additives Department null
+ No SMTP data for category: Fuel Additives Department
+ Email Status Light Debug: Inventory Alerts null
+ No SMTP data for category: Inventory Alerts
+ Email Status Light Debug: Paint & Thinner Department null
+ No SMTP data for category: Paint & Thinner Department
+ Email Status Light Debug: Password Reset null
+ No SMTP data for category: Password Reset
+ Email Status Light Debug: Sales department null
+ No SMTP data for category: Sales department
+ Email Status Light Debug: Support null
+ No SMTP data for category: Support
+ Email Status Light Debug: Water Treatment Department null
+ No SMTP data for category: Water Treatment Department
+ Auth check result: Object
+ Email Status Light Debug: Admin & General Contact null
+ No SMTP data for category: Admin & General Contact
+ Email Status Light Debug: Agricultural Fertilizers Department null
+ No SMTP data for category: Agricultural Fertilizers Department
+ Email Status Light Debug: Fuel Additives Department null
+ No SMTP data for category: Fuel Additives Department
+ Email Status Light Debug: Inventory Alerts null
+ No SMTP data for category: Inventory Alerts
+ Email Status Light Debug: Paint & Thinner Department null
+ No SMTP data for category: Paint & Thinner Department
+ Email Status Light Debug: Password Reset null
+ No SMTP data for category: Password Reset
+ Email Status Light Debug: Sales department null
+ No SMTP data for category: Sales department
+ Email Status Light Debug: Support null
+ No SMTP data for category: Support
+ Email Status Light Debug: Water Treatment Department null
+ No SMTP data for category: Water Treatment Department
+ Loading category data: Water Treatment Department null
+ Email Status Light Debug: Admin & General Contact null
+ No SMTP data for category: Admin & General Contact
+ Email Status Light Debug: Agricultural Fertilizers Department null
+ No SMTP data for category: Agricultural Fertilizers Department
+ Email Status Light Debug: Fuel Additives Department null
+ No SMTP data for category: Fuel Additives Department
+ Email Status Light Debug: Inventory Alerts null
+ No SMTP data for category: Inventory Alerts
+ Email Status Light Debug: Paint & Thinner Department null
+ No SMTP data for category: Paint & Thinner Department
+ Email Status Light Debug: Password Reset null
+ No SMTP data for category: Password Reset
+ Email Status Light Debug: Sales department null
+ No SMTP data for category: Sales department
+ Email Status Light Debug: Support null
+ No SMTP data for category: Support
+ Email Status Light Debug: Water Treatment Department null
+ No SMTP data for category: Water Treatment Department
+ Email Status Light Debug: Admin & General Contact null
+ No SMTP data for category: Admin & General Contact
+ Email Status Light Debug: Agricultural Fertilizers Department null
+ No SMTP data for category: Agricultural Fertilizers Department
+ Email Status Light Debug: Fuel Additives Department null
+ No SMTP data for category: Fuel Additives Department
+ Email Status Light Debug: Inventory Alerts null
+ No SMTP data for category: Inventory Alerts
+ Email Status Light Debug: Paint & Thinner Department null
+ No SMTP data for category: Paint & Thinner Department
+ Email Status Light Debug: Password Reset null
+ No SMTP data for category: Password Reset
+ Email Status Light Debug: Sales department null
+ No SMTP data for category: Sales department
+ Email Status Light Debug: Support null
+ No SMTP data for category: Support
+ Email Status Light Debug: Water Treatment Department null
+ No SMTP data for category: Water Treatment Department
+ Email Status Light Debug: Admin & General Contact null
+ No SMTP data for category: Admin & General Contact
+ Email Status Light Debug: Agricultural Fertilizers Department null
+ No SMTP data for category: Agricultural Fertilizers Department
+ Email Status Light Debug: Fuel Additives Department null
+ No SMTP data for category: Fuel Additives Department
+ Email Status Light Debug: Inventory Alerts null
+ No SMTP data for category: Inventory Alerts
+ Email Status Light Debug: Paint & Thinner Department null
+ No SMTP data for category: Paint & Thinner Department
+ Email Status Light Debug: Password Reset null
+ No SMTP data for category: Password Reset
+ Email Status Light Debug: Sales department null
+ No SMTP data for category: Sales department
+ Email Status Light Debug: Support null
+ No SMTP data for category: Support
+ Email Status Light Debug: Water Treatment Department null
+ No SMTP data for category: Water Treatment Department
+ Email Status Light Debug: Admin & General Contact null
+ No SMTP data for category: Admin & General Contact
+ Email Status Light Debug: Agricultural Fertilizers Department null
+ No SMTP data for category: Agricultural Fertilizers Department
+ Email Status Light Debug: Fuel Additives Department null
+ No SMTP data for category: Fuel Additives Department
+ Email Status Light Debug: Inventory Alerts null
+ No SMTP data for category: Inventory Alerts
+ Email Status Light Debug: Paint & Thinner Department null
+ No SMTP data for category: Paint & Thinner Department
+ Email Status Light Debug: Password Reset null
+ No SMTP data for category: Password Reset
+ Email Status Light Debug: Sales department null
+ No SMTP data for category: Sales department
+ Email Status Light Debug: Support null
+ No SMTP data for category: Support
+ Email Status Light Debug: Water Treatment Department null
+ No SMTP data for category: Water Treatment Department
+ Loading category data: Admin & General Contact null
+ Email Status Light Debug: Admin & General Contact null
+ No SMTP data for category: Admin & General Contact
+ Email Status Light Debug: Agricultural Fertilizers Department null
+ No SMTP data for category: Agricultural Fertilizers Department
+ Email Status Light Debug: Fuel Additives Department null
+ No SMTP data for category: Fuel Additives Department
+ Email Status Light Debug: Inventory Alerts null
+ No SMTP data for category: Inventory Alerts
+ Email Status Light Debug: Paint & Thinner Department null
+ No SMTP data for category: Paint & Thinner Department
+ Email Status Light Debug: Password Reset null
+ No SMTP data for category: Password Reset
+ Email Status Light Debug: Sales department null
+ No SMTP data for category: Sales department
+ Email Status Light Debug: Support null
+ No SMTP data for category: Support
+ Email Status Light Debug: Water Treatment Department null
+ No SMTP data for category: Water Treatment Department
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ Auth check result: Object
+ Email Status Light Debug: Admin & General Contact null
+ No SMTP data for category: Admin & General Contact
+ Email Status Light Debug: Agricultural Fertilizers Department null
+ No SMTP data for category: Agricultural Fertilizers Department
+ Email Status Light Debug: Fuel Additives Department null
+ No SMTP data for category: Fuel Additives Department
+ Email Status Light Debug: Inventory Alerts null
+ No SMTP data for category: Inventory Alerts
+ Email Status Light Debug: Paint & Thinner Department null
+ No SMTP data for category: Paint & Thinner Department
+ Email Status Light Debug: Password Reset null
+ No SMTP data for category: Password Reset
+ Email Status Light Debug: Sales department null
+ No SMTP data for category: Sales department
+ Email Status Light Debug: Support null
+ No SMTP data for category: Support
+ Email Status Light Debug: Water Treatment Department null
+ No SMTP data for category: Water Treatment Department
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] useEffect triggered, userPermissions: undefined
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] useEffect triggered, userPermissions: Object
+ 🔍 [DEBUG] userPermissions modules: Array(36)
+ 🔍 [DEBUG] Full userPermissions response: Object
+ 🔍 [DEBUG] userPermissions.modules: Array(36)
+ 🔍 [DEBUG] userPermissions.permissions: Array(36)
+ 🔍 [DEBUG] Total allButtons count: 40
+ 🔍 [DEBUG] AI Settings exists in allButtons: true
+ 🔍 [DEBUG] Content Management exists in allButtons: true
+ 🔍 [DEBUG] allowedModules: Array(36)
+ 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+ 🔍 [DEBUG] management_dashboard in allowedModules? true
+ 🔍 [DEBUG] finance in allowedModules? true
+ 🔍 [DEBUG] geography_analytics in allowedModules? true
+ 🔍 [DEBUG] ai_settings in allowedModules? true
+ 🔍 [DEBUG] content_management in allowedModules? true
+ 🔍 [CRITICAL] Missing button detection:
+ 🔍 [MISSING] marketplace-management Marketplace Management moduleId: marketplace_management
+ 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+ 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+ 🔍 [CRITICAL] Missing buttons count: 3
+ 🔍 [DEBUG] finance button found in allButtons? Object
+ 🔍 [DEBUG] geography_analytics button found in allButtons? Object
+ 🔍 [DEBUG] ai_settings button found in allButtons? Object
+ 🔍 [DEBUG] content_management button found in allButtons? Object
+ 🔍 [DEBUG] finance button in filtered? Object
+ 🔍 [DEBUG] geography_analytics button in filtered? Object
+ 🔍 [DEBUG] ai_settings button in filtered? Object
+ 🔍 [DEBUG] content_management button in filtered? Object
+ 🔍 [DEBUG] filtered buttons count: 37
+ 🔍 [DEBUG] First 5 filtered buttons: Array(5)
+ 🔍 [DEBUG] AI Control button in filtered: Object
+ 🔍 [DEBUG] Content Management button in filtered: Object
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] Full userPermissions response: Object
+ 🔍 [DEBUG] userPermissions.modules: Array(36)
+ 🔍 [DEBUG] userPermissions.permissions: Array(36)
+ 🔍 [DEBUG] Total allButtons count: 40
+ 🔍 [DEBUG] AI Settings exists in allButtons: true
+ 🔍 [DEBUG] Content Management exists in allButtons: true
+ 🔍 [DEBUG] allowedModules: Array(36)
+ 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+ 🔍 [DEBUG] management_dashboard in allowedModules? true
+ 🔍 [DEBUG] finance in allowedModules? true
+ 🔍 [DEBUG] geography_analytics in allowedModules? true
+ 🔍 [DEBUG] ai_settings in allowedModules? true
+ 🔍 [DEBUG] content_management in allowedModules? true
+ 🔍 [CRITICAL] Missing button detection:
+ 🔍 [MISSING] marketplace-management Marketplace Management moduleId: marketplace_management
+ 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+ 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+ 🔍 [CRITICAL] Missing buttons count: 3
+ 🔍 [DEBUG] finance button found in allButtons? Object
+ 🔍 [DEBUG] geography_analytics button found in allButtons? Object
+ 🔍 [DEBUG] ai_settings button found in allButtons? Object
+ 🔍 [DEBUG] content_management button found in allButtons? Object
+ 🔍 [DEBUG] finance button in filtered? Object
+ 🔍 [DEBUG] geography_analytics button in filtered? Object
+ 🔍 [DEBUG] ai_settings button in filtered? Object
+ 🔍 [DEBUG] content_management button in filtered? Object
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ Auth check result: Object
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] useEffect triggered, userPermissions: undefined
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] useEffect triggered, userPermissions: Object
+ 🔍 [DEBUG] userPermissions modules: Array(36)
+ 🔍 [DEBUG] Full userPermissions response: Object
+ 🔍 [DEBUG] userPermissions.modules: Array(36)
+ 🔍 [DEBUG] userPermissions.permissions: Array(36)
+ 🔍 [DEBUG] Total allButtons count: 40
+ 🔍 [DEBUG] AI Settings exists in allButtons: true
+ 🔍 [DEBUG] Content Management exists in allButtons: true
+ 🔍 [DEBUG] allowedModules: Array(36)
+ 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+ 🔍 [DEBUG] management_dashboard in allowedModules? true
+ 🔍 [DEBUG] finance in allowedModules? true
+ 🔍 [DEBUG] geography_analytics in allowedModules? true
+ 🔍 [DEBUG] ai_settings in allowedModules? true
+ 🔍 [DEBUG] content_management in allowedModules? true
+ 🔍 [CRITICAL] Missing button detection:
+ 🔍 [MISSING] marketplace-management Marketplace Management moduleId: marketplace_management
+ 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+ 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+ 🔍 [CRITICAL] Missing buttons count: 3
+ 🔍 [DEBUG] finance button found in allButtons? Object
+ 🔍 [DEBUG] geography_analytics button found in allButtons? Object
+ 🔍 [DEBUG] ai_settings button found in allButtons? Object
+ 🔍 [DEBUG] content_management button found in allButtons? Object
+ 🔍 [DEBUG] finance button in filtered? Object
+ 🔍 [DEBUG] geography_analytics button in filtered? Object
+ 🔍 [DEBUG] ai_settings button in filtered? Object
+ 🔍 [DEBUG] content_management button in filtered? Object
+ 🔍 [DEBUG] filtered buttons count: 37
+ 🔍 [DEBUG] First 5 filtered buttons: Array(5)
+ 🔍 [DEBUG] AI Control button in filtered: Object
+ 🔍 [DEBUG] Content Management button in filtered: Object
+ 🔍 [DEBUG] Site Management component initialized
+ Auth check result: Object
+ 🔍 [DEBUG] Full userPermissions response: Object
+ 🔍 [DEBUG] userPermissions.modules: Array(36)
+ 🔍 [DEBUG] userPermissions.permissions: Array(36)
+ 🔍 [DEBUG] Total allButtons count: 40
+ 🔍 [DEBUG] AI Settings exists in allButtons: true
+ 🔍 [DEBUG] Content Management exists in allButtons: true
+ 🔍 [DEBUG] allowedModules: Array(36)
+ 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+ 🔍 [DEBUG] management_dashboard in allowedModules? true
+ 🔍 [DEBUG] finance in allowedModules? true
+ 🔍 [DEBUG] geography_analytics in allowedModules? true
+ 🔍 [DEBUG] ai_settings in allowedModules? true
+ 🔍 [DEBUG] content_management in allowedModules? true
+ 🔍 [CRITICAL] Missing button detection:
+ 🔍 [MISSING] marketplace-management Marketplace Management moduleId: marketplace_management
+ 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+ 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+ 🔍 [CRITICAL] Missing buttons count: 3
+ 🔍 [DEBUG] finance button found in allButtons? Object
+ 🔍 [DEBUG] geography_analytics button found in allButtons? Object
+ 🔍 [DEBUG] ai_settings button found in allButtons? Object
+ 🔍 [DEBUG] content_management button found in allButtons? Object
+ 🔍 [DEBUG] finance button in filtered? Object
+ 🔍 [DEBUG] geography_analytics button in filtered? Object
+ 🔍 [DEBUG] ai_settings button in filtered? Object
+ 🔍 [DEBUG] content_management button in filtered? Object
+ Auth check result: Object
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ Auth check result: Object
+ Auth check result: Object
+ Auth check result: Object
+ Auth check result: {success: true, user: {…}}
