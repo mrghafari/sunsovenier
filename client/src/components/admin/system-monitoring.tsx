@@ -409,7 +409,6 @@ const SystemMonitoring: React.FC = () => {
             )}
           </CardContent>
         </Card>
-        </Card>
       </div>
     </div>
   );
