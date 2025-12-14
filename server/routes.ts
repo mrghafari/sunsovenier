@@ -53720,6 +53720,90 @@ momtazchem.com
   registerFibRoutes(app);
 
   // 🔍 SYSTEM MONITORING ENDPOINTS
+  // Activity logs endpoint for real-time application monitoring
+  app.get("/api/admin/activity-logs", requireAuth, async (req, res) => {
+    try {
+      const { pool } = await import('./db');
+      
+      // Get recent activity from various sources
+      const logs: any[] = [];
+      const now = new Date();
+      
+      // Get recent orders
+      const ordersResult = await pool.query(`
+        SELECT id, order_number, status, customer_name, created_at 
+        FROM customer_orders 
+        ORDER BY created_at DESC 
+        LIMIT 10
+      `);
+      ordersResult.rows.forEach((order: any) => {
+        logs.push({
+          id: order.id,
+          timestamp: new Date(order.created_at).toLocaleTimeString('en-US', { hour12: false }),
+          type: 'order',
+          action: 'سفارش جدید',
+          details: `سفارش ${order.order_number} - ${order.customer_name} - وضعیت: ${order.status}`,
+          user: order.customer_name
+        });
+      });
+      
+      // Get recent user logins from admin_users
+      const loginsResult = await pool.query(`
+        SELECT id, username, last_login 
+        FROM admin_users 
+        WHERE last_login IS NOT NULL 
+        ORDER BY last_login DESC 
+        LIMIT 5
+      `);
+      loginsResult.rows.forEach((user: any) => {
+        if (user.last_login) {
+          logs.push({
+            id: user.id + 10000,
+            timestamp: new Date(user.last_login).toLocaleTimeString('en-US', { hour12: false }),
+            type: 'login',
+            action: 'ورود کاربر',
+            details: `${user.username} وارد سیستم شد`,
+            user: user.username
+          });
+        }
+      });
+      
+      // Get recent payments
+      const paymentsResult = await pool.query(`
+        SELECT id, amount, status, created_at 
+        FROM payments 
+        ORDER BY created_at DESC 
+        LIMIT 5
+      `);
+      paymentsResult.rows.forEach((payment: any) => {
+        logs.push({
+          id: payment.id + 20000,
+          timestamp: new Date(payment.created_at).toLocaleTimeString('en-US', { hour12: false }),
+          type: 'payment',
+          action: 'پرداخت',
+          details: `مبلغ: ${payment.amount} - وضعیت: ${payment.status}`,
+        });
+      });
+      
+      // Add system status
+      logs.push({
+        id: Date.now(),
+        timestamp: now.toLocaleTimeString('en-US', { hour12: false }),
+        type: 'system',
+        action: 'بررسی سیستم',
+        details: 'سیستم در حال اجرا است'
+      });
+      
+      // Sort by timestamp (newest first for display, but component will handle order)
+      logs.sort((a, b) => a.id - b.id);
+      
+      res.json({ success: true, logs: logs.slice(-50) });
+    } catch (error) {
+      console.error("Error fetching activity logs:", error);
+      res.status(500).json({ success: false, message: "خطا در دریافت لاگ فعالیت‌ها" });
+    }
+  });
+
   // Real-time health checks for all critical services (portable - works on any platform)
   console.log('🔍 [MONITORING] Registering system monitoring endpoints...');
   

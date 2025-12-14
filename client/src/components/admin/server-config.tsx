@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import SystemMonitoring from './system-monitoring';
 import TerminalMonitor from './terminal-monitor';
+import ActivityLog from './activity-log';
 import BIMonitoringDashboard from './bi-monitoring-dashboard';
 import { 
   Server, 
@@ -269,20 +270,37 @@ CORS_ORIGIN=${config.frontendUrl || 'https://www.momtazchem.com'}
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Server className="w-5 h-5 text-green-500" />
-                مانیتور ترمینال لحظه‌ای
-              </CardTitle>
-              <CardDescription>
-                نمایش real-time لاگ‌های سیستم با ظاهر ترمینال
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <TerminalMonitor />
-            </CardContent>
-          </Card>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Server className="w-5 h-5 text-green-500" />
+                  مانیتور ترمینال سیستم
+                </CardTitle>
+                <CardDescription>
+                  نمایش real-time وضعیت سرویس‌ها
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <TerminalMonitor />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-blue-500" />
+                  لاگ فعالیت‌های اپلیکیشن
+                </CardTitle>
+                <CardDescription>
+                  نمایش real-time رویدادها و فعالیت‌ها
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ActivityLog />
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="config" className="space-y-6">
