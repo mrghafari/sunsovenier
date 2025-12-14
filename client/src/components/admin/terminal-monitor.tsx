@@ -368,7 +368,7 @@ export default function TerminalMonitor() {
 
         <div
           ref={terminalRef}
-          className={`bg-black border border-green-900/50 rounded-md p-4 overflow-y-auto font-mono text-sm leading-relaxed ${isMaximized ? 'flex-1' : 'h-96'}`}
+          className={`bg-black border border-green-900/50 rounded-md p-4 overflow-y-auto font-mono leading-relaxed ${isMaximized ? 'flex-1 text-base' : 'h-96 text-sm'}`}
           style={{
             scrollbarWidth: 'thin',
             scrollbarColor: '#166534 #000000'

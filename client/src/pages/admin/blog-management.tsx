@@ -65,6 +65,9 @@ import {
   Tag,
   FileText,
   Save,
+  Upload,
+  Image,
+  Loader2,
 } from "lucide-react";
 import type { BlogPostWithTranslations } from "@shared/blog-schema";
 
@@ -109,6 +112,7 @@ export default function BlogManagement() {
   const [tagFilter, setTagFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [markdownPreview, setMarkdownPreview] = useState({ en: "", ar: "" });
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const postsPerPage = 10;
 
   // Fetch blog posts
@@ -313,6 +317,41 @@ export default function BlogManagement() {
       .replace(/\s+/g, "-")
       .replace(/-+/g, "-")
       .trim();
+  };
+
+  // Handle image upload to S3
+  const handleImageUpload = async (file: File) => {
+    setIsUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+      
+      const response = await fetch("/api/upload/blog-image", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+      
+      const data = await response.json();
+      
+      if (data.success && data.url) {
+        form.setValue("featuredImage", data.url);
+        toast({
+          title: language === "en" ? "Success" : "نجاح",
+          description: language === "en" ? "Image uploaded successfully" : "تم رفع الصورة بنجاح",
+        });
+      } else {
+        throw new Error(data.message || "Upload failed");
+      }
+    } catch (error: any) {
+      toast({
+        title: language === "en" ? "Error" : "خطأ",
+        description: error.message || (language === "en" ? "Failed to upload image" : "فشل في رفع الصورة"),
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingImage(false);
+    }
   };
 
   // Open create dialog
@@ -750,14 +789,57 @@ export default function BlogManagement() {
                   name="featuredImage"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{language === "en" ? "Featured Image URL" : "رابط الصورة المميزة"}</FormLabel>
-                      <FormControl>
-                        <Input 
-                          {...field} 
-                          data-testid="input-featured-image"
-                          placeholder="https://example.com/image.jpg"
-                        />
-                      </FormControl>
+                      <FormLabel>{language === "en" ? "Featured Image" : "الصورة المميزة"}</FormLabel>
+                      <div className="space-y-3">
+                        <div className="flex gap-2">
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              data-testid="input-featured-image"
+                              placeholder="https://example.com/image.jpg"
+                              className="flex-1"
+                            />
+                          </FormControl>
+                          <div className="relative">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                              data-testid="input-upload-featured-image"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleImageUpload(file);
+                              }}
+                              disabled={isUploadingImage}
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              disabled={isUploadingImage}
+                              data-testid="button-upload-featured-image"
+                            >
+                              {isUploadingImage ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Upload className="w-4 h-4" />
+                              )}
+                              <span className="ml-2">{language === "en" ? "Upload" : "رفع"}</span>
+                            </Button>
+                          </div>
+                        </div>
+                        {field.value && (
+                          <div className="relative w-full h-32 bg-gray-100 rounded-lg overflow-hidden">
+                            <img 
+                              src={field.value} 
+                              alt="Featured preview"
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
