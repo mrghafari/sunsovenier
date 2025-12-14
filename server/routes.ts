@@ -6848,7 +6848,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ success: false, message: "Backup file not found" });
       }
 
-      // Read SQL content (decompress if gzipped)
       let sqlContent: string;
       try {
         if (filename.endsWith(".sql.gz")) {
@@ -6863,20 +6862,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ success: false, message: "خطا در خواندن فایل بک‌آپ" });
       }
 
-      // Execute SQL using the database pool
+      // Filter out psql-specific backslash commands
+      const lines = sqlContent.split('\n');
+      const filteredLines = lines.filter(line => !line.trim().startsWith('\\'));
+      const cleanedSql = filteredLines.join('\n');
+
       const { pool } = await import('./db');
       
       try {
-        // Execute the entire SQL file as a single query (pg_dump format)
-        await pool.query(sqlContent);
+        await pool.query(cleanedSql);
         console.log(`✅ Database successfully restored from ${filename}`);
         res.json({ success: true, message: "بک‌آپ با موفقیت بازگردانی شد", restoredAt: new Date().toISOString() });
       } catch (sqlError: any) {
         console.error(`❌ Restore failed for ${filename}:`, sqlError);
-        res.status(500).json({ 
-          success: false, 
-          message: "خطا در بازگردانی بک‌آپ: " + (sqlError.message || "Unknown error")
-        });
+        res.status(500).json({ success: false, message: "خطا در بازگردانی بک‌آپ: " + (sqlError.message || "Unknown error") });
       }
     } catch (error) {
       console.error("Error restoring backup:", error);
