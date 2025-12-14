@@ -93,7 +93,6 @@ const blogFormSchema = z.object({
   contentEn: z.string().min(1, "English content is required"),
   metaTitleEn: z.string().optional(),
   metaDescriptionEn: z.string().optional(),
-  ogImageEn: imageUrlSchema,
   
   // Arabic translation
   titleAr: z.string().min(1, "Arabic title is required"),
@@ -102,7 +101,6 @@ const blogFormSchema = z.object({
   contentAr: z.string().min(1, "Arabic content is required"),
   metaTitleAr: z.string().optional(),
   metaDescriptionAr: z.string().optional(),
-  ogImageAr: imageUrlSchema,
 });
 
 type BlogFormData = z.infer<typeof blogFormSchema>;
@@ -157,14 +155,12 @@ export default function BlogManagement() {
       contentEn: "",
       metaTitleEn: "",
       metaDescriptionEn: "",
-      ogImageEn: "",
       titleAr: "",
       slugAr: "",
       excerptAr: "",
       contentAr: "",
       metaTitleAr: "",
       metaDescriptionAr: "",
-      ogImageAr: "",
     },
   });
 
@@ -189,7 +185,6 @@ export default function BlogManagement() {
             content: data.contentEn,
             metaTitle: data.metaTitleEn || null,
             metaDescription: data.metaDescriptionEn || null,
-            ogImage: data.ogImageEn || null,
           },
           {
             language: "ar",
@@ -199,7 +194,6 @@ export default function BlogManagement() {
             content: data.contentAr,
             metaTitle: data.metaTitleAr || null,
             metaDescription: data.metaDescriptionAr || null,
-            ogImage: data.ogImageAr || null,
           },
         ],
       };
@@ -245,7 +239,6 @@ export default function BlogManagement() {
             content: data.contentEn,
             metaTitle: data.metaTitleEn || null,
             metaDescription: data.metaDescriptionEn || null,
-            ogImage: data.ogImageEn || null,
           },
           {
             language: "ar",
@@ -255,7 +248,6 @@ export default function BlogManagement() {
             content: data.contentAr,
             metaTitle: data.metaTitleAr || null,
             metaDescription: data.metaDescriptionAr || null,
-            ogImage: data.ogImageAr || null,
           },
         ],
       };
@@ -331,7 +323,7 @@ export default function BlogManagement() {
   };
 
   // Handle image upload to S3
-  const handleImageUpload = async (file: File, targetField: "featuredImage" | "ogImageEn" | "ogImageAr" = "featuredImage") => {
+  const handleImageUpload = async (file: File, targetField: "featuredImage" = "featuredImage") => {
     setIsUploadingImage(true);
     try {
       const formData = new FormData();
@@ -391,14 +383,12 @@ export default function BlogManagement() {
       contentEn: enTranslation?.content || "",
       metaTitleEn: enTranslation?.metaTitle || "",
       metaDescriptionEn: enTranslation?.metaDescription || "",
-      ogImageEn: enTranslation?.ogImage || "",
       titleAr: arTranslation?.title || "",
       slugAr: arTranslation?.slug || "",
       excerptAr: arTranslation?.excerpt || "",
       contentAr: arTranslation?.content || "",
       metaTitleAr: arTranslation?.metaTitle || "",
       metaDescriptionAr: arTranslation?.metaDescription || "",
-      ogImageAr: arTranslation?.ogImage || "",
     });
     
     setMarkdownPreview({
@@ -1079,70 +1069,6 @@ export default function BlogManagement() {
                     )}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name="ogImageEn"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>OG Image URL</FormLabel>
-                        <p className="text-xs text-muted-foreground">
-                          Recommended size: 1200 × 630 px (for Facebook, LinkedIn, Twitter)
-                        </p>
-                        <div className="space-y-3">
-                          <div className="flex gap-2">
-                            <FormControl>
-                              <Input 
-                                {...field} 
-                                data-testid="input-og-image-en"
-                                placeholder="https://example.com/og-image.jpg"
-                                className="flex-1"
-                              />
-                            </FormControl>
-                            <div className="relative">
-                              <input
-                                type="file"
-                                accept="image/*"
-                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                data-testid="input-upload-og-image-en"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) handleImageUpload(file, "ogImageEn");
-                                }}
-                                disabled={isUploadingImage}
-                              />
-                              <Button
-                                type="button"
-                                variant="outline"
-                                disabled={isUploadingImage}
-                                data-testid="button-upload-og-image-en"
-                              >
-                                {isUploadingImage ? (
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                  <Upload className="w-4 h-4" />
-                                )}
-                                <span className="ml-2">Upload</span>
-                              </Button>
-                            </div>
-                          </div>
-                          {field.value && (
-                            <div className="relative w-full h-24 bg-gray-100 rounded-lg overflow-hidden">
-                              <img 
-                                src={field.value} 
-                                alt="OG Image preview"
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).style.display = 'none';
-                                }}
-                              />
-                            </div>
-                          )}
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </TabsContent>
 
                 {/* Arabic Tab */}
                 <TabsContent value="ar" className="space-y-4 mt-4">
