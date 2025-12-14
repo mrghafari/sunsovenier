@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
-import { Terminal, Play, Pause, Trash2 } from 'lucide-react';
+import { Terminal, Play, Pause, Trash2, Maximize2, Minimize2 } from 'lucide-react';
 
 interface TerminalLog {
   timestamp: string;
@@ -13,6 +13,7 @@ interface TerminalLog {
 export default function TerminalMonitor() {
   const [isRunning, setIsRunning] = useState(true);
   const [logs, setLogs] = useState<TerminalLog[]>([]);
+  const [isMaximized, setIsMaximized] = useState(false);
   const terminalRef = useRef<HTMLDivElement>(null);
 
   const { data: healthData } = useQuery<{ success: boolean; data: any }>({
@@ -153,8 +154,8 @@ export default function TerminalMonitor() {
   };
 
   return (
-    <Card className="border-gray-700 bg-black">
-      <CardContent className="p-4">
+    <Card className={`border-gray-700 bg-black transition-all duration-300 ${isMaximized ? 'fixed inset-4 z-50 overflow-hidden' : ''}`}>
+      <CardContent className={`p-4 ${isMaximized ? 'h-full flex flex-col' : ''}`}>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Terminal className="w-5 h-5 text-green-400" />
@@ -163,6 +164,25 @@ export default function TerminalMonitor() {
             </span>
           </div>
           <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setIsMaximized(!isMaximized)}
+              className="border-blue-600 text-blue-400 hover:bg-blue-900/20"
+              data-testid="button-maximize-terminal"
+            >
+              {isMaximized ? (
+                <>
+                  <Minimize2 className="w-3 h-3 ml-1" />
+                  Minimize
+                </>
+              ) : (
+                <>
+                  <Maximize2 className="w-3 h-3 ml-1" />
+                  Maximize
+                </>
+              )}
+            </Button>
             <Button
               size="sm"
               variant="outline"
@@ -197,7 +217,7 @@ export default function TerminalMonitor() {
 
         <div
           ref={terminalRef}
-          className="bg-black border border-green-900/50 rounded-md p-4 h-96 overflow-y-auto font-mono text-sm leading-relaxed"
+          className={`bg-black border border-green-900/50 rounded-md p-4 overflow-y-auto font-mono text-sm leading-relaxed ${isMaximized ? 'flex-1' : 'h-96'}`}
           style={{
             scrollbarWidth: 'thin',
             scrollbarColor: '#166534 #000000'
