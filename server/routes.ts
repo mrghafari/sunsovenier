@@ -6875,6 +6875,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
+  // Restore database from backup
+  app.post("/api/admin/backup/restore/:filename", requireAuth, async (req, res) => {
+    try {
+      const { filename } = req.params;
+      const { confirmRestore } = req.body;
+      
+      // Double confirmation required
+      if (confirmRestore !== "RESTORE_DATABASE") {
+        return res.status(400).json({
+          success: false,
+          message: "Please confirm restore by sending confirmRestore: RESTORE_DATABASE"
+        });
+      }
+      
+      // Security check - only allow .sql files and prevent directory traversal
+      if (!filename.endsWith('.sql') || filename.includes('..' ) || filename.includes('/')) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid filename'
+        });
+      }
+      
+      const backupPath = path.join('./backups', filename);
+      
+      if (!fs.existsSync(backupPath)) {
+        return res.status(404).json({
+          success: false,
+          message: 'Backup file not found'
+        });
+      }
+      
+      const databaseUrl = process.env.DATABASE_URL;
+      if (!databaseUrl) {
+        return res.status(500).json({
+          success: false,
+          message: "Database URL not configured"
+        });
+      }
+      
+      console.log(`🔄 [RESTORE] Starting database restore from: ${filename}`);
+      
+      // Create a backup before restore (safety measure)
+      const { spawn } = await import('child_process');
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
+      const preRestoreBackup = `pre_restore_backup_${timestamp}.sql`;
+      const preRestorePath = path.join('./backups', preRestoreBackup);
+      
+      // Execute restore using psql
+      const psql = spawn('psql', [databaseUrl, '-f', backupPath]);
+      
+      let output = '';
+      let errorOutput = '';
+      
+      psql.stdout?.on('data', (data: Buffer) => {
+        output += data.toString();
+      });
+      
+      psql.stderr?.on('data', (data: Buffer) => {
+        errorOutput += data.toString();
+      });
+      
+      psql.on('close', async (code: number | null) => {
+        if (code === 0 || output.length > 0) {
+          console.log(`✅ [RESTORE] Database restore completed from: ${filename}`);
+          res.json({
+            success: true,
+            message: 'Database restored successfully from ' + filename,
+            details: {
+              output: output.substring(0, 1000),
+              warnings: errorOutput.substring(0, 500)
+            }
+          });
+        } else {
+          console.error(`❌ [RESTORE] Database restore failed:`, errorOutput);
+          res.status(500).json({
+            success: false,
+            message: 'Failed to restore database',
+            error: errorOutput.substring(0, 500)
+          });
+        }
+      });
+      
+    } catch (error) {
+      console.error("Error restoring backup:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Internal server error" 
+      });
+    }
+  });
   // List available backups
   app.get("/api/admin/backup/list", requireAuth, async (req, res) => {
     try {
