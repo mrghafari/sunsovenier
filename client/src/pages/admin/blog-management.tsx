@@ -244,7 +244,7 @@ export default function BlogManagement() {
           },
         ],
       };
-      return apiRequest(`/api/admin/blog/${id}`, { method: 'PATCH', body: payload });
+      return apiRequest(`/api/admin/blog/${id}`, { method: 'PUT', body: payload });
     },
     onSuccess: () => {
       toast({
@@ -288,7 +288,7 @@ export default function BlogManagement() {
   // Toggle publish status
   const togglePublishMutation = useMutation({
     mutationFn: ({ id, status }: { id: number; status: "draft" | "published" }) =>
-      apiRequest(`/api/admin/blog/${id}/status`, { method: 'PATCH', body: { status } }),
+      apiRequest(`/api/admin/blog/${id}/publish`, { method: 'PATCH', body: { status } }),
     onSuccess: () => {
       toast({
         title: language === "en" ? "Success" : "نجاح",
