@@ -1068,7 +1068,7 @@ export default function BlogManagement() {
                       </FormItem>
                     )}
                   />
-
+                </TabsContent>
 
                 {/* Arabic Tab */}
                 <TabsContent value="ar" className="space-y-4 mt-4">
