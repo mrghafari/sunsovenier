@@ -1,3 +1,6 @@
+import { logBuffer } from "./log-buffer";
+logBuffer.init();
+
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import MemoryStore from "memorystore";

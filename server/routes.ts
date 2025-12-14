@@ -53828,6 +53828,28 @@ momtazchem.com
     }
   });
 
+
+  // Real-time server console logs endpoint
+  app.get("/api/admin/console-logs", requireAuth, async (req, res) => {
+    try {
+      const { logBuffer } = await import('./log-buffer');
+      const lastId = parseInt(req.query.lastId as string) || 0;
+      const limit = parseInt(req.query.limit as string) || 100;
+      
+      let logs;
+      if (lastId > 0) {
+        logs = logBuffer.getLogsSince(lastId);
+      } else {
+        logs = logBuffer.getLogs(limit);
+      }
+      
+      res.json({ success: true, logs });
+    } catch (error) {
+      console.error("Error fetching console logs:", error);
+      res.status(500).json({ success: false, message: "خطا در دریافت لاگ‌های سرور" });
+    }
+  });
+
   // Real-time health checks for all critical services (portable - works on any platform)
   console.log('🔍 [MONITORING] Registering system monitoring endpoints...');
   
