@@ -3449,6 +3449,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Proxy route to serve blog images from S3
+  app.get('/uploads/blog-images/:key', async (req, res) => {
+    try {
+      const key = `blog-images/${req.params.key}`;
+      const s3Service = getAwsS3Service();
+      
+      const fileBuffer = await s3Service.getFile(key);
+      
+      if (!fileBuffer) {
+        return res.status(404).json({ 
+          success: false,
+          message: 'Blog image not found' 
+        });
+      }
+
+      // Determine content type based on file extension
+      const ext = path.extname(req.params.key).toLowerCase();
+      let contentType = 'image/jpeg'; // default
+      
+      if (ext === '.png') {
+        contentType = 'image/png';
+      } else if (ext === '.gif') {
+        contentType = 'image/gif';
+      } else if (ext === '.webp') {
+        contentType = 'image/webp';
+      } else if (ext === '.svg') {
+        contentType = 'image/svg+xml';
+      }
+
+      // Set proper headers for images
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.send(fileBuffer);
+      
+      console.log(`✅ [S3 PROXY] Served blog image: ${key}`);
+    } catch (error) {
+      console.error('❌ [S3 PROXY] Error serving blog image:', error);
+      res.status(500).json({ 
+        success: false,
+        message: 'Failed to retrieve blog image',
+        error: error.message
+      });
+    }
+  });
+
   // File upload endpoints
   // Generic upload route (for images) - accepts both 'file' and 'image' field names
   const uploadFlexible = multer({
