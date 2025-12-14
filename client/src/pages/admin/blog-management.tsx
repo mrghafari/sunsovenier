@@ -1069,7 +1069,6 @@ export default function BlogManagement() {
                     )}
                   />
 
-                </TabsContent>
 
                 {/* Arabic Tab */}
                 <TabsContent value="ar" className="space-y-4 mt-4">
