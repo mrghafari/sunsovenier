@@ -1,0 +1,72 @@
+ Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ 📥 Loading Tawk.to widget at bottom-left position...
+ ✅ Tawk.to Live Chat loaded successfully at bottom-left
+ Auth check result: Object
+ 
+value @ twk-chunk-common.js:2
+128x128?text=WeChat+QR:1  Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] useEffect triggered, userPermissions: undefined
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] useEffect triggered, userPermissions: Object
+ 🔍 [DEBUG] userPermissions modules: Array(36)
+ 🔍 [DEBUG] Full userPermissions response: Object
+ 🔍 [DEBUG] userPermissions.modules: Array(36)
+ 🔍 [DEBUG] userPermissions.permissions: Array(36)
+ 🔍 [DEBUG] Total allButtons count: 39
+ 🔍 [DEBUG] AI Settings exists in allButtons: false
+ 🔍 [DEBUG] Content Management exists in allButtons: true
+ 🔍 [DEBUG] allowedModules: Array(36)
+ 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+ 🔍 [DEBUG] management_dashboard in allowedModules? true
+ 🔍 [DEBUG] finance in allowedModules? true
+ 🔍 [DEBUG] geography_analytics in allowedModules? true
+ 🔍 [DEBUG] ai_settings in allowedModules? true
+ 🔍 [DEBUG] content_management in allowedModules? true
+ 🔍 [CRITICAL] Missing button detection:
+ 🔍 [MISSING] marketplace-management Marketplace Management moduleId: marketplace_management
+ 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+ 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+site-management-fixed.tsx:463 🔍 [CRITICAL] Missing buttons count: 3
+site-management-fixed.tsx:465 🔍 [DEBUG] finance button found in allButtons? Object
+site-management-fixed.tsx:466 🔍 [DEBUG] geography_analytics button found in allButtons? Object
+site-management-fixed.tsx:467 🔍 [DEBUG] ai_settings button found in allButtons? undefined
+site-management-fixed.tsx:468 🔍 [DEBUG] content_management button found in allButtons? Object
+site-management-fixed.tsx:469 🔍 [DEBUG] finance button in filtered? Object
+site-management-fixed.tsx:470 🔍 [DEBUG] geography_analytics button in filtered? Object
+site-management-fixed.tsx:471 🔍 [DEBUG] ai_settings button in filtered? undefined
+site-management-fixed.tsx:472 🔍 [DEBUG] content_management button in filtered? Object
+site-management-fixed.tsx:75 🔍 [DEBUG] filtered buttons count: 36
+site-management-fixed.tsx:76 🔍 [DEBUG] First 5 filtered buttons: Array(5)
+site-management-fixed.tsx:77 🔍 [DEBUG] AI Control button in filtered: undefined
+site-management-fixed.tsx:78 🔍 [DEBUG] Content Management button in filtered: Object
+site-management-fixed.tsx:24 🔍 [DEBUG] Site Management component initialized
+site-management-fixed.tsx:432 🔍 [DEBUG] Full userPermissions response: Object
+site-management-fixed.tsx:433 🔍 [DEBUG] userPermissions.modules: Array(36)
+site-management-fixed.tsx:434 🔍 [DEBUG] userPermissions.permissions: Array(36)
+site-management-fixed.tsx:439 🔍 [DEBUG] Total allButtons count: 39
+site-management-fixed.tsx:440 🔍 [DEBUG] AI Settings exists in allButtons: false
+site-management-fixed.tsx:441 🔍 [DEBUG] Content Management exists in allButtons: true
+site-management-fixed.tsx:443 🔍 [DEBUG] allowedModules: Array(36)
+site-management-fixed.tsx:444 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+site-management-fixed.tsx:445 🔍 [DEBUG] management_dashboard in allowedModules? true
+site-management-fixed.tsx:446 🔍 [DEBUG] finance in allowedModules? true
+site-management-fixed.tsx:447 🔍 [DEBUG] geography_analytics in allowedModules? true
+site-management-fixed.tsx:448 🔍 [DEBUG] ai_settings in allowedModules? true
+site-management-fixed.tsx:449 🔍 [DEBUG] content_management in allowedModules? true
+site-management-fixed.tsx:455 🔍 [CRITICAL] Missing button detection:
+site-management-fixed.tsx:459 🔍 [MISSING] marketplace-management Marketplace Management moduleId: marketplace_management
+site-management-fixed.tsx:459 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+site-management-fixed.tsx:459 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+site-management-fixed.tsx:463 🔍 [CRITICAL] Missing buttons count: 3
+site-management-fixed.tsx:465 🔍 [DEBUG] finance button found in allButtons? Object
+site-management-fixed.tsx:466 🔍 [DEBUG] geography_analytics button found in allButtons? Object
+site-management-fixed.tsx:467 🔍 [DEBUG] ai_settings button found in allButtons? undefined
+site-management-fixed.tsx:468 🔍 [DEBUG] content_management button found in allButtons? Object
+site-management-fixed.tsx:469 🔍 [DEBUG] finance button in filtered? Object
+site-management-fixed.tsx:470 🔍 [DEBUG] geography_analytics button in filtered? Object
+site-management-fixed.tsx:471 🔍 [DEBUG] ai_settings button in filtered? undefined
+site-management-fixed.tsx:472 🔍 [DEBUG] content_management button in filtered? Object
+queryClient.ts:70 Failed to parse JSON response: SyntaxError: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+apiRequest @ queryClient.ts:70
