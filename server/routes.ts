@@ -6847,39 +6847,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!fs.existsSync(backupPath)) {
         return res.status(404).json({ success: false, message: "Backup file not found" });
       }
-      const databaseUrl = process.env.DATABASE_URL;
-      if (!databaseUrl) return res.status(500).json({ success: false, message: "Database URL not configured" });
       
       // Send immediate response to user
       res.json({ success: true, message: "بازگردانی شروع شد", restoredAt: new Date().toISOString() });
       
-      // Run restore in background
-      const { spawn } = await import("child_process");
-      const readStream = fs.createReadStream(backupPath);
-      const psqlRestore = spawn("psql", [databaseUrl]);
-      readStream.pipe(psqlRestore.stdin);
-      
-      let errorOutput = "";
-      psqlRestore.stderr?.on("data", (data: Buffer) => { errorOutput += data.toString(); });
-      psqlRestore.on("close", (code: number | null) => {
-        if (code === 0) {
-          console.log(`✅ Database successfully restored from ${filename}`);
-        } else {
-          console.error(`❌ Restore failed for ${filename}:`, errorOutput);
+      // Run restore in background using database pool
+      (async () => {
+        try {
+          const { pool } = await import('./db');
+          let sqlContent = fs.readFileSync(backupPath, 'utf-8');
+          
+          // If gzipped, decompress first
+          if (filename.endsWith(".sql.gz")) {
+            const zlib = await import("zlib");
+            const gzipData = fs.readFileSync(backupPath);
+            sqlContent = zlib.gunzipSync(gzipData).toString('utf-8');
+          }
+          
+          // Execute SQL in transaction
+          await pool.query("BEGIN");
+          try {
+            // Split SQL into individual statements and execute
+            const statements = sqlContent.split(';').filter(s => s.trim());
+            for (const statement of statements) {
+              if (statement.trim()) {
+                await pool.query(statement);
+              }
+            }
+            await pool.query("COMMIT");
+            console.log(`✅ Database successfully restored from ${filename}`);
+          } catch (err) {
+            await pool.query("ROLLBACK");
+            throw err;
+          }
+        } catch (error) {
+          console.error(`❌ Restore failed for ${filename}:`, error);
         }
-      });
+      })();
     } catch (error) {
       console.error("Error starting restore:", error);
       res.status(500).json({ success: false, message: "Internal server error" });
     }
   });
 
-      console.error('Error checking permission:', error);
-      return false;
-    }
-  };
-
-  // Use the requireSuperAdmin middleware already defined above
 
   // Get all admin users
   app.get("/api/admin/users", requireSuperAdmin, async (req, res) => {
@@ -53795,4 +53805,8 @@ momtazchem.com
 
   console.log('✅ [MONITORING] System monitoring endpoints registered');
   return httpServer;
+}
+
+}
+
 }
