@@ -797,6 +797,11 @@ export default function BlogManagement() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>{language === "en" ? "Featured Image" : "الصورة المميزة"}</FormLabel>
+                      <p className="text-xs text-muted-foreground">
+                        {language === "en" 
+                          ? "Recommended size: 1200 × 628 px (1.91:1 aspect ratio)" 
+                          : "الحجم الموصى به: 1200 × 628 بكسل (نسبة 1.91:1)"}
+                      </p>
                       <div className="space-y-3">
                         <div className="flex gap-2">
                           <FormControl>
@@ -1076,6 +1081,9 @@ export default function BlogManagement() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>OG Image URL</FormLabel>
+                        <p className="text-xs text-muted-foreground">
+                          Recommended size: 1200 × 630 px (for Facebook, LinkedIn, Twitter)
+                        </p>
                         <div className="space-y-3">
                           <div className="flex gap-2">
                             <FormControl>
@@ -1283,6 +1291,9 @@ export default function BlogManagement() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>رابط صورة OG</FormLabel>
+                        <p className="text-xs text-muted-foreground" dir="rtl">
+                          الحجم الموصى به: 1200 × 630 بكسل (لفيسبوك، لينكدإن، تويتر)
+                        </p>
                         <div className="space-y-3">
                           <div className="flex gap-2">
                             <FormControl>
