@@ -6849,21 +6849,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const databaseUrl = process.env.DATABASE_URL;
       if (!databaseUrl) return res.status(500).json({ success: false, message: "Database URL not configured" });
+      
+      // Send immediate response to user
+      res.json({ success: true, message: "بازگردانی شروع شد", restoredAt: new Date().toISOString() });
+      
+      // Run restore in background
       const { spawn } = await import("child_process");
       const readStream = fs.createReadStream(backupPath);
       const psqlRestore = spawn("psql", [databaseUrl]);
       readStream.pipe(psqlRestore.stdin);
+      
       let errorOutput = "";
       psqlRestore.stderr?.on("data", (data: Buffer) => { errorOutput += data.toString(); });
       psqlRestore.on("close", (code: number | null) => {
         if (code === 0) {
-          res.json({ success: true, message: "Database restored from " + filename, restoredAt: new Date().toISOString() });
+          console.log(`✅ Database successfully restored from ${filename}`);
         } else {
-          res.status(500).json({ success: false, message: "Failed to restore database", error: errorOutput });
+          console.error(`❌ Restore failed for ${filename}:`, errorOutput);
         }
       });
     } catch (error) {
-      console.error("Error restoring backup:", error);
+      console.error("Error starting restore:", error);
       res.status(500).json({ success: false, message: "Internal server error" });
     }
   });
