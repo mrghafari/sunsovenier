@@ -6847,21 +6847,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!fs.existsSync(backupPath)) {
         return res.status(404).json({ success: false, message: "Backup file not found" });
       }
-      const databaseUrl = process.env.DATABASE_URL;
-      if (!databaseUrl) return res.status(500).json({ success: false, message: "Database URL not configured" });
-      const { spawn } = await import("child_process");
-      const readStream = fs.createReadStream(backupPath);
-      const psqlRestore = spawn("psql", [databaseUrl]);
-      readStream.pipe(psqlRestore.stdin);
-      let errorOutput = "";
-      psqlRestore.stderr?.on("data", (data: Buffer) => { errorOutput += data.toString(); });
-      psqlRestore.on("close", (code: number | null) => {
-        if (code === 0) {
-          res.json({ success: true, message: "Database restored from " + filename, restoredAt: new Date().toISOString() });
+
+      // Read SQL content (decompress if gzipped)
+      let sqlContent: string;
+      try {
+        if (filename.endsWith(".sql.gz")) {
+          const zlib = await import("zlib");
+          const gzipData = fs.readFileSync(backupPath);
+          sqlContent = zlib.gunzipSync(gzipData).toString('utf-8');
         } else {
-          res.status(500).json({ success: false, message: "Failed to restore database", error: errorOutput });
+          sqlContent = fs.readFileSync(backupPath, 'utf-8');
         }
-      });
+      } catch (readError) {
+        console.error("Error reading backup file:", readError);
+        return res.status(500).json({ success: false, message: "خطا در خواندن فایل بک‌آپ" });
+      }
+
+      // Execute SQL using the database pool
+      const { pool } = await import('./db');
+      
+      try {
+        // Execute the entire SQL file as a single query (pg_dump format)
+        await pool.query(sqlContent);
+        console.log(`✅ Database successfully restored from ${filename}`);
+        res.json({ success: true, message: "بک‌آپ با موفقیت بازگردانی شد", restoredAt: new Date().toISOString() });
+      } catch (sqlError: any) {
+        console.error(`❌ Restore failed for ${filename}:`, sqlError);
+        res.status(500).json({ 
+          success: false, 
+          message: "خطا در بازگردانی بک‌آپ: " + (sqlError.message || "Unknown error")
+        });
+      }
     } catch (error) {
       console.error("Error restoring backup:", error);
       res.status(500).json({ success: false, message: "Internal server error" });
