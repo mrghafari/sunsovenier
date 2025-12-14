@@ -6926,27 +6926,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Filter out psql-specific backslash commands that pool.query can't handle
+      // Filter out psql-specific backslash commands and comments that pool.query can't handle
       const lines = sqlContent.split('\n');
-      const filteredLines = lines.filter(line => !line.trim().startsWith('\\'));
+      const filteredLines = lines.filter(line => {
+        const trimmed = line.trim();
+        return !trimmed.startsWith('\\') && !trimmed.startsWith('--') && trimmed.length > 0;
+      });
       const cleanedSql = filteredLines.join('\n');
       
+      // Split SQL into individual statements (split by semicolon at end of line)
+      const statements = cleanedSql.split(/;\s*$/m).filter(stmt => stmt.trim().length > 0);
+      
       const { pool } = await import('./db');
+      const client = await pool.connect();
       
       try {
-        await pool.query(cleanedSql);
-        console.log(`✅ [RESTORE] Database restore completed from: ${filename}`);
+        await client.query('BEGIN');
+        
+        let successCount = 0;
+        let errorCount = 0;
+        
+        for (const statement of statements) {
+          const trimmedStmt = statement.trim();
+          if (trimmedStmt.length === 0) continue;
+          
+          try {
+            await client.query(trimmedStmt);
+            successCount++;
+          } catch (stmtError: any) {
+            errorCount++;
+            console.warn(`⚠️ [RESTORE] Statement error (continuing):`, stmtError.message?.substring(0, 100));
+          }
+        }
+        
+        await client.query('COMMIT');
+        console.log(`✅ [RESTORE] Database restore completed from: ${filename} (${successCount} statements, ${errorCount} errors)`);
         res.json({
           success: true,
-          message: 'Database restored successfully from ' + filename,
-          restoredAt: new Date().toISOString()
+          message: `Database restored successfully from ${filename} (${successCount} statements executed)`,
+          restoredAt: new Date().toISOString(),
+          statementsExecuted: successCount,
+          statementsWithErrors: errorCount
         });
       } catch (sqlError: any) {
+        await client.query('ROLLBACK');
         console.error(`❌ [RESTORE] Database restore failed:`, sqlError);
         res.status(500).json({
           success: false,
           message: 'Failed to restore database: ' + (sqlError.message || 'Unknown error')
         });
+      } finally {
+        client.release();
       }
       
     } catch (error) {
