@@ -59,11 +59,9 @@ export default function Breadcrumbs({ items, className = '' }: BreadcrumbsProps)
               )}
               
               {item.href && !isLast ? (
-                <Link href={item.href}>
-                  <a className="flex items-center gap-1 hover:text-primary transition-colors">
-                    {Icon && <Icon className="w-4 h-4" />}
-                    <span>{item.label}</span>
-                  </a>
+                <Link href={item.href} className="flex items-center gap-1 hover:text-primary transition-colors">
+                  {Icon && <Icon className="w-4 h-4" />}
+                  <span>{item.label}</span>
                 </Link>
               ) : (
                 <span 

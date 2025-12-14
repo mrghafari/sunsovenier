@@ -109,7 +109,7 @@ export default function Blog() {
   const getFallbackImage = (index: number = 0) => {
     const colors = ['1e3a5f', '2d5a3d', '5a2d4d', '4a3d2d', '2d3d5a'];
     const color = colors[index % colors.length];
-    return `https://via.placeholder.com/800x400/${color}/ffffff?text=Momtazchem+Blog`;
+    return `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="800" height="400"><rect fill="#${color}" width="800" height="400"/><text x="400" y="200" fill="white" font-family="Arial" font-size="24" text-anchor="middle" dominant-baseline="middle">Momtazchem Blog</text></svg>`)}`;
   };
 
   const containerVariants = {
