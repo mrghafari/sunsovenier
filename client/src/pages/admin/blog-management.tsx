@@ -112,7 +112,7 @@ export default function BlogManagement() {
   const postsPerPage = 10;
 
   // Fetch blog posts
-  const { data: postsData, isLoading } = useQuery<{ posts: BlogPostWithTranslations[], total: number }>({
+  const { data: postsData, isLoading } = useQuery<{ success: boolean, data: BlogPostWithTranslations[], total?: number }>({
     queryKey: ['/api/admin/blog', currentPage, searchQuery, statusFilter, tagFilter],
     queryFn: async () => {
       const params = new URLSearchParams({
@@ -127,8 +127,8 @@ export default function BlogManagement() {
     },
   });
 
-  const posts = postsData?.posts || [];
-  const totalPosts = postsData?.total || 0;
+  const posts = postsData?.data || [];
+  const totalPosts = postsData?.total || posts.length;
   const totalPages = Math.ceil(totalPosts / postsPerPage);
 
   // Form
