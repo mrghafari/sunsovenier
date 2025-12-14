@@ -28,7 +28,8 @@ import {
   Calendar,
   XCircle,
   Loader2,
-  Edit
+  Edit,
+  RotateCcw
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
@@ -202,6 +203,46 @@ export default function DatabaseManagement() {
         variant: "destructive",
         title: "خطا در حذف بک‌آپ S3",
         description: "مشکلی در حذف بک‌آپ S3 رخ داده است",
+      });
+    },
+  });
+
+  // Restore database from backup mutation
+  const restoreBackupMutation = useMutation({
+    mutationFn: (filename: string) => apiRequest(`/api/admin/backup/restore/${filename}`, { method: "POST" }),
+    onSuccess: (_, filename) => {
+      toast({
+        title: "بک‌آپ بازگردانی شد",
+        description: `بک‌آپ ${filename} با موفقیت بازگردانی شد`,
+      });
+      refetchBackups();
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/database/stats"] });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "خطا در بازگردانی بک‌آپ",
+        description: error?.message || "مشکلی در بازگردانی بک‌آپ رخ داده است",
+      });
+    },
+  });
+
+  // Restore S3 backup mutation
+  const restoreS3BackupMutation = useMutation({
+    mutationFn: (backupId: number) => apiRequest(`/api/admin/backups/${backupId}/restore`, { method: "POST" }),
+    onSuccess: () => {
+      toast({
+        title: "S3 Backup Restored",
+        description: "بک‌آپ S3 با موفقیت بازگردانی شد",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/backups'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/database/stats"] });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "خطا در بازگردانی بک‌آپ S3",
+        description: error?.message || "مشکلی در بازگردانی بک‌آپ S3 رخ داده است",
       });
     },
   });
@@ -525,6 +566,37 @@ export default function DatabaseManagement() {
                             <Button
                               variant="outline"
                               size="sm"
+                              className="flex items-center gap-2"
+                              data-testid={`button-restore-${backup.filename}`}
+                            >
+                              <RotateCcw className="h-4 w-4" />
+                              بازگردانی
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>بازگردانی بک‌آپ</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                آیا مطمئن هستید که می‌خواهید از بک‌آپ "{backup.filename}" بازگردانی کنید؟ این عمل تمامی داده‌های فعلی را بدل خواهد کرد!
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>لغو</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => restoreBackupMutation.mutate(backup.filename)}
+                                className="bg-orange-600 hover:bg-orange-700"
+                                disabled={restoreBackupMutation.isPending}
+                              >
+                                {restoreBackupMutation.isPending ? "در حال بازگردانی..." : "بازگردانی"}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
                               className="flex items-center gap-2 text-red-600 hover:text-red-700 border-red-300 hover:border-red-400"
                               data-testid={`button-delete-${backup.filename}`}
                             >
@@ -620,6 +692,37 @@ export default function DatabaseManagement() {
                                 >
                                   <Download className="h-4 w-4" />
                                 </Button>
+                              )}
+                              {backup.status === 'completed' && (
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      data-testid={`button-restore-s3-${backup.id}`}
+                                    >
+                                      <RotateCcw className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Restore S3 Backup</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to restore from "{backup.fileName}"? This will replace all current data!
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() => restoreS3BackupMutation.mutate(backup.id)}
+                                        className="bg-orange-600 hover:bg-orange-700"
+                                        disabled={restoreS3BackupMutation.isPending}
+                                      >
+                                        {restoreS3BackupMutation.isPending ? "Restoring..." : "Restore"}
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
                               )}
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
