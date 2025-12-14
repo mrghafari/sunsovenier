@@ -103,28 +103,33 @@ export default function DatabaseManagement() {
   });
 
   // Fetch current user data
-  const { data: user } = useQuery<{ user: { id: number; username: string } }>({
+  const { data: user, isError: userError } = useQuery<{ user: { id: number; username: string } }>({
     queryKey: ["/api/admin/me"],
+    retry: 1,
   });
 
   // Fetch database statistics
-  const { data: dbStats, isLoading: statsLoading } = useQuery<DatabaseStats>({
+  const { data: dbStats, isLoading: statsLoading, isError: statsError } = useQuery<DatabaseStats>({
     queryKey: ["/api/admin/database/stats"],
+    retry: 1,
   });
 
   // Fetch backup list (old local backup system)
-  const { data: backupsData, isLoading: backupsLoading, refetch: refetchBackups } = useQuery<{ backups: BackupFile[] }>({
+  const { data: backupsData, isLoading: backupsLoading, refetch: refetchBackups, isError: backupsError } = useQuery<{ backups: BackupFile[] }>({
     queryKey: ["/api/admin/backup/list"],
+    retry: 1,
   });
 
   // Fetch S3 backups (new system)
-  const { data: s3Backups, isLoading: loadingS3Backups } = useQuery<DatabaseBackup[]>({
+  const { data: s3Backups, isLoading: loadingS3Backups, isError: s3Error } = useQuery<DatabaseBackup[]>({
     queryKey: ['/api/admin/backups'],
+    retry: 1,
   });
 
   // Fetch backup schedules
-  const { data: schedules, isLoading: loadingSchedules } = useQuery<BackupSchedule[]>({
+  const { data: schedules, isLoading: loadingSchedules, isError: schedulesError } = useQuery<BackupSchedule[]>({
     queryKey: ['/api/admin/backup-schedules'],
+    retry: 1,
   });
 
   // Create local backup mutation
@@ -422,6 +427,17 @@ export default function DatabaseManagement() {
     }
   };
 
+  if (userError) {
+    return (
+      <div className="space-y-6">
+        <div className="p-4 border border-red-300 bg-red-50 rounded-lg text-red-800">
+          <h2 className="font-semibold mb-2">خطای احراز هویت</h2>
+          <p>لطفا وارد سیستم شوید</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -437,6 +453,12 @@ export default function DatabaseManagement() {
         )}
         <h1 className="text-2xl font-bold">مدیریت دیتابیس</h1>
       </div>
+
+      {statsError && (
+        <div className="p-4 border border-red-300 bg-red-50 rounded-lg text-red-800">
+          <h3 className="font-semibold">خطا در بارگذاری آمار دیتابیس</h3>
+        </div>
+      )}
 
       {/* Database Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -506,6 +528,11 @@ export default function DatabaseManagement() {
 
             {/* Manual Backups Tab */}
             <TabsContent value="manual" className="space-y-4">
+              {backupsError && (
+                <div className="p-4 border border-red-300 bg-red-50 rounded-lg text-red-800 mb-4">
+                  <h3 className="font-semibold">خطا در بارگذاری بک‌آپ‌ها</h3>
+                </div>
+              )}
               <div className="flex justify-end">
                 <Button
                   onClick={handleCreateBackup}
@@ -632,6 +659,11 @@ export default function DatabaseManagement() {
 
             {/* S3 Backups & Automation Tab */}
             <TabsContent value="s3" className="space-y-6">
+              {(s3Error || schedulesError) && (
+                <div className="p-4 border border-red-300 bg-red-50 rounded-lg text-red-800 mb-4">
+                  <h3 className="font-semibold">خطا در بارگذاری داده‌های S3</h3>
+                </div>
+              )}
               {/* S3 Backups Section */}
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
@@ -653,7 +685,7 @@ export default function DatabaseManagement() {
 
                 {loadingS3Backups ? (
                   <div className="text-center py-8">Loading S3 backups...</div>
-                ) : !s3Backups || s3Backups.length === 0 ? (
+                ) : (s3Backups ?? []).length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     No S3 backups available
                   </div>
@@ -670,7 +702,7 @@ export default function DatabaseManagement() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {s3Backups.map((backup) => (
+                      {(s3Backups ?? []).map((backup) => (
                         <TableRow key={backup.id} data-testid={`s3-backup-row-${backup.id}`}>
                           <TableCell className="font-medium">{backup.fileName}</TableCell>
                           <TableCell>{formatFileSize(backup.fileSize)}</TableCell>
@@ -782,7 +814,7 @@ export default function DatabaseManagement() {
 
                 {loadingSchedules ? (
                   <div className="text-center py-8">Loading schedules...</div>
-                ) : !schedules || schedules.length === 0 ? (
+                ) : (schedules ?? []).length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     No backup schedules configured
                   </div>
@@ -801,7 +833,7 @@ export default function DatabaseManagement() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {schedules.map((schedule) => (
+                      {(schedules ?? []).map((schedule) => (
                         <TableRow key={schedule.id} data-testid={`schedule-row-${schedule.id}`}>
                           <TableCell className="font-medium">{schedule.name}</TableCell>
                           <TableCell>

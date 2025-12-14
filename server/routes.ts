@@ -6619,6 +6619,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Download database backup
+
+  // Create S3 database backup
+  app.post("/api/admin/backups/create", requireAuth, async (req, res) => {
+    try {
+      const { spawn } = await import('child_process');
+      const fsModule = await import('fs');
+      const pathModule = await import('path');
+      const { databaseBackups } = await import('@shared/schema');
+      
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
+      const backupDir = './backups';
+      const backupFile = `database_backup_${timestamp}.sql`;
+      const backupPath = path.join(backupDir, backupFile);
+      
+      // Create backup directory if it doesn't exist
+      if (!fs.existsSync(backupDir)) {
+        fs.mkdirSync(backupDir, { recursive: true });
+      }
+      
+      // Create backup using pg_dump
+      const databaseUrl = process.env.DATABASE_URL;
+      if (!databaseUrl) {
+        return res.status(500).json({
+          success: false,
+          message: "Database URL not configured"
+        });
+      }
+
+      const pgDump = spawn('pg_dump', [databaseUrl, '--no-owner', '--no-privileges']);
+      
+      const writeStream = fs.createWriteStream(backupPath);
+      pgDump.stdout?.pipe(writeStream);
+      
+      let errorOutput = '';
+      pgDump.stderr?.on('data', (data: Buffer) => {
+        errorOutput += data.toString();
+      });
+      
+      pgDump.on('close', async (code: number | null) => {
+        if (code === 0) {
+          const stats = fs.statSync(backupPath);
+          
+          // Store backup metadata in database
+          try {
+            const backup = await db.insert(databaseBackups).values({
+              fileName: backupFile,
+              s3Key: backupFile,
+              s3Bucket: 'local',
+              fileSize: stats.size,
+              backupType: 'manual',
+              status: 'completed',
+              completedAt: new Date(),
+            }).returning();
+            
+            res.json({
+              success: true,
+              message: 'Backup created successfully',
+              id: backup[0]?.id,
+              fileName: backupFile,
+              size: stats.size,
+              timestamp: new Date().toISOString()
+            });
+          } catch (dbError) {
+            console.error('Error saving backup metadata:', dbError);
+            res.json({
+              success: true,
+              message: 'Backup created successfully (metadata save failed)',
+              fileName: backupFile,
+              size: stats.size,
+              timestamp: new Date().toISOString()
+            });
+          }
+        } else {
+          console.error('pg_dump error:', errorOutput);
+          res.status(500).json({
+            success: false,
+            message: 'Failed to create backup',
+            error: errorOutput
+          });
+        }
+      });
+      
+    } catch (error) {
+      console.error("Error creating backup:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Internal server error" 
+      });
+    }
+  });
   app.get("/api/admin/backup/download/:filename", requireAuth, async (req, res) => {
     try {
       const { filename } = req.params;
