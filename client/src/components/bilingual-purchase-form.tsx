@@ -984,7 +984,8 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       if (selectedRate) {
         // Handle special delivery methods with zero cost
         if (selectedRate.deliveryMethod === 'smart_vehicle' || selectedRate.delivery_method === 'smart_vehicle' ||
-            selectedRate.deliveryMethod === 'self_pickup' || selectedRate.delivery_method === 'self_pickup') {
+            selectedRate.deliveryMethod === 'self_pickup' || selectedRate.delivery_method === 'self_pickup' ||
+            selectedRate.deliveryMethod === 'freight_collect' || selectedRate.delivery_method === 'freight_collect') {
           console.log('✅ SPECIAL DELIVERY METHOD: Zero cost for', selectedRate.deliveryMethod || selectedRate.delivery_method);
           setShippingCost(0);
           return;
@@ -1964,6 +1965,15 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                           );
                         }
                         
+                        // Handle freight_collect option specially
+                        if (rate.deliveryMethod === 'freight_collect' || rate.delivery_method === 'freight_collect') {
+                          return (
+                            <option key={rate.id} value={rate.id} style={{backgroundColor: '#fed7aa', color: '#c2410c'}}>
+                              🚚 {language === 'en' ? 'Freight Collect' : 'الشحن عند التسليم'} - {language === 'en' ? 'Pay upon delivery' : 'الدفع عند الاستلام'}
+                            </option>
+                          );
+                        }
+                        
                         // Handle standard shipping rates
                         const freeShippingThreshold = parseFloat(rate.freeShippingThreshold || '0');
                         const qualifiesForFreeShipping = freeShippingThreshold > 0 && subtotalAmount >= freeShippingThreshold;
@@ -2071,6 +2081,21 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                             );
                           }
                           
+                          // Handle freight_collect display
+                          if (selectedRate && (selectedRate.deliveryMethod === 'freight_collect' || selectedRate.delivery_method === 'freight_collect')) {
+                            return (
+                              <div className="space-y-2">
+                                <div className="flex justify-between items-center text-sm">
+                                  <span className="text-orange-700 font-medium">🚚 {language === 'en' ? 'Freight Collect' : 'الشحن عند التسليم'}</span>
+                                  <span className="font-bold text-orange-800">{language === 'en' ? 'Pay upon delivery' : 'الدفع عند الاستلام'}</span>
+                                </div>
+                                <div className="text-xs text-orange-600 bg-orange-50 p-2 rounded border border-orange-200">
+                                  ✓ {language === 'en' ? 'Shipping cost will be paid upon delivery by the customer' : 'سيتم دفع تكلفة الشحن عند التسليم من قبل العميل'}
+                                </div>
+                              </div>
+                            );
+                          }
+                          
                           // Handle standard shipping rates
                           return (
                             <div>
@@ -2119,6 +2144,11 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                       // Handle self pickup display  
                       if (selectedRate && (selectedRate.deliveryMethod === 'self_pickup' || selectedRate.delivery_method === 'self_pickup')) {
                         return `🚶‍♂️ ${t.selfPickupLabel.replace(':', '')}`;
+                      }
+                      
+                      // Handle freight_collect display  
+                      if (selectedRate && (selectedRate.deliveryMethod === 'freight_collect' || selectedRate.delivery_method === 'freight_collect')) {
+                        return `🚚 ${language === 'en' ? 'Freight Collect' : 'الشحن عند التسليم'}`;
                       }
                       
                       return selectedRate?.name || t.deliveryMethod;
