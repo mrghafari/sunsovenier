@@ -2166,12 +2166,12 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                         if (finalShippingCost > 0) {
                           return <span className="text-emerald-600 font-bold">{formatCurrency(finalShippingCost)}</span>;
                         }
-                        return <span className="text-gray-500">در انتظار آدرس</span>;
+                        return <span className="text-gray-500">{t.waitingForAddress}</span>;
                       }
                       
                       // Handle self pickup cost
                       if (selectedRate && (selectedRate.deliveryMethod === 'self_pickup' || selectedRate.delivery_method === 'self_pickup')) {
-                        return <span className="text-blue-600 font-bold">رایگان</span>;
+                        return <span className="text-blue-600 font-bold">{t.free}</span>;
                       }
                       
                       return shippingCost === 0 ? t.freeShipping : formatCurrency(shippingCost);
