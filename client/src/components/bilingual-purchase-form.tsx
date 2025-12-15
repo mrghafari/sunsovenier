@@ -1560,8 +1560,45 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
         });
         onOrderComplete();
       }
+      // Handle wallet_partial - wallet deducted, remaining goes to bank gateway  
+      else if (response.paymentMethod === 'wallet_partial' || 
+               (response.remainingAmount > 0 && response.walletAmountDeducted > 0)) {
+        const gatewayUrl = response.paymentUrl || response.paymentGatewayUrl;
+        const remainingToPayBank = response.remainingAmount || (totalAmount - walletBalance);
+        
+        console.log('💳 [WALLET PARTIAL] Wallet deducted, redirecting for remaining:', {
+          walletDeducted: response.walletAmountDeducted,
+          remainingAmount: remainingToPayBank,
+          hasGatewayUrl: !!gatewayUrl
+        });
+        
+        if (gatewayUrl) {
+          toast({
+            title: t.redirectingToBank || "انتقال به درگاه بانک",
+            description: language === 'ar' 
+              ? `مبلغ ${formatCurrency(response.walletAmountDeducted || walletBalance)} از کیف پول کسر شد. مبلغ باقیمانده: ${formatCurrency(remainingToPayBank)}`
+              : `Wallet deducted: ${formatCurrency(response.walletAmountDeducted || walletBalance)}. Remaining: ${formatCurrency(remainingToPayBank)}`
+          });
+          
+          setTimeout(() => {
+            window.location.href = gatewayUrl;
+          }, 1500);
+          return;
+        } else {
+          // No gateway URL but partial payment needed - show error
+          toast({
+            title: t.onlinePaymentDisabled || "درگاه پرداخت در دسترس نیست",
+            description: language === 'ar' 
+              ? "سفارش ثبت شد. لطفاً مبلغ باقیمانده را از طریق کارت به کارت پرداخت کنید"
+              : "Order registered. Please pay the remaining amount via bank transfer",
+            variant: "destructive"
+          });
+          onOrderComplete();
+          return;
+        }
+      }
       // Handle bank transfer - redirect to payment gateway  
-      else if (response.paymentMethod === 'bank_transfer' || (paymentMethod !== 'wallet' && paymentMethod !== 'wallet_full' && paymentMethod !== 'wallet_partial' && paymentMethod !== 'online_payment' && paymentMethod !== 'bank_transfer_grace' && paymentMethod !== 'bank_receipt')) {
+      else if (response.paymentMethod === 'bank_transfer' || (paymentMethod !== 'wallet' && paymentMethod !== 'wallet_full' && paymentMethod !== 'wallet_partial' && paymentMethod !== 'wallet_combined' && paymentMethod !== 'online_payment' && paymentMethod !== 'bank_transfer_grace' && paymentMethod !== 'bank_receipt')) {
         toast({
           title: "انتقال به درگاه بانک",
           description: "در حال هدایت شما به درگاه پرداخت بانکی..."
@@ -1685,13 +1722,17 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       comparison: `${walletAmount} >= ${totalAmount} = ${walletAmount >= totalAmount}`
     });
     
-    if (paymentMethod === 'wallet_combined') {
-      if (walletAmount >= totalAmount) {
+    if (paymentMethod === 'wallet_combined' || paymentMethod === 'wallet') {
+      if (walletBalance >= totalAmount && walletBalance > 0) {
         finalPaymentMethod = 'wallet_full';
-        console.log('🔄 [PAYMENT CONVERSION] wallet_combined → wallet_full (sufficient balance)');
-      } else if (walletAmount > 0) {
+        console.log('🔄 [PAYMENT CONVERSION] ' + paymentMethod + ' → wallet_full (sufficient balance)');
+      } else if (walletBalance > 0 && walletBalance < totalAmount) {
         finalPaymentMethod = 'wallet_partial';
-        console.log('🔄 [PAYMENT CONVERSION] wallet_combined → wallet_partial (hybrid payment)');
+        console.log('🔄 [PAYMENT CONVERSION] ' + paymentMethod + ' → wallet_partial (hybrid payment - needs bank gateway)');
+      } else {
+        // No wallet balance - redirect to full bank payment
+        finalPaymentMethod = 'fib_online';
+        console.log('🔄 [PAYMENT CONVERSION] ' + paymentMethod + ' → fib_online (no wallet balance)');
       }
     }
 
