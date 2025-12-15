@@ -17291,7 +17291,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         orderNumber = await orderManagementStorage.generateOrderNumberInTransaction();
         
         walletAmountUsed = Math.round(parseFloat(orderData.walletAmountUsed || 0));
-        remainingAmount = Math.round(parseFloat(orderData.remainingAmount || totalAmount));
+        remainingAmount = Math.round(parseFloat(orderData.remainingAmount !== undefined && orderData.remainingAmount !== null ? orderData.remainingAmount : totalAmount));
         
         console.log('💰 [PERMANENT WALLET ORDER] Processing wallet payment:', {
           orderNumber,
