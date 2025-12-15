@@ -1,0 +1,478 @@
+ Loading category data: undefined undefined
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 ()
+ 📥 Loading Tawk.to widget at bottom-left position...
+ Auth check result: Object
+ ✅ Tawk.to Live Chat loaded successfully at bottom-left
+ Categories API Response: Object
+ Email Status Light Debug: Admin & General Contact Object
+ SMTP Configuration Check for Admin & General Contact Object
+ Final status for Admin & General Contact : failed
+ getTestStatusIcon called with status: failed
+ Email Status Light Debug: Agricultural Fertilizers Department null
+ No SMTP data for category: Agricultural Fertilizers Department
+ Email Status Light Debug: Fuel Additives Department null
+ No SMTP data for category: Fuel Additives Department
+ Email Status Light Debug: Inventory Alerts null
+ No SMTP data for category: Inventory Alerts
+ Email Status Light Debug: Paint & Thinner Department null
+ No SMTP data for category: Paint & Thinner Department
+ Email Status Light Debug: Password Reset null
+ No SMTP data for category: Password Reset
+ Email Status Light Debug: Sales department null
+ No SMTP data for category: Sales department
+ Email Status Light Debug: Support null
+ No SMTP data for category: Support
+ Email Status Light Debug: Water Treatment Department null
+ No SMTP data for category: Water Treatment Department
+128x128?text=WeChat+QR:1  Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+ 
+value @ twk-chunk-common.js:2
+about:blank:1 [Intervention] Slow network is detected. See https://www.chromestatus.com/feature/5636954674692096 for more details. Fallback font will be used while loading: https://embed.tawk.to/_s/v4/assets/fonts/tawk-font-icon-3.woff?55755728=
+ Email Status Light Debug: Admin & General Contact Object
+ SMTP Configuration Check for Admin & General Contact Object
+ Final status for Admin & General Contact : failed
+ getTestStatusIcon called with status: failed
+ Email Status Light Debug: Agricultural Fertilizers Department null
+ No SMTP data for category: Agricultural Fertilizers Department
+ Email Status Light Debug: Fuel Additives Department null
+ No SMTP data for category: Fuel Additives Department
+ Email Status Light Debug: Inventory Alerts null
+ No SMTP data for category: Inventory Alerts
+ Email Status Light Debug: Paint & Thinner Department null
+ No SMTP data for category: Paint & Thinner Department
+ Email Status Light Debug: Password Reset null
+ No SMTP data for category: Password Reset
+ Email Status Light Debug: Sales department null
+ No SMTP data for category: Sales department
+ Email Status Light Debug: Support null
+ No SMTP data for category: Support
+ Email Status Light Debug: Water Treatment Department null
+ No SMTP data for category: Water Treatment Department
+ getTestStatusIcon called with status: failed
+ Loading category data: Admin & General Contact Object
+ Email Status Light Debug: Admin & General Contact Object
+ SMTP Configuration Check for Admin & General Contact Object
+ Final status for Admin & General Contact : failed
+ getTestStatusIcon called with status: failed
+ Email Status Light Debug: Agricultural Fertilizers Department null
+ No SMTP data for category: Agricultural Fertilizers Department
+ Email Status Light Debug: Fuel Additives Department null
+ No SMTP data for category: Fuel Additives Department
+ Email Status Light Debug: Inventory Alerts null
+ No SMTP data for category: Inventory Alerts
+ Email Status Light Debug: Paint & Thinner Department null
+ No SMTP data for category: Paint & Thinner Department
+ Email Status Light Debug: Password Reset null
+ No SMTP data for category: Password Reset
+ Email Status Light Debug: Sales department null
+ No SMTP data for category: Sales department
+ Email Status Light Debug: Support null
+ No SMTP data for category: Support
+ Email Status Light Debug: Water Treatment Department null
+ No SMTP data for category: Water Treatment Department
+ getTestStatusIcon called with status: failed
+ Email Status Light Debug: Admin & General Contact Object
+ SMTP Configuration Check for Admin & General Contact Object
+ Final status for Admin & General Contact : failed
+ getTestStatusIcon called with status: failed
+ Email Status Light Debug: Agricultural Fertilizers Department null
+ No SMTP data for category: Agricultural Fertilizers Department
+ Email Status Light Debug: Fuel Additives Department null
+ No SMTP data for category: Fuel Additives Department
+ Email Status Light Debug: Inventory Alerts null
+ No SMTP data for category: Inventory Alerts
+ Email Status Light Debug: Paint & Thinner Department null
+ No SMTP data for category: Paint & Thinner Department
+ Email Status Light Debug: Password Reset null
+ No SMTP data for category: Password Reset
+ Email Status Light Debug: Sales department null
+ No SMTP data for category: Sales department
+ Email Status Light Debug: Support null
+ No SMTP data for category: Support
+ Email Status Light Debug: Water Treatment Department null
+ No SMTP data for category: Water Treatment Department
+ getTestStatusIcon called with status: failed
+ Email Status Light Debug: Admin & General Contact Object
+ SMTP Configuration Check for Admin & General Contact Object
+ Final status for Admin & General Contact : failed
+ getTestStatusIcon called with status: failed
+ Email Status Light Debug: Agricultural Fertilizers Department null
+ No SMTP data for category: Agricultural Fertilizers Department
+ Email Status Light Debug: Fuel Additives Department null
+ No SMTP data for category: Fuel Additives Department
+ Email Status Light Debug: Inventory Alerts null
+ No SMTP data for category: Inventory Alerts
+ Email Status Light Debug: Paint & Thinner Department null
+ No SMTP data for category: Paint & Thinner Department
+ Email Status Light Debug: Password Reset null
+ No SMTP data for category: Password Reset
+ Email Status Light Debug: Sales department null
+ No SMTP data for category: Sales department
+ Email Status Light Debug: Support null
+ No SMTP data for category: Support
+ Email Status Light Debug: Water Treatment Department null
+ No SMTP data for category: Water Treatment Department
+ getTestStatusIcon called with status: failed
+ Email Status Light Debug: Admin & General Contact Object
+ SMTP Configuration Check for Admin & General Contact Object
+ Final status for Admin & General Contact : failed
+ getTestStatusIcon called with status: failed
+ Email Status Light Debug: Agricultural Fertilizers Department null
+ No SMTP data for category: Agricultural Fertilizers Department
+ Email Status Light Debug: Fuel Additives Department null
+ No SMTP data for category: Fuel Additives Department
+ Email Status Light Debug: Inventory Alerts null
+ No SMTP data for category: Inventory Alerts
+ Email Status Light Debug: Paint & Thinner Department null
+ No SMTP data for category: Paint & Thinner Department
+ Email Status Light Debug: Password Reset null
+ No SMTP data for category: Password Reset
+ Email Status Light Debug: Sales department null
+ No SMTP data for category: Sales department
+ Email Status Light Debug: Support null
+ No SMTP data for category: Support
+ Email Status Light Debug: Water Treatment Department null
+ No SMTP data for category: Water Treatment Department
+ getTestStatusIcon called with status: failed
+ Email Status Light Debug: Admin & General Contact Object
+ SMTP Configuration Check for Admin & General Contact Object
+ Final status for Admin & General Contact : failed
+ getTestStatusIcon called with status: failed
+ Email Status Light Debug: Agricultural Fertilizers Department null
+ No SMTP data for category: Agricultural Fertilizers Department
+ Email Status Light Debug: Fuel Additives Department null
+ No SMTP data for category: Fuel Additives Department
+ Email Status Light Debug: Inventory Alerts null
+ No SMTP data for category: Inventory Alerts
+ Email Status Light Debug: Paint & Thinner Department null
+ No SMTP data for category: Paint & Thinner Department
+ Email Status Light Debug: Password Reset null
+ No SMTP data for category: Password Reset
+ Email Status Light Debug: Sales department null
+ No SMTP data for category: Sales department
+ Email Status Light Debug: Support null
+ No SMTP data for category: Support
+ Email Status Light Debug: Water Treatment Department null
+ No SMTP data for category: Water Treatment Department
+ getTestStatusIcon called with status: failed
+ Email Status Light Debug: Admin & General Contact Object
+ SMTP Configuration Check for Admin & General Contact Object
+ Final status for Admin & General Contact : failed
+ getTestStatusIcon called with status: failed
+ Email Status Light Debug: Agricultural Fertilizers Department null
+ No SMTP data for category: Agricultural Fertilizers Department
+ Email Status Light Debug: Fuel Additives Department null
+ No SMTP data for category: Fuel Additives Department
+ Email Status Light Debug: Inventory Alerts null
+ No SMTP data for category: Inventory Alerts
+ Email Status Light Debug: Paint & Thinner Department null
+ No SMTP data for category: Paint & Thinner Department
+ Email Status Light Debug: Password Reset null
+ No SMTP data for category: Password Reset
+ Email Status Light Debug: Sales department null
+ No SMTP data for category: Sales department
+ Email Status Light Debug: Support null
+ No SMTP data for category: Support
+ Email Status Light Debug: Water Treatment Department null
+ No SMTP data for category: Water Treatment Department
+ getTestStatusIcon called with status: failed
+ Email Status Light Debug: Admin & General Contact Object
+ SMTP Configuration Check for Admin & General Contact Object
+ Final status for Admin & General Contact : failed
+ getTestStatusIcon called with status: failed
+ Email Status Light Debug: Agricultural Fertilizers Department null
+ No SMTP data for category: Agricultural Fertilizers Department
+ Email Status Light Debug: Fuel Additives Department null
+ No SMTP data for category: Fuel Additives Department
+ Email Status Light Debug: Inventory Alerts null
+ No SMTP data for category: Inventory Alerts
+ Email Status Light Debug: Paint & Thinner Department null
+ No SMTP data for category: Paint & Thinner Department
+ Email Status Light Debug: Password Reset null
+ No SMTP data for category: Password Reset
+ Email Status Light Debug: Sales department null
+ No SMTP data for category: Sales department
+ Email Status Light Debug: Support null
+ No SMTP data for category: Support
+ Email Status Light Debug: Water Treatment Department null
+ No SMTP data for category: Water Treatment Department
+ getTestStatusIcon called with status: failed
+ SMTP save success: Object
+ Email Status Light Debug: Admin & General Contact Object
+ SMTP Configuration Check for Admin & General Contact Object
+ Final status for Admin & General Contact : failed
+ getTestStatusIcon called with status: failed
+ Email Status Light Debug: Agricultural Fertilizers Department null
+ No SMTP data for category: Agricultural Fertilizers Department
+ Email Status Light Debug: Fuel Additives Department null
+ No SMTP data for category: Fuel Additives Department
+ Email Status Light Debug: Inventory Alerts null
+ No SMTP data for category: Inventory Alerts
+ Email Status Light Debug: Paint & Thinner Department null
+ No SMTP data for category: Paint & Thinner Department
+ Email Status Light Debug: Password Reset null
+ No SMTP data for category: Password Reset
+ Email Status Light Debug: Sales department null
+ No SMTP data for category: Sales department
+ Email Status Light Debug: Support null
+ No SMTP data for category: Support
+ Email Status Light Debug: Water Treatment Department null
+ No SMTP data for category: Water Treatment Department
+ getTestStatusIcon called with status: failed
+ Email Status Light Debug: Admin & General Contact Object
+ SMTP Configuration Check for Admin & General Contact Object
+ Final status for Admin & General Contact : failed
+ getTestStatusIcon called with status: failed
+ Email Status Light Debug: Agricultural Fertilizers Department null
+ No SMTP data for category: Agricultural Fertilizers Department
+ Email Status Light Debug: Fuel Additives Department null
+ No SMTP data for category: Fuel Additives Department
+ Email Status Light Debug: Inventory Alerts null
+ No SMTP data for category: Inventory Alerts
+ Email Status Light Debug: Paint & Thinner Department null
+ No SMTP data for category: Paint & Thinner Department
+ Email Status Light Debug: Password Reset null
+ No SMTP data for category: Password Reset
+ Email Status Light Debug: Sales department null
+ No SMTP data for category: Sales department
+ Email Status Light Debug: Support null
+ No SMTP data for category: Support
+ Email Status Light Debug: Water Treatment Department null
+ No SMTP data for category: Water Treatment Department
+ getTestStatusIcon called with status: failed
+ Categories API Response: Object
+ Categories API Response: Object
+ Email Status Light Debug: Admin & General Contact Object
+ SMTP Configuration Check for Admin & General Contact Object
+ Final status for Admin & General Contact : failed
+ getTestStatusIcon called with status: failed
+ Email Status Light Debug: Agricultural Fertilizers Department null
+ No SMTP data for category: Agricultural Fertilizers Department
+ Email Status Light Debug: Fuel Additives Department null
+ No SMTP data for category: Fuel Additives Department
+ Email Status Light Debug: Inventory Alerts null
+ No SMTP data for category: Inventory Alerts
+ Email Status Light Debug: Paint & Thinner Department null
+ No SMTP data for category: Paint & Thinner Department
+ Email Status Light Debug: Password Reset null
+ No SMTP data for category: Password Reset
+ Email Status Light Debug: Sales department null
+ No SMTP data for category: Sales department
+ Email Status Light Debug: Support null
+ No SMTP data for category: Support
+ Email Status Light Debug: Water Treatment Department null
+ No SMTP data for category: Water Treatment Department
+ getTestStatusIcon called with status: failed
+ Email Status Light Debug: Admin & General Contact Object
+ SMTP Configuration Check for Admin & General Contact Object
+ Final status for Admin & General Contact : failed
+ getTestStatusIcon called with status: failed
+ Email Status Light Debug: Agricultural Fertilizers Department null
+ No SMTP data for category: Agricultural Fertilizers Department
+ Email Status Light Debug: Fuel Additives Department null
+ No SMTP data for category: Fuel Additives Department
+ Email Status Light Debug: Inventory Alerts null
+ No SMTP data for category: Inventory Alerts
+ Email Status Light Debug: Paint & Thinner Department null
+ No SMTP data for category: Paint & Thinner Department
+ Email Status Light Debug: Password Reset null
+ No SMTP data for category: Password Reset
+ Email Status Light Debug: Sales department null
+ No SMTP data for category: Sales department
+ Email Status Light Debug: Support null
+ No SMTP data for category: Support
+ Email Status Light Debug: Water Treatment Department null
+ No SMTP data for category: Water Treatment Department
+ getTestStatusIcon called with status: failed
+ Categories API Response: Object
+ Email Status Light Debug: Admin & General Contact Object
+ SMTP Configuration Check for Admin & General Contact Object
+ Final status for Admin & General Contact : failed
+ getTestStatusIcon called with status: failed
+ Email Status Light Debug: Agricultural Fertilizers Department null
+ No SMTP data for category: Agricultural Fertilizers Department
+ Email Status Light Debug: Fuel Additives Department null
+ No SMTP data for category: Fuel Additives Department
+ Email Status Light Debug: Inventory Alerts null
+ No SMTP data for category: Inventory Alerts
+ Email Status Light Debug: Paint & Thinner Department null
+ No SMTP data for category: Paint & Thinner Department
+ Email Status Light Debug: Password Reset null
+ No SMTP data for category: Password Reset
+ Email Status Light Debug: Sales department null
+ No SMTP data for category: Sales department
+ Email Status Light Debug: Support null
+ No SMTP data for category: Support
+ Email Status Light Debug: Water Treatment Department null
+ No SMTP data for category: Water Treatment Department
+ getTestStatusIcon called with status: failed
+ Email Status Light Debug: Admin & General Contact Object
+ SMTP Configuration Check for Admin & General Contact Object
+ Final status for Admin & General Contact : failed
+ getTestStatusIcon called with status: failed
+ Email Status Light Debug: Agricultural Fertilizers Department null
+ No SMTP data for category: Agricultural Fertilizers Department
+ Email Status Light Debug: Fuel Additives Department null
+ No SMTP data for category: Fuel Additives Department
+ Email Status Light Debug: Inventory Alerts null
+ No SMTP data for category: Inventory Alerts
+ Email Status Light Debug: Paint & Thinner Department null
+ No SMTP data for category: Paint & Thinner Department
+ Email Status Light Debug: Password Reset null
+ No SMTP data for category: Password Reset
+ Email Status Light Debug: Sales department null
+ No SMTP data for category: Sales department
+ Email Status Light Debug: Support null
+ No SMTP data for category: Support
+ Email Status Light Debug: Water Treatment Department null
+ No SMTP data for category: Water Treatment Department
+ getTestStatusIcon called with status: failed
+ Email Status Light Debug: Admin & General Contact Object
+ SMTP Configuration Check for Admin & General Contact Object
+ Final status for Admin & General Contact : failed
+index-CnpOTP0F.js:1742 getTestStatusIcon called with status: failed
+index-CnpOTP0F.js:1742 Email Status Light Debug: Agricultural Fertilizers Department null
+index-CnpOTP0F.js:1742 No SMTP data for category: Agricultural Fertilizers Department
+index-CnpOTP0F.js:1742 Email Status Light Debug: Fuel Additives Department null
+index-CnpOTP0F.js:1742 No SMTP data for category: Fuel Additives Department
+index-CnpOTP0F.js:1742 Email Status Light Debug: Inventory Alerts null
+index-CnpOTP0F.js:1742 No SMTP data for category: Inventory Alerts
+index-CnpOTP0F.js:1742 Email Status Light Debug: Paint & Thinner Department null
+index-CnpOTP0F.js:1742 No SMTP data for category: Paint & Thinner Department
+index-CnpOTP0F.js:1742 Email Status Light Debug: Password Reset null
+index-CnpOTP0F.js:1742 No SMTP data for category: Password Reset
+index-CnpOTP0F.js:1742 Email Status Light Debug: Sales department null
+index-CnpOTP0F.js:1742 No SMTP data for category: Sales department
+index-CnpOTP0F.js:1742 Email Status Light Debug: Support null
+index-CnpOTP0F.js:1742 No SMTP data for category: Support
+index-CnpOTP0F.js:1742 Email Status Light Debug: Water Treatment Department null
+index-CnpOTP0F.js:1742 No SMTP data for category: Water Treatment Department
+index-CnpOTP0F.js:1742 getTestStatusIcon called with status: failed
+index-CnpOTP0F.js:1742 Email Status Light Debug: Admin & General Contact Object
+index-CnpOTP0F.js:1742 SMTP Configuration Check for Admin & General Contact Object
+index-CnpOTP0F.js:1742 Final status for Admin & General Contact : failed
+index-CnpOTP0F.js:1742 getTestStatusIcon called with status: failed
+index-CnpOTP0F.js:1742 Email Status Light Debug: Agricultural Fertilizers Department null
+index-CnpOTP0F.js:1742 No SMTP data for category: Agricultural Fertilizers Department
+index-CnpOTP0F.js:1742 Email Status Light Debug: Fuel Additives Department null
+index-CnpOTP0F.js:1742 No SMTP data for category: Fuel Additives Department
+index-CnpOTP0F.js:1742 Email Status Light Debug: Inventory Alerts null
+index-CnpOTP0F.js:1742 No SMTP data for category: Inventory Alerts
+index-CnpOTP0F.js:1742 Email Status Light Debug: Paint & Thinner Department null
+index-CnpOTP0F.js:1742 No SMTP data for category: Paint & Thinner Department
+index-CnpOTP0F.js:1742 Email Status Light Debug: Password Reset null
+index-CnpOTP0F.js:1742 No SMTP data for category: Password Reset
+index-CnpOTP0F.js:1742 Email Status Light Debug: Sales department null
+index-CnpOTP0F.js:1742 No SMTP data for category: Sales department
+index-CnpOTP0F.js:1742 Email Status Light Debug: Support null
+index-CnpOTP0F.js:1742 No SMTP data for category: Support
+index-CnpOTP0F.js:1742 Email Status Light Debug: Water Treatment Department null
+index-CnpOTP0F.js:1742 No SMTP data for category: Water Treatment Department
+index-CnpOTP0F.js:1742 getTestStatusIcon called with status: failed
+index-CnpOTP0F.js:1742 Email Status Light Debug: Admin & General Contact Object
+index-CnpOTP0F.js:1742 SMTP Configuration Check for Admin & General Contact Object
+index-CnpOTP0F.js:1742 Final status for Admin & General Contact : failed
+index-CnpOTP0F.js:1742 getTestStatusIcon called with status: failed
+index-CnpOTP0F.js:1742 Email Status Light Debug: Agricultural Fertilizers Department null
+index-CnpOTP0F.js:1742 No SMTP data for category: Agricultural Fertilizers Department
+index-CnpOTP0F.js:1742 Email Status Light Debug: Fuel Additives Department null
+index-CnpOTP0F.js:1742 No SMTP data for category: Fuel Additives Department
+index-CnpOTP0F.js:1742 Email Status Light Debug: Inventory Alerts null
+index-CnpOTP0F.js:1742 No SMTP data for category: Inventory Alerts
+index-CnpOTP0F.js:1742 Email Status Light Debug: Paint & Thinner Department null
+index-CnpOTP0F.js:1742 No SMTP data for category: Paint & Thinner Department
+index-CnpOTP0F.js:1742 Email Status Light Debug: Password Reset null
+index-CnpOTP0F.js:1742 No SMTP data for category: Password Reset
+index-CnpOTP0F.js:1742 Email Status Light Debug: Sales department null
+index-CnpOTP0F.js:1742 No SMTP data for category: Sales department
+index-CnpOTP0F.js:1742 Email Status Light Debug: Support null
+index-CnpOTP0F.js:1742 No SMTP data for category: Support
+index-CnpOTP0F.js:1742 Email Status Light Debug: Water Treatment Department null
+index-CnpOTP0F.js:1742 No SMTP data for category: Water Treatment Department
+index-CnpOTP0F.js:1742 getTestStatusIcon called with status: failed
+index-CnpOTP0F.js:1091 Auth check result: Object
+index-CnpOTP0F.js:1742 Email Status Light Debug: Admin & General Contact {id: 1, categoryId: 1, host: 'smtppro.zoho.eu', port: 587, secure: true, …}
+index-CnpOTP0F.js:1742 SMTP Configuration Check for Admin & General Contact {host: 'smtppro.zoho.eu', username: 'info@momtazchem.com', password: 'SET', fromEmail: 'info@momtazchem.com', testStatus: 'failed', …}
+index-CnpOTP0F.js:1742 Final status for Admin & General Contact : failed
+index-CnpOTP0F.js:1742 getTestStatusIcon called with status: failed
+index-CnpOTP0F.js:1742 Email Status Light Debug: Agricultural Fertilizers Department null
+index-CnpOTP0F.js:1742 No SMTP data for category: Agricultural Fertilizers Department
+index-CnpOTP0F.js:1742 Email Status Light Debug: Fuel Additives Department null
+index-CnpOTP0F.js:1742 No SMTP data for category: Fuel Additives Department
+index-CnpOTP0F.js:1742 Email Status Light Debug: Inventory Alerts null
+index-CnpOTP0F.js:1742 No SMTP data for category: Inventory Alerts
+index-CnpOTP0F.js:1742 Email Status Light Debug: Paint & Thinner Department null
+index-CnpOTP0F.js:1742 No SMTP data for category: Paint & Thinner Department
+index-CnpOTP0F.js:1742 Email Status Light Debug: Password Reset null
+index-CnpOTP0F.js:1742 No SMTP data for category: Password Reset
+index-CnpOTP0F.js:1742 Email Status Light Debug: Sales department null
+index-CnpOTP0F.js:1742 No SMTP data for category: Sales department
+index-CnpOTP0F.js:1742 Email Status Light Debug: Support null
+index-CnpOTP0F.js:1742 No SMTP data for category: Support
+index-CnpOTP0F.js:1742 Email Status Light Debug: Water Treatment Department null
+index-CnpOTP0F.js:1742 No SMTP data for category: Water Treatment Department
+index-CnpOTP0F.js:1742 getTestStatusIcon called with status: failed
+index-CnpOTP0F.js:1742 Email Status Light Debug: Admin & General Contact {id: 1, categoryId: 1, host: 'smtppro.zoho.eu', port: 587, secure: true, …}
+index-CnpOTP0F.js:1742 SMTP Configuration Check for Admin & General Contact {host: 'smtppro.zoho.eu', username: 'info@momtazchem.com', password: 'SET', fromEmail: 'info@momtazchem.com', testStatus: 'failed', …}
+index-CnpOTP0F.js:1742 Final status for Admin & General Contact : failed
+index-CnpOTP0F.js:1742 getTestStatusIcon called with status: failed
+index-CnpOTP0F.js:1742 Email Status Light Debug: Agricultural Fertilizers Department null
+index-CnpOTP0F.js:1742 No SMTP data for category: Agricultural Fertilizers Department
+index-CnpOTP0F.js:1742 Email Status Light Debug: Fuel Additives Department null
+index-CnpOTP0F.js:1742 No SMTP data for category: Fuel Additives Department
+index-CnpOTP0F.js:1742 Email Status Light Debug: Inventory Alerts null
+index-CnpOTP0F.js:1742 No SMTP data for category: Inventory Alerts
+index-CnpOTP0F.js:1742 Email Status Light Debug: Paint & Thinner Department null
+index-CnpOTP0F.js:1742 No SMTP data for category: Paint & Thinner Department
+index-CnpOTP0F.js:1742 Email Status Light Debug: Password Reset null
+index-CnpOTP0F.js:1742 No SMTP data for category: Password Reset
+index-CnpOTP0F.js:1742 Email Status Light Debug: Sales department null
+index-CnpOTP0F.js:1742 No SMTP data for category: Sales department
+index-CnpOTP0F.js:1742 Email Status Light Debug: Support null
+index-CnpOTP0F.js:1742 No SMTP data for category: Support
+index-CnpOTP0F.js:1742 Email Status Light Debug: Water Treatment Department null
+index-CnpOTP0F.js:1742 No SMTP data for category: Water Treatment Department
+index-CnpOTP0F.js:1742 getTestStatusIcon called with status: failed
+index-CnpOTP0F.js:1742 Email Status Light Debug: Admin & General Contact {id: 1, categoryId: 1, host: 'smtppro.zoho.eu', port: 587, secure: true, …}
+index-CnpOTP0F.js:1742 SMTP Configuration Check for Admin & General Contact {host: 'smtppro.zoho.eu', username: 'info@momtazchem.com', password: 'SET', fromEmail: 'info@momtazchem.com', testStatus: 'failed', …}
+index-CnpOTP0F.js:1742 Final status for Admin & General Contact : failed
+index-CnpOTP0F.js:1742 getTestStatusIcon called with status: failed
+index-CnpOTP0F.js:1742 Email Status Light Debug: Agricultural Fertilizers Department null
+index-CnpOTP0F.js:1742 No SMTP data for category: Agricultural Fertilizers Department
+index-CnpOTP0F.js:1742 Email Status Light Debug: Fuel Additives Department null
+index-CnpOTP0F.js:1742 No SMTP data for category: Fuel Additives Department
+index-CnpOTP0F.js:1742 Email Status Light Debug: Inventory Alerts null
+index-CnpOTP0F.js:1742 No SMTP data for category: Inventory Alerts
+index-CnpOTP0F.js:1742 Email Status Light Debug: Paint & Thinner Department null
+index-CnpOTP0F.js:1742 No SMTP data for category: Paint & Thinner Department
+index-CnpOTP0F.js:1742 Email Status Light Debug: Password Reset null
+index-CnpOTP0F.js:1742 No SMTP data for category: Password Reset
+index-CnpOTP0F.js:1742 Email Status Light Debug: Sales department null
+index-CnpOTP0F.js:1742 No SMTP data for category: Sales department
+index-CnpOTP0F.js:1742 Email Status Light Debug: Support null
+index-CnpOTP0F.js:1742 No SMTP data for category: Support
+index-CnpOTP0F.js:1742 Email Status Light Debug: Water Treatment Department null
+index-CnpOTP0F.js:1742 No SMTP data for category: Water Treatment Department
+index-CnpOTP0F.js:1742 getTestStatusIcon called with status: failed
+index-CnpOTP0F.js:1742 Categories API Response: {success: true, categories: Array(9)}
+index-CnpOTP0F.js:1742 Email Status Light Debug: Admin & General Contact {id: 1, categoryId: 1, host: 'smtppro.zoho.eu', port: 587, secure: true, …}
+index-CnpOTP0F.js:1742 SMTP Configuration Check for Admin & General Contact {host: 'smtppro.zoho.eu', username: 'info@momtazchem.com', password: 'SET', fromEmail: 'info@momtazchem.com', testStatus: 'failed', …}
+index-CnpOTP0F.js:1742 Final status for Admin & General Contact : failed
+index-CnpOTP0F.js:1742 getTestStatusIcon called with status: failed
+index-CnpOTP0F.js:1742 Email Status Light Debug: Agricultural Fertilizers Department null
+index-CnpOTP0F.js:1742 No SMTP data for category: Agricultural Fertilizers Department
+index-CnpOTP0F.js:1742 Email Status Light Debug: Fuel Additives Department null
+index-CnpOTP0F.js:1742 No SMTP data for category: Fuel Additives Department
+index-CnpOTP0F.js:1742 Email Status Light Debug: Inventory Alerts null
+index-CnpOTP0F.js:1742 No SMTP data for category: Inventory Alerts
+index-CnpOTP0F.js:1742 Email Status Light Debug: Paint & Thinner Department null
+index-CnpOTP0F.js:1742 No SMTP data for category: Paint & Thinner Department
+index-CnpOTP0F.js:1742 Email Status Light Debug: Password Reset null
+index-CnpOTP0F.js:1742 No SMTP data for category: Password Reset
+index-CnpOTP0F.js:1742 Email Status Light Debug: Sales department null
+index-CnpOTP0F.js:1742 No SMTP data for category: Sales department
+index-CnpOTP0F.js:1742 Email Status Light Debug: Support null
+index-CnpOTP0F.js:1742 No SMTP data for category: Support
+index-CnpOTP0F.js:1742 Email Status Light Debug: Water Treatment Department null
+index-CnpOTP0F.js:1742 No SMTP data for category: Water Treatment Department
+index-CnpOTP0F.js:1742 getTestStatusIcon called with status: failed
