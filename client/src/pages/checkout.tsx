@@ -453,9 +453,23 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
     if (!destination || weight === 0) return 0;
     
     try {
+      // Look up the destination city to get its provinceId
+      const destCity = iraqiCities?.find((city: any) => 
+        city.nameEnglish?.toLowerCase() === destination.toLowerCase() ||
+        city.nameArabic === destination ||
+        city.name?.toLowerCase() === destination.toLowerCase() ||
+        city.nameEnglish?.toLowerCase().includes(destination.toLowerCase()) ||
+        city.nameArabic?.includes(destination) ||
+        city.name?.toLowerCase().includes(destination.toLowerCase())
+      );
+      
+      const provinceId = destCity?.provinceId || null;
+      
       console.log('🚚 [CHECKOUT] Using FLAMMABLE-AWARE delivery cost API:', { 
         weight, 
         destination,
+        resolvedCity: destCity?.name || destCity?.nameEnglish,
+        provinceId,
         containsFlammableProducts,
         cartProducts: cartItems.map(item => ({ id: item.id, name: item.name, isFlammable: item.isFlammable }))
       });
@@ -469,7 +483,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
         body: JSON.stringify({
           weight: weight,
           destinationCity: destination,
-          destinationProvince: destination,
+          destinationProvince: provinceId || destination,
           originCity: t.checkout_page.erbilCity,
           cart: Object.fromEntries(Object.entries(cart).map(([id, qty]) => [id, qty])),
           useSecondaryAddress: false
@@ -535,7 +549,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
       // Fallback to local calculation if API fails
       return fallbackLocalCalculation(weight, destination);
     }
-  }, [containsFlammableProducts, cart, cartItems]);
+  }, [containsFlammableProducts, cart, cartItems, iraqiCities]);
 
   // Fallback local calculation method (backup) - SAFETY COMPLIANT
   const fallbackLocalCalculation = useCallback((weight: number, destination: string) => {
