@@ -1120,6 +1120,9 @@ export interface Translation {
     loggingIn: string;
     registering: string;
     welcome: string;
+    or: string;
+    continueWithGoogle: string;
+    continueWithFacebook: string;
     loginSuccess: string;
     invalidCredentials: string;
     loginError: string;
@@ -2403,6 +2406,9 @@ export const translations: Record<Language, Translation> = {
       loggingIn: 'Logging in...',
       registering: 'Registering...',
       welcome: 'Welcome',
+      or: 'Or',
+      continueWithGoogle: 'Continue with Google',
+      continueWithFacebook: 'Continue with Facebook',
       loginSuccess: 'Successfully logged in',
       invalidCredentials: 'Invalid email or password',
       loginError: 'Login Error',
@@ -3840,6 +3846,9 @@ export const translations: Record<Language, Translation> = {
       loggingIn: 'جاري تسجيل الدخول...',
       registering: 'جاري إنشاء الحساب...',
       welcome: 'أهلاً بك',
+      or: 'أو',
+      continueWithGoogle: 'متابعة مع جوجل',
+      continueWithFacebook: 'متابعة مع فيسبوك',
       loginSuccess: 'تم تسجيل الدخول بنجاح',
       invalidCredentials: 'البريد الإلكتروني أو كلمة المرور غير صحيحة',
       loginError: 'خطأ في تسجيل الدخول',
