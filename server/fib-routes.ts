@@ -419,5 +419,32 @@ export function registerFibRoutes(app: Express) {
     }
   });
 
+  // Test FIB connection endpoint (development only)
+  app.get("/api/fib/test-connection", async (req, res) => {
+    try {
+      const { fibService } = await import('./fib-service');
+      await fibService.initialize();
+      
+      const settings = await storage.getActiveFibSettings();
+      
+      res.json({
+        success: true,
+        message: "FIB connection successful / اتصال FIB موفق",
+        data: {
+          environment: settings?.environment || 'stage',
+          baseUrl: settings?.baseUrl || 'https://fib.stage.fib.iq',
+          isActive: settings?.isActive || false,
+          paymentExpiryMinutes: settings?.paymentExpiryMinutes || 30,
+        },
+      });
+    } catch (error: any) {
+      console.error("❌ [FIB TEST] Connection test failed:", error);
+      res.status(500).json({
+        success: false,
+        message: error.message || "FIB connection failed / فشل اتصال FIB",
+      });
+    }
+  });
+
   console.log('✅ [FIB] Payment routes registered successfully');
 }
