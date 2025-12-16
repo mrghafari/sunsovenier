@@ -65,13 +65,23 @@ import {
   Tag,
   FileText,
   Save,
+  Upload,
+  Image,
+  Loader2,
 } from "lucide-react";
 import type { BlogPostWithTranslations } from "@shared/blog-schema";
+
+// Custom validation for image URLs (allows both full URLs and relative paths)
+const imageUrlSchema = z.string().refine((val) => {
+  if (!val || val === "") return true;
+  // Allow full URLs or relative paths starting with /uploads/
+  return val.startsWith("http://") || val.startsWith("https://") || val.startsWith("/uploads/");
+}, "Invalid image URL").optional().or(z.literal(""));
 
 // Form validation schema
 const blogFormSchema = z.object({
   authorName: z.string().min(1, "Author name is required"),
-  featuredImage: z.string().url().optional().or(z.literal("")),
+  featuredImage: imageUrlSchema,
   tags: z.string().optional(),
   status: z.enum(["draft", "published"]),
   publishDate: z.string().optional(),
@@ -83,7 +93,6 @@ const blogFormSchema = z.object({
   contentEn: z.string().min(1, "English content is required"),
   metaTitleEn: z.string().optional(),
   metaDescriptionEn: z.string().optional(),
-  ogImageEn: z.string().url().optional().or(z.literal("")),
   
   // Arabic translation
   titleAr: z.string().min(1, "Arabic title is required"),
@@ -92,7 +101,6 @@ const blogFormSchema = z.object({
   contentAr: z.string().min(1, "Arabic content is required"),
   metaTitleAr: z.string().optional(),
   metaDescriptionAr: z.string().optional(),
-  ogImageAr: z.string().url().optional().or(z.literal("")),
 });
 
 type BlogFormData = z.infer<typeof blogFormSchema>;
@@ -109,10 +117,11 @@ export default function BlogManagement() {
   const [tagFilter, setTagFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [markdownPreview, setMarkdownPreview] = useState({ en: "", ar: "" });
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const postsPerPage = 10;
 
   // Fetch blog posts
-  const { data: postsData, isLoading } = useQuery<{ posts: BlogPostWithTranslations[], total: number }>({
+  const { data: postsData, isLoading } = useQuery<{ success: boolean, data: BlogPostWithTranslations[], total?: number }>({
     queryKey: ['/api/admin/blog', currentPage, searchQuery, statusFilter, tagFilter],
     queryFn: async () => {
       const params = new URLSearchParams({
@@ -127,8 +136,8 @@ export default function BlogManagement() {
     },
   });
 
-  const posts = postsData?.posts || [];
-  const totalPosts = postsData?.total || 0;
+  const posts = postsData?.data || [];
+  const totalPosts = postsData?.total || posts.length;
   const totalPages = Math.ceil(totalPosts / postsPerPage);
 
   // Form
@@ -146,14 +155,12 @@ export default function BlogManagement() {
       contentEn: "",
       metaTitleEn: "",
       metaDescriptionEn: "",
-      ogImageEn: "",
       titleAr: "",
       slugAr: "",
       excerptAr: "",
       contentAr: "",
       metaTitleAr: "",
       metaDescriptionAr: "",
-      ogImageAr: "",
     },
   });
 
@@ -162,11 +169,13 @@ export default function BlogManagement() {
     mutationFn: async (data: BlogFormData) => {
       const tagsArray = data.tags ? data.tags.split(",").map(t => t.trim()) : [];
       const payload = {
-        authorName: data.authorName,
-        featuredImage: data.featuredImage || null,
-        tags: tagsArray,
-        status: data.status,
-        publishDate: data.publishDate || null,
+        post: {
+          authorName: data.authorName,
+          featuredImage: data.featuredImage || null,
+          tags: tagsArray,
+          status: data.status,
+          publishDate: data.publishDate || null,
+        },
         translations: [
           {
             language: "en",
@@ -176,7 +185,6 @@ export default function BlogManagement() {
             content: data.contentEn,
             metaTitle: data.metaTitleEn || null,
             metaDescription: data.metaDescriptionEn || null,
-            ogImage: data.ogImageEn || null,
           },
           {
             language: "ar",
@@ -186,7 +194,6 @@ export default function BlogManagement() {
             content: data.contentAr,
             metaTitle: data.metaTitleAr || null,
             metaDescription: data.metaDescriptionAr || null,
-            ogImage: data.ogImageAr || null,
           },
         ],
       };
@@ -216,11 +223,13 @@ export default function BlogManagement() {
     mutationFn: async ({ id, data }: { id: number; data: BlogFormData }) => {
       const tagsArray = data.tags ? data.tags.split(",").map(t => t.trim()) : [];
       const payload = {
-        authorName: data.authorName,
-        featuredImage: data.featuredImage || null,
-        tags: tagsArray,
-        status: data.status,
-        publishDate: data.publishDate || null,
+        post: {
+          authorName: data.authorName,
+          featuredImage: data.featuredImage || null,
+          tags: tagsArray,
+          status: data.status,
+          publishDate: data.publishDate || null,
+        },
         translations: [
           {
             language: "en",
@@ -230,7 +239,6 @@ export default function BlogManagement() {
             content: data.contentEn,
             metaTitle: data.metaTitleEn || null,
             metaDescription: data.metaDescriptionEn || null,
-            ogImage: data.ogImageEn || null,
           },
           {
             language: "ar",
@@ -240,11 +248,10 @@ export default function BlogManagement() {
             content: data.contentAr,
             metaTitle: data.metaTitleAr || null,
             metaDescription: data.metaDescriptionAr || null,
-            ogImage: data.ogImageAr || null,
           },
         ],
       };
-      return apiRequest(`/api/admin/blog/${id}`, { method: 'PATCH', body: payload });
+      return apiRequest(`/api/admin/blog/${id}`, { method: 'PUT', body: payload });
     },
     onSuccess: () => {
       toast({
@@ -288,7 +295,7 @@ export default function BlogManagement() {
   // Toggle publish status
   const togglePublishMutation = useMutation({
     mutationFn: ({ id, status }: { id: number; status: "draft" | "published" }) =>
-      apiRequest(`/api/admin/blog/${id}/status`, { method: 'PATCH', body: { status } }),
+      apiRequest(`/api/admin/blog/${id}/publish`, { method: 'PATCH', body: { status } }),
     onSuccess: () => {
       toast({
         title: language === "en" ? "Success" : "نجاح",
@@ -313,6 +320,41 @@ export default function BlogManagement() {
       .replace(/\s+/g, "-")
       .replace(/-+/g, "-")
       .trim();
+  };
+
+  // Handle image upload to S3
+  const handleImageUpload = async (file: File, targetField: "featuredImage" = "featuredImage") => {
+    setIsUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+      
+      const response = await fetch("/api/upload/blog-image", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+      
+      const data = await response.json();
+      
+      if (data.success && data.url) {
+        form.setValue(targetField, data.url);
+        toast({
+          title: language === "en" ? "Success" : "نجاح",
+          description: language === "en" ? "Image uploaded successfully" : "تم رفع الصورة بنجاح",
+        });
+      } else {
+        throw new Error(data.message || "Upload failed");
+      }
+    } catch (error: any) {
+      toast({
+        title: language === "en" ? "Error" : "خطأ",
+        description: error.message || (language === "en" ? "Failed to upload image" : "فشل في رفع الصورة"),
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingImage(false);
+    }
   };
 
   // Open create dialog
@@ -341,14 +383,12 @@ export default function BlogManagement() {
       contentEn: enTranslation?.content || "",
       metaTitleEn: enTranslation?.metaTitle || "",
       metaDescriptionEn: enTranslation?.metaDescription || "",
-      ogImageEn: enTranslation?.ogImage || "",
       titleAr: arTranslation?.title || "",
       slugAr: arTranslation?.slug || "",
       excerptAr: arTranslation?.excerpt || "",
       contentAr: arTranslation?.content || "",
       metaTitleAr: arTranslation?.metaTitle || "",
       metaDescriptionAr: arTranslation?.metaDescription || "",
-      ogImageAr: arTranslation?.ogImage || "",
     });
     
     setMarkdownPreview({
@@ -750,14 +790,62 @@ export default function BlogManagement() {
                   name="featuredImage"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{language === "en" ? "Featured Image URL" : "رابط الصورة المميزة"}</FormLabel>
-                      <FormControl>
-                        <Input 
-                          {...field} 
-                          data-testid="input-featured-image"
-                          placeholder="https://example.com/image.jpg"
-                        />
-                      </FormControl>
+                      <FormLabel>{language === "en" ? "Featured Image" : "الصورة المميزة"}</FormLabel>
+                      <p className="text-xs text-muted-foreground">
+                        {language === "en" 
+                          ? "Recommended size: 1200 × 628 px (1.91:1 aspect ratio)" 
+                          : "الحجم الموصى به: 1200 × 628 بكسل (نسبة 1.91:1)"}
+                      </p>
+                      <div className="space-y-3">
+                        <div className="flex gap-2">
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              data-testid="input-featured-image"
+                              placeholder="https://example.com/image.jpg"
+                              className="flex-1"
+                            />
+                          </FormControl>
+                          <div className="relative">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                              data-testid="input-upload-featured-image"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleImageUpload(file);
+                              }}
+                              disabled={isUploadingImage}
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              disabled={isUploadingImage}
+                              data-testid="button-upload-featured-image"
+                            >
+                              {isUploadingImage ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Upload className="w-4 h-4" />
+                              )}
+                              <span className="ml-2">{language === "en" ? "Upload" : "رفع"}</span>
+                            </Button>
+                          </div>
+                        </div>
+                        {field.value && (
+                          <div className="relative w-full h-32 bg-gray-100 rounded-lg overflow-hidden">
+                            <img 
+                              src={field.value} 
+                              alt="Featured preview"
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -980,24 +1068,6 @@ export default function BlogManagement() {
                       </FormItem>
                     )}
                   />
-
-                  <FormField
-                    control={form.control}
-                    name="ogImageEn"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>OG Image URL</FormLabel>
-                        <FormControl>
-                          <Input 
-                            {...field} 
-                            data-testid="input-og-image-en"
-                            placeholder="https://example.com/og-image.jpg"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
                 </TabsContent>
 
                 {/* Arabic Tab */}
@@ -1151,14 +1221,60 @@ export default function BlogManagement() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>رابط صورة OG</FormLabel>
-                        <FormControl>
-                          <Input 
-                            {...field} 
-                            data-testid="input-og-image-ar"
-                            placeholder="https://example.com/og-image.jpg"
-                            dir="rtl"
-                          />
-                        </FormControl>
+                        <p className="text-xs text-muted-foreground" dir="rtl">
+                          الحجم الموصى به: 1200 × 630 بكسل (لفيسبوك، لينكدإن، تويتر)
+                        </p>
+                        <div className="space-y-3">
+                          <div className="flex gap-2">
+                            <FormControl>
+                              <Input 
+                                {...field} 
+                                data-testid="input-og-image-ar"
+                                placeholder="https://example.com/og-image.jpg"
+                                dir="rtl"
+                                className="flex-1"
+                              />
+                            </FormControl>
+                            <div className="relative">
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                data-testid="input-upload-og-image-ar"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handleImageUpload(file, "ogImageAr");
+                                }}
+                                disabled={isUploadingImage}
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                disabled={isUploadingImage}
+                                data-testid="button-upload-og-image-ar"
+                              >
+                                {isUploadingImage ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Upload className="w-4 h-4" />
+                                )}
+                                <span className="ml-2">رفع</span>
+                              </Button>
+                            </div>
+                          </div>
+                          {field.value && (
+                            <div className="relative w-full h-24 bg-gray-100 rounded-lg overflow-hidden">
+                              <img 
+                                src={field.value} 
+                                alt="OG Image preview"
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display = 'none';
+                                }}
+                              />
+                            </div>
+                          )}
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}

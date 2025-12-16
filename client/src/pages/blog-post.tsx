@@ -5,10 +5,10 @@ import { useLocation, useParams } from "wouter";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { marked } from "marked";
+import { motion } from "framer-motion";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -26,6 +26,12 @@ import {
   User,
   ChevronLeft,
   ChevronRight,
+  Facebook,
+  Twitter,
+  Linkedin,
+  BookOpen,
+  MessageCircle,
+  Heart,
 } from "lucide-react";
 import ArticleSchema from "@/components/seo/ArticleSchema";
 import OpenGraphTags from "@/components/seo/OpenGraphTags";
@@ -33,7 +39,6 @@ import CanonicalUrl from "@/components/seo/CanonicalUrl";
 import Breadcrumbs from "@/components/seo/Breadcrumbs";
 import { useToast } from "@/hooks/use-toast";
 
-// Configure marked for safe HTML rendering
 marked.setOptions({
   breaks: true,
   gfm: true,
@@ -46,12 +51,10 @@ export default function BlogPost() {
   const { toast } = useToast();
   const [activeHeading, setActiveHeading] = useState<string>("");
 
-  // Auto-scroll to top on mount
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [slug]);
 
-  // Fetch blog post
   const { data: post, isLoading, error } = useQuery({
     queryKey: ['/api/blog/', slug, language],
     queryFn: async () => {
@@ -63,12 +66,25 @@ export default function BlogPost() {
         }
         throw new Error('Failed to fetch blog post');
       }
-      return response.json();
+      const json = await response.json();
+      if (!json.success || !json.data) {
+        throw new Error('Invalid response');
+      }
+      // Flatten translation data for easier access
+      const { translation, ...postData } = json.data;
+      return {
+        ...postData,
+        title: translation?.title || '',
+        slug: translation?.slug || '',
+        excerpt: translation?.excerpt || '',
+        content: translation?.content || '',
+        metaTitle: translation?.metaTitle,
+        metaDescription: translation?.metaDescription,
+      };
     },
     enabled: !!slug,
   });
 
-  // Fetch related posts
   const { data: relatedPosts } = useQuery({
     queryKey: ['/api/blog/', post?.id, 'related', language],
     queryFn: async () => {
@@ -80,14 +96,12 @@ export default function BlogPost() {
     enabled: !!post?.id,
   });
 
-  // Parse markdown content and extract headings for TOC
   const { htmlContent, tableOfContents } = useMemo(() => {
     if (!post?.content) return { htmlContent: '', tableOfContents: [] };
 
     const toc: Array<{ id: string; text: string; level: number }> = [];
     let idCounter = 0;
 
-    // Custom renderer to add IDs to headings
     const renderer = new marked.Renderer();
     renderer.heading = ({ tokens, depth }: { tokens: any[]; depth: number }) => {
       const text = tokens.map((t: any) => t.text || '').join('');
@@ -97,7 +111,7 @@ export default function BlogPost() {
         toc.push({ id, text, level: depth });
       }
       
-      return `<h${depth} id="${id}" class="scroll-mt-20">${text}</h${depth}>`;
+      return `<h${depth} id="${id}" class="scroll-mt-24">${text}</h${depth}>`;
     };
 
     marked.setOptions({ renderer });
@@ -106,23 +120,22 @@ export default function BlogPost() {
     return { htmlContent: html, tableOfContents: toc };
   }, [post?.content]);
 
-  // Calculate reading time (assuming 200 words per minute)
   const readingTime = useMemo(() => {
     if (!post?.content) return 0;
     const wordCount = post.content.split(/\s+/).length;
     return Math.ceil(wordCount / 200);
   }, [post?.content]);
 
-  // Format date based on language
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return '';
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '';
     if (language === 'ar') {
       return format(date, 'dd MMMM yyyy', { locale: ar });
     }
     return format(date, 'MMMM dd, yyyy');
   };
 
-  // Handle copy link to clipboard
   const handleCopyLink = async () => {
     const url = window.location.href;
     try {
@@ -136,7 +149,6 @@ export default function BlogPost() {
     }
   };
 
-  // Smooth scroll to heading
   const scrollToHeading = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
@@ -145,11 +157,10 @@ export default function BlogPost() {
     }
   };
 
-  // Track scroll position for active TOC item
   useEffect(() => {
     const handleScroll = () => {
       const headings = tableOfContents.map(item => document.getElementById(item.id));
-      const scrollPosition = window.scrollY + 100;
+      const scrollPosition = window.scrollY + 120;
 
       for (let i = headings.length - 1; i >= 0; i--) {
         const heading = headings[i];
@@ -164,13 +175,25 @@ export default function BlogPost() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [tableOfContents]);
 
-  // Loading State
+  const shareOnSocial = (platform: string) => {
+    const url = encodeURIComponent(window.location.href);
+    const title = encodeURIComponent(post?.title || '');
+    
+    const urls: Record<string, string> = {
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${url}`,
+      twitter: `https://twitter.com/intent/tweet?url=${url}&text=${title}`,
+      linkedin: `https://www.linkedin.com/shareArticle?mini=true&url=${url}&title=${title}`,
+    };
+    
+    window.open(urls[platform], '_blank', 'width=600,height=400');
+  };
+
   if (isLoading) {
     return (
-      <div className={`min-h-screen bg-gray-50 dark:bg-gray-900 ${direction === 'rtl' ? 'rtl' : 'ltr'}`}>
-        <div className="w-full h-96 bg-gray-200 dark:bg-gray-800 animate-pulse" />
+      <div className={`min-h-screen bg-slate-50 dark:bg-slate-950 ${direction === 'rtl' ? 'rtl' : 'ltr'}`}>
+        <div className="w-full h-[500px] bg-slate-200 dark:bg-slate-800 animate-pulse" />
         <div className="container mx-auto px-4 py-12 max-w-7xl">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
             <div className="lg:col-span-2 space-y-6">
               <Skeleton className="h-12 w-3/4" />
               <Skeleton className="h-6 w-full" />
@@ -178,7 +201,7 @@ export default function BlogPost() {
               <Skeleton className="h-6 w-5/6" />
             </div>
             <div className="space-y-4">
-              <Skeleton className="h-64 w-full" />
+              <Skeleton className="h-64 w-full rounded-2xl" />
             </div>
           </div>
         </div>
@@ -186,22 +209,33 @@ export default function BlogPost() {
     );
   }
 
-  // Error / 404 State
   if (error || !post) {
     return (
-      <div className={`min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center ${direction === 'rtl' ? 'rtl' : 'ltr'}`}>
-        <div className="text-center max-w-md mx-auto px-4" data-testid="blog-post-not-found">
-          <h1 className="text-4xl font-bold mb-4 text-gray-900 dark:text-gray-100">
+      <div className={`min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center ${direction === 'rtl' ? 'rtl' : 'ltr'}`}>
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center max-w-md mx-auto px-4"
+          data-testid="blog-post-not-found"
+        >
+          <div className="w-24 h-24 bg-gradient-to-br from-red-100 to-orange-100 dark:from-red-900/50 dark:to-orange-900/50 rounded-3xl flex items-center justify-center mx-auto mb-6">
+            <BookOpen className="h-12 w-12 text-red-500" />
+          </div>
+          <h1 className="text-4xl font-bold mb-4 text-slate-900 dark:text-slate-100">
             {t.blogPost.notFound}
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mb-8">
+          <p className="text-lg text-slate-600 dark:text-slate-400 mb-8">
             {t.blogPost.notFoundMessage}
           </p>
-          <Button onClick={() => navigate('/blog')} data-testid="button-back-to-blog">
-            <ArrowLeft className={`h-4 w-4 ${direction === 'rtl' ? 'ml-2 rotate-180' : 'mr-2'}`} />
+          <Button 
+            onClick={() => navigate('/blog')} 
+            className="rounded-full px-8 py-6"
+            data-testid="button-back-to-blog"
+          >
+            <ArrowLeft className={`h-5 w-5 ${direction === 'rtl' ? 'ml-2 rotate-180' : 'mr-2'}`} />
             {t.blogPost.backToBlog}
           </Button>
-        </div>
+        </motion.div>
       </div>
     );
   }
@@ -209,8 +243,7 @@ export default function BlogPost() {
   const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
 
   return (
-    <div className={`min-h-screen bg-gray-50 dark:bg-gray-900 ${direction === 'rtl' ? 'rtl' : 'ltr'}`}>
-      {/* SEO Components */}
+    <div className={`min-h-screen bg-slate-50 dark:bg-slate-950 ${direction === 'rtl' ? 'rtl' : 'ltr'}`}>
       <CanonicalUrl path={`/blog/${slug}`} />
       <ArticleSchema
         headline={post.title}
@@ -234,220 +267,298 @@ export default function BlogPost() {
         tags={post.tags || []}
       />
       
-      {/* Page Title & Meta */}
       <title>{post.title} | Momtazchem Blog</title>
       <meta name="description" content={post.excerpt || post.title} />
 
       {/* Hero Section */}
       <section
-        className="relative w-full h-96 bg-cover bg-center"
-        style={{
-          backgroundImage: post.featuredImage
-            ? `url(${post.featuredImage})`
-            : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        }}
+        className="relative w-full min-h-[500px] flex items-end"
         data-testid="blog-post-hero"
       >
-        {/* Dark Overlay */}
-        <div className="absolute inset-0 bg-black bg-opacity-60" />
+        {/* Background Image */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage: post.featuredImage
+              ? `url(${post.featuredImage})`
+              : 'linear-gradient(135deg, #1e3a5f 0%, #2d1b4e 50%, #1a1a2e 100%)',
+          }}
+        />
+        
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-black/30" />
+        
+        {/* Pattern Overlay */}
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute inset-0" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+          }} />
+        </div>
 
         {/* Hero Content */}
-        <div className="relative container mx-auto px-4 h-full flex flex-col justify-end pb-12 max-w-7xl">
-          {/* Breadcrumbs */}
-          <div className="mb-6">
-            <Breadcrumbs
-              items={[
-                { label: 'Blog', href: '/blog' },
-                { label: post.title },
-              ]}
-              className="text-white"
-            />
-          </div>
-
-          {/* Title */}
-          <h1
-            className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 max-w-4xl"
-            data-testid="blog-post-title"
+        <div className="relative container mx-auto px-4 py-16 max-w-7xl">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
           >
-            {post.title}
-          </h1>
-
-          {/* Meta Information */}
-          <div className="flex flex-wrap gap-4 text-white text-sm md:text-base">
-            {/* Author */}
-            <div className="flex items-center gap-2" data-testid="blog-post-author">
-              <User className="h-5 w-5" />
-              <span>{t.blog.by} {post.authorName || 'Momtazchem'}</span>
+            {/* Breadcrumbs */}
+            <div className="mb-8">
+              <Breadcrumbs
+                items={[
+                  { label: 'Blog', href: '/blog' },
+                  { label: post.title },
+                ]}
+                className="text-white/80"
+              />
             </div>
 
-            {/* Date */}
-            <div className="flex items-center gap-2" data-testid="blog-post-date">
-              <Calendar className="h-5 w-5" />
-              <span>{formatDate(post.publishDate || post.createdAt)}</span>
-            </div>
-
-            {/* Views */}
-            <div className="flex items-center gap-2" data-testid="blog-post-views">
-              <Eye className="h-5 w-5" />
-              <span>{post.viewCount || 0} {t.blog.views}</span>
-            </div>
-
-            {/* Reading Time */}
-            {readingTime > 0 && (
-              <div className="flex items-center gap-2" data-testid="blog-post-reading-time">
-                <Clock className="h-5 w-5" />
-                <span>{readingTime} {t.blogPost.minutes}</span>
+            {/* Tags */}
+            {post.tags && post.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-6" data-testid="blog-post-tags">
+                {post.tags.map((tag: string) => (
+                  <Badge
+                    key={tag}
+                    className="bg-white/20 text-white border-white/30 backdrop-blur-sm px-4 py-1"
+                    data-testid={`blog-post-tag-${tag}`}
+                  >
+                    {tag}
+                  </Badge>
+                ))}
               </div>
             )}
-          </div>
 
-          {/* Tags */}
-          {post.tags && post.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-4" data-testid="blog-post-tags">
-              {post.tags.map((tag: string) => (
-                <Badge
-                  key={tag}
-                  variant="outline"
-                  className="text-white border-white hover:bg-white hover:text-gray-900"
-                  data-testid={`blog-post-tag-${tag}`}
-                >
-                  {tag}
-                </Badge>
-              ))}
+            {/* Title */}
+            <h1
+              className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-8 max-w-4xl leading-tight"
+              data-testid="blog-post-title"
+            >
+              {post.title}
+            </h1>
+
+            {/* Meta Information */}
+            <div className="flex flex-wrap items-center gap-6 text-white/90">
+              {/* Author */}
+              <div className="flex items-center gap-3" data-testid="blog-post-author">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-lg font-bold shadow-lg">
+                  {(post.authorName || 'M')[0].toUpperCase()}
+                </div>
+                <div>
+                  <div className="font-semibold">{post.authorName || 'Momtazchem'}</div>
+                  <div className="text-sm text-white/70">{t.blog.by} Author</div>
+                </div>
+              </div>
+
+              <div className="hidden md:block w-px h-8 bg-white/30" />
+
+              {/* Date */}
+              <div className="flex items-center gap-2" data-testid="blog-post-date">
+                <Calendar className="h-5 w-5" />
+                <span>{formatDate(post.publishDate || post.createdAt)}</span>
+              </div>
+
+              {/* Reading Time */}
+              {readingTime > 0 && (
+                <div className="flex items-center gap-2" data-testid="blog-post-reading-time">
+                  <Clock className="h-5 w-5" />
+                  <span>{readingTime} {t.blogPost.minutes}</span>
+                </div>
+              )}
+
+              {/* Views */}
+              <div className="flex items-center gap-2" data-testid="blog-post-views">
+                <Eye className="h-5 w-5" />
+                <span>{post.viewCount || 0} {t.blog.views}</span>
+              </div>
             </div>
-          )}
+          </motion.div>
         </div>
       </section>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-12 max-w-7xl">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="container mx-auto px-4 py-16 max-w-7xl">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           {/* Article Content */}
-          <div className="lg:col-span-2">
-            <Card>
-              <CardContent className="pt-8">
-                {/* Share Buttons */}
-                <div className="flex items-center justify-between mb-8 pb-6 border-b">
-                  <h2 className="text-lg font-semibold">{t.blogPost.share}</h2>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleCopyLink}
-                      data-testid="button-copy-link"
-                    >
-                      <LinkIcon className="h-4 w-4 mr-2" />
-                      {t.blogPost.copyLink}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      data-testid="button-share"
-                    >
-                      <Share2 className="h-4 w-4 mr-2" />
-                      {t.blogPost.shareArticle}
-                    </Button>
-                  </div>
-                </div>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="lg:col-span-8"
+          >
+            {/* Social Share Bar - Sticky on Desktop */}
+            <div className="flex items-center justify-between mb-8 pb-6 border-b border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                <MessageCircle className="h-5 w-5" />
+                <span className="text-sm">{t.blogPost.share}</span>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => shareOnSocial('facebook')}
+                  className="rounded-full w-10 h-10 p-0"
+                  data-testid="button-share-facebook"
+                >
+                  <Facebook className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => shareOnSocial('twitter')}
+                  className="rounded-full w-10 h-10 p-0"
+                  data-testid="button-share-twitter"
+                >
+                  <Twitter className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => shareOnSocial('linkedin')}
+                  className="rounded-full w-10 h-10 p-0"
+                  data-testid="button-share-linkedin"
+                >
+                  <Linkedin className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopyLink}
+                  className="rounded-full px-4"
+                  data-testid="button-copy-link"
+                >
+                  <LinkIcon className="h-4 w-4 mr-2" />
+                  {t.blogPost.copyLink}
+                </Button>
+              </div>
+            </div>
 
-                {/* Article Body */}
+            {/* Article Body */}
+            <Card className="border-0 shadow-xl rounded-3xl overflow-hidden bg-white dark:bg-slate-900">
+              <CardContent className="p-8 md:p-12">
                 <article
-                  className="prose prose-lg dark:prose-invert max-w-none"
+                  className="prose prose-lg dark:prose-invert max-w-none prose-headings:font-bold prose-headings:text-slate-900 dark:prose-headings:text-white prose-p:text-slate-600 dark:prose-p:text-slate-300 prose-a:text-blue-600 prose-img:rounded-2xl prose-blockquote:border-l-blue-500 prose-blockquote:bg-blue-50 dark:prose-blockquote:bg-blue-900/20 prose-blockquote:py-2 prose-blockquote:px-6 prose-blockquote:rounded-r-xl"
                   dangerouslySetInnerHTML={{ __html: htmlContent }}
                   data-testid="blog-post-content"
                 />
               </CardContent>
             </Card>
 
+            {/* Article Footer */}
+            <div className="mt-8 p-6 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-3xl">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <Heart className="h-6 w-6 text-red-500" />
+                  <span className="text-slate-700 dark:text-slate-300">Did you find this article helpful?</span>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopyLink}
+                    className="rounded-full"
+                  >
+                    <Share2 className="h-4 w-4 mr-2" />
+                    {t.blogPost.shareArticle}
+                  </Button>
+                </div>
+              </div>
+            </div>
+
             {/* Previous/Next Navigation */}
-            <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
               {post.previousPost && (
                 <Card
-                  className="cursor-pointer hover:shadow-lg transition-shadow"
+                  className="cursor-pointer hover:shadow-xl transition-all duration-300 rounded-2xl border-0 bg-white dark:bg-slate-800 group overflow-hidden"
                   onClick={() => navigate(`/blog/${post.previousPost.slug}`)}
                   data-testid="blog-post-previous"
                 >
-                  <CardHeader>
-                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 mb-3">
                       <ChevronLeft className={`h-4 w-4 ${direction === 'rtl' ? 'rotate-180' : ''}`} />
                       <span>{t.blogPost.previousPost}</span>
                     </div>
-                    <CardTitle className="text-lg">{post.previousPost.title}</CardTitle>
-                  </CardHeader>
+                    <h3 className="font-bold text-lg group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2">
+                      {post.previousPost.title}
+                    </h3>
+                  </CardContent>
                 </Card>
               )}
 
               {post.nextPost && (
                 <Card
-                  className="cursor-pointer hover:shadow-lg transition-shadow"
+                  className="cursor-pointer hover:shadow-xl transition-all duration-300 rounded-2xl border-0 bg-white dark:bg-slate-800 group overflow-hidden md:text-right"
                   onClick={() => navigate(`/blog/${post.nextPost.slug}`)}
                   data-testid="blog-post-next"
                 >
-                  <CardHeader>
-                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-2 justify-end">
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 mb-3 justify-end">
                       <span>{t.blogPost.nextPost}</span>
                       <ChevronRight className={`h-4 w-4 ${direction === 'rtl' ? 'rotate-180' : ''}`} />
                     </div>
-                    <CardTitle className="text-lg text-right">{post.nextPost.title}</CardTitle>
-                  </CardHeader>
+                    <h3 className="font-bold text-lg group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2">
+                      {post.nextPost.title}
+                    </h3>
+                  </CardContent>
                 </Card>
               )}
             </div>
 
-            {/* Back to Blog Button */}
-            <div className="mt-8">
+            {/* Back to Blog */}
+            <div className="mt-12 text-center">
               <Button
                 variant="outline"
                 onClick={() => navigate('/blog')}
-                className="w-full md:w-auto"
+                className="rounded-full px-8 py-6"
                 data-testid="button-back-to-blog-bottom"
               >
-                <ArrowLeft className={`h-4 w-4 ${direction === 'rtl' ? 'ml-2 rotate-180' : 'mr-2'}`} />
+                <ArrowLeft className={`h-5 w-5 ${direction === 'rtl' ? 'ml-2 rotate-180' : 'mr-2'}`} />
                 {t.blogPost.backToBlog}
               </Button>
             </div>
-          </div>
+          </motion.div>
 
-          {/* Sidebar (Desktop) / Bottom (Mobile) */}
-          <div className="space-y-6">
+          {/* Sidebar */}
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4 }}
+            className="lg:col-span-4 space-y-8"
+          >
             {/* Author Card */}
-            <Card data-testid="blog-post-author-card">
-              <CardHeader>
-                <CardTitle>{t.blogPost.aboutAuthor}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-start gap-4">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold">
-                    {(post.authorName || 'M')[0].toUpperCase()}
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-lg">{post.authorName || 'Momtazchem'}</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      Chemical industry expert and content creator
-                    </p>
-                  </div>
+            <Card className="rounded-3xl border-0 shadow-xl overflow-hidden bg-white dark:bg-slate-900" data-testid="blog-post-author-card">
+              <div className="h-24 bg-gradient-to-r from-blue-600 to-purple-600" />
+              <CardContent className="pt-0 -mt-12 text-center">
+                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-3xl font-bold mx-auto border-4 border-white dark:border-slate-900 shadow-xl">
+                  {(post.authorName || 'M')[0].toUpperCase()}
                 </div>
+                <h3 className="font-bold text-xl mt-4">{post.authorName || 'Momtazchem'}</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
+                  Chemical industry expert and content creator at Momtazchem
+                </p>
               </CardContent>
             </Card>
 
             {/* Table of Contents */}
             {tableOfContents.length > 0 && (
-              <Card data-testid="blog-post-toc">
-                <CardHeader>
-                  <CardTitle>{t.blogPost.tableOfContents}</CardTitle>
+              <Card className="rounded-3xl border-0 shadow-xl sticky top-24 bg-white dark:bg-slate-900" data-testid="blog-post-toc">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2">
+                    <BookOpen className="h-5 w-5 text-blue-600" />
+                    {t.blogPost.tableOfContents}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <nav className="space-y-2">
+                  <nav className="space-y-1">
                     {tableOfContents.map((item) => (
                       <button
                         key={item.id}
                         onClick={() => scrollToHeading(item.id)}
-                        className={`block w-full text-left text-sm hover:text-blue-600 transition-colors ${
-                          item.level === 3 ? 'pl-4' : ''
+                        className={`block w-full text-left text-sm py-2 px-3 rounded-lg transition-all duration-200 ${
+                          item.level === 3 ? 'pl-6' : ''
                         } ${
                           activeHeading === item.id
-                            ? 'text-blue-600 font-semibold'
-                            : 'text-gray-700 dark:text-gray-300'
+                            ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-medium'
+                            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
                         }`}
                         data-testid={`toc-item-${item.id}`}
                       >
@@ -461,36 +572,36 @@ export default function BlogPost() {
 
             {/* Related Posts */}
             {relatedPosts && relatedPosts.length > 0 && (
-              <Card data-testid="blog-post-related">
+              <Card className="rounded-3xl border-0 shadow-xl bg-white dark:bg-slate-900" data-testid="blog-post-related">
                 <CardHeader>
                   <CardTitle>{t.blogPost.relatedPosts}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {relatedPosts.slice(0, 4).map((relatedPost: any) => (
-                    <div
-                      key={relatedPost.id}
-                      className="cursor-pointer group"
-                      onClick={() => navigate(`/blog/${relatedPost.slug}`)}
-                      data-testid={`related-post-${relatedPost.id}`}
-                    >
-                      <div className="flex gap-3">
+                  {relatedPosts.slice(0, 4).map((relatedPost: any, index: number) => (
+                    <div key={relatedPost.id}>
+                      <div
+                        className="cursor-pointer group flex gap-4"
+                        onClick={() => navigate(`/blog/${relatedPost.slug}`)}
+                        data-testid={`related-post-${relatedPost.id}`}
+                      >
                         {relatedPost.featuredImage && (
                           <img
                             src={relatedPost.featuredImage}
                             alt={relatedPost.title}
-                            className="w-20 h-20 object-cover rounded"
+                            className="w-20 h-20 object-cover rounded-xl flex-shrink-0"
                           />
                         )}
-                        <div className="flex-1">
-                          <h4 className="font-medium text-sm group-hover:text-blue-600 transition-colors line-clamp-2">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-sm group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2">
                             {relatedPost.title}
                           </h4>
-                          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
                             {formatDate(relatedPost.publishDate || relatedPost.createdAt)}
                           </p>
                         </div>
                       </div>
-                      {relatedPost.id !== relatedPosts[relatedPosts.length - 1].id && (
+                      {index < relatedPosts.slice(0, 4).length - 1 && (
                         <Separator className="mt-4" />
                       )}
                     </div>
@@ -498,7 +609,7 @@ export default function BlogPost() {
                 </CardContent>
               </Card>
             )}
-          </div>
+          </motion.div>
         </div>
       </div>
     </div>

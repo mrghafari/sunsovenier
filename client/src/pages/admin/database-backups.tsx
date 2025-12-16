@@ -33,7 +33,9 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  Loader2
+  Loader2,
+  RotateCcw,
+  AlertTriangle
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -71,6 +73,9 @@ export default function DatabaseBackupsPage() {
   const { toast } = useToast();
   const [showCreateBackupDialog, setShowCreateBackupDialog] = useState(false);
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
+  const [showRestoreDialog, setShowRestoreDialog] = useState(false);
+  const [backupToRestore, setBackupToRestore] = useState<DatabaseBackup | null>(null);
+  const [restoreConfirmText, setRestoreConfirmText] = useState("");
   const [editingSchedule, setEditingSchedule] = useState<BackupSchedule | null>(null);
   const [backupNotes, setBackupNotes] = useState("");
 
@@ -155,6 +160,44 @@ export default function DatabaseBackupsPage() {
       });
     },
   });
+
+  // Restore backup mutation
+  const restoreBackupMutation = useMutation({
+    mutationFn: async (fileName: string) => {
+      return apiRequest(`/api/admin/backup/restore/${encodeURIComponent(fileName)}`, {
+        method: 'POST',
+        body: JSON.stringify({ confirmRestore: "RESTORE_DATABASE" }),
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "✅ Restore Complete",
+        description: "Database has been restored successfully from the backup",
+      });
+      setShowRestoreDialog(false);
+      setBackupToRestore(null);
+      setRestoreConfirmText("");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "❌ Restore Failed",
+        description: error?.message || "Failed to restore database from backup",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleRestore = (backup: DatabaseBackup) => {
+    setBackupToRestore(backup);
+    setRestoreConfirmText("");
+    setShowRestoreDialog(true);
+  };
+
+  const confirmRestore = () => {
+    if (backupToRestore && restoreConfirmText === "RESTORE") {
+      restoreBackupMutation.mutate(backupToRestore.fileName);
+    }
+  };
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
@@ -246,14 +289,27 @@ export default function DatabaseBackupsPage() {
                   <TableCell>
                     <div className="flex gap-2">
                       {backup.status === 'completed' && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDownload(backup)}
-                          data-testid={`button-download-backup-${backup.id}`}
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDownload(backup)}
+                            data-testid={`button-download-backup-${backup.id}`}
+                            title="Download"
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRestore(backup)}
+                            data-testid={`button-restore-backup-${backup.id}`}
+                            title="Restore"
+                            className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                          </Button>
+                        </>
                       )}
                       <Button
                         variant="destructive"
@@ -261,6 +317,7 @@ export default function DatabaseBackupsPage() {
                         onClick={() => deleteBackupMutation.mutate(backup.id)}
                         disabled={deleteBackupMutation.isPending}
                         data-testid={`button-delete-backup-${backup.id}`}
+                        title="Delete"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -272,6 +329,70 @@ export default function DatabaseBackupsPage() {
           </Table>
         )}
       </Card>
+
+      {/* Restore Confirmation Dialog */}
+      <Dialog open={showRestoreDialog} onOpenChange={setShowRestoreDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-orange-600">
+              <AlertTriangle className="h-5 w-5" />
+              Restore Database
+            </DialogTitle>
+            <DialogDescription className="text-left space-y-3">
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mt-2">
+                <p className="font-semibold text-orange-800">⚠️ Warning: This action is dangerous!</p>
+                <ul className="text-sm text-orange-700 mt-2 space-y-1">
+                  <li>• Current database will be overwritten</li>
+                  <li>• All data after backup date will be lost</li>
+                  <li>• This action cannot be undone</li>
+                </ul>
+              </div>
+              <p className="text-sm">
+                <strong>Backup file:</strong> {backupToRestore?.fileName}
+              </p>
+              <p className="text-sm">
+                <strong>Created:</strong> {backupToRestore ? new Date(backupToRestore.createdAt).toLocaleString() : ''}
+              </p>
+              <p className="text-sm mt-4">
+                Type <strong>RESTORE</strong> to confirm:
+              </p>
+              <Input
+                value={restoreConfirmText}
+                onChange={(e) => setRestoreConfirmText(e.target.value)}
+                placeholder="Type RESTORE to confirm"
+                data-testid="input-restore-confirm"
+              />
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowRestoreDialog(false)}
+              data-testid="button-cancel-restore"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmRestore}
+              disabled={restoreConfirmText !== "RESTORE" || restoreBackupMutation.isPending}
+              data-testid="button-confirm-restore"
+            >
+              {restoreBackupMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Restoring...
+                </>
+              ) : (
+                <>
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Restore Database
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Schedules */}
       <Card className="p-6">

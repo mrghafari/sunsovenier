@@ -1,5 +1,6 @@
 import { db, pool } from './db';
 import { decrypt } from './aws-s3-service';
+import * as os from 'os';
 
 // 🔍 SYSTEM MONITORING SERVICE
 // Provides real-time health checks for all critical services
@@ -10,6 +11,12 @@ export interface HealthStatus {
   message: string;
   responseTime?: number;
   details?: any;
+}
+
+export interface DatabasePoolStats {
+  totalConnections: number;
+  idleConnections: number;
+  waitingClients: number;
 }
 
 export interface SystemHealth {
@@ -31,14 +38,70 @@ export interface SystemHealth {
       percentage: number;
     };
     cpuUsage?: number;
+    cpuLoadAverage: number[];
+    cpuCores: number;
+    databasePool: DatabasePoolStats;
+    activeSessions: number;
+    recentOrders: {
+      today: number;
+      pending: number;
+      processing: number;
+    };
+    requestStats: {
+      totalRequests: number;
+      requestsPerMinute: number;
+      errorRate: number;
+      lastErrors: string[];
+    };
+    systemLoad: {
+      freeMemory: number;
+      totalMemory: number;
+      systemMemoryPercentage: number;
+    };
   };
 }
 
 class MonitoringService {
   private startTime: number;
+  private requestCount: number = 0;
+  private errorCount: number = 0;
+  private lastErrors: string[] = [];
+  private requestsLastMinute: number[] = [];
 
   constructor() {
     this.startTime = Date.now();
+    // Clean up old request tracking every minute
+    setInterval(() => {
+      const oneMinuteAgo = Date.now() - 60000;
+      this.requestsLastMinute = this.requestsLastMinute.filter(t => t > oneMinuteAgo);
+    }, 10000);
+  }
+
+  // Track incoming request
+  trackRequest() {
+    this.requestCount++;
+    this.requestsLastMinute.push(Date.now());
+  }
+
+  // Track error
+  trackError(error: string) {
+    this.errorCount++;
+    this.lastErrors.unshift(`${new Date().toISOString().substring(11, 19)} - ${error}`);
+    if (this.lastErrors.length > 10) {
+      this.lastErrors = this.lastErrors.slice(0, 10);
+    }
+  }
+
+  // Get request stats
+  getRequestStats() {
+    const oneMinuteAgo = Date.now() - 60000;
+    const recentRequests = this.requestsLastMinute.filter(t => t > oneMinuteAgo);
+    return {
+      totalRequests: this.requestCount,
+      requestsPerMinute: recentRequests.length,
+      errorRate: this.requestCount > 0 ? (this.errorCount / this.requestCount) * 100 : 0,
+      lastErrors: this.lastErrors.slice(0, 5)
+    };
   }
 
   // 🗄️ Database Health Check
@@ -269,13 +332,56 @@ class MonitoringService {
     }
   }
 
+  // 📊 Get Active Sessions Count
+  async getActiveSessions(): Promise<number> {
+    try {
+      const result = await pool.query(`
+        SELECT COUNT(*) as count FROM sessions 
+        WHERE expire > NOW()
+      `);
+      return parseInt(result.rows[0]?.count || '0');
+    } catch {
+      return 0;
+    }
+  }
+
+  // 📦 Get Order Statistics
+  async getOrderStats(): Promise<{ today: number; pending: number; processing: number }> {
+    try {
+      const [todayResult, pendingResult, processingResult] = await Promise.all([
+        pool.query(`
+          SELECT COUNT(*) as count FROM orders 
+          WHERE created_at >= CURRENT_DATE
+        `),
+        pool.query(`
+          SELECT COUNT(*) as count FROM orders 
+          WHERE status = 'pending'
+        `),
+        pool.query(`
+          SELECT COUNT(*) as count FROM orders 
+          WHERE status IN ('processing', 'confirmed', 'preparing')
+        `)
+      ]);
+      
+      return {
+        today: parseInt(todayResult.rows[0]?.count || '0'),
+        pending: parseInt(pendingResult.rows[0]?.count || '0'),
+        processing: parseInt(processingResult.rows[0]?.count || '0')
+      };
+    } catch {
+      return { today: 0, pending: 0, processing: 0 };
+    }
+  }
+
   // 📊 Get Complete System Health
   async getSystemHealth(): Promise<SystemHealth> {
-    const [database, s3Storage, fibPaymentGateway, serverIp] = await Promise.all([
+    const [database, s3Storage, fibPaymentGateway, serverIp, activeSessions, orderStats] = await Promise.all([
       this.checkDatabaseHealth(),
       this.checkS3Health(),
       this.checkFIBHealth(),
-      this.checkServerIpHealth()
+      this.checkServerIpHealth(),
+      this.getActiveSessions(),
+      this.getOrderStats()
     ]);
 
     const server = this.getServerHealth();
@@ -298,6 +404,21 @@ class MonitoringService {
     const totalMemory = memory.heapTotal;
     const usedMemory = memory.heapUsed;
 
+    // Get CPU load average
+    const cpuLoadAverage = os.loadavg();
+    const cpuCores = os.cpus().length;
+
+    // Get system memory (not just Node.js heap)
+    const freeMemory = os.freemem();
+    const totalSystemMemory = os.totalmem();
+
+    // Get database pool stats
+    const databasePool: DatabasePoolStats = {
+      totalConnections: pool.totalCount || 0,
+      idleConnections: pool.idleCount || 0,
+      waitingClients: pool.waitingCount || 0
+    };
+
     return {
       timestamp: new Date().toISOString(),
       overall,
@@ -309,6 +430,17 @@ class MonitoringService {
           used: usedMemory,
           free: totalMemory - usedMemory,
           percentage: (usedMemory / totalMemory) * 100
+        },
+        cpuLoadAverage,
+        cpuCores,
+        databasePool,
+        activeSessions,
+        recentOrders: orderStats,
+        requestStats: this.getRequestStats(),
+        systemLoad: {
+          freeMemory,
+          totalMemory: totalSystemMemory,
+          systemMemoryPercentage: ((totalSystemMemory - freeMemory) / totalSystemMemory) * 100
         }
       }
     };

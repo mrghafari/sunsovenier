@@ -453,9 +453,23 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
     if (!destination || weight === 0) return 0;
     
     try {
+      // Look up the destination city to get its provinceId
+      const destCity = iraqiCities?.find((city: any) => 
+        city.nameEnglish?.toLowerCase() === destination.toLowerCase() ||
+        city.nameArabic === destination ||
+        city.name?.toLowerCase() === destination.toLowerCase() ||
+        city.nameEnglish?.toLowerCase().includes(destination.toLowerCase()) ||
+        city.nameArabic?.includes(destination) ||
+        city.name?.toLowerCase().includes(destination.toLowerCase())
+      );
+      
+      const provinceId = destCity?.provinceId || null;
+      
       console.log('🚚 [CHECKOUT] Using FLAMMABLE-AWARE delivery cost API:', { 
         weight, 
         destination,
+        resolvedCity: destCity?.name || destCity?.nameEnglish,
+        provinceId,
         containsFlammableProducts,
         cartProducts: cartItems.map(item => ({ id: item.id, name: item.name, isFlammable: item.isFlammable }))
       });
@@ -469,7 +483,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
         body: JSON.stringify({
           weight: weight,
           destinationCity: destination,
-          destinationProvince: destination,
+          destinationProvince: provinceId || destination,
           originCity: t.checkout_page.erbilCity,
           cart: Object.fromEntries(Object.entries(cart).map(([id, qty]) => [id, qty])),
           useSecondaryAddress: false
@@ -535,7 +549,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
       // Fallback to local calculation if API fails
       return fallbackLocalCalculation(weight, destination);
     }
-  }, [containsFlammableProducts, cart, cartItems]);
+  }, [containsFlammableProducts, cart, cartItems, iraqiCities]);
 
   // Fallback local calculation method (backup) - SAFETY COMPLIANT
   const fallbackLocalCalculation = useCallback((weight: number, destination: string) => {
@@ -1774,6 +1788,27 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                     }
                                   }
                                   
+                                  // Handle freight_collect specially
+                                  if (method.value === 'freight_collect') {
+                                    return (
+                                      <SelectItem key={method.id} value={method.id.toString()} className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800">
+                                        <div className="flex flex-col gap-1 w-full">
+                                          <div className="flex items-center justify-between">
+                                            <span className="font-medium text-orange-700 dark:text-orange-300">
+                                              🚚 {t.checkout_page.freightCollect}
+                                            </span>
+                                            <span className="text-orange-600 dark:text-orange-400 font-bold">
+                                              {t.checkout_page.freightCollectNote}
+                                            </span>
+                                          </div>
+                                          <div className="text-xs text-orange-600 dark:text-orange-400">
+                                            {t.checkout_page.freightCollectDescription}
+                                          </div>
+                                        </div>
+                                      </SelectItem>
+                                    );
+                                  }
+
                                   // Handle standard delivery methods
                                   const freeShippingThreshold = parseFloat(method.freeShippingThreshold || '0');
                                   const qualifiesForFreeShipping = freeShippingThreshold > 0 && subtotal >= freeShippingThreshold;
@@ -1801,15 +1836,29 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                     
                     {/* Show delivery details */}
                     {selectedMethod && (
-                      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
+                      <div className={`rounded-lg p-3 border ${
+                        selectedMethod.value === 'freight_collect' 
+                          ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800'
+                          : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+                      }`}>
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between items-center">
                             <span>{t.checkout_page.shippingCostLabel}</span>
                             <span className="font-medium">
-                              {shippingCost === 0 ? t.checkout_page.freeShipping : `${shippingCost.toLocaleString()} IQD`}
+                              {selectedMethod.value === 'freight_collect' 
+                                ? t.checkout_page.freightCollectNote
+                                : (shippingCost === 0 ? t.checkout_page.freeShipping : `${shippingCost.toLocaleString()} IQD`)
+                              }
                             </span>
                           </div>
-                          {selectedMethod.value === 'smart_vehicle' && selectedVehicle ? (
+                          {selectedMethod.value === 'freight_collect' ? (
+                            <div className="bg-orange-100 dark:bg-orange-900/30 rounded p-2 border border-orange-300 dark:border-orange-700">
+                              <div className="text-xs text-orange-700 dark:text-orange-300 space-y-1">
+                                <div className="font-medium">🚚 {t.checkout_page.freightCollectSelected}</div>
+                                <div>{t.checkout_page.freightCollectDescription}</div>
+                              </div>
+                            </div>
+                          ) : selectedMethod.value === 'smart_vehicle' && selectedVehicle ? (
                             <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded p-2 border border-emerald-200 dark:border-emerald-800">
                               <div className="text-xs text-emerald-700 dark:text-emerald-300 space-y-1">
                                 <div className="font-medium">{t.checkout_page.smartSelectionDetails}</div>

@@ -28,7 +28,8 @@ import {
   Calendar,
   XCircle,
   Loader2,
-  Edit
+  Edit,
+  RotateCcw
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
@@ -91,6 +92,8 @@ export default function DatabaseManagement() {
   const [isCreatingBackup, setIsCreatingBackup] = useState(false);
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<BackupSchedule | null>(null);
+  const [restoreConfirmText, setRestoreConfirmText] = useState("");
+  const [restoreFilename, setRestoreFilename] = useState<string | null>(null);
   const [scheduleForm, setScheduleForm] = useState({
     name: "",
     frequency: "daily" as "daily" | "weekly" | "monthly",
@@ -102,28 +105,33 @@ export default function DatabaseManagement() {
   });
 
   // Fetch current user data
-  const { data: user } = useQuery<{ user: { id: number; username: string } }>({
+  const { data: user, isError: userError } = useQuery<{ user: { id: number; username: string } }>({
     queryKey: ["/api/admin/me"],
+    retry: 1,
   });
 
   // Fetch database statistics
-  const { data: dbStats, isLoading: statsLoading } = useQuery<DatabaseStats>({
+  const { data: dbStats, isLoading: statsLoading, isError: statsError } = useQuery<DatabaseStats>({
     queryKey: ["/api/admin/database/stats"],
+    retry: 1,
   });
 
   // Fetch backup list (old local backup system)
-  const { data: backupsData, isLoading: backupsLoading, refetch: refetchBackups } = useQuery<{ backups: BackupFile[] }>({
+  const { data: backupsData, isLoading: backupsLoading, refetch: refetchBackups, isError: backupsError } = useQuery<{ backups: BackupFile[] }>({
     queryKey: ["/api/admin/backup/list"],
+    retry: 1,
   });
 
   // Fetch S3 backups (new system)
-  const { data: s3Backups, isLoading: loadingS3Backups } = useQuery<DatabaseBackup[]>({
+  const { data: s3Backups, isLoading: loadingS3Backups, isError: s3Error } = useQuery<DatabaseBackup[]>({
     queryKey: ['/api/admin/backups'],
+    retry: 1,
   });
 
   // Fetch backup schedules
-  const { data: schedules, isLoading: loadingSchedules } = useQuery<BackupSchedule[]>({
+  const { data: schedules, isLoading: loadingSchedules, isError: schedulesError } = useQuery<BackupSchedule[]>({
     queryKey: ['/api/admin/backup-schedules'],
+    retry: 1,
   });
 
   // Create local backup mutation
@@ -202,6 +210,53 @@ export default function DatabaseManagement() {
         variant: "destructive",
         title: "خطا در حذف بک‌آپ S3",
         description: "مشکلی در حذف بک‌آپ S3 رخ داده است",
+      });
+    },
+  });
+
+  // Restore database from backup mutation
+  const restoreBackupMutation = useMutation({
+    mutationFn: (filename: string) => apiRequest(`/api/admin/backup/restore/${filename}`, { 
+      method: "POST",
+      body: { confirmRestore: "RESTORE_DATABASE" }
+    }),
+    onSuccess: (_, filename) => {
+      toast({
+        title: "بک‌آپ بازگردانی شد",
+        description: `بک‌آپ ${filename} با موفقیت بازگردانی شد`,
+      });
+      refetchBackups();
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/database/stats"] });
+      setRestoreConfirmText("");
+      setRestoreFilename(null);
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "خطا در بازگردانی بک‌آپ",
+        description: error?.message || "مشکلی در بازگردانی بک‌آپ رخ داده است",
+      });
+      setRestoreConfirmText("");
+      setRestoreFilename(null);
+    },
+  });
+
+  // Restore S3 backup mutation
+  const restoreS3BackupMutation = useMutation({
+    mutationFn: (backupId: number) => apiRequest(`/api/admin/backups/${backupId}/restore`, { method: "POST" }),
+    onSuccess: () => {
+      toast({
+        title: "S3 Backup Restored",
+        description: "بک‌آپ S3 با موفقیت بازگردانی شد",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/backups'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/database/stats"] });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "خطا در بازگردانی بک‌آپ S3",
+        description: error?.message || "مشکلی در بازگردانی بک‌آپ S3 رخ داده است",
       });
     },
   });
@@ -381,6 +436,17 @@ export default function DatabaseManagement() {
     }
   };
 
+  if (userError) {
+    return (
+      <div className="space-y-6">
+        <div className="p-4 border border-red-300 bg-red-50 rounded-lg text-red-800">
+          <h2 className="font-semibold mb-2">خطای احراز هویت</h2>
+          <p>لطفا وارد سیستم شوید</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -396,6 +462,12 @@ export default function DatabaseManagement() {
         )}
         <h1 className="text-2xl font-bold">مدیریت دیتابیس</h1>
       </div>
+
+      {statsError && (
+        <div className="p-4 border border-red-300 bg-red-50 rounded-lg text-red-800">
+          <h3 className="font-semibold">خطا در بارگذاری آمار دیتابیس</h3>
+        </div>
+      )}
 
       {/* Database Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -465,6 +537,11 @@ export default function DatabaseManagement() {
 
             {/* Manual Backups Tab */}
             <TabsContent value="manual" className="space-y-4">
+              {backupsError && (
+                <div className="p-4 border border-red-300 bg-red-50 rounded-lg text-red-800 mb-4">
+                  <h3 className="font-semibold">خطا در بارگذاری بک‌آپ‌ها</h3>
+                </div>
+              )}
               <div className="flex justify-end">
                 <Button
                   onClick={handleCreateBackup}
@@ -520,6 +597,69 @@ export default function DatabaseManagement() {
                           <Download className="h-4 w-4" />
                           دانلود
                         </Button>
+                        <Dialog open={restoreFilename === backup.filename} onOpenChange={(open) => {
+                          if (!open) {
+                            setRestoreFilename(null);
+                            setRestoreConfirmText("");
+                          }
+                        }}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center gap-2"
+                            onClick={() => setRestoreFilename(backup.filename)}
+                            data-testid={`button-restore-${backup.filename}`}
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                            بازگردانی
+                          </Button>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>بازگردانی بک‌آپ</DialogTitle>
+                              <DialogDescription>
+                                آیا مطمئن هستید که می‌خواهید از بک‌آپ "{backup.filename}" بازگردانی کنید؟ این عمل تمامی داده‌های فعلی را جایگزین خواهد کرد!
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                              <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                                <p className="text-sm text-red-800">
+                                  <strong>هشدار:</strong> این عمل غیرقابل بازگشت است. تمامی داده‌های فعلی با داده‌های بک‌آپ جایگزین خواهند شد.
+                                </p>
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="restore-confirm">
+                                  برای تأیید، عبارت <strong>RESTORE</strong> را تایپ کنید:
+                                </Label>
+                                <Input
+                                  id="restore-confirm"
+                                  value={restoreConfirmText}
+                                  onChange={(e) => setRestoreConfirmText(e.target.value)}
+                                  placeholder="RESTORE"
+                                  data-testid="input-restore-confirm"
+                                />
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <Button
+                                variant="outline"
+                                onClick={() => {
+                                  setRestoreFilename(null);
+                                  setRestoreConfirmText("");
+                                }}
+                              >
+                                لغو
+                              </Button>
+                              <Button
+                                onClick={() => restoreBackupMutation.mutate(backup.filename)}
+                                className="bg-orange-600 hover:bg-orange-700"
+                                disabled={restoreConfirmText !== "RESTORE" || restoreBackupMutation.isPending}
+                                data-testid="button-confirm-restore"
+                              >
+                                {restoreBackupMutation.isPending ? "در حال بازگردانی..." : "بازگردانی"}
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button
@@ -560,6 +700,11 @@ export default function DatabaseManagement() {
 
             {/* S3 Backups & Automation Tab */}
             <TabsContent value="s3" className="space-y-6">
+              {(s3Error || schedulesError) && (
+                <div className="p-4 border border-red-300 bg-red-50 rounded-lg text-red-800 mb-4">
+                  <h3 className="font-semibold">خطا در بارگذاری داده‌های S3</h3>
+                </div>
+              )}
               {/* S3 Backups Section */}
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
@@ -581,7 +726,7 @@ export default function DatabaseManagement() {
 
                 {loadingS3Backups ? (
                   <div className="text-center py-8">Loading S3 backups...</div>
-                ) : !s3Backups || s3Backups.length === 0 ? (
+                ) : (s3Backups ?? []).length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     No S3 backups available
                   </div>
@@ -598,7 +743,7 @@ export default function DatabaseManagement() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {s3Backups.map((backup) => (
+                      {(s3Backups ?? []).map((backup) => (
                         <TableRow key={backup.id} data-testid={`s3-backup-row-${backup.id}`}>
                           <TableCell className="font-medium">{backup.fileName}</TableCell>
                           <TableCell>{formatFileSize(backup.fileSize)}</TableCell>
@@ -620,6 +765,37 @@ export default function DatabaseManagement() {
                                 >
                                   <Download className="h-4 w-4" />
                                 </Button>
+                              )}
+                              {backup.status === 'completed' && (
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      data-testid={`button-restore-s3-${backup.id}`}
+                                    >
+                                      <RotateCcw className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Restore S3 Backup</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to restore from "{backup.fileName}"? This will replace all current data!
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() => restoreS3BackupMutation.mutate(backup.id)}
+                                        className="bg-orange-600 hover:bg-orange-700"
+                                        disabled={restoreS3BackupMutation.isPending}
+                                      >
+                                        {restoreS3BackupMutation.isPending ? "Restoring..." : "Restore"}
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
                               )}
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
@@ -679,7 +855,7 @@ export default function DatabaseManagement() {
 
                 {loadingSchedules ? (
                   <div className="text-center py-8">Loading schedules...</div>
-                ) : !schedules || schedules.length === 0 ? (
+                ) : (schedules ?? []).length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     No backup schedules configured
                   </div>
@@ -698,7 +874,7 @@ export default function DatabaseManagement() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {schedules.map((schedule) => (
+                      {(schedules ?? []).map((schedule) => (
                         <TableRow key={schedule.id} data-testid={`schedule-row-${schedule.id}`}>
                           <TableCell className="font-medium">{schedule.name}</TableCell>
                           <TableCell>

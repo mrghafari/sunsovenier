@@ -210,10 +210,34 @@ export default function FibPaymentPage() {
                 </AlertDescription>
               </Alert>
 
+              {/* Mobile Direct Payment - Prominent for mobile users */}
+              {payment.personalAppLink && (
+                <div className="text-center space-y-4 p-6 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50 rounded-xl border-2 border-blue-200 dark:border-blue-800">
+                  <h3 className="text-lg font-bold text-blue-700 dark:text-blue-300">
+                    {language === 'ar' ? '📱 پرداخت مستقیم از موبایل' : '📱 Pay Directly on Mobile'}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {language === 'ar' ? 'اگر از موبایل خود استفاده می‌کنید، روی دکمه زیر کلیک کنید' : 'If you are on your mobile, click the button below'}
+                  </p>
+                  <Button
+                    size="lg"
+                    className="w-full py-6 text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                    asChild
+                    data-testid="button-mobile-pay-now"
+                  >
+                    <a href={payment.personalAppLink} target="_blank" rel="noopener noreferrer">
+                      <Smartphone className="mr-3 h-6 w-6" />
+                      {language === 'ar' ? 'پرداخت با اپلیکیشن FIB' : 'Pay with FIB App'}
+                      <ExternalLink className="ml-3 h-5 w-5" />
+                    </a>
+                  </Button>
+                </div>
+              )}
+
               {/* QR Code */}
               <div className="text-center space-y-4">
                 <h3 className="text-lg font-semibold">
-                  {language === 'ar' ? 'امسح رمز QR باستخدام تطبيق FIB' : 'Scan QR Code with FIB App'}
+                  {language === 'ar' ? 'یا کد QR را با اپلیکیشن FIB اسکن کنید' : 'Or Scan QR Code with FIB App'}
                 </h3>
                 <div className="flex justify-center">
                   <div className="p-4 bg-white dark:bg-slate-800 rounded-lg shadow-md">

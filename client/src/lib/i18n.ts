@@ -192,6 +192,10 @@ export interface Translation {
     freeShippingOver: string;
     moreForFreeShipping: string;
     cubicMeter: string;
+    freightCollect: string;
+    freightCollectDescription: string;
+    freightCollectNote: string;
+    freightCollectSelected: string;
     
     // Payment
     paymentInfo: string;
@@ -1116,6 +1120,9 @@ export interface Translation {
     loggingIn: string;
     registering: string;
     welcome: string;
+    or: string;
+    continueWithGoogle: string;
+    continueWithFacebook: string;
     loginSuccess: string;
     invalidCredentials: string;
     loginError: string;
@@ -1638,6 +1645,10 @@ export const translations: Record<Language, Translation> = {
       freeShippingOver: '✓ Free shipping for purchases over',
       moreForFreeShipping: 'more for free shipping',
       cubicMeter: 'cubic meters',
+      freightCollect: 'Freight Collect',
+      freightCollectDescription: 'Shipping cost will be paid upon delivery by the customer',
+      freightCollectNote: 'No shipping cost charged now - pay upon delivery',
+      freightCollectSelected: 'Freight Collect - Pay shipping upon delivery',
       
       // Payment
       paymentInfo: 'Payment Information',
@@ -2395,6 +2406,9 @@ export const translations: Record<Language, Translation> = {
       loggingIn: 'Logging in...',
       registering: 'Registering...',
       welcome: 'Welcome',
+      or: 'Or',
+      continueWithGoogle: 'Continue with Google',
+      continueWithFacebook: 'Continue with Facebook',
       loginSuccess: 'Successfully logged in',
       invalidCredentials: 'Invalid email or password',
       loginError: 'Login Error',
@@ -3078,6 +3092,10 @@ export const translations: Record<Language, Translation> = {
       freeShippingOver: '✓ شحن مجاني للمشتريات فوق',
       moreForFreeShipping: 'المزيد للشحن المجاني',
       cubicMeter: 'متر مكعب',
+      freightCollect: 'الشحن عند التسليم',
+      freightCollectDescription: 'سيتم دفع تكلفة الشحن عند التسليم من قبل العميل',
+      freightCollectNote: 'لا يتم احتساب تكلفة شحن الآن - الدفع عند التسليم',
+      freightCollectSelected: 'الشحن عند التسليم - دفع الشحن عند الاستلام',
       
       // Payment
       paymentInfo: 'معلومات الدفع',
@@ -3828,6 +3846,9 @@ export const translations: Record<Language, Translation> = {
       loggingIn: 'جاري تسجيل الدخول...',
       registering: 'جاري إنشاء الحساب...',
       welcome: 'أهلاً بك',
+      or: 'أو',
+      continueWithGoogle: 'متابعة مع جوجل',
+      continueWithFacebook: 'متابعة مع فيسبوك',
       loginSuccess: 'تم تسجيل الدخول بنجاح',
       invalidCredentials: 'البريد الإلكتروني أو كلمة المرور غير صحيحة',
       loginError: 'خطأ في تسجيل الدخول',

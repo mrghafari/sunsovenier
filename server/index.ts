@@ -1,3 +1,6 @@
+import { logBuffer } from "./log-buffer";
+logBuffer.init();
+
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import MemoryStore from "memorystore";
@@ -15,6 +18,7 @@ import { bankReceiptReminderService } from "./bank-receipt-reminder";
 import { incompletePaymentCleaner } from "./incomplete-payment-cleaner";
 import { setupVite, serveStatic, log } from "./vite";
 import passport from "./passport-config";
+import { monitoringService } from "./monitoring-service";
 
 // Global error handlers to prevent server crashes
 process.on('uncaughtException', (err) => {
@@ -164,6 +168,20 @@ app.use(unifiedSessionMiddleware);
 // Initialize Passport for OAuth authentication
 app.use(passport.initialize());
 app.use(passport.session());
+
+// Request tracking middleware for monitoring (synchronous)
+app.use((req, res, next) => {
+  monitoringService.trackRequest();
+  
+  // Track errors on response finish
+  res.on('finish', () => {
+    if (res.statusCode >= 400) {
+      monitoringService.trackError(`${req.method} ${req.path} - ${res.statusCode}`);
+    }
+  });
+  
+  next();
+});
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -353,6 +371,9 @@ app.use((req, res, next) => {
 
     // Multer error handling middleware
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      // Track all errors in monitoring
+      monitoringService.trackError(`${_req.method} ${_req.path} - ${err.message || 'Unknown error'}`);
+      
       if (err instanceof Error && err.message.includes('Only')) {
         return res.status(400).json({ 
           success: false, 

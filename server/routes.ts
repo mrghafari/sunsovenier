@@ -1,6 +1,7 @@
 import express, { type Express, Request, Response, NextFunction } from "express";
 import { registerFibRoutes } from "./fib-routes";
 import { createServer, type Server } from "http";
+import { logBuffer } from "./log-buffer";
 import bcrypt from "bcryptjs";
 import multer from "multer";
 import path from "path";
@@ -48,6 +49,7 @@ import { deliveryVerificationStorage } from "./delivery-verification-storage";
 import { gpsDeliveryStorage } from "./gps-delivery-storage";
 import { gpsDeliveryConfirmations } from "@shared/gps-delivery-schema";
 import ProformaInvoiceConverter from "./proforma-invoice-converter";
+import { migrateBlogImagesToS3 } from "./migrate-blog-images-to-s3";
 import { AutoInvoiceConverter } from "./auto-invoice-converter";
 import { secureObjectStorageService } from "./secureObjectStorage";
 import { fileSecurityService, productImageSecurityService } from "./fileSecurityService";
@@ -3448,6 +3450,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Proxy route to serve blog images from S3
+  app.get('/uploads/blog-images/:key', async (req, res) => {
+    try {
+      const key = `blog-images/${req.params.key}`;
+      const s3Service = getAwsS3Service();
+      
+      const fileBuffer = await s3Service.getFile(key);
+      
+      if (!fileBuffer) {
+        return res.status(404).json({ 
+          success: false,
+          message: 'Blog image not found' 
+        });
+      }
+
+      // Determine content type based on file extension
+      const ext = path.extname(req.params.key).toLowerCase();
+      let contentType = 'image/jpeg'; // default
+      
+      if (ext === '.png') {
+        contentType = 'image/png';
+      } else if (ext === '.gif') {
+        contentType = 'image/gif';
+      } else if (ext === '.webp') {
+        contentType = 'image/webp';
+      } else if (ext === '.svg') {
+        contentType = 'image/svg+xml';
+      }
+
+      // Set proper headers for images
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.send(fileBuffer);
+      
+      console.log(`✅ [S3 PROXY] Served blog image: ${key}`);
+    } catch (error) {
+      console.error('❌ [S3 PROXY] Error serving blog image:', error);
+      res.status(500).json({ 
+        success: false,
+        message: 'Failed to retrieve blog image',
+        error: error.message
+      });
+    }
+  });
+
   // File upload endpoints
   // Generic upload route (for images) - accepts both 'file' and 'image' field names
   const uploadFlexible = multer({
@@ -3663,6 +3711,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
+  // Blog image upload endpoint
+  app.post("/api/upload/blog-image", requireAdmin, uploadImage.single('image'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "No image file uploaded" 
+        });
+      }
+
+      const s3Service = getAwsS3Service();
+      const uploadResult = await s3Service.uploadPublicFile(
+        req.file.buffer,
+        req.file.originalname,
+        req.file.mimetype,
+        'blog-images'
+      );
+
+      if (!uploadResult.success) {
+        return res.status(500).json({
+          success: false,
+          message: uploadResult.message || "Failed to upload image to S3"
+        });
+      }
+
+      console.log(`✅ [S3 UPLOAD] Blog image uploaded: ${uploadResult.key}`);
+
+      res.json({ 
+        success: true, 
+        url: uploadResult.url,
+        key: uploadResult.key,
+        originalName: req.file.originalname,
+        size: req.file.size
+      });
+    } catch (error) {
+      console.error('❌ [S3 UPLOAD] Blog image upload error:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Failed to upload blog image to S3",
+        error: error.message
+      });
+    }
+  });
 
   // 3D Model upload endpoint
   app.post("/api/upload/model3d", requireProductManagerAuth, uploadModel3d.single('model3d'), async (req, res) => {
@@ -6619,6 +6711,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Download database backup
+
+  // Create S3 database backup
+  app.post("/api/admin/backups/create", requireAuth, async (req, res) => {
+    try {
+      const { spawn } = await import('child_process');
+      const fsModule = await import('fs');
+      const pathModule = await import('path');
+      const { databaseBackups } = await import('@shared/schema');
+      
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
+      const backupDir = './backups';
+      const backupFile = `database_backup_${timestamp}.sql`;
+      const backupPath = path.join(backupDir, backupFile);
+      
+      // Create backup directory if it doesn't exist
+      if (!fs.existsSync(backupDir)) {
+        fs.mkdirSync(backupDir, { recursive: true });
+      }
+      
+      // Create backup using pg_dump
+      const databaseUrl = process.env.DATABASE_URL;
+      if (!databaseUrl) {
+        return res.status(500).json({
+          success: false,
+          message: "Database URL not configured"
+        });
+      }
+
+      const pgDump = spawn('pg_dump', [databaseUrl, '--no-owner', '--no-privileges']);
+      
+      const writeStream = fs.createWriteStream(backupPath);
+      pgDump.stdout?.pipe(writeStream);
+      
+      let errorOutput = '';
+      pgDump.stderr?.on('data', (data: Buffer) => {
+        errorOutput += data.toString();
+      });
+      
+      pgDump.on('close', async (code: number | null) => {
+        if (code === 0) {
+          const stats = fs.statSync(backupPath);
+          
+          // Store backup metadata in database
+          try {
+            const backup = await db.insert(databaseBackups).values({
+              fileName: backupFile,
+              s3Key: backupFile,
+              s3Bucket: 'local',
+              fileSize: stats.size,
+              backupType: 'manual',
+              status: 'completed',
+              completedAt: new Date(),
+            }).returning();
+            
+            res.json({
+              success: true,
+              message: 'Backup created successfully',
+              id: backup[0]?.id,
+              fileName: backupFile,
+              size: stats.size,
+              timestamp: new Date().toISOString()
+            });
+          } catch (dbError) {
+            console.error('Error saving backup metadata:', dbError);
+            res.json({
+              success: true,
+              message: 'Backup created successfully (metadata save failed)',
+              fileName: backupFile,
+              size: stats.size,
+              timestamp: new Date().toISOString()
+            });
+          }
+        } else {
+          console.error('pg_dump error:', errorOutput);
+          res.status(500).json({
+            success: false,
+            message: 'Failed to create backup',
+            error: errorOutput
+          });
+        }
+      });
+      
+    } catch (error) {
+      console.error("Error creating backup:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Internal server error" 
+      });
+    }
+  });
   app.get("/api/admin/backup/download/:filename", requireAuth, async (req, res) => {
     try {
       const { filename } = req.params;
@@ -6694,6 +6876,118 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Restore database from backup
+  app.post("/api/admin/backup/restore/:filename", requireAuth, async (req, res) => {
+    try {
+      const { filename } = req.params;
+      const { confirmRestore } = req.body;
+      
+      // Double confirmation required
+      if (confirmRestore !== "RESTORE_DATABASE") {
+        return res.status(400).json({
+          success: false,
+          message: "Please confirm restore by sending confirmRestore: RESTORE_DATABASE"
+        });
+      }
+      
+      // Security check - only allow .sql or .sql.gz files and prevent directory traversal
+      if ((!filename.endsWith('.sql') && !filename.endsWith('.sql.gz')) || filename.includes('..') || filename.includes('/')) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid filename'
+        });
+      }
+      
+      const backupPath = path.join('./backups', filename);
+      
+      if (!fs.existsSync(backupPath)) {
+        return res.status(404).json({
+          success: false,
+          message: 'Backup file not found'
+        });
+      }
+      
+      console.log(`🔄 [RESTORE] Starting database restore from: ${filename}`);
+      
+      // Read backup file content
+      let sqlContent: string;
+      try {
+        if (filename.endsWith('.sql.gz')) {
+          const zlib = await import('zlib');
+          const gzipData = fs.readFileSync(backupPath);
+          sqlContent = zlib.gunzipSync(gzipData).toString('utf-8');
+        } else {
+          sqlContent = fs.readFileSync(backupPath, 'utf-8');
+        }
+      } catch (readError) {
+        console.error("Error reading backup file:", readError);
+        return res.status(500).json({ 
+          success: false, 
+          message: "Failed to read backup file" 
+        });
+      }
+      
+      // Filter out psql-specific backslash commands and comments that pool.query can't handle
+      const lines = sqlContent.split('\n');
+      const filteredLines = lines.filter(line => {
+        const trimmed = line.trim();
+        return !trimmed.startsWith('\\') && !trimmed.startsWith('--') && trimmed.length > 0;
+      });
+      const cleanedSql = filteredLines.join('\n');
+      
+      // Split SQL into individual statements (split by semicolon at end of line)
+      const statements = cleanedSql.split(/;\s*$/m).filter(stmt => stmt.trim().length > 0);
+      
+      const { pool } = await import('./db');
+      const client = await pool.connect();
+      
+      try {
+        await client.query('BEGIN');
+        
+        let successCount = 0;
+        let errorCount = 0;
+        
+        for (const statement of statements) {
+          const trimmedStmt = statement.trim();
+          if (trimmedStmt.length === 0) continue;
+          
+          try {
+            await client.query(trimmedStmt);
+            successCount++;
+          } catch (stmtError: any) {
+            errorCount++;
+            console.warn(`⚠️ [RESTORE] Statement error (continuing):`, stmtError.message?.substring(0, 100));
+          }
+        }
+        
+        await client.query('COMMIT');
+        console.log(`✅ [RESTORE] Database restore completed from: ${filename} (${successCount} statements, ${errorCount} errors)`);
+        res.json({
+          success: true,
+          message: `Database restored successfully from ${filename} (${successCount} statements executed)`,
+          restoredAt: new Date().toISOString(),
+          statementsExecuted: successCount,
+          statementsWithErrors: errorCount
+        });
+      } catch (sqlError: any) {
+        await client.query('ROLLBACK');
+        console.error(`❌ [RESTORE] Database restore failed:`, sqlError);
+        res.status(500).json({
+          success: false,
+          message: 'Failed to restore database: ' + (sqlError.message || 'Unknown error')
+        });
+      } finally {
+        client.release();
+      }
+      
+    } catch (error) {
+      console.error("Error restoring backup:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Internal server error" 
+      });
+    }
+  });
   // List available backups
   app.get("/api/admin/backup/list", requireAuth, async (req, res) => {
     try {
@@ -6750,7 +7044,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   };
 
-  // Use the requireSuperAdmin middleware already defined above
 
   // Get all admin users
   app.get("/api/admin/users", requireSuperAdmin, async (req, res) => {
@@ -16998,7 +17291,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         orderNumber = await orderManagementStorage.generateOrderNumberInTransaction();
         
         walletAmountUsed = Math.round(parseFloat(orderData.walletAmountUsed || 0));
-        remainingAmount = Math.round(parseFloat(orderData.remainingAmount || totalAmount));
+        remainingAmount = Math.round(parseFloat(orderData.remainingAmount !== undefined && orderData.remainingAmount !== null ? orderData.remainingAmount : totalAmount));
         
         console.log('💰 [PERMANENT WALLET ORDER] Processing wallet payment:', {
           orderNumber,
@@ -31353,6 +31646,21 @@ ${message ? `Additional Requirements:\n${message}` : ''}
     }
   });
 
+
+  // Migrate blog images to S3
+  app.post("/api/admin/migrate-blog-images", requireAdmin, async (req, res) => {
+    try {
+      console.log("🔄 [ADMIN] Starting blog images migration to S3...");
+      const result = await migrateBlogImagesToS3();
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error migrating blog images:", error);
+      res.status(500).json({
+        success: false,
+        message: "خطا در انتقال تصاویر بلاگ: " + error.message
+      });
+    }
+  });
   // [REMOVED] Removed duplicate endpoint - using the comprehensive one above (line 25196)
 
   // Process financial order
@@ -52852,12 +53160,18 @@ momtazchem.com
       }
 
       // Update blog post
+      // Update blog post - convert dates from strings to Date objects
+      const postData = {
+        ...post,
+        updatedAt: new Date(),
+      };
+      // Convert publishDate string to Date if provided
+      if (post.publishDate) {
+        postData.publishDate = new Date(post.publishDate);
+      }
       const [updatedPost] = await db
         .update(blogPosts)
-        .set({
-          ...post,
-          updatedAt: new Date(),
-        })
+        .set(postData)
         .where(eq(blogPosts.id, postId))
         .returning();
 
@@ -53059,14 +53373,25 @@ momtazchem.com
         })
       );
 
+      // Get total count
+      const [countResult] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(blogPosts)
+        .where(eq(blogPosts.status, "published"));
+      
+      // Get all unique tags
+      const allPosts = await db
+        .select({ tags: blogPosts.tags })
+        .from(blogPosts)
+        .where(eq(blogPosts.status, "published"));
+      
+      const allTags = [...new Set(allPosts.flatMap(p => p.tags || []))];
+
       res.json({
         success: true,
-        data: postsWithTranslation,
-        pagination: {
-          limit,
-          offset,
-          total: posts.length,
-        },
+        posts: postsWithTranslation,
+        total: Number(countResult?.count || 0),
+        tags: allTags,
       });
     } catch (error: any) {
       console.error("Error fetching published blog posts:", error);
@@ -53582,6 +53907,125 @@ momtazchem.com
   registerFibRoutes(app);
 
   // 🔍 SYSTEM MONITORING ENDPOINTS
+  // Activity logs endpoint for real-time application monitoring
+  app.get("/api/admin/activity-logs", requireAuth, async (req, res) => {
+    try {
+      const { pool } = await import('./db');
+      
+      // Get recent activity from various sources
+      const logs: any[] = [];
+      const now = new Date();
+      
+      // Get recent orders
+      try {
+        const ordersResult = await pool.query(`
+          SELECT id, order_number, status, customer_name, created_at 
+          FROM customer_orders 
+          ORDER BY created_at DESC 
+          LIMIT 10
+        `);
+        ordersResult.rows.forEach((order: any) => {
+          logs.push({
+            id: order.id,
+            timestamp: new Date(order.created_at).toLocaleTimeString('en-US', { hour12: false }),
+            type: 'order',
+            action: 'سفارش جدید',
+            details: `سفارش ${order.order_number} - ${order.customer_name} - وضعیت: ${order.status}`,
+            user: order.customer_name
+          });
+        });
+      } catch (e) {
+        console.log("[ACTIVITY] Orders query skipped:", (e as Error).message);
+      }
+      
+      // Get recent user logins from users table
+      try {
+        const loginsResult = await pool.query(`
+          SELECT id, username, last_login_at 
+          FROM users 
+          WHERE last_login_at IS NOT NULL 
+          ORDER BY last_login_at DESC 
+          LIMIT 5
+        `);
+        loginsResult.rows.forEach((user: any) => {
+          if (user.last_login_at) {
+            logs.push({
+              id: user.id + 10000,
+              timestamp: new Date(user.last_login_at).toLocaleTimeString('en-US', { hour12: false }),
+              type: 'login',
+              action: 'ورود کاربر',
+              details: `${user.username} وارد سیستم شد`,
+              user: user.username
+            });
+          }
+        });
+      } catch (e) {
+        console.log("[ACTIVITY] Logins query skipped:", (e as Error).message);
+      }
+      
+      // Get recent payment receipts
+      try {
+        const paymentsResult = await pool.query(`
+          SELECT pr.id, co.total_amount as amount, co.status, pr.uploaded_at as created_at 
+          FROM payment_receipts pr
+          LEFT JOIN customer_orders co ON pr.customer_order_id = co.id
+          ORDER BY pr.uploaded_at DESC 
+          LIMIT 5
+        `);
+        paymentsResult.rows.forEach((payment: any) => {
+          logs.push({
+            id: payment.id + 20000,
+            timestamp: new Date(payment.created_at).toLocaleTimeString('en-US', { hour12: false }),
+            type: 'payment',
+            action: 'رسید پرداخت',
+            details: `مبلغ: ${payment.amount || 'نامشخص'} - وضعیت: ${payment.status || 'نامشخص'}`,
+          });
+        });
+      } catch (e) {
+        console.log("[ACTIVITY] Payments query skipped:", (e as Error).message);
+      }
+      
+      // Add system status
+      logs.push({
+        id: Date.now(),
+        timestamp: now.toLocaleTimeString('en-US', { hour12: false }),
+        type: 'system',
+        action: 'بررسی سیستم',
+        details: 'سیستم در حال اجرا است'
+      });
+      
+      // Sort by timestamp (newest first for display, but component will handle order)
+      logs.sort((a, b) => a.id - b.id);
+      
+      res.json({ success: true, logs: logs.slice(-50) });
+    } catch (error) {
+      console.error("Error fetching activity logs:", error);
+      res.status(500).json({ success: false, message: "خطا در دریافت لاگ فعالیت‌ها" });
+    }
+  });
+
+
+  // Real-time server console logs endpoint
+  app.get("/api/admin/console-logs", requireAuth, async (req, res) => {
+    try {
+      // Using imported logBuffer
+      const lastId = parseInt(req.query.lastId as string) || 0;
+      const limit = parseInt(req.query.limit as string) || 100;
+      
+      let logs;
+      if (lastId > 0) {
+        logs = logBuffer.getLogsSince(lastId);
+      } else {
+        logs = logBuffer.getLogs(limit);
+      }
+      
+      res.json({ success: true, logs });
+    } catch (error) {
+      console.error("Error fetching console logs:", error);
+      res.status(500).json({ success: false, message: "خطا در دریافت لاگ‌های سرور" });
+    }
+  });
+
   // Real-time health checks for all critical services (portable - works on any platform)
   console.log('🔍 [MONITORING] Registering system monitoring endpoints...');
   
