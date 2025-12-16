@@ -116,9 +116,18 @@ class FIBService {
     }
 
     const settings = await storage.getActiveFibSettings();
-    const baseUrl = settings?.callbackBaseUrl ?? (process.env.REPLIT_DEV_DOMAIN 
-      ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
-      : 'http://localhost:5000');
+    // In development, always use Replit dev domain for payment page
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    let baseUrl: string;
+    
+    if (isDevelopment && process.env.REPLIT_DEV_DOMAIN) {
+      baseUrl = `https://${process.env.REPLIT_DEV_DOMAIN}`;
+      console.log(`🔧 [FIB] Using development URL: ${baseUrl}`);
+    } else {
+      baseUrl = settings?.callbackBaseUrl ?? (process.env.REPLIT_DEV_DOMAIN 
+        ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
+        : 'http://localhost:5000');
+    }
 
     const callbackUrl = params.callbackUrl || `${baseUrl}/api/fib/payment-callback`;
 
