@@ -6,6 +6,14 @@ The Momtazchem Chemical Solutions Platform is a comprehensive, multilingual syst
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
+Database Cost Optimization (CRITICAL):
+- Minimize database compute/queries to reduce Neon PostgreSQL costs
+- Use batch queries with ANY($1) instead of Promise.all with individual queries
+- Avoid N+1 query patterns - fetch related data in single JOIN queries
+- Use in-memory caching for frequently accessed data
+- Limit result sets with appropriate WHERE clauses and LIMIT
+- Prefer COUNT(*) over fetching full rows when only count is needed
+
 Critical Security Requirements:
 - Extreme vigilance in wallet transaction processing
 - Always verify customer_id matches between orders and wallet transactions
