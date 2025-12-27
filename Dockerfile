@@ -2,7 +2,7 @@ FROM node:20-alpine AS base
 
 WORKDIR /app
 
-RUN apk add --no-cache libc6-compat netcat-openbsd
+RUN apk add --no-cache libc6-compat netcat-openbsd curl
 
 FROM base AS deps
 
@@ -20,24 +20,27 @@ RUN npm run build
 FROM base AS runner
 
 ENV NODE_ENV=production
+ENV PORT=5000
+ENV HOST=0.0.0.0
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 appuser
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 appuser
 
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/shared ./shared
-COPY --from=builder /app/drizzle.config.ts ./drizzle.config.ts
-COPY --from=builder /app/docker-entrypoint.sh ./docker-entrypoint.sh
+COPY --from=builder --chown=appuser:nodejs /app/dist ./dist
+COPY --from=builder --chown=appuser:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=appuser:nodejs /app/package.json ./package.json
+COPY --from=builder --chown=appuser:nodejs /app/shared ./shared
+COPY --from=builder --chown=appuser:nodejs /app/drizzle.config.ts ./drizzle.config.ts
 
-RUN chmod +x ./docker-entrypoint.sh
+COPY docker-entrypoint.sh ./docker-entrypoint.sh
+RUN chmod +x ./docker-entrypoint.sh && \
+    sed -i 's/\r$//' ./docker-entrypoint.sh
 
 USER appuser
 
 EXPOSE 5000
 
-ENV PORT=5000
-ENV HOST=0.0.0.0
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:5000/api/health || exit 1
 
 ENTRYPOINT ["./docker-entrypoint.sh"]

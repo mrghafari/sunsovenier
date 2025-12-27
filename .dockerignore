@@ -7,6 +7,7 @@ npm-debug.log
 .env.*.local
 *.md
 !README.md
+!DOCKER.md
 .DS_Store
 .vscode
 .idea
@@ -24,3 +25,8 @@ attached_assets
 tmp
 /tmp
 .upm
+ssl
+*.pem
+*.key
+*.crt
+docker-compose.override.yml
