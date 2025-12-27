@@ -3,6 +3,7 @@ import path from 'path';
 import { fileTypeFromBuffer } from 'file-type';
 import sharp from 'sharp';
 import { createHash } from 'crypto';
+import { execSync } from 'child_process';
 import NodeClam from 'clamscan';
 import mime from 'mime-types';
 
@@ -75,15 +76,44 @@ export class FileSecurityService {
     if (!this.config.enableVirusScanning) return;
 
     try {
-      // Initialize ClamAV scanner (simplified to avoid type issues)
+      // Find clamscan binary path dynamically
+      let clamscanPath = '/usr/bin/clamscan';
+      try {
+        clamscanPath = execSync('which clamscan', { encoding: 'utf8' }).trim();
+      } catch {
+        console.log('🔍 [SECURITY] clamscan not in PATH, checking common locations...');
+      }
+      
+      // Ensure virus definitions directory exists
+      const dbDir = '/tmp/clamav-db';
+      if (!fs.existsSync(dbDir)) {
+        fs.mkdirSync(dbDir, { recursive: true });
+      }
+      
+      // Initialize ClamAV scanner with explicit path and database location
       this.clamScanner = await new NodeClam().init({
         removeInfected: false,
         quarantineInfected: false,
-        preference: 'clamscan'
+        preference: 'clamscan',
+        clamscan: {
+          path: clamscanPath,
+          db: dbDir,
+          scanArchives: true,
+          active: true
+        },
+        clamdscan: {
+          active: false
+        }
       } as any);
-      console.log('🛡️ [SECURITY] Virus scanner initialized successfully');
-    } catch (error) {
-      console.warn('⚠️ [SECURITY] Virus scanner not available, skipping virus scanning:', error);
+      console.log('🛡️ [SECURITY] Virus scanner initialized successfully with clamscan at:', clamscanPath);
+    } catch (error: any) {
+      // Check if it's just missing virus definitions (acceptable for initial startup)
+      if (error?.message?.includes('No valid & active virus scanning binaries')) {
+        console.warn('⚠️ [SECURITY] Virus scanner not available - ClamAV not installed or virus definitions missing');
+        console.warn('💡 [SECURITY] To enable virus scanning: 1) Install clamav package 2) Run freshclam to download definitions');
+      } else {
+        console.warn('⚠️ [SECURITY] Virus scanner initialization failed:', error?.message || error);
+      }
       this.config.enableVirusScanning = false;
     }
   }
