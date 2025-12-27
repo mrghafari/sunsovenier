@@ -31,6 +31,10 @@ export class CartStorage {
     itemCount: number;
     totalValue: number;
   }) {
+    // Cap totalValue to prevent numeric overflow (max 99999999.99 for numeric(10,2))
+    const MAX_TOTAL_VALUE = 99999999.99;
+    const cappedTotalValue = Math.min(data.totalValue, MAX_TOTAL_VALUE);
+    
     const existing = await cartDb
       .select()
       .from(cartSessions)
@@ -47,7 +51,7 @@ export class CartStorage {
         .set({
           cartData: data.cartData,
           itemCount: data.itemCount,
-          totalValue: data.totalValue.toString(),
+          totalValue: cappedTotalValue.toString(),
           lastActivity: new Date(),
           updatedAt: new Date(),
           isAbandoned: false,
@@ -65,7 +69,7 @@ export class CartStorage {
           sessionId: data.sessionId,
           cartData: data.cartData,
           itemCount: data.itemCount,
-          totalValue: data.totalValue.toString(),
+          totalValue: cappedTotalValue.toString(),
           lastActivity: new Date(),
           createdAt: new Date(),
           updatedAt: new Date(),
