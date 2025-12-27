@@ -36,6 +36,8 @@ interface WalletSummary {
     createdAt: string;
     referenceType?: string;
     referenceId?: number;
+    balanceBefore?: string;
+    balanceAfter?: string;
   }>;
   pendingRecharges: Array<{
     id: number;
@@ -749,10 +751,23 @@ export default function CustomerWallet() {
                             </p>
                           </div>
                         </div>
-                        <div className={`text-right ${isRTL ? 'text-left' : ''}`}>
-                          <p className={`font-medium ${transaction.transactionType === 'credit' ? 'text-green-600' : 'text-red-600'}`}>
+                        <div className={`${isRTL ? 'text-left' : 'text-right'} space-y-1`}>
+                          {/* Balance Before */}
+                          {transaction.balanceBefore && (
+                            <p className="text-xs text-gray-500">
+                              {language === 'en' ? 'Before:' : 'قبل:'} {formatCurrency(transaction.balanceBefore, transaction.currency)}
+                            </p>
+                          )}
+                          {/* Transaction Amount */}
+                          <p className={`font-bold text-lg ${transaction.transactionType === 'credit' ? 'text-green-600' : 'text-red-600'}`}>
                             {transaction.transactionType === 'credit' ? '+' : '-'}{formatCurrency(transaction.amount, transaction.currency)}
                           </p>
+                          {/* Balance After */}
+                          {transaction.balanceAfter && (
+                            <p className="text-xs text-gray-500">
+                              {language === 'en' ? 'After:' : 'بعد:'} {formatCurrency(transaction.balanceAfter, transaction.currency)}
+                            </p>
+                          )}
                           {getStatusBadge(transaction.status)}
                         </div>
                       </div>

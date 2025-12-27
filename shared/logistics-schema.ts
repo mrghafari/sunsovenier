@@ -974,3 +974,177 @@ export const INTERNATIONAL_SHIPPING_METHODS = {
 
 export type InternationalCityType = typeof INTERNATIONAL_CITY_TYPES[keyof typeof INTERNATIONAL_CITY_TYPES];
 export type InternationalShippingMethod = typeof INTERNATIONAL_SHIPPING_METHODS[keyof typeof INTERNATIONAL_SHIPPING_METHODS];
+
+// =============================================================================
+// ADVANCED SHIPPING CALCULATION SYSTEM
+// =============================================================================
+
+// Shipping zones for rate calculation
+export const SHIPPING_ZONES = {
+  CITY: 'city',           // Same city delivery
+  PROVINCE: 'province',   // Same province, different city
+  COUNTRY: 'country',     // Different province (domestic)
+  INTERNATIONAL: 'international'
+} as const;
+
+export const SHIPPING_SERVICE_TYPES = {
+  NORMAL: 'normal',       // 3-5 business days
+  FAST: 'fast',           // 1-2 business days
+  EXPRESS: 'express'      // Same day / next day
+} as const;
+
+export type ShippingZone = typeof SHIPPING_ZONES[keyof typeof SHIPPING_ZONES];
+export type ShippingServiceType = typeof SHIPPING_SERVICE_TYPES[keyof typeof SHIPPING_SERVICE_TYPES];
+
+// Advanced Shipping Rates table - zone-based pricing configuration
+export const advancedShippingRates = pgTable("advanced_shipping_rates", {
+  id: serial("id").primaryKey(),
+  
+  // Zone and service identification
+  zone: varchar("zone", { length: 30 }).notNull(), // city, province, country, international
+  serviceType: varchar("service_type", { length: 20 }).notNull(), // normal, fast, express
+  
+  // Weight range (in kg)
+  weightFrom: decimal("weight_from", { precision: 10, scale: 3 }).notNull(), // Minimum weight
+  weightTo: decimal("weight_to", { precision: 10, scale: 3 }).notNull(),     // Maximum weight
+  
+  // Price in base currency
+  price: decimal("price", { precision: 12, scale: 2 }).notNull(),
+  
+  // Optional: Additional price per kg above base
+  pricePerExtraKg: decimal("price_per_extra_kg", { precision: 10, scale: 2 }).default("0"),
+  
+  // Estimated delivery time
+  estimatedDaysMin: integer("estimated_days_min").default(1),
+  estimatedDaysMax: integer("estimated_days_max").default(3),
+  
+  // Status
+  isActive: boolean("is_active").default(true),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  index("adv_shipping_rates_zone_idx").on(table.zone),
+  index("adv_shipping_rates_service_idx").on(table.serviceType),
+  index("adv_shipping_rates_weight_idx").on(table.weightFrom, table.weightTo),
+  index("adv_shipping_rates_active_idx").on(table.isActive),
+]);
+
+// Shipping fee configuration (COD, insurance, express multipliers)
+export const shippingFeeConfig = pgTable("shipping_fee_config", {
+  id: serial("id").primaryKey(),
+  
+  // Fee type
+  feeType: varchar("fee_type", { length: 30 }).notNull().unique(), // cod, insurance, express_multiplier
+  
+  // Fee calculation
+  feeMode: varchar("fee_mode", { length: 20 }).notNull(), // fixed, percentage, multiplier
+  feeValue: decimal("fee_value", { precision: 10, scale: 4 }).notNull(),
+  
+  // Display information
+  labelFa: text("label_fa"), // Persian label
+  labelEn: text("label_en"), // English label
+  description: text("description"),
+  
+  // Limits
+  minValue: decimal("min_value", { precision: 12, scale: 2 }), // Minimum fee (for percentage mode)
+  maxValue: decimal("max_value", { precision: 12, scale: 2 }), // Maximum fee cap
+  
+  // Status
+  isActive: boolean("is_active").default(true),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Zone detection rules - maps cities/provinces to zones
+export const shippingZoneRules = pgTable("shipping_zone_rules", {
+  id: serial("id").primaryKey(),
+  
+  // Location matching
+  country: varchar("country", { length: 100 }),
+  province: varchar("province", { length: 100 }),
+  city: varchar("city", { length: 100 }),
+  
+  // Resulting zone
+  zone: varchar("zone", { length: 30 }).notNull(),
+  
+  // Priority (higher = more specific match)
+  priority: integer("priority").default(0),
+  
+  isActive: boolean("is_active").default(true),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Shipping calculation logs - for accounting and audit
+export const shippingCalculationLogs = pgTable("shipping_calculation_logs", {
+  id: serial("id").primaryKey(),
+  
+  // Request context
+  sessionId: text("session_id"),
+  customerId: integer("customer_id"),
+  orderId: integer("order_id"),
+  
+  // Calculation inputs
+  destination: json("destination"), // {country, province, city, address}
+  cartItems: json("cart_items"), // Array of items with weight/dimensions
+  serviceType: varchar("service_type", { length: 20 }).notNull(),
+  options: json("options"), // {cod: true, insurance: true, etc}
+  
+  // Weight calculations
+  totalRealWeight: decimal("total_real_weight", { precision: 10, scale: 3 }),
+  totalVolumetricWeight: decimal("total_volumetric_weight", { precision: 10, scale: 3 }),
+  chargeableWeight: decimal("chargeable_weight", { precision: 10, scale: 3 }),
+  
+  // Zone detection
+  detectedZone: varchar("detected_zone", { length: 30 }),
+  
+  // Pricing breakdown
+  baseShippingCost: decimal("base_shipping_cost", { precision: 12, scale: 2 }),
+  codFee: decimal("cod_fee", { precision: 12, scale: 2 }).default("0"),
+  insuranceFee: decimal("insurance_fee", { precision: 12, scale: 2 }).default("0"),
+  expressMultiplier: decimal("express_multiplier", { precision: 5, scale: 2 }).default("1"),
+  totalCost: decimal("total_cost", { precision: 12, scale: 2 }),
+  
+  // Response data
+  responseData: json("response_data"),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("shipping_calc_logs_customer_idx").on(table.customerId),
+  index("shipping_calc_logs_order_idx").on(table.orderId),
+  index("shipping_calc_logs_date_idx").on(table.createdAt),
+]);
+
+// Insert schemas and types
+export const insertAdvancedShippingRateSchema = createInsertSchema(advancedShippingRates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertShippingFeeConfigSchema = createInsertSchema(shippingFeeConfig).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertShippingZoneRuleSchema = createInsertSchema(shippingZoneRules).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertShippingCalculationLogSchema = createInsertSchema(shippingCalculationLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type AdvancedShippingRate = typeof advancedShippingRates.$inferSelect;
+export type InsertAdvancedShippingRate = z.infer<typeof insertAdvancedShippingRateSchema>;
+export type ShippingFeeConfig = typeof shippingFeeConfig.$inferSelect;
+export type InsertShippingFeeConfig = z.infer<typeof insertShippingFeeConfigSchema>;
+export type ShippingZoneRule = typeof shippingZoneRules.$inferSelect;
+export type InsertShippingZoneRule = z.infer<typeof insertShippingZoneRuleSchema>;
+export type ShippingCalculationLog = typeof shippingCalculationLogs.$inferSelect;
+export type InsertShippingCalculationLog = z.infer<typeof insertShippingCalculationLogSchema>;

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import PaymentMethodBadge from '@/components/PaymentMethodBadge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
@@ -49,6 +50,8 @@ import {
 } from 'lucide-react';
 import { useOrderNotifications } from '@/hooks/useOrderNotifications';
 import PostalServicesTab from '@/components/PostalServicesTab';
+import DeliveryServicesTab from '@/components/DeliveryServicesTab';
+import PostalShippingParamsTab from '@/components/PostalShippingParamsTab';
 import VehicleTemplateEditor from '@/components/admin/VehicleTemplateEditor';
 import InternationalGeographyTab from '@/components/InternationalGeographyTab';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -533,6 +536,13 @@ interface LogisticsOrder {
   paymentMethod?: string; // نوع تسویه حساب
   deliveryMethod?: string;
   transportationType?: string;
+  vehicleType?: string;
+  selectedVehicleName?: string; // Customer's selected vehicle from checkout
+  vehiclePlate?: string;
+  vehicleModel?: string;
+  vehicleColor?: string;
+  driverName?: string;
+  driverPhone?: string;
   trackingNumber?: string;
   estimatedDeliveryDate?: string;
   actualDeliveryDate?: string;
@@ -658,6 +668,11 @@ const LogisticsManagement = () => {
   
   // State for vehicle editing 
   const [editingVehicle, setEditingVehicle] = useState<any>(null);
+
+  // States for two-step delivery confirmation
+  const [confirmingDeliveryOrderId, setConfirmingDeliveryOrderId] = useState<number | null>(null);
+  const [deliveryConfirmStep, setDeliveryConfirmStep] = useState<1 | 2>(1);
+  const [deliveryConfirmDialogOpen, setDeliveryConfirmDialogOpen] = useState(false);
 
   // Fleet vehicles API integration (previously "ready vehicles")
   const { data: fleetVehiclesData, isLoading: loadingFleetVehicles } = useQuery({
@@ -1280,12 +1295,77 @@ const LogisticsManagement = () => {
           }
         }
         
+        // If no ready vehicles found, fallback to fleet vehicles from delivery_vehicles table
+        if (availableVehicles.length === 0) {
+          console.log('⚠️ [FALLBACK] No ready vehicles, fetching from fleet vehicles API...');
+          const fleetVehiclesResponse = await fetch('/api/admin/fleet-vehicles?status=available', {
+            credentials: 'include'
+          });
+          
+          if (fleetVehiclesResponse.ok) {
+            const fleetData = await fleetVehiclesResponse.json();
+            const fleetVehicles = fleetData.data || [];
+            console.log('🚛 [FLEET VEHICLES] Found fleet vehicles:', fleetVehicles.length);
+            
+            // Map fleet vehicles to compatible format
+            availableVehicles = fleetVehicles.map((v: any) => ({
+              id: v.id,
+              vehicleType: v.vehicleType,
+              vehicleName: `${v.make || ''} ${v.model || ''}`.trim() || v.vehicleType,
+              licensePlate: v.plateNumber,
+              plateNumber: v.plateNumber,
+              driverName: 'راننده موقت',
+              driverPhone: '',
+              driverMobile: '',
+              loadCapacity: v.maxLoadKg || v.maxWeight || 10000,
+              maxWeight: v.maxLoadKg || v.maxWeight || 10000,
+              isAvailable: v.currentStatus === 'available',
+              color: v.color,
+              matchType: 'alternative',
+              matchReason: 'خودرو از ناوگان شرکت',
+              isCheckoutSuggested: false
+            }));
+          }
+        }
+        
         setAvailableFleetVehicles(availableVehicles);
         console.log('✅ [VEHICLE ASSIGNMENT] Dialog opened with', availableVehicles.length, 'vehicles available');
         
       } else {
-        console.error('❌ [READY VEHICLES] Failed to fetch ready vehicles');
-        setAvailableFleetVehicles([]);
+        // If ready-vehicles API failed, try fleet-vehicles as fallback
+        console.log('⚠️ [FALLBACK] Ready vehicles API failed, trying fleet vehicles...');
+        const fleetVehiclesResponse = await fetch('/api/admin/fleet-vehicles?status=available', {
+          credentials: 'include'
+        });
+        
+        if (fleetVehiclesResponse.ok) {
+          const fleetData = await fleetVehiclesResponse.json();
+          const fleetVehicles = fleetData.data || [];
+          console.log('🚛 [FLEET VEHICLES FALLBACK] Found fleet vehicles:', fleetVehicles.length);
+          
+          const mappedVehicles = fleetVehicles.map((v: any) => ({
+            id: v.id,
+            vehicleType: v.vehicleType,
+            vehicleName: `${v.make || ''} ${v.model || ''}`.trim() || v.vehicleType,
+            licensePlate: v.plateNumber,
+            plateNumber: v.plateNumber,
+            driverName: 'راننده موقت',
+            driverPhone: '',
+            driverMobile: '',
+            loadCapacity: v.maxLoadKg || v.maxWeight || 10000,
+            maxWeight: v.maxLoadKg || v.maxWeight || 10000,
+            isAvailable: v.currentStatus === 'available',
+            color: v.color,
+            matchType: 'alternative',
+            matchReason: 'خودرو از ناوگان شرکت',
+            isCheckoutSuggested: false
+          }));
+          
+          setAvailableFleetVehicles(mappedVehicles);
+        } else {
+          console.error('❌ [FLEET VEHICLES] Failed to fetch fleet vehicles');
+          setAvailableFleetVehicles([]);
+        }
       }
     } catch (error) {
       console.error('❌ [VEHICLE ASSIGNMENT ERROR]:', error);
@@ -2230,7 +2310,13 @@ const LogisticsManagement = () => {
               </div>
               <div class="info-item">
                 <span class="label">روش تحویل:</span>
-                <span class="value">${selectedOrder.deliveryMethod || 'پیک'}</span>
+                <span class="value">${selectedOrder.vehicleType || (selectedOrder as any).selectedVehicleName || 
+                  (selectedOrder.deliveryMethod === 'smart_vehicle' ? '🚚 ارسال هوشمند' :
+                   selectedOrder.deliveryMethod === 'self_pickup' ? '🏢 تحویل حضوری' :
+                   selectedOrder.deliveryMethod === 'freight_collect' ? '💰 پس کرایه' :
+                   selectedOrder.deliveryMethod === 'postal' ? '📮 ارسال پستی' :
+                   selectedOrder.deliveryMethod === 'courier' ? 'پیک موتوری' :
+                   selectedOrder.deliveryMethod || '⚠️ نامشخص')}</span>
               </div>
             </div>
           </div>
@@ -2520,9 +2606,21 @@ const LogisticsManagement = () => {
     }
   };
 
-  // Handle delivery completion
-  const handleDelivered = async (orderManagementId: number) => {
-    console.log('🚚 [DELIVERY] Starting delivery completion for order:', orderManagementId);
+  // Handle delivery completion - open two-step confirmation
+  const handleDeliveredStart = (orderManagementId: number) => {
+    setConfirmingDeliveryOrderId(orderManagementId);
+    setDeliveryConfirmStep(1);
+    setDeliveryConfirmDialogOpen(true);
+  };
+
+  const handleDeliveryConfirmStep1 = () => {
+    setDeliveryConfirmStep(2);
+  };
+
+  const handleDeliveryConfirmStep2 = async () => {
+    if (!confirmingDeliveryOrderId) return;
+    
+    console.log('🚚 [DELIVERY] Starting delivery completion for order:', confirmingDeliveryOrderId);
     
     try {
       const response = await fetch('/api/order-management/update-order-status', {
@@ -2532,7 +2630,7 @@ const LogisticsManagement = () => {
         },
         credentials: 'include',
         body: JSON.stringify({
-          orderManagementId,
+          orderManagementId: confirmingDeliveryOrderId,
           newStatus: 'delivered',
           notes: 'سفارش با موفقیت تحویل داده شد'
         })
@@ -2551,6 +2649,10 @@ const LogisticsManagement = () => {
           title: "موفقیت",
           description: "سفارش با موفقیت به عنوان تحویل شده ثبت گردید",
         });
+        // Close dialog and reset state
+        setDeliveryConfirmDialogOpen(false);
+        setConfirmingDeliveryOrderId(null);
+        setDeliveryConfirmStep(1);
       } else {
         console.error('🚚 [DELIVERY] API returned error:', result.message);
         throw new Error(result.message || 'خطا در ثبت تحویل');
@@ -2563,6 +2665,17 @@ const LogisticsManagement = () => {
         variant: "destructive"
       });
     }
+  };
+
+  const handleDeliveryConfirmCancel = () => {
+    setDeliveryConfirmDialogOpen(false);
+    setConfirmingDeliveryOrderId(null);
+    setDeliveryConfirmStep(1);
+  };
+
+  const getConfirmingDeliveryOrder = () => {
+    const allOrders = (logisticsOrdersResponse as any)?.orders || [];
+    return allOrders.find((order: any) => order.id === confirmingDeliveryOrderId);
   };
 
   // Send or resend delivery code SMS using template #3
@@ -2700,6 +2813,44 @@ const LogisticsManagement = () => {
                         paymentMethod={order.paymentMethod}
                         showIcon={true}
                       />
+                    </div>
+
+                    {/* Delivery Method Block - Customer Selected */}
+                    <div className="bg-indigo-50 rounded-lg p-3 border border-indigo-200">
+                      <h5 className="font-medium text-indigo-800 mb-2 flex items-center">
+                        <Truck className="w-4 h-4 mr-2" />
+                        روش ارسال انتخابی
+                      </h5>
+                      <div className="space-y-1">
+                        <p className="text-sm font-bold text-indigo-700">
+                          {order.vehicleType || order.selectedVehicleName || 
+                           (order.deliveryMethod === 'courier' ? 'پیک موتوری' :
+                           order.deliveryMethod === 'truck' ? 'کامیون' :
+                           order.deliveryMethod === 'post' ? 'پست' :
+                           order.deliveryMethod === 'postal' ? '📮 ارسال پستی' :
+                           order.deliveryMethod === 'personal_pickup' ? 'تحویل حضوری' :
+                           order.deliveryMethod === 'self_pickup' ? '🏢 تحویل حضوری' :
+                           order.deliveryMethod === 'freight_collect' ? '💰 پس کرایه' :
+                           order.deliveryMethod === 'van' ? 'وانت' :
+                           order.deliveryMethod === 'smart_vehicle' ? '🚚 ارسال هوشمند' :
+                           order.deliveryMethod || '⚠️ نامشخص')}
+                        </p>
+                        {/* Show selected delivery method for smart_vehicle */}
+                        {order.deliveryMethod === 'smart_vehicle' && order.vehicleType && (
+                          <p className="text-xs text-indigo-600 mt-1">
+                            🚗 خودرو انتخابی: {order.vehicleType}
+                          </p>
+                        )}
+                        {order.transportationType && (
+                          <p className="text-xs text-indigo-600">
+                            نوع: {order.transportationType === 'motorcycle' ? 'موتور' :
+                                  order.transportationType === 'car' ? 'خودرو' :
+                                  order.transportationType === 'truck' ? 'کامیون' :
+                                  order.transportationType === 'van' ? 'وانت' :
+                                  order.transportationType}
+                          </p>
+                        )}
+                      </div>
                     </div>
 
                     {/* Total Weight Block */}
@@ -2877,11 +3028,14 @@ const LogisticsManagement = () => {
                       </Button>
                       <Button 
                         size="sm" 
-                        className="bg-green-600 hover:bg-green-700 text-white"
-                        onClick={() => handleDelivered(order.id)}
+                        className={confirmingDeliveryOrderId === order.id 
+                          ? "bg-amber-500 hover:bg-amber-600 text-white animate-pulse ring-2 ring-amber-300" 
+                          : "bg-green-600 hover:bg-green-700 text-white"}
+                        onClick={() => handleDeliveredStart(order.id)}
+                        data-testid={`button-delivery-confirm-${order.id}`}
                       >
                         <CheckCircle className="w-4 h-4 mr-2" />
-                        تحویل شد
+                        {confirmingDeliveryOrderId === order.id ? "در حال تایید..." : "تحویل شد"}
                       </Button>
                       {order.hasGpsLocation && (
                         <div className="border border-gray-300 rounded-lg p-1.5 bg-gray-50 h-fit">
@@ -4783,7 +4937,7 @@ const LogisticsManagement = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-9">
+        <TabsList className="grid w-full grid-cols-10">
           <TabsTrigger value="orders">سفارشات</TabsTrigger>
           <TabsTrigger value="delivered">تحویل شده</TabsTrigger>
           <TabsTrigger value="companies">شرکت‌های حمل</TabsTrigger>
@@ -4793,6 +4947,8 @@ const LogisticsManagement = () => {
           <TabsTrigger value="fleet-vehicles">ناوگان خودروها</TabsTrigger>
           <TabsTrigger value="vehicle-history">تاریخچه خودروها</TabsTrigger>
           <TabsTrigger value="postal">خدمات پست</TabsTrigger>
+          <TabsTrigger value="postal-params">محاسبات پست</TabsTrigger>
+          <TabsTrigger value="delivery-services">سرویس دلیوری</TabsTrigger>
         </TabsList>
 
         <TabsContent value="orders">
@@ -4833,6 +4989,14 @@ const LogisticsManagement = () => {
 
         <TabsContent value="postal">
           <PostalServicesTab />
+        </TabsContent>
+
+        <TabsContent value="postal-params">
+          <PostalShippingParamsTab />
+        </TabsContent>
+
+        <TabsContent value="delivery-services">
+          <DeliveryServicesTab />
         </TabsContent>
       </Tabs>
 
@@ -5286,7 +5450,13 @@ const LogisticsManagement = () => {
                     <div className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-sm text-gray-600">روش تحویل:</span>
-                        <span className="font-semibold text-purple-700">{selectedOrder.deliveryMethod || 'پیک'}</span>
+                        <span className="font-semibold text-purple-700">{selectedOrder.vehicleType || selectedOrder.selectedVehicleName || 
+                          (selectedOrder.deliveryMethod === 'smart_vehicle' ? '🚚 ارسال هوشمند' :
+                           selectedOrder.deliveryMethod === 'self_pickup' ? '🏢 تحویل حضوری' :
+                           selectedOrder.deliveryMethod === 'freight_collect' ? '💰 پس کرایه' :
+                           selectedOrder.deliveryMethod === 'postal' ? '📮 ارسال پستی' :
+                           selectedOrder.deliveryMethod === 'courier' ? 'پیک موتوری' :
+                           selectedOrder.deliveryMethod || '⚠️ نامشخص')}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm text-gray-600">نوع حمل:</span>
@@ -6262,6 +6432,93 @@ const LogisticsManagement = () => {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Two-step Delivery Confirmation Dialog */}
+      <AlertDialog open={deliveryConfirmDialogOpen} onOpenChange={setDeliveryConfirmDialogOpen}>
+        <AlertDialogContent dir="rtl" className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className={deliveryConfirmStep === 1 ? "text-amber-600" : "text-red-600"}>
+              {deliveryConfirmStep === 1 
+                ? "تایید تحویل سفارش - مرحله ۱ از ۲" 
+                : "تایید نهایی تحویل - مرحله ۲ از ۲"}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-4 text-right">
+              {deliveryConfirmStep === 1 ? (
+                <div className="space-y-3">
+                  <p className="text-base font-medium text-gray-800">
+                    آیا مطمئن هستید که می‌خواهید تحویل این سفارش را تایید کنید؟
+                  </p>
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <p className="text-sm font-bold text-blue-800 mb-2">اطلاعات سفارش:</p>
+                    <p className="text-sm text-blue-700">
+                      شماره سفارش: <span className="font-bold">{getConfirmingDeliveryOrder()?.orderNumber}</span>
+                    </p>
+                    <p className="text-sm text-blue-700">
+                      مشتری: <span className="font-bold">
+                        {getConfirmingDeliveryOrder()?.customer?.firstName} {getConfirmingDeliveryOrder()?.customer?.lastName}
+                      </span>
+                    </p>
+                    <p className="text-sm text-blue-700">
+                      کد تحویل: <span className="font-bold">{getConfirmingDeliveryOrder()?.deliveryCode || 'بدون کد'}</span>
+                    </p>
+                  </div>
+                  <p className="text-sm text-amber-600 font-medium">
+                    لطفاً اطلاعات را با دقت بررسی کنید و در صورت صحت، ادامه دهید.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+                    <p className="text-base font-bold text-red-800 mb-2">
+                      هشدار: این عملیات غیرقابل بازگشت است!
+                    </p>
+                    <p className="text-sm text-red-700">
+                      پس از تایید نهایی، وضعیت سفارش به "تحویل داده شده" تغییر خواهد کرد.
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <p className="text-sm font-bold text-gray-800 mb-2">تایید نهایی برای سفارش:</p>
+                    <p className="text-lg font-bold text-gray-900">
+                      {getConfirmingDeliveryOrder()?.orderNumber}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {getConfirmingDeliveryOrder()?.customer?.firstName} {getConfirmingDeliveryOrder()?.customer?.lastName}
+                    </p>
+                  </div>
+                  <p className="text-sm text-red-600 font-bold">
+                    آیا کاملاً مطمئن هستید؟
+                  </p>
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex gap-2 flex-row-reverse">
+            <AlertDialogCancel 
+              onClick={handleDeliveryConfirmCancel}
+              className="flex-1"
+            >
+              انصراف
+            </AlertDialogCancel>
+            {deliveryConfirmStep === 1 ? (
+              <Button 
+                onClick={handleDeliveryConfirmStep1}
+                className="flex-1 bg-amber-500 hover:bg-amber-600"
+                data-testid="button-delivery-step1"
+              >
+                ادامه به مرحله بعد
+              </Button>
+            ) : (
+              <Button 
+                onClick={handleDeliveryConfirmStep2}
+                className="flex-1 bg-red-600 hover:bg-red-700"
+                data-testid="button-delivery-step2"
+              >
+                تایید نهایی تحویل
+              </Button>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 

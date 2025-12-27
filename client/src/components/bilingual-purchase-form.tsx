@@ -1074,8 +1074,11 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     const product = products.find(p => p.id === parseInt(productId));
     if (product) {
       // Get weight from product data (use different weight fields as fallback)
-      const productWeight = parseFloat(product.weight || product.weightKg || product.weight_kg || '0');
-      return sum + (productWeight * quantity);
+      // grossWeight is the primary weight field from shop products
+      const productWeight = parseFloat(product.grossWeight || product.weight || product.weightKg || product.weight_kg || '0');
+      // Use minimum 1kg per item if no weight specified (for smart vehicle calculation)
+      const effectiveWeight = productWeight > 0 ? productWeight : 1;
+      return sum + (effectiveWeight * quantity);
     }
     return sum;
   }, 0);
@@ -1364,9 +1367,13 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       totalWeight
     });
 
-    if (finalDestinationCity && finalDestinationProvince && totalWeight > 0) {
+    // RELAXED CONDITIONS: Only require city and weight > 0
+    // Province can default to city name if not available
+    const effectiveProvince = finalDestinationProvince || finalDestinationCity || 'Iraq';
+    
+    if (finalDestinationCity && totalWeight > 0) {
       const debounceTimer = setTimeout(() => {
-        calculateSmartDeliveryCost(finalDestinationCity, finalDestinationProvince);
+        calculateSmartDeliveryCost(finalDestinationCity, effectiveProvince);
       }, 1000); // 1 second debounce
       
       return () => clearTimeout(debounceTimer);
@@ -1374,9 +1381,11 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       console.log('🚚 [DELIVERY CALCULATION] Missing required data for calculation:', {
         hasCity: !!finalDestinationCity,
         hasProvince: !!finalDestinationProvince,
+        effectiveProvince,
         hasWeight: totalWeight > 0,
         cityValue: finalDestinationCity,
-        provinceValue: finalDestinationProvince
+        provinceValue: finalDestinationProvince,
+        totalWeight
       });
     }
   }, [showSecondAddress, secondCity, secondProvince, form.watch('city'), totalWeight, cart, crmCustomerData?.cityRegion, crmCustomerData?.province, customerData?.customer?.cityRegion, customerData?.customer?.province]);
@@ -1679,6 +1688,10 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       isUsingRecipientMobile: !!(showRecipientMobile && recipientMobile.trim()),
     };
 
+    // Get the selected shipping rate to extract deliveryMethod
+    const selectedRate = shippingRatesData?.find((rate: any) => rate.id === selectedShippingMethod);
+    const selectedDeliveryMethod = selectedRate?.deliveryMethod || selectedRate?.delivery_method || 'unknown';
+    
     let orderData = {
       ...data,
       cart,
@@ -1688,10 +1701,15 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       vatAmount: vatAmount,
       dutiesAmount: dutiesAmount,
       selectedShippingMethod,
+      // CRITICAL: Include the actual delivery method string for logistics display
+      deliveryMethod: selectedDeliveryMethod,
       currency: 'IQD',
       paymentMethod,
       walletAmountUsed: Math.round(walletAmount), // Use actual wallet amount in integer format
       remainingAmount: Math.round(Math.max(0, totalAmount - walletAmount)), // Calculate remaining in integer format
+      
+      // Customer's selected vehicle from smart delivery calculation - CRITICAL for logistics
+      vehicleType: optimalVehicle?.vehicleName || optimalVehicle?.name || optimalVehicle?.vehicleType || null,
       
       // Enhanced delivery information
       secondDeliveryAddress: showSecondAddress ? secondAddress : null,
@@ -1708,6 +1726,19 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     };
 
     console.log('🚚 [DELIVERY LOGIC] Active delivery information:', activeDeliveryInfo);
+    
+    // CRITICAL DEBUG: Verify deliveryMethod and vehicleType are being captured
+    console.log('🚗 [VEHICLE DEBUG] Delivery method and vehicle at order submission:', {
+      selectedShippingMethod,
+      selectedDeliveryMethod,
+      selectedRateName: selectedRate?.name || selectedRate?.description,
+      optimalVehicle,
+      vehicleNameProperty: optimalVehicle?.vehicleName,
+      nameProperty: optimalVehicle?.name,
+      vehicleTypeProperty: optimalVehicle?.vehicleType,
+      finalVehicleType: optimalVehicle?.vehicleName || optimalVehicle?.name || optimalVehicle?.vehicleType || null,
+      isOptimalVehicleNull: optimalVehicle === null
+    });
 
     // Handle wallet payment calculations with smart wallet_combined conversion
     let finalPaymentMethod = paymentMethod;
@@ -1723,16 +1754,19 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     });
     
     if (paymentMethod === 'wallet_combined' || paymentMethod === 'wallet') {
-      if (walletBalance >= totalAmount && walletBalance > 0) {
+      // CRITICAL FIX: Check walletAmount (user's entered amount), NOT walletBalance (total available)
+      // This ensures we respect the user's choice to use only partial wallet funds
+      if (walletAmount >= totalAmount && walletAmount > 0) {
         finalPaymentMethod = 'wallet_full';
-        console.log('🔄 [PAYMENT CONVERSION] ' + paymentMethod + ' → wallet_full (sufficient balance)');
-      } else if (walletBalance > 0 && walletBalance < totalAmount) {
+        console.log('🔄 [PAYMENT CONVERSION] ' + paymentMethod + ' → wallet_full (user entered sufficient amount)');
+      } else if (walletAmount > 0 && walletAmount < totalAmount) {
+        // User entered a partial wallet amount - MUST go to bank for remaining
         finalPaymentMethod = 'wallet_partial';
-        console.log('🔄 [PAYMENT CONVERSION] ' + paymentMethod + ' → wallet_partial (hybrid payment - needs bank gateway)');
+        console.log('🔄 [PAYMENT CONVERSION] ' + paymentMethod + ' → wallet_partial (hybrid payment - needs bank gateway for remaining: ' + (totalAmount - walletAmount) + ' IQD)');
       } else {
-        // No wallet balance - redirect to full bank payment
+        // No wallet amount entered - redirect to full bank payment
         finalPaymentMethod = 'fib_online';
-        console.log('🔄 [PAYMENT CONVERSION] ' + paymentMethod + ' → fib_online (no wallet balance)');
+        console.log('🔄 [PAYMENT CONVERSION] ' + paymentMethod + ' → fib_online (no wallet amount entered)');
       }
     }
 
@@ -1769,6 +1803,10 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       finalPaymentMethodSent: finalPaymentMethod,
       shouldUseWallet: finalPaymentMethod === 'wallet',
       paymentConversionApplied: paymentMethod !== finalPaymentMethod,
+      // Vehicle debugging - CRITICAL FOR LOGISTICS
+      vehicleType: orderData.vehicleType,
+      optimalVehicle: optimalVehicle,
+      vehicleNameFromOptimal: optimalVehicle?.vehicleName,
       orderData
     });
 

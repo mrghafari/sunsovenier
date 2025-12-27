@@ -366,13 +366,19 @@ export default function OrderTrackingManagement() {
     }
   };
 
-  // Filter and sort orders
+  // Filter and sort orders (minimum 3 characters required for search)
   const filteredOrders = orders?.filter(order => {
-    const matchesSearch = !searchTerm || 
-      order.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customerEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    // Require minimum 3 characters for search to activate
+    const searchActive = searchTerm.length >= 3;
+    const searchLower = searchTerm.toLowerCase();
+    
+    const matchesSearch = !searchActive || 
+      order.customerName?.toLowerCase().includes(searchLower) ||
+      order.customerEmail?.toLowerCase().includes(searchLower) ||
       order.customerOrderId?.toString().includes(searchTerm) ||
-      order.deliveryCode?.toLowerCase().includes(searchTerm.toLowerCase());
+      order.orderNumber?.toLowerCase().includes(searchLower) ||
+      order.deliveryCode?.toLowerCase().includes(searchLower) ||
+      order.customerPhone?.toLowerCase().includes(searchLower);
     
     // Enhanced status filtering including problematic orders
     let matchesStatus = true;
@@ -927,11 +933,17 @@ export default function OrderTrackingManagement() {
         <div className="relative flex-1">
           <Search className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
           <Input
-            placeholder="جستجو در سفارشات (نام مشتری، ایمیل، شماره سفارش، کد تحویل)..."
+            placeholder="جستجو (حداقل ۳ حرف): شماره سفارش، ایمیل، کد تحویل، تلفن..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pr-10"
+            data-testid="input-order-search"
           />
+          {searchTerm.length > 0 && searchTerm.length < 3 && (
+            <span className="absolute left-3 top-3 text-xs text-amber-600">
+              حداقل ۳ حرف وارد کنید
+            </span>
+          )}
         </div>
         <select 
           value={selectedStatus} 

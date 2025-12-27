@@ -132,6 +132,8 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
     document.addEventListener('mouseup', handleMouseUp);
   };
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
+  // Ref to store selected vehicle for use in onSubmit (avoids stale closure issue)
+  const selectedVehicleRef = useRef<any>(null);
   const [calculatedShippingCost, setCalculatedShippingCost] = useState(0);
   const [totalWeight, setTotalWeight] = useState(0);
   const [destinationCity, setDestinationCity] = useState('');
@@ -449,8 +451,9 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
   }, [vehicleTemplates, containsFlammableProducts]);
 
   // Calculate shipping cost with smart vehicle selection using backend API
-  const calculateShippingCost = useCallback(async (weight: number, destination: string) => {
-    if (!destination || weight === 0) return 0;
+  // Returns { cost, vehicle } object instead of just cost to avoid stale closure issue
+  const calculateShippingCost = useCallback(async (weight: number, destination: string): Promise<{ cost: number; vehicle: any | null }> => {
+    if (!destination || weight === 0) return { cost: 0, vehicle: null };
     
     try {
       // Look up the destination city to get its provinceId
@@ -502,12 +505,14 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
         // Handle intercity bus response
         if (result.data.transportMethod === 'intercity_bus' && result.data.selectedOption) {
           const busOption = result.data.selectedOption;
-          setSelectedVehicle({
+          const vehicleData = {
             name: busOption.transportName,
             type: 'intercity_bus',
             cost: busOption.totalCost,
             restrictions: busOption.restrictions
-          });
+          };
+          setSelectedVehicle(vehicleData);
+          selectedVehicleRef.current = vehicleData;
           
           console.log('🚌 [CHECKOUT] Intercity bus selected:', {
             option: busOption.transportName,
@@ -515,19 +520,21 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
             restrictions: busOption.restrictions
           });
           
-          return busOption.totalCost;
+          return { cost: busOption.totalCost, vehicle: vehicleData };
         }
         
         // Handle optimal vehicle response
         if (result.data.optimalVehicle) {
           const vehicleInfo = result.data.optimalVehicle;
-          setSelectedVehicle({
+          const vehicleData = {
             name: vehicleInfo.vehicleName,
             type: vehicleInfo.vehicleType,
             cost: vehicleInfo.totalCost,
             maxWeight: vehicleInfo.maxWeight,
             estimatedTime: vehicleInfo.estimatedTime
-          });
+          };
+          setSelectedVehicle(vehicleData);
+          selectedVehicleRef.current = vehicleData;
           
           console.log('🚚 [CHECKOUT] Heavy vehicle selected for flammable materials:', {
             vehicle: vehicleInfo.vehicleName,
@@ -536,7 +543,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
             safetyCompliant: true
           });
           
-          return vehicleInfo.totalCost;
+          return { cost: vehicleInfo.totalCost, vehicle: vehicleData };
         }
       }
       
@@ -569,7 +576,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
     
     if (!destCity) {
       console.log('🚚 [FALLBACK] Destination city not found:', destination);
-      return 0;
+      return { cost: 0, vehicle: null };
     }
     
     // CRITICAL: If cart contains flammable materials, ONLY allow heavy trucks with flammable authorization
@@ -595,26 +602,28 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
       
       if (flammableAuthorizedVehicles.length === 0) {
         console.error('🔥 [FALLBACK SAFETY] No flammable-authorized vehicles found for heavy materials');
-        return 617000; // Return heavy truck estimated cost as safety fallback
+        return { cost: 617000, vehicle: null }; // Return heavy truck estimated cost as safety fallback
       }
       
       // Select the most suitable heavy truck for flammable materials
-      const selectedVehicle = flammableAuthorizedVehicles[0];
-      setSelectedVehicle({
-        ...selectedVehicle,
-        name: selectedVehicle.name + t.checkout_page.flammableSuffix,
+      const fallbackVehicle = flammableAuthorizedVehicles[0];
+      const vehicleData = {
+        ...fallbackVehicle,
+        name: fallbackVehicle.name + t.checkout_page.flammableSuffix,
         type: 'heavy_truck_flammable'
-      });
+      };
+      setSelectedVehicle(vehicleData);
+      selectedVehicleRef.current = vehicleData;
       
       // Calculate cost for heavy truck
-      const baseCost = parseFloat(selectedVehicle.basePrice || '350000');
-      const distanceCost = parseFloat(destCity.distanceFromErbilKm || '0') * parseFloat(selectedVehicle.pricePerKm || '800');
-      const weightCost = weight * parseFloat(selectedVehicle.pricePerKg || '200');
+      const baseCost = parseFloat(fallbackVehicle.basePrice || '350000');
+      const distanceCost = parseFloat(destCity.distanceFromErbilKm || '0') * parseFloat(fallbackVehicle.pricePerKm || '800');
+      const weightCost = weight * parseFloat(fallbackVehicle.pricePerKg || '200');
       
       const totalCost = baseCost + distanceCost + weightCost;
       
       console.log('🔥 [FALLBACK FLAMMABLE] Heavy truck selected for safety:', {
-        vehicle: selectedVehicle.name,
+        vehicle: fallbackVehicle.name,
         baseCost,
         distance: destCity.distanceFromErbilKm,
         distanceCost,
@@ -623,7 +632,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
         safetyCompliant: true
       });
       
-      return totalCost;
+      return { cost: totalCost, vehicle: vehicleData };
     }
     
     // For non-flammable materials, use normal vehicle selection
@@ -635,10 +644,11 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
         containsFlammableProducts,
         totalVehicles: vehicleTemplates?.length || 0
       });
-      return 0;
+      return { cost: 0, vehicle: null };
     }
     
     setSelectedVehicle(vehicle);
+    selectedVehicleRef.current = vehicle;
     
     // Calculate cost: base cost + (distance × cost per km) + (weight × cost per kg)
     const baseCost = parseFloat(vehicle.basePrice || '0');
@@ -659,7 +669,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
       containsFlammableProducts
     });
     
-    return totalCost;
+    return { cost: totalCost, vehicle: vehicle };
   }, [iraqiCities, selectOptimalVehicle, containsFlammableProducts, cartItems, vehicleTemplates]);
 
   // Watch for address changes to update destination
@@ -716,16 +726,33 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
           setSelectedVehicle(null);
           setCalculatedShippingCost(0);
           
-          const cost = await calculateShippingCost(totalWeight, destinationCity);
+          // calculateShippingCost now returns { cost, vehicle } to avoid stale closure issues
+          const result = await calculateShippingCost(totalWeight, destinationCity);
+          const cost = result.cost;
+          const calculatedVehicle = result.vehicle;
+          
           setCalculatedShippingCost(cost);
           
+          // CRITICAL: Update selectedVehicle state AND ref with the calculated vehicle
+          // The ref is used in onSubmit to avoid stale closure issues
+          if (calculatedVehicle) {
+            setSelectedVehicle(calculatedVehicle);
+            selectedVehicleRef.current = calculatedVehicle;
+            console.log('🚗 [VEHICLE STATE + REF] Updated selectedVehicle:', {
+              name: calculatedVehicle.name,
+              type: calculatedVehicle.type,
+              refUpdated: true
+            });
+          }
+          
           // Auto-select smart vehicle option when available and cost calculated
-          if (selectedVehicle && cost > 0) {
+          // Use calculatedVehicle from the result instead of stale selectedVehicle state
+          if (calculatedVehicle && cost > 0) {
             form.setValue('shippingMethod', '7'); // Smart vehicle method ID
             
             console.log('✅ [AUTO-SELECT] Smart vehicle option selected:', {
-              vehicleName: selectedVehicle.name,
-              vehicleType: selectedVehicle.type,
+              vehicleName: calculatedVehicle.name,
+              vehicleType: calculatedVehicle.type,
               cost: cost,
               methodId: '7'
             });
@@ -735,8 +762,8 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
             weight: totalWeight,
             destination: destinationCity,
             cost: cost,
-            selectedVehicle: selectedVehicle?.name,
-            vehicleType: selectedVehicle?.type,
+            selectedVehicle: calculatedVehicle?.name,
+            vehicleType: calculatedVehicle?.type,
             autoSelected: true,
             containsFlammableProducts
           });
@@ -756,7 +783,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
         form.setValue('shippingMethod', '');
       }
     }
-  }, [totalWeight, destinationCity, calculateShippingCost, selectedVehicle, form, containsFlammableProducts, cartItems]);
+  }, [totalWeight, destinationCity, calculateShippingCost, form, containsFlammableProducts, cartItems]);
 
   // Use calculated shipping cost or fallback to traditional method
   let shippingCost = calculatedShippingCost;
@@ -930,6 +957,82 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
   });
 
   const onSubmit = (data: CheckoutFormData) => {
+    // CRITICAL VALIDATION: Ensure delivery address is specified before allowing order
+    // Helper to check non-empty string
+    const isValidField = (val: string | undefined | null): boolean => {
+      return val !== undefined && val !== null && val.trim() !== '';
+    };
+    
+    if (isUserLoggedIn && customerData?.customer) {
+      const customer = customerData.customer;
+      
+      // Check CRM default address - all required fields must be non-empty
+      const hasDefaultAddress = isValidField(customer.address) && 
+                                isValidField(customer.city) && 
+                                isValidField(customer.country);
+      
+      // Check second delivery address - requires address AND city
+      const hasSecondAddress = isValidField(data.secondDeliveryAddress) && 
+                               isValidField(data.secondDeliveryCity);
+      
+      // Check selected address from address selector - requires address AND city AND country
+      const hasSelectedAddress = selectedAddress && 
+                                 isValidField(selectedAddress.address) && 
+                                 isValidField(selectedAddress.city) &&
+                                 isValidField(selectedAddress.country);
+      
+      // Must have at least ONE valid address source
+      if (!hasDefaultAddress && !hasSecondAddress && !hasSelectedAddress) {
+        toast({
+          title: "آدرس تحویل الزامی است",
+          description: "لطفاً آدرس تحویل را مشخص کنید. می‌توانید از پروفایل، آدرس دوم، یا آدرس انتخابی استفاده کنید.",
+          variant: "destructive",
+        });
+        console.log('🚫 [CHECKOUT] Order blocked - no valid delivery address', {
+          hasDefaultAddress, hasSecondAddress, hasSelectedAddress,
+          crmAddress: customer.address, crmCity: customer.city, crmCountry: customer.country
+        });
+        return;
+      }
+      
+      // Validate phone - must have at least one valid phone source
+      const hasPhone = isValidField(customer.phone) || 
+                       isValidField(data.recipientMobile) || 
+                       (selectedAddress && isValidField(selectedAddress.phone));
+      
+      if (!hasPhone) {
+        toast({
+          title: "شماره تلفن الزامی است",
+          description: "لطفاً شماره تلفن گیرنده را مشخص کنید",
+          variant: "destructive",
+        });
+        console.log('🚫 [CHECKOUT] Order blocked - no valid phone number');
+        return;
+      }
+    } else if (!isUserLoggedIn) {
+      // For guests, validate required fields - must be non-empty
+      if (!isValidField(data.billingAddress1) || !isValidField(data.billingCity) || !isValidField(data.billingCountry)) {
+        toast({
+          title: "آدرس تحویل الزامی است",
+          description: "لطفاً آدرس، شهر و کشور را وارد کنید",
+          variant: "destructive",
+        });
+        console.log('🚫 [CHECKOUT] Order blocked - guest address incomplete');
+        return;
+      }
+      if (!isValidField(data.phone)) {
+        toast({
+          title: "شماره تلفن الزامی است",
+          description: "لطفاً شماره تلفن را وارد کنید",
+          variant: "destructive",
+        });
+        console.log('🚫 [CHECKOUT] Order blocked - guest phone missing');
+        return;
+      }
+    }
+    
+    console.log('✅ [CHECKOUT] Address validation passed, proceeding with order');
+
     // Determine active delivery address and phone based on user input
     let deliveryAddress = '';
     let deliveryCity = '';
@@ -1113,6 +1216,11 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
       secondaryPaymentMethod: secondaryPaymentMethod, // Send user's choice for remaining amount payment method
       walletAmountUsed: actualWalletUsage,
       remainingAmount: beforeWalletTotal - actualWalletUsage, // Fix: Send actual remaining amount after wallet deduction
+      // Use ref to get current vehicle (avoids stale closure in callbacks)
+      // Check multiple property names: name, vehicleName (from API), or type as fallback
+      vehicleType: selectedVehicleRef.current?.name || selectedVehicleRef.current?.vehicleName || 
+                   selectedVehicle?.name || selectedVehicle?.vehicleName || 
+                   selectedVehicleRef.current?.type || selectedVehicle?.type || null, // Customer's selected vehicle for logistics
     };
 
     // Debug logging for payment data
@@ -1131,7 +1239,17 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
       beforeWalletTotal,
       actualWalletUsage,
       isWalletSufficient: walletBalance >= beforeWalletTotal,
-      shouldBeFullPayment: useWallet && walletBalance >= beforeWalletTotal
+      shouldBeFullPayment: useWallet && walletBalance >= beforeWalletTotal,
+      // Vehicle debugging (including ref for stale closure fix)
+      vehicleType: orderData.vehicleType,
+      // Debug all possible property names on vehicle objects
+      refName: selectedVehicleRef.current?.name,
+      refVehicleName: selectedVehicleRef.current?.vehicleName,
+      refType: selectedVehicleRef.current?.type,
+      stateName: selectedVehicle?.name,
+      stateVehicleName: selectedVehicle?.vehicleName,
+      stateType: selectedVehicle?.type,
+      selectedVehicleRefFull: selectedVehicleRef.current
     });
 
     createOrderMutation.mutate(orderData);

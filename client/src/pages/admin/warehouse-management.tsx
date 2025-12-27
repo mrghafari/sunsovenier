@@ -45,8 +45,7 @@ import {
   Save,
   Printer
 } from 'lucide-react';
-// CRITICAL: Removed toast import as Toaster also uses Portals
-// Using console.log for debugging instead to eliminate ALL Portal usage
+import { useToast } from '@/hooks/use-toast';
 import { useOrderNotifications } from '@/hooks/useOrderNotifications';
 import { apiRequest } from '@/lib/queryClient';
 import * as XLSX from 'xlsx';
@@ -151,6 +150,7 @@ interface InventoryMovement {
 }
 
 const WarehouseManagement: React.FC = () => {
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -415,20 +415,22 @@ const WarehouseManagement: React.FC = () => {
     staleTime: 30000,
   });
 
-  // Fetch orders pending warehouse processing
-  const { data: pendingOrdersResponse, isLoading: pendingOrdersLoading, refetch: refetchPendingOrders } = useQuery({
-    queryKey: ['/api/warehouse/orders-noauth'],
+  // Fetch orders pending warehouse processing (SECURE endpoint)
+  const { data: pendingOrdersData = [], isLoading: pendingOrdersLoading, refetch: refetchPendingOrders } = useQuery({
+    queryKey: ['/api/warehouse/orders'],
+    queryFn: () => fetch('/api/warehouse/orders', { credentials: 'include' }).then(res => res.json()),
     staleTime: 10000,
   });
   
-  // Fetch orders sent to logistics
+  // Fetch orders sent to logistics (SECURE endpoint)
   const { data: sentOrdersResponse, isLoading: sentOrdersLoading, refetch: refetchSentOrders } = useQuery({
-    queryKey: ['/api/warehouse/sent-orders-noauth'],
+    queryKey: ['/api/warehouse/sent-orders'],
+    queryFn: () => fetch('/api/warehouse/sent-orders', { credentials: 'include' }).then(res => res.json()),
     staleTime: 10000,
   });
   
-  const pendingOrders = pendingOrdersResponse?.orders || [];
-  const sentOrders = sentOrdersResponse?.orders || [];
+  const pendingOrders = Array.isArray(pendingOrdersData) ? pendingOrdersData : [];
+  const sentOrders = sentOrdersResponse?.orders || sentOrdersResponse || [];
   
   // Choose which orders to show based on sub-tab
   const orders = orderSubTab === 'pending' ? pendingOrders : sentOrders;
@@ -498,30 +500,139 @@ const WarehouseManagement: React.FC = () => {
     }
   }, [settingsData]);
 
-  // Mutation for updating order status
-  const updateOrderMutation = useMutation({
-    mutationFn: async ({ orderId, status, notes }: { orderId: number; status: string; notes?: string }) => {
-      return await apiRequest(`/api/order-management/warehouse/${orderId}/process`, {
-        method: 'PATCH',
-        body: { status, notes }
+  // 🔒 STAGE 1: Verify order (check inventory) - warehouse_verified
+  const verifyMutation = useMutation({
+    mutationFn: async ({ orderId, notes }: { orderId: number; notes: string }) => {
+      const response = await fetch(`/api/warehouse/orders/${orderId}/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ notes })
       });
+      const data = await response.json();
+      if (!response.ok) {
+        throw { ...data, status: response.status };
+      }
+      return data;
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/warehouse/orders-noauth'] });
-      refetchOrders();
-      console.log({
-        title: "وضعیت سفارش به‌روزرسانی شد",
-        description: `سفارش با موفقیت ${data.data?.status === 'warehouse_processing' ? 'در حال پردازش' : data.data?.status === 'warehouse_approved' ? 'تایید شده - ارسال به لجستیک' : 'به‌روزرسانی شده'} تنظیم شد.`,
+    onSuccess: () => {
+      toast({
+        title: "مرحله ۱: موجودی تأیید شد",
+        description: "سفارش آماده تأیید نهایی و ارسال به لجستیک است"
       });
+      queryClient.invalidateQueries({ queryKey: ['/api/warehouse/orders'] });
       setShowOrderDetails(false);
+      setSelectedOrder(null);
+      setWarehouseNotes("");
     },
     onError: (error: any) => {
-      console.log({
-        title: "خطا در به‌روزرسانی",
-        description: error.message || "خطایی در به‌روزرسانی وضعیت سفارش رخ داد.",
-        variant: "destructive",
+      if (error.status === 409 || error.alreadyProcessed) {
+        toast({
+          title: "این سفارش قبلاً پردازش شده",
+          description: "لیست بروزرسانی می‌شود...",
+          variant: "destructive"
+        });
+        queryClient.invalidateQueries({ queryKey: ['/api/warehouse/orders'] });
+        setShowOrderDetails(false);
+        setSelectedOrder(null);
+      } else {
+        toast({
+          title: "خطا در تأیید موجودی",
+          description: error.message || "امکان تأیید موجودی وجود ندارد",
+          variant: "destructive"
+        });
+      }
+    }
+  });
+
+  // 🔒 STAGE 2: Final approve and send to logistics - warehouse_approved
+  const approveMutation = useMutation({
+    mutationFn: async ({ orderId, notes }: { orderId: number; notes: string }) => {
+      const response = await fetch(`/api/warehouse/orders/${orderId}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ notes })
       });
+      const data = await response.json();
+      if (!response.ok) {
+        throw { ...data, status: response.status };
+      }
+      return data;
     },
+    onSuccess: () => {
+      toast({
+        title: "مرحله ۲: تأیید نهایی",
+        description: "سفارش به واحد لجستیک ارسال شد"
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/warehouse/orders'] });
+      setShowOrderDetails(false);
+      setSelectedOrder(null);
+      setWarehouseNotes("");
+    },
+    onError: (error: any) => {
+      if (error.status === 409 || error.alreadyProcessed) {
+        toast({
+          title: "این سفارش قبلاً پردازش شده",
+          description: "لیست بروزرسانی می‌شود...",
+          variant: "destructive"
+        });
+        queryClient.invalidateQueries({ queryKey: ['/api/warehouse/orders'] });
+        setShowOrderDetails(false);
+        setSelectedOrder(null);
+      } else {
+        toast({
+          title: "خطا در تأیید نهایی",
+          description: error.message || "امکان تأیید سفارش وجود ندارد",
+          variant: "destructive"
+        });
+      }
+    }
+  });
+
+  // 🔒 CONCURRENCY-SAFE: Reject order mutation with optimistic locking
+  const rejectMutation = useMutation({
+    mutationFn: async ({ orderId, notes }: { orderId: number; notes: string }) => {
+      const response = await fetch(`/api/warehouse/orders/${orderId}/reject`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ notes })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw { ...data, status: response.status };
+      }
+      return data;
+    },
+    onSuccess: () => {
+      toast({
+        title: "سفارش رد شد",
+        description: "سفارش به دلیل عدم موجودی رد شده"
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/warehouse/orders'] });
+      setShowOrderDetails(false);
+      setSelectedOrder(null);
+      setWarehouseNotes("");
+    },
+    onError: (error: any) => {
+      if (error.status === 409 || error.alreadyProcessed) {
+        toast({
+          title: "این سفارش قبلاً پردازش شده",
+          description: "لیست بروزرسانی می‌شود...",
+          variant: "destructive"
+        });
+        queryClient.invalidateQueries({ queryKey: ['/api/warehouse/orders'] });
+        setShowOrderDetails(false);
+        setSelectedOrder(null);
+      } else {
+        toast({
+          title: "خطا در رد سفارش",
+          description: error.message || "امکان رد سفارش وجود ندارد",
+          variant: "destructive"
+        });
+      }
+    }
   });
 
   // Inventory management mutations
@@ -759,33 +870,40 @@ const WarehouseManagement: React.FC = () => {
     updateGoodsInTransitMutation.mutate({ id, status });
   };
 
-  const handleStartProcessing = (order: Order) => {
-    setSelectedOrder(order);
-    setWarehouseNotes(order.warehouseNotes || '');
-    updateOrderMutation.mutate({
+  // 🔒 STAGE 1: Verify order (check inventory availability)
+  const handleVerifyOrder = (order: any) => {
+    verifyMutation.mutate({
       orderId: order.id,
-      status: 'warehouse_processing',
-      notes: 'شروع پردازش در انبار'
+      notes: warehouseNotes || 'موجودی تأیید شد - مرحله ۱'
     });
   };
 
-  // Handle approve and send to logistics
-  const handleApproveToLogistics = (order: Order) => {
-    updateOrderMutation.mutate({
+  // 🔒 STAGE 2: Final approve and send to logistics
+  const handleApproveOrder = (order: any) => {
+    approveMutation.mutate({
       orderId: order.id,
-      status: 'warehouse_approved',
-      notes: warehouseNotes || 'تایید انبار - ارسال به لجستیک'
+      notes: warehouseNotes || 'تأیید نهایی - ارسال به لجستیک'
     });
   };
 
-  const handleFulfillOrder = () => {
-    if (!selectedOrder) return;
-    
-    updateOrderMutation.mutate({
-      orderId: selectedOrder.id,
-      status: 'warehouse_approved',
-      notes: warehouseNotes
+  // 🔒 Handle reject order - using order_management.id and concurrency-safe mutation  
+  const handleRejectOrder = (order: any) => {
+    rejectMutation.mutate({
+      orderId: order.id,
+      notes: warehouseNotes || 'کالا موجود نیست'
     });
+  };
+
+  // Helper to check if order is in Stage 1 (needs verification)
+  const isStage1 = (order: any) => {
+    const status = order.currentStatus || order.status;
+    return ['financial_approved', 'warehouse_pending', 'warehouse_processing'].includes(status);
+  };
+
+  // Helper to check if order is in Stage 2 (verified, needs final approval)
+  const isStage2 = (order: any) => {
+    const status = order.currentStatus || order.status;
+    return status === 'warehouse_verified';
   };
 
   const handleViewDetails = (order: Order) => {
@@ -835,11 +953,12 @@ const WarehouseManagement: React.FC = () => {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      'warehouse_pending': { color: 'bg-orange-100 text-orange-800', label: 'در انتظار انبار' },
-      'financial_approved': { color: 'bg-yellow-100 text-yellow-800', label: 'تایید مالی - آماده انبار' },
-      'warehouse_processing': { color: 'bg-blue-100 text-blue-800', label: 'در حال پردازش انبار' },
-      'warehouse_fulfilled': { color: 'bg-green-100 text-green-800', label: 'آماده ارسال به لجستیک' },
-      'warehouse_approved': { color: 'bg-green-600 text-white', label: 'ارسال شده به لجستیک' },
+      'warehouse_pending': { color: 'bg-orange-100 text-orange-800', label: '⏳ مرحله ۱: در انتظار بررسی' },
+      'financial_approved': { color: 'bg-yellow-100 text-yellow-800', label: '⏳ مرحله ۱: تأیید مالی - آماده بررسی' },
+      'warehouse_processing': { color: 'bg-blue-100 text-blue-800', label: '⏳ مرحله ۱: در حال بررسی موجودی' },
+      'warehouse_verified': { color: 'bg-purple-100 text-purple-800', label: '✓ مرحله ۲: تأیید موجودی - آماده ارسال' },
+      'warehouse_fulfilled': { color: 'bg-green-100 text-green-800', label: '✓ آماده ارسال' },
+      'warehouse_approved': { color: 'bg-green-600 text-white', label: '✅ ارسال شده به لجستیک' },
     };
     
     const config = statusConfig[status as keyof typeof statusConfig] || { color: 'bg-gray-100 text-gray-800', label: status };
@@ -1190,45 +1309,42 @@ const WarehouseManagement: React.FC = () => {
                                 جزئیات
                               </Button>
                               {orderSubTab === 'pending' ? (
-                                <>
-                                  {(order.currentStatus === 'financial_approved' || order.currentStatus === 'warehouse_pending') && (
+                                <div className="flex gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleRejectOrder(order)}
+                                    disabled={rejectMutation.isPending}
+                                    className="text-red-600 hover:text-red-800"
+                                  >
+                                    <XCircle className="w-4 h-4 mr-1" />
+                                    رد
+                                  </Button>
+                                  {isStage1(order) && (
                                     <Button
                                       variant="outline"
                                       size="sm"
-                                      onClick={() => handleStartProcessing(order)}
-                                      className="text-green-600 hover:text-green-800"
+                                      onClick={() => handleVerifyOrder(order)}
+                                      disabled={verifyMutation.isPending}
+                                      className="text-purple-600 hover:text-purple-800"
                                     >
-                                      <Play className="w-4 h-4 mr-1" />
-                                      شروع پردازش
+                                      <Package className="w-4 h-4 mr-1" />
+                                      مرحله ۱: تأیید موجودی
                                     </Button>
                                   )}
-                                  {order.currentStatus === 'warehouse_processing' && (
-                                    <>
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => {
-                                          setSelectedOrder(order);
-                                          setWarehouseNotes(order.warehouseNotes || '');
-                                          setShowOrderDetails(true);
-                                        }}
-                                        className="text-blue-600 hover:text-blue-800"
-                                      >
-                                        <Settings className="w-4 h-4 mr-1" />
-                                        ویرایش
-                                      </Button>
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => handleApproveToLogistics(order)}
-                                        className="text-green-600 hover:text-green-800"
-                                      >
-                                        <CheckCircle className="w-4 h-4 mr-1" />
-                                        تایید و ارسال به لجستیک
-                                      </Button>
-                                    </>
+                                  {isStage2(order) && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleApproveOrder(order)}
+                                      disabled={approveMutation.isPending}
+                                      className="text-green-600 hover:text-green-800"
+                                    >
+                                      <CheckCircle className="w-4 h-4 mr-1" />
+                                      مرحله ۲: ارسال به لجستیک
+                                    </Button>
                                   )}
-                                </>
+                                </div>
                               ) : (
                                 <>
                                   <Badge variant="secondary" className="bg-green-100 text-green-800">
@@ -1715,10 +1831,34 @@ const WarehouseManagement: React.FC = () => {
                 <Button variant="outline" onClick={() => setShowOrderDetails(false)}>
                   انصراف
                 </Button>
-                {(selectedOrder.currentStatus === 'warehouse_processing' || selectedOrder.status === 'warehouse_processing') && (
-                  <Button onClick={handleFulfillOrder} disabled={updateOrderMutation.isPending}>
-                    {updateOrderMutation.isPending ? 'در حال پردازش...' : 'تکمیل سفارش'}
-                  </Button>
+                {orderSubTab === 'pending' && selectedOrder && (
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="destructive" 
+                      onClick={() => handleRejectOrder(selectedOrder)} 
+                      disabled={rejectMutation.isPending}
+                    >
+                      {rejectMutation.isPending ? 'در حال پردازش...' : 'رد سفارش'}
+                    </Button>
+                    {isStage1(selectedOrder) && (
+                      <Button 
+                        onClick={() => handleVerifyOrder(selectedOrder)} 
+                        disabled={verifyMutation.isPending}
+                        className="bg-purple-600 hover:bg-purple-700"
+                      >
+                        {verifyMutation.isPending ? 'در حال پردازش...' : 'مرحله ۱: تأیید موجودی'}
+                      </Button>
+                    )}
+                    {isStage2(selectedOrder) && (
+                      <Button 
+                        onClick={() => handleApproveOrder(selectedOrder)} 
+                        disabled={approveMutation.isPending}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        {approveMutation.isPending ? 'در حال پردازش...' : 'مرحله ۲: ارسال به لجستیک'}
+                      </Button>
+                    )}
+                  </div>
                 )}
               </div>
             </div>

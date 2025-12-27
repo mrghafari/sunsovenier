@@ -1,6 +1,8 @@
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 import { customerDb } from "./customer-db.js";
 import { customerAddresses, type InsertCustomerAddress, type CustomerAddress } from "../shared/customer-schema.js";
+import { db } from "./db.js";
+import { crmCustomers } from "../shared/schema.js";
 
 export interface ICustomerAddressStorage {
   // Address management
@@ -20,10 +22,59 @@ export class CustomerAddressStorage implements ICustomerAddressStorage {
         .values(addressData)
         .returning();
       
+      // Sync to CRM - save as secondary address if it's different from primary
+      await this.syncAddressToCrm(addressData.customerId, addressData);
+      
       return newAddress;
     } catch (error) {
       console.error('Error creating customer address:', error);
       throw new Error('خطا در ایجاد آدرس جدید');
+    }
+  }
+
+  // Sync address and phone to CRM table
+  private async syncAddressToCrm(customerId: number, addressData: InsertCustomerAddress): Promise<void> {
+    try {
+      // Get current CRM data
+      const [crmCustomer] = await db
+        .select()
+        .from(crmCustomers)
+        .where(eq(crmCustomers.id, customerId))
+        .limit(1);
+      
+      if (!crmCustomer) {
+        console.log(`🏠 [CRM SYNC] Customer ${customerId} not found in CRM, skipping sync`);
+        return;
+      }
+
+      const fullAddress = `${addressData.address}, ${addressData.city}, ${addressData.country}`;
+      const updateData: any = {};
+
+      // If this is a different address than primary, save as secondary
+      if (crmCustomer.address !== addressData.address || 
+          crmCustomer.cityRegion !== addressData.city) {
+        updateData.secondaryAddress = fullAddress;
+        console.log(`🏠 [CRM SYNC] Saving secondary address for customer ${customerId}: ${fullAddress}`);
+      }
+
+      // If phone is different, save as alternate phone
+      if (addressData.phone && crmCustomer.phone !== addressData.phone) {
+        updateData.alternatePhone = addressData.phone;
+        console.log(`📱 [CRM SYNC] Saving alternate phone for customer ${customerId}: ${addressData.phone}`);
+      }
+
+      // Update CRM if there are changes
+      if (Object.keys(updateData).length > 0) {
+        await db
+          .update(crmCustomers)
+          .set({ ...updateData, updatedAt: new Date() })
+          .where(eq(crmCustomers.id, customerId));
+        
+        console.log(`✅ [CRM SYNC] Customer ${customerId} CRM updated with:`, updateData);
+      }
+    } catch (error) {
+      console.error('Error syncing address to CRM:', error);
+      // Don't throw - just log the error, address creation was successful
     }
   }
 

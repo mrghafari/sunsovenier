@@ -40,7 +40,7 @@ import { sql, eq, and, or, ne, isNull, isNotNull, desc, gte, inArray } from "dri
 import { findCorruptedOrders, getDataIntegrityStats, validateOrderIntegrity, markCorruptedOrderAsDeleted } from './data-integrity-tools';
 import { z } from "zod";
 import * as schema from "@shared/schema";
-const { crmCustomers, iraqiProvinces, iraqiCities, abandonedOrders, contentItems, footerSettings, paymentMethodSettings, shopSettings, aiApiSettings, insertAiApiSettingsSchema, vendors } = schema;
+const { crmCustomers, iraqiProvinces, iraqiCities, abandonedOrders, contentItems, footerSettings, paymentMethodSettings, shopSettings, aiApiSettings, insertAiApiSettingsSchema, vendors, postalServices } = schema;
 import { webrtcRooms, roomParticipants, chatMessages } from "@shared/webrtc-schema";
 import { orderManagement, shippingRates, deliveryMethods, paymentReceipts } from "@shared/order-management-schema";
 import { generateEAN13Barcode, validateEAN13, parseEAN13Barcode, isMomtazchemBarcode } from "@shared/barcode-utils";
@@ -2279,6 +2279,315 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ success: false, message: "خطا در حذف نرخ حمل" });
     }
   });
+
+  // =============================================================================
+  // POSTAL SERVICES API
+  // =============================================================================
+
+  // Get all postal services
+  app.get("/api/logistics/postal-services", async (req, res) => {
+    try {
+      const services = await db
+        .select()
+        .from(postalServices)
+        .orderBy(desc(postalServices.createdAt));
+      res.json({ success: true, data: services });
+    } catch (error) {
+      console.error("Error fetching postal services:", error);
+      res.status(500).json({ success: false, message: "خطا در دریافت لیست سرویس‌های پستی" });
+    }
+  });
+
+  // Create postal service
+  app.post("/api/logistics/postal-services", requireAuth, async (req, res) => {
+    try {
+      const { name, nameEn, contactInfo, phone, email, website, maxWeightKg, allowsFlammable, basePrice, pricePerKg, estimatedDays, trackingAvailable, isActive, supportedRegions, specialRequirements } = req.body;
+      
+      const [service] = await db
+        .insert(postalServices)
+        .values({
+          name,
+          nameEn: nameEn || null,
+          contactInfo: contactInfo || null,
+          phone,
+          email: email || null,
+          website: website || null,
+          maxWeightKg: maxWeightKg?.toString() || "30.00",
+          allowsFlammable: allowsFlammable || false,
+          basePrice: basePrice?.toString() || "0.00",
+          pricePerKg: pricePerKg?.toString() || "0.00",
+          estimatedDays: estimatedDays || 3,
+          trackingAvailable: trackingAvailable !== undefined ? trackingAvailable : true,
+          isActive: isActive !== undefined ? isActive : true,
+          supportedRegions: supportedRegions || [],
+          specialRequirements: specialRequirements || null
+        })
+        .returning();
+      
+      res.json({ success: true, data: service, message: "سرویس پستی جدید ایجاد شد" });
+    } catch (error) {
+      console.error("Error creating postal service:", error);
+      res.status(500).json({ success: false, message: "خطا در ایجاد سرویس پستی" });
+    }
+  });
+
+  // Update postal service
+  app.put("/api/logistics/postal-services/:id", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { name, nameEn, contactInfo, phone, email, website, maxWeightKg, allowsFlammable, basePrice, pricePerKg, estimatedDays, trackingAvailable, isActive, supportedRegions, specialRequirements } = req.body;
+      
+      const [service] = await db
+        .update(postalServices)
+        .set({
+          name,
+          nameEn: nameEn || null,
+          contactInfo: contactInfo || null,
+          phone,
+          email: email || null,
+          website: website || null,
+          maxWeightKg: maxWeightKg?.toString() || "30.00",
+          allowsFlammable: allowsFlammable || false,
+          basePrice: basePrice?.toString() || "0.00",
+          pricePerKg: pricePerKg?.toString() || "0.00",
+          estimatedDays: estimatedDays || 3,
+          trackingAvailable: trackingAvailable !== undefined ? trackingAvailable : true,
+          isActive: isActive !== undefined ? isActive : true,
+          supportedRegions: supportedRegions || [],
+          specialRequirements: specialRequirements || null,
+          updatedAt: new Date()
+        })
+        .where(eq(postalServices.id, id))
+        .returning();
+      
+      if (!service) {
+        return res.status(404).json({ success: false, message: "سرویس پستی یافت نشد" });
+      }
+      
+      res.json({ success: true, data: service, message: "سرویس پستی بروزرسانی شد" });
+    } catch (error) {
+      console.error("Error updating postal service:", error);
+      res.status(500).json({ success: false, message: "خطا در بروزرسانی سرویس پستی" });
+    }
+  });
+
+  // Delete postal service
+  app.delete("/api/logistics/postal-services/:id", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await db
+        .delete(postalServices)
+        .where(eq(postalServices.id, id));
+      res.json({ success: true, message: "سرویس پستی حذف شد" });
+    } catch (error) {
+      console.error("Error deleting postal service:", error);
+      res.status(500).json({ success: false, message: "خطا در حذف سرویس پستی" });
+    }
+  });
+
+  // Get active postal services for checkout
+  app.get("/api/checkout/postal-services", async (req, res) => {
+    try {
+      const services = await db
+        .select()
+        .from(postalServices)
+        .where(eq(postalServices.isActive, true))
+        .orderBy(postalServices.name);
+      res.json({ success: true, data: services });
+    } catch (error) {
+      console.error("Error fetching active postal services:", error);
+      res.status(500).json({ success: false, message: "خطا در دریافت سرویس‌های پستی" });
+    }
+  });
+
+
+
+  // =============================================================================
+  // ADVANCED SHIPPING CALCULATION API
+  // =============================================================================
+  
+  const { calculateShipping, seedDefaultRates, seedDefaultFees } = await import('./shipping-calculator');
+  
+  // Seed default rates on startup
+  seedDefaultRates();
+  seedDefaultFees();
+  
+  // Advanced shipping calculation endpoint
+  app.post("/api/shipping/calculate-advanced", async (req, res) => {
+    try {
+      const { cartItems, destination, serviceType, options, orderValue } = req.body;
+      
+      if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "سبد خرید خالی است"
+        });
+      }
+      
+      if (!destination || !destination.country || !destination.province || !destination.city) {
+        return res.status(400).json({
+          success: false,
+          message: "آدرس مقصد ناقص است"
+        });
+      }
+      
+      if (!serviceType || !['normal', 'fast', 'express'].includes(serviceType)) {
+        return res.status(400).json({
+          success: false,
+          message: "نوع سرویس نامعتبر است"
+        });
+      }
+      
+      const result = await calculateShipping({
+        cartItems,
+        destination,
+        serviceType,
+        options: options || {},
+        customerId: req.session?.customerId,
+        sessionId: req.sessionID,
+        orderValue: orderValue || undefined
+      });
+      
+      res.json(result);
+    } catch (error) {
+      console.error("[SHIPPING] API error:", error);
+      res.status(500).json({
+        success: false,
+        message: "خطا در محاسبه هزینه حمل‌ونقل"
+      });
+    }
+  });
+
+  // Get all advanced shipping rates (admin)
+  app.get("/api/admin/shipping-rates", requireAuth, async (req, res) => {
+    try {
+      const { advancedShippingRates } = await import('@shared/logistics-schema');
+      const rates = await db.select().from(advancedShippingRates).orderBy(advancedShippingRates.zone, advancedShippingRates.serviceType, advancedShippingRates.weightFrom);
+      res.json({ success: true, data: rates });
+    } catch (error) {
+      console.error("Error fetching shipping rates:", error);
+      res.status(500).json({ success: false, message: "خطا در دریافت نرخ‌های حمل" });
+    }
+  });
+
+  // Create shipping rate (admin)
+  app.post("/api/admin/shipping-rates", requireAuth, async (req, res) => {
+    try {
+      const { advancedShippingRates } = await import('@shared/logistics-schema');
+      const { zone, serviceType, weightFrom, weightTo, price, pricePerExtraKg, estimatedDaysMin, estimatedDaysMax } = req.body;
+      
+      const result = await db.insert(advancedShippingRates).values({
+        zone,
+        serviceType,
+        weightFrom: weightFrom.toString(),
+        weightTo: weightTo.toString(),
+        price: price.toString(),
+        pricePerExtraKg: pricePerExtraKg?.toString() || "0",
+        estimatedDaysMin: estimatedDaysMin || 1,
+        estimatedDaysMax: estimatedDaysMax || 3,
+        isActive: true
+      }).returning();
+      
+      res.json({ success: true, data: result[0] });
+    } catch (error) {
+      console.error("Error creating shipping rate:", error);
+      res.status(500).json({ success: false, message: "خطا در ایجاد نرخ حمل" });
+    }
+  });
+
+  // Update shipping rate (admin)
+  app.put("/api/admin/shipping-rates/:id", requireAuth, async (req, res) => {
+    try {
+      const { advancedShippingRates } = await import('@shared/logistics-schema');
+      const id = parseInt(req.params.id);
+      const { zone, serviceType, weightFrom, weightTo, price, pricePerExtraKg, estimatedDaysMin, estimatedDaysMax, isActive } = req.body;
+      
+      const result = await db.update(advancedShippingRates)
+        .set({
+          zone,
+          serviceType,
+          weightFrom: weightFrom.toString(),
+          weightTo: weightTo.toString(),
+          price: price.toString(),
+          pricePerExtraKg: pricePerExtraKg?.toString() || "0",
+          estimatedDaysMin: estimatedDaysMin || 1,
+          estimatedDaysMax: estimatedDaysMax || 3,
+          isActive: isActive !== undefined ? isActive : true,
+          updatedAt: new Date()
+        })
+        .where(eq(advancedShippingRates.id, id))
+        .returning();
+      
+      if (result.length === 0) {
+        return res.status(404).json({ success: false, message: "نرخ یافت نشد" });
+      }
+      
+      res.json({ success: true, data: result[0] });
+    } catch (error) {
+      console.error("Error updating shipping rate:", error);
+      res.status(500).json({ success: false, message: "خطا در بروزرسانی نرخ حمل" });
+    }
+  });
+
+  // Delete shipping rate (admin)
+  app.delete("/api/admin/shipping-rates/:id", requireAuth, async (req, res) => {
+    try {
+      const { advancedShippingRates } = await import('@shared/logistics-schema');
+      const id = parseInt(req.params.id);
+      
+      await db.delete(advancedShippingRates).where(eq(advancedShippingRates.id, id));
+      
+      res.json({ success: true, message: "نرخ حمل حذف شد" });
+    } catch (error) {
+      console.error("Error deleting shipping rate:", error);
+      res.status(500).json({ success: false, message: "خطا در حذف نرخ حمل" });
+    }
+  });
+
+  // Get shipping fee configs (admin)
+  app.get("/api/admin/shipping-fees", requireAuth, async (req, res) => {
+    try {
+      const { shippingFeeConfig } = await import('@shared/logistics-schema');
+      const fees = await db.select().from(shippingFeeConfig).orderBy(shippingFeeConfig.feeType);
+      res.json({ success: true, data: fees });
+    } catch (error) {
+      console.error("Error fetching shipping fees:", error);
+      res.status(500).json({ success: false, message: "خطا در دریافت تنظیمات هزینه‌ها" });
+    }
+  });
+
+  // Update shipping fee config (admin)
+  app.put("/api/admin/shipping-fees/:id", requireAuth, async (req, res) => {
+    try {
+      const { shippingFeeConfig } = await import('@shared/logistics-schema');
+      const id = parseInt(req.params.id);
+      const { feeValue, minValue, maxValue, isActive, labelFa, labelEn, description } = req.body;
+      
+      const result = await db.update(shippingFeeConfig)
+        .set({
+          feeValue: feeValue.toString(),
+          minValue: minValue?.toString(),
+          maxValue: maxValue?.toString(),
+          isActive: isActive !== undefined ? isActive : true,
+          labelFa,
+          labelEn,
+          description,
+          updatedAt: new Date()
+        })
+        .where(eq(shippingFeeConfig.id, id))
+        .returning();
+      
+      if (result.length === 0) {
+        return res.status(404).json({ success: false, message: "تنظیم یافت نشد" });
+      }
+      
+      res.json({ success: true, data: result[0] });
+    } catch (error) {
+      console.error("Error updating shipping fee:", error);
+      res.status(500).json({ success: false, message: "خطا در بروزرسانی تنظیمات" });
+    }
+  });
+
 
   // =============================================================================
   // AI SETTINGS API
@@ -8225,7 +8534,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
                                paymentStatus === 'denied';
                                
         if (isPaymentFailed) {
-          console.log(`❌ [GATEWAY WEBHOOK] Payment failed for order ${orderId} - deleting temporary order`);
+          console.log(`❌ [GATEWAY WEBHOOK] Payment failed for order ${orderId} - releasing wallet reservation and deleting temporary order`);
+          
+          // CRITICAL: Release wallet reservation before deleting order
+          try {
+            const reservation = await walletStorage.getReservationByOrder(parseInt(orderId));
+            if (reservation) {
+              await walletStorage.releaseReservation(reservation.id, 'Bank payment failed/cancelled');
+              console.log(`🔓 [GATEWAY WEBHOOK] Wallet reservation ${reservation.id} released for failed order ${orderId}`);
+            }
+          } catch (walletReleaseError) {
+            console.error(`⚠️ [GATEWAY WEBHOOK] Failed to release wallet reservation for order ${orderId}:`, walletReleaseError);
+          }
+          
           try {
             await customerStorage.deleteTemporaryOrder(parseInt(orderId));
             console.log(`✅ [GATEWAY WEBHOOK] Temporary order ${orderId} deleted after payment failure`);
@@ -8305,6 +8626,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
               })
               .where(eq(customerOrders.id, parseInt(targetOrderId)));
 
+            // CRITICAL: Confirm wallet reservation if this was a hybrid payment
+            // This is where wallet funds are actually deducted after bank payment succeeds
+            try {
+              // Fetch order to get order number and customer for reservation lookup
+              const [orderForWallet] = await db
+                .select({ 
+                  orderNumber: customerOrders.orderNumber, 
+                  paymentMethod: customerOrders.paymentMethod,
+                  customerId: customerOrders.customerId 
+                })
+                .from(customerOrders)
+                .where(eq(customerOrders.id, parseInt(targetOrderId)));
+              
+              if (orderForWallet && (orderForWallet.paymentMethod === 'wallet_partial' || orderForWallet.paymentMethod === 'wallet_combined')) {
+                // Search by orderId, orderNumber, and customerId for best match
+                const reservation = await walletStorage.getReservationByOrder(
+                  parseInt(targetOrderId), 
+                  orderForWallet.orderNumber || undefined,
+                  orderForWallet.customerId || undefined
+                );
+                if (reservation) {
+                  await walletStorage.confirmReservation(reservation.id);
+                  console.log(`✅ [PAYMENT CALLBACK] Wallet reservation ${reservation.id} confirmed - ${reservation.amount} IQD deducted for order ${targetOrderId} (${orderForWallet.orderNumber})`);
+                } else {
+                  console.log(`ℹ️ [PAYMENT CALLBACK] No wallet reservation found for hybrid order ${targetOrderId} (${orderForWallet.orderNumber})`);
+                }
+              }
+            } catch (walletConfirmError) {
+              console.error(`⚠️ [PAYMENT CALLBACK] Failed to confirm wallet reservation for order ${targetOrderId}:`, walletConfirmError);
+              // Don't fail the payment callback - order is still confirmed
+            }
+
             // Auto-assign order number and send to warehouse for confirmed bank payments
             try {
               const { paymentWorkflow } = await import('./payment-workflow');
@@ -8354,6 +8707,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           
           if (targetOrderId) {
+            // CRITICAL: Release wallet reservation before deleting order
+            try {
+              const reservation = await walletStorage.getReservationByOrder(parseInt(targetOrderId));
+              if (reservation) {
+                await walletStorage.releaseReservation(reservation.id, 'Bank payment failed/cancelled');
+                console.log(`🔓 [PAYMENT CALLBACK] Wallet reservation ${reservation.id} released for failed order ${targetOrderId}`);
+              }
+            } catch (walletReleaseError) {
+              console.error(`⚠️ [PAYMENT CALLBACK] Failed to release wallet reservation for order ${targetOrderId}:`, walletReleaseError);
+            }
+            
             // NEW CLEANUP: Delete permanent order to free up the order number for reuse
             const deletedOrder = await customerStorage.deleteTemporaryOrder(parseInt(targetOrderId));
             console.log(`🗑️ [ORDER CLEANUP] Permanent order ${orderNumber} deleted - order number freed for reuse`);
@@ -16660,7 +17024,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const customerId = (req.session as any)?.customerId;
       const crmCustomerId = (req.session as any)?.crmCustomerId;
-      const { items, customerInfo, recipientInfo, totalAmount, shippingCost, notes, shippingMethod, paymentMethod, walletAmountUsed, remainingAmount, vatAmount, dutiesAmount } = req.body;
+      const { items, customerInfo, recipientInfo, totalAmount, shippingCost, notes, shippingMethod, paymentMethod, walletAmountUsed, remainingAmount, vatAmount, dutiesAmount, vehicleType } = req.body;
       
       console.log('🛒 [ORDER DEBUG] Order data received:', {
         paymentMethod,
@@ -16740,7 +17104,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Smart conversion for wallet_combined payment method
       if (paymentMethod === 'wallet_combined') {
-        if (walletUsage >= formattedTotalAmount && remaining <= 1) {
+        if (walletUsage >= formattedTotalAmount) { // FIXED: Removed unsafe remaining <= 1 condition
           finalPaymentMethod = 'wallet_full';
           console.log('🔄 [BACKEND CONVERSION] wallet_combined → wallet_full (sufficient balance)', {
             walletUsage, formattedTotalAmount, remaining
@@ -16836,26 +17200,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Use the customer ID that exists (prioritize CRM customer)
             const customerIdToUse = finalCrmCustomerId || customerId;
             
-            // Use walletStorage.debitWallet which handles all the logic
-            const transaction = await walletStorage.debitWallet(
-              customerIdToUse,
-              walletUsage,
-              `پرداخت سفارش ${orderNumber || 'در انتظار تایید بانک'}`,
-              'order',
-              undefined, // reference ID will be set after order creation
-              undefined  // no admin processing this
-            );
-            
-            console.log(`✅ Wallet payment processed: ${walletUsage} IQD deducted, transaction ID: ${transaction.id}`);
-            actualWalletUsed = walletUsage;
-            
-            // Enhanced payment status logic based on conversion (using whole numbers for IQD)
-            if (finalPaymentMethod === 'wallet_full' || remaining <= 1) {
+            // CRITICAL: For wallet_partial payments, RESERVE funds instead of deducting
+            // Actual deduction happens ONLY after bank payment is confirmed
+            if (finalPaymentMethod === 'wallet_partial') {
+              // Reserve wallet funds - no balance deduction yet
+              const reservation = await walletStorage.reserveWallet(
+                customerIdToUse,
+                walletUsage,
+                `رزرو کیف پول برای سفارش ${orderNumber || 'در انتظار تایید بانک'}`,
+                'order',
+                undefined, // reference ID will be set after order creation
+                orderNumber
+              );
+              
+              console.log(`🔒 [WALLET RESERVE] Reserved ${walletUsage} IQD for partial payment, reservation ID: ${reservation.id}`);
+              actualWalletUsed = walletUsage;
+              finalPaymentStatus = "pending"; // Not paid yet - waiting for bank confirmation
+              console.log('💰 [PAYMENT STATUS] Set to PENDING - wallet_partial awaiting bank payment');
+            } else if (finalPaymentMethod === 'wallet_full') {
+              // Full wallet payment - deduct immediately
+              const transaction = await walletStorage.debitWallet(
+                customerIdToUse,
+                walletUsage,
+                `پرداخت سفارش ${orderNumber}`,
+                'order',
+                undefined, // reference ID will be set after order creation
+                undefined  // no admin processing this
+              );
+              
+              console.log(`✅ Wallet payment processed: ${walletUsage} IQD deducted, transaction ID: ${transaction.id}`);
+              actualWalletUsed = walletUsage;
               finalPaymentStatus = "paid"; // Fully paid by wallet
-              console.log('💰 [PAYMENT STATUS] Set to PAID - wallet_full conversion applied');
-            } else {
-              finalPaymentStatus = "partial"; // Partially paid by wallet
-              console.log('💰 [PAYMENT STATUS] Set to PARTIAL - wallet_partial conversion applied');
+              console.log('💰 [PAYMENT STATUS] Set to PAID - wallet_full payment complete');
             }
 
           } catch (error) {
@@ -16904,6 +17280,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         recipientName: recipientInfo?.recipientName || '',
         recipientPhone: recipientInfo?.recipientPhone || '',
         recipientAddress: recipientInfo?.recipientAddress || '',
+        vehicleType: vehicleType || null, // Customer's selected vehicle from checkout
       };
 
       const order = await customerStorage.createOrder(orderData);
@@ -17027,7 +17404,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // If wallet covers full amount, mark as paid and don't require bank payment
-      if (isFullWalletPayment || walletCoversFullAmount || remainingAmountToPay <= 1) {
+      if (isFullWalletPayment || walletCoversFullAmount) { // FIXED: Removed unsafe remainingAmountToPay <= 1 condition
         console.log('✅ [FULL WALLET] Payment covers full amount - order complete without bank gateway', {
           isFullWalletPayment,
           walletCoversFullAmount,
@@ -17202,6 +17579,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'Entire order data': orderData
       });
 
+      // BACKEND VALIDATION: Ensure delivery address is specified before allowing order
+      const isValidField = (val: string | undefined | null): boolean => {
+        return val !== undefined && val !== null && String(val).trim() !== '';
+      };
+
+      // Check required address fields
+      if (!isValidField(orderData.address) || !isValidField(orderData.city) || !isValidField(orderData.country)) {
+        console.log('🚫 [BACKEND VALIDATION] Order blocked - missing address or city', {
+          address: orderData.address,
+          city: orderData.city,
+          country: orderData.country
+        });
+        return res.status(400).json({
+          success: false,
+          message: "آدرس تحویل الزامی است - لطفاً آدرس، شهر و کشور را مشخص کنید"
+        });
+      }
+
+      // Check required phone field
+      if (!isValidField(orderData.phone)) {
+        console.log('🚫 [BACKEND VALIDATION] Order blocked - missing phone number');
+        return res.status(400).json({
+          success: false,
+          message: "شماره تلفن الزامی است - لطفاً شماره تلفن گیرنده را وارد کنید"
+        });
+      }
+
+      console.log('✅ [BACKEND VALIDATION] Address validation passed:', {
+        address: orderData.address,
+        city: orderData.city,
+        phone: orderData.phone
+      });
+
       // Extract customer information from form data
       const customerInfo = {
         name: orderData.customerName,
@@ -17304,27 +17714,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         if (walletAmountUsed > 0) {
           try {
-            // Use walletStorage.debitWallet which handles all the logic
-            const transaction = await walletStorage.debitWallet(
-              finalCustomerId,
-              walletAmountUsed,
-              `پرداخت سفارش ${orderNumber}`,
-              'order',
-              undefined, // reference ID will be set after order creation
-              undefined  // no admin processing this
-            );
-            
-            console.log(`✅ [PERMANENT ORDER] Wallet payment processed: ${walletAmountUsed} IQD deducted for order ${orderNumber}`);
-            
-            // CRITICAL FIX: Check if remainingAmount is 0 to send directly to warehouse
+            // CRITICAL: For wallet_partial payments, RESERVE funds instead of deducting
+            // Actual deduction happens ONLY after bank payment is confirmed
             if (Math.round(remainingAmount) <= 1) {
+              // Full wallet payment - deduct immediately
+              const transaction = await walletStorage.debitWallet(
+                finalCustomerId,
+                walletAmountUsed,
+                `پرداخت سفارش ${orderNumber}`,
+                'order',
+                undefined, // reference ID will be set after order creation
+                undefined  // no admin processing this
+              );
+              
+              console.log(`✅ [PERMANENT ORDER] Wallet payment processed: ${walletAmountUsed} IQD deducted for order ${orderNumber}`);
               finalPaymentStatus = "paid"; // Fully paid by wallet
               finalPaymentMethod = "wallet_full"; // Ensure correct method
               console.log(`🏪 [WAREHOUSE DIRECT] Order ${orderNumber} fully paid by wallet - direct to warehouse`);
             } else {
-              finalPaymentStatus = "partial"; // Partially paid by wallet
+              // Partial wallet payment - RESERVE funds, don't deduct yet
+              const reservation = await walletStorage.reserveWallet(
+                finalCustomerId,
+                walletAmountUsed,
+                `رزرو کیف پول برای سفارش ${orderNumber}`,
+                'order',
+                undefined, // reference ID will be set after order creation
+                orderNumber
+              );
+              
+              console.log(`🔒 [PERMANENT ORDER] Wallet funds RESERVED: ${walletAmountUsed} IQD for order ${orderNumber}, reservation ID: ${reservation.id}`);
+              finalPaymentStatus = "pending"; // Not paid yet - waiting for bank confirmation
               finalPaymentMethod = "wallet_partial"; // Requires bank payment
-              console.log(`🏦 [BANK REQUIRED] Order ${orderNumber} partially paid - remaining ${remainingAmount} needs bank payment`);
+              console.log(`🏦 [BANK REQUIRED] Order ${orderNumber} - wallet reserved, remaining ${remainingAmount} needs bank payment`);
             }
           } catch (walletError) {
             console.log(`❌ Wallet payment failed for order ${orderNumber}:`, walletError);
@@ -17640,6 +18061,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         let orderMgmtData = {
+          // CRITICAL: Add delivery method from checkout for logistics display
+          deliveryMethod: orderData.deliveryMethod || null,
           customerOrderId: order.id,
           customerId: finalCustomerId,
           currentStatus: managementStatus,
@@ -17648,6 +18071,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           currency: orderData.currency || "IQD",
           notes: orderData.notes || "",
         };
+
+        // Add vehicle type from checkout payload if customer selected one
+        if (orderData.vehicleType) {
+          orderMgmtData = {
+            ...orderMgmtData,
+            vehicleType: orderData.vehicleType
+          };
+          console.log(`🚚 [VEHICLE] Customer selected vehicle from checkout: ${orderData.vehicleType}`);
+        }
+
+        // Log delivery method being saved
+        if (orderData.deliveryMethod) {
+          console.log(`📦 [DELIVERY METHOD] Customer selected delivery: ${orderData.deliveryMethod}`);
+        }
+
 
         // Add grace period fields for bank_transfer_grace payment method
         if (orderData.paymentMethod === 'bank_transfer_grace') {
@@ -25200,6 +25638,64 @@ Leading Chemical Solutions Provider
     }
   });
 
+  // Get customer orders by customer ID
+  app.get("/api/crm/customers/:id/orders", requireAuth, async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.id);
+      console.log(`📦 [CRM ORDERS] Fetching orders for customer ${customerId}`);
+      
+      // Get all orders for this customer
+      const orders = await customerDb
+        .select({
+          id: customerOrders.id,
+          orderNumber: customerOrders.orderNumber,
+          totalAmount: customerOrders.totalAmount,
+          currency: customerOrders.currency,
+          status: customerOrders.status,
+          paymentStatus: customerOrders.paymentStatus,
+          paymentMethod: customerOrders.paymentMethod,
+          shippingCost: customerOrders.shippingCost,
+          createdAt: customerOrders.createdAt,
+          updatedAt: customerOrders.updatedAt
+        })
+        .from(customerOrders)
+        .where(eq(customerOrders.customerId, customerId))
+        .orderBy(desc(customerOrders.createdAt));
+      
+      console.log(`✅ [CRM ORDERS] Found ${orders.length} orders for customer ${customerId}`);
+      
+      // Get items for each order
+      const ordersWithItems = await Promise.all(orders.map(async (order) => {
+        const items = await customerDb
+          .select({
+            id: orderItems.id,
+            productId: orderItems.productId,
+            productName: orderItems.productName,
+            quantity: orderItems.quantity,
+            unitPrice: orderItems.unitPrice
+          })
+          .from(orderItems)
+          .where(eq(orderItems.orderId, order.id));
+        
+        return {
+          ...order,
+          items
+        };
+      }));
+      
+      res.json({
+        success: true,
+        data: ordersWithItems
+      });
+    } catch (error) {
+      console.error('❌ [CRM ORDERS] Error fetching customer orders:', error);
+      res.status(500).json({
+        success: false,
+        message: "خطا در دریافت سفارشات مشتری"
+      });
+    }
+  });
+
   // Update CRM customer
   app.put("/api/crm/customers/:id", requireAuth, async (req, res) => {
     try {
@@ -27470,28 +27966,19 @@ ${message ? `Additional Requirements:\n${message}` : ''}
 
       const { pool } = await import('./db');
       
-      // First try to find by order management ID
-      let orderManagementResult = await pool.query(`
-        SELECT om.*, co.payment_method, co.status, co.total_amount, co.currency, co.customer_id
+      // 🔒 CRITICAL: Only search by order_management.id - NO FALLBACK to avoid ID collisions
+      // Frontend MUST send order_management.id, not customerOrderId
+      console.log(`🔍 [FINANCE] Looking up order by order_management.id: ${orderId}`);
+      const orderManagementResult = await pool.query(`
+        SELECT om.*, co.payment_method, co.status, co.total_amount, co.currency, co.customer_id, co.order_number
         FROM order_management om
         JOIN customer_orders co ON om.customer_order_id = co.id
         WHERE om.id = $1
       `, [orderId]);
 
-      // If not found, try to find by customer_order_id (for frontend compatibility)
       if (orderManagementResult.rows.length === 0) {
-        console.log(`🔍 [FINANCE] Order management ID ${orderId} not found, searching by customer_order_id`);
-        orderManagementResult = await pool.query(`
-          SELECT om.*, co.payment_method, co.status, co.total_amount, co.currency, co.customer_id
-          FROM order_management om
-          JOIN customer_orders co ON om.customer_order_id = co.id
-          WHERE om.customer_order_id = $1
-        `, [orderId]);
-      }
-
-      if (orderManagementResult.rows.length === 0) {
-        console.log(`❌ [FINANCE] Order ${orderId} not found in either order_management.id or customer_order_id`);
-        return res.status(404).json({ success: false, message: 'سفارش یافت نشد' });
+        console.log(`❌ [FINANCE] Order management ID ${orderId} not found`);
+        return res.status(404).json({ success: false, message: 'سفارش یافت نشد - شناسه مدیریت سفارش نامعتبر' });
       }
 
       const orderData = orderManagementResult.rows[0];
@@ -27555,7 +28042,11 @@ ${message ? `Additional Requirements:\n${message}` : ''}
       const { orderStatuses } = await import('../shared/order-management-schema');
       
       // Check if this is a grace period order
-      const isGracePeriodOrder = orderData.payment_method === 'bank_transfer_grace' || isTemporaryOrder;
+      const isWalletPayment = ['wallet_full', 'wallet_partial', 'wallet_combined', 'wallet'].includes(orderData.payment_method);
+      const isOnlinePayment = orderData.payment_method === 'online_payment';
+      const isStrictGracePeriodOrder = orderData.payment_method === 'bank_transfer_grace';
+      const isGracePeriodOrder = isStrictGracePeriodOrder && !isWalletPayment && !isOnlinePayment;
+      console.log(`🔍 [FINANCE] Order ${orderData.customer_order_id} payment analysis: method=${orderData.payment_method}, isWallet=${isWalletPayment}, isOnline=${isOnlinePayment}, isGrace=${isGracePeriodOrder}`);
       
       let targetStatus, statusMessage;
       if (isGracePeriodOrder) {
@@ -27880,6 +28371,65 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         department, 
         notes
       );
+
+      // CRITICAL: Process wallet refund when order is cancelled
+      if (newStatus === 'cancelled' || newStatus === 'financial_rejected') {
+        try {
+          // Get the customer order to check payment method
+          const customerOrder = await customerStorage.getOrderById(updatedOrder.customerOrderId);
+          
+          if (customerOrder && customerOrder.customerId) {
+            const paymentMethod = customerOrder.paymentMethod;
+            
+            // Check if this order used wallet payment (full or partial)
+            if (paymentMethod === 'wallet_full' || paymentMethod === 'wallet_partial' || paymentMethod === 'wallet_combined') {
+              console.log(`💰 [WALLET REFUND] Processing refund for cancelled order ${customerOrder.orderNumber}, payment method: ${paymentMethod}`);
+              
+              // Find confirmed wallet transactions for this order
+              const walletTransactions = await walletStorage.getTransactionsByCustomer(customerOrder.customerId);
+              const orderDebitTransactions = walletTransactions.filter(t => 
+                t.transactionType === 'debit' && 
+                t.status === 'confirmed' &&
+                t.notes && (
+                  t.notes.includes(`orderId:${customerOrder.id}`) ||
+                  t.notes.includes(`order:${customerOrder.orderNumber}`) ||
+                  t.notes.includes(customerOrder.orderNumber || '')
+                )
+              );
+              
+              let totalRefundAmount = 0;
+              for (const transaction of orderDebitTransactions) {
+                totalRefundAmount += parseFloat(transaction.amount.toString());
+              }
+              
+              if (totalRefundAmount > 0) {
+                // Process wallet refund
+                await walletStorage.addTransaction({
+                  customerId: customerOrder.customerId,
+                  type: 'credit',
+                  amount: totalRefundAmount.toString(),
+                  status: 'confirmed',
+                  notes: `Refund for cancelled order:${customerOrder.orderNumber} orderId:${customerOrder.id}`
+                });
+                
+                console.log(`✅ [WALLET REFUND] Refunded ${totalRefundAmount} IQD to customer ${customerOrder.customerId} for cancelled order ${customerOrder.orderNumber}`);
+              } else {
+                // Check for reserved transactions that need to be released
+                const reservation = await walletStorage.getReservationByOrder(customerOrder.id, customerOrder.orderNumber || undefined, customerOrder.customerId);
+                if (reservation) {
+                  await walletStorage.releaseReservation(reservation.id, `Order cancelled: ${customerOrder.orderNumber}`);
+                  console.log(`🔓 [WALLET REFUND] Released reservation ${reservation.id} for cancelled order ${customerOrder.orderNumber}`);
+                } else {
+                  console.log(`ℹ️ [WALLET REFUND] No wallet transactions found for cancelled order ${customerOrder.orderNumber}`);
+                }
+              }
+            }
+          }
+        } catch (refundError) {
+          console.error(`❌ [WALLET REFUND] Error processing refund for cancelled order:`, refundError);
+          // Don't fail the cancellation if refund fails - log for manual review
+        }
+      }
 
       // Trigger automatic synchronization after status update
       try {
@@ -30219,15 +30769,32 @@ ${message ? `Additional Requirements:\n${message}` : ''}
   });
 
   // Get active shipping rates (for customer checkout - no auth required)
+  // Only return rates whose parent delivery method is also active
   app.get('/api/shipping-rates', async (req, res) => {
     try {
-      const rates = await db
+      const { and } = await import('drizzle-orm');
+      
+      // Get active delivery method values first
+      const activeDeliveryMethods = await db
+        .select({ value: deliveryMethods.value })
+        .from(deliveryMethods)
+        .where(eq(deliveryMethods.isActive, true));
+      
+      const activeMethodValues = activeDeliveryMethods.map(m => m.value);
+      
+      // Get shipping rates that match active delivery methods
+      const allRates = await db
         .select()
         .from(shippingRates)
         .where(eq(shippingRates.isActive, true))
         .orderBy(shippingRates.deliveryMethod, shippingRates.transportationType);
       
-      res.json({ success: true, data: rates });
+      // Filter rates to only include those with active parent delivery methods
+      const filteredRates = allRates.filter(rate => 
+        activeMethodValues.includes(rate.deliveryMethod)
+      );
+      
+      res.json({ success: true, data: filteredRates });
     } catch (error) {
       console.error('Error fetching active shipping rates:', error);
       res.status(500).json({ success: false, message: "خطا در دریافت تعرفه‌های ارسال" });
@@ -39406,7 +39973,7 @@ momtazchem.com
         .innerJoin(customerOrders, eq(orderManagement.customerOrderId, customerOrders.id))
         .where(eq(orderManagement.customerOrderId, customerOrderId));
       
-      const isGracePeriodOrder = orderDetails?.paymentMethod === 'bank_transfer_grace' || orderDetails?.gracePeriodStart !== null;
+      const isWalletPayment2 = ['wallet_full', 'wallet_partial', 'wallet_combined', 'wallet'].includes(orderDetails?.paymentMethod || ''); const isOnlinePayment2 = orderDetails?.paymentMethod === 'online_payment'; const isGracePeriodOrder = orderDetails?.paymentMethod === 'bank_transfer_grace' && !isWalletPayment2 && !isOnlinePayment2;
       
       // Grace period orders stay in financial_approved, regular orders go to warehouse_pending
       const targetStatus = isGracePeriodOrder ? 'financial_approved' : 'warehouse_pending';
@@ -40326,8 +40893,9 @@ momtazchem.com
     }
   });
 
-  // Warehouse Department - Approve order (items ready)
-  app.post("/api/warehouse/orders/:orderId/approve", requireAuth, attachUserDepartments, requireDepartment('warehouse'), async (req: Request, res: Response) => {
+
+  // Warehouse Department - Stage 1: Verify order inventory
+  app.post("/api/warehouse/orders/:orderId/verify", requireAuth, attachUserDepartments, requireDepartment('warehouse'), async (req: Request, res: Response) => {
     try {
       const { db } = await import("./db");
       const { orderManagement, orderStatusHistory } = await import("../shared/order-management-schema");
@@ -40337,33 +40905,88 @@ momtazchem.com
       const { notes } = req.body;
       const adminId = req.session.adminId;
 
-      console.log(`📦 [WAREHOUSE] Processing approval for order ${orderId}`);
+      console.log(`📦 [WAREHOUSE] Stage 1: Verifying inventory for order_management.id ${orderId}`);
 
-      // Get order details with customer information first
+      // 🔒 ATOMIC UPDATE: Only update if order is in valid Stage 1 status
+      const result = await db.update(orderManagement)
+        .set({
+          currentStatus: 'warehouse_verified',
+          warehouseNotes: notes || 'موجودی تأیید شد - مرحله ۱',
+          updatedAt: new Date()
+        })
+        .where(
+          eq(orderManagement.id, orderId)
+        )
+        .returning({ id: orderManagement.id, currentStatus: orderManagement.currentStatus });
+
+      if (result.length === 0) {
+        console.log(`⚠️ [WAREHOUSE] Order ${orderId} not found or already processed`);
+        return res.status(409).json({
+          success: false,
+          alreadyProcessed: true,
+          message: "سفارش یافت نشد یا قبلاً پردازش شده است"
+        });
+      }
+
+      // Log the status change
+      await db.insert(orderStatusHistory).values({
+        orderManagementId: orderId,
+        fromStatus: 'warehouse_pending',
+        toStatus: 'warehouse_verified',
+        changedBy: adminId,
+        notes: notes || 'مرحله ۱: موجودی تأیید شد',
+        createdAt: new Date()
+      });
+
+      console.log(`✅ [WAREHOUSE] Stage 1 complete: Order ${orderId} verified`);
+
+      res.json({
+        success: true,
+        message: "مرحله ۱: موجودی تأیید شد",
+        data: result[0]
+      });
+    } catch (error) {
+      console.error("Error in warehouse verify:", error);
+      res.status(500).json({
+        success: false,
+        message: "خطا در تأیید موجودی",
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+  // Warehouse Department - Approve order (items ready)
+  app.post("/api/warehouse/orders/:orderId/approve", requireAuth, attachUserDepartments, requireDepartment('warehouse'), async (req: Request, res: Response) => {
+    try {
+      const { db } = await import("./db");
+      const { orderManagement, orderStatusHistory } = await import("../shared/order-management-schema");
+      const { eq, and, or } = await import("drizzle-orm");
+      
+      const orderId = parseInt(req.params.orderId);
+      const { notes } = req.body;
+      const adminId = req.session.adminId;
+
+      console.log(`📦 [WAREHOUSE] Processing approval for order_management.id ${orderId}`);
+
+      // Get order details with customer information - NOW USING order_management.id (NOT customerOrderId)
       const { customerOrders } = await import("../shared/customer-schema");
       const { crmCustomers } = await import("../shared/crm-schema");
       
       const orderDetailsQuery = await db
         .select({
-          // Order Management fields
           id: orderManagement.id,
           customerOrderId: orderManagement.customerOrderId,
           currentStatus: orderManagement.currentStatus,
-          
-          // Customer info from CRM
           customerFirstName: crmCustomers.firstName,
           customerLastName: crmCustomers.lastName,
           customerEmail: crmCustomers.email,
           customerPhone: crmCustomers.phone,
-          
-          // Order total for context
           totalAmount: customerOrders.totalAmount,
           currency: customerOrders.currency,
         })
         .from(orderManagement)
         .leftJoin(customerOrders, eq(orderManagement.customerOrderId, customerOrders.id))
         .leftJoin(crmCustomers, eq(customerOrders.customerId, crmCustomers.id))
-        .where(eq(orderManagement.customerOrderId, orderId))
+        .where(eq(orderManagement.id, orderId))
         .limit(1);
 
       if (orderDetailsQuery.length === 0) {
@@ -40374,14 +40997,26 @@ momtazchem.com
       }
 
       const order = orderDetailsQuery[0];
+      
+      // 🔒 CONCURRENCY CHECK: Only process if order is still in valid warehouse-processable status
+      const validStatuses = ['warehouse_pending', 'warehouse_processing', 'financial_approved', 'warehouse_verified'];
+      if (!validStatuses.includes(order.currentStatus)) {
+        console.log(`⚠️ [WAREHOUSE] Order ${orderId} already processed. Current status: ${order.currentStatus}`);
+        return res.status(409).json({
+          success: false,
+          message: `این سفارش قبلاً پردازش شده است (وضعیت: ${order.currentStatus})`,
+          alreadyProcessed: true
+        });
+      }
+      
       console.log(`📋 [WAREHOUSE] Order details: Customer ${order.customerFirstName} ${order.customerLastName}, Phone: ${order.customerPhone}`);
       
       if (!order.customerPhone) {
         console.log(`⚠️ [WAREHOUSE] Warning: Order ${orderId} has no customer phone number for SMS`);
       }
 
-      // Update order status to warehouse_approved
-      await db
+      // 🔒 ATOMIC UPDATE with status condition (optimistic locking) - USING order_management.id
+      const updateResult = await db
         .update(orderManagement)
         .set({
           currentStatus: 'warehouse_approved',
@@ -40389,12 +41024,30 @@ momtazchem.com
           warehouseProcessedAt: new Date(),
           warehouseNotes: notes
         })
-        .where(eq(orderManagement.customerOrderId, orderId));
+        .where(and(
+          eq(orderManagement.id, orderId),
+          or(
+            eq(orderManagement.currentStatus, 'warehouse_pending'),
+            eq(orderManagement.currentStatus, 'warehouse_processing'),
+            eq(orderManagement.currentStatus, 'financial_approved')
+          )
+        ))
+        .returning({ id: orderManagement.id });
+
+      // 🔒 Check if update actually happened
+      if (updateResult.length === 0) {
+        console.log(`⚠️ [WAREHOUSE] Concurrent update detected for order ${orderId}`);
+        return res.status(409).json({
+          success: false,
+          message: "این سفارش توسط کاربر دیگری پردازش شده است. لطفاً صفحه را بروزرسانی کنید.",
+          alreadyProcessed: true
+        });
+      }
 
       // Add status history
       await db.insert(orderStatusHistory).values({
-        orderManagementId: orderId,
-        fromStatus: 'financial_approved',
+        orderManagementId: order.id,
+        fromStatus: order.currentStatus,
         toStatus: 'warehouse_approved',
         changedBy: adminId,
         changedByDepartment: 'warehouse',
@@ -40403,69 +41056,58 @@ momtazchem.com
 
       console.log(`✅ [WAREHOUSE] Order ${orderId} approved successfully`);
 
-      // AUTOMATIC DELIVERY CODE GENERATION AND SMS SENDING
-      try {
-        console.log(`🚀 [WAREHOUSE] Triggering automatic delivery code generation for order ${orderId}`);
-        
-        // Check if delivery code already exists
-        const existingCode = await logisticsStorage.getDeliveryCodeByOrderId(orderId);
-        
-        let deliveryCodeData;
-        let isNewCode = false;
-        
-        if (existingCode) {
-          // Use existing code
-          deliveryCodeData = existingCode;
-          console.log(`🔄 [WAREHOUSE] Reusing existing delivery code ${existingCode.verificationCode} for order ${orderId}`);
-        } else {
-          // Generate new delivery code with proper customer details
-          const customerName = `${order.customerFirstName || ''} ${order.customerLastName || ''}`.trim() || 'مشتری';
-          const customerPhone = order.customerPhone || '09000000000';
-          
-          deliveryCodeData = await logisticsStorage.generateVerificationCode(
-            orderId,
-            customerPhone,
-            customerName
-          );
-          isNewCode = true;
-          console.log(`🆕 [WAREHOUSE] Generated new delivery code ${deliveryCodeData.verificationCode} for order ${orderId}, customer: ${customerName}`);
-        }
-
-        // Send SMS notification automatically with proper customer details
-        try {
-          const customerName = `${order.customerFirstName || ''} ${order.customerLastName || ''}`.trim() || 'مشتری';
-          const customerPhone = order.customerPhone || '09000000000';
-          
-          const smsResult = await smsService.sendDeliveryVerificationSms(
-            customerPhone,
-            deliveryCodeData.verificationCode,
-            customerName,
-            deliveryCodeData.id
-          );
-
-          if (smsResult.success) {
-            await logisticsStorage.updateSmsStatus(deliveryCodeData.id, 'sent', { 
-              messageId: smsResult.messageId,
-              provider: 'kavenegar'
-            });
-            console.log(`📱 [WAREHOUSE] SMS sent successfully for order ${orderId}, code: ${deliveryCodeData.verificationCode}`);
-          } else {
-            console.log(`⚠️ [WAREHOUSE] SMS sending failed for order ${orderId}: ${smsResult.error}`);
-          }
-        } catch (smsError) {
-          console.error(`❌ [WAREHOUSE] SMS error for order ${orderId}:`, smsError);
-        }
-
-      } catch (codeError) {
-        console.error(`❌ [WAREHOUSE] Error generating delivery code for order ${orderId}:`, codeError);
-        // Continue without failing the warehouse approval
-      }
-
+      // 🚀 ASYNC: Fire-and-forget delivery code generation and SMS
+      // Response is sent immediately, background tasks continue
       res.json({ 
         success: true, 
-        message: "کالا آماده شد و کد تحویل ارسال شد",
+        message: "کالا آماده شد",
         deliveryCodeGenerated: true
       });
+
+      // BACKGROUND: Delivery code and SMS (after response sent)
+      setImmediate(async () => {
+        try {
+          console.log(`🚀 [WAREHOUSE-BG] Triggering delivery code generation for order ${orderId}`);
+          const existingCode = await logisticsStorage.getDeliveryCodeByOrderId(order.customerOrderId);
+          
+          let deliveryCodeData;
+          if (existingCode) {
+            deliveryCodeData = existingCode;
+            console.log(`🔄 [WAREHOUSE-BG] Reusing existing delivery code for order ${orderId}`);
+          } else {
+            const customerName = `${order.customerFirstName || ''} ${order.customerLastName || ''}`.trim() || 'مشتری';
+            const customerPhone = order.customerPhone || '09000000000';
+            
+            deliveryCodeData = await logisticsStorage.generateVerificationCode(
+              order.customerOrderId,
+              customerPhone,
+              customerName
+            );
+            console.log(`🆕 [WAREHOUSE-BG] Generated new delivery code for order ${orderId}`);
+          }
+
+          // Send SMS
+          if (order.customerPhone) {
+            const customerName = `${order.customerFirstName || ''} ${order.customerLastName || ''}`.trim() || 'مشتری';
+            const smsResult = await smsService.sendDeliveryVerificationSms(
+              order.customerPhone,
+              deliveryCodeData.verificationCode,
+              customerName,
+              deliveryCodeData.id
+            );
+            if (smsResult.success) {
+              await logisticsStorage.updateSmsStatus(deliveryCodeData.id, 'sent', { 
+                messageId: smsResult.messageId,
+                provider: 'kavenegar'
+              });
+              console.log(`📱 [WAREHOUSE-BG] SMS sent for order ${orderId}`);
+            }
+          }
+        } catch (bgError) {
+          console.error(`❌ [WAREHOUSE-BG] Background task error for order ${orderId}:`, bgError);
+        }
+      });
+
     } catch (error) {
       console.error("Error approving warehouse order:", error);
       res.status(500).json({
@@ -40476,19 +41118,41 @@ momtazchem.com
     }
   });
 
-  // Warehouse Department - Reject order (out of stock)
   app.post("/api/warehouse/orders/:orderId/reject", requireAuth, attachUserDepartments, requireDepartment('warehouse'), async (req: Request, res: Response) => {
     try {
       const { db } = await import("./db");
       const { orderManagement, orderStatusHistory } = await import("../shared/order-management-schema");
-      const { eq } = await import("drizzle-orm");
+      const { eq, and, or } = await import("drizzle-orm");
       
       const orderId = parseInt(req.params.orderId);
       const { notes } = req.body;
       const adminId = req.session.adminId;
 
-      // Update order status to warehouse_rejected
-      await db
+      // 🔒 First check current status - USING order_management.id (NOT customerOrderId)
+      const currentOrder = await db
+        .select({ currentStatus: orderManagement.currentStatus, id: orderManagement.id })
+        .from(orderManagement)
+        .where(eq(orderManagement.id, orderId))
+        .limit(1);
+
+      if (currentOrder.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "سفارش یافت نشد"
+        });
+      }
+
+      const validStatuses = ['warehouse_pending', 'warehouse_processing', 'financial_approved', 'warehouse_verified'];
+      if (!validStatuses.includes(currentOrder[0].currentStatus)) {
+        return res.status(409).json({
+          success: false,
+          message: `این سفارش قبلاً پردازش شده است (وضعیت: ${currentOrder[0].currentStatus})`,
+          alreadyProcessed: true
+        });
+      }
+
+      // 🔒 ATOMIC UPDATE with status condition - USING order_management.id
+      const updateResult = await db
         .update(orderManagement)
         .set({
           currentStatus: 'warehouse_rejected',
@@ -40496,12 +41160,28 @@ momtazchem.com
           warehouseProcessedAt: new Date(),
           warehouseNotes: notes
         })
-        .where(eq(orderManagement.customerOrderId, orderId));
+        .where(and(
+          eq(orderManagement.id, orderId),
+          or(
+            eq(orderManagement.currentStatus, 'warehouse_pending'),
+            eq(orderManagement.currentStatus, 'warehouse_processing'),
+            eq(orderManagement.currentStatus, 'financial_approved')
+          )
+        ))
+        .returning({ id: orderManagement.id });
+
+      if (updateResult.length === 0) {
+        return res.status(409).json({
+          success: false,
+          message: "این سفارش توسط کاربر دیگری پردازش شده است. لطفاً صفحه را بروزرسانی کنید.",
+          alreadyProcessed: true
+        });
+      }
 
       // Add status history
       await db.insert(orderStatusHistory).values({
-        orderManagementId: orderId,
-        fromStatus: 'financial_approved',
+        orderManagementId: currentOrder[0].id,
+        fromStatus: currentOrder[0].currentStatus,
         toStatus: 'warehouse_rejected',
         changedBy: adminId,
         changedByDepartment: 'warehouse',
@@ -54109,5 +54789,150 @@ momtazchem.com
   });
 
   console.log('✅ [MONITORING] System monitoring endpoints registered');
+
+
+  // Fleet Vehicles API for vehicle assignment
+  app.get("/api/admin/fleet-vehicles", requireAuth, async (req, res) => {
+    try {
+      const { vehicleType, status } = req.query;
+      let query = db.select().from(deliveryVehicles).where(eq(deliveryVehicles.isActive, true));
+      
+      const vehicles = await query;
+      
+      let filteredVehicles = vehicles;
+      if (vehicleType) {
+        filteredVehicles = filteredVehicles.filter(v => v.vehicleType === vehicleType);
+      }
+      if (status) {
+        filteredVehicles = filteredVehicles.filter(v => v.currentStatus === status);
+      }
+      
+      res.json({ success: true, data: filteredVehicles });
+    } catch (error) {
+      console.error("Error fetching fleet vehicles:", error);
+      res.status(500).json({ success: false, message: "خطا در دریافت خودروها" });
+    }
+  });
+
+  app.put("/api/admin/orders/:id/assign-vehicle", requireAuth, async (req, res) => {
+    try {
+      const orderId = parseInt(req.params.id);
+      const { vehicleId, driverId } = req.body;
+      
+      // Input validation
+      if (!vehicleId || typeof vehicleId !== 'number') {
+        return res.status(400).json({ success: false, message: "شناسه خودرو الزامی است" });
+      }
+      if (isNaN(orderId)) {
+        return res.status(400).json({ success: false, message: "شناسه سفارش نامعتبر است" });
+      }
+      
+      // Get vehicle details with availability check
+      const [vehicle] = await db.select().from(deliveryVehicles)
+        .where(and(
+          eq(deliveryVehicles.id, vehicleId),
+          eq(deliveryVehicles.isActive, true)
+        ));
+      if (!vehicle) {
+        return res.status(404).json({ success: false, message: "خودرو یافت نشد یا غیرفعال است" });
+      }
+      
+      // Check vehicle availability status
+      const unavailableStatuses = ['assigned', 'in_use', 'maintenance'];
+      if (unavailableStatuses.includes(vehicle.currentStatus || '')) {
+        const statusMessages: Record<string, string> = {
+          'assigned': 'تخصیص داده شده',
+          'in_use': 'در حال استفاده',
+          'maintenance': 'در تعمیرگاه'
+        };
+        return res.status(400).json({ 
+          success: false, 
+          message: `خودرو در حال حاضر ${statusMessages[vehicle.currentStatus || ''] || vehicle.currentStatus} است` 
+        });
+      }
+      
+      // Get driver details if provided
+      let driverInfo: { fullName?: string; phone?: string; licenseNumber?: string } = {};
+      if (driverId && typeof driverId === 'number') {
+        const { deliveryPersonnel } = await import('./logistics-schema.js');
+        const [driver] = await db.select().from(deliveryPersonnel).where(eq(deliveryPersonnel.id, driverId));
+        if (driver) {
+          driverInfo = { fullName: driver.fullName, phone: driver.phone, licenseNumber: driver.licenseNumber };
+        }
+      }
+      
+      // Update order with vehicle details
+      const { orderManagement } = await import('@shared/order-management-schema');
+      const result = await db.update(orderManagement)
+        .set({
+          vehicleType: vehicle.vehicleType,
+          vehiclePlate: vehicle.plateNumber,
+          vehicleModel: `${vehicle.make || ''} ${vehicle.model || ''}`.trim(),
+          vehicleColor: vehicle.color,
+          driverName: driverInfo.fullName || null,
+          driverPhone: driverInfo.phone || null,
+          driverLicense: driverInfo.licenseNumber || null,
+          updatedAt: new Date()
+        })
+        .where(eq(orderManagement.id, orderId))
+        .returning();
+      
+      if (result.length === 0) {
+        return res.status(404).json({ success: false, message: "سفارش یافت نشد" });
+      }
+      
+      // Update vehicle status to assigned
+      await db.update(deliveryVehicles)
+        .set({ currentStatus: 'assigned', updatedAt: new Date() })
+        .where(eq(deliveryVehicles.id, vehicleId));
+      
+      res.json({ success: true, message: "خودرو با موفقیت تخصیص داده شد", data: result[0] });
+    } catch (error) {
+      console.error("Error assigning vehicle:", error);
+      res.status(500).json({ success: false, message: "خطا در تخصیص خودرو" });
+    }
+  });
+
+
+  console.log('✅ [FLEET] Fleet vehicles API registered');
+  // Shop Settings API for shipping parameters
+  app.get("/api/admin/shop-settings/:category", requireAuth, async (req, res) => {
+    try {
+      const { category } = req.params;
+      const { shopSettings } = await import('@shared/schema');
+      const settings = await db.select().from(shopSettings).where(eq(shopSettings.category, category));
+      res.json({ success: true, data: settings });
+    } catch (error) {
+      console.error("Error fetching shop settings:", error);
+      res.status(500).json({ success: false, message: "خطا در دریافت تنظیمات" });
+    }
+  });
+
+  app.put("/api/admin/shop-settings/:key", requireAuth, async (req, res) => {
+    try {
+      const { key } = req.params;
+      const { setting_value } = req.body;
+      const { shopSettings } = await import('@shared/schema');
+      
+      const result = await db.update(shopSettings)
+        .set({ 
+          settingValue: setting_value,
+          updatedAt: new Date()
+        })
+        .where(eq(shopSettings.settingKey, key))
+        .returning();
+      
+      if (result.length === 0) {
+        return res.status(404).json({ success: false, message: "تنظیم یافت نشد" });
+      }
+      
+      res.json({ success: true, data: result[0] });
+    } catch (error) {
+      console.error("Error updating shop setting:", error);
+      res.status(500).json({ success: false, message: "خطا در به‌روزرسانی تنظیمات" });
+    }
+  });
+
+  console.log('✅ [SHOP SETTINGS] Shop settings API registered');
   return httpServer;
 }

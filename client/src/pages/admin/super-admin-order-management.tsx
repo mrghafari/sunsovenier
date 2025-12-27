@@ -50,6 +50,7 @@ interface Order {
   paymentMethod: string;
   createdAt: string;
   updatedAt: string;
+  deliveryCode?: string;
 }
 
 
@@ -264,13 +265,19 @@ export default function SuperAdminOrderManagement() {
     },
   });
 
-  // Filter orders based on search with null safety
-  const filteredOrders = (orders || []).filter((order: Order) => 
-    order?.orderNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order?.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order?.customerEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order?.customerPhone?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter orders based on search with null safety (minimum 3 characters required)
+  const searchActive = searchTerm.length >= 3;
+  const searchLower = searchTerm.toLowerCase();
+  
+  const filteredOrders = (orders || []).filter((order: Order) => {
+    if (!searchActive) return true; // Show all orders if search term is less than 3 characters
+    
+    return order?.orderNumber?.toLowerCase().includes(searchLower) ||
+      order?.customerName?.toLowerCase().includes(searchLower) ||
+      order?.customerEmail?.toLowerCase().includes(searchLower) ||
+      order?.customerPhone?.toLowerCase().includes(searchLower) ||
+      order?.deliveryCode?.toLowerCase().includes(searchLower);
+  });
 
   // Check for authentication errors  
   const hasAuthError = (response as any)?.error?.message?.includes('401');
@@ -417,13 +424,14 @@ export default function SuperAdminOrderManagement() {
           <CardContent className="space-y-4">
             <div className="flex gap-4 items-center">
               <div className="flex-1">
-                <Label htmlFor="search">جستجو بر اساس شماره سفارش، نام مشتری، ایمیل یا تلفن</Label>
+                <Label htmlFor="search">جستجو (حداقل ۳ حرف): شماره سفارش، ایمیل، کد تحویل، تلفن</Label>
                 <Input
                   id="search"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="جستجو..."
+                  placeholder="حداقل ۳ حرف وارد کنید..."
                   className="mt-1"
+                  data-testid="input-order-search"
                 />
               </div>
               <Button

@@ -125,6 +125,11 @@ const CustomerProfile = () => {
     const managementStatus = order.managementStatus?.toLowerCase();
     const hasFinancialReview = order.financialReviewedAt;
     
+    // Check for cancelled/rejected orders FIRST
+    if (status === 'cancelled' || status === 'financial_rejected' || status === 'rejected') {
+      return 'cancelled';
+    }
+    
     // Check for bank transfer orders
     if (paymentMethod === 'واریز بانکی با مهلت 3 روزه' || paymentMethod === 'bank_transfer_grace') {
       return 'bank_transfer';
@@ -659,6 +664,21 @@ const CustomerProfile = () => {
                                 </span>
                               </button>
                             )}
+                            {statusCounts.cancelled > 0 && (
+                              <button
+                                onClick={() => setMainProfileFilter("cancelled")}
+                                className={`flex items-center gap-1 px-2 py-1 rounded-full border transition-all cursor-pointer ${
+                                  mainProfileFilter === "cancelled"
+                                    ? "bg-red-100 border-red-300 shadow-md"
+                                    : "bg-red-50 border-red-200 hover:bg-red-100"
+                                }`}
+                              >
+                                <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                                <span className={`font-medium ${mainProfileFilter === "cancelled" ? "text-red-800" : "text-red-700"}`}>
+                                  {statusCounts.cancelled} لغو شده
+                                </span>
+                              </button>
+                            )}
                           </>
                         );
                       })()}
@@ -1033,25 +1053,27 @@ const CustomerProfile = () => {
                             </>
                           )}
                           
-                          {/* 🧾 دکمه دانلود فاکتور/پیش فاکتور بر اساس نوع فاکتور */}
-                          {order.invoiceType === 'official_invoice' ? (
-                            <Button
-                              size="sm"
-                              onClick={() => window.open(`/download-invoice/${order.id}`, '_blank')}
-                              className="bg-green-600 hover:bg-green-700"
-                            >
-                              <Download className="w-4 h-4 mr-2" />
-                              دانلود فاکتور رسمی
-                            </Button>
-                          ) : (
-                            <Button
-                              size="sm"
-                              onClick={() => window.open(`/download-proforma-invoice/${order.id}`, '_blank')}
-                              className="bg-blue-600 hover:bg-blue-700"
-                            >
-                              <Download className="w-4 h-4 mr-2" />
-                              دانلود پیش‌فاکتور
-                            </Button>
+                          {/* 🧾 دکمه دانلود فاکتور/پیش فاکتور - فقط برای سفارشات غیر لغو شده */}
+                          {order.status !== 'cancelled' && order.status !== 'financial_rejected' && order.status !== 'rejected' && (
+                            order.invoiceType === 'official_invoice' ? (
+                              <Button
+                                size="sm"
+                                onClick={() => window.open(`/download-invoice/${order.id}`, '_blank')}
+                                className="bg-green-600 hover:bg-green-700"
+                              >
+                                <Download className="w-4 h-4 mr-2" />
+                                دانلود فاکتور رسمی
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                onClick={() => window.open(`/download-proforma-invoice/${order.id}`, '_blank')}
+                                className="bg-blue-600 hover:bg-blue-700"
+                              >
+                                <Download className="w-4 h-4 mr-2" />
+                                دانلود پیش‌فاکتور
+                              </Button>
+                            )
                           )}
                         </div>
                       </div>
@@ -1225,8 +1247,13 @@ const CustomerProfile = () => {
             </div>
           )}
 
-          {/* Simple Orders List */}
-          <div className="space-y-4 max-h-96 overflow-y-auto">
+          {/* Simple Orders List - with keyboard navigation support */}
+          <div 
+            className="space-y-4 max-h-96 overflow-y-auto focus:outline-none focus:ring-2 focus:ring-purple-300 rounded-lg p-1"
+            tabIndex={0}
+            role="list"
+            aria-label="لیست سفارشات"
+          >
             {filteredHistory.length === 0 && !isLoadingHistory && (
               <div className="text-center py-8 text-gray-500">
                 {searchTerm ? "نتیجه‌ای یافت نشد" : "سفارشی موجود نیست"}
@@ -1280,14 +1307,17 @@ const CustomerProfile = () => {
                     </div>
                   </div>
 
-                  {/* نمایش دلیل رد سفارش در سابقه خرید */}
-                  {(order.status === 'financial_rejected' || order.status === 'rejected') && order.financialNotes && (
+                  {/* نمایش دلیل رد یا کنسل سفارش در سابقه خرید */}
+                  {(order.status === 'financial_rejected' || order.status === 'rejected' || order.status === 'cancelled') && 
+                   (order.financialNotes || order.rejectionReason) && (
                     <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
                       <div className="flex items-start gap-2">
                         <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
                         <div>
-                          <h6 className="text-sm font-medium text-red-800 mb-1">دلیل رد سفارش:</h6>
-                          <p className="text-sm text-red-700">{order.financialNotes}</p>
+                          <h6 className="text-sm font-medium text-red-800 mb-1">
+                            {order.status === 'cancelled' ? 'دلیل لغو سفارش:' : 'دلیل رد سفارش:'}
+                          </h6>
+                          <p className="text-sm text-red-700">{order.rejectionReason || order.financialNotes}</p>
                         </div>
                       </div>
                     </div>
@@ -1373,25 +1403,27 @@ const CustomerProfile = () => {
                       </Button>
                     )}
                     
-                    {/* 🧾 دکمه دانلود فاکتور/پیش فاکتور بر اساس نوع فاکتور در سابقه خرید */}
-                    {order.invoiceType === 'official_invoice' ? (
-                      <Button
-                        size="sm"
-                        onClick={() => window.open(`/download-invoice/${order.id}`, '_blank')}
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        <Download className="w-4 h-4 mr-2" />
-                        دانلود فاکتور رسمی
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        onClick={() => window.open(`/download-proforma-invoice/${order.id}`, '_blank')}
-                        className="bg-blue-600 hover:bg-blue-700"
-                      >
-                        <Download className="w-4 h-4 mr-2" />
-                        دانلود پیش‌فاکتور
-                      </Button>
+                    {/* 🧾 دکمه دانلود فاکتور/پیش فاکتور - فقط برای سفارشات غیر لغو شده */}
+                    {order.status !== 'cancelled' && order.status !== 'financial_rejected' && order.status !== 'rejected' && (
+                      order.invoiceType === 'official_invoice' ? (
+                        <Button
+                          size="sm"
+                          onClick={() => window.open(`/download-invoice/${order.id}`, '_blank')}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          دانلود فاکتور رسمی
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          onClick={() => window.open(`/download-proforma-invoice/${order.id}`, '_blank')}
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          دانلود پیش‌فاکتور
+                        </Button>
+                      )
                     )}
                     
                     {/* دکمه درخواست فاکتور رسمی برای سفارشات پرداخت شده */}

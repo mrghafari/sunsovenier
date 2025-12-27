@@ -37,10 +37,12 @@ export class IncompletePaymentCleaner {
       
       const { pool } = await import('./db');
       
-      // Process online payment failures, grace period expired orders, and failed bank payment orphans
+      // Process online payment failures, grace period expired orders, failed bank payment orphans, expired wallet reservations, and stale wallet_partial orders
       await this.processFailedOnlinePayments(pool);
       await this.processExpiredGracePeriodOrders(pool);
       await this.processFailedBankPaymentOrphans(pool);
+      await this.processExpiredWalletReservations(pool);
+      await this.processStaleWalletPartialOrders(pool);
 
       console.log(`✅ [INCOMPLETE PAYMENT CLEANER] Processing completed`);
     } catch (error) {
@@ -240,12 +242,33 @@ export class IncompletePaymentCleaner {
 
   private async deleteIncompleteOrder(order: any, orderType: string = 'online_payment') {
     try {
-      const reason = orderType === 'grace_period_expired' ? 'after grace period expiry (3 days)' : 'after timeout';
-      console.log(`🗑️ [PERMANENT ORDER CLEANUP] Deleting permanent order ${order.order_number} ${reason} - freeing order number for reuse`);
+      // Determine cancellation reason based on order type
+      let cancellationReason: string;
+      switch (orderType) {
+        case 'grace_period_expired':
+          cancellationReason = 'سفارش پس از اتمام مهلت ۳ روزه پرداخت بانکی توسط سیستم لغو شد';
+          break;
+        case 'online_payment':
+          cancellationReason = 'عدم موفقیت در پرداخت آنلاین - سفارش توسط سیستم لغو شد';
+          break;
+        case 'failed_bank_payment_orphan':
+          cancellationReason = 'عدم موفقیت در پرداخت بانکی - سفارش توسط سیستم لغو شد';
+          break;
+        case 'wallet_reservation_expired':
+          cancellationReason = 'رزرو کیف پول منقضی شد - پرداخت بانکی تکمیل نشد';
+          break;
+        case 'wallet_partial_stale':
+          cancellationReason = 'عدم تکمیل پرداخت بانکی در مهلت ۳۰ دقیقه - سفارش توسط سیستم لغو شد';
+          break;
+        default:
+          cancellationReason = 'سفارش توسط سیستم لغو شد';
+      }
+      
+      console.log(`🚫 [ORDER CANCEL] Cancelling order ${order.order_number} - Reason: ${cancellationReason}`);
       
       const { pool } = await import('./db');
       
-      // Start transaction for safe deletion and refund
+      // Start transaction for safe cancellation and refund
       await pool.query('BEGIN');
       
       try {
@@ -258,76 +281,89 @@ export class IncompletePaymentCleaner {
         
         const orderDetails = orderQuery.rows[0];
         if (orderDetails && orderDetails.payment_method === 'wallet_partial') {
-          console.log(`💰 [WALLET REFUND] Order ${order.order_number} used partial wallet payment - processing refund`);
+          console.log(`💰 [WALLET CLEANUP] Order ${order.order_number} used partial wallet payment - processing cleanup`);
           
           try {
-            // Import wallet storage to process refund
-            const { WalletStorage } = await import('./wallet-storage');
-            const walletStorage = new WalletStorage();
+            // Import wallet storage to process refund/release
+            const { walletStorage } = await import('./wallet-storage');
             
-            // Find wallet transactions for this order
-            const walletTransactions = await walletStorage.getTransactionsByReference('order', order.id);
-            console.log(`🔍 [WALLET REFUND] Found ${walletTransactions.length} wallet transactions for order ${order.id}`);
-            
-            // Find debit transactions (wallet deductions) for this order
-            const debitTransactions = walletTransactions.filter(t => t.transactionType === 'debit' && t.status === 'completed');
-            
-            if (debitTransactions.length > 0) {
-              // Calculate total amount to refund
-              const totalDebitAmount = debitTransactions.reduce((sum, t) => sum + parseFloat(t.amount), 0);
-              console.log(`💰 [WALLET REFUND] Refunding ${totalDebitAmount} IQD to customer ${orderDetails.customer_id}`);
-              
-              // Process wallet refund
-              await walletStorage.creditWallet(
-                orderDetails.customer_id,
-                totalDebitAmount,
-                `بازگشت وجه سفارش حذف شده ${order.order_number || 'بدون شماره'} - عدم موفقیت پرداخت بانکی`,
-                'cleanup_refund',
-                order.id
+            // PRIORITY 1: Check for reserved (not yet deducted) wallet transactions
+            // With the new 2-phase wallet system, wallet_partial orders should have reservations, not completed debits
+            const reservation = await walletStorage.getReservationByOrder(order.id);
+            if (reservation) {
+              // Release reservation - no balance change needed since funds were never deducted
+              await walletStorage.releaseReservation(reservation.id, `Order ${order.order_number} cleanup - bank payment never completed`);
+              console.log(`🔓 [WALLET RELEASE] Released reservation ${reservation.id} for order ${order.order_number} - ${reservation.amount} IQD was never deducted`);
+            } else {
+              // FALLBACK: Check for old-style completed debit transactions (pre-reservation system)
+              // This handles orders created before the reservation system was implemented
+              const allTransactions = await walletStorage.getTransactionsByCustomer(orderDetails.customer_id, 100);
+              const debitTransactions = allTransactions.filter(t => 
+                t.transactionType === 'debit' && 
+                t.status === 'completed' && 
+                t.referenceId === order.id &&
+                t.referenceType === 'order'
               );
               
-              console.log(`✅ [WALLET REFUND] Successfully refunded ${totalDebitAmount} IQD for deleted order ${order.order_number}`);
-            } else {
-              console.log(`ℹ️ [WALLET REFUND] No wallet debit transactions found for order ${order.order_number}`);
+              if (debitTransactions.length > 0) {
+                // Calculate total amount to refund
+                const totalDebitAmount = debitTransactions.reduce((sum, t) => sum + parseFloat(t.amount), 0);
+                console.log(`💰 [WALLET REFUND] Refunding ${totalDebitAmount} IQD to customer ${orderDetails.customer_id}`);
+                
+                // Process wallet refund
+                await walletStorage.creditWallet(
+                  orderDetails.customer_id,
+                  totalDebitAmount,
+                  `بازگشت وجه سفارش لغو شده ${order.order_number || 'بدون شماره'} - ${cancellationReason}`,
+                  'cancellation_refund',
+                  order.id
+                );
+                
+                console.log(`✅ [WALLET REFUND] Successfully refunded ${totalDebitAmount} IQD for cancelled order ${order.order_number}`);
+              } else {
+                console.log(`ℹ️ [WALLET CLEANUP] No wallet transactions (reservations or debits) found for order ${order.order_number}`);
+              }
             }
           } catch (refundError) {
-            console.error(`❌ [WALLET REFUND] Error processing wallet refund for order ${order.order_number}:`, refundError);
-            // Continue with deletion even if refund fails to avoid orphaned orders
+            console.error(`❌ [WALLET CLEANUP] Error processing wallet cleanup for order ${order.order_number}:`, refundError);
+            // Continue with cancellation even if refund fails
           }
         } else {
-          console.log(`ℹ️ [PAYMENT METHOD] Order ${order.order_number} payment method: ${orderDetails?.payment_method || 'unknown'} - no wallet refund needed`);
+          console.log(`ℹ️ [PAYMENT METHOD] Order ${order.order_number} payment method: ${orderDetails?.payment_method || 'unknown'} - no wallet cleanup needed`);
         }
 
-        // 1. Delete from order_management first (foreign key constraint)
+        // 1. Update customer_orders to cancelled status with reason
+        await pool.query(`
+          UPDATE customer_orders 
+          SET status = 'cancelled', 
+              rejection_reason = $1,
+              updated_at = NOW()
+          WHERE id = $2
+        `, [cancellationReason, order.id]);
+        console.log(`🚫 [ORDER CANCEL] Updated customer_orders status to cancelled for ${order.order_number}`);
+
+        // 2. Update order_management to cancelled status with reason
         if (order.management_id) {
-          await pool.query(`DELETE FROM order_management WHERE id = $1`, [order.management_id]);
-          console.log(`🗑️ [INCOMPLETE PAYMENT CLEANER] Deleted order_management record for ${order.order_number}`);
+          await pool.query(`
+            UPDATE order_management 
+            SET current_status = 'cancelled',
+                financial_notes = $1,
+                updated_at = NOW()
+            WHERE id = $2
+          `, [cancellationReason, order.management_id]);
+          console.log(`🚫 [ORDER CANCEL] Updated order_management status to cancelled for ${order.order_number}`);
         }
-
-        // 2. Delete from order_items
-        await pool.query(`DELETE FROM order_items WHERE order_id = $1`, [order.id]);
-        console.log(`🗑️ [INCOMPLETE PAYMENT CLEANER] Deleted order_items for ${order.order_number}`);
-
-        // 3. Delete from payment_receipts if any
-        await pool.query(`DELETE FROM payment_receipts WHERE customer_order_id = $1`, [order.id]);
-
-        // 4. Finally delete the main customer_order
-        await pool.query(`DELETE FROM customer_orders WHERE id = $1`, [order.id]);
-        console.log(`🗑️ [INCOMPLETE PAYMENT CLEANER] Deleted customer_order ${order.order_number}`);
-
-        // Order deleted successfully - no notifications needed per user requirements
-        console.log(`🗑️ [CLEANUP] Order ${order.order_number} deleted successfully without notifications`);
 
         await pool.query('COMMIT');
-        console.log(`✅ [INCOMPLETE PAYMENT CLEANER] Successfully deleted incomplete order ${order.order_number}`);
+        console.log(`✅ [ORDER CANCEL] Successfully cancelled order ${order.order_number} with reason preserved in history`);
 
-      } catch (deleteError) {
+      } catch (cancelError) {
         await pool.query('ROLLBACK');
-        throw deleteError;
+        throw cancelError;
       }
 
     } catch (error) {
-      console.error(`❌ [INCOMPLETE PAYMENT CLEANER] Error deleting order ${order.order_number}:`, error);
+      console.error(`❌ [ORDER CANCEL] Error cancelling order ${order.order_number}:`, error);
     }
   }
 
@@ -358,14 +394,14 @@ export class IncompletePaymentCleaner {
       
       // Check if customer has an active session in the last 5 minutes
       const result = await pool.query(`
-        SELECT s.sess 
+        SELECT s.id 
         FROM security_sessions s 
-        WHERE s.sess::text LIKE '%"customerId":${customerId}%' 
-          AND s.sess::text LIKE '%"isAuthenticated":true%'
-          AND s.expire > NOW()
-          AND s.expire > NOW() - INTERVAL '5 minutes'
+        WHERE s.user_id = $1 
+          AND s.is_active = true
+          AND s.expires_at > NOW()
+          AND s.last_activity > NOW() - INTERVAL '5 minutes'
         LIMIT 1
-      `);
+      `, [customerId]);
       
       const isOnline = result.rows.length > 0;
       console.log(`🔍 [ONLINE CHECK] Customer ${customerId} online status: ${isOnline}`);
@@ -397,6 +433,127 @@ export class IncompletePaymentCleaner {
     } catch (error) {
       console.error('Error getting customer name:', error);
       return 'Dear Customer';
+    }
+  }
+
+  async processExpiredWalletReservations(pool: any) {
+    try {
+      // Find wallet reservations older than 30 minutes that are still in 'reserved' status
+      const result = await pool.query(`
+        SELECT 
+          wt.id,
+          wt.customer_id,
+          wt.amount,
+          wt.notes,
+          wt.description,
+          wt.reference_id,
+          wt.created_at,
+          EXTRACT(EPOCH FROM (NOW() - wt.created_at))/60 as age_minutes
+        FROM wallet_transactions wt
+        WHERE wt.status = 'reserved'
+          AND wt.reference_type = 'order'
+          AND wt.created_at < NOW() - INTERVAL '30 minutes'
+        ORDER BY wt.created_at ASC
+      `);
+
+      const expiredReservations = result.rows;
+      console.log(`🔍 [WALLET CLEANUP] Found ${expiredReservations.length} expired wallet reservations (>30 min)`);
+
+      for (const reservation of expiredReservations) {
+        try {
+          const { walletStorage } = await import('./wallet-storage');
+          
+          await walletStorage.releaseReservation(
+            reservation.id, 
+            `Reservation expired after ${Math.round(reservation.age_minutes)} minutes - no bank payment confirmation received`
+          );
+          
+          console.log(`🔓 [WALLET CLEANUP] Released expired reservation ${reservation.id}: ${reservation.amount} IQD for customer ${reservation.customer_id}`);
+          
+          // Also cancel the related order if it exists
+          if (reservation.reference_id) {
+            const cancellationReason = 'رزرو کیف پول منقضی شد - پرداخت بانکی تکمیل نشد';
+            
+            // Get order info first
+            const orderResult = await pool.query(`
+              SELECT co.id, co.order_number, om.id as management_id
+              FROM customer_orders co
+              LEFT JOIN order_management om ON co.id = om.customer_order_id
+              WHERE co.id = $1 AND co.status NOT IN ('cancelled', 'delivered', 'financial_rejected')
+            `, [reservation.reference_id]);
+            
+            if (orderResult.rows.length > 0) {
+              const order = orderResult.rows[0];
+              
+              // Update customer_orders to cancelled
+              await pool.query(`
+                UPDATE customer_orders 
+                SET status = 'cancelled', 
+                    rejection_reason = $1,
+                    updated_at = NOW()
+                WHERE id = $2
+              `, [cancellationReason, order.id]);
+              
+              // Update order_management to cancelled
+              if (order.management_id) {
+                await pool.query(`
+                  UPDATE order_management 
+                  SET current_status = 'cancelled',
+                      financial_notes = $1,
+                      updated_at = NOW()
+                  WHERE id = $2
+                `, [cancellationReason, order.management_id]);
+              }
+              
+              console.log(`🚫 [WALLET CLEANUP] Cancelled order ${order.order_number || order.id} due to expired wallet reservation`);
+            }
+          }
+        } catch (releaseError) {
+          console.error(`❌ [WALLET CLEANUP] Failed to release reservation ${reservation.id}:`, releaseError);
+        }
+      }
+    } catch (error) {
+      console.error('❌ [WALLET CLEANUP] Error processing expired wallet reservations:', error);
+    }
+  }
+
+  async processStaleWalletPartialOrders(pool: any) {
+    try {
+      // Find wallet_partial orders that have been pending for more than 30 minutes
+      // These are orders where customer started with wallet but never completed bank payment
+      const result = await pool.query(`
+        SELECT 
+          co.id,
+          co.order_number,
+          co.customer_id,
+          co.guest_email,
+          co.guest_name,
+          co.total_amount,
+          co.currency,
+          co.created_at,
+          co.notification_stage,
+          EXTRACT(EPOCH FROM (NOW() - co.created_at))/60 as age_minutes,
+          om.id as management_id
+        FROM customer_orders co
+        LEFT JOIN order_management om ON co.id = om.customer_order_id
+        WHERE co.payment_method = 'wallet_partial'
+          AND co.status = 'pending'
+          AND co.payment_status = 'pending'
+          AND (om.current_status = 'pending' OR om.current_status IS NULL)
+          AND co.created_at < NOW() - INTERVAL '30 minutes'
+        ORDER BY co.created_at ASC
+      `);
+
+      const staleOrders = result.rows;
+      console.log(`🔍 [WALLET PARTIAL CLEANUP] Found ${staleOrders.length} stale wallet_partial orders (>30 min)`);
+
+      for (const order of staleOrders) {
+        const ageMinutes = parseFloat(order.age_minutes);
+        console.log(`🚫 [WALLET PARTIAL CLEANUP] Cancelling stale order ${order.order_number} after ${ageMinutes.toFixed(1)} minutes`);
+        await this.deleteIncompleteOrder(order, 'wallet_partial_stale');
+      }
+    } catch (error) {
+      console.error('❌ [WALLET PARTIAL CLEANUP] Error processing stale wallet_partial orders:', error);
     }
   }
 

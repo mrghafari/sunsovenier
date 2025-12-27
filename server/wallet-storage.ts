@@ -415,6 +415,215 @@ export class WalletStorage implements IWalletStorage {
     };
   }
   
+  // =====================================================================
+  // WALLET RESERVATION SYSTEM (for hybrid payments: wallet + bank)
+  // =====================================================================
+
+  /**
+   * Reserve wallet funds without immediately deducting from balance.
+   * Used for hybrid payments where bank confirmation is required first.
+   * Creates a transaction with status="reserved".
+   */
+  async reserveWallet(
+    customerId: number, 
+    amount: number, 
+    description: string, 
+    referenceType?: string, 
+    referenceId?: number,
+    orderNumber?: string
+  ): Promise<WalletTransaction> {
+    const wallet = await this.getWalletByCustomerId(customerId);
+    if (!wallet) {
+      throw new Error("Customer wallet not found");
+    }
+
+    const currentBalance = parseFloat(wallet.balance);
+    const creditLimit = parseFloat(wallet.creditLimit || "0");
+    const availableAmount = currentBalance + creditLimit;
+
+    // Check if there are existing reservations for this customer
+    const existingReservations = await this.getPendingReservations(customerId);
+    const totalReserved = existingReservations.reduce((sum, r) => sum + parseFloat(r.amount), 0);
+    const effectiveAvailable = availableAmount - totalReserved;
+
+    if (amount > effectiveAvailable) {
+      throw new Error(`Insufficient funds. Available: ${effectiveAvailable}, Required: ${amount}, Reserved: ${totalReserved}`);
+    }
+
+    // Create reservation transaction (NOT deducting balance yet)
+    const transaction = await this.createTransaction({
+      walletId: wallet.id,
+      customerId,
+      transactionType: "debit",
+      amount: amount.toString(),
+      currency: wallet.currency,
+      balanceBefore: currentBalance.toString(),
+      balanceAfter: currentBalance.toString(), // Balance unchanged until confirmation
+      description: `[RESERVED] ${description}`,
+      referenceType: referenceType || "order",
+      referenceId,
+      status: "reserved", // Key: reserved status means funds are held but not deducted
+      notes: orderNumber ? `Order: ${orderNumber}` : undefined,
+      metadata: { reservedAt: new Date().toISOString(), orderNumber }
+    });
+
+    console.log(`🔒 [WALLET RESERVE] Reserved ${amount} IQD for customer ${customerId}, Order: ${orderNumber || referenceId}`);
+
+    return transaction;
+  }
+
+  /**
+   * Confirm a reservation and actually deduct the funds from wallet.
+   * Called after bank payment is successfully verified.
+   */
+  async confirmReservation(
+    reservationId: number,
+    processedBy?: number
+  ): Promise<WalletTransaction> {
+    const reservation = await this.getTransactionById(reservationId);
+    if (!reservation) {
+      throw new Error("Reservation transaction not found");
+    }
+
+    if (reservation.status !== "reserved") {
+      throw new Error(`Cannot confirm reservation with status: ${reservation.status}`);
+    }
+
+    const wallet = await this.getWalletByCustomerId(reservation.customerId);
+    if (!wallet) {
+      throw new Error("Customer wallet not found");
+    }
+
+    const currentBalance = parseFloat(wallet.balance);
+    const amount = parseFloat(reservation.amount);
+    const newBalance = currentBalance - amount;
+
+    // Update the reservation transaction to completed
+    await customerDb
+      .update(walletTransactions)
+      .set({
+        status: "completed",
+        balanceBefore: currentBalance.toString(),
+        balanceAfter: newBalance.toString(),
+        description: reservation.description.replace("[RESERVED] ", "[CONFIRMED] "),
+        processedBy,
+        updatedAt: new Date()
+      })
+      .where(eq(walletTransactions.id, reservationId));
+
+    // Actually deduct from wallet balance
+    await this.updateWalletBalance(wallet.id, newBalance);
+
+    const updatedTransaction = await this.getTransactionById(reservationId);
+    console.log(`✅ [WALLET CONFIRM] Confirmed reservation ${reservationId}: ${amount} IQD deducted from customer ${reservation.customerId}`);
+
+    return updatedTransaction!;
+  }
+
+  /**
+   * Release a reservation without deducting funds (e.g., bank payment failed/cancelled).
+   */
+  async releaseReservation(
+    reservationId: number,
+    reason?: string
+  ): Promise<WalletTransaction> {
+    const reservation = await this.getTransactionById(reservationId);
+    if (!reservation) {
+      throw new Error("Reservation transaction not found");
+    }
+
+    if (reservation.status !== "reserved") {
+      throw new Error(`Cannot release reservation with status: ${reservation.status}`);
+    }
+
+    // Update the reservation transaction to cancelled
+    await customerDb
+      .update(walletTransactions)
+      .set({
+        status: "cancelled",
+        description: reservation.description.replace("[RESERVED] ", "[RELEASED] "),
+        notes: reason || "Reservation released - bank payment not completed",
+        updatedAt: new Date()
+      })
+      .where(eq(walletTransactions.id, reservationId));
+
+    const updatedTransaction = await this.getTransactionById(reservationId);
+    console.log(`🔓 [WALLET RELEASE] Released reservation ${reservationId}: ${reservation.amount} IQD for customer ${reservation.customerId}. Reason: ${reason || 'Bank payment not completed'}`);
+
+    return updatedTransaction!;
+  }
+
+  /**
+   * Get all pending reservations for a customer
+   */
+  async getPendingReservations(customerId: number): Promise<WalletTransaction[]> {
+    return await customerDb
+      .select()
+      .from(walletTransactions)
+      .where(and(
+        eq(walletTransactions.customerId, customerId),
+        eq(walletTransactions.status, "reserved")
+      ))
+      .orderBy(desc(walletTransactions.createdAt));
+  }
+
+  /**
+   * Get reservation by order reference (order ID, order number in notes, or customer ID + order ID)
+   */
+  async getReservationByOrder(referenceId: number, orderNumber?: string, customerId?: number): Promise<WalletTransaction | undefined> {
+    // First try to find by referenceId
+    const [byRefId] = await customerDb
+      .select()
+      .from(walletTransactions)
+      .where(and(
+        eq(walletTransactions.referenceId, referenceId),
+        eq(walletTransactions.referenceType, "order"),
+        eq(walletTransactions.status, "reserved")
+      ));
+    
+    if (byRefId) return byRefId;
+    
+    // Get all pending reservations for searching
+    const allReserved = await customerDb
+      .select()
+      .from(walletTransactions)
+      .where(and(
+        eq(walletTransactions.referenceType, "order"),
+        eq(walletTransactions.status, "reserved"),
+        ...(customerId ? [eq(walletTransactions.customerId, customerId)] : [])
+      ));
+    
+    // If orderNumber provided, search by notes containing order number
+    if (orderNumber) {
+      const byOrderNumber = allReserved.find(t => 
+        (t.notes && t.notes.includes(orderNumber)) || 
+        (t.description && t.description.includes(orderNumber))
+      );
+      
+      if (byOrderNumber) return byOrderNumber;
+    }
+    
+    // If customerId provided and only one pending reservation exists, return it
+    if (customerId && allReserved.length === 1) {
+      console.log(`🔍 [WALLET] Found single pending reservation ${allReserved[0].id} for customer ${customerId}`);
+      return allReserved[0];
+    }
+    
+    return undefined;
+  }
+  
+  /**
+   * Update reservation reference ID after order is created
+   */
+  async updateReservationReferenceId(reservationId: number, orderId: number): Promise<void> {
+    await customerDb
+      .update(walletTransactions)
+      .set({ referenceId: orderId, updatedAt: new Date() })
+      .where(eq(walletTransactions.id, reservationId));
+    
+    console.log(`🔗 [WALLET] Updated reservation ${reservationId} with order ID ${orderId}`);
+  }
+
   async getAllWalletHolders(): Promise<Array<{
     customerId: number;
     customerName: string;

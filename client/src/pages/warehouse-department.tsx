@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { 
   Package, 
   Clock, 
@@ -26,9 +27,12 @@ import { queryClient } from "@/lib/queryClient";
 
 export default function WarehouseDepartment() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [processingOrder, setProcessingOrder] = useState<number | null>(null);
   const [processingNotes, setProcessingNotes] = useState("");
   const { toast } = useToast();
+
+  const [confirmingOrderId, setConfirmingOrderId] = useState<number | null>(null);
+  const [confirmStep, setConfirmStep] = useState<1 | 2>(1);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
 
   // Get refresh interval from global settings
   const getRefreshInterval = () => {
@@ -75,9 +79,12 @@ export default function WarehouseDepartment() {
   // Process order mutation
   const processOrderMutation = useMutation({
     mutationFn: async (orderId: number) => {
-      return apiRequest(`/api/order-management/warehouse/${orderId}/process`, "PATCH", {
-        status: "warehouse_approved",
-        notes: processingNotes
+      return apiRequest(`/api/order-management/warehouse/${orderId}/process`, {
+        method: "PATCH",
+        body: {
+          status: "warehouse_approved",
+          notes: processingNotes
+        }
       });
     },
     onSuccess: () => {
@@ -86,7 +93,9 @@ export default function WarehouseDepartment() {
         description: "سفارش با موفقیت پردازش و برای واحد لجستیک آماده شد",
         duration: 3000
       });
-      setProcessingOrder(null);
+      setConfirmingOrderId(null);
+      setConfirmStep(1);
+      setConfirmDialogOpen(false);
       setProcessingNotes("");
       refetch();
       queryClient.invalidateQueries({ queryKey: ['/api/order-management/logistics'] });
@@ -101,8 +110,32 @@ export default function WarehouseDepartment() {
     }
   });
 
-  const handleProcessOrder = (orderId: number) => {
-    processOrderMutation.mutate(orderId);
+  const handleConfirmStart = (orderId: number) => {
+    setConfirmingOrderId(orderId);
+    setConfirmStep(1);
+    setProcessingNotes("");
+    setConfirmDialogOpen(true);
+  };
+
+  const handleConfirmStep1 = () => {
+    setConfirmStep(2);
+  };
+
+  const handleConfirmStep2 = () => {
+    if (confirmingOrderId) {
+      processOrderMutation.mutate(confirmingOrderId);
+    }
+  };
+
+  const handleConfirmCancel = () => {
+    setConfirmDialogOpen(false);
+    setConfirmingOrderId(null);
+    setConfirmStep(1);
+    setProcessingNotes("");
+  };
+
+  const getConfirmingOrder = () => {
+    return filteredOrders.find((order: any) => order.id === confirmingOrderId);
   };
 
   const formatDate = (dateString: string) => {
@@ -328,64 +361,24 @@ export default function WarehouseDepartment() {
                     </div>
                   </div>
 
-                  {/* Processing Section */}
-                  {processingOrder === order.id ? (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
-                      <h4 className="font-medium text-blue-900">پردازش سفارش</h4>
-                      <div className="space-y-2">
-                        <Label htmlFor="notes">یادداشت پردازش (اختیاری)</Label>
-                        <Textarea
-                          id="notes"
-                          placeholder="یادداشت درباره پردازش، بسته‌بندی یا نکات ویژه..."
-                          value={processingNotes}
-                          onChange={(e) => setProcessingNotes(e.target.value)}
-                          className="min-h-[80px]"
-                        />
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={() => handleProcessOrder(order.id)}
-                          disabled={processOrderMutation.isPending}
-                          className="bg-green-600 hover:bg-green-700"
-                        >
-                          {processOrderMutation.isPending ? (
-                            <>
-                              <Loader className="w-4 h-4 animate-spin ml-2" />
-                              در حال پردازش...
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircle className="w-4 h-4 ml-2" />
-                              تایید و ارسال به لجستیک
-                            </>
-                          )}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            setProcessingOrder(null);
-                            setProcessingNotes("");
-                          }}
-                        >
-                          لغو
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => setProcessingOrder(order.id)}
-                        className="bg-blue-600 hover:bg-blue-700"
-                      >
-                        <Package className="w-4 h-4 ml-2" />
-                        شروع پردازش
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <FileText className="w-4 h-4 ml-2" />
-                        جزئیات
-                      </Button>
-                    </div>
-                  )}
+                  {/* Processing Button */}
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => handleConfirmStart(order.id)}
+                      className={confirmingOrderId === order.id 
+                        ? "bg-amber-500 hover:bg-amber-600 animate-pulse ring-2 ring-amber-300" 
+                        : "bg-green-600 hover:bg-green-700"}
+                      disabled={processOrderMutation.isPending}
+                      data-testid={`button-process-order-${order.id}`}
+                    >
+                      <Truck className="w-4 h-4 ml-2" />
+                      {confirmingOrderId === order.id ? "در حال تایید..." : "تایید و ارسال به لجستیک"}
+                    </Button>
+                    <Button variant="outline" size="sm">
+                      <FileText className="w-4 h-4 ml-2" />
+                      جزئیات
+                    </Button>
+                  </div>
 
                   {/* Financial Notes */}
                   {order.notes && (
@@ -409,6 +402,107 @@ export default function WarehouseDepartment() {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <AlertDialogContent dir="rtl" className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className={confirmStep === 1 ? "text-amber-600" : "text-red-600"}>
+              {confirmStep === 1 
+                ? "تایید پردازش سفارش - مرحله ۱ از ۲" 
+                : "تایید نهایی ارسال به لجستیک - مرحله ۲ از ۲"}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-4 text-right">
+              {confirmStep === 1 ? (
+                <div className="space-y-3">
+                  <p className="text-base font-medium text-gray-800">
+                    آیا مطمئن هستید که می‌خواهید این سفارش را پردازش کرده و به لجستیک ارسال کنید؟
+                  </p>
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <p className="text-sm font-bold text-blue-800 mb-2">اطلاعات سفارش:</p>
+                    <p className="text-sm text-blue-700">
+                      شماره سفارش: <span className="font-bold">#{getConfirmingOrder()?.customerOrderId}</span>
+                    </p>
+                    <p className="text-sm text-blue-700">
+                      مشتری: <span className="font-bold">
+                        {getConfirmingOrder()?.customer?.firstName} {getConfirmingOrder()?.customer?.lastName}
+                      </span>
+                    </p>
+                    <p className="text-sm text-blue-700">
+                      مبلغ: <span className="font-bold">{formatCurrency(getConfirmingOrder()?.totalAmount || 0)} {getConfirmingOrder()?.currency}</span>
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirm-notes">یادداشت پردازش (اختیاری)</Label>
+                    <Textarea
+                      id="confirm-notes"
+                      placeholder="یادداشت درباره پردازش، بسته‌بندی یا نکات ویژه..."
+                      value={processingNotes}
+                      onChange={(e) => setProcessingNotes(e.target.value)}
+                      className="min-h-[60px]"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+                    <p className="text-base font-bold text-red-800 mb-2">
+                      هشدار: سفارش به واحد لجستیک ارسال می‌شود!
+                    </p>
+                    <p className="text-sm text-red-700">
+                      پس از تایید نهایی، سفارش از انبار خارج شده و به واحد لجستیک منتقل می‌شود.
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <p className="text-sm font-bold text-gray-800 mb-2">تایید نهایی برای سفارش:</p>
+                    <p className="text-lg font-bold text-gray-900">
+                      #{getConfirmingOrder()?.customerOrderId}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {getConfirmingOrder()?.customer?.firstName} {getConfirmingOrder()?.customer?.lastName}
+                    </p>
+                  </div>
+                  <p className="text-sm text-red-600 font-bold">
+                    آیا کاملاً مطمئن هستید؟
+                  </p>
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex gap-2 flex-row-reverse">
+            <AlertDialogCancel 
+              onClick={handleConfirmCancel}
+              className="flex-1"
+            >
+              انصراف
+            </AlertDialogCancel>
+            {confirmStep === 1 ? (
+              <Button 
+                onClick={handleConfirmStep1}
+                className="flex-1 bg-amber-500 hover:bg-amber-600"
+                data-testid="button-confirm-step1"
+              >
+                ادامه به مرحله بعد
+              </Button>
+            ) : (
+              <Button 
+                onClick={handleConfirmStep2}
+                className="flex-1 bg-red-600 hover:bg-red-700"
+                disabled={processOrderMutation.isPending}
+                data-testid="button-confirm-step2"
+              >
+                {processOrderMutation.isPending ? (
+                  <>
+                    <Loader className="w-4 h-4 animate-spin ml-2" />
+                    در حال پردازش...
+                  </>
+                ) : (
+                  "تایید نهایی و ارسال به لجستیک"
+                )}
+              </Button>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

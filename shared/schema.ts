@@ -1891,5 +1891,36 @@ export type Vendor = typeof vendors.$inferSelect;
 export type InsertVendorUser = z.infer<typeof insertVendorUserSchema>;
 export type VendorUser = typeof vendorUsers.$inferSelect;
 
+// Postal Services table - for managing postal/courier services
+export const postalServices = pgTable("postal_services", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  nameEn: text("name_en"),
+  contactInfo: text("contact_info"),
+  phone: text("phone").notNull(),
+  email: text("email"),
+  website: text("website"),
+  maxWeightKg: decimal("max_weight_kg", { precision: 10, scale: 2 }).default("30.00"),
+  allowsFlammable: boolean("allows_flammable").default(false),
+  basePrice: decimal("base_price", { precision: 12, scale: 2 }).default("0.00"),
+  pricePerKg: decimal("price_per_kg", { precision: 12, scale: 2 }).default("0.00"),
+  estimatedDays: integer("estimated_days").default(3),
+  trackingAvailable: boolean("tracking_available").default(true),
+  isActive: boolean("is_active").default(true),
+  supportedRegions: json("supported_regions").$type<string[]>(),
+  specialRequirements: text("special_requirements"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertPostalServiceSchema = createInsertSchema(postalServices).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertPostalService = z.infer<typeof insertPostalServiceSchema>;
+export type PostalService = typeof postalServices.$inferSelect;
+
 // Re-export marketing schema
 export * from './marketing-schema';

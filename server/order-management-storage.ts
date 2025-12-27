@@ -286,9 +286,13 @@ export class OrderManagementStorage implements IOrderManagementStorage {
     }
     
     // Generate delivery code when order reaches logistics (from any department) and send SMS using template 3
+    console.log(`📱 [DELIVERY CODE CHECK] Status: ${newStatus}, Expected: ${orderStatuses.WAREHOUSE_APPROVED}`);
+    console.log(`📱 [DELIVERY CODE CHECK] Condition met: ${newStatus === orderStatuses.LOGISTICS_DISPATCHED || newStatus === orderStatuses.LOGISTICS_ASSIGNED || newStatus === orderStatuses.WAREHOUSE_APPROVED}`);
+    
     if (newStatus === orderStatuses.LOGISTICS_DISPATCHED || 
         newStatus === orderStatuses.LOGISTICS_ASSIGNED ||
         newStatus === orderStatuses.WAREHOUSE_APPROVED) {
+      console.log(`📱 [DELIVERY CODE] Starting delivery code generation for order ${currentOrder.id}...`);
       try {
         // Get customer information and order details including recipient mobile
         const orderWithCustomer = await db
@@ -305,6 +309,8 @@ export class OrderManagementStorage implements IOrderManagementStorage {
           .leftJoin(crmCustomers, eq(customerOrders.customerId, crmCustomers.id))
           .where(eq(orderManagement.id, currentOrder.id))
           .limit(1);
+
+        console.log(`📱 [DELIVERY CODE] Customer lookup result:`, JSON.stringify(orderWithCustomer[0], null, 2));
 
         if (orderWithCustomer[0]?.customerPhone) {
           const customerData = orderWithCustomer[0];

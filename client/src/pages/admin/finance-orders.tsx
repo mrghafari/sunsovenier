@@ -493,8 +493,10 @@ function FinanceOrders() {
 
   const handleApprove = useCallback(() => {
     if (!selectedOrder) return;
+    // Use order_management.id (selectedOrder.id) NOT customerOrderId to avoid ID collisions
+    console.log(`🔍 [FINANCE] Approving order - Management ID: ${selectedOrder.id}, Customer Order ID: ${selectedOrder.customerOrderId}`);
     approveMutation.mutate({ 
-      orderId: selectedOrder.customerOrderId, 
+      orderId: selectedOrder.id, // Use order_management.id 
       notes: reviewNotes,
       receiptAmount: receiptAmount 
     });
@@ -502,8 +504,10 @@ function FinanceOrders() {
 
   const handleReject = useCallback(() => {
     if (!selectedOrder) return;
+    // Use order_management.id (selectedOrder.id) NOT customerOrderId to avoid ID collisions
+    console.log(`🔍 [FINANCE] Rejecting order - Management ID: ${selectedOrder.id}, Customer Order ID: ${selectedOrder.customerOrderId}`);
     rejectMutation.mutate({ 
-      orderId: selectedOrder.customerOrderId, 
+      orderId: selectedOrder.id, // Use order_management.id
       notes: reviewNotes 
     });
   }, [selectedOrder, rejectMutation, reviewNotes]);
@@ -695,9 +699,10 @@ function FinanceOrders() {
       return;
     }
     
+    // Use order_management.id (correspondingOrder.id) NOT customerOrderId to avoid ID collisions
     console.log('🔄 [FINANCE] Accepting order from modal - Management ID:', correspondingOrder.id, 'Customer Order ID:', correspondingOrder.customerOrderId);
     approveMutation.mutate({ 
-      orderId: correspondingOrder.customerOrderId, // USE CUSTOMER ORDER ID FOR API
+      orderId: correspondingOrder.id, // Use order_management.id to avoid ID collisions
       notes: `سفارش تأیید شد از طریق مودال جزئیات - ${new Date().toLocaleDateString('en-US')}`,
       receiptAmount: receiptAmount 
     });
@@ -715,9 +720,10 @@ function FinanceOrders() {
       return;
     }
     
+    // Use order_management.id (correspondingOrder.id) NOT customerOrderId to avoid ID collisions
     console.log('🔄 [FINANCE] Rejecting order from modal - Management ID:', correspondingOrder.id, 'Customer Order ID:', correspondingOrder.customerOrderId);
     rejectMutation.mutate({ 
-      orderId: correspondingOrder.customerOrderId, // USE CUSTOMER ORDER ID FOR API
+      orderId: correspondingOrder.id, // Use order_management.id to avoid ID collisions
       notes: `سفارش رد شد از طریق مودال جزئیات - ${new Date().toLocaleDateString('en-US')}` 
     });
     // Don't close modal here - let the mutation success handler close it
@@ -1183,8 +1189,8 @@ function FinanceOrders() {
               </div>
             )}
 
-            {/* Live Calculations */}
-            {receiptAmount && selectedOrder && (
+            {/* Live Calculations - Only for bank transfer orders */}
+            {receiptAmount && selectedOrder && (selectedOrder.paymentMethod === 'bank_transfer_grace' || selectedOrder.paymentMethod === 'واریز بانکی با مهلت 3 روزه') && (
               <div className="p-4 bg-yellow-50 rounded-lg border-l-4 border-yellow-500">
                 <h4 className="font-semibold text-yellow-800 mb-3 flex items-center gap-2">
                   <Calculator className="w-4 h-4" />
@@ -1249,20 +1255,36 @@ function FinanceOrders() {
               </div>
             )}
 
-            <div>
-              <Label htmlFor="receiptAmount">مبلغ رسید واریزی</Label>
-              <Input 
-                id="receiptAmount"
-                type="number"
-                value={receiptAmount}
-                onChange={(e) => setReceiptAmount(e.target.value)}
-                placeholder="مبلغ واریز شده را وارد کنید"
-                className="mt-1"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                مبلغی که مشتری واقعاً واریز کرده است
-              </p>
-            </div>
+            {/* Receipt Amount Field - ONLY for bank_transfer_grace orders */}
+            {selectedOrder && (selectedOrder.paymentMethod === 'bank_transfer_grace' || selectedOrder.paymentMethod === 'واریز بانکی با مهلت 3 روزه') ? (
+              <div>
+                <Label htmlFor="receiptAmount" className="text-red-600 font-semibold">
+                  مبلغ رسید واریزی *
+                </Label>
+                <Input 
+                  id="receiptAmount"
+                  type="number"
+                  value={receiptAmount}
+                  onChange={(e) => setReceiptAmount(e.target.value)}
+                  placeholder="مبلغ واریز شده را وارد کنید (اجباری)"
+                  className="mt-1 border-red-300 focus:border-red-500"
+                  required
+                />
+                <p className="text-xs text-red-500 mt-1">
+                  ⚠️ برای حواله بانکی مدت‌دار، وارد کردن مبلغ فیش اجباری است
+                </p>
+              </div>
+            ) : (
+              <div className="p-3 bg-gray-100 rounded-lg border">
+                <p className="text-sm text-gray-600 flex items-center gap-2">
+                  <Wallet className="w-4 h-4 text-green-600" />
+                  {selectedOrder?.paymentMethod === 'wallet_full' && 'پرداخت کامل از کیف پول - نیازی به وارد کردن مبلغ نیست'}
+                  {selectedOrder?.paymentMethod === 'wallet_partial' && 'پرداخت ترکیبی از کیف پول - مبلغ‌ها قبلاً محاسبه شده'}
+                  {selectedOrder?.paymentMethod === 'online_payment' && 'پرداخت آنلاین - مبلغ از درگاه دریافت شده'}
+                  {!['wallet_full', 'wallet_partial', 'online_payment', 'bank_transfer_grace', 'واریز بانکی با مهلت 3 روزه'].includes(selectedOrder?.paymentMethod || '') && 'مبلغ پرداخت قبلاً تایید شده است'}
+                </p>
+              </div>
+            )}
             
             <div>
               <Label htmlFor="notes">یادداشت‌ها</Label>
@@ -1285,14 +1307,29 @@ function FinanceOrders() {
             <Button 
               onClick={handleApprove}
               disabled={(() => {
-                if (!receiptAmount || !selectedOrder) return false;
-                const orderTotal = parseFloat(selectedOrder.totalAmount || '0');
-                const receiptAmountNum = parseFloat(receiptAmount) || 0;
-                const shortfall = orderTotal - receiptAmountNum;
-                return shortfall > 0 && shortfall > walletBalance;
+                if (!selectedOrder) return true;
+                const isBankTransfer = selectedOrder.paymentMethod === 'bank_transfer_grace' || selectedOrder.paymentMethod === 'واریز بانکی با مهلت 3 روزه';
+                
+                // For bank transfer: require receiptAmount
+                if (isBankTransfer && !receiptAmount) return true;
+                
+                // Check wallet coverage for bank transfers with receipt
+                if (isBankTransfer && receiptAmount) {
+                  const orderTotal = parseFloat(selectedOrder.totalAmount || '0');
+                  const receiptAmountNum = parseFloat(receiptAmount) || 0;
+                  const shortfall = orderTotal - receiptAmountNum;
+                  return shortfall > 0 && shortfall > walletBalance;
+                }
+                
+                return false;
               })()}
               className={(() => {
-                if (!receiptAmount || !selectedOrder) return "";
+                if (!selectedOrder) return "bg-green-600 hover:bg-green-700";
+                const isBankTransfer = selectedOrder.paymentMethod === 'bank_transfer_grace' || selectedOrder.paymentMethod === 'واریز بانکی با مهلت 3 روزه';
+                
+                if (!isBankTransfer) return "bg-green-600 hover:bg-green-700";
+                if (!receiptAmount) return "";
+                
                 const orderTotal = parseFloat(selectedOrder.totalAmount || '0');
                 const receiptAmountNum = parseFloat(receiptAmount) || 0;
                 const shortfall = orderTotal - receiptAmountNum;

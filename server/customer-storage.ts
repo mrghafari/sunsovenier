@@ -599,29 +599,8 @@ export class CustomerStorage implements ICustomerStorage {
     try {
       console.log(`🔍 [COMPLETE HISTORY] Loading complete order history for customer ${customerId}`);
       
-      // Get all orders for this customer (including deleted ones)
-      const orders = await customerDb.select({
-        id: customerOrders.id,
-        customerId: customerOrders.customerId,
-        totalAmount: customerOrders.totalAmount,
-        status: customerOrders.status,
-        paymentStatus: customerOrders.paymentStatus,
-        paymentMethod: customerOrders.paymentMethod,
-        shippingAddress: customerOrders.shippingAddress,
-        billingAddress: customerOrders.billingAddress,
-        createdAt: customerOrders.createdAt,
-        updatedAt: customerOrders.updatedAt,
-        orderNumber: customerOrders.orderNumber,
-        receiptPath: customerOrders.receiptPath,
-        notes: customerOrders.notes,
-        currency: customerOrders.currency,
-        shippingCost: customerOrders.shippingCost,
-        invoiceType: customerOrders.invoiceType,
-        invoiceConvertedAt: customerOrders.invoiceConvertedAt,
-        vatAmount: customerOrders.vatAmount,
-        surchargeAmount: customerOrders.surchargeAmount,
-        financialReviewedAt: customerOrders.financialReviewedAt
-      })
+      // Get all orders for this customer - select all fields to avoid schema mismatch
+      const orders = await customerDb.select()
         .from(customerOrders)
         .where(eq(customerOrders.customerId, customerId))
         .orderBy(desc(customerOrders.createdAt));

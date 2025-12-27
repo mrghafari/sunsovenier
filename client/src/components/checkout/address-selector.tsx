@@ -299,6 +299,60 @@ export default function AddressSelector({ selectedAddressId, onAddressSelect }: 
     }
   };
 
+  // Auto-create address from CRM profile if customer has no addresses
+  const autoCreateFromProfileMutation = useMutation({
+    mutationFn: async () => {
+      if (!customerInfo) throw new Error('No customer info available');
+      
+      const addressData = {
+        title: t.address_selector.defaultAddressTitle || 'آدرس اصلی',
+        recipientName: `${customerInfo.firstName || ''} ${customerInfo.lastName || ''}`.trim(),
+        company: customerInfo.company || '',
+        phone: customerInfo.phone || '',
+        country: customerInfo.country || t.address_selector.defaultCountry,
+        state: customerInfo.province || customerInfo.state || '',
+        city: customerInfo.city || customerInfo.cityRegion || '',
+        address: customerInfo.address || '',
+        postalCode: customerInfo.postalCode || '',
+        isDefault: true
+      };
+      
+      const response = await fetch('/api/customers/addresses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(addressData)
+      });
+      
+      if (!response.ok) throw new Error('Failed to create address');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/customers/addresses'] });
+      toast({ 
+        title: t.address_selector.addressAutoCreated || 'آدرس از پروفایل ایجاد شد',
+        description: t.address_selector.addressAutoCreatedDesc || 'آدرس پیش‌فرض از اطلاعات پروفایل شما ساخته شد'
+      });
+    },
+    onError: (error) => {
+      console.error('Failed to auto-create address:', error);
+    }
+  });
+
+  // Auto-create address from CRM when customer has no addresses but has profile data
+  useEffect(() => {
+    if (addresses.length === 0 && customerInfo && !autoCreateFromProfileMutation.isPending && !autoCreateFromProfileMutation.isSuccess) {
+      // Check if customer has enough info to create an address
+      const hasAddress = customerInfo.address || customerInfo.city || customerInfo.province;
+      const hasName = customerInfo.firstName || customerInfo.lastName;
+      
+      if (hasAddress && hasName) {
+        console.log('🏠 [ADDRESS] Auto-creating address from CRM profile for customer:', customerInfo.id);
+        autoCreateFromProfileMutation.mutate();
+      }
+    }
+  }, [addresses.length, customerInfo, autoCreateFromProfileMutation.isPending, autoCreateFromProfileMutation.isSuccess]);
+
   // Auto-select default address on load
   useEffect(() => {
     if (addresses.length > 0 && !selectedAddressId) {

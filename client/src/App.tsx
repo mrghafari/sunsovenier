@@ -91,9 +91,7 @@ import WidgetRecommendations from "@/pages/widget-recommendations";
 import AbandonedCartManagement from "@/pages/abandoned-cart-management";
 import FinancialDepartment from "@/pages/financial-department";
 import WarehouseDepartment from "@/pages/warehouse-department";
-import LogisticsDepartment from "@/pages/logistics-department";
 import FinanceOrders from "@/pages/admin/finance-orders";
-import LogisticsSimple from "@/pages/logistics-simple";
 import FinancialLogin from "@/pages/financial-login";
 import WarehouseLogin from "@/pages/warehouse-login";
 import LogisticsLogin from "@/pages/logistics-login";
@@ -107,7 +105,6 @@ import GeographicAnalytics from "@/pages/admin/geographic-analytics";
 import IraqiGeography from "@/pages/admin/iraqi-geography";
 import AISettings from "@/pages/admin/ai-settings";
 import DocumentationPage from "@/pages/documentation";
-import WarehouseOrders from "@/pages/admin/warehouse-orders";
 import LogisticsOrders from "@/pages/admin/logistics-orders";
 import LogisticsManagement from "@/pages/admin/logistics-management";
 import DeliveredOrders from "@/pages/admin/delivered-orders";
@@ -272,7 +269,6 @@ function Router() {
           
           {/* New Department Order Management Pages */}
           <Route path="/admin/finance-orders" component={FinanceOrders} />
-          <Route path="/admin/warehouse-orders" component={WarehouseOrders} />
           <Route path="/admin/logistics-orders" component={LogisticsOrders} />
           <Route path="/admin/logistics-management" component={LogisticsManagement} />
           <Route path="/admin/logistics" component={LogisticsManagement} />
@@ -325,9 +321,6 @@ function Router() {
           <Route path="/financial/login" component={FinancialLogin} />
           <Route path="/warehouse" component={WarehouseManagementFixed} />
           <Route path="/warehouse/login" component={WarehouseLogin} />
-          <Route path="/logistics-department" component={LogisticsDepartment} />
-          <Route path="/logistics-full" component={LogisticsDepartment} />
-          <Route path="/logistics" component={LogisticsSimple} />
           <Route path="/logistics/login" component={LogisticsLogin} />
           <Route path="/test-logistics" component={TestLogistics} />
 

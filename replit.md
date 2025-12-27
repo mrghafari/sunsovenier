@@ -13,6 +13,13 @@ Critical Security Requirements:
 - Implement quadruple verification for all payment corrections
 - Maintain detailed audit trails for all financial operations
 
+Order Management ID Convention:
+- ALWAYS use `order_management.id` as the canonical identifier for all department operations (finance, warehouse, logistics)
+- NEVER use `customerOrderId` for API endpoints - it causes ID collisions when values coincide
+- Frontend must send `selectedOrder.id` (not `selectedOrder.customerOrderId`) to backend
+- All status change endpoints use atomic UPDATE with status condition for optimistic locking
+- Returns 409 Conflict if order was already processed by another user (concurrency protection)
+
 ## System Architecture
 
 ### UI/UX Decisions

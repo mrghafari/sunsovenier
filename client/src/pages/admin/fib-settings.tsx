@@ -322,18 +322,26 @@ export default function FibSettings() {
           {/* Callback Base URL */}
           <div className="space-y-2">
             <Label htmlFor="callbackBaseUrl">
-              Callback Base URL (اختیاری)
+              آدرس وبسایت (Callback URL) <span className="text-red-500">*</span>
             </Label>
             <Input
               id="callbackBaseUrl"
               value={settings.callbackBaseUrl || ''}
               onChange={(e) => setSettings({ ...settings, callbackBaseUrl: e.target.value })}
-              placeholder="https://your-domain.com"
+              placeholder="https://momtazchem.com"
               data-testid="input-callback-base-url"
             />
-            <p className="text-sm text-gray-500">
-              آدرس سرور شما برای دریافت callback از بانک (اگر خالی بماند از Replit domain استفاده می‌شود)
-            </p>
+            <Alert className="border-amber-200 bg-amber-50 mt-2">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800 text-sm">
+                <p className="font-semibold">⚠️ مهم - بعد از مهاجرت به دامنه اصلی:</p>
+                <p>این آدرس را به دامنه جدید تغییر دهید. مثال:</p>
+                <ul className="list-disc list-inside mt-1 space-y-1">
+                  <li>Replit: <code className="bg-amber-100 px-1 rounded">https://momtaz-chem-website-admin3119.replit.app</code></li>
+                  <li>دامنه اصلی: <code className="bg-amber-100 px-1 rounded">https://momtazchem.com</code></li>
+                </ul>
+              </AlertDescription>
+            </Alert>
           </div>
 
           {/* Payment Expiry Minutes */}
