@@ -106,6 +106,26 @@ export class WalletStorage implements IWalletStorage {
     return wallet ? parseFloat(wallet.balance) : 0;
   }
 
+  async getAvailableBalance(customerId: number): Promise<{
+    totalBalance: number;
+    reservedBalance: number;
+    availableBalance: number;
+    creditLimit: number;
+  }> {
+    const wallet = await this.getWalletByCustomerId(customerId);
+    if (!wallet) {
+      return { totalBalance: 0, reservedBalance: 0, availableBalance: 0, creditLimit: 0 };
+    }
+    
+    const totalBalance = parseFloat(wallet.balance);
+    const creditLimit = parseFloat(wallet.creditLimit || "0");
+    const pendingReservations = await this.getPendingReservations(customerId);
+    const reservedBalance = pendingReservations.reduce((sum, r) => sum + parseFloat(r.amount), 0);
+    const availableBalance = totalBalance + creditLimit - reservedBalance;
+    
+    return { totalBalance, reservedBalance, availableBalance, creditLimit };
+  }
+
   // Transaction management
   async createTransaction(transactionData: InsertWalletTransaction): Promise<WalletTransaction> {
     const [transaction] = await customerDb
@@ -285,17 +305,6 @@ export class WalletStorage implements IWalletStorage {
     console.log(`✅ Released ${amount} reserved balance for customer ${customerId}. Remaining reserved: ${newReserved}`);
   }
 
-  // دریافت موجودی قابل استفاده (بدون رزرو)
-  async getAvailableBalance(customerId: number): Promise<number> {
-    const wallet = await this.getWalletByCustomerId(customerId);
-    if (!wallet) return 0;
-    
-    const balance = parseFloat(wallet.balance);
-    const reserved = parseFloat(wallet.reservedBalance || "0");
-    const creditLimit = parseFloat(wallet.creditLimit || "0");
-    
-    return balance - reserved + creditLimit;
-  }
 
   // Recharge requests
   async createRechargeRequest(requestData: InsertWalletRechargeRequest): Promise<WalletRechargeRequest> {

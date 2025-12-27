@@ -36731,8 +36731,8 @@ momtazchem.com
         return res.status(401).json({ success: false, message: "Customer authentication required" });
       }
 
-      const balance = await walletStorage.getWalletBalance(req.session.customerId);
-      res.json({ success: true, balance: balance });
+      const balanceInfo = await walletStorage.getAvailableBalance(req.session.customerId);
+      res.json({ success: true, balance: balanceInfo.availableBalance, totalBalance: balanceInfo.totalBalance, reservedBalance: balanceInfo.reservedBalance, availableBalance: balanceInfo.availableBalance, creditLimit: balanceInfo.creditLimit });
     } catch (error) {
       console.error('Error fetching wallet balance:', error);
       res.status(500).json({ success: false, message: 'Failed to fetch wallet balance' });
