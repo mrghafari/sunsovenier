@@ -34,6 +34,7 @@ import { eq, and, desc, asc, inArray, sql, isNotNull } from "drizzle-orm";
 import ProformaInvoiceConverter from "./proforma-invoice-converter";
 import { AutoInvoiceConverter } from "./auto-invoice-converter";
 import { orderConsolidationService } from "./order-consolidation-service";
+import { sequenceSyncService } from "./sequence-sync";
 
 export interface IOrderManagementStorage {
   // Order Management
@@ -1833,6 +1834,9 @@ export class OrderManagementStorage implements IOrderManagementStorage {
   // 🔧 UTILITY: Create order with sequential numbering (transaction-safe)
   async createOrderWithSequentialNumber(orderData: any): Promise<{ order: any; orderNumber: string }> {
     console.log('🔒 [SEQUENTIAL] Starting transaction-safe order creation...');
+    
+    // 🔧 CRITICAL: Ensure sequence is synchronized before insert to prevent duplicate key errors
+    await sequenceSyncService.ensureSequenceSafe('customer_orders', 'customer_orders_id_seq');
     
     // Start database transaction
     return await db.transaction(async (tx) => {

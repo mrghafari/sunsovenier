@@ -31,6 +31,7 @@ import { customerDb } from "./customer-db";
 import { eq, desc, and, or, ilike, count, sql, sum, ne } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { CartStorage } from "./cart-storage";
+import { sequenceSyncService } from "./sequence-sync";
 
 export interface ICustomerStorage {
   // Customer authentication and management
@@ -215,6 +216,9 @@ export class CustomerStorage implements ICustomerStorage {
       orderNumber = null; // Will be generated below
       console.log(`🔢 [GENERATE ORDER] No order number specified - will generate new one`);
     }
+    
+    // 🔧 CRITICAL: Ensure sequence is synchronized before insert to prevent duplicate key errors
+    await sequenceSyncService.ensureSequenceSafe('customer_orders', 'customer_orders_id_seq');
     
     await customerDb.transaction(async (tx) => {
       // Simplified logic for order number generation:

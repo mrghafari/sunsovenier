@@ -20,6 +20,7 @@ import { incompletePaymentCleaner } from "./incomplete-payment-cleaner";
 import { setupVite, serveStatic, log } from "./vite";
 import passport from "./passport-config";
 import { monitoringService } from "./monitoring-service";
+import { sequenceSyncService } from "./sequence-sync";
 
 // Global error handlers to prevent server crashes
 process.on('uncaughtException', (err) => {
@@ -423,8 +424,12 @@ app.use((req, res, next) => {
       log(`serving on port ${port}`);
       
       // Start services with delayed initialization
-      setTimeout(() => {
+      setTimeout(async () => {
         try {
+          // 🔧 CRITICAL: Sync all database sequences to prevent duplicate key errors
+          await sequenceSyncService.syncAllSequences();
+          log('🔧 Database sequences synchronized');
+          
           // Start expired orders cleanup service
           expiredOrdersCleanup.start();
           log('🧹 Expired orders cleanup service started');
