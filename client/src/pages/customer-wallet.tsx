@@ -50,6 +50,8 @@ interface WalletSummary {
   }>;
   totalSpent: number;
   totalRecharged: number;
+  reservedBalance: number;
+  availableBalance: number;
 }
 
 interface RechargeRequest {
@@ -444,9 +446,26 @@ export default function CustomerWallet() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
-                {wallet ? formatCurrency(wallet.balance, wallet.currency) : formatCurrency(0)}
+                {walletData?.data?.availableBalance !== undefined 
+                  ? formatCurrency(walletData.data.availableBalance, wallet?.currency || 'IQD')
+                  : wallet ? formatCurrency(wallet.balance, wallet.currency) : formatCurrency(0)}
               </div>
-              <div className="text-xs text-muted-foreground flex items-center gap-2">
+              {/* Show reserved balance if any */}
+              {(walletData?.data?.reservedBalance ?? 0) > 0 && (
+                <div className="mt-2 p-2 bg-orange-50 dark:bg-orange-900/20 rounded border border-orange-200 dark:border-orange-800">
+                  <div className="text-xs text-orange-700 dark:text-orange-300 flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    {isRTL ? 'مبلغ رزرو شده:' : 'Reserved:'}
+                    <span className="font-semibold">
+                      {formatCurrency(walletData?.data?.reservedBalance ?? 0, wallet?.currency || 'IQD')}
+                    </span>
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {isRTL ? '(در انتظار تکمیل پرداخت بانکی)' : '(Pending bank payment completion)'}
+                  </div>
+                </div>
+              )}
+              <div className="text-xs text-muted-foreground flex items-center gap-2 mt-2">
                 <span>{t.status}:</span> {wallet ? getStatusBadge(wallet.status) : getStatusBadge('active')}
               </div>
             </CardContent>

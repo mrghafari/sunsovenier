@@ -54,6 +54,8 @@ export interface IWalletStorage {
     pendingRecharges: WalletRechargeRequest[];
     totalSpent: number;
     totalRecharged: number;
+    reservedBalance: number;
+    availableBalance: number;
   }>;
   
   // Get all wallet holders with their details
@@ -444,6 +446,8 @@ export class WalletStorage implements IWalletStorage {
     pendingRecharges: WalletRechargeRequest[];
     totalSpent: number;
     totalRecharged: number;
+    reservedBalance: number;
+    availableBalance: number;
   }> {
     const wallet = await this.getWalletByCustomerId(customerId);
     const recentTransactions = await this.getTransactionsByCustomer(customerId, 10);
@@ -472,12 +476,23 @@ export class WalletStorage implements IWalletStorage {
         eq(walletTransactions.transactionType, "credit")
       ));
 
+    // Calculate reserved balance (pending wallet reservations)
+    const pendingReservations = await this.getPendingReservations(customerId);
+    const reservedBalance = pendingReservations.reduce((sum, r) => sum + parseFloat(r.amount), 0);
+    
+    // Calculate available balance (total balance - reserved + credit limit)
+    const currentBalance = wallet ? parseFloat(wallet.balance) : 0;
+    const creditLimit = wallet ? parseFloat(wallet.creditLimit || "0") : 0;
+    const availableBalance = currentBalance + creditLimit - reservedBalance;
+
     return {
       wallet,
       recentTransactions,
       pendingRecharges,
       totalSpent: parseFloat(spentResult?.total || "0"),
-      totalRecharged: parseFloat(rechargedResult?.total || "0")
+      totalRecharged: parseFloat(rechargedResult?.total || "0"),
+      reservedBalance,
+      availableBalance
     };
   }
   
