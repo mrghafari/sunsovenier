@@ -198,11 +198,13 @@ export class WalletStorage implements IWalletStorage {
     }
 
     const currentBalance = parseFloat(wallet.balance);
+    const reservedBalance = parseFloat(wallet.reservedBalance || "0");
     const creditLimit = parseFloat(wallet.creditLimit || "0");
-    const availableAmount = currentBalance + creditLimit;
+    // موجودی قابل استفاده = موجودی کل - موجودی رزرو شده + سقف اعتبار
+    const availableAmount = currentBalance - reservedBalance + creditLimit;
 
     if (amount > availableAmount) {
-      throw new Error(`Insufficient funds. Available: ${availableAmount}, Required: ${amount}`);
+      throw new Error(`Insufficient funds. Available: ${availableAmount}, Required: ${amount}. Reserved: ${reservedBalance}`);
     }
 
     const newBalance = currentBalance - amount;
@@ -227,6 +229,70 @@ export class WalletStorage implements IWalletStorage {
     await this.updateWalletBalance(wallet.id, newBalance);
 
     return transaction;
+  }
+
+  // رزرو مبلغ برای سفارش در انتظار
+  async reserveBalance(customerId: number, amount: number, orderId?: number): Promise<void> {
+    const wallet = await this.getWalletByCustomerId(customerId);
+    if (!wallet) {
+      throw new Error("Customer wallet not found");
+    }
+
+    const currentBalance = parseFloat(wallet.balance);
+    const currentReserved = parseFloat(wallet.reservedBalance || "0");
+    const creditLimit = parseFloat(wallet.creditLimit || "0");
+    const availableAmount = currentBalance - currentReserved + creditLimit;
+
+    if (amount > availableAmount) {
+      throw new Error(`Insufficient funds to reserve. Available: ${availableAmount}, Required: ${amount}`);
+    }
+
+    const newReserved = currentReserved + amount;
+
+    await customerDb
+      .update(customerWallets)
+      .set({
+        reservedBalance: newReserved.toString(),
+        lastActivityDate: new Date(),
+        updatedAt: new Date()
+      })
+      .where(eq(customerWallets.id, wallet.id));
+
+    console.log(`✅ Reserved ${amount} from wallet for customer ${customerId}. Total reserved: ${newReserved}`);
+  }
+
+  // آزاد کردن مبلغ رزرو شده (لغو سفارش یا تکمیل پرداخت)
+  async releaseReservedBalance(customerId: number, amount: number, orderId?: number): Promise<void> {
+    const wallet = await this.getWalletByCustomerId(customerId);
+    if (!wallet) {
+      throw new Error("Customer wallet not found");
+    }
+
+    const currentReserved = parseFloat(wallet.reservedBalance || "0");
+    const newReserved = Math.max(0, currentReserved - amount);
+
+    await customerDb
+      .update(customerWallets)
+      .set({
+        reservedBalance: newReserved.toString(),
+        lastActivityDate: new Date(),
+        updatedAt: new Date()
+      })
+      .where(eq(customerWallets.id, wallet.id));
+
+    console.log(`✅ Released ${amount} reserved balance for customer ${customerId}. Remaining reserved: ${newReserved}`);
+  }
+
+  // دریافت موجودی قابل استفاده (بدون رزرو)
+  async getAvailableBalance(customerId: number): Promise<number> {
+    const wallet = await this.getWalletByCustomerId(customerId);
+    if (!wallet) return 0;
+    
+    const balance = parseFloat(wallet.balance);
+    const reserved = parseFloat(wallet.reservedBalance || "0");
+    const creditLimit = parseFloat(wallet.creditLimit || "0");
+    
+    return balance - reserved + creditLimit;
   }
 
   // Recharge requests

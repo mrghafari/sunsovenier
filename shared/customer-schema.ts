@@ -406,10 +406,11 @@ export type QuoteRequest = typeof quoteRequests.$inferSelect;
 export const customerWallets = pgTable("customer_wallets", {
   id: serial("id").primaryKey(),
   customerId: integer("customer_id").notNull().unique().references(() => crmCustomers.id),
-  balance: decimal("balance", { precision: 12, scale: 2 }).notNull().default("0"),
+  balance: decimal("balance", { precision: 15, scale: 2 }).notNull().default("0"),
+  reservedBalance: decimal("reserved_balance", { precision: 15, scale: 2 }).notNull().default("0"), // مبلغ رزرو شده برای سفارشات در انتظار
   currency: text("currency").notNull().default("IQD"), // IQD, USD, EUR
   status: text("status").notNull().default("active"), // active, frozen, suspended
-  creditLimit: decimal("credit_limit", { precision: 12, scale: 2 }).default("0"),
+  creditLimit: decimal("credit_limit", { precision: 15, scale: 2 }).default("0"),
   lastActivityDate: timestamp("last_activity_date"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
