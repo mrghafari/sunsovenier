@@ -18628,30 +18628,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ORDER BY co.created_at DESC
       `, [finalCustomerId]);
       
-      // Get order items for each order
-      const allOrdersWithItems = await Promise.all(
-        allOrdersResult.rows.map(async (order: any) => {
-          const itemsResult = await pool.query(`
-            SELECT 
-              oi.id,
-              oi.product_id,
-              oi.quantity,
-              oi.unit_price,
-              oi.total_price,
-              p.name as product_name,
-              p.sku,
-              p.category
-            FROM order_items oi
-            LEFT JOIN shop_products p ON oi.product_id = p.id
-            WHERE oi.order_id = $1
-          `, [order.id]);
-          
-          return {
-            ...order,
-            items: itemsResult.rows
-          };
-        })
-      );
+      // Get order items in a single batch query (optimized to prevent connection timeout)
+      const orderIds = allOrdersResult.rows.map((o: any) => o.id);
+      let allItemsMap: Record<number, any[]> = {};
+      
+      if (orderIds.length > 0) {
+        const allItemsResult = await pool.query(`
+          SELECT 
+            oi.id,
+            oi.order_id,
+            oi.product_id,
+            oi.quantity,
+            oi.unit_price,
+            oi.total_price,
+            p.name as product_name,
+            p.sku,
+            p.category
+          FROM order_items oi
+          LEFT JOIN shop_products p ON oi.product_id = p.id
+          WHERE oi.order_id = ANY($1)
+        `, [orderIds]);
+        
+        // Group items by order_id
+        allItemsResult.rows.forEach((item: any) => {
+          if (!allItemsMap[item.order_id]) {
+            allItemsMap[item.order_id] = [];
+          }
+          allItemsMap[item.order_id].push(item);
+        });
+      }
+      
+      // Map items to orders without additional queries
+      const allOrdersWithItems = allOrdersResult.rows.map((order: any) => ({
+        ...order,
+        items: allItemsMap[order.id] || []
+      }));
 
       // Format customer orders to match regular order structure
       const customerOrders = allOrdersWithItems.map((row: any) => ({

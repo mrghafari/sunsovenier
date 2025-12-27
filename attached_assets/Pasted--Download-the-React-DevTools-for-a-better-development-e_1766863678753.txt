@@ -1,0 +1,138 @@
+ Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+ Barcode effect triggered:  Canvas ref: null
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ 📥 Loading Tawk.to widget at bottom-left position...
+ ✅ Tawk.to Live Chat loaded successfully at bottom-left
+ 
+value @ twk-chunk-common.js:2
+128x128?text=WeChat+QR:1  Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🔐 [AUTH] Guest user confirmed
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(9)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+ 📦 [INIT DISPLAY STOCK] Product 512: Stock=17, Cart=0, Display=17
+ 📦 [INIT DISPLAY STOCK] Product 513: Stock=8043, Cart=0, Display=8043
+ 📦 [INIT DISPLAY STOCK] Product 506: Stock=21205, Cart=0, Display=21205
+ 📦 [INIT DISPLAY STOCK] Product 509: Stock=1015, Cart=0, Display=1015
+ 📦 [INIT DISPLAY STOCK] Product 511: Stock=100, Cart=0, Display=100
+ 📦 [INIT DISPLAY STOCK] Product 514: Stock=11, Cart=0, Display=11
+ 📦 [INIT DISPLAY STOCK] Product 508: Stock=1300, Cart=0, Display=1300
+ 📦 [INIT DISPLAY STOCK] Product 507: Stock=11, Cart=0, Display=11
+ 📦 [INIT DISPLAY STOCK] Product 510: Stock=8044, Cart=0, Display=8044
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(9)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(9)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+ 📦 [INIT DISPLAY STOCK] Product 512: Stock=17, Cart=0, Display=17
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 513: Stock=8043, Cart=0, Display=8043
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 506: Stock=21205, Cart=0, Display=21205
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 509: Stock=1015, Cart=0, Display=1015
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 511: Stock=100, Cart=0, Display=100
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 514: Stock=11, Cart=0, Display=11
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 508: Stock=1300, Cart=0, Display=1300
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 507: Stock=11, Cart=0, Display=11
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 510: Stock=8044, Cart=0, Display=8044
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: Object
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: Object
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: Object
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+shop.tsx:430 🔐 [AUTH] Customer authenticated, cart will be synced automatically
+useCustomerAuth.ts:26 Customer auth check result: Object
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: Object
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+usePersistentCart.ts:54 🔐 User just logged in, resetting cart loaded flag
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: Object
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+shop.tsx:430 🔐 [AUTH] Customer authenticated, cart will be synced automatically
+shop.tsx:474 🔄 Triggering cart reload after login
+usePersistentCart.ts:68 🛒 Loading persistent cart for customer: 8
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: Object
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+usePersistentCart.ts:87 🛒 Loaded cart from database: Object
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: Object
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+shop.tsx:710 Shop Product Microphone: quantity=8043, basePrice=25000, discount=0.11, discountedPrice=22250
+shop.tsx:710 Shop Product Microphone: quantity=8043, basePrice=25000, discount=0.11, discountedPrice=22250
+shop.tsx:710 Shop Product Microphone: quantity=8043, basePrice=25000, discount=0.11, discountedPrice=22250
+shop.tsx:416 🔄 [CART SYNC] Product 512: Display stock 17 -> 16
+shop.tsx:416 🔄 [CART SYNC] Product 513: Display stock 8043 -> 0
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: Object
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+shop.tsx:710 Shop Product Microphone: quantity=8043, basePrice=25000, discount=0.11, discountedPrice=22250
+shop.tsx:710 Shop Product Microphone: quantity=8043, basePrice=25000, discount=0.11, discountedPrice=22250
+shop.tsx:710 Shop Product Microphone: quantity=8043, basePrice=25000, discount=0.11, discountedPrice=22250
+/api/customers/orders:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+orders:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
