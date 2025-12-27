@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { logBuffer } from "./log-buffer";
 logBuffer.init();
 
