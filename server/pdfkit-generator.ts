@@ -27,6 +27,24 @@ async function getCompanyLogo(): Promise<string | null> {
         return companyInfo.logoUrl.split(',')[1]; // Extract base64 part
       }
       
+      // If logoUrl is an S3 or HTTP(S) URL, fetch it
+      if (companyInfo.logoUrl.startsWith('http://') || companyInfo.logoUrl.startsWith('https://')) {
+        try {
+          console.log('📥 Fetching company logo from URL:', companyInfo.logoUrl);
+          const response = await fetch(companyInfo.logoUrl);
+          if (response.ok) {
+            const arrayBuffer = await response.arrayBuffer();
+            const logoBuffer = Buffer.from(arrayBuffer);
+            console.log('✅ Company logo fetched successfully, size:', logoBuffer.length);
+            return logoBuffer.toString('base64');
+          } else {
+            console.warn('⚠️ Failed to fetch logo, status:', response.status);
+          }
+        } catch (fetchError) {
+          console.warn('⚠️ Error fetching logo from URL:', fetchError);
+        }
+      }
+      
       // If logoUrl is a direct base64 string
       return companyInfo.logoUrl;
     }
