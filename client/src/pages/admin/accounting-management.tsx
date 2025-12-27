@@ -49,7 +49,16 @@ export default function AccountingManagement() {
   });
 
   // Check if user has access to accounting module
-  if (!user || user.roleId !== 1) {
+  // Allow access for: super_admin (roleId=1), admin role, or financial roles
+  const hasAccess = user && (
+    user.roleId === 1 || 
+    user.roleName === 'admin' || 
+    user.roleName === 'super_admin' ||
+    user.roleName === 'financial_admin' ||
+    user.userType === 'admin'
+  );
+  
+  if (!hasAccess) {
     return (
       <div className="container mx-auto p-6">
         <Card>
