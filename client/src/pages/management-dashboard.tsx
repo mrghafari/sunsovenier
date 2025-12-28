@@ -264,7 +264,7 @@ const ManagementDashboard = () => {
                       description="کنترل انبار و موجودی محصولات"
                       icon={<Package className="w-5 h-5 text-white" />}
                       color="bg-green-500"
-                      onClick={() => setLocation("/admin/warehouse-department")}
+                      onClick={() => setLocation("/admin/warehouse-management")}
                     />
                     <QuickActionWidget
                       title="گزارشات مالی"

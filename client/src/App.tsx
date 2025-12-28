@@ -90,7 +90,6 @@ import WidgetRecommendations from "@/pages/widget-recommendations";
 // Removed AdminOrderManagement - replaced with OrderTrackingManagement for order-management module
 import AbandonedCartManagement from "@/pages/abandoned-cart-management";
 import FinancialDepartment from "@/pages/financial-department";
-import WarehouseDepartment from "@/pages/warehouse-department";
 import FinanceOrders from "@/pages/admin/finance-orders";
 import FinancialLogin from "@/pages/financial-login";
 import WarehouseLogin from "@/pages/warehouse-login";
