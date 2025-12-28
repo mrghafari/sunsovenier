@@ -30,6 +30,7 @@ export interface IVendorStorage {
   getActiveVendors(): Promise<Vendor[]>;
   getApprovedVendors(): Promise<Vendor[]>;
   getPendingVendors(): Promise<Vendor[]>;
+  getRejectedVendors(): Promise<Vendor[]>;
   getVendorById(id: number): Promise<Vendor | undefined>;
   getVendorByEmail(email: string): Promise<Vendor | undefined>;
   createVendor(vendor: InsertVendor): Promise<Vendor>;
@@ -104,7 +105,18 @@ export class VendorStorage implements IVendorStorage {
     return await db
       .select()
       .from(vendors)
-      .where(eq(vendors.isApproved, false))
+      .where(and(
+        eq(vendors.isApproved, false),
+        sql`${vendors.rejectionReason} IS NULL`
+      ))
+      .orderBy(desc(vendors.createdAt));
+  }
+  
+  async getRejectedVendors(): Promise<Vendor[]> {
+    return await db
+      .select()
+      .from(vendors)
+      .where(sql`${vendors.rejectionReason} IS NOT NULL`)
       .orderBy(desc(vendors.createdAt));
   }
   

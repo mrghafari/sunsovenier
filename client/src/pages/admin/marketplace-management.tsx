@@ -62,6 +62,11 @@ export default function MarketplaceManagement() {
     queryKey: ["/api/admin/vendors/approved"],
   });
 
+  // Fetch rejected vendors
+  const { data: rejectedVendors, isLoading: loadingRejected } = useQuery<{ vendors: Vendor[] }>({
+    queryKey: ["/api/admin/vendors/rejected"],
+  });
+
   // Approve vendor mutation
   const approveMutation = useMutation({
     mutationFn: async (vendorId: number) => {
@@ -92,13 +97,14 @@ export default function MarketplaceManagement() {
     mutationFn: async ({ vendorId, reason }: { vendorId: number; reason: string }) => {
       return await apiRequest(`/api/admin/vendors/${vendorId}/reject`, {
         method: "POST",
-        body: JSON.stringify({ reason }),
+        body: { reason },
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/vendors"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/vendors/pending"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/vendors/approved"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/vendors/rejected"] });
       setShowRejectDialog(false);
       setRejectionReason("");
       toast({
@@ -120,7 +126,7 @@ export default function MarketplaceManagement() {
     mutationFn: async ({ vendorId, isActive }: { vendorId: number; isActive: boolean }) => {
       return await apiRequest(`/api/admin/vendors/${vendorId}`, {
         method: "PATCH",
-        body: JSON.stringify({ isActive }),
+        body: { isActive },
       });
     },
     onSuccess: () => {
@@ -345,12 +351,15 @@ export default function MarketplaceManagement() {
         </div>
 
         <Tabs defaultValue="pending" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 max-w-lg" data-testid="vendor-tabs">
+          <TabsList className="grid w-full grid-cols-5 max-w-2xl" data-testid="vendor-tabs">
             <TabsTrigger value="pending" data-testid="tab-pending">
               در انتظار ({pendingVendors?.vendors?.length || 0})
             </TabsTrigger>
             <TabsTrigger value="approved" data-testid="tab-approved">
               تایید شده ({approvedVendors?.vendors?.length || 0})
+            </TabsTrigger>
+            <TabsTrigger value="rejected" data-testid="tab-rejected">
+              رد شده ({rejectedVendors?.vendors?.length || 0})
             </TabsTrigger>
             <TabsTrigger value="all" data-testid="tab-all">
               همه ({allVendors?.vendors?.length || 0})
@@ -403,6 +412,97 @@ export default function MarketplaceManagement() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {approvedVendors?.vendors?.map((vendor) => (
                   <VendorCard key={vendor.id} vendor={vendor} />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="rejected" className="space-y-4" data-testid="content-rejected">
+            {loadingRejected ? (
+              <div className="text-center py-12">
+                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent"></div>
+                <p className="mt-4 text-muted-foreground">در حال بارگذاری...</p>
+              </div>
+            ) : rejectedVendors?.vendors?.length === 0 ? (
+              <Card>
+                <CardContent className="text-center py-12">
+                  <X className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-lg font-medium">هیچ فروشنده رد شده‌ای وجود ندارد</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {rejectedVendors?.vendors?.map((vendor) => (
+                  <Card key={vendor.id} className="hover:shadow-lg transition-shadow border-red-200" data-testid={`rejected-vendor-card-${vendor.id}`}>
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          {vendor.logo ? (
+                            <img src={vendor.logo} alt={vendor.vendorName} className="w-12 h-12 rounded-lg object-cover" />
+                          ) : (
+                            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center">
+                              <Store className="w-6 h-6 text-white" />
+                            </div>
+                          )}
+                          <div>
+                            <CardTitle className="text-lg">{vendor.vendorName}</CardTitle>
+                            <CardDescription className="text-sm mt-1">
+                              {vendor.vendorNameAr && <span className="block text-right">{vendor.vendorNameAr}</span>}
+                            </CardDescription>
+                          </div>
+                        </div>
+                        <Badge variant="destructive">
+                          <X className="w-3 h-3 mr-1" />
+                          رد شده
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Mail className="w-4 h-4" />
+                          <span>{vendor.contactEmail}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Phone className="w-4 h-4" />
+                          <span>{vendor.contactPhone}</span>
+                        </div>
+                        
+                        {vendor.rejectionReason && (
+                          <div className="mt-4 p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
+                            <div className="text-sm font-medium text-red-800 dark:text-red-200 mb-1">دلیل رد شدن:</div>
+                            <p className="text-sm text-red-700 dark:text-red-300" data-testid={`rejection-reason-${vendor.id}`}>
+                              {vendor.rejectionReason}
+                            </p>
+                          </div>
+                        )}
+
+                        <div className="flex gap-2 pt-3">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => handleViewDetails(vendor)}
+                            data-testid={`button-view-details-rejected-${vendor.id}`}
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            جزئیات
+                          </Button>
+                          <Button
+                            variant="default"
+                            size="sm"
+                            className="flex-1 bg-green-600 hover:bg-green-700"
+                            onClick={() => handleApprove(vendor)}
+                            disabled={approveMutation.isPending}
+                            data-testid={`button-reapprove-${vendor.id}`}
+                          >
+                            <Check className="w-4 h-4 mr-2" />
+                            تایید مجدد
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 ))}
               </div>
             )}

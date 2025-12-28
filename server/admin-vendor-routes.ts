@@ -66,6 +66,25 @@ export function createAdminVendorRouter() {
     }
   });
 
+  // Get rejected vendors
+  router.get("/rejected", async (req, res) => {
+    try {
+      const rejectedVendors = await vendorStorage.getRejectedVendors();
+
+      res.json({
+        success: true,
+        vendors: rejectedVendors,
+        totalCount: rejectedVendors.length
+      });
+    } catch (error: any) {
+      console.error("Error getting rejected vendors:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error getting rejected vendors"
+      });
+    }
+  });
+
   // Get vendor by ID
   router.get("/:id", async (req, res) => {
     try {
