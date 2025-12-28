@@ -558,7 +558,7 @@ export class OrderManagementStorage implements IOrderManagementStorage {
       const items = await db.select({
         productId: orderItems.productId,
         quantity: orderItems.quantity,
-        productWeight: shopProducts.weight // وزن از جدول shop_products
+        productWeight: shopProducts.grossWeight // وزن ناخالص از جدول shop_products برای حمل و نقل
       })
       .from(orderItems)
       .leftJoin(shopProducts, eq(orderItems.productId, shopProducts.id))
@@ -568,7 +568,7 @@ export class OrderManagementStorage implements IOrderManagementStorage {
       
       for (const item of items) {
         const weight = parseFloat(item.productWeight || '0');
-        const quantity = item.quantity;
+        const quantity = parseFloat(item.quantity?.toString() || '0');
         const itemTotalWeight = weight * quantity;
         
         console.log(`🏋️ [WEIGHT] Item ${item.productId}: ${weight}kg x ${quantity} = ${itemTotalWeight}kg`);
