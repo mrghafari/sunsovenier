@@ -7,64 +7,96 @@ import fs from 'fs';
 import { CompanyStorage } from './company-storage';
 
 // Get company logo from database
-async function getCompanyLogo(): Promise<string | null> {
+async function getCompanyLogo(): Promise<Buffer | null> {
   try {
     const companyStorage = new CompanyStorage();
     const companyInfo = await companyStorage.getCompanyInformation();
     
     if (companyInfo?.logoUrl) {
-      // If logoUrl starts with /uploads/, read the file from filesystem
+      console.log('🖼️ [PDF LOGO] Processing logo URL:', companyInfo.logoUrl);
+      
+      // If logoUrl starts with /uploads/, try local first, then S3
       if (companyInfo.logoUrl.startsWith('/uploads/')) {
         const logoPath = companyInfo.logoUrl.replace('/uploads/', 'uploads/');
+        
+        // Try local filesystem first
         if (fs.existsSync(logoPath)) {
           const logoBuffer = fs.readFileSync(logoPath);
-          return logoBuffer.toString('base64');
+          console.log('✅ [PDF LOGO] Loaded from local filesystem, size:', logoBuffer.length);
+          return logoBuffer;
+        }
+        
+        // Local file not found, try fetching via S3 proxy endpoint
+        const filename = companyInfo.logoUrl.split('/').pop();
+        if (filename) {
+          try {
+            // Import the S3 service to fetch directly
+            const { getAwsS3Service } = await import('./aws-s3-service');
+            const s3Service = getAwsS3Service();
+            const s3Key = `company-logos/${filename}`;
+            
+            console.log('📥 [PDF LOGO] Fetching from S3:', s3Key);
+            const logoBuffer = await s3Service.getFile(s3Key);
+            
+            if (logoBuffer && logoBuffer.length > 0) {
+              console.log('✅ [PDF LOGO] Loaded from S3, size:', logoBuffer.length);
+              return logoBuffer;
+            } else {
+              console.warn('⚠️ [PDF LOGO] S3 returned empty or null');
+            }
+          } catch (s3Error) {
+            console.warn('⚠️ [PDF LOGO] S3 fetch error:', s3Error);
+          }
         }
       }
       
       // If logoUrl is already base64 data
       if (companyInfo.logoUrl.startsWith('data:image')) {
-        return companyInfo.logoUrl.split(',')[1]; // Extract base64 part
+        const base64Data = companyInfo.logoUrl.split(',')[1];
+        const logoBuffer = Buffer.from(base64Data, 'base64');
+        console.log('✅ [PDF LOGO] Decoded from base64 data URL, size:', logoBuffer.length);
+        return logoBuffer;
       }
       
       // If logoUrl is an S3 or HTTP(S) URL, fetch it
       if (companyInfo.logoUrl.startsWith('http://') || companyInfo.logoUrl.startsWith('https://')) {
         try {
-          console.log('📥 Fetching company logo from URL:', companyInfo.logoUrl);
+          console.log('📥 [PDF LOGO] Fetching from URL:', companyInfo.logoUrl);
           const response = await fetch(companyInfo.logoUrl);
           if (response.ok) {
             const arrayBuffer = await response.arrayBuffer();
             const logoBuffer = Buffer.from(arrayBuffer);
-            console.log('✅ Company logo fetched successfully, size:', logoBuffer.length);
-            return logoBuffer.toString('base64');
+            console.log('✅ [PDF LOGO] Fetched from URL, size:', logoBuffer.length);
+            return logoBuffer;
           } else {
-            console.warn('⚠️ Failed to fetch logo, status:', response.status);
+            console.warn('⚠️ [PDF LOGO] URL fetch failed, status:', response.status);
           }
         } catch (fetchError) {
-          console.warn('⚠️ Error fetching logo from URL:', fetchError);
+          console.warn('⚠️ [PDF LOGO] URL fetch error:', fetchError);
         }
       }
-      
-      // If logoUrl is a direct base64 string
-      return companyInfo.logoUrl;
     }
     
     // Fallback to default logo if exists
     if (fs.existsSync('server/logo-base64.txt')) {
-      return fs.readFileSync('server/logo-base64.txt', 'utf8');
+      const base64Data = fs.readFileSync('server/logo-base64.txt', 'utf8');
+      console.log('ℹ️ [PDF LOGO] Using fallback logo from file');
+      return Buffer.from(base64Data, 'base64');
     }
     
+    console.log('ℹ️ [PDF LOGO] No logo available');
     return null;
   } catch (error) {
-    console.warn('⚠️ Could not load company logo:', error);
+    console.warn('⚠️ [PDF LOGO] Error loading logo:', error);
     
     // Fallback to default logo if exists
     try {
       if (fs.existsSync('server/logo-base64.txt')) {
-        return fs.readFileSync('server/logo-base64.txt', 'utf8');
+        const base64Data = fs.readFileSync('server/logo-base64.txt', 'utf8');
+        return Buffer.from(base64Data, 'base64');
       }
     } catch (fallbackError) {
-      console.warn('⚠️ Fallback logo also failed:', fallbackError);
+      console.warn('⚠️ [PDF LOGO] Fallback also failed:', fallbackError);
     }
     
     return null;
@@ -235,7 +267,7 @@ export async function generateInvoicePDF(invoiceData: any): Promise<Buffer> {
         // Add company logo if available (left side)
         if (companyLogoBase64) {
           try {
-            const logoBuffer = Buffer.from(companyLogoBase64, 'base64');
+            const logoBuffer = companyLogoBase64;
             doc.image(logoBuffer, 50, 30, { width: 80, height: 60 });
             console.log('✅ Company logo added to invoice PDF (left side)');
           } catch (logoError) {
@@ -547,7 +579,7 @@ export async function generateCustomerProfilePDF(customerData: any): Promise<Buf
         // Add company logo if available (left side)
         if (companyLogoBase64) {
           try {
-            const logoBuffer = Buffer.from(companyLogoBase64, 'base64');
+            const logoBuffer = companyLogoBase64;
             doc.image(logoBuffer, 50, 30, { width: 80, height: 60 });
             console.log('✅ Company logo added to customer profile PDF (left side)');
           } catch (logoError) {
@@ -854,7 +886,7 @@ export async function generateAnalyticsPDF(analyticsData: any, title: string = '
         // Add company logo if available (left side)
         if (companyLogoBase64) {
           try {
-            const logoBuffer = Buffer.from(companyLogoBase64, 'base64');
+            const logoBuffer = companyLogoBase64;
             doc.image(logoBuffer, 50, 30, { width: 80, height: 60 });
             console.log('✅ Company logo added to analytics PDF (left side)');
           } catch (logoError) {
@@ -957,7 +989,7 @@ export async function generateAnalyticsPDF(analyticsData: any, title: string = '
         // Add company logo if available (left side)
         if (companyLogoBase64) {
           try {
-            const logoBuffer = Buffer.from(companyLogoBase64, 'base64');
+            const logoBuffer = companyLogoBase64;
             doc.image(logoBuffer, 50, 30, { width: 80, height: 60 });
             console.log('✅ Company logo added to analytics PDF fallback (left side)');
           } catch (logoError) {
