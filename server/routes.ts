@@ -30718,27 +30718,19 @@ ${message ? `Additional Requirements:\n${message}` : ''}
     try {
       const orders = await orderManagementStorage.getLogisticsPendingOrders();
       
-      // Calculate total weight for each order
-      const ordersWithWeight = await Promise.all(
-        orders.map(async (order) => {
-          try {
-            const weight = await orderManagementStorage.calculateOrderWeight(order.customerOrderId);
-            return {
-              ...order,
-              calculatedWeight: weight,
-              weightUnit: 'kg'
-            };
-          } catch (error) {
-            console.error(`Error calculating weight for order ${order.customerOrderId}:`, error);
-            return {
-              ...order,
-              calculatedWeight: 0,
-              weightUnit: 'kg'
-            };
-          }
-        })
-      );
+      // OPTIMIZED: Use stored totalWeight, vehicleType, deliveryMethod from order_management
+      // No additional queries needed - getLogisticsPendingOrders already calculates missing weights
+      const ordersWithWeight = orders.map((order) => ({
+        ...order,
+        // Ensure camelCase for frontend compatibility
+        totalWeight: order.totalWeight,
+        vehicleType: order.vehicleType,
+        deliveryMethod: order.deliveryMethod,
+        calculatedWeight: order.totalWeight ? parseFloat(order.totalWeight) : 0,
+        weightUnit: order.weightUnit || 'kg'
+      }));
       
+      console.log(`📦 [LOGISTICS] Returning ${ordersWithWeight.length} orders with weight/vehicle data`);
       res.json({ success: true, orders: ordersWithWeight });
     } catch (error) {
       console.error('Error fetching logistics orders:', error);
