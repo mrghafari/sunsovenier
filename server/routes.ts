@@ -17911,6 +17911,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Warehouse notes from frontend logic
         internalNotes: orderData.warehouseNotes || "",
         
+        // CRITICAL: Store customer's selected delivery method in customer_orders table
+        deliveryMethod: orderData.deliveryMethod || 'courier',
+        
         trackingNumber: null,
         carrier: null,
 
