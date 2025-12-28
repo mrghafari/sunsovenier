@@ -16315,7 +16315,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Complete abandoned cart (restore to active)
+  // Complete abandoned cart (restore to active) - WITH INVENTORY CHECKING
   app.post("/api/customers/abandoned-carts/:cartId/restore", requireCustomerAuth, async (req, res) => {
     try {
       const customerId = (req.session as any).customerId;
@@ -16330,19 +16330,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Restore cart to active state
+      // Parse cart items and check inventory
+      let cartItems = [];
+      try {
+        cartItems = typeof cart.cartData === 'string' ? JSON.parse(cart.cartData) : cart.cartData || [];
+      } catch (e) {
+        cartItems = [];
+      }
+      
+      console.log(`🛒 [CART RESTORE] Checking inventory for ${cartItems.length} items in cart ${cartId}`);
+      
+      const availableItems: any[] = [];
+      const unavailableItems: any[] = [];
+      
+      // Check stock for each item
+      for (const item of cartItems) {
+        const productId = item.productId || item.id;
+        if (!productId) continue;
+        
+        // Get current product stock from database
+        const product = await storage.getProductById(productId);
+        
+        if (!product) {
+          unavailableItems.push({
+            ...item,
+            unavailableReason: 'محصول دیگر موجود نیست',
+            currentStock: 0
+          });
+          continue;
+        }
+        
+        const currentStock = product.stockQuantity || 0;
+        const requestedQuantity = item.quantity || 1;
+        
+        if (currentStock <= 0) {
+          unavailableItems.push({
+            ...item,
+            productName: product.name,
+            unavailableReason: 'موجودی تمام شده',
+            currentStock: 0
+          });
+        } else if (currentStock < requestedQuantity) {
+          availableItems.push({
+            ...item,
+            productName: product.name,
+            quantity: currentStock,
+            originalQuantity: requestedQuantity,
+            partialStock: true,
+            currentStock
+          });
+          unavailableItems.push({
+            ...item,
+            productName: product.name,
+            quantity: requestedQuantity - currentStock,
+            unavailableReason: `فقط ${currentStock} عدد موجود است`,
+            currentStock
+          });
+        } else {
+          availableItems.push({
+            ...item,
+            productName: product.name,
+            currentStock,
+            available: true
+          });
+        }
+      }
+      
+      console.log(`🛒 [CART RESTORE] Available: ${availableItems.length}, Unavailable: ${unavailableItems.length}`);
+      
+      // Update cart with only available items
+      const newItemCount = availableItems.reduce((sum, item) => sum + (item.quantity || 1), 0);
+      const newTotalValue = availableItems.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 1)), 0);
+      
       await cartStorage.updateCartSession(cartId, {
+        cartData: JSON.stringify(availableItems),
+        itemCount: newItemCount,
+        totalValue: newTotalValue.toString(),
         isAbandoned: false,
         abandonedAt: null,
         lastActivity: new Date(),
         isActive: true
       });
       
-      console.log(`🛒 [CART RESTORE] Customer ${customerId} restored cart ${cartId}`);
+      console.log(`🛒 [CART RESTORE] Customer ${customerId} restored cart ${cartId} with ${availableItems.length} available items`);
       
       res.json({
         success: true,
-        message: 'سبد خرید با موفقیت بازیابی شد'
+        message: unavailableItems.length > 0 
+          ? `سبد خرید بازیابی شد. ${unavailableItems.length} کالا به دلیل عدم موجودی از سبد حذف شد.`
+          : 'سبد خرید با موفقیت بازیابی شد',
+        availableItems,
+        unavailableItems,
+        hasUnavailableItems: unavailableItems.length > 0,
+        totalAvailable: availableItems.length,
+        totalUnavailable: unavailableItems.length
       });
     } catch (error) {
       console.error('Error restoring abandoned cart:', error);
@@ -16352,7 +16433,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
   // Delete abandoned cart permanently
   app.delete("/api/customers/abandoned-carts/:cartId", requireCustomerAuth, async (req, res) => {
     try {
