@@ -2825,22 +2825,24 @@ const LogisticsManagement = () => {
                       </h5>
                       <div className="space-y-1">
                         <p className="text-sm font-bold text-indigo-700">
-                          {order.customerVehicleType || order.vehicleType || order.selectedVehicleName || 
-                           (order.deliveryMethod === 'courier' ? 'پیک موتوری' :
-                           order.deliveryMethod === 'truck' ? 'کامیون' :
-                           order.deliveryMethod === 'post' ? 'پست' :
-                           order.deliveryMethod === 'postal' ? '📮 ارسال پستی' :
-                           order.deliveryMethod === 'personal_pickup' ? 'تحویل حضوری' :
-                           order.deliveryMethod === 'self_pickup' ? '🏢 تحویل حضوری' :
-                           order.deliveryMethod === 'freight_collect' ? '💰 پس کرایه' :
-                           order.deliveryMethod === 'van' ? 'وانت' :
-                           order.deliveryMethod === 'smart_vehicle' ? '🚚 ارسال هوشمند' :
-                           order.deliveryMethod || '⚠️ نامشخص')}
+                          {/* For smart_vehicle, show the specific vehicle type selected by customer */}
+                          {(order.customerDeliveryMethod === 'smart_vehicle' || order.deliveryMethod === 'smart_vehicle') && (order.customerVehicleType || order.vehicleType)
+                            ? `🚚 ${order.customerVehicleType || order.vehicleType}` 
+                            : (order.customerDeliveryMethod || order.deliveryMethod) === 'courier' ? 'پیک موتوری' :
+                           (order.customerDeliveryMethod || order.deliveryMethod) === 'truck' ? 'کامیون' :
+                           (order.customerDeliveryMethod || order.deliveryMethod) === 'post' ? 'پست' :
+                           (order.customerDeliveryMethod || order.deliveryMethod) === 'postal' ? '📮 ارسال پستی' :
+                           (order.customerDeliveryMethod || order.deliveryMethod) === 'personal_pickup' ? 'تحویل حضوری' :
+                           (order.customerDeliveryMethod || order.deliveryMethod) === 'self_pickup' ? '🏢 تحویل حضوری' :
+                           (order.customerDeliveryMethod || order.deliveryMethod) === 'freight_collect' ? '💰 پس کرایه' :
+                           (order.customerDeliveryMethod || order.deliveryMethod) === 'van' ? 'وانت' :
+                           (order.customerDeliveryMethod || order.deliveryMethod) === 'smart_vehicle' ? '🚚 ارسال هوشمند' :
+                           order.customerDeliveryMethod || order.deliveryMethod || '⚠️ نامشخص'}
                         </p>
-                        {/* Show selected vehicle type for smart_vehicle - prioritize customerVehicleType */}
-                        {order.deliveryMethod === 'smart_vehicle' && (order.customerVehicleType || order.vehicleType) && (
+                        {/* Show "Smart Vehicle Selection" label when vehicle type is displayed */}
+                        {(order.customerDeliveryMethod === 'smart_vehicle' || order.deliveryMethod === 'smart_vehicle') && (order.customerVehicleType || order.vehicleType) && (
                           <p className="text-xs text-indigo-600 mt-1">
-                            🚗 خودرو انتخابی: {order.customerVehicleType || order.vehicleType}
+                            ارسال هوشمند - نوع خودرو انتخابی مشتری
                           </p>
                         )}
                         {order.transportationType && (

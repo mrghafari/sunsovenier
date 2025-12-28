@@ -638,6 +638,7 @@ export class OrderManagementStorage implements IOrderManagementStorage {
       orderNumber: customerOrders.orderNumber, // شماره سفارش M[YY][NNNNN]
       paymentMethod: customerOrders.paymentMethod, // نوع تسویه حساب
       customerDeliveryMethod: customerOrders.deliveryMethod, // روش ارسال انتخابی مشتری در چک‌اوت
+      customerVehicleType: customerOrders.vehicleType, // نوع خودروی انتخابی مشتری در ارسال هوشمند
       
       // Customer info
       customerFirstName: crmCustomers.firstName,
