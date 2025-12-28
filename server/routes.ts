@@ -17869,6 +17869,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         shippingCost: Math.round(shippingAmount).toString(),
         currency: orderData.currency || "IQD",
         notes: orderData.notes || "",
+          // Add calculated weight
+          totalWeight: calculatedTotalWeight > 0 ? calculatedTotalWeight.toFixed(3) : null,
+          weightUnit: 'kg',
         
         // Store frozen tax rates at order creation time
         vatRate: taxCalculation.vatRate.toString(),
@@ -18142,6 +18145,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
           department = 'financial';
           console.log(`🏪 [PURE WALLET ROUTING] Order ${orderNumber} routed to financial department (paid with wallet)`);
         }
+        // Calculate total weight from order items using shop_products.gross_weight
+        let calculatedTotalWeight = 0;
+        try {
+          for (const item of items) {
+            const quantity = parseInt(item.quantity || '1') || 1;
+            // Get gross_weight from shop_products
+            const productWeight = await db.select({ grossWeight: shopProducts.grossWeight })
+              .from(shopProducts)
+              .where(eq(shopProducts.id, item.productId))
+              .limit(1);
+            
+            if (productWeight.length > 0 && productWeight[0].grossWeight) {
+              const weight = parseFloat(productWeight[0].grossWeight.toString());
+              calculatedTotalWeight += weight * quantity;
+            }
+          }
+          console.log(`🏋️ [WEIGHT] Calculated total weight for order ${orderNumber}: ${calculatedTotalWeight}kg`);
+        } catch (weightError) {
+          console.error(`⚠️ [WEIGHT] Error calculating weight for order ${orderNumber}:`, weightError);
+          // Continue without weight if calculation fails
+        }
+
 
         let orderMgmtData = {
           // CRITICAL: Add delivery method from checkout for logistics display
@@ -18153,6 +18178,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           totalAmount: totalAmount.toString(),
           currency: orderData.currency || "IQD",
           notes: orderData.notes || "",
+          // Add calculated weight
+          totalWeight: calculatedTotalWeight > 0 ? calculatedTotalWeight.toFixed(3) : null,
+          weightUnit: 'kg',
         };
 
         // Add vehicle type from checkout payload if customer selected one
