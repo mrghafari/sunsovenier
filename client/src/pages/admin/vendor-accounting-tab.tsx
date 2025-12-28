@@ -105,7 +105,7 @@ export default function VendorAccountingTab() {
     mutationFn: async (data: { vendorId: number; amount: number; method: string; reference: string; notes: string }) => {
       return await apiRequest(`/api/admin/vendor-accounting/payment`, {
         method: "POST",
-        body: JSON.stringify(data),
+        body: data,
       });
     },
     onSuccess: () => {
@@ -139,7 +139,7 @@ export default function VendorAccountingTab() {
     mutationFn: async (data: { vendorId: number; commissionRate: number }) => {
       return await apiRequest(`/api/admin/vendor-accounting/commission/${data.vendorId}`, {
         method: "PATCH",
-        body: JSON.stringify({ commissionRate: data.commissionRate }),
+        body: { commissionRate: data.commissionRate },
       });
     },
     onSuccess: () => {
@@ -164,7 +164,7 @@ export default function VendorAccountingTab() {
     mutationFn: async (data: { productId: number; commissionOverride: number | null }) => {
       return await apiRequest(`/api/admin/vendor-accounting/product-commission/${data.productId}`, {
         method: "PATCH",
-        body: JSON.stringify({ commissionOverride: data.commissionOverride }),
+        body: { commissionOverride: data.commissionOverride },
       });
     },
     onSuccess: () => {
