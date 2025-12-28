@@ -7619,7 +7619,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       'aws_s3_settings',
       'whatsapp_crm',
       'blog',
-      'marketplace_management',
+            'marketplace_management',
+      'vendor_accounting',
       // Total: 37 modules - automatically synced with Site Management
     ];
   };
@@ -33108,7 +33109,7 @@ ${message ? `Additional Requirements:\n${message}` : ''}
           "accounting_management", "finance", "wallet_management", "geography_analytics",
           "ai_settings", "refresh_control", "content_management", "ticketing_system",
           "remote_desktop", "server_config", "company_information", "user_guide",
-          "marketing_module", "aws_s3_settings", "whatsapp_crm", "blog", "marketplace_management"
+          "marketing_module", "aws_s3_settings", "whatsapp_crm", "blog", "marketplace_management", "vendor_accounting"
         ];
         
         console.log("🔍 [CRITICAL DEBUG] marketplace_management included:", allModules.includes("marketplace_management"));
