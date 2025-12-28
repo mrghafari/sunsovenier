@@ -1272,45 +1272,21 @@ export class OrderManagementStorage implements IOrderManagementStorage {
 
   async sendDeliveryCodeEmail(customerEmail: string, deliveryCode: string, customerName: string, orderNumber: string): Promise<boolean> {
     try {
-      const { UniversalEmailService } = await import('./universal-email-service');
+      const { emailService } = await import('./email-service');
       
-      const subject = `کد تحویل سفارش ${orderNumber} - مومتاز کیمیکال`;
+      // Use template #03 for delivery verification code (قالب شماره 3 - کد تحویل سفارش)
+      // Template variables: customer_name, order_number, delivery_code
+      const result = await emailService.sendEmailWithTemplate('#03', {
+        customer_name: customerName,
+        order_number: orderNumber,
+        delivery_code: deliveryCode
+      }, customerEmail, 'orders');
       
-      const html = `
-        <div dir="rtl" style="font-family: Tahoma, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
-          <div style="background-color: #ffffff; border-radius: 8px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-            <h2 style="color: #2c3e50; text-align: center; margin-bottom: 20px;">کد تحویل سفارش شما</h2>
-            
-            <p style="color: #34495e; font-size: 16px; line-height: 1.8;">مشتری گرامی ${customerName}،</p>
-            
-            <p style="color: #34495e; font-size: 16px; line-height: 1.8;">سفارش شما به شماره <strong>${orderNumber}</strong> آماده ارسال است.</p>
-            
-            <div style="background-color: #e8f5e9; border-radius: 8px; padding: 20px; text-align: center; margin: 30px 0;">
-              <p style="color: #2e7d32; font-size: 14px; margin-bottom: 10px;">کد تحویل شما:</p>
-              <p style="color: #1b5e20; font-size: 48px; font-weight: bold; letter-spacing: 8px; margin: 0;">${deliveryCode}</p>
-            </div>
-            
-            <p style="color: #e74c3c; font-size: 14px; line-height: 1.8;">⚠️ لطفاً این کد را فقط هنگام دریافت کالا به راننده ارائه دهید.</p>
-            
-            <hr style="border: none; border-top: 1px solid #ecf0f1; margin: 30px 0;">
-            
-            <p style="color: #7f8c8d; font-size: 12px; text-align: center;">با تشکر از اعتماد شما<br>مومتاز کیمیکال</p>
-          </div>
-        </div>
-      `;
-      
-      const result = await UniversalEmailService.sendEmail({
-        categoryKey: 'order-confirmations',
-        to: [customerEmail],
-        subject: subject,
-        html: html
-      });
-      
-      console.log(`📧 [EMAIL] Delivery code ${deliveryCode} sent to ${customerEmail} for order ${orderNumber}:`, result);
+      console.log(`📧 [EMAIL TEMPLATE #03] Delivery code ${deliveryCode} sent to ${customerEmail} for order ${orderNumber}:`, result);
       
       return result;
     } catch (error) {
-      console.error('❌ [EMAIL] Error sending delivery code:', error);
+      console.error('❌ [EMAIL] Error sending delivery code using template #03:', error);
       return false;
     }
   }
