@@ -41538,6 +41538,11 @@ momtazchem.com
           deliveryPersonPhone: orderManagement.deliveryPersonPhone,
           estimatedDeliveryDate: orderManagement.estimatedDeliveryDate,
           createdAt: orderManagement.createdAt,
+          // CRITICAL: Include weight and vehicle info for logistics dashboard
+          totalWeight: orderManagement.totalWeight,
+          weightUnit: orderManagement.weightUnit,
+          vehicleType: orderManagement.vehicleType,
+          deliveryMethod: orderManagement.deliveryMethod,
           orderTotal: customerOrders.total,
           orderDate: customerOrders.createdAt,
           customerName: crmCustomers.firstName,
