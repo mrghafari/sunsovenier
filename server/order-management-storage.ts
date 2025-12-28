@@ -731,6 +731,12 @@ export class OrderManagementStorage implements IOrderManagementStorage {
     const transformedResults = await Promise.all(results.map(async (row) => {
       // Calculate weight - prefer stored value, only recalculate if missing
       const storedWeight = row.totalWeight ? parseFloat(String(row.totalWeight)) : 0;
+      
+      // Debug logging for weight tracing
+      if (row.orderNumber === 'M2511675' || storedWeight > 0) {
+        console.log(`🏋️ [WEIGHT DEBUG] Order ${row.orderNumber}: raw=${row.totalWeight}, parsed=${storedWeight}`);
+      }
+      
       const calculatedWeight = storedWeight > 0 ? storedWeight : await this.calculateOrderWeight(row.customerOrderId);
       
       return {
