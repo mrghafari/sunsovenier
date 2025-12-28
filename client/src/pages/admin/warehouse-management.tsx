@@ -43,7 +43,8 @@ import {
   Play,
   Minus,
   Save,
-  Printer
+  Printer,
+  Loader2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useOrderNotifications } from '@/hooks/useOrderNotifications';
@@ -165,6 +166,10 @@ const WarehouseManagement: React.FC = () => {
   
   // Order sub-tab state
   const [orderSubTab, setOrderSubTab] = useState('pending');
+  
+  // Track which order buttons are currently loading
+  const [processingOrderId, setProcessingOrderId] = useState<number | null>(null);
+  const [processingAction, setProcessingAction] = useState<'verify' | 'approve' | 'reject' | null>(null);
   
   // Header filter states
   const [orderIdFilter, setOrderIdFilter] = useState('');
@@ -524,8 +529,12 @@ const WarehouseManagement: React.FC = () => {
       setShowOrderDetails(false);
       setSelectedOrder(null);
       setWarehouseNotes("");
+      setProcessingOrderId(null);
+      setProcessingAction(null);
     },
     onError: (error: any) => {
+      setProcessingOrderId(null);
+      setProcessingAction(null);
       if (error.status === 409 || error.alreadyProcessed) {
         toast({
           title: "این سفارش قبلاً پردازش شده",
@@ -569,8 +578,12 @@ const WarehouseManagement: React.FC = () => {
       setShowOrderDetails(false);
       setSelectedOrder(null);
       setWarehouseNotes("");
+      setProcessingOrderId(null);
+      setProcessingAction(null);
     },
     onError: (error: any) => {
+      setProcessingOrderId(null);
+      setProcessingAction(null);
       if (error.status === 409 || error.alreadyProcessed) {
         toast({
           title: "این سفارش قبلاً پردازش شده",
@@ -614,8 +627,12 @@ const WarehouseManagement: React.FC = () => {
       setShowOrderDetails(false);
       setSelectedOrder(null);
       setWarehouseNotes("");
+      setProcessingOrderId(null);
+      setProcessingAction(null);
     },
     onError: (error: any) => {
+      setProcessingOrderId(null);
+      setProcessingAction(null);
       if (error.status === 409 || error.alreadyProcessed) {
         toast({
           title: "این سفارش قبلاً پردازش شده",
@@ -872,6 +889,8 @@ const WarehouseManagement: React.FC = () => {
 
   // 🔒 STAGE 1: Verify order (check inventory availability)
   const handleVerifyOrder = (order: any) => {
+    setProcessingOrderId(order.id);
+    setProcessingAction('verify');
     verifyMutation.mutate({
       orderId: order.id,
       notes: warehouseNotes || 'موجودی تأیید شد - مرحله ۱'
@@ -880,6 +899,8 @@ const WarehouseManagement: React.FC = () => {
 
   // 🔒 STAGE 2: Final approve and send to logistics
   const handleApproveOrder = (order: any) => {
+    setProcessingOrderId(order.id);
+    setProcessingAction('approve');
     approveMutation.mutate({
       orderId: order.id,
       notes: warehouseNotes || 'تأیید نهایی - ارسال به لجستیک'
@@ -888,6 +909,8 @@ const WarehouseManagement: React.FC = () => {
 
   // 🔒 Handle reject order - using order_management.id and concurrency-safe mutation  
   const handleRejectOrder = (order: any) => {
+    setProcessingOrderId(order.id);
+    setProcessingAction('reject');
     rejectMutation.mutate({
       orderId: order.id,
       notes: warehouseNotes || 'کالا موجود نیست'
@@ -1314,22 +1337,40 @@ const WarehouseManagement: React.FC = () => {
                                     variant="outline"
                                     size="sm"
                                     onClick={() => handleRejectOrder(order)}
-                                    disabled={rejectMutation.isPending}
+                                    disabled={processingOrderId === order.id || rejectMutation.isPending}
                                     className="text-red-600 hover:text-red-800"
                                   >
-                                    <XCircle className="w-4 h-4 mr-1" />
-                                    رد
+                                    {processingOrderId === order.id && processingAction === 'reject' ? (
+                                      <>
+                                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                        در حال رد...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <XCircle className="w-4 h-4 mr-1" />
+                                        رد
+                                      </>
+                                    )}
                                   </Button>
                                   {isStage1(order) && (
                                     <Button
                                       variant="outline"
                                       size="sm"
                                       onClick={() => handleVerifyOrder(order)}
-                                      disabled={verifyMutation.isPending}
+                                      disabled={processingOrderId === order.id || verifyMutation.isPending}
                                       className="text-purple-600 hover:text-purple-800"
                                     >
-                                      <Package className="w-4 h-4 mr-1" />
-                                      مرحله ۱: تأیید موجودی
+                                      {processingOrderId === order.id && processingAction === 'verify' ? (
+                                        <>
+                                          <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                          در حال تأیید...
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Package className="w-4 h-4 mr-1" />
+                                          مرحله ۱: تأیید موجودی
+                                        </>
+                                      )}
                                     </Button>
                                   )}
                                   {isStage2(order) && (
@@ -1337,11 +1378,20 @@ const WarehouseManagement: React.FC = () => {
                                       variant="outline"
                                       size="sm"
                                       onClick={() => handleApproveOrder(order)}
-                                      disabled={approveMutation.isPending}
+                                      disabled={processingOrderId === order.id || approveMutation.isPending}
                                       className="text-green-600 hover:text-green-800"
                                     >
-                                      <CheckCircle className="w-4 h-4 mr-1" />
-                                      مرحله ۲: ارسال به لجستیک
+                                      {processingOrderId === order.id && processingAction === 'approve' ? (
+                                        <>
+                                          <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                          در حال ارسال...
+                                        </>
+                                      ) : (
+                                        <>
+                                          <CheckCircle className="w-4 h-4 mr-1" />
+                                          مرحله ۲: ارسال به لجستیک
+                                        </>
+                                      )}
                                     </Button>
                                   )}
                                 </div>
@@ -1836,26 +1886,41 @@ const WarehouseManagement: React.FC = () => {
                     <Button 
                       variant="destructive" 
                       onClick={() => handleRejectOrder(selectedOrder)} 
-                      disabled={rejectMutation.isPending}
+                      disabled={processingOrderId === selectedOrder.id || rejectMutation.isPending}
                     >
-                      {rejectMutation.isPending ? 'در حال پردازش...' : 'رد سفارش'}
+                      {processingOrderId === selectedOrder.id && processingAction === 'reject' ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                          در حال رد...
+                        </>
+                      ) : 'رد سفارش'}
                     </Button>
                     {isStage1(selectedOrder) && (
                       <Button 
                         onClick={() => handleVerifyOrder(selectedOrder)} 
-                        disabled={verifyMutation.isPending}
+                        disabled={processingOrderId === selectedOrder.id || verifyMutation.isPending}
                         className="bg-purple-600 hover:bg-purple-700"
                       >
-                        {verifyMutation.isPending ? 'در حال پردازش...' : 'مرحله ۱: تأیید موجودی'}
+                        {processingOrderId === selectedOrder.id && processingAction === 'verify' ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                            در حال تأیید...
+                          </>
+                        ) : 'مرحله ۱: تأیید موجودی'}
                       </Button>
                     )}
                     {isStage2(selectedOrder) && (
                       <Button 
                         onClick={() => handleApproveOrder(selectedOrder)} 
-                        disabled={approveMutation.isPending}
+                        disabled={processingOrderId === selectedOrder.id || approveMutation.isPending}
                         className="bg-green-600 hover:bg-green-700"
                       >
-                        {approveMutation.isPending ? 'در حال پردازش...' : 'مرحله ۲: ارسال به لجستیک'}
+                        {processingOrderId === selectedOrder.id && processingAction === 'approve' ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                            در حال ارسال...
+                          </>
+                        ) : 'مرحله ۲: ارسال به لجستیک'}
                       </Button>
                     )}
                   </div>
