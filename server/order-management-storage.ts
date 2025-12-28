@@ -743,6 +743,11 @@ export class OrderManagementStorage implements IOrderManagementStorage {
       // Orders without weights will show 0 until backfill job runs
       const calculatedWeight = storedWeight;
       
+      // Debug logging for weight verification
+      if (row.orderNumber === 'M2511675' || storedWeight > 0) {
+        console.log(`🏋️ [WEIGHT FINAL] Order ${row.orderNumber}: storedWeight=${storedWeight}, final=${calculatedWeight}`);
+      }
+      
       return {
         id: row.id,
         customerOrderId: row.customerOrderId,
