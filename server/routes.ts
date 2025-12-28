@@ -28545,7 +28545,7 @@ ${message ? `Additional Requirements:\n${message}` : ''}
           ) as items
         FROM orders o
         LEFT JOIN order_items oi ON o.id = oi.order_id
-        WHERE o.status = 'financial_approved'
+        WHERE o.status IN ('financial_approved', 'warehouse_pending', 'warehouse_processing', 'warehouse_verified', 'warehouse_approved')
         GROUP BY o.id, o.customer_name, o.customer_email, o.total_amount, o.status, 
                  o.created_at, o.shipping_address, o.payment_method, o.notes, 
                  o.warehouse_notes, o.financial_approved_at, o.fulfilled_at, o.fulfilled_by

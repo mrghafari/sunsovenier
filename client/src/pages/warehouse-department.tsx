@@ -19,14 +19,32 @@ import {
   Truck,
   User,
   Calendar,
-  DollarSign
+  DollarSign,
+  Filter
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const STATUS_OPTIONS = [
+  { value: "all", label: "همه وضعیت‌ها" },
+  { value: "financial_approved", label: "تایید مالی شده" },
+  { value: "warehouse_pending", label: "در انتظار پردازش انبار" },
+  { value: "warehouse_processing", label: "در حال پردازش" },
+  { value: "warehouse_verified", label: "تایید اولیه انبار" },
+  { value: "warehouse_approved", label: "تایید و ارسال شده به لجستیک" },
+];
 
 export default function WarehouseDepartment() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [processingNotes, setProcessingNotes] = useState("");
   const { toast } = useToast();
 
@@ -67,14 +85,24 @@ export default function WarehouseDepartment() {
   console.log('Warehouse error:', error);
   console.log('Warehouse isLoading:', isLoading);
 
-  // Filter orders based on search
-  const filteredOrders = Array.isArray(orders) ? orders.filter((order: any) =>
-    order.customer?.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.customer?.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.customer?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order.customerOrderId?.toString().includes(searchTerm) ||
-    order.id?.toString().includes(searchTerm)
-  ) : [];
+  // Filter orders based on search and status
+  const filteredOrders = Array.isArray(orders) ? orders.filter((order: any) => {
+    // Status filter
+    const matchesStatus = statusFilter === "all" || 
+      order.status === statusFilter || 
+      order.currentStatus === statusFilter;
+    
+    // Search filter
+    const matchesSearch = !searchTerm || 
+      order.customer?.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.customer?.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.customer?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.customerOrderId?.toString().includes(searchTerm) ||
+      order.orderNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.id?.toString().includes(searchTerm);
+    
+    return matchesStatus && matchesSearch;
+  }) : [];
 
   // Process order mutation
   const processOrderMutation = useMutation({
@@ -234,28 +262,58 @@ export default function WarehouseDepartment() {
         </Card>
       </div>
 
-      {/* Search */}
+      {/* Search and Filter */}
       <Card>
         <CardContent className="p-6">
-          <div className="flex gap-4 items-center">
-            <div className="flex-1">
+          <div className="flex gap-4 items-end flex-wrap">
+            <div className="flex-1 min-w-[250px]">
               <Label htmlFor="search">جستجوی سفارشات</Label>
               <div className="relative">
                 <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                 <Input
                   id="search"
-                  placeholder="جستجو بر اساس شماره سفارش، نام مشتری یا محصول..."
+                  placeholder="جستجو بر اساس شماره سفارش، نام مشتری..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
+                  data-testid="input-search-orders"
                 />
               </div>
             </div>
+            <div className="w-[220px]">
+              <Label htmlFor="status-filter">فیلتر وضعیت</Label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger id="status-filter" data-testid="select-status-filter">
+                  <Filter className="w-4 h-4 ml-2 text-gray-500" />
+                  <SelectValue placeholder="انتخاب وضعیت" />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUS_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="flex gap-2">
-              <Badge variant="outline" className="flex items-center gap-1">
+              <Badge variant="outline" className="flex items-center gap-1 h-10 px-3">
                 <Package className="w-3 h-3" />
                 {filteredOrders.length} سفارش
               </Badge>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  setSearchTerm("");
+                  setStatusFilter("all");
+                }}
+                className="h-10"
+                data-testid="button-clear-filters"
+              >
+                <RefreshCw className="w-4 h-4 ml-1" />
+                پاک کردن فیلترها
+              </Button>
             </div>
           </div>
         </CardContent>
