@@ -18456,6 +18456,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error('❌ Error updating wallet payment status:', error);
         }
         
+        // 🔥 CRITICAL FIX: Create order_management record for wallet_full payments
+        // Previously this was skipped causing delivery_method to default to 'courier' and weight to be NULL
+        try {
+          const walletOrderMgmtData = {
+            deliveryMethod: checkoutDeliveryMethod,
+            vehicleType: checkoutVehicleType,
+            customerOrderId: order.id,
+            customerId: finalCustomerId,
+            currentStatus: 'finance_pending' as const,
+            currentDepartment: 'financial',
+            totalAmount: totalAmount.toString(),
+            currency: orderData.currency || "IQD",
+            notes: orderData.notes || "",
+            totalWeight: calculatedTotalWeight > 0 ? calculatedTotalWeight.toFixed(3) : null,
+            weightUnit: 'kg',
+            paymentMethod: 'wallet_full' as const,
+          };
+          
+          console.log(`📦 [WALLET_FULL ORDER MGMT] Creating order_management with delivery: ${checkoutDeliveryMethod}, vehicle: ${checkoutVehicleType}, weight: ${calculatedTotalWeight}kg`);
+          await orderManagementStorage.createOrderManagement(walletOrderMgmtData);
+          console.log(`✅ [WALLET_FULL] Order management record created for wallet order ${order.orderNumber}`);
+          
+          // Trigger sync after creation
+          await globalSyncService.triggerOrderSync(order.id, 'wallet_order_created');
+        } catch (orderMgmtError) {
+          console.error(`❌ [WALLET_FULL] Error creating order management:`, orderMgmtError);
+        }
+        
         return res.json({
           success: true,
           message: "سفارش با کیف پول به طور کامل پرداخت شد - در انتظار تایید واحد مالی",
@@ -18510,6 +18538,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.log(`🏭 [WALLET_FULL] Order ${order.orderNumber} waiting for financial approval`);
           } catch (error) {
             console.error('❌ Error updating full wallet payment status:', error);
+          }
+          
+          // 🔥 CRITICAL FIX: Create order_management for wallet_partial->wallet_full path
+          try {
+            const walletPartialMgmtData = {
+              deliveryMethod: checkoutDeliveryMethod,
+              vehicleType: checkoutVehicleType,
+              customerOrderId: order.id,
+              customerId: finalCustomerId,
+              currentStatus: 'finance_pending' as const,
+              currentDepartment: 'financial',
+              totalAmount: totalAmount.toString(),
+              currency: orderData.currency || "IQD",
+              notes: orderData.notes || "",
+              totalWeight: calculatedTotalWeight > 0 ? calculatedTotalWeight.toFixed(3) : null,
+              weightUnit: 'kg',
+              paymentMethod: 'wallet_full' as const,
+            };
+            
+            console.log(`📦 [WALLET_PARTIAL→FULL] Creating order_management with delivery: ${checkoutDeliveryMethod}, vehicle: ${checkoutVehicleType}, weight: ${calculatedTotalWeight}kg`);
+            await orderManagementStorage.createOrderManagement(walletPartialMgmtData);
+            console.log(`✅ [WALLET_PARTIAL→FULL] Order management record created for order ${order.orderNumber}`);
+            
+            await globalSyncService.triggerOrderSync(order.id, 'wallet_order_created');
+          } catch (orderMgmtError) {
+            console.error(`❌ [WALLET_PARTIAL→FULL] Error creating order management:`, orderMgmtError);
           }
           
           return res.json({
