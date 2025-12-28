@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Store, Check, X, Eye, Package, Mail, Phone, MapPin, Calendar, TrendingUp, Star } from "lucide-react";
+import { Store, Check, X, Eye, Package, Mail, Phone, MapPin, Calendar, TrendingUp, Star, Calculator } from "lucide-react";
+import VendorAccountingTab from "./vendor-accounting-tab";
 
 type Vendor = {
   id: number;
@@ -344,7 +345,7 @@ export default function MarketplaceManagement() {
         </div>
 
         <Tabs defaultValue="pending" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 max-w-md" data-testid="vendor-tabs">
+          <TabsList className="grid w-full grid-cols-4 max-w-lg" data-testid="vendor-tabs">
             <TabsTrigger value="pending" data-testid="tab-pending">
               در انتظار ({pendingVendors?.vendors?.length || 0})
             </TabsTrigger>
@@ -353,6 +354,10 @@ export default function MarketplaceManagement() {
             </TabsTrigger>
             <TabsTrigger value="all" data-testid="tab-all">
               همه ({allVendors?.vendors?.length || 0})
+            </TabsTrigger>
+            <TabsTrigger value="accounting" data-testid="tab-accounting">
+              <Calculator className="w-4 h-4 ml-1" />
+              حسابداری
             </TabsTrigger>
           </TabsList>
 
@@ -423,6 +428,10 @@ export default function MarketplaceManagement() {
                 ))}
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="accounting" className="space-y-4" data-testid="content-accounting">
+            <VendorAccountingTab />
           </TabsContent>
         </Tabs>
 
