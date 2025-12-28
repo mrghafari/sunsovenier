@@ -17703,6 +17703,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         notes: orderData.notes || '', // Add notes from form
       };
 
+      // Calculate total weight from cart items BEFORE creating order
+      let calculatedTotalWeight = 0;
+      try {
+        const cartItems = orderData.cart || {};
+        for (const [productIdStr, quantity] of Object.entries(cartItems)) {
+          const productId = parseInt(productIdStr);
+          const qty = typeof quantity === 'number' ? quantity : parseInt(String(quantity)) || 1;
+          
+          const productWeight = await db.select({ grossWeight: shopProducts.grossWeight })
+            .from(shopProducts)
+            .where(eq(shopProducts.id, productId))
+            .limit(1);
+          
+          if (productWeight.length > 0 && productWeight[0].grossWeight) {
+            const weight = parseFloat(productWeight[0].grossWeight.toString());
+            calculatedTotalWeight += weight * qty;
+          }
+        }
+        console.log(`🏋️ [WEIGHT PRE-CALC] Calculated total weight before order creation: ${calculatedTotalWeight}kg`);
+      } catch (weightError) {
+        console.error(`⚠️ [WEIGHT PRE-CALC] Error calculating weight:`, weightError);
+      }
+
+
       // 🔒 SEQUENTIAL: Generate M[YY][NNNNN] order number using transaction-safe system
       const { OrderManagementStorage } = await import('./order-management-storage');
       const orderManagementStorage = new OrderManagementStorage();
@@ -18144,27 +18168,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           managementStatus = 'finance_pending';
           department = 'financial';
           console.log(`🏪 [PURE WALLET ROUTING] Order ${orderNumber} routed to financial department (paid with wallet)`);
-        }
-        // Calculate total weight from order items using shop_products.gross_weight
-        let calculatedTotalWeight = 0;
-        try {
-          for (const item of items) {
-            const quantity = parseInt(item.quantity || '1') || 1;
-            // Get gross_weight from shop_products
-            const productWeight = await db.select({ grossWeight: shopProducts.grossWeight })
-              .from(shopProducts)
-              .where(eq(shopProducts.id, item.productId))
-              .limit(1);
-            
-            if (productWeight.length > 0 && productWeight[0].grossWeight) {
-              const weight = parseFloat(productWeight[0].grossWeight.toString());
-              calculatedTotalWeight += weight * quantity;
-            }
-          }
-          console.log(`🏋️ [WEIGHT] Calculated total weight for order ${orderNumber}: ${calculatedTotalWeight}kg`);
-        } catch (weightError) {
-          console.error(`⚠️ [WEIGHT] Error calculating weight for order ${orderNumber}:`, weightError);
-          // Continue without weight if calculation fails
         }
 
 
