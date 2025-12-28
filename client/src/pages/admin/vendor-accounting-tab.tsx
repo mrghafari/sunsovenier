@@ -41,9 +41,10 @@ type VendorProduct = {
   sku: string;
   price: string;
   quantity: number;
-  status: string;
+  status: boolean;
   totalSold: number;
   totalRevenue: string;
+  commissionOverride: string | null;
 };
 
 type VendorTransaction = {
@@ -76,6 +77,11 @@ export default function VendorAccountingTab() {
   const [paymentMethod, setPaymentMethod] = useState("bank_transfer");
   const [paymentReference, setPaymentReference] = useState("");
   const [paymentNotes, setPaymentNotes] = useState("");
+  const [showCommissionDialog, setShowCommissionDialog] = useState(false);
+  const [newCommissionRate, setNewCommissionRate] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState<VendorProduct | null>(null);
+  const [showProductCommissionDialog, setShowProductCommissionDialog] = useState(false);
+  const [productCommissionOverride, setProductCommissionOverride] = useState("");
 
   const { data: vendorBalances, isLoading: loadingBalances, refetch: refetchBalances } = useQuery<{ vendors: VendorBalance[] }>({
     queryKey: ["/api/admin/vendor-accounting/balances"],
@@ -127,6 +133,74 @@ export default function VendorAccountingTab() {
     setPaymentMethod("bank_transfer");
     setPaymentReference("");
     setPaymentNotes("");
+  };
+
+  const commissionMutation = useMutation({
+    mutationFn: async (data: { vendorId: number; commissionRate: number }) => {
+      return await apiRequest(`/api/admin/vendor-accounting/commission/${data.vendorId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ commissionRate: data.commissionRate }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/vendor-accounting/balances"] });
+      toast({
+        title: "موفق!",
+        description: "درصد کمیسیون با موفقیت بروزرسانی شد",
+      });
+      setShowCommissionDialog(false);
+      setNewCommissionRate("");
+    },
+    onError: () => {
+      toast({
+        title: "خطا!",
+        description: "خطا در بروزرسانی درصد کمیسیون",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const productCommissionMutation = useMutation({
+    mutationFn: async (data: { productId: number; commissionOverride: number | null }) => {
+      return await apiRequest(`/api/admin/vendor-accounting/product-commission/${data.productId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ commissionOverride: data.commissionOverride }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/vendor-accounting/products", selectedVendor?.vendorId] });
+      toast({
+        title: "موفق!",
+        description: "درصد کمیسیون محصول با موفقیت بروزرسانی شد",
+      });
+      setShowProductCommissionDialog(false);
+      setSelectedProduct(null);
+      setProductCommissionOverride("");
+    },
+    onError: () => {
+      toast({
+        title: "خطا!",
+        description: "خطا در بروزرسانی درصد کمیسیون محصول",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleUpdateCommission = () => {
+    if (!selectedVendor || !newCommissionRate) return;
+    commissionMutation.mutate({
+      vendorId: selectedVendor.vendorId,
+      commissionRate: parseFloat(newCommissionRate),
+    });
+  };
+
+  const handleUpdateProductCommission = () => {
+    if (!selectedProduct) return;
+    const override = productCommissionOverride.trim() === "" ? null : parseFloat(productCommissionOverride);
+    productCommissionMutation.mutate({
+      productId: selectedProduct.id,
+      commissionOverride: override,
+    });
   };
 
   const handleRecordPayment = () => {

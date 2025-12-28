@@ -55266,11 +55266,11 @@ momtazchem.com
         .select({
           id: showcaseProducts.id,
           vendorId: showcaseProducts.vendorId,
-          productName: showcaseProducts.productName,
+          productName: showcaseProducts.name,
           sku: showcaseProducts.sku,
-          price: showcaseProducts.price,
+          price: showcaseProducts.unitPrice,
           quantity: showcaseProducts.stockQuantity,
-          status: showcaseProducts.status,
+          status: showcaseProducts.isActive, commissionOverride: showcaseProducts.commissionOverride,
           totalSold: sql<number>`COALESCE(${showcaseProducts.stockQuantity}, 0)::int`,
           totalRevenue: sql<string>`'0.00'`
         })
@@ -55403,8 +55403,78 @@ momtazchem.com
       console.log(`💰 [VENDOR PAYMENT] Paid ${amount} IQD to vendor ${vendorId}`);
       res.json({ success: true, transaction, message: 'پرداخت با موفقیت ثبت شد' });
     } catch (error) {
-      console.error('Error recording vendor payment:', error);
-      res.status(500).json({ success: false, message: 'خطا در ثبت پرداخت' });
+  // Update vendor commission rate
+  app.patch('/api/admin/vendor-accounting/commission/:vendorId', requireAuth, async (req, res) => {
+    try {
+      const vendorId = parseInt(req.params.vendorId);
+      const { commissionRate } = req.body;
+      
+      if (isNaN(vendorId) || commissionRate === undefined || commissionRate < 0 || commissionRate > 100) {
+        return res.status(400).json({ success: false, message: 'درصد کمیسیون نامعتبر است (0-100)' });
+      }
+
+      const { db } = await import('./db');
+      const { vendors } = await import('@shared/schema');
+      const { eq } = await import('drizzle-orm');
+
+      const [updatedVendor] = await db
+        .update(vendors)
+        .set({
+          commissionRate: commissionRate.toString(),
+          updatedAt: new Date(),
+        })
+        .where(eq(vendors.id, vendorId))
+        .returning();
+
+      if (!updatedVendor) {
+        return res.status(404).json({ success: false, message: 'وندور یافت نشد' });
+      }
+
+      console.log(`📊 [VENDOR COMMISSION] Updated vendor ${vendorId} commission to ${commissionRate}%`);
+      res.json({ success: true, vendor: updatedVendor, message: 'درصد کمیسیون با موفقیت بروزرسانی شد' });
+    } catch (error) {
+      console.error('Error updating vendor commission:', error);
+      res.status(500).json({ success: false, message: 'خطا در بروزرسانی درصد کمیسیون' });
+    }
+  });
+
+  // Update product commission override
+  app.patch('/api/admin/vendor-accounting/product-commission/:productId', requireAuth, async (req, res) => {
+    try {
+      const productId = parseInt(req.params.productId);
+      const { commissionOverride } = req.body;
+      
+      if (isNaN(productId)) {
+        return res.status(400).json({ success: false, message: 'شناسه محصول نامعتبر است' });
+      }
+
+      // commissionOverride can be null (to use vendor default) or a number 0-100
+      if (commissionOverride !== null && (commissionOverride < 0 || commissionOverride > 100)) {
+        return res.status(400).json({ success: false, message: 'درصد کمیسیون نامعتبر است (0-100 یا خالی)' });
+      }
+
+      const { db } = await import('./db');
+      const { showcaseProducts } = await import('@shared/showcase-schema');
+      const { eq } = await import('drizzle-orm');
+
+      const [updatedProduct] = await db
+        .update(showcaseProducts)
+        .set({
+          commissionOverride: commissionOverride !== null ? commissionOverride.toString() : null,
+          updatedAt: new Date(),
+        })
+        .where(eq(showcaseProducts.id, productId))
+        .returning();
+
+      if (!updatedProduct) {
+        return res.status(404).json({ success: false, message: 'محصول یافت نشد' });
+      }
+
+      console.log(`📦 [PRODUCT COMMISSION] Updated product ${productId} commission override to ${commissionOverride === null ? 'default' : commissionOverride + '%'}`);
+      res.json({ success: true, product: updatedProduct, message: 'درصد کمیسیون محصول با موفقیت بروزرسانی شد' });
+    } catch (error) {
+      console.error('Error updating product commission:', error);
+      res.status(500).json({ success: false, message: 'خطا در بروزرسانی درصد کمیسیون محصول' });
     }
   });
 
