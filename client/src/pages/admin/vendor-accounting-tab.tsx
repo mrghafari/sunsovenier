@@ -334,13 +334,7 @@ export default function VendorAccountingTab() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="bg-purple-50 text-purple-700">
-                              {vendor.commissionRate || "10.00"}%
-                            </Badge>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-6 w-6 p-0"
+                            <Badge variant="outline" className="bg-purple-50 text-purple-700 cursor-pointer hover:bg-purple-100"
                               onClick={() => {
                                 setSelectedVendor(vendor);
                                 setNewCommissionRate(vendor.commissionRate || "10.00");
@@ -348,8 +342,8 @@ export default function VendorAccountingTab() {
                               }}
                               data-testid={`btn-edit-commission-${vendor.vendorId}`}
                             >
-                              <DollarSign className="h-3 w-3" />
-                            </Button>
+                              {vendor.commissionRate || "10.00"}% ✏️
+                            </Badge>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -575,27 +569,28 @@ export default function VendorAccountingTab() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         {product.commissionOverride ? (
-                          <Badge variant="outline" className="bg-orange-50 text-orange-700">
-                            {product.commissionOverride}% (سفارشی)
+                          <Badge variant="outline" className="bg-orange-50 text-orange-700 cursor-pointer hover:bg-orange-100"
+                            onClick={() => {
+                              setSelectedProduct(product);
+                              setProductCommissionOverride(product.commissionOverride || "");
+                              setShowProductCommissionDialog(true);
+                            }}
+                            data-testid={`btn-edit-product-commission-${product.id}`}
+                          >
+                            {product.commissionOverride}% (سفارشی) ✏️
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="bg-gray-50 text-gray-600">
-                            پیش‌فرض ({selectedVendor?.commissionRate || "10.00"}%)
+                          <Badge variant="outline" className="bg-gray-50 text-gray-600 cursor-pointer hover:bg-gray-100"
+                            onClick={() => {
+                              setSelectedProduct(product);
+                              setProductCommissionOverride(product.commissionOverride || "");
+                              setShowProductCommissionDialog(true);
+                            }}
+                            data-testid={`btn-edit-product-commission-${product.id}`}
+                          >
+                            پیش‌فرض ({selectedVendor?.commissionRate || "10.00"}%) ✏️
                           </Badge>
                         )}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-6 w-6 p-0"
-                          onClick={() => {
-                            setSelectedProduct(product);
-                            setProductCommissionOverride(product.commissionOverride || "");
-                            setShowProductCommissionDialog(true);
-                          }}
-                          data-testid={`btn-edit-product-commission-${product.id}`}
-                        >
-                          <DollarSign className="h-3 w-3" />
-                        </Button>
                       </div>
                     </TableCell>
                     <TableCell>{product.quantity}</TableCell>
