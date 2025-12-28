@@ -854,12 +854,14 @@ export class OrderManagementStorage implements IOrderManagementStorage {
       return existing;
     }
 
-    // Get customer order details to check payment method
+    // Get customer order details to check payment method, delivery method, and vehicle type
     const [customerOrder] = await db
       .select({
         paymentMethod: customerOrders.paymentMethod,
         orderNumber: customerOrders.orderNumber,
-        paymentStatus: customerOrders.paymentStatus
+        paymentStatus: customerOrders.paymentStatus,
+        deliveryMethod: customerOrders.deliveryMethod,
+        vehicleType: customerOrders.vehicleType
       })
       .from(customerOrders)
       .where(eq(customerOrders.id, customerOrderId));
@@ -867,6 +869,8 @@ export class OrderManagementStorage implements IOrderManagementStorage {
     if (!customerOrder) {
       throw new Error(`Customer order ${customerOrderId} not found`);
     }
+
+    console.log(`📦 [ORDER MANAGEMENT] Customer order delivery: ${customerOrder.deliveryMethod}, vehicle: ${customerOrder.vehicleType}`);
 
     // Determine initial status based on payment method
     let initialStatus = 'pending' as OrderStatus;
@@ -878,11 +882,12 @@ export class OrderManagementStorage implements IOrderManagementStorage {
       console.log(`💰 [WALLET ORDER] Setting wallet order ${customerOrder.orderNumber} to payment_uploaded status for financial review`);
     }
 
-    // Create new order management entry with payment method from customer order
+    // Create new order management entry with payment method and delivery method from customer order
     const orderData: InsertOrderManagement = {
       customerOrderId,
       currentStatus: initialStatus,
-      deliveryMethod: 'courier',
+      deliveryMethod: customerOrder.deliveryMethod || 'courier',
+      vehicleType: customerOrder.vehicleType || null,
       weightUnit: 'kg',
       paymentMethod: customerOrder.paymentMethod // 🔥 CRITICAL: Copy payment method from customer order
     };
