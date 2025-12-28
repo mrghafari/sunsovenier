@@ -19,7 +19,7 @@ const getSiteManagementModulesCount = () => {
     "user_management", "sms", "whatsapp_crm", "factory", "procedures", "refresh_control", 
     "logistics_management", "ticketing_system", "remote_desktop", "server_config",
     "reports_analytics", "security_management", "notification_center", "system_monitoring", 
-    "api_management", "integration_hub", "aws_s3_settings"
+    "api_management", "integration_hub", "aws_s3_settings", "vendor_accounting"
   ];
   return modules.length;
 };
@@ -151,6 +151,7 @@ function AdminDashboardContent({ user, logout, setLocation, moduleCount, getCont
               <div>• <strong>System Monitoring</strong> - Performance metrics & health checks</div>
               <div>• <strong>API Management</strong> - External integrations & endpoints</div>
               <div>• <strong>Integration Hub</strong> - Third-party service connections</div>
+              <div>• <strong>Vendor Accounting</strong> - Vendor sales, commissions & payments</div>
             </div>
           </div>
           

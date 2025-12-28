@@ -394,6 +394,14 @@ export default function SiteManagement() {
       onClick: () => trackButtonClick("super-admin-order-management", () => setLocation("/admin/super-admin-order-management")),
       className: "border-red-300 text-red-600 hover:bg-red-50 font-semibold",
       moduleId: "order_management"
+    },
+    {
+      id: "vendor-accounting",
+      label: "Vendor Accounting",
+      icon: Calculator,
+      onClick: () => trackButtonClick("vendor-accounting", () => setLocation("/admin/vendor-accounting")),
+      className: "border-teal-300 text-teal-600 hover:bg-teal-50",
+      moduleId: "vendor_accounting"
     }
   ];
   console.log('🔍 [DEBUG] Created buttons array with length:', buttonArray.length);
