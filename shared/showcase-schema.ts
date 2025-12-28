@@ -79,6 +79,7 @@ export const showcaseProducts = pgTable("showcase_products", {
   displayOrder: integer("display_order").default(0), // For ordering on website
   // Marketplace vendor field
   vendorId: integer("vendor_id"), // Reference to vendor (null = owned by Momtazchem)
+  commissionOverride: decimal("commission_override", { precision: 5, scale: 2 }), // Product-specific commission rate (null = use vendor's default)
   syncWithShop: boolean("sync_with_shop").default(true), // Whether to include in shop sync process
   showWhenOutOfStock: boolean("show_when_out_of_stock").default(false), // Whether to show product in shop when stock is 0
   isNonChemical: boolean("is_non_chemical").default(false), // Whether this is a non-chemical product
