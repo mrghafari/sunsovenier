@@ -17640,6 +17640,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const crmCustomerId = (req.session as any)?.crmCustomerId;
       const orderData = req.body;
       
+      // CRITICAL FIX: Persist delivery method immediately before any mutation
+      const checkoutDeliveryMethod = orderData.deliveryMethod || 'courier';
+      const checkoutVehicleType = orderData.vehicleType || null;
+      console.log(`📦 [CHECKOUT PERSIST] Delivery method: ${checkoutDeliveryMethod}, vehicle: ${checkoutVehicleType}`);
+      
       console.log('🚀 [ENDPOINT] Session data:', {
         customerId,
         crmCustomerId,
@@ -18173,7 +18178,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         let orderMgmtData = {
           // CRITICAL: Add delivery method from checkout for logistics display
-          deliveryMethod: orderData.deliveryMethod || null,
+          deliveryMethod: checkoutDeliveryMethod,
           customerOrderId: order.id,
           customerId: finalCustomerId,
           currentStatus: managementStatus,
@@ -18197,7 +18202,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
         // SMART VEHICLE SELECTION: Auto-assign vehicle type based on weight from vehicle_templates
-        if (orderData.deliveryMethod === 'smart_vehicle' && calculatedTotalWeight > 0 && !orderMgmtData.vehicleType) {
+        if (checkoutDeliveryMethod === 'smart_vehicle' && calculatedTotalWeight > 0 && !orderMgmtData.vehicleType) {
           try {
             // Import vehicle_templates table if not already imported
             const { vehicleTemplates } = await import('@shared/shop-schema');
