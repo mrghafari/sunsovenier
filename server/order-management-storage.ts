@@ -729,8 +729,9 @@ export class OrderManagementStorage implements IOrderManagementStorage {
     
     // Transform results to include customer info, receipt info, and calculated weight
     const transformedResults = await Promise.all(results.map(async (row) => {
-      // Calculate weight if not already stored
-      const calculatedWeight = row.totalWeight || await this.calculateOrderWeight(row.customerOrderId);
+      // Calculate weight - prefer stored value, only recalculate if missing
+      const storedWeight = row.totalWeight ? parseFloat(String(row.totalWeight)) : 0;
+      const calculatedWeight = storedWeight > 0 ? storedWeight : await this.calculateOrderWeight(row.customerOrderId);
       
       return {
         id: row.id,
@@ -748,6 +749,7 @@ export class OrderManagementStorage implements IOrderManagementStorage {
         weightUnit: row.weightUnit || 'kg',
         deliveryMethod: row.customerDeliveryMethod || row.deliveryMethod, // اول روش مشتری، بعد روش لجستیک
         customerDeliveryMethod: row.customerDeliveryMethod, // روش ارسال انتخابی مشتری در چک‌اوت
+        customerVehicleType: row.customerVehicleType, // نوع خودروی انتخابی مشتری در ارسال هوشمند
         transportationType: row.transportationType,
         trackingNumber: row.trackingNumber,
         estimatedDeliveryDate: row.estimatedDeliveryDate,
