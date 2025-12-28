@@ -535,6 +535,8 @@ interface LogisticsOrder {
   currency: string;
   paymentMethod?: string; // نوع تسویه حساب
   deliveryMethod?: string;
+  customerDeliveryMethod?: string; // روش ارسال انتخابی مشتری در چک‌اوت
+  customerVehicleType?: string; // نوع وسیله نقلیه انتخابی مشتری
   transportationType?: string;
   vehicleType?: string;
   selectedVehicleName?: string; // Customer's selected vehicle from checkout
@@ -2823,7 +2825,7 @@ const LogisticsManagement = () => {
                       </h5>
                       <div className="space-y-1">
                         <p className="text-sm font-bold text-indigo-700">
-                          {order.vehicleType || order.selectedVehicleName || 
+                          {order.customerVehicleType || order.vehicleType || order.selectedVehicleName || 
                            (order.deliveryMethod === 'courier' ? 'پیک موتوری' :
                            order.deliveryMethod === 'truck' ? 'کامیون' :
                            order.deliveryMethod === 'post' ? 'پست' :
@@ -2835,10 +2837,10 @@ const LogisticsManagement = () => {
                            order.deliveryMethod === 'smart_vehicle' ? '🚚 ارسال هوشمند' :
                            order.deliveryMethod || '⚠️ نامشخص')}
                         </p>
-                        {/* Show selected delivery method for smart_vehicle */}
-                        {order.deliveryMethod === 'smart_vehicle' && order.vehicleType && (
+                        {/* Show selected vehicle type for smart_vehicle - prioritize customerVehicleType */}
+                        {order.deliveryMethod === 'smart_vehicle' && (order.customerVehicleType || order.vehicleType) && (
                           <p className="text-xs text-indigo-600 mt-1">
-                            🚗 خودرو انتخابی: {order.vehicleType}
+                            🚗 خودرو انتخابی: {order.customerVehicleType || order.vehicleType}
                           </p>
                         )}
                         {order.transportationType && (

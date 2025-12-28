@@ -637,6 +637,7 @@ export class OrderManagementStorage implements IOrderManagementStorage {
       currency: customerOrders.currency,
       orderNumber: customerOrders.orderNumber, // شماره سفارش M[YY][NNNNN]
       paymentMethod: customerOrders.paymentMethod, // نوع تسویه حساب
+      customerDeliveryMethod: customerOrders.deliveryMethod, // روش ارسال انتخابی مشتری در چک‌اوت
       
       // Customer info
       customerFirstName: crmCustomers.firstName,
@@ -744,7 +745,8 @@ export class OrderManagementStorage implements IOrderManagementStorage {
         totalWeight: calculatedWeight,
         calculatedWeight: calculatedWeight, // For frontend compatibility
         weightUnit: row.weightUnit || 'kg',
-        deliveryMethod: row.deliveryMethod,
+        deliveryMethod: row.customerDeliveryMethod || row.deliveryMethod, // اول روش مشتری، بعد روش لجستیک
+        customerDeliveryMethod: row.customerDeliveryMethod, // روش ارسال انتخابی مشتری در چک‌اوت
         transportationType: row.transportationType,
         trackingNumber: row.trackingNumber,
         estimatedDeliveryDate: row.estimatedDeliveryDate,
