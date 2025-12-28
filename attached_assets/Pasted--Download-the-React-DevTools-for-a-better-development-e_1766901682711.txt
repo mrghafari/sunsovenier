@@ -1,0 +1,644 @@
+ Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🛒 Loading guest cart from localStorage: Object
+ 🔐 [AUTH] Guest user confirmed
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 📥 Loading Tawk.to widget at bottom-left position...
+ ✅ Tawk.to Live Chat loaded successfully at bottom-left
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 
+value @ embed.tawk.to/_s/v4/…k-chunk-common.js:2
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(5)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+ 📦 [INIT DISPLAY STOCK] Product 512: Stock=15, Cart=0, Display=15
+ 📦 [INIT DISPLAY STOCK] Product 513: Stock=0, Cart=0, Display=0
+ 📦 [INIT DISPLAY STOCK] Product 506: Stock=21174, Cart=21167, Display=7
+ 📦 [INIT DISPLAY STOCK] Product 509: Stock=0, Cart=0, Display=0
+ 📦 [INIT DISPLAY STOCK] Product 510: Stock=0, Cart=0, Display=0
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(5)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+128x128?text=WeChat+QR:1  Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(5)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+ Shop Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ Shop Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ Shop Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ 📦 [INIT DISPLAY STOCK] Product 512: Stock=15, Cart=0, Display=15
+ 📦 [INIT DISPLAY STOCK] Product 513: Stock=0, Cart=0, Display=0
+ 📦 [INIT DISPLAY STOCK] Product 506: Stock=21174, Cart=21167, Display=7
+ 📦 [INIT DISPLAY STOCK] Product 509: Stock=0, Cart=0, Display=0
+ 📦 [INIT DISPLAY STOCK] Product 510: Stock=0, Cart=0, Display=0
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(5)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+ Shop Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ Shop Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ Shop Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(5)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+ Shop Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ Shop Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ Shop Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(5)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+ Shop Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ Shop Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ Shop Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ 🔐 [AUTH] Customer authenticated, cart will be synced automatically
+ Customer auth check result: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(5)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+ Shop Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ Shop Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ Shop Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ 🔐 User just logged in, resetting cart loaded flag
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(5)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+ Shop Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ Shop Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ Shop Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ 🔐 [AUTH] Customer authenticated, cart will be synced automatically
+ 🔄 Triggering cart reload after login
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(5)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+ Shop Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ Shop Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ Shop Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ 🛒 Loading persistent cart for customer: 94
+ 🔄 Syncing local cart to database: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(5)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+ Shop Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ Shop Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ Shop Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ 🛒 Loaded cart from database: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(5)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+ Shop Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ Shop Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ Shop Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(5)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+ Shop Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ Shop Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ Shop Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ Cart clicked, total items: 21167
+ Customer: Object
+ User is logged in, showing checkout
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(5)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+ Shop Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ Shop Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ Shop Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ 💳 [WALLET QUERY] Enabled check: Object
+ 🔥 [BILINGUAL FORM] Cart flammable check result: Object
+ BilingualForm Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ BilingualForm Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ 🚚 [BILINGUAL FORM] ===== SHIPPING RATES QUERY STARTED =====
+ 🚚 [BILINGUAL FORM] Fetching shipping rates with flammable filtering... Object
+ === BilingualPurchaseForm Address Debug ===
+ existingCustomer from parent: Object
+ customerData from API: Object
+ crmCustomerData from API: undefined
+ isLoadingCustomer: false
+ Using existingCustomer from parent
+ Customer object found: Object
+ Customer firstName: Omid
+ Customer lastName: Mohammad
+ Customer phone: +9647503533769
+ Customer address: NAGwer Road, Qaryataq Village, Erbil, Iraq
+ Customer secondaryAddress: NAGwer Road, Qaryataq Village, Erbil, Iraq
+ Customer city: 
+ Customer country: Iraq
+ Customer postalCode: 44001
+ Full name constructed: Omid Mohammad
+ 🏠 [ADDRESS DEBUG] Enhanced address mapping result: Object
+ Form data to reset: Object
+ Form reset completed
+ === End BilingualPurchaseForm Debug ===
+ 🚚 [AUTO-SELECT DEBUG] useEffect triggered: Object
+ 🚚 Shipping cost calculation: Object
+ 🔄 No shipping method selected or no data, resetting cost
+ Shipping rates state: Object
+ 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+ BilingualForm Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ BilingualForm Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+/api/shop/settings:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ Failed to parse JSON response: 
+apiRequest @ /src/lib/queryClient.ts:51
+ Error fetching shop settings: 
+ BilingualForm Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ BilingualForm Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+/api/shop/proforma-reminders:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ Failed to parse JSON response: 
+apiRequest @ /src/lib/queryClient.ts:51
+ Error fetching reminder schedules: 
+ BilingualForm Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ BilingualForm Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ BilingualForm Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ BilingualForm Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ CRM Customer API response: Object
+ BilingualForm Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ BilingualForm Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ === BilingualPurchaseForm Address Debug ===
+ existingCustomer from parent: Object
+ customerData from API: Object
+ crmCustomerData from API: Object
+ isLoadingCustomer: false
+ Using CRM customer data (most complete)
+ Customer object found: Object
+ Customer firstName: Omid
+ Customer lastName: Mohammad
+ Customer phone: +9647503533769
+ Customer address: NAGwer Road, Qaryataq Village, Erbil, Iraq
+ Customer secondaryAddress: NAGwer Road, Qaryataq Village, Erbil, Iraq
+ Customer city: undefined
+ Customer country: Iraq
+ Customer postalCode: 44001
+ Full name constructed: Omid Mohammad
+ 🏠 [ADDRESS DEBUG] Enhanced address mapping result: Object
+ Form data to reset: Object
+ Form reset completed
+ === End BilingualPurchaseForm Debug ===
+ 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+ BilingualForm Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ BilingualForm Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ BilingualForm Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ BilingualForm Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ 💰 [VAT] Tax settings API response: Object
+ BilingualForm Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ BilingualForm Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ 📦 [BILINGUAL FORM] Raw shipping rates API response: Object
+ ✅ [BILINGUAL FORM] Successfully loaded shipping rates: 4 methods
+ 🚚 [BILINGUAL FORM] Shipping rates details: Array(4)
+ BilingualForm Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ BilingualForm Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ 🚚 [AUTO-SELECT DEBUG] useEffect triggered: Object
+ 🚚 [AUTO-SELECT] Auto-selecting first shipping method: 34 undefined
+ 🚚 Shipping cost calculation: Object
+ 🔄 No shipping method selected or no data, resetting cost
+ Shipping rates state: Object
+ 🚚 [AUTO SELECT] Auto-selecting smart vehicle method: 32
+ BilingualForm Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ BilingualForm Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ 🚚 [AUTO-SELECT DEBUG] useEffect triggered: Object
+ 🚚 Shipping cost calculation: Object
+ 📦 Selected shipping rate: Object
+ ✅ SPECIAL DELIVERY METHOD: Zero cost for smart_vehicle
+ BilingualForm Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ BilingualForm Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ 🚚 [SMART DELIVERY] Calculating cost for: Object
+ BilingualForm Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ BilingualForm Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ 🚚 [SMART DELIVERY] API response: Object
+ ✅ [SMART DELIVERY] Multi-vehicle cost calculated: Object
+ BilingualForm Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ BilingualForm Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ BilingualForm Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ BilingualForm Product NPK Fertilizer 20-20-20: quantity=21167, basePrice=1300, discount=0.11, discountedPrice=1157
+ 🛒 Removing product 506 from database for customer 94
+ ✅ Product 506 removed from database
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(5)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+ 🔥 [BILINGUAL FORM] Cart flammable check result: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🚚 Shipping cost calculation: Object
+ 📦 Selected shipping rate: Object
+ ✅ SPECIAL DELIVERY METHOD: Zero cost for smart_vehicle
+ 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+ 🚚 [DELIVERY CALCULATION] Missing required data for calculation: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ Customer auth check result: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(5)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+ 🛒 [ADD TO CART] Before add - Product 506, Stock: 21174, Cart: 0, DisplayStock: 7
+ 🛒 Saving product 506 to database for customer 94
+ 🛒 [DISPLAY STOCK UPDATE] Product 506: 7 -> 6
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(5)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+ ✅ Product 506 saved to database
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(5)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+ Cart clicked, total items: 1
+ Customer: Object
+ User is logged in, showing checkout
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(5)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+ 💳 [WALLET QUERY] Enabled check: Object
+ 🔥 [BILINGUAL FORM] Cart flammable check result: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🚚 [BILINGUAL FORM] ===== SHIPPING RATES QUERY STARTED =====
+ 🚚 [BILINGUAL FORM] Fetching shipping rates with flammable filtering... Object
+ === BilingualPurchaseForm Address Debug ===
+ existingCustomer from parent: Object
+ customerData from API: Object
+ crmCustomerData from API: undefined
+ isLoadingCustomer: false
+ Using existingCustomer from parent
+ Customer object found: Object
+ Customer firstName: Omid
+ Customer lastName: Mohammad
+ Customer phone: +9647503533769
+ Customer address: NAGwer Road, Qaryataq Village, Erbil, Iraq
+ Customer secondaryAddress: NAGwer Road, Qaryataq Village, Erbil, Iraq
+ Customer city: 
+ Customer country: Iraq
+ Customer postalCode: 44001
+ Full name constructed: Omid Mohammad
+ 🏠 [ADDRESS DEBUG] Enhanced address mapping result: Object
+ Form data to reset: Object
+ Form reset completed
+ === End BilingualPurchaseForm Debug ===
+ 🚚 [AUTO-SELECT DEBUG] useEffect triggered: Object
+ 🚚 Shipping cost calculation: Object
+ 🔄 No shipping method selected or no data, resetting cost
+ Shipping rates state: Object
+ 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+/api/shop/settings:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ Failed to parse JSON response: 
+apiRequest @ /src/lib/queryClient.ts:51
+ Error fetching shop settings: 
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+/api/shop/proforma-reminders:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ Failed to parse JSON response: 
+apiRequest @ /src/lib/queryClient.ts:51
+ Error fetching reminder schedules: 
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ CRM Customer API response: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ === BilingualPurchaseForm Address Debug ===
+ existingCustomer from parent: Object
+ customerData from API: Object
+ crmCustomerData from API: Object
+ isLoadingCustomer: false
+ Using CRM customer data (most complete)
+ Customer object found: Object
+ Customer firstName: Omid
+ Customer lastName: Mohammad
+ Customer phone: +9647503533769
+ Customer address: NAGwer Road, Qaryataq Village, Erbil, Iraq
+ Customer secondaryAddress: NAGwer Road, Qaryataq Village, Erbil, Iraq
+ Customer city: undefined
+ Customer country: Iraq
+ Customer postalCode: 44001
+ Full name constructed: Omid Mohammad
+ 🏠 [ADDRESS DEBUG] Enhanced address mapping result: Object
+ Form data to reset: Object
+ Form reset completed
+ === End BilingualPurchaseForm Debug ===
+ 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 💰 [VAT] Tax settings API response: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 📦 [BILINGUAL FORM] Raw shipping rates API response: Object
+ ✅ [BILINGUAL FORM] Successfully loaded shipping rates: 4 methods
+ 🚚 [BILINGUAL FORM] Shipping rates details: Array(4)
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🚚 [AUTO-SELECT DEBUG] useEffect triggered: Object
+ 🚚 [AUTO-SELECT] Auto-selecting first shipping method: 34 undefined
+ 🚚 Shipping cost calculation: Object
+ 🔄 No shipping method selected or no data, resetting cost
+ Shipping rates state: Object
+ 🚚 [AUTO SELECT] Auto-selecting smart vehicle method: 32
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🚚 [AUTO-SELECT DEBUG] useEffect triggered: Object
+ 🚚 Shipping cost calculation: Object
+ 📦 Selected shipping rate: Object
+ ✅ SPECIAL DELIVERY METHOD: Zero cost for smart_vehicle
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🚚 [SMART DELIVERY] Calculating cost for: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🚚 [SMART DELIVERY] API response: Object
+ ✅ [SMART DELIVERY] Single vehicle cost calculated: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(5)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🔘 [BUTTON DEBUG] Submit button clicked - drag protection active
+ 🔘 [BUTTON DEBUG] Mutation pending: false
+ 🔘 [BUTTON DEBUG] Form valid: false
+ 🔘 [BUTTON DEBUG] Form errors: Object
+ 🔘 [BUTTON DEBUG] Selected shipping method: 32
+ 🔘 [BUTTON DEBUG] Payment method: bank_transfer_grace
+ 🔘 [BUTTON DEBUG] Forcing form submission via handleSubmit
+ 🚀 [SUBMIT DEBUG] onSubmit function called
+ 🚀 [SUBMIT DEBUG] Form data received: Object
+ 🚀 [SUBMIT DEBUG] Selected shipping method: 32
+ 🚀 [SUBMIT DEBUG] Payment method: bank_transfer_grace
+ 🚀 [SUBMIT DEBUG] Form validation state: Object
+ 🚀 [SUBMIT DEBUG] Form errors: Object
+ 🚀 [SUBMIT DEBUG] Mutation pending before submit: false
+ 🚚 [DELIVERY LOGIC] Active delivery information: Object
+ 🚗 [VEHICLE DEBUG] Delivery method and vehicle at order submission: Object
+ 🔍 [PAYMENT ANALYSIS] Before conversion: Object
+ 🚀 [ORDER SUBMIT] Submitting order with complete data: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🚀 [ORDER CREATION] Creating order with payment method: bank_transfer_grace
+ 🎯 [ORDER SUCCESS] Order response received: Object
+ 🎯 [ORDER SUCCESS] Response type: object
+ 🎯 [ORDER SUCCESS] Response keys: Array(12)
+ 💳 [PAYMENT DECISION] RESPECTING CUSTOMER CHOICE: Object
+ 🗑️ Clearing cart..., authenticated: true
+ 🛒 Clearing cart in database for customer 94
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(5)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+ ✅ Cart cleared from database
+ ✅ Local cart cleared
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(5)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+ 🛒 Loading persistent cart for customer: 94
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(5)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+ 🛒 Loaded cart from database: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(5)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+ Customer auth check result: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(5)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(5)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+ 🔐 [AUTH] Customer authenticated, cart will be synced automatically
+about:blank:1 [Intervention] Slow network is detected. See https://www.chromestatus.com/feature/5636954674692096 for more details. Fallback font will be used while loading: https://embed.tawk.to/_s/v4/assets/fonts/tawk-font-icon-3.woff?55755728=
+/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+  GET https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me 401 (Unauthorized)
+queryFn @ /src/hooks/useAuth.ts:26
+fetchFn @ /@fs/home/runner/wor…y.js?v=5e0d855b:840
+run @ /@fs/home/runner/wor…y.js?v=5e0d855b:494
+start @ /@fs/home/runner/wor…y.js?v=5e0d855b:536
+fetch @ /@fs/home/runner/wor…y.js?v=5e0d855b:926
+executeFetch_fn @ /@fs/home/runner/wor….js?v=5e0d855b:2211
+(anonymous) @ /@fs/home/runner/wor….js?v=5e0d855b:2245
