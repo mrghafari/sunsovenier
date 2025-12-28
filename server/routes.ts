@@ -55403,6 +55403,11 @@ momtazchem.com
       console.log(`💰 [VENDOR PAYMENT] Paid ${amount} IQD to vendor ${vendorId}`);
       res.json({ success: true, transaction, message: 'پرداخت با موفقیت ثبت شد' });
     } catch (error) {
+      console.error('Error recording vendor payment:', error);
+      res.status(500).json({ success: false, message: 'خطا در ثبت پرداخت' });
+    }
+  });
+
   // Update vendor commission rate
   app.patch('/api/admin/vendor-accounting/commission/:vendorId', requireAuth, async (req, res) => {
     try {

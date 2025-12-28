@@ -314,9 +314,10 @@ export default function VendorAccountingTab() {
                     <TableRow>
                       <TableHead>نام وندور</TableHead>
                       <TableHead>وضعیت</TableHead>
+                      <TableHead>درصد کمیسیون</TableHead>
                       <TableHead>محصولات</TableHead>
                       <TableHead>کل فروش</TableHead>
-                      <TableHead>کمیسیون</TableHead>
+                      <TableHead>کمیسیون دریافتی</TableHead>
                       <TableHead>پرداخت شده</TableHead>
                       <TableHead>مانده بدهی</TableHead>
                       <TableHead>عملیات</TableHead>
@@ -330,6 +331,26 @@ export default function VendorAccountingTab() {
                           <Badge variant={vendor.isActive ? "default" : "secondary"}>
                             {vendor.isActive ? "فعال" : "غیرفعال"}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="bg-purple-50 text-purple-700">
+                              {vendor.commissionRate || "10.00"}%
+                            </Badge>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 w-6 p-0"
+                              onClick={() => {
+                                setSelectedVendor(vendor);
+                                setNewCommissionRate(vendor.commissionRate || "10.00");
+                                setShowCommissionDialog(true);
+                              }}
+                              data-testid={`btn-edit-commission-${vendor.vendorId}`}
+                            >
+                              <DollarSign className="h-3 w-3" />
+                            </Button>
+                          </div>
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline">{vendor.productCount} محصول</Badge>
@@ -539,6 +560,7 @@ export default function VendorAccountingTab() {
                   <TableHead>نام محصول</TableHead>
                   <TableHead>SKU</TableHead>
                   <TableHead>قیمت</TableHead>
+                  <TableHead>کمیسیون</TableHead>
                   <TableHead>موجودی</TableHead>
                   <TableHead>تعداد فروخته شده</TableHead>
                   <TableHead>درآمد کل</TableHead>
@@ -550,6 +572,32 @@ export default function VendorAccountingTab() {
                     <TableCell>{product.productName}</TableCell>
                     <TableCell className="font-mono text-sm">{product.sku}</TableCell>
                     <TableCell>{formatCurrency(product.price)}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {product.commissionOverride ? (
+                          <Badge variant="outline" className="bg-orange-50 text-orange-700">
+                            {product.commissionOverride}% (سفارشی)
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-gray-50 text-gray-600">
+                            پیش‌فرض ({selectedVendor?.commissionRate || "10.00"}%)
+                          </Badge>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 w-6 p-0"
+                          onClick={() => {
+                            setSelectedProduct(product);
+                            setProductCommissionOverride(product.commissionOverride || "");
+                            setShowProductCommissionDialog(true);
+                          }}
+                          data-testid={`btn-edit-product-commission-${product.id}`}
+                        >
+                          <DollarSign className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </TableCell>
                     <TableCell>{product.quantity}</TableCell>
                     <TableCell>{product.totalSold}</TableCell>
                     <TableCell className="text-green-600">{formatCurrency(product.totalRevenue)}</TableCell>
@@ -557,7 +605,7 @@ export default function VendorAccountingTab() {
                 ))}
                 {(!vendorProducts?.products || vendorProducts.products.length === 0) && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                       هیچ محصولی یافت نشد
                     </TableCell>
                   </TableRow>
@@ -620,6 +668,93 @@ export default function VendorAccountingTab() {
               </TableBody>
             </Table>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showCommissionDialog} onOpenChange={setShowCommissionDialog}>
+        <DialogContent dir="rtl">
+          <DialogHeader>
+            <DialogTitle>تنظیم درصد کمیسیون وندور</DialogTitle>
+            <DialogDescription>
+              درصد کمیسیون برای {selectedVendor?.vendorName} را تعیین کنید. این درصد روی همه محصولات این وندور اعمال می‌شود مگر محصولاتی که کمیسیون سفارشی دارند.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="commission-rate">درصد کمیسیون (0-100)</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="commission-rate"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  value={newCommissionRate}
+                  onChange={(e) => setNewCommissionRate(e.target.value)}
+                  placeholder="مثال: 15"
+                  data-testid="input-commission-rate"
+                />
+                <span className="text-muted-foreground">%</span>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCommissionDialog(false)}>
+              انصراف
+            </Button>
+            <Button 
+              onClick={handleUpdateCommission}
+              disabled={!newCommissionRate || commissionMutation.isPending}
+              data-testid="btn-confirm-commission"
+            >
+              {commissionMutation.isPending ? "در حال ذخیره..." : "ذخیره"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showProductCommissionDialog} onOpenChange={setShowProductCommissionDialog}>
+        <DialogContent dir="rtl">
+          <DialogHeader>
+            <DialogTitle>تنظیم کمیسیون سفارشی محصول</DialogTitle>
+            <DialogDescription>
+              برای محصول «{selectedProduct?.productName}» کمیسیون سفارشی تعیین کنید. اگر خالی بگذارید، از درصد پیش‌فرض وندور استفاده می‌شود.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="product-commission">درصد کمیسیون سفارشی (0-100)</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="product-commission"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  value={productCommissionOverride}
+                  onChange={(e) => setProductCommissionOverride(e.target.value)}
+                  placeholder="خالی = استفاده از پیش‌فرض"
+                  data-testid="input-product-commission"
+                />
+                <span className="text-muted-foreground">%</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                درصد پیش‌فرض وندور: {selectedVendor?.commissionRate || "10.00"}%
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowProductCommissionDialog(false)}>
+              انصراف
+            </Button>
+            <Button 
+              onClick={handleUpdateProductCommission}
+              disabled={productCommissionMutation.isPending}
+              data-testid="btn-confirm-product-commission"
+            >
+              {productCommissionMutation.isPending ? "در حال ذخیره..." : "ذخیره"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
