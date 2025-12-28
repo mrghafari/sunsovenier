@@ -295,10 +295,11 @@ export class OrderManagementStorage implements IOrderManagementStorage {
         newStatus === orderStatuses.WAREHOUSE_APPROVED) {
       console.log(`📱 [DELIVERY CODE] Starting delivery code generation for order ${currentOrder.id}...`);
       try {
-        // Get customer information and order details including recipient mobile
+        // Get customer information and order details including recipient mobile and email
         const orderWithCustomer = await db
           .select({
             customerPhone: crmCustomers.phone,
+            customerEmail: crmCustomers.email,
             recipientMobile: customerOrders.recipientMobile,
             customerFirstName: crmCustomers.firstName,
             customerLastName: crmCustomers.lastName,
@@ -325,18 +326,67 @@ export class OrderManagementStorage implements IOrderManagementStorage {
           // Generate delivery code
           const deliveryCode = await this.generateDeliveryCode(currentOrder.id, targetPhone);
           
-          // Send SMS using template 3 to target phone
-          await this.sendDeliveryCodeSms(
-            targetPhone, 
-            deliveryCode, 
-            customerData.customerOrderId,
-            customerName || 'مشتری عزیز',
-            orderNumber
+          // Send notifications via all three channels: SMS, WhatsApp, and Email
+          const notificationPromises = [];
+          
+          // 1. Send SMS using template 3 to target phone
+          notificationPromises.push(
+            this.sendDeliveryCodeSms(
+              targetPhone, 
+              deliveryCode, 
+              customerData.customerOrderId,
+              customerName || 'مشتری عزیز',
+              orderNumber
+            ).then(result => {
+              console.log(`✅ [SMS] Delivery code sent: ${result}`);
+              return { channel: 'SMS', success: result };
+            }).catch(err => {
+              console.error(`❌ [SMS] Error:`, err);
+              return { channel: 'SMS', success: false };
+            })
           );
           
-          console.log(`✅ [AUTO SMS TEMPLATE 3] Delivery code ${deliveryCode} sent to ${phoneSource}: ${targetPhone} for order ${orderNumber}`);
+          // 2. Send WhatsApp message
+          notificationPromises.push(
+            this.sendDeliveryCodeWhatsApp(
+              targetPhone, 
+              deliveryCode, 
+              customerName || 'مشتری عزیز',
+              orderNumber
+            ).then(result => {
+              console.log(`✅ [WHATSAPP] Delivery code sent: ${result}`);
+              return { channel: 'WhatsApp', success: result };
+            }).catch(err => {
+              console.error(`❌ [WHATSAPP] Error:`, err);
+              return { channel: 'WhatsApp', success: false };
+            })
+          );
+          
+          // 3. Send Email if customer has email
+          if (customerData.customerEmail) {
+            notificationPromises.push(
+              this.sendDeliveryCodeEmail(
+                customerData.customerEmail,
+                deliveryCode,
+                customerName || 'مشتری عزیز',
+                orderNumber
+              ).then(result => {
+                console.log(`✅ [EMAIL] Delivery code sent: ${result}`);
+                return { channel: 'Email', success: result };
+              }).catch(err => {
+                console.error(`❌ [EMAIL] Error:`, err);
+                return { channel: 'Email', success: false };
+              })
+            );
+          }
+          
+          // Wait for all notifications to complete
+          const results = await Promise.all(notificationPromises);
+          const successfulChannels = results.filter(r => r.success).map(r => r.channel);
+          
+          console.log(`✅ [DELIVERY CODE] Code ${deliveryCode} sent via: ${successfulChannels.join(', ')} to ${phoneSource}: ${targetPhone} for order ${orderNumber}`);
         } else {
-          console.log(`❌ [AUTO SMS] No customer phone found for order ${currentOrder.id}`);
+          console.log(`❌ [AUTO NOTIFICATION] No customer phone found for order ${currentOrder.id}`);
         }
       } catch (smsError) {
         console.error(`❌ [AUTO SMS] Error sending delivery code SMS for order ${currentOrder.id}:`, smsError);
@@ -1195,6 +1245,72 @@ export class OrderManagementStorage implements IOrderManagementStorage {
       return result.success;
     } catch (error) {
       console.error('❌ [SMS] Error sending delivery code using template 3:', error);
+      return false;
+    }
+  }
+
+  async sendDeliveryCodeWhatsApp(customerPhone: string, deliveryCode: string, customerName: string, orderNumber: string): Promise<boolean> {
+    try {
+      const { createWhatsAppService } = await import('./whatsapp-service');
+      const whatsAppService = await createWhatsAppService();
+      
+      const message = `مشتری گرامی ${customerName}،\n\nکد تحویل سفارش شما: ${deliveryCode}\n\nشماره سفارش: ${orderNumber}\n\nلطفاً این کد را هنگام تحویل سفارش به راننده ارائه دهید.\n\nبا تشکر،\nمومتاز کیمیکال`;
+      
+      const result = await whatsAppService.sendMessage({
+        to: customerPhone,
+        message: message
+      });
+      
+      console.log(`📲 [WHATSAPP] Delivery code ${deliveryCode} sent to ${customerPhone} for order ${orderNumber}:`, result);
+      
+      return result.success;
+    } catch (error) {
+      console.error('❌ [WHATSAPP] Error sending delivery code:', error);
+      return false;
+    }
+  }
+
+  async sendDeliveryCodeEmail(customerEmail: string, deliveryCode: string, customerName: string, orderNumber: string): Promise<boolean> {
+    try {
+      const { UniversalEmailService } = await import('./universal-email-service');
+      
+      const subject = `کد تحویل سفارش ${orderNumber} - مومتاز کیمیکال`;
+      
+      const html = `
+        <div dir="rtl" style="font-family: Tahoma, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
+          <div style="background-color: #ffffff; border-radius: 8px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h2 style="color: #2c3e50; text-align: center; margin-bottom: 20px;">کد تحویل سفارش شما</h2>
+            
+            <p style="color: #34495e; font-size: 16px; line-height: 1.8;">مشتری گرامی ${customerName}،</p>
+            
+            <p style="color: #34495e; font-size: 16px; line-height: 1.8;">سفارش شما به شماره <strong>${orderNumber}</strong> آماده ارسال است.</p>
+            
+            <div style="background-color: #e8f5e9; border-radius: 8px; padding: 20px; text-align: center; margin: 30px 0;">
+              <p style="color: #2e7d32; font-size: 14px; margin-bottom: 10px;">کد تحویل شما:</p>
+              <p style="color: #1b5e20; font-size: 48px; font-weight: bold; letter-spacing: 8px; margin: 0;">${deliveryCode}</p>
+            </div>
+            
+            <p style="color: #e74c3c; font-size: 14px; line-height: 1.8;">⚠️ لطفاً این کد را فقط هنگام دریافت کالا به راننده ارائه دهید.</p>
+            
+            <hr style="border: none; border-top: 1px solid #ecf0f1; margin: 30px 0;">
+            
+            <p style="color: #7f8c8d; font-size: 12px; text-align: center;">با تشکر از اعتماد شما<br>مومتاز کیمیکال</p>
+          </div>
+        </div>
+      `;
+      
+      const result = await UniversalEmailService.sendEmail({
+        categoryKey: 'order-confirmations',
+        to: [customerEmail],
+        subject: subject,
+        html: html
+      });
+      
+      console.log(`📧 [EMAIL] Delivery code ${deliveryCode} sent to ${customerEmail} for order ${orderNumber}:`, result);
+      
+      return result;
+    } catch (error) {
+      console.error('❌ [EMAIL] Error sending delivery code:', error);
       return false;
     }
   }
