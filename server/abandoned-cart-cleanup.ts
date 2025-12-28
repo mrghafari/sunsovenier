@@ -81,16 +81,28 @@ class AbandonedCartCleanupService {
         items = [];
       }
       
+      const customerName = `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'مشتری گرامی';
+      const cartRestoreUrl = `${process.env.BASE_URL || 'https://momtazchem.com'}/shop/cart?restore=${cart.id}`;
+      const lastActivity = new Date(cart.lastActivity).toLocaleDateString('fa-IR');
+      
       const emailContent = {
-        to: customer.email,
+        categoryKey: 'customers',
+        to: [customer.email],
         subject: `یادآوری: سبد خرید شما در انتظار تکمیل است - ${items.length} محصول`,
-        template: 'abandoned-cart-first',
+        templateNumber: '#02', // Template for abandoned cart reminder
+        html: `<div dir="rtl" style="font-family: Tahoma, Arial, sans-serif;">
+          <h2>سلام ${customerName}</h2>
+          <p>سبد خرید شما با ${items.length} محصول در انتظار تکمیل است.</p>
+          <p>آخرین فعالیت: ${lastActivity}</p>
+          <p><a href="${cartRestoreUrl}" style="background-color: #10b981; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">ادامه خرید</a></p>
+          <p>با تشکر<br>مؤمتاز شیمی</p>
+        </div>`,
         variables: {
-          customerName: `${customer.firstName} ${customer.lastName}`,
-          cartItemsCount: items.length,
-          totalValue: cart.totalValue || 0,
-          cartRestoreUrl: `${process.env.BASE_URL || 'http://localhost:5000'}/shop/cart?restore=${cart.id}`,
-          lastActivity: new Date(cart.lastActivity).toLocaleDateString('fa-IR')
+          customerName,
+          cartItemsCount: items.length.toString(),
+          totalValue: (cart.totalValue || 0).toString(),
+          cartRestoreUrl,
+          lastActivity
         }
       };
       
@@ -122,17 +134,29 @@ class AbandonedCartCleanupService {
         items = [];
       }
       
+      const customerName = `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'مشتری گرامی';
+      const cartRestoreUrl = `${process.env.BASE_URL || 'https://momtazchem.com'}/shop/cart?restore=${cart.id}`;
+      const lastActivity = new Date(cart.lastActivity).toLocaleDateString('fa-IR');
+      
       const emailContent = {
-        to: customer.email,
+        categoryKey: 'customers',
+        to: [customer.email],
         subject: `آخرین فرصت: سبد خرید شما به زودی حذف می‌شود - ${items.length} محصول`,
-        template: 'abandoned-cart-final',
+        templateNumber: '#02', // Template for abandoned cart reminder
+        html: `<div dir="rtl" style="font-family: Tahoma, Arial, sans-serif;">
+          <h2>سلام ${customerName}</h2>
+          <p><strong>آخرین فرصت!</strong> سبد خرید شما با ${items.length} محصول به زودی حذف می‌شود.</p>
+          <p>آخرین فعالیت: ${lastActivity}</p>
+          <p><a href="${cartRestoreUrl}" style="background-color: #ef4444; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">تکمیل خرید</a></p>
+          <p>با تشکر<br>مؤمتاز شیمی</p>
+        </div>`,
         variables: {
-          customerName: `${customer.firstName} ${customer.lastName}`,
-          cartItemsCount: items.length,
-          totalValue: cart.totalValue || 0,
-          cartRestoreUrl: `${process.env.BASE_URL || 'http://localhost:5000'}/shop/cart?restore=${cart.id}`,
-          lastActivity: new Date(cart.lastActivity).toLocaleDateString('fa-IR'),
-          finalWarning: true
+          customerName,
+          cartItemsCount: items.length.toString(),
+          totalValue: (cart.totalValue || 0).toString(),
+          cartRestoreUrl,
+          lastActivity,
+          finalWarning: 'true'
         }
       };
       
