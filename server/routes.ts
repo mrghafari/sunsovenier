@@ -18195,6 +18195,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`🚚 [VEHICLE] Customer selected vehicle from checkout: ${orderData.vehicleType}`);
         }
 
+
+        // SMART VEHICLE SELECTION: Auto-assign vehicle type based on weight from vehicle_templates
+        if (orderData.deliveryMethod === 'smart_vehicle' && calculatedTotalWeight > 0 && !orderMgmtData.vehicleType) {
+          try {
+            // Import vehicle_templates table if not already imported
+            const { vehicleTemplates } = await import('@shared/shop-schema');
+            
+            // Find the smallest vehicle that can carry the weight
+            const suitableVehicle = await db.select({
+              vehicleType: vehicleTemplates.vehicleType,
+              name: vehicleTemplates.name,
+              maxWeightKg: vehicleTemplates.maxWeightKg
+            })
+              .from(vehicleTemplates)
+              .where(
+                and(
+                  eq(vehicleTemplates.isActive, true),
+                  sql`${vehicleTemplates.maxWeightKg} >= ${calculatedTotalWeight}`
+                )
+              )
+              .orderBy(vehicleTemplates.maxWeightKg)
+              .limit(1);
+            
+            if (suitableVehicle.length > 0) {
+              const selectedVehicle = suitableVehicle[0];
+              orderMgmtData = {
+                ...orderMgmtData,
+                vehicleType: selectedVehicle.vehicleType
+              };
+              console.log(`🚚 [SMART VEHICLE] Auto-selected vehicle for ${calculatedTotalWeight}kg: ${selectedVehicle.vehicleType} (${selectedVehicle.name}, max: ${selectedVehicle.maxWeightKg}kg)`);
+            } else {
+              // If no vehicle found, use the largest available
+              const largestVehicle = await db.select({
+                vehicleType: vehicleTemplates.vehicleType,
+                name: vehicleTemplates.name,
+                maxWeightKg: vehicleTemplates.maxWeightKg
+              })
+                .from(vehicleTemplates)
+                .where(eq(vehicleTemplates.isActive, true))
+                .orderBy(sql`${vehicleTemplates.maxWeightKg} DESC`)
+                .limit(1);
+              
+              if (largestVehicle.length > 0) {
+                orderMgmtData = {
+                  ...orderMgmtData,
+                  vehicleType: largestVehicle[0].vehicleType
+                };
+                console.log(`🚚 [SMART VEHICLE] Weight ${calculatedTotalWeight}kg exceeds all templates, using largest: ${largestVehicle[0].vehicleType}`);
+              }
+            }
+          } catch (vehicleError) {
+            console.error(`⚠️ [SMART VEHICLE] Error auto-selecting vehicle:`, vehicleError);
+          }
+        }
         // Log delivery method being saved
         if (orderData.deliveryMethod) {
           console.log(`📦 [DELIVERY METHOD] Customer selected delivery: ${orderData.deliveryMethod}`);
