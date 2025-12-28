@@ -1305,8 +1305,10 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
         } else if (data.selectedVehicle) {
           // Single vehicle scenario
           const vehicle = data.selectedVehicle;
+          // API returns 'name' not 'vehicleName' - handle both for compatibility
+          const vehicleName = vehicle.name || vehicle.vehicleName;
           const vehicleInfo = {
-            vehicleName: vehicle.vehicleName,
+            vehicleName: vehicleName,
             totalCost: vehicle.totalCost,
             basePrice: vehicle.basePrice,
             distanceCost: vehicle.distanceCost
@@ -1317,7 +1319,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
           setSmartDeliveryCost(vehicle.totalCost);
           
           console.log('✅ [SMART DELIVERY] Single vehicle cost calculated:', {
-            vehicle: vehicle.vehicleName,
+            vehicle: vehicleName,
             cost: vehicle.totalCost,
             basePrice: vehicle.basePrice,
             distanceCost: vehicle.distanceCost
