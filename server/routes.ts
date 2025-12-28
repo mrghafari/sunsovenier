@@ -17641,6 +17641,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const orderData = req.body;
       
       // CRITICAL FIX: Persist delivery method immediately before any mutation
+      console.log('🔍 [DEBUG RAW] orderData.deliveryMethod =', JSON.stringify(orderData.deliveryMethod));
+      console.log('🔍 [DEBUG RAW] typeof orderData.deliveryMethod =', typeof orderData.deliveryMethod);
       const checkoutDeliveryMethod = orderData.deliveryMethod || 'courier';
       const checkoutVehicleType = orderData.vehicleType || null;
       console.log(`📦 [CHECKOUT PERSIST] Delivery method: ${checkoutDeliveryMethod}, vehicle: ${checkoutVehicleType}`);
