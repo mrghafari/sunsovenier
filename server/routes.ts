@@ -55197,5 +55197,218 @@ momtazchem.com
   });
 
   console.log('✅ [SHOP SETTINGS] Shop settings API registered');
+  // ==================== VENDOR ACCOUNTING API ====================
+  console.log('📊 [VENDOR ACCOUNTING] Registering vendor accounting routes...');
+
+  // Get all vendor balances with summary
+  app.get('/api/admin/vendor-accounting/balances', requireAuth, async (req, res) => {
+    try {
+      const { db } = await import('./db');
+      const { vendors, vendorBalances } = await import('@shared/schema');
+      const { showcaseProducts } = await import('@shared/showcase-schema');
+      const { eq, sql } = await import('drizzle-orm');
+
+      // Get vendors with their balances and product count in single query
+      const vendorsData = await db
+        .select({
+          vendorId: vendors.id,
+          vendorName: vendors.vendorName,
+          commissionRate: vendors.commissionRate,
+          isActive: vendors.isActive,
+          isApproved: vendors.isApproved,
+          currentBalance: vendorBalances.currentBalance,
+          totalSales: vendorBalances.totalSales,
+          totalCommission: vendorBalances.totalCommission,
+          totalPaid: vendorBalances.totalPaid,
+          lastTransactionAt: vendorBalances.lastTransactionAt,
+        })
+        .from(vendors)
+        .leftJoin(vendorBalances, eq(vendors.id, vendorBalances.vendorId));
+
+      // Get product counts per vendor in single query
+      const productCounts = await db
+        .select({
+          vendorId: showcaseProducts.vendorId,
+          count: sql<number>`COUNT(*)::int`
+        })
+        .from(showcaseProducts)
+        .where(sql`${showcaseProducts.vendorId} IS NOT NULL`)
+        .groupBy(showcaseProducts.vendorId);
+
+      const productCountMap = new Map(productCounts.map(p => [p.vendorId, p.count]));
+
+      const result = vendorsData.map(v => ({
+        ...v,
+        currentBalance: v.currentBalance || '0.00',
+        totalSales: v.totalSales || '0.00',
+        totalCommission: v.totalCommission || '0.00',
+        totalPaid: v.totalPaid || '0.00',
+        productCount: productCountMap.get(v.vendorId) || 0
+      }));
+
+      res.json({ success: true, vendors: result });
+    } catch (error) {
+      console.error('Error fetching vendor balances:', error);
+      res.status(500).json({ success: false, message: 'خطا در دریافت اطلاعات مالی وندورها' });
+    }
+  });
+
+  // Get vendor products
+  app.get('/api/admin/vendor-accounting/products', requireAuth, async (req, res) => {
+    try {
+      const vendorId = req.query.vendorId ? parseInt(req.query.vendorId as string) : null;
+      const { db } = await import('./db');
+      const { showcaseProducts } = await import('@shared/showcase-schema');
+      const { eq, sql } = await import('drizzle-orm');
+
+      let query = db
+        .select({
+          id: showcaseProducts.id,
+          vendorId: showcaseProducts.vendorId,
+          productName: showcaseProducts.productName,
+          sku: showcaseProducts.sku,
+          price: showcaseProducts.price,
+          quantity: showcaseProducts.stockQuantity,
+          status: showcaseProducts.status,
+          totalSold: sql<number>`COALESCE(${showcaseProducts.stockQuantity}, 0)::int`,
+          totalRevenue: sql<string>`'0.00'`
+        })
+        .from(showcaseProducts);
+
+      if (vendorId) {
+        query = query.where(eq(showcaseProducts.vendorId, vendorId));
+      }
+
+      const products = await query;
+      res.json({ success: true, products });
+    } catch (error) {
+      console.error('Error fetching vendor products:', error);
+      res.status(500).json({ success: false, message: 'خطا در دریافت محصولات' });
+    }
+  });
+
+  // Get vendor transactions
+  app.get('/api/admin/vendor-accounting/transactions', requireAuth, async (req, res) => {
+    try {
+      const vendorId = req.query.vendorId ? parseInt(req.query.vendorId as string) : null;
+      const { db } = await import('./db');
+      const { vendors, vendorTransactions } = await import('@shared/schema');
+      const { eq, desc } = await import('drizzle-orm');
+
+      let query = db
+        .select({
+          id: vendorTransactions.id,
+          vendorId: vendorTransactions.vendorId,
+          vendorName: vendors.vendorName,
+          transactionType: vendorTransactions.transactionType,
+          amount: vendorTransactions.amount,
+          currency: vendorTransactions.currency,
+          saleAmount: vendorTransactions.saleAmount,
+          commissionAmount: vendorTransactions.commissionAmount,
+          netAmount: vendorTransactions.netAmount,
+          paymentMethod: vendorTransactions.paymentMethod,
+          paymentReference: vendorTransactions.paymentReference,
+          balanceBefore: vendorTransactions.balanceBefore,
+          balanceAfter: vendorTransactions.balanceAfter,
+          status: vendorTransactions.status,
+          description: vendorTransactions.description,
+          notes: vendorTransactions.notes,
+          createdAt: vendorTransactions.createdAt,
+        })
+        .from(vendorTransactions)
+        .innerJoin(vendors, eq(vendorTransactions.vendorId, vendors.id))
+        .orderBy(desc(vendorTransactions.createdAt));
+
+      if (vendorId) {
+        query = query.where(eq(vendorTransactions.vendorId, vendorId));
+      }
+
+      const transactions = await query;
+      res.json({ success: true, transactions });
+    } catch (error) {
+      console.error('Error fetching vendor transactions:', error);
+      res.status(500).json({ success: false, message: 'خطا در دریافت تراکنش‌ها' });
+    }
+  });
+
+  // Record payment to vendor
+  app.post('/api/admin/vendor-accounting/payment', requireAuth, async (req, res) => {
+    try {
+      const { vendorId, amount, method, reference, notes } = req.body;
+      
+      if (!vendorId || !amount || amount <= 0) {
+        return res.status(400).json({ success: false, message: 'اطلاعات پرداخت نامعتبر است' });
+      }
+
+      const { db } = await import('./db');
+      const { vendors, vendorTransactions, vendorBalances } = await import('@shared/schema');
+      const { eq } = await import('drizzle-orm');
+
+      // Get or create balance record (upsert pattern)
+      let [currentBalance] = await db
+        .select()
+        .from(vendorBalances)
+        .where(eq(vendorBalances.vendorId, vendorId));
+
+      // Create balance record if it doesn't exist
+      if (!currentBalance) {
+        const [newBalance] = await db
+          .insert(vendorBalances)
+          .values({
+            vendorId,
+            currentBalance: '0.00',
+            totalSales: '0.00',
+            totalCommission: '0.00',
+            totalPaid: '0.00',
+          })
+          .returning();
+        currentBalance = newBalance;
+        console.log(`📊 [VENDOR BALANCE] Created new balance record for vendor ${vendorId}`);
+      }
+
+      const balanceBefore = parseFloat(currentBalance?.currentBalance || '0');
+      const balanceAfter = balanceBefore - amount;
+
+      // Insert transaction
+      const [transaction] = await db
+        .insert(vendorTransactions)
+        .values({
+          vendorId,
+          transactionType: 'payment',
+          amount: amount.toString(),
+          currency: 'IQD',
+          paymentMethod: method,
+          paymentReference: reference,
+          balanceBefore: balanceBefore.toString(),
+          balanceAfter: balanceAfter.toString(),
+          status: 'completed',
+          description: 'پرداخت به وندور',
+          notes,
+          createdBy: (req as any).session?.adminId || null,
+        })
+        .returning();
+
+      // Update balance
+      await db
+        .update(vendorBalances)
+        .set({
+          currentBalance: balanceAfter.toString(),
+          totalPaid: ((parseFloat(currentBalance?.totalPaid || '0')) + amount).toString(),
+          lastTransactionAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(vendorBalances.vendorId, vendorId));
+
+      console.log(`💰 [VENDOR PAYMENT] Paid ${amount} IQD to vendor ${vendorId}`);
+      res.json({ success: true, transaction, message: 'پرداخت با موفقیت ثبت شد' });
+    } catch (error) {
+      console.error('Error recording vendor payment:', error);
+      res.status(500).json({ success: false, message: 'خطا در ثبت پرداخت' });
+    }
+  });
+
+  console.log('✅ [VENDOR ACCOUNTING] Vendor accounting routes registered');
+
+
   return httpServer;
 }

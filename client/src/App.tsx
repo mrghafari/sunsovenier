@@ -143,6 +143,7 @@ import AdminAbandonedOrders from "@/pages/admin-abandoned-orders";
 import FooterManagement from "@/pages/admin/footer-management";
 import ShopManagement from "@/pages/admin/shop-management";
 import MarketplaceManagement from "@/pages/admin/marketplace-management";
+import VendorAccounting from "@/pages/admin/vendor-accounting";
 import VendorRegistration from "@/pages/vendor-registration";
 import VendorLogin from "@/pages/vendor-login";
 import VendorDashboard from "@/pages/vendor-dashboard";
@@ -285,6 +286,7 @@ function Router() {
           <Route path="/admin/footer-management" component={FooterManagement} />
           <Route path="/admin/shop-management" component={ShopManagement} />
           <Route path="/admin/marketplace-management" component={MarketplaceManagement} />
+          <Route path="/admin/vendor-accounting" component={VendorAccounting} />
           <Route path="/admin/email-templates" component={EmailTemplatesFixed} />
           <Route path="/admin/email-templates-fixed" component={EmailTemplatesFixed} />
           <Route path="/admin/email-templates-central" component={EmailTemplatesCentral} />
