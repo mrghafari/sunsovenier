@@ -1891,6 +1891,60 @@ export type Vendor = typeof vendors.$inferSelect;
 export type InsertVendorUser = z.infer<typeof insertVendorUserSchema>;
 export type VendorUser = typeof vendorUsers.$inferSelect;
 
+// Vendor Transactions table - tracks all financial transactions with vendors
+export const vendorTransactions = pgTable("vendor_transactions", {
+  id: serial("id").primaryKey(),
+  vendorId: integer("vendor_id").notNull().references(() => vendors.id, { onDelete: "cascade" }),
+  transactionType: text("transaction_type").notNull(), // 'sale', 'commission', 'payment', 'refund', 'adjustment'
+  amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
+  currency: text("currency").default("IQD"),
+  // Related order information
+  customerOrderId: integer("customer_order_id"),
+  productId: integer("product_id"),
+  // For sale transactions
+  saleAmount: decimal("sale_amount", { precision: 15, scale: 2 }), // Total sale value
+  commissionAmount: decimal("commission_amount", { precision: 15, scale: 2 }), // Platform commission deducted
+  netAmount: decimal("net_amount", { precision: 15, scale: 2 }), // Amount owed to vendor after commission
+  // For payment transactions
+  paymentMethod: text("payment_method"), // 'bank_transfer', 'cash', 'wallet'
+  paymentReference: text("payment_reference"), // Bank transfer reference, receipt number
+  paymentProofUrl: text("payment_proof_url"), // Receipt/proof image URL
+  // Balance tracking
+  balanceBefore: decimal("balance_before", { precision: 15, scale: 2 }),
+  balanceAfter: decimal("balance_after", { precision: 15, scale: 2 }),
+  // Status
+  status: text("status").default("completed"), // 'pending', 'completed', 'cancelled'
+  // Metadata
+  description: text("description"),
+  notes: text("notes"),
+  createdBy: integer("created_by"), // Admin user who created the transaction
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Vendor Balance table - current balance for each vendor
+export const vendorBalances = pgTable("vendor_balances", {
+  id: serial("id").primaryKey(),
+  vendorId: integer("vendor_id").notNull().references(() => vendors.id, { onDelete: "cascade" }).unique(),
+  currentBalance: decimal("current_balance", { precision: 15, scale: 2 }).default("0.00"), // Amount owed to vendor
+  totalSales: decimal("total_sales", { precision: 15, scale: 2 }).default("0.00"),
+  totalCommission: decimal("total_commission", { precision: 15, scale: 2 }).default("0.00"),
+  totalPaid: decimal("total_paid", { precision: 15, scale: 2 }).default("0.00"),
+  lastTransactionAt: timestamp("last_transaction_at"),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Insert schemas for vendor transactions
+export const insertVendorTransactionSchema = createInsertSchema(vendorTransactions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertVendorTransaction = z.infer<typeof insertVendorTransactionSchema>;
+export type VendorTransaction = typeof vendorTransactions.$inferSelect;
+export type VendorBalance = typeof vendorBalances.$inferSelect;
+
 // Postal Services table - for managing postal/courier services
 export const postalServices = pgTable("postal_services", {
   id: serial("id").primaryKey(),

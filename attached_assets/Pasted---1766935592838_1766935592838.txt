@@ -1,0 +1,230 @@
+. اصل کلیدی معماری (قانون طلایی)
+
+سه چیز باید کاملاً مستقل باشند:
+
+مالک کالا
+
+محل نگهداری کالا
+
+نحوه تسویه مالی
+
+نباید این‌ها را در یک جدول یا یک منطق قاطی کنید.
+
+2. مدل انبارداری (پشتیبانی از انبار شما و انبار وندور)
+2.1 جدول انبارها (warehouses)
+warehouses
+- id
+- name
+- type (MAIN, VENDOR)
+- vendor_id (nullable)
+
+
+انبار اصلی شما → type = MAIN
+
+انبار وندور → type = VENDOR + vendor_id
+
+2.2 موجودی کالا (inventory)
+inventory
+- id
+- product_id
+- warehouse_id
+- vendor_id (مالک کالا)
+- quantity
+- reserved_quantity
+
+
+نکته بسیار مهم:
+
+vendor_id = مالک کالا
+
+warehouse_id = محل نگهداری
+
+به این ترتیب:
+
+امروز: فروش فقط از انبار MAIN
+
+فردا: فروش مستقیم از انبار VENDOR
+بدون تغییر معماری
+
+3. مدل کالا و لیست کالاهای قابل فروش
+3.1 کالا (products)
+products
+- id
+- name
+- sku
+- is_active
+
+3.2 اتصال کالا به وندور (vendor_products)
+vendor_products
+- id
+- vendor_id
+- product_id
+- default_commission_percent (nullable)
+- is_sellable
+
+
+این جدول پایه تمام محاسبات شماست.
+
+4. مدل کمیسیون (قابل سفارشی‌سازی روی هر کالا)
+4.1 قانون کمیسیون
+
+ترتیب محاسبه:
+
+اگر روی vendor_products درصد ثبت شده → همان
+
+اگر نه → درصد دیفالت وندور
+
+اگر نه → درصد دیفالت سیستم
+
+4.2 درصد دیفالت وندور
+vendors
+- id
+- name
+- default_commission_percent
+
+5. سفارش و فروش (Sales Engine)
+5.1 سفارش
+orders
+- id
+- customer_id
+- status
+- total_amount
+
+5.2 آیتم‌های سفارش
+order_items
+- id
+- order_id
+- product_id
+- vendor_id
+- warehouse_id
+- quantity
+- unit_price
+- gross_amount
+- commission_percent
+- commission_amount
+- vendor_net_amount
+
+
+نکته حیاتی:
+
+کمیسیون و سهم وندور در زمان ثبت سفارش فریز می‌شود
+
+تغییر درصد در آینده روی سفارش‌های قدیمی اثر ندارد
+
+6. جدول فروش تجمیعی (گزارش‌گیری حرفه‌ای)
+6.1 فروش به تفکیک کالا و وندور
+vendor_sales
+- id
+- vendor_id
+- product_id
+- order_item_id
+- quantity
+- gross_amount
+- commission_amount
+- net_amount
+- sale_date
+
+
+این جدول پایه:
+
+گزارش فروش هر محصول
+
+گزارش فروش هر وندور
+
+اتصال به Power BI
+
+7. تسویه حساب با وندور (Settlement)
+7.1 درخواست تسویه
+vendor_settlements
+- id
+- vendor_id
+- period_start
+- period_end
+- total_gross
+- total_commission
+- total_net
+- status (PENDING, PAID, CONFIRMED)
+
+7.2 آیتم‌های تسویه
+vendor_settlement_items
+- settlement_id
+- order_item_id
+- net_amount
+
+7.3 تایید دریافت توسط وندور (خیلی مهم)
+vendor_settlement_confirmations
+- settlement_id
+- vendor_id
+- confirmed_at
+- confirmed_by
+
+
+بدون این تایید:
+
+وضعیت = PAID ولی NOT CONFIRMED
+
+در حسابداری هنوز «ریسک اختلاف» دارید
+
+8. عودتی‌ها (Returns) – نقطه خطرناک سیستم
+8.1 ثبت عودت
+returns
+- id
+- order_item_id
+- quantity
+- reason
+- status
+
+8.2 اثر مالی عودت
+return_financials
+- return_id
+- refund_amount
+- commission_reversal
+- vendor_net_reversal
+
+
+قانون:
+
+اگر تسویه نشده → مستقیم اصلاح می‌شود
+
+اگر تسویه شده → در تسویه بعدی منفی می‌شود
+
+9. پنل وندور (حداقل‌های الزامی)
+
+وندور باید بتواند ببیند:
+
+موجودی کالای خودش (به تفکیک انبار)
+
+فروش به تفکیک محصول
+
+کمیسیون کسرشده
+
+تسویه‌های انجام‌شده
+
+وضعیت تایید پرداخت
+
+عودتی‌ها و اثر مالی آن‌ها
+
+اما:
+❌ هیچ‌وقت سفارش مشتریان دیگر یا قیمت فروش سایر وندورها را نبیند
+
+10. اتصال به حسابداری (Double Entry – خلاصه)
+رویداد	بدهکار	بستانکار
+فروش	حساب مشتری	درآمد فروش
+کمیسیون	درآمد کمیسیون	حساب وندور
+تسویه	حساب وندور	بانک
+عودت	برگشت از فروش	حساب مشتری
+جمع‌بندی اجرایی
+
+با این معماری:
+
+انبار وندور + انبار شما پوشش داده می‌شود
+
+درصد کمیسیون انعطاف‌پذیر است
+
+فروش به تفکیک محصول، وندور، دوره قابل گزارش است
+
+تسویه و تایید دریافت شفاف است
+
+عودتی‌ها حسابداری‌محور مدیریت می‌شوند
+
+برای Power BI و حسابداری صنعتی ایده‌آل است
