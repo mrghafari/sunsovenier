@@ -423,14 +423,25 @@ export default function WarehouseDepartment() {
                   <div className="flex gap-2">
                     <Button
                       onClick={() => handleConfirmStart(order.id)}
-                      className={confirmingOrderId === order.id 
-                        ? "bg-amber-500 hover:bg-amber-600 animate-pulse ring-2 ring-amber-300" 
+                      className={confirmingOrderId === order.id && processOrderMutation.isPending
+                        ? "bg-amber-500 hover:bg-amber-600 ring-2 ring-amber-300" 
+                        : confirmingOrderId === order.id
+                        ? "bg-amber-500 hover:bg-amber-600 animate-pulse ring-2 ring-amber-300"
                         : "bg-green-600 hover:bg-green-700"}
                       disabled={processOrderMutation.isPending}
                       data-testid={`button-process-order-${order.id}`}
                     >
-                      <Truck className="w-4 h-4 ml-2" />
-                      {confirmingOrderId === order.id ? "در حال تایید..." : "تایید و ارسال به لجستیک"}
+                      {confirmingOrderId === order.id && processOrderMutation.isPending ? (
+                        <>
+                          <Loader className="w-4 h-4 ml-2 animate-spin" />
+                          در حال پردازش...
+                        </>
+                      ) : (
+                        <>
+                          <Truck className="w-4 h-4 ml-2" />
+                          {confirmingOrderId === order.id ? "در حال تایید..." : "تایید و ارسال به لجستیک"}
+                        </>
+                      )}
                     </Button>
                     <Button variant="outline" size="sm">
                       <FileText className="w-4 h-4 ml-2" />
