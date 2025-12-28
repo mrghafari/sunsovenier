@@ -32307,6 +32307,26 @@ ${message ? `Additional Requirements:\n${message}` : ''}
     }
   });
 
+  // 🏋️ Backfill NULL weights in order_management table
+  app.post("/api/admin/backfill-order-weights", requireAuth, async (req, res) => {
+    try {
+      const batchSize = parseInt(req.body.batchSize) || 20;
+      console.log(`🏋️ [ADMIN] Starting weight backfill with batch size ${batchSize}...`);
+      const result = await orderManagementStorage.backfillOrderWeights(batchSize);
+      res.json({ 
+        success: true, 
+        message: `وزن سفارشات با موفقیت بروزرسانی شد: ${result.updated} بروزرسانی، ${result.failed} خطا`,
+        ...result
+      });
+    } catch (error: any) {
+      console.error("Error backfilling order weights:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "خطا در بروزرسانی وزن سفارشات: " + error.message 
+      });
+    }
+  });
+
 
   // Migrate blog images to S3
   app.post("/api/admin/migrate-blog-images", requireAdmin, async (req, res) => {

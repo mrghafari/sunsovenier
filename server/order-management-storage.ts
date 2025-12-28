@@ -727,17 +727,21 @@ export class OrderManagementStorage implements IOrderManagementStorage {
       console.log('📊 [DEPARTMENT] Total orders in order_management table:', basicCount[0]);
     }
     
-    // Transform results to include customer info, receipt info, and calculated weight
-    const transformedResults = await Promise.all(results.map(async (row) => {
-      // Calculate weight - prefer stored value, only recalculate if missing
-      const storedWeight = row.totalWeight ? parseFloat(String(row.totalWeight)) : 0;
-      
-      // Debug logging for weight tracing
-      if (row.orderNumber === 'M2511675' || storedWeight > 0) {
-        console.log(`🏋️ [WEIGHT DEBUG] Order ${row.orderNumber}: raw=${row.totalWeight}, parsed=${storedWeight}`);
+    // 🚀 PERFORMANCE FIX: Transform results without parallel weight queries
+    // Instead of Promise.all which causes 100+ parallel DB connections and timeouts,
+    // we use stored weights or skip calculation if not available
+    const transformedResults = results.map((row) => {
+      // Handle Drizzle decimal type which returns string like "15.000"
+      let storedWeight = 0;
+      if (row.totalWeight !== null && row.totalWeight !== undefined) {
+        const rawWeight = String(row.totalWeight).trim();
+        storedWeight = rawWeight ? parseFloat(rawWeight) : 0;
+        if (isNaN(storedWeight)) storedWeight = 0;
       }
       
-      const calculatedWeight = storedWeight > 0 ? storedWeight : await this.calculateOrderWeight(row.customerOrderId);
+      // Use stored weight - don't trigger expensive calculateOrderWeight() queries
+      // Orders without weights will show 0 until backfill job runs
+      const calculatedWeight = storedWeight;
       
       return {
         id: row.id,
@@ -830,7 +834,7 @@ export class OrderManagementStorage implements IOrderManagementStorage {
           mimeType: row.receiptMimeType,
         } : null
       };
-    }));
+    });
     
     return transformedResults;
   }
@@ -902,6 +906,54 @@ export class OrderManagementStorage implements IOrderManagementStorage {
     console.log(`💡 [AUTO-APPROVAL] All wallet payments must be manually approved by financial department`);
     // ALL AUTO-APPROVAL FUNCTIONALITY DISABLED
     return;
+  }
+
+  // 🚀 PERFORMANCE FIX: Backfill NULL weights in order_management table
+  // This runs sequentially in batches to avoid connection pool exhaustion
+  async backfillOrderWeights(batchSize: number = 20): Promise<{ updated: number; failed: number }> {
+    console.log('🏋️ [WEIGHT BACKFILL] Starting weight backfill for orders with NULL total_weight...');
+    
+    // Get orders with NULL total_weight
+    const ordersNeedingWeight = await db
+      .select({
+        id: orderManagement.id,
+        customerOrderId: orderManagement.customerOrderId,
+        orderNumber: customerOrders.orderNumber
+      })
+      .from(orderManagement)
+      .innerJoin(customerOrders, eq(customerOrders.id, orderManagement.customerOrderId))
+      .where(sql`${orderManagement.totalWeight} IS NULL`)
+      .limit(batchSize);
+    
+    console.log(`🏋️ [WEIGHT BACKFILL] Found ${ordersNeedingWeight.length} orders needing weight calculation`);
+    
+    let updated = 0;
+    let failed = 0;
+    
+    // Process sequentially to avoid connection pool issues
+    for (const order of ordersNeedingWeight) {
+      try {
+        const weight = await this.calculateOrderWeight(order.customerOrderId);
+        
+        if (weight > 0) {
+          await db
+            .update(orderManagement)
+            .set({ totalWeight: weight.toFixed(3), weightUnit: 'kg' })
+            .where(eq(orderManagement.id, order.id));
+          
+          console.log(`✅ [WEIGHT BACKFILL] Updated order ${order.orderNumber}: ${weight} kg`);
+          updated++;
+        } else {
+          console.log(`⚠️ [WEIGHT BACKFILL] Order ${order.orderNumber} has 0 weight - skipping`);
+        }
+      } catch (error) {
+        console.error(`❌ [WEIGHT BACKFILL] Failed to calculate weight for order ${order.orderNumber}:`, error);
+        failed++;
+      }
+    }
+    
+    console.log(`🎉 [WEIGHT BACKFILL] Completed: ${updated} updated, ${failed} failed out of ${ordersNeedingWeight.length}`);
+    return { updated, failed };
   }
 
   // Migrate all customer orders to order management system
