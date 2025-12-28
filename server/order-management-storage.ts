@@ -327,64 +327,70 @@ export class OrderManagementStorage implements IOrderManagementStorage {
           const deliveryCode = await this.generateDeliveryCode(currentOrder.id, targetPhone);
           
           // Send notifications via all three channels: SMS, WhatsApp, and Email
-          const notificationPromises = [];
-          
-          // 1. Send SMS using template 3 to target phone
-          notificationPromises.push(
-            this.sendDeliveryCodeSms(
-              targetPhone, 
-              deliveryCode, 
-              customerData.customerOrderId,
-              customerName || 'مشتری عزیز',
-              orderNumber
-            ).then(result => {
-              console.log(`✅ [SMS] Delivery code sent: ${result}`);
-              return { channel: 'SMS', success: result };
-            }).catch(err => {
-              console.error(`❌ [SMS] Error:`, err);
-              return { channel: 'SMS', success: false };
-            })
-          );
-          
-          // 2. Send WhatsApp message
-          notificationPromises.push(
-            this.sendDeliveryCodeWhatsApp(
-              targetPhone, 
-              deliveryCode, 
-              customerName || 'مشتری عزیز',
-              orderNumber
-            ).then(result => {
-              console.log(`✅ [WHATSAPP] Delivery code sent: ${result}`);
-              return { channel: 'WhatsApp', success: result };
-            }).catch(err => {
-              console.error(`❌ [WHATSAPP] Error:`, err);
-              return { channel: 'WhatsApp', success: false };
-            })
-          );
-          
-          // 3. Send Email if customer has email
-          if (customerData.customerEmail) {
+          // NON-BLOCKING: Fire and forget to prevent slow response
+          const sendNotifications = async () => {
+            const notificationPromises = [];
+            
+            // 1. Send SMS using template 3 to target phone
             notificationPromises.push(
-              this.sendDeliveryCodeEmail(
-                customerData.customerEmail,
-                deliveryCode,
+              this.sendDeliveryCodeSms(
+                targetPhone, 
+                deliveryCode, 
+                customerData.customerOrderId,
                 customerName || 'مشتری عزیز',
                 orderNumber
               ).then(result => {
-                console.log(`✅ [EMAIL] Delivery code sent: ${result}`);
-                return { channel: 'Email', success: result };
+                console.log(`✅ [SMS] Delivery code sent: ${result}`);
+                return { channel: 'SMS', success: result };
               }).catch(err => {
-                console.error(`❌ [EMAIL] Error:`, err);
-                return { channel: 'Email', success: false };
+                console.error(`❌ [SMS] Error:`, err);
+                return { channel: 'SMS', success: false };
               })
             );
-          }
+            
+            // 2. Send WhatsApp message
+            notificationPromises.push(
+              this.sendDeliveryCodeWhatsApp(
+                targetPhone, 
+                deliveryCode, 
+                customerName || 'مشتری عزیز',
+                orderNumber
+              ).then(result => {
+                console.log(`✅ [WHATSAPP] Delivery code sent: ${result}`);
+                return { channel: 'WhatsApp', success: result };
+              }).catch(err => {
+                console.error(`❌ [WHATSAPP] Error:`, err);
+                return { channel: 'WhatsApp', success: false };
+              })
+            );
+            
+            // 3. Send Email if customer has email
+            if (customerData.customerEmail) {
+              notificationPromises.push(
+                this.sendDeliveryCodeEmail(
+                  customerData.customerEmail,
+                  deliveryCode,
+                  customerName || 'مشتری عزیز',
+                  orderNumber
+                ).then(result => {
+                  console.log(`✅ [EMAIL] Delivery code sent: ${result}`);
+                  return { channel: 'Email', success: result };
+                }).catch(err => {
+                  console.error(`❌ [EMAIL] Error:`, err);
+                  return { channel: 'Email', success: false };
+                })
+              );
+            }
+            
+            const results = await Promise.all(notificationPromises);
+            const successfulChannels = results.filter(r => r.success).map(r => r.channel);
+            console.log(`✅ [DELIVERY CODE] Code ${deliveryCode} sent via: ${successfulChannels.join(', ')} to ${phoneSource}: ${targetPhone} for order ${orderNumber}`);
+          };
           
-          // Wait for all notifications to complete
-          const results = await Promise.all(notificationPromises);
-          const successfulChannels = results.filter(r => r.success).map(r => r.channel);
+          // Fire and forget - don't wait for notifications to complete
+          sendNotifications().catch(err => console.error('❌ [NOTIFICATION] Background send error:', err));
           
-          console.log(`✅ [DELIVERY CODE] Code ${deliveryCode} sent via: ${successfulChannels.join(', ')} to ${phoneSource}: ${targetPhone} for order ${orderNumber}`);
+          console.log(`📱 [DELIVERY CODE] Code ${deliveryCode} generated for ${phoneSource}: ${targetPhone}. Notifications sending in background...`);
         } else {
           console.log(`❌ [AUTO NOTIFICATION] No customer phone found for order ${currentOrder.id}`);
         }

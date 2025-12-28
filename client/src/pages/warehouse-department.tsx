@@ -89,8 +89,8 @@ export default function WarehouseDepartment() {
     },
     onSuccess: () => {
       toast({
-        title: "✅ سفارش پردازش شد",
-        description: "سفارش با موفقیت پردازش و برای واحد لجستیک آماده شد",
+        title: "✅ سفارش به لجستیک ارسال شد",
+        description: "کد تحویل 4 رقمی از طریق پیامک، واتساپ و ایمیل برای مشتری ارسال می‌شود",
         duration: 3000
       });
       setConfirmingOrderId(null);
