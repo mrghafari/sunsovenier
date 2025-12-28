@@ -2845,6 +2845,12 @@ const LogisticsManagement = () => {
                             ارسال هوشمند - نوع خودرو انتخابی مشتری
                           </p>
                         )}
+                        {/* When smart_vehicle but no vehicle type saved - show weight-based recommendation */}
+                        {(order.customerDeliveryMethod === 'smart_vehicle' || order.deliveryMethod === 'smart_vehicle') && !(order.customerVehicleType || order.vehicleType) && (
+                          <p className="text-xs text-orange-600 mt-1">
+                            ⚠️ نوع خودرو ثبت نشده - بر اساس وزن {order.calculatedWeight || order.totalWeight || 0} کگ انتخاب کنید
+                          </p>
+                        )}
                         {order.transportationType && (
                           <p className="text-xs text-indigo-600">
                             نوع: {order.transportationType === 'motorcycle' ? 'موتور' :
