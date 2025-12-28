@@ -705,8 +705,8 @@ export class OrderManagementStorage implements IOrderManagementStorage {
         orderStatuses.WAREHOUSE_APPROVED, // تایید شده توسط انبار و آماده ورود به لجستیک
         'in_transit', // در حال ارسال
         'shipped', // ارسال شده
-        'delivered', // تحویل داده شده
-        'logistics_delivered', // تحویل لجستیک
+        // 'delivered' حذف شده - در تب تحویل شده‌ها نشان داده می‌شود
+        // 'logistics_delivered' حذف شده - در تب تحویل شده‌ها نشان داده می‌شود
         orderStatuses.LOGISTICS_ASSIGNED,
         orderStatuses.LOGISTICS_PROCESSING,
         orderStatuses.LOGISTICS_DISPATCHED

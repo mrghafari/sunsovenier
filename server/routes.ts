@@ -10455,7 +10455,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .leftJoin(customerOrders, eq(orderManagement.customerOrderId, customerOrders.id))
         .leftJoin(crmCustomers, eq(customerOrders.customerId, crmCustomers.id))
         .leftJoin(paymentReceipts, eq(orderManagement.customerOrderId, paymentReceipts.customerOrderId))
-        .where(eq(orderManagement.currentStatus, 'delivered'))
+        .where(inArray(orderManagement.currentStatus, ['delivered', 'logistics_delivered']))
         .orderBy(desc(orderManagement.actualDeliveryDate), desc(orderManagement.updatedAt));
       
       console.log('🔍 [ROUTES] Found', orders.length, 'delivered orders');
