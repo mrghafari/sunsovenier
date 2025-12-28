@@ -1713,6 +1713,9 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       // Customer's selected vehicle from smart delivery calculation - CRITICAL for logistics
       vehicleType: optimalVehicle?.vehicleName || optimalVehicle?.name || optimalVehicle?.vehicleType || null,
       
+      // CRITICAL FIX: Include calculated weight for order_management storage
+      totalWeight: totalWeight,
+      
       // Enhanced delivery information
       secondDeliveryAddress: showSecondAddress ? secondAddress : null,
       secondDeliveryCity: showSecondAddress ? secondCity : null, 

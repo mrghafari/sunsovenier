@@ -17732,6 +17732,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (weightError) {
         console.error(`⚠️ [WEIGHT PRE-CALC] Error calculating weight:`, weightError);
       }
+      
+      // CRITICAL: Use frontend-provided weight if server calculation failed or returned 0
+      if (calculatedTotalWeight <= 0 && orderData.totalWeight && orderData.totalWeight > 0) {
+        calculatedTotalWeight = parseFloat(orderData.totalWeight.toString());
+        console.log(`🏋️ [WEIGHT FALLBACK] Using frontend-provided weight: ${calculatedTotalWeight}kg`);
+      }
 
 
       // 🔒 SEQUENTIAL: Generate M[YY][NNNNN] order number using transaction-safe system
