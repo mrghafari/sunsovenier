@@ -206,31 +206,32 @@ export default function VendorDashboard() {
 
   // Populate form when vendor data loads
   useEffect(() => {
-    if (vendor) {
+    if (vendorData?.user) {
       setProfileForm({
-        vendorName: vendor.vendorName || '',
-        contactPhone: vendor.contactPhone || '',
-        description: vendor.description || '',
-        address: vendor.address || '',
-        city: vendor.city || '',
-        postalCode: vendor.postalCode || '',
-        businessLicense: vendor.businessLicense || '',
-        taxId: vendor.taxId || ''
+        vendorName: vendorData.user.vendorName || '',
+        contactPhone: vendorData.user.contactPhone || '',
+        description: vendorData.user.description || '',
+        address: vendorData.user.address || '',
+        city: vendorData.user.city || '',
+        postalCode: vendorData.user.postalCode || '',
+        businessLicense: vendorData.user.businessLicense || '',
+        taxId: vendorData.user.taxId || ''
       });
     }
-  }, [vendor]);
+  }, [vendorData?.user]);
 
   const handleProfileSubmit = () => {
     // Only submit fields that have changed
     const changes: Record<string, any> = {};
-    if (profileForm.vendorName !== (vendor?.vendorName || '')) changes.vendorName = profileForm.vendorName;
-    if (profileForm.contactPhone !== (vendor?.contactPhone || '')) changes.contactPhone = profileForm.contactPhone;
-    if (profileForm.description !== (vendor?.description || '')) changes.description = profileForm.description;
-    if (profileForm.address !== (vendor?.address || '')) changes.address = profileForm.address;
-    if (profileForm.city !== (vendor?.city || '')) changes.city = profileForm.city;
-    if (profileForm.postalCode !== (vendor?.postalCode || '')) changes.postalCode = profileForm.postalCode;
-    if (profileForm.businessLicense !== (vendor?.businessLicense || '')) changes.businessLicense = profileForm.businessLicense;
-    if (profileForm.taxId !== (vendor?.taxId || '')) changes.taxId = profileForm.taxId;
+    const currentVendor = vendorData?.user;
+    if (profileForm.vendorName !== (currentVendor?.vendorName || '')) changes.vendorName = profileForm.vendorName;
+    if (profileForm.contactPhone !== (currentVendor?.contactPhone || '')) changes.contactPhone = profileForm.contactPhone;
+    if (profileForm.description !== (currentVendor?.description || '')) changes.description = profileForm.description;
+    if (profileForm.address !== (currentVendor?.address || '')) changes.address = profileForm.address;
+    if (profileForm.city !== (currentVendor?.city || '')) changes.city = profileForm.city;
+    if (profileForm.postalCode !== (currentVendor?.postalCode || '')) changes.postalCode = profileForm.postalCode;
+    if (profileForm.businessLicense !== (currentVendor?.businessLicense || '')) changes.businessLicense = profileForm.businessLicense;
+    if (profileForm.taxId !== (currentVendor?.taxId || '')) changes.taxId = profileForm.taxId;
     
     if (Object.keys(changes).length === 0) {
       toast({
