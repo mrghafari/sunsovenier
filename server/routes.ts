@@ -55343,7 +55343,7 @@ momtazchem.com
       }
 
       const { db } = await import('./db');
-      const { vendors, vendorTransactions, vendorBalances } = await import('@shared/schema');
+      const { vendors, vendorTransactions, vendorBalances, vendorPayments } = await import('@shared/schema');
       const { eq } = await import('drizzle-orm');
 
       // Get or create balance record (upsert pattern)
@@ -55389,6 +55389,22 @@ momtazchem.com
           createdBy: (req as any).session?.adminId || null,
         })
         .returning();
+
+      // Also create a vendor payment record for vendor confirmation
+      await db
+        .insert(vendorPayments)
+        .values({
+          vendorId,
+          amount: amount.toString(),
+          paymentMethod: method,
+          referenceNumber: reference,
+          description: notes || 'پرداخت از طرف مدیر',
+          declaredBy: (req as any).session?.adminId || 1,
+          declaredAt: new Date(),
+          isConfirmed: false,
+          status: 'pending',
+        });
+      console.log(`💳 [VENDOR PAYMENT] Created payment record for vendor ${vendorId} - awaiting confirmation`);
 
       // Update balance
       await db
