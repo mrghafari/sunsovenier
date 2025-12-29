@@ -21,7 +21,7 @@ import { useEffect, useRef } from "react";
 import JsBarcode from "jsbarcode";
 
 // Barcode component with image rendering
-function BarcodeImage({ value }: { value: string }) {
+function BarcodeImage({ value, align = 'center' }: { value: string; align?: 'left' | 'right' | 'center' }) {
   const svgRef = useRef<SVGSVGElement>(null);
   
   useEffect(() => {
@@ -29,10 +29,10 @@ function BarcodeImage({ value }: { value: string }) {
       try {
         JsBarcode(svgRef.current, value, {
           format: "CODE128",
-          width: 1.2,
-          height: 35,
+          width: 2.5,
+          height: 70,
           displayValue: false,
-          margin: 2,
+          margin: 8,
           background: "transparent"
         });
       } catch (e) {
@@ -43,10 +43,12 @@ function BarcodeImage({ value }: { value: string }) {
 
   if (!value) return <span className="text-muted-foreground">-</span>;
 
+  const alignClass = align === 'left' ? 'items-start' : align === 'right' ? 'items-end' : 'items-center';
+
   return (
-    <div className="flex flex-col items-center">
-      <svg ref={svgRef} className="max-w-[100px]" />
-      <span className="text-[10px] font-mono text-muted-foreground mt-0.5">{value}</span>
+    <div className={`flex flex-col ${alignClass}`}>
+      <svg ref={svgRef} className="w-[180px]" />
+      <span className="text-xs font-mono text-muted-foreground mt-1 font-bold">{value}</span>
     </div>
   );
 }
@@ -549,8 +551,8 @@ export default function VendorDashboard() {
                               data-testid={`product-sale-row-${product.productId}`}
                             >
                               <td className="p-2 font-medium text-sm">{product.productName}</td>
-                              <td className="p-2 text-center">
-                                <BarcodeImage value={product.barcode || ''} />
+                              <td className="p-2">
+                                <BarcodeImage value={product.barcode || ''} align={index % 2 === 0 ? 'left' : 'right'} />
                               </td>
                               <td className="p-2 text-center">
                                 <Badge variant="secondary" className="text-xs">{product.totalQuantity}</Badge>
