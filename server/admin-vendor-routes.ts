@@ -85,6 +85,35 @@ export function createAdminVendorRouter() {
     }
   });
 
+  // Get all vendors product stats (batch query for efficiency)
+  router.get("/product-stats", async (req, res) => {
+    try {
+      const statsMap = await vendorStorage.getAllVendorsProductStats();
+      const stats: Record<number, {
+        inStock: number;
+        lowStock: number;
+        outOfStock: number;
+        hiddenProducts: number;
+        totalProducts: number;
+      }> = {};
+      
+      statsMap.forEach((value, key) => {
+        stats[key] = value;
+      });
+
+      res.json({
+        success: true,
+        stats
+      });
+    } catch (error: any) {
+      console.error("Error getting vendor product stats:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error getting vendor product stats"
+      });
+    }
+  });
+
   // Get vendor by ID
   router.get("/:id", async (req, res) => {
     try {

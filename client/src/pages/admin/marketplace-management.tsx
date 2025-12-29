@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Store, Check, X, Eye, Package, Mail, Phone, MapPin, Calendar, TrendingUp, Star, Calculator } from "lucide-react";
+import { Store, Check, X, Eye, Package, Mail, Phone, MapPin, Calendar, TrendingUp, Star, Calculator, AlertTriangle, XCircle, EyeOff, Box } from "lucide-react";
 import VendorAccountingTab from "./vendor-accounting-tab";
 
 type Vendor = {
@@ -65,6 +65,18 @@ export default function MarketplaceManagement() {
   // Fetch rejected vendors
   const { data: rejectedVendors, isLoading: loadingRejected } = useQuery<{ vendors: Vendor[] }>({
     queryKey: ["/api/admin/vendors/rejected"],
+  });
+
+  // Fetch vendor product stats (batch query for efficiency)
+  type VendorProductStats = {
+    inStock: number;
+    lowStock: number;
+    outOfStock: number;
+    hiddenProducts: number;
+    totalProducts: number;
+  };
+  const { data: vendorStats } = useQuery<{ stats: Record<number, VendorProductStats> }>({
+    queryKey: ["/api/admin/vendors/product-stats"],
   });
 
   // Approve vendor mutation
@@ -256,6 +268,47 @@ export default function MarketplaceManagement() {
             <MapPin className="w-4 h-4" />
             <span className="line-clamp-1" data-testid={`vendor-address-${vendor.id}`}>{vendor.businessAddress}</span>
           </div>
+
+          {/* Vendor-specific Product Stats */}
+          {vendorStats?.stats?.[vendor.id] && (
+            <div className="grid grid-cols-5 gap-1 pt-3 border-t" data-testid={`vendor-product-stats-${vendor.id}`}>
+              <div className="text-center p-2 rounded-lg bg-green-50 dark:bg-green-900/20">
+                <div className="flex items-center justify-center gap-1 text-sm font-bold text-green-600">
+                  <Check className="w-3 h-3" />
+                  {vendorStats.stats[vendor.id].inStock}
+                </div>
+                <div className="text-[10px] text-green-600/80 mt-0.5">موجود</div>
+              </div>
+              <div className="text-center p-2 rounded-lg bg-yellow-50 dark:bg-yellow-900/20">
+                <div className="flex items-center justify-center gap-1 text-sm font-bold text-yellow-600">
+                  <AlertTriangle className="w-3 h-3" />
+                  {vendorStats.stats[vendor.id].lowStock}
+                </div>
+                <div className="text-[10px] text-yellow-600/80 mt-0.5">کم موجود</div>
+              </div>
+              <div className="text-center p-2 rounded-lg bg-red-50 dark:bg-red-900/20">
+                <div className="flex items-center justify-center gap-1 text-sm font-bold text-red-600">
+                  <XCircle className="w-3 h-3" />
+                  {vendorStats.stats[vendor.id].outOfStock}
+                </div>
+                <div className="text-[10px] text-red-600/80 mt-0.5">ناموجود</div>
+              </div>
+              <div className="text-center p-2 rounded-lg bg-gray-50 dark:bg-gray-800">
+                <div className="flex items-center justify-center gap-1 text-sm font-bold text-gray-600 dark:text-gray-400">
+                  <EyeOff className="w-3 h-3" />
+                  {vendorStats.stats[vendor.id].hiddenProducts}
+                </div>
+                <div className="text-[10px] text-gray-500 mt-0.5">مخفی</div>
+              </div>
+              <div className="text-center p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+                <div className="flex items-center justify-center gap-1 text-sm font-bold text-blue-600">
+                  <Box className="w-3 h-3" />
+                  {vendorStats.stats[vendor.id].totalProducts}
+                </div>
+                <div className="text-[10px] text-blue-600/80 mt-0.5">کل</div>
+              </div>
+            </div>
+          )}
           
           <div className="grid grid-cols-3 gap-4 pt-3 border-t">
             <div className="text-center">

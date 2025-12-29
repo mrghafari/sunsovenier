@@ -58,6 +58,13 @@ export interface IVendorStorage {
   getVendorShowcaseProducts(vendorId: number): Promise<ShowcaseProduct[]>;
   getVendorShopProducts(vendorId: number): Promise<ShopProduct[]>;
   getVendorProductCount(vendorId: number): Promise<number>;
+  getAllVendorsProductStats(): Promise<Map<number, {
+    inStock: number;
+    lowStock: number;
+    outOfStock: number;
+    hiddenProducts: number;
+    totalProducts: number;
+  }>>;
   searchVendorProducts(vendorId: number, query: string): Promise<{
     showcaseProducts: ShowcaseProduct[];
     shopProducts: ShopProduct[];
@@ -405,6 +412,47 @@ export class VendorStorage implements IVendorStorage {
       .where(eq(shopProducts.vendorId, vendorId));
     
     return (showcaseCount[0]?.count || 0) + (shopCount[0]?.count || 0);
+  }
+
+  async getAllVendorsProductStats(): Promise<Map<number, {
+    inStock: number;
+    lowStock: number;
+    outOfStock: number;
+    hiddenProducts: number;
+    totalProducts: number;
+  }>> {
+    const statsMap = new Map<number, {
+      inStock: number;
+      lowStock: number;
+      outOfStock: number;
+      hiddenProducts: number;
+      totalProducts: number;
+    }>();
+
+    const stats = await db.execute(sql`
+      SELECT 
+        vendor_id,
+        COUNT(*) as total_products,
+        SUM(CASE WHEN is_active = false THEN 1 ELSE 0 END) as hidden_products,
+        SUM(CASE WHEN is_active = true AND stock_quantity > COALESCE(min_stock_level, 10) THEN 1 ELSE 0 END) as in_stock,
+        SUM(CASE WHEN is_active = true AND stock_quantity > 0 AND stock_quantity <= COALESCE(min_stock_level, 10) THEN 1 ELSE 0 END) as low_stock,
+        SUM(CASE WHEN is_active = true AND (stock_quantity IS NULL OR stock_quantity <= 0) THEN 1 ELSE 0 END) as out_of_stock
+      FROM showcase_products
+      WHERE vendor_id IS NOT NULL
+      GROUP BY vendor_id
+    `);
+
+    for (const row of stats.rows as any[]) {
+      statsMap.set(Number(row.vendor_id), {
+        inStock: Number(row.in_stock) || 0,
+        lowStock: Number(row.low_stock) || 0,
+        outOfStock: Number(row.out_of_stock) || 0,
+        hiddenProducts: Number(row.hidden_products) || 0,
+        totalProducts: Number(row.total_products) || 0,
+      });
+    }
+
+    return statsMap;
   }
   
   async searchVendorProducts(vendorId: number, query: string): Promise<{
