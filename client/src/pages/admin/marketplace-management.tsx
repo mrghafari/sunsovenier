@@ -74,6 +74,15 @@ export default function MarketplaceManagement() {
     queryKey: ["/api/admin/vendors/rejected"],
   });
 
+  // Fetch vendors with pending profile changes
+  type VendorWithPendingChanges = Vendor & {
+    pendingProfileChanges: Record<string, any> | null;
+    pendingChangesSubmittedAt: string | null;
+  };
+  const { data: pendingProfileChanges, isLoading: loadingPendingChanges } = useQuery<{ vendors: VendorWithPendingChanges[] }>({
+    queryKey: ["/api/admin/vendors/pending-profile-changes"],
+  });
+
   // Fetch vendor product stats (batch query for efficiency)
   type VendorProductStats = {
     inStock: number;
@@ -245,6 +254,53 @@ export default function MarketplaceManagement() {
       toast({
         title: "خطا!",
         description: "خطا در ثبت پرداخت",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Approve profile changes mutation
+  const approveProfileChangesMutation = useMutation({
+    mutationFn: async (vendorId: number) => {
+      return await apiRequest(`/api/admin/vendors/${vendorId}/profile-changes/approve`, {
+        method: "POST",
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/vendors/pending-profile-changes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/vendors"] });
+      toast({
+        title: "موفق!",
+        description: "تغییرات پروفایل تایید و اعمال شد",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "خطا!",
+        description: "خطا در تایید تغییرات",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Reject profile changes mutation
+  const rejectProfileChangesMutation = useMutation({
+    mutationFn: async (vendorId: number) => {
+      return await apiRequest(`/api/admin/vendors/${vendorId}/profile-changes/reject`, {
+        method: "POST",
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/vendors/pending-profile-changes"] });
+      toast({
+        title: "موفق!",
+        description: "تغییرات پروفایل رد شد",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "خطا!",
+        description: "خطا در رد تغییرات",
         variant: "destructive",
       });
     },
@@ -472,7 +528,7 @@ export default function MarketplaceManagement() {
         </div>
 
         <Tabs defaultValue="pending" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 max-w-2xl" data-testid="vendor-tabs">
+          <TabsList className="grid w-full grid-cols-6 max-w-3xl" data-testid="vendor-tabs">
             <TabsTrigger value="pending" data-testid="tab-pending">
               در انتظار ({pendingVendors?.vendors?.length || 0})
             </TabsTrigger>
@@ -484,6 +540,9 @@ export default function MarketplaceManagement() {
             </TabsTrigger>
             <TabsTrigger value="all" data-testid="tab-all">
               همه ({allVendors?.vendors?.length || 0})
+            </TabsTrigger>
+            <TabsTrigger value="profile-changes" data-testid="tab-profile-changes">
+              تغییرات پروفایل ({pendingProfileChanges?.vendors?.length || 0})
             </TabsTrigger>
             <TabsTrigger value="accounting" data-testid="tab-accounting">
               <Calculator className="w-4 h-4 ml-1" />
@@ -646,6 +705,99 @@ export default function MarketplaceManagement() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {allVendors?.vendors?.map((vendor) => (
                   <VendorCard key={vendor.id} vendor={vendor} />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="profile-changes" className="space-y-4" data-testid="content-profile-changes">
+            {loadingPendingChanges ? (
+              <div className="text-center py-12">
+                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent"></div>
+                <p className="mt-4 text-muted-foreground">در حال بارگذاری...</p>
+              </div>
+            ) : pendingProfileChanges?.vendors?.length === 0 ? (
+              <Card>
+                <CardContent className="text-center py-12">
+                  <Store className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-lg font-medium">هیچ درخواست تغییر پروفایلی وجود ندارد</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    وقتی فروشندگان درخواست ویرایش پروفایل ارسال کنند، در اینجا نمایش داده می‌شود
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {pendingProfileChanges?.vendors?.map((vendor) => (
+                  <Card key={vendor.id} data-testid={`profile-change-card-${vendor.id}`}>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          {vendor.logo ? (
+                            <img src={vendor.logo} alt={vendor.vendorName} className="w-12 h-12 rounded-lg object-cover" />
+                          ) : (
+                            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                              <Store className="w-6 h-6 text-white" />
+                            </div>
+                          )}
+                          <div>
+                            <CardTitle className="text-lg">{vendor.vendorName}</CardTitle>
+                            <CardDescription className="text-sm">
+                              {vendor.contactEmail}
+                            </CardDescription>
+                          </div>
+                        </div>
+                        <Badge variant="outline" className="text-yellow-600 border-yellow-600">
+                          در انتظار بررسی
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-4">
+                        <h4 className="font-medium mb-3">تغییرات درخواست شده:</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {vendor.pendingProfileChanges && Object.entries(vendor.pendingProfileChanges).map(([key, value]) => {
+                            const fieldLabels: Record<string, string> = {
+                              vendorName: 'نام شرکت',
+                              contactPhone: 'تلفن',
+                              description: 'توضیحات',
+                              address: 'آدرس',
+                              city: 'شهر',
+                              postalCode: 'کد پستی',
+                              businessLicense: 'شماره مجوز کسب',
+                              taxId: 'شناسه مالیاتی'
+                            };
+                            return (
+                              <div key={key} className="flex flex-col">
+                                <span className="text-sm text-muted-foreground">{fieldLabels[key] || key}:</span>
+                                <span className="font-medium">{String(value)}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <div className="flex gap-2 justify-end">
+                        <Button
+                          variant="outline"
+                          onClick={() => rejectProfileChangesMutation.mutate(vendor.id)}
+                          disabled={rejectProfileChangesMutation.isPending || approveProfileChangesMutation.isPending}
+                          data-testid={`btn-reject-profile-${vendor.id}`}
+                        >
+                          <X className="w-4 h-4 ml-2" />
+                          رد تغییرات
+                        </Button>
+                        <Button
+                          onClick={() => approveProfileChangesMutation.mutate(vendor.id)}
+                          disabled={approveProfileChangesMutation.isPending || rejectProfileChangesMutation.isPending}
+                          className="bg-green-600 hover:bg-green-700"
+                          data-testid={`btn-approve-profile-${vendor.id}`}
+                        >
+                          <Check className="w-4 h-4 ml-2" />
+                          تایید و اعمال
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
                 ))}
               </div>
             )}

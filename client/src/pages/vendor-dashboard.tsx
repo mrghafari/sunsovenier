@@ -183,7 +183,7 @@ export default function VendorDashboard() {
     mutationFn: async (changes: Record<string, any>) => {
       const response = await apiRequest("/api/vendors/profile/submit-changes", {
         method: "POST",
-        body: JSON.stringify({ changes })
+        body: { changes }
       });
       return response;
     },
