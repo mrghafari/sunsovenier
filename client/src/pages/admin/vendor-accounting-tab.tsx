@@ -15,9 +15,10 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { 
   Store, Package, DollarSign, TrendingUp, ArrowUpRight, ArrowDownLeft, 
   Plus, Eye, FileText, Clock, CheckCircle, XCircle, Wallet,
-  Calendar, CreditCard, Building2, RefreshCw
+  Calendar, CreditCard, Building2, RefreshCw, Download
 } from "lucide-react";
 import { format } from "date-fns";
+import * as XLSX from "xlsx";
 
 type VendorBalance = {
   id: number;
@@ -745,7 +746,7 @@ export default function VendorAccountingTab() {
                 </Table>
 
                 <div className="mt-4 p-4 bg-muted/50 rounded-lg border">
-                  <div className="grid grid-cols-2 gap-4 text-center">
+                  <div className="grid grid-cols-2 gap-4 text-center mb-4">
                     <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
                       <div className="text-sm text-muted-foreground mb-1">ته جمع فروش</div>
                       <div className="text-xl font-bold text-green-600" data-testid="text-total-sales">
@@ -759,6 +760,58 @@ export default function VendorAccountingTab() {
                       </div>
                     </div>
                   </div>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      const exportData = filteredTransactions.map(tx => ({
+                        "تاریخ": format(new Date(tx.createdAt), "yyyy/MM/dd HH:mm"),
+                        "نوع": tx.transactionType === 'sale' ? 'فروش' : tx.transactionType === 'payment' ? 'پرداخت' : tx.transactionType,
+                        "مبلغ (IQD)": parseFloat(tx.amount || "0"),
+                        "مانده قبل (IQD)": tx.balanceBefore ? parseFloat(tx.balanceBefore) : 0,
+                        "مانده بعد (IQD)": tx.balanceAfter ? parseFloat(tx.balanceAfter) : 0,
+                        "توضیحات": tx.description || "-",
+                      }));
+                      
+                      exportData.push({
+                        "تاریخ": "",
+                        "نوع": "",
+                        "مبلغ (IQD)": 0,
+                        "مانده قبل (IQD)": 0,
+                        "مانده بعد (IQD)": 0,
+                        "توضیحات": "",
+                      });
+                      exportData.push({
+                        "تاریخ": "ته جمع فروش:",
+                        "نوع": "",
+                        "مبلغ (IQD)": totalSales,
+                        "مانده قبل (IQD)": 0,
+                        "مانده بعد (IQD)": 0,
+                        "توضیحات": "",
+                      });
+                      exportData.push({
+                        "تاریخ": "ته جمع پرداختی‌ها:",
+                        "نوع": "",
+                        "مبلغ (IQD)": totalPayments,
+                        "مانده قبل (IQD)": 0,
+                        "مانده بعد (IQD)": 0,
+                        "توضیحات": "",
+                      });
+                      
+                      const ws = XLSX.utils.json_to_sheet(exportData);
+                      const wb = XLSX.utils.book_new();
+                      XLSX.utils.book_append_sheet(wb, ws, "تراکنش‌ها");
+                      
+                      const dateRange = txFilterStartDate || txFilterEndDate 
+                        ? `_${txFilterStartDate || "start"}_${txFilterEndDate || "end"}`
+                        : "";
+                      XLSX.writeFile(wb, `transactions_${selectedVendor?.vendorName?.replace(/\s+/g, "_") || "vendor"}${dateRange}.xlsx`);
+                    }}
+                    data-testid="btn-export-transactions"
+                  >
+                    <Download className="h-4 w-4 ml-2" />
+                    خروجی اکسل
+                  </Button>
                 </div>
               </>
             );
