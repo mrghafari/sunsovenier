@@ -287,6 +287,7 @@ function Router() {
           <Route path="/admin/footer-management" component={() => <AdminRoute><FooterManagement /></AdminRoute>} />
           <Route path="/admin/shop-management" component={() => <AdminRoute><ShopManagement /></AdminRoute>} />
           <Route path="/admin/marketplace-management" component={() => <AdminRoute><MarketplaceManagement /></AdminRoute>} />
+          <Route path="/admin/marketplace_management" component={() => <AdminRoute><MarketplaceManagement /></AdminRoute>} />
           <Route path="/admin/vendor-accounting" component={() => <AdminRoute><VendorAccounting /></AdminRoute>} />
           <Route path="/admin/email-templates" component={() => <AdminRoute><EmailTemplatesFixed /></AdminRoute>} />
           <Route path="/admin/email-templates-fixed" component={() => <AdminRoute><EmailTemplatesFixed /></AdminRoute>} />

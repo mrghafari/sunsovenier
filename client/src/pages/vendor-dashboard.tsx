@@ -12,7 +12,10 @@ import {
   Eye,
   Edit,
   LogOut,
-  Plus
+  Plus,
+  Wallet,
+  Percent,
+  Calculator
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
@@ -67,6 +70,17 @@ export default function VendorDashboard() {
     queryFn: async () => {
       const response = await fetch("/api/vendors/statistics");
       if (!response.ok) throw new Error("خطا در دریافت آمار");
+      return response.json();
+    },
+  });
+
+  // Fetch sales details with commission breakdown
+  const { data: salesDetailsData, isLoading: isLoadingSalesDetails } = useQuery({
+    queryKey: ["/api/vendors/sales-details"],
+    enabled: !!vendorData?.user,
+    queryFn: async () => {
+      const response = await fetch("/api/vendors/sales-details");
+      if (!response.ok) throw new Error("خطا در دریافت جزئیات فروش");
       return response.json();
     },
   });
@@ -219,9 +233,10 @@ export default function VendorDashboard() {
 
         {/* Main Content */}
         <Tabs defaultValue="products" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
+          <TabsList className="grid w-full grid-cols-4 lg:w-[500px]">
             <TabsTrigger value="products">محصولات</TabsTrigger>
             <TabsTrigger value="orders">سفارشات</TabsTrigger>
+            <TabsTrigger value="accounting">حسابداری</TabsTrigger>
             <TabsTrigger value="profile">پروفایل</TabsTrigger>
           </TabsList>
 
@@ -408,6 +423,149 @@ export default function VendorDashboard() {
                           </span>
                         </div>
                       </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Accounting Tab */}
+          <TabsContent value="accounting">
+            <div className="space-y-6">
+              {/* Summary Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Card className="border-green-200 bg-green-50 dark:bg-green-900/20">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-green-700 dark:text-green-400">کل فروش</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-green-600" data-testid="total-sales-amount">
+                      {salesDetailsData?.data?.summary?.totalSales?.toLocaleString() || 0} IQD
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-orange-200 bg-orange-50 dark:bg-orange-900/20">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-orange-700 dark:text-orange-400 flex items-center gap-2">
+                      <Percent className="w-4 h-4" />
+                      کمیسیون ({salesDetailsData?.data?.summary?.commissionRate || 10}%)
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-orange-600" data-testid="total-commission">
+                      {salesDetailsData?.data?.summary?.totalCommission?.toLocaleString() || 0} IQD
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-blue-200 bg-blue-50 dark:bg-blue-900/20">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-400 flex items-center gap-2">
+                      <Calculator className="w-4 h-4" />
+                      خالص دریافتی
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-blue-600" data-testid="net-amount">
+                      {salesDetailsData?.data?.summary?.totalBalance?.toLocaleString() || 0} IQD
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-purple-200 bg-purple-50 dark:bg-purple-900/20">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-400 flex items-center gap-2">
+                      <Wallet className="w-4 h-4" />
+                      طلب شما
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-purple-600" data-testid="balance-owed">
+                      {salesDetailsData?.data?.summary?.totalBalance?.toLocaleString() || 0} IQD
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Product Sales Details */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <DollarSign className="w-5 h-5" />
+                    ریز فروش محصولات
+                  </CardTitle>
+                  <CardDescription>
+                    لیست محصولات فروخته شده با جزئیات کمیسیون و خالص دریافتی
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingSalesDetails ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+                    </div>
+                  ) : !salesDetailsData?.data?.products?.length ? (
+                    <div className="text-center py-12">
+                      <DollarSign className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">هنوز فروشی ثبت نشده است</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-100 dark:bg-gray-800">
+                          <tr>
+                            <th className="text-right p-3 font-medium">نام محصول</th>
+                            <th className="text-center p-3 font-medium">بارکد</th>
+                            <th className="text-center p-3 font-medium">تعداد فروش</th>
+                            <th className="text-center p-3 font-medium">سفارشات</th>
+                            <th className="text-left p-3 font-medium">مبلغ فروش</th>
+                            <th className="text-left p-3 font-medium">کمیسیون</th>
+                            <th className="text-left p-3 font-medium">خالص دریافتی</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {salesDetailsData.data.products.map((product: any, index: number) => (
+                            <tr 
+                              key={product.productId || index} 
+                              className="border-b hover:bg-gray-50 dark:hover:bg-gray-800"
+                              data-testid={`product-sale-row-${product.productId}`}
+                            >
+                              <td className="p-3 font-medium">{product.productName}</td>
+                              <td className="p-3 text-center text-xs text-muted-foreground font-mono">
+                                {product.barcode || '-'}
+                              </td>
+                              <td className="p-3 text-center">
+                                <Badge variant="secondary">{product.totalQuantity}</Badge>
+                              </td>
+                              <td className="p-3 text-center">{product.orderCount}</td>
+                              <td className="p-3 text-left font-medium text-green-600">
+                                {product.totalSales?.toLocaleString()} IQD
+                              </td>
+                              <td className="p-3 text-left text-orange-600">
+                                -{product.commissionAmount?.toLocaleString()} IQD
+                              </td>
+                              <td className="p-3 text-left font-bold text-blue-600">
+                                {product.netAmount?.toLocaleString()} IQD
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot className="bg-gray-100 dark:bg-gray-800 font-bold">
+                          <tr>
+                            <td colSpan={4} className="p-3 text-right">جمع کل:</td>
+                            <td className="p-3 text-left text-green-600">
+                              {salesDetailsData.data.summary.totalSales?.toLocaleString()} IQD
+                            </td>
+                            <td className="p-3 text-left text-orange-600">
+                              -{salesDetailsData.data.summary.totalCommission?.toLocaleString()} IQD
+                            </td>
+                            <td className="p-3 text-left text-blue-600">
+                              {salesDetailsData.data.summary.totalBalance?.toLocaleString()} IQD
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
                     </div>
                   )}
                 </CardContent>

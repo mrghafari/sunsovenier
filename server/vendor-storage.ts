@@ -80,6 +80,26 @@ export interface IVendorStorage {
     pendingOrders: number;
     completedOrders: number;
   }>;
+  
+  // Vendor accounting/sales details
+  getVendorSalesDetails(vendorId: number): Promise<{
+    products: Array<{
+      productId: number;
+      productName: string;
+      barcode: string | null;
+      totalQuantity: number;
+      orderCount: number;
+      totalSales: number;
+      commissionAmount: number;
+      netAmount: number;
+    }>;
+    summary: {
+      totalSales: number;
+      totalCommission: number;
+      totalBalance: number;
+      commissionRate: number;
+    };
+  }>;
 }
 
 export class VendorStorage implements IVendorStorage {
@@ -660,6 +680,103 @@ export class VendorStorage implements IVendorStorage {
       recognizedRevenue: recognizedRevenue.toFixed(2),
       pendingOrders,
       completedOrders
+    };
+  }
+
+  // Get detailed vendor sales by product with commission calculation
+  async getVendorSalesDetails(vendorId: number): Promise<{
+    products: Array<{
+      productId: number;
+      productName: string;
+      barcode: string;
+      totalQuantity: number;
+      totalSales: number;
+      orderCount: number;
+      commissionAmount: number;
+      netAmount: number;
+    }>;
+    summary: {
+      totalSales: number;
+      totalCommission: number;
+      totalBalance: number;
+      commissionRate: number;
+    };
+  }> {
+    // Single efficient query with CTE to get all data
+    const result = await db.execute(sql`
+      WITH vendor_sales AS (
+        SELECT 
+          oi.product_id,
+          COALESCE(oi.product_name, sp.name) as product_name,
+          sp.barcode,
+          COALESCE(SUM(oi.quantity), 0) as total_quantity,
+          COALESCE(SUM(oi.total_price), 0) as total_sales,
+          COUNT(DISTINCT oi.order_id) as order_count
+        FROM order_items oi
+        JOIN customer_orders co ON oi.order_id = co.id
+        JOIN order_management om ON om.customer_order_id = co.id
+        JOIN shop_products sp ON oi.product_id = sp.id
+        WHERE sp.vendor_id = ${vendorId}
+        AND om.current_status = 'delivered'
+        GROUP BY oi.product_id, oi.product_name, sp.name, sp.barcode
+      ),
+      vendor_info AS (
+        SELECT id, commission_rate FROM vendors WHERE id = ${vendorId}
+      )
+      SELECT 
+        vs.product_id,
+        vs.product_name,
+        vs.barcode,
+        vs.total_quantity,
+        vs.total_sales,
+        vs.order_count,
+        ROUND(vs.total_sales * vi.commission_rate / 100, 2) as commission_amount,
+        ROUND(vs.total_sales * (100 - vi.commission_rate) / 100, 2) as net_amount,
+        vi.commission_rate
+      FROM vendor_sales vs
+      CROSS JOIN vendor_info vi
+    `);
+
+    const rows = result.rows as any[];
+    
+    // Get vendor commission rate for summary
+    const vendor = await this.getVendorById(vendorId);
+    const commissionRate = vendor?.commissionRate ? parseFloat(vendor.commissionRate.toString()) : 10;
+
+    // Calculate summary totals
+    let totalSales = 0;
+    let totalCommission = 0;
+    let totalBalance = 0;
+
+    const products = rows.map((row: any) => {
+      const sales = parseFloat(row.total_sales) || 0;
+      const commission = parseFloat(row.commission_amount) || 0;
+      const net = parseFloat(row.net_amount) || 0;
+      
+      totalSales += sales;
+      totalCommission += commission;
+      totalBalance += net;
+
+      return {
+        productId: row.product_id,
+        productName: row.product_name,
+        barcode: row.barcode || '',
+        totalQuantity: parseFloat(row.total_quantity) || 0,
+        totalSales: sales,
+        orderCount: parseInt(row.order_count) || 0,
+        commissionAmount: commission,
+        netAmount: net
+      };
+    });
+
+    return {
+      products,
+      summary: {
+        totalSales,
+        totalCommission,
+        totalBalance,
+        commissionRate
+      }
     };
   }
 }

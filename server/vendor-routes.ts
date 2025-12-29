@@ -847,6 +847,31 @@ export function createVendorRouter() {
     }
   });
 
+  // Get vendor sales details by product with commission calculation
+  router.get("/sales-details", ...vendorAuth, async (req, res) => {
+    try {
+      if (!req.vendorUser) {
+        return res.status(401).json({
+          success: false,
+          message: "Not authenticated"
+        });
+      }
+
+      const salesDetails = await vendorStorage.getVendorSalesDetails(req.vendorUser.vendorId);
+
+      res.json({
+        success: true,
+        data: salesDetails
+      });
+    } catch (error: any) {
+      console.error("Error getting vendor sales details:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error getting sales details"
+      });
+    }
+  });
+
   console.log("✅ [VENDOR] Vendor router created successfully");
   
   return router;
