@@ -1,0 +1,190 @@
+chunk-RPCDYKBN.js?v=1b604b35:21551 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+queryClient.ts:81  GET https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me 401 (Unauthorized)
+(anonymous) @ queryClient.ts:81
+fetchFn @ @tanstack_react-query.js?v=1b604b35:840
+run @ @tanstack_react-query.js?v=1b604b35:494
+start @ @tanstack_react-query.js?v=1b604b35:536
+fetch @ @tanstack_react-query.js?v=1b604b35:926
+executeFetch_fn @ @tanstack_react-query.js?v=1b604b35:2211
+onSubscribe @ @tanstack_react-query.js?v=1b604b35:1898
+subscribe @ @tanstack_react-query.js?v=1b604b35:24
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:3022
+subscribeToStore @ chunk-RPCDYKBN.js?v=1b604b35:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=1b604b35:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=1b604b35:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=1b604b35:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=1b604b35:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=1b604b35:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=1b604b35:19447
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=1b604b35:18868
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=1b604b35:9119
+commitRootImpl @ chunk-RPCDYKBN.js?v=1b604b35:19432
+commitRoot @ chunk-RPCDYKBN.js?v=1b604b35:19277
+finishConcurrentRender @ chunk-RPCDYKBN.js?v=1b604b35:18805
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=1b604b35:18718
+workLoop @ chunk-RPCDYKBN.js?v=1b604b35:197
+flushWork @ chunk-RPCDYKBN.js?v=1b604b35:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=1b604b35:384
+via.placeholder.com/128x128?text=WeChat+QR:1  GET https://via.placeholder.com/128x128?text=WeChat+QR net::ERR_NAME_NOT_RESOLVED
+Image
+commitMount @ chunk-RPCDYKBN.js?v=1b604b35:8412
+commitLayoutEffectOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17102
+commitLayoutMountEffects_complete @ chunk-RPCDYKBN.js?v=1b604b35:17980
+commitLayoutEffects_begin @ chunk-RPCDYKBN.js?v=1b604b35:17969
+commitLayoutEffects @ chunk-RPCDYKBN.js?v=1b604b35:17920
+commitRootImpl @ chunk-RPCDYKBN.js?v=1b604b35:19353
+commitRoot @ chunk-RPCDYKBN.js?v=1b604b35:19277
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=1b604b35:18895
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=1b604b35:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=1b604b35:18627
+setTimeout
+scheduleFn @ @tanstack_react-query.js?v=1b604b35:555
+flush @ @tanstack_react-query.js?v=1b604b35:569
+batch @ @tanstack_react-query.js?v=1b604b35:587
+dispatch_fn @ @tanstack_react-query.js?v=1b604b35:996
+setData @ @tanstack_react-query.js?v=1b604b35:696
+onSuccess @ @tanstack_react-query.js?v=1b604b35:897
+resolve @ @tanstack_react-query.js?v=1b604b35:456
+Promise.then
+run @ @tanstack_react-query.js?v=1b604b35:498
+start @ @tanstack_react-query.js?v=1b604b35:536
+fetch @ @tanstack_react-query.js?v=1b604b35:926
+executeFetch_fn @ @tanstack_react-query.js?v=1b604b35:2211
+onSubscribe @ @tanstack_react-query.js?v=1b604b35:1898
+subscribe @ @tanstack_react-query.js?v=1b604b35:24
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:3022
+subscribeToStore @ chunk-RPCDYKBN.js?v=1b604b35:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=1b604b35:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=1b604b35:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=1b604b35:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=1b604b35:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=1b604b35:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=1b604b35:19447
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=1b604b35:18868
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=1b604b35:9119
+commitRootImpl @ chunk-RPCDYKBN.js?v=1b604b35:19432
+commitRoot @ chunk-RPCDYKBN.js?v=1b604b35:19277
+finishConcurrentRender @ chunk-RPCDYKBN.js?v=1b604b35:18805
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=1b604b35:18718
+workLoop @ chunk-RPCDYKBN.js?v=1b604b35:197
+flushWork @ chunk-RPCDYKBN.js?v=1b604b35:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=1b604b35:384
+useAuth.ts:43 Auth check result: {success: true, user: {…}}
+TawkToChat.tsx:134 📥 Loading Tawk.to widget at bottom-left position...
+TawkToChat.tsx:149 ✅ Tawk.to Live Chat loaded successfully at bottom-left
+twk-chunk-common.js:2 Error: Unable to store cookie
+    at e.value (twk-chunk-common.js:2:118472)
+    at t.value (twk-chunk-common.js:2:151556)
+    at p.updateUUID (twk-chunk-common.js:2:203208)
+    at Array.<anonymous> (twk-vendor.js:2:76358)
+    at p.dispatch (twk-vendor.js:2:78106)
+    at p.dispatch (twk-vendor.js:2:73855)
+    at t.value (twk-chunk-common.js:2:125487)
+    at twk-chunk-common.js:2:124798
+value @ twk-chunk-common.js:2
+updateUUID @ twk-chunk-common.js:2
+(anonymous) @ twk-vendor.js:2
+p.dispatch @ twk-vendor.js:2
+dispatch @ twk-vendor.js:2
+value @ twk-chunk-common.js:2
+(anonymous) @ twk-chunk-common.js:2
+Promise.then
+value @ twk-chunk-common.js:2
+value @ twk-chunk-common.js:2
+(anonymous) @ twk-chunk-common.js:2
+(anonymous) @ twk-chunk-common.js:2
+56d7 @ twk-chunk-common.js:2
+a @ twk-runtime.js:1
+r @ twk-runtime.js:1
+t @ twk-runtime.js:1
+(anonymous) @ twk-runtime.js:1
+(anonymous) @ twk-runtime.js:1
+site-management-fixed.tsx:24 🔍 [DEBUG] Site Management component initialized
+site-management-fixed.tsx:70 🔍 [DEBUG] useEffect triggered, userPermissions: undefined
+site-management-fixed.tsx:24 🔍 [DEBUG] Site Management component initialized
+site-management-fixed.tsx:70 🔍 [DEBUG] useEffect triggered, userPermissions: {success: true, permissions: Array(38), modules: Array(38), roles: Array(1), roleInfo: {…}}
+site-management-fixed.tsx:73 🔍 [DEBUG] userPermissions modules: (38) ['kpi_dashboard', 'management_dashboard', 'syncing_shop', 'shop_management', 'product_management', 'order_management', 'warehouse_management', 'logistics_management', 'inquiries', 'crm', 'barcode', 'email_settings', 'database_backup', 'seo', 'categories', 'sms', 'factory', 'user_management', 'procedures', 'payment_management', 'accounting_management', 'finance', 'wallet_management', 'geography_analytics', 'ai_settings', 'refresh_control', 'content_management', 'ticketing_system', 'remote_desktop', 'server_config', 'company_information', 'user_guide', 'marketing_module', 'aws_s3_settings', 'whatsapp_crm', 'blog', 'vendor_accounting', 'marketplace_management']
+site-management-fixed.tsx:440 🔍 [DEBUG] Full userPermissions response: {success: true, permissions: Array(38), modules: Array(38), roles: Array(1), roleInfo: {…}}
+site-management-fixed.tsx:441 🔍 [DEBUG] userPermissions.modules: (38) ['kpi_dashboard', 'management_dashboard', 'syncing_shop', 'shop_management', 'product_management', 'order_management', 'warehouse_management', 'logistics_management', 'inquiries', 'crm', 'barcode', 'email_settings', 'database_backup', 'seo', 'categories', 'sms', 'factory', 'user_management', 'procedures', 'payment_management', 'accounting_management', 'finance', 'wallet_management', 'geography_analytics', 'ai_settings', 'refresh_control', 'content_management', 'ticketing_system', 'remote_desktop', 'server_config', 'company_information', 'user_guide', 'marketing_module', 'aws_s3_settings', 'whatsapp_crm', 'blog', 'vendor_accounting', 'marketplace_management']
+site-management-fixed.tsx:442 🔍 [DEBUG] userPermissions.permissions: (38) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+site-management-fixed.tsx:447 🔍 [DEBUG] Total allButtons count: 40
+site-management-fixed.tsx:448 🔍 [DEBUG] AI Settings exists in allButtons: true
+site-management-fixed.tsx:449 🔍 [DEBUG] Content Management exists in allButtons: true
+site-management-fixed.tsx:451 🔍 [DEBUG] allowedModules: (38) ['kpi_dashboard', 'management_dashboard', 'syncing_shop', 'shop_management', 'product_management', 'order_management', 'warehouse_management', 'logistics_management', 'inquiries', 'crm', 'barcode', 'email_settings', 'database_backup', 'seo', 'categories', 'sms', 'factory', 'user_management', 'procedures', 'payment_management', 'accounting_management', 'finance', 'wallet_management', 'geography_analytics', 'ai_settings', 'refresh_control', 'content_management', 'ticketing_system', 'remote_desktop', 'server_config', 'company_information', 'user_guide', 'marketing_module', 'aws_s3_settings', 'whatsapp_crm', 'blog', 'vendor_accounting', 'marketplace_management']
+site-management-fixed.tsx:452 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+site-management-fixed.tsx:453 🔍 [DEBUG] management_dashboard in allowedModules? true
+site-management-fixed.tsx:454 🔍 [DEBUG] finance in allowedModules? true
+site-management-fixed.tsx:455 🔍 [DEBUG] geography_analytics in allowedModules? true
+site-management-fixed.tsx:456 🔍 [DEBUG] ai_settings in allowedModules? true
+site-management-fixed.tsx:457 🔍 [DEBUG] content_management in allowedModules? true
+site-management-fixed.tsx:463 🔍 [CRITICAL] Missing button detection:
+site-management-fixed.tsx:467 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+site-management-fixed.tsx:467 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+site-management-fixed.tsx:471 🔍 [CRITICAL] Missing buttons count: 2
+site-management-fixed.tsx:473 🔍 [DEBUG] finance button found in allButtons? {id: 'finance', label: 'Finance', icon: {…}, className: 'border-green-300 text-green-600 hover:bg-green-50 hover:text-green-800', onClick: ƒ, …}
+site-management-fixed.tsx:474 🔍 [DEBUG] geography_analytics button found in allButtons? {id: 'geography-analytics', label: 'Geography Analytics', icon: {…}, className: 'border-teal-300 text-teal-600 hover:bg-teal-50 hover:text-teal-800', onClick: ƒ, …}
+site-management-fixed.tsx:475 🔍 [DEBUG] ai_settings button found in allButtons? {id: 'ai-settings', label: 'AI Settings', icon: {…}, className: 'border-violet-300 text-violet-600 hover:bg-violet-50 hover:text-violet-800', onClick: ƒ, …}
+site-management-fixed.tsx:476 🔍 [DEBUG] content_management button found in allButtons? {id: 'content-management', label: 'Content Management', icon: {…}, className: 'border-lime-300 text-lime-600 hover:bg-lime-50 hover:text-lime-800', onClick: ƒ, …}
+site-management-fixed.tsx:477 🔍 [DEBUG] finance button in filtered? {id: 'finance', label: 'Finance', icon: {…}, className: 'border-green-300 text-green-600 hover:bg-green-50 hover:text-green-800', onClick: ƒ, …}
+site-management-fixed.tsx:478 🔍 [DEBUG] geography_analytics button in filtered? {id: 'geography-analytics', label: 'Geography Analytics', icon: {…}, className: 'border-teal-300 text-teal-600 hover:bg-teal-50 hover:text-teal-800', onClick: ƒ, …}
+site-management-fixed.tsx:479 🔍 [DEBUG] ai_settings button in filtered? {id: 'ai-settings', label: 'AI Settings', icon: {…}, className: 'border-violet-300 text-violet-600 hover:bg-violet-50 hover:text-violet-800', onClick: ƒ, …}
+site-management-fixed.tsx:480 🔍 [DEBUG] content_management button in filtered? {id: 'content-management', label: 'Content Management', icon: {…}, className: 'border-lime-300 text-lime-600 hover:bg-lime-50 hover:text-lime-800', onClick: ƒ, …}
+site-management-fixed.tsx:75 🔍 [DEBUG] filtered buttons count: 38
+site-management-fixed.tsx:76 🔍 [DEBUG] First 5 filtered buttons: (5) [{…}, {…}, {…}, {…}, {…}]
+site-management-fixed.tsx:77 🔍 [DEBUG] AI Control button in filtered: {id: 'ai-settings', label: 'AI Settings', icon: {…}, className: 'border-violet-300 text-violet-600 hover:bg-violet-50 hover:text-violet-800', onClick: ƒ, …}
+site-management-fixed.tsx:78 🔍 [DEBUG] Content Management button in filtered: {id: 'content-management', label: 'Content Management', icon: {…}, className: 'border-lime-300 text-lime-600 hover:bg-lime-50 hover:text-lime-800', onClick: ƒ, …}
+site-management-fixed.tsx:24 🔍 [DEBUG] Site Management component initialized
+site-management-fixed.tsx:440 🔍 [DEBUG] Full userPermissions response: {success: true, permissions: Array(38), modules: Array(38), roles: Array(1), roleInfo: {…}}
+site-management-fixed.tsx:441 🔍 [DEBUG] userPermissions.modules: (38) ['kpi_dashboard', 'management_dashboard', 'syncing_shop', 'shop_management', 'product_management', 'order_management', 'warehouse_management', 'logistics_management', 'inquiries', 'crm', 'barcode', 'email_settings', 'database_backup', 'seo', 'categories', 'sms', 'factory', 'user_management', 'procedures', 'payment_management', 'accounting_management', 'finance', 'wallet_management', 'geography_analytics', 'ai_settings', 'refresh_control', 'content_management', 'ticketing_system', 'remote_desktop', 'server_config', 'company_information', 'user_guide', 'marketing_module', 'aws_s3_settings', 'whatsapp_crm', 'blog', 'vendor_accounting', 'marketplace_management']
+site-management-fixed.tsx:442 🔍 [DEBUG] userPermissions.permissions: (38) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+site-management-fixed.tsx:447 🔍 [DEBUG] Total allButtons count: 40
+site-management-fixed.tsx:448 🔍 [DEBUG] AI Settings exists in allButtons: true
+site-management-fixed.tsx:449 🔍 [DEBUG] Content Management exists in allButtons: true
+site-management-fixed.tsx:451 🔍 [DEBUG] allowedModules: (38) ['kpi_dashboard', 'management_dashboard', 'syncing_shop', 'shop_management', 'product_management', 'order_management', 'warehouse_management', 'logistics_management', 'inquiries', 'crm', 'barcode', 'email_settings', 'database_backup', 'seo', 'categories', 'sms', 'factory', 'user_management', 'procedures', 'payment_management', 'accounting_management', 'finance', 'wallet_management', 'geography_analytics', 'ai_settings', 'refresh_control', 'content_management', 'ticketing_system', 'remote_desktop', 'server_config', 'company_information', 'user_guide', 'marketing_module', 'aws_s3_settings', 'whatsapp_crm', 'blog', 'vendor_accounting', 'marketplace_management']
+site-management-fixed.tsx:452 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+site-management-fixed.tsx:453 🔍 [DEBUG] management_dashboard in allowedModules? true
+site-management-fixed.tsx:454 🔍 [DEBUG] finance in allowedModules? true
+site-management-fixed.tsx:455 🔍 [DEBUG] geography_analytics in allowedModules? true
+site-management-fixed.tsx:456 🔍 [DEBUG] ai_settings in allowedModules? true
+site-management-fixed.tsx:457 🔍 [DEBUG] content_management in allowedModules? true
+site-management-fixed.tsx:463 🔍 [CRITICAL] Missing button detection:
+site-management-fixed.tsx:467 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+site-management-fixed.tsx:467 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+site-management-fixed.tsx:471 🔍 [CRITICAL] Missing buttons count: 2
+site-management-fixed.tsx:473 🔍 [DEBUG] finance button found in allButtons? {id: 'finance', label: 'Finance', icon: {…}, className: 'border-green-300 text-green-600 hover:bg-green-50 hover:text-green-800', onClick: ƒ, …}
+site-management-fixed.tsx:474 🔍 [DEBUG] geography_analytics button found in allButtons? {id: 'geography-analytics', label: 'Geography Analytics', icon: {…}, className: 'border-teal-300 text-teal-600 hover:bg-teal-50 hover:text-teal-800', onClick: ƒ, …}
+site-management-fixed.tsx:475 🔍 [DEBUG] ai_settings button found in allButtons? {id: 'ai-settings', label: 'AI Settings', icon: {…}, className: 'border-violet-300 text-violet-600 hover:bg-violet-50 hover:text-violet-800', onClick: ƒ, …}
+site-management-fixed.tsx:476 🔍 [DEBUG] content_management button found in allButtons? {id: 'content-management', label: 'Content Management', icon: {…}, className: 'border-lime-300 text-lime-600 hover:bg-lime-50 hover:text-lime-800', onClick: ƒ, …}
+site-management-fixed.tsx:477 🔍 [DEBUG] finance button in filtered? {id: 'finance', label: 'Finance', icon: {…}, className: 'border-green-300 text-green-600 hover:bg-green-50 hover:text-green-800', onClick: ƒ, …}
+site-management-fixed.tsx:478 🔍 [DEBUG] geography_analytics button in filtered? {id: 'geography-analytics', label: 'Geography Analytics', icon: {…}, className: 'border-teal-300 text-teal-600 hover:bg-teal-50 hover:text-teal-800', onClick: ƒ, …}
+site-management-fixed.tsx:479 🔍 [DEBUG] ai_settings button in filtered? {id: 'ai-settings', label: 'AI Settings', icon: {…}, className: 'border-violet-300 text-violet-600 hover:bg-violet-50 hover:text-violet-800', onClick: ƒ, …}
+site-management-fixed.tsx:480 🔍 [DEBUG] content_management button in filtered? {id: 'content-management', label: 'Content Management', icon: {…}, className: 'border-lime-300 text-lime-600 hover:bg-lime-50 hover:text-lime-800', onClick: ƒ, …}
+useAuth.ts:43 Auth check result: {success: true, user: {…}}
+queryClient.ts:54  POST https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/vendor-accounting/payment 500 (Internal Server Error)
+apiRequest @ queryClient.ts:54
+mutationFn @ vendor-accounting-tab.tsx:119
+fn @ @tanstack_react-query.js?v=1b604b35:1189
+run @ @tanstack_react-query.js?v=1b604b35:494
+start @ @tanstack_react-query.js?v=1b604b35:536
+execute @ @tanstack_react-query.js?v=1b604b35:1225
+await in execute
+mutate @ @tanstack_react-query.js?v=1b604b35:2630
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:3295
+handleRecordPayment @ vendor-accounting-tab.tsx:222
+callCallback2 @ chunk-RPCDYKBN.js?v=1b604b35:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=1b604b35:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=1b604b35:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=1b604b35:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=1b604b35:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=1b604b35:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=1b604b35:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=1b604b35:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=1b604b35:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=1b604b35:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=1b604b35:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=1b604b35:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=1b604b35:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=1b604b35:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=1b604b35:5449

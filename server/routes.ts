@@ -55452,7 +55452,7 @@ momtazchem.com
       });
 
       console.log(`💳 [VENDOR PAYMENT] Created payment record for vendor ${vendorId} - awaiting confirmation`);
-      console.log(`💰 [VENDOR PAYMENT] Paid ${amountStr} IQD to vendor ${vendorId}`);
+      console.log(`💰 [VENDOR PAYMENT] Paid ${amountNum} IQD to vendor ${vendorId}`);
       res.json({ success: true, transaction: result, message: 'پرداخت با موفقیت ثبت شد' });
     } catch (error) {
       console.error('Error recording vendor payment:', error);
