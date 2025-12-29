@@ -10,17 +10,122 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useToast } from "@/hooks/use-toast";
 import { Store, Loader2, ArrowRight } from "lucide-react";
 import { Link, useLocation } from "wouter";
+import { useLanguage } from "@/contexts/LanguageContext";
 
-const loginSchema = z.object({
-  username: z.string().min(3, "نام کاربری یا ایمیل را وارد کنید"),
-  password: z.string().min(6, "رمز عبور باید حداقل 6 کاراکتر باشد"),
-});
+const vendorLoginTranslations = {
+  en: {
+    title: "Vendor Login",
+    description: "Login to your store management panel",
+    usernameLabel: "Email / Username",
+    usernamePlaceholder: "vendor@example.com",
+    passwordLabel: "Password",
+    passwordPlaceholder: "••••••••",
+    loginButton: "Login to Panel",
+    loggingIn: "Logging in...",
+    notRegistered: "Not registered yet?",
+    registerButton: "Register as a Vendor",
+    backToHome: "Back to Home",
+    loginSuccess: "Login Successful",
+    welcomeMessage: "Welcome",
+    loginError: "Login Error",
+    invalidCredentials: "Invalid email or password",
+    usernameRequired: "Please enter username or email",
+    passwordRequired: "Password must be at least 6 characters",
+  },
+  ar: {
+    title: "دخول البائع",
+    description: "سجّل الدخول إلى لوحة إدارة متجرك",
+    usernameLabel: "البريد الإلكتروني / اسم المستخدم",
+    usernamePlaceholder: "vendor@example.com",
+    passwordLabel: "كلمة المرور",
+    passwordPlaceholder: "••••••••",
+    loginButton: "الدخول إلى اللوحة",
+    loggingIn: "جاري الدخول...",
+    notRegistered: "لم تسجل بعد؟",
+    registerButton: "سجّل كبائع",
+    backToHome: "العودة إلى الصفحة الرئيسية",
+    loginSuccess: "تم الدخول بنجاح",
+    welcomeMessage: "مرحباً",
+    loginError: "خطأ في الدخول",
+    invalidCredentials: "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+    usernameRequired: "الرجاء إدخال اسم المستخدم أو البريد الإلكتروني",
+    passwordRequired: "كلمة المرور يجب أن تكون 6 أحرف على الأقل",
+  },
+  ku: {
+    title: "چوونەژوورەوەی فرۆشیار",
+    description: "بچۆرە ناو پانێڵی بەڕێوەبردنی فرۆشگاکەت",
+    usernameLabel: "ئیمەیڵ / ناوی بەکارهێنەر",
+    usernamePlaceholder: "vendor@example.com",
+    passwordLabel: "وشەی نهێنی",
+    passwordPlaceholder: "••••••••",
+    loginButton: "چوونەژوورەوە بۆ پانێڵ",
+    loggingIn: "چوونەژوورەوە...",
+    notRegistered: "هێشتا تۆمار نەکراویت؟",
+    registerButton: "وەک فرۆشیار تۆمار بکە",
+    backToHome: "گەڕانەوە بۆ ماڵەوە",
+    loginSuccess: "چوونەژوورەوە سەرکەوتوو بوو",
+    welcomeMessage: "بەخێربێیت",
+    loginError: "هەڵەی چوونەژوورەوە",
+    invalidCredentials: "ئیمەیڵ یان وشەی نهێنی هەڵەیە",
+    usernameRequired: "تکایە ناوی بەکارهێنەر یان ئیمەیڵ بنووسە",
+    passwordRequired: "وشەی نهێنی دەبێت لانیکەم ٦ پیت بێت",
+  },
+  tr: {
+    title: "Satıcı Girişi",
+    description: "Mağaza yönetim panelinize giriş yapın",
+    usernameLabel: "E-posta / Kullanıcı Adı",
+    usernamePlaceholder: "vendor@example.com",
+    passwordLabel: "Şifre",
+    passwordPlaceholder: "••••••••",
+    loginButton: "Panele Giriş",
+    loggingIn: "Giriş yapılıyor...",
+    notRegistered: "Henüz kayıt olmadınız mı?",
+    registerButton: "Satıcı Olarak Kayıt Ol",
+    backToHome: "Ana Sayfaya Dön",
+    loginSuccess: "Giriş Başarılı",
+    welcomeMessage: "Hoş geldiniz",
+    loginError: "Giriş Hatası",
+    invalidCredentials: "E-posta veya şifre yanlış",
+    usernameRequired: "Kullanıcı adı veya e-posta girin",
+    passwordRequired: "Şifre en az 6 karakter olmalıdır",
+  },
+  fa: {
+    title: "ورود فروشنده",
+    description: "به پنل مدیریت فروشگاه خود وارد شوید",
+    usernameLabel: "ایمیل / نام کاربری",
+    usernamePlaceholder: "vendor@example.com",
+    passwordLabel: "رمز عبور",
+    passwordPlaceholder: "••••••••",
+    loginButton: "ورود به پنل",
+    loggingIn: "در حال ورود...",
+    notRegistered: "هنوز ثبت نام نکرده‌اید؟",
+    registerButton: "ثبت نام به عنوان فروشنده",
+    backToHome: "بازگشت به صفحه اصلی",
+    loginSuccess: "ورود موفق",
+    welcomeMessage: "خوش آمدید",
+    loginError: "خطا در ورود",
+    invalidCredentials: "ایمیل یا رمز عبور اشتباه است",
+    usernameRequired: "نام کاربری یا ایمیل را وارد کنید",
+    passwordRequired: "رمز عبور باید حداقل 6 کاراکتر باشد",
+  },
+};
 
-type LoginForm = z.infer<typeof loginSchema>;
+type LoginForm = z.infer<ReturnType<typeof createLoginSchema>>;
+
+function createLoginSchema(t: typeof vendorLoginTranslations.en) {
+  return z.object({
+    username: z.string().min(3, t.usernameRequired),
+    password: z.string().min(6, t.passwordRequired),
+  });
+}
 
 export default function VendorLogin() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const { language, direction } = useLanguage();
+  
+  const t = vendorLoginTranslations[language as keyof typeof vendorLoginTranslations] || vendorLoginTranslations.en;
+  const loginSchema = createLoginSchema(t);
 
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -39,17 +144,16 @@ export default function VendorLogin() {
     },
     onSuccess: (data) => {
       toast({
-        title: "✅ ورود موفق",
-        description: `خوش آمدید ${data.vendor?.vendorName || ''}`,
+        title: `✅ ${t.loginSuccess}`,
+        description: `${t.welcomeMessage} ${data.vendor?.vendorName || ''}`,
         variant: "default",
       });
-      // Redirect to vendor dashboard
       setLocation("/vendor/dashboard");
     },
     onError: (error: any) => {
       toast({
-        title: "❌ خطا در ورود",
-        description: error.message || "ایمیل یا رمز عبور اشتباه است",
+        title: `❌ ${t.loginError}`,
+        description: error.message || t.invalidCredentials,
         variant: "destructive",
       });
     },
@@ -60,15 +164,18 @@ export default function VendorLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
+    <div 
+      className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4"
+      dir={direction}
+    >
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto w-16 h-16 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mb-4">
             <Store className="w-8 h-8 text-purple-600 dark:text-purple-400" />
           </div>
-          <CardTitle className="text-2xl">ورود فروشنده</CardTitle>
+          <CardTitle className="text-2xl">{t.title}</CardTitle>
           <CardDescription>
-            به پنل مدیریت فروشگاه خود وارد شوید
+            {t.description}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -79,11 +186,11 @@ export default function VendorLogin() {
                 name="username"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>ایمیل / نام کاربری</FormLabel>
+                    <FormLabel>{t.usernameLabel}</FormLabel>
                     <FormControl>
                       <Input
                         type="text"
-                        placeholder="vendor@example.com"
+                        placeholder={t.usernamePlaceholder}
                         {...field}
                         data-testid="input-username"
                       />
@@ -98,11 +205,11 @@ export default function VendorLogin() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>رمز عبور</FormLabel>
+                    <FormLabel>{t.passwordLabel}</FormLabel>
                     <FormControl>
                       <Input
                         type="password"
-                        placeholder="••••••••"
+                        placeholder={t.passwordPlaceholder}
                         {...field}
                         data-testid="input-password"
                       />
@@ -121,12 +228,12 @@ export default function VendorLogin() {
                 {loginMutation.isPending ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    در حال ورود...
+                    {t.loggingIn}
                   </>
                 ) : (
                   <>
                     <ArrowRight className="w-4 h-4 mr-2" />
-                    ورود به پنل
+                    {t.loginButton}
                   </>
                 )}
               </Button>
@@ -135,11 +242,11 @@ export default function VendorLogin() {
 
           <div className="mt-6 text-center space-y-2">
             <p className="text-sm text-muted-foreground">
-              هنوز ثبت نام نکرده‌اید؟
+              {t.notRegistered}
             </p>
             <Link href="/vendor-registration">
               <Button variant="outline" className="w-full" data-testid="link-register">
-                ثبت نام به عنوان فروشنده
+                {t.registerButton}
               </Button>
             </Link>
           </div>
@@ -147,7 +254,7 @@ export default function VendorLogin() {
           <div className="mt-4 pt-4 border-t text-center">
             <Link href="/">
               <Button variant="ghost" size="sm" data-testid="link-home">
-                بازگشت به صفحه اصلی
+                {t.backToHome}
               </Button>
             </Link>
           </div>
