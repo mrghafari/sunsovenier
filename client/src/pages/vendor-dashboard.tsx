@@ -19,8 +19,12 @@ import {
   CreditCard,
   Check,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Save,
+  X
 } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useEffect, useRef, useState, useMemo } from "react";
 import JsBarcode from "jsbarcode";
 import { Input } from "@/components/ui/input";
@@ -67,6 +71,17 @@ export default function VendorDashboard() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    vendorName: '',
+    contactPhone: '',
+    description: '',
+    address: '',
+    city: '',
+    postalCode: '',
+    businessLicense: '',
+    taxId: ''
+  });
 
   // Fetch vendor profile
   const { data: vendorData, isLoading: isLoadingVendor } = useQuery({
@@ -162,6 +177,72 @@ export default function VendorDashboard() {
       });
     }
   });
+
+  // Profile change submission mutation
+  const submitProfileChangesMutation = useMutation({
+    mutationFn: async (changes: Record<string, any>) => {
+      const response = await apiRequest("/api/vendors/profile/submit-changes", {
+        method: "POST",
+        body: JSON.stringify({ changes })
+      });
+      return response;
+    },
+    onSuccess: () => {
+      toast({
+        title: "موفق",
+        description: "تغییرات ارسال شد و در انتظار تایید مدیر است"
+      });
+      setIsEditingProfile(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/vendors/auth/me"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "خطا",
+        description: error?.message || "خطا در ارسال تغییرات",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Populate form when vendor data loads
+  useEffect(() => {
+    if (vendor) {
+      setProfileForm({
+        vendorName: vendor.vendorName || '',
+        contactPhone: vendor.contactPhone || '',
+        description: vendor.description || '',
+        address: vendor.address || '',
+        city: vendor.city || '',
+        postalCode: vendor.postalCode || '',
+        businessLicense: vendor.businessLicense || '',
+        taxId: vendor.taxId || ''
+      });
+    }
+  }, [vendor]);
+
+  const handleProfileSubmit = () => {
+    // Only submit fields that have changed
+    const changes: Record<string, any> = {};
+    if (profileForm.vendorName !== (vendor?.vendorName || '')) changes.vendorName = profileForm.vendorName;
+    if (profileForm.contactPhone !== (vendor?.contactPhone || '')) changes.contactPhone = profileForm.contactPhone;
+    if (profileForm.description !== (vendor?.description || '')) changes.description = profileForm.description;
+    if (profileForm.address !== (vendor?.address || '')) changes.address = profileForm.address;
+    if (profileForm.city !== (vendor?.city || '')) changes.city = profileForm.city;
+    if (profileForm.postalCode !== (vendor?.postalCode || '')) changes.postalCode = profileForm.postalCode;
+    if (profileForm.businessLicense !== (vendor?.businessLicense || '')) changes.businessLicense = profileForm.businessLicense;
+    if (profileForm.taxId !== (vendor?.taxId || '')) changes.taxId = profileForm.taxId;
+    
+    if (Object.keys(changes).length === 0) {
+      toast({
+        title: "توجه",
+        description: "هیچ تغییری اعمال نشده است",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    submitProfileChangesMutation.mutate(changes);
+  };
 
   // Sub-tab state for accounting
   const [accountingSubTab, setAccountingSubTab] = useState("sales");
@@ -798,45 +879,189 @@ export default function VendorDashboard() {
                       مشاهده و ویرایش اطلاعات فروشگاه
                     </CardDescription>
                   </div>
-                  <Link href="/vendor/profile/edit">
-                    <Button variant="outline">
+                  {!isEditingProfile ? (
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setIsEditingProfile(true)}
+                      disabled={!!vendor.pendingProfileChanges}
+                      data-testid="btn-edit-profile"
+                    >
                       <Edit className="w-4 h-4 mr-2" />
                       ویرایش
                     </Button>
-                  </Link>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h3 className="font-medium mb-1">نام شرکت</h3>
-                    <p className="text-muted-foreground">{vendor.vendorName}</p>
-                  </div>
-                  <div>
-                    <h3 className="font-medium mb-1">ایمیل</h3>
-                    <p className="text-muted-foreground">{vendor.contactEmail}</p>
-                  </div>
-                  <div>
-                    <h3 className="font-medium mb-1">تلفن</h3>
-                    <p className="text-muted-foreground">{vendor.contactPhone}</p>
-                  </div>
-                  <div>
-                    <h3 className="font-medium mb-1">شهر</h3>
-                    <p className="text-muted-foreground">
-                      {vendor.city}, {vendor.country}
-                    </p>
-                  </div>
-                  <div className="md:col-span-2">
-                    <h3 className="font-medium mb-1">آدرس</h3>
-                    <p className="text-muted-foreground">{vendor.address}</p>
-                  </div>
-                  {vendor.description && (
-                    <div className="md:col-span-2">
-                      <h3 className="font-medium mb-1">درباره فروشگاه</h3>
-                      <p className="text-muted-foreground">{vendor.description}</p>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          setIsEditingProfile(false);
+                          if (vendor) {
+                            setProfileForm({
+                              vendorName: vendor.vendorName || '',
+                              contactPhone: vendor.contactPhone || '',
+                              description: vendor.description || '',
+                              address: vendor.address || '',
+                              city: vendor.city || '',
+                              postalCode: vendor.postalCode || '',
+                              businessLicense: vendor.businessLicense || '',
+                              taxId: vendor.taxId || ''
+                            });
+                          }
+                        }}
+                        data-testid="btn-cancel-edit"
+                      >
+                        <X className="w-4 h-4 mr-2" />
+                        انصراف
+                      </Button>
+                      <Button 
+                        onClick={handleProfileSubmit}
+                        disabled={submitProfileChangesMutation.isPending}
+                        data-testid="btn-submit-profile"
+                      >
+                        {submitProfileChangesMutation.isPending ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        ) : (
+                          <Save className="w-4 h-4 mr-2" />
+                        )}
+                        ارسال برای تایید
+                      </Button>
                     </div>
                   )}
                 </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {vendor.pendingProfileChanges && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                    <div className="flex items-center gap-2 text-yellow-800">
+                      <Clock className="w-5 h-5" />
+                      <span className="font-medium">تغییرات در انتظار تایید مدیر</span>
+                    </div>
+                    <p className="text-sm text-yellow-700 mt-2">
+                      تغییرات شما ارسال شده و در انتظار بررسی و تایید توسط مدیر سیستم است.
+                    </p>
+                  </div>
+                )}
+                
+                {isEditingProfile ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="vendorName">نام شرکت</Label>
+                      <Input
+                        id="vendorName"
+                        value={profileForm.vendorName}
+                        onChange={(e) => setProfileForm({...profileForm, vendorName: e.target.value})}
+                        data-testid="input-vendor-name"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="contactPhone">تلفن</Label>
+                      <Input
+                        id="contactPhone"
+                        value={profileForm.contactPhone}
+                        onChange={(e) => setProfileForm({...profileForm, contactPhone: e.target.value})}
+                        data-testid="input-contact-phone"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="city">شهر</Label>
+                      <Input
+                        id="city"
+                        value={profileForm.city}
+                        onChange={(e) => setProfileForm({...profileForm, city: e.target.value})}
+                        data-testid="input-city"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="postalCode">کد پستی</Label>
+                      <Input
+                        id="postalCode"
+                        value={profileForm.postalCode}
+                        onChange={(e) => setProfileForm({...profileForm, postalCode: e.target.value})}
+                        data-testid="input-postal-code"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label htmlFor="address">آدرس</Label>
+                      <Input
+                        id="address"
+                        value={profileForm.address}
+                        onChange={(e) => setProfileForm({...profileForm, address: e.target.value})}
+                        data-testid="input-address"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="businessLicense">شماره مجوز کسب</Label>
+                      <Input
+                        id="businessLicense"
+                        value={profileForm.businessLicense}
+                        onChange={(e) => setProfileForm({...profileForm, businessLicense: e.target.value})}
+                        data-testid="input-business-license"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="taxId">شناسه مالیاتی</Label>
+                      <Input
+                        id="taxId"
+                        value={profileForm.taxId}
+                        onChange={(e) => setProfileForm({...profileForm, taxId: e.target.value})}
+                        data-testid="input-tax-id"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label htmlFor="description">درباره فروشگاه</Label>
+                      <Textarea
+                        id="description"
+                        value={profileForm.description}
+                        onChange={(e) => setProfileForm({...profileForm, description: e.target.value})}
+                        rows={4}
+                        data-testid="input-description"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <h3 className="font-medium mb-1">نام شرکت</h3>
+                      <p className="text-muted-foreground">{vendor.vendorName}</p>
+                    </div>
+                    <div>
+                      <h3 className="font-medium mb-1">ایمیل</h3>
+                      <p className="text-muted-foreground">{vendor.contactEmail}</p>
+                    </div>
+                    <div>
+                      <h3 className="font-medium mb-1">تلفن</h3>
+                      <p className="text-muted-foreground">{vendor.contactPhone}</p>
+                    </div>
+                    <div>
+                      <h3 className="font-medium mb-1">شهر</h3>
+                      <p className="text-muted-foreground">
+                        {vendor.city}, {vendor.country}
+                      </p>
+                    </div>
+                    <div className="md:col-span-2">
+                      <h3 className="font-medium mb-1">آدرس</h3>
+                      <p className="text-muted-foreground">{vendor.address}</p>
+                    </div>
+                    {vendor.businessLicense && (
+                      <div>
+                        <h3 className="font-medium mb-1">شماره مجوز کسب</h3>
+                        <p className="text-muted-foreground">{vendor.businessLicense}</p>
+                      </div>
+                    )}
+                    {vendor.taxId && (
+                      <div>
+                        <h3 className="font-medium mb-1">شناسه مالیاتی</h3>
+                        <p className="text-muted-foreground">{vendor.taxId}</p>
+                      </div>
+                    )}
+                    {vendor.description && (
+                      <div className="md:col-span-2">
+                        <h3 className="font-medium mb-1">درباره فروشگاه</h3>
+                        <p className="text-muted-foreground">{vendor.description}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
