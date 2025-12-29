@@ -178,7 +178,7 @@ export default function VendorDashboard() {
     : Array.isArray(ordersData?.data)
       ? ordersData.data
       : [];
-  const stats = statsData?.stats || statsData?.data || {
+  const stats = statsData?.statistics || statsData?.stats || statsData?.data || {
     totalProducts: 0,
     activeProducts: 0,
     totalOrders: 0,
