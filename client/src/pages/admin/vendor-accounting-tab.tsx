@@ -82,6 +82,8 @@ export default function VendorAccountingTab() {
   const [selectedProduct, setSelectedProduct] = useState<VendorProduct | null>(null);
   const [showProductCommissionDialog, setShowProductCommissionDialog] = useState(false);
   const [productCommissionOverride, setProductCommissionOverride] = useState("");
+  const [txFilterStartDate, setTxFilterStartDate] = useState("");
+  const [txFilterEndDate, setTxFilterEndDate] = useState("");
 
   const { data: vendorBalances, isLoading: loadingBalances, refetch: refetchBalances } = useQuery<{ vendors: VendorBalance[] }>({
     queryKey: ["/api/admin/vendor-accounting/balances"],
@@ -621,58 +623,146 @@ export default function VendorAccountingTab() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showTransactionsDialog} onOpenChange={setShowTransactionsDialog}>
+      <Dialog open={showTransactionsDialog} onOpenChange={(open) => {
+        setShowTransactionsDialog(open);
+        if (!open) {
+          setTxFilterStartDate("");
+          setTxFilterEndDate("");
+        }
+      }}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto" dir="rtl">
           <DialogHeader>
             <DialogTitle>تراکنش‌های {selectedVendor?.vendorName}</DialogTitle>
             <DialogDescription>تاریخچه مالی این وندور</DialogDescription>
           </DialogHeader>
+          
+          <div className="flex flex-wrap gap-4 items-end mb-4 p-3 bg-muted/50 rounded-lg">
+            <div className="flex flex-col gap-1">
+              <Label className="text-xs">از تاریخ</Label>
+              <Input
+                type="date"
+                value={txFilterStartDate}
+                onChange={(e) => setTxFilterStartDate(e.target.value)}
+                className="w-40"
+                data-testid="input-tx-filter-start"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label className="text-xs">تا تاریخ</Label>
+              <Input
+                type="date"
+                value={txFilterEndDate}
+                onChange={(e) => setTxFilterEndDate(e.target.value)}
+                className="w-40"
+                data-testid="input-tx-filter-end"
+              />
+            </div>
+            {(txFilterStartDate || txFilterEndDate) && (
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => {
+                  setTxFilterStartDate("");
+                  setTxFilterEndDate("");
+                }}
+                data-testid="btn-clear-tx-filter"
+              >
+                <XCircle className="h-4 w-4 ml-1" />
+                پاک کردن فیلتر
+              </Button>
+            )}
+          </div>
+
           {loadingTransactions ? (
             <div className="text-center py-8">در حال بارگذاری...</div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>تاریخ</TableHead>
-                  <TableHead>نوع</TableHead>
-                  <TableHead>مبلغ</TableHead>
-                  <TableHead>مانده قبل</TableHead>
-                  <TableHead>مانده بعد</TableHead>
-                  <TableHead>توضیحات</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {vendorTransactions?.transactions.map((tx) => {
-                  const typeInfo = getTransactionTypeLabel(tx.transactionType);
-                  const Icon = typeInfo.icon;
-                  return (
-                    <TableRow key={tx.id}>
-                      <TableCell>{format(new Date(tx.createdAt), "yyyy/MM/dd HH:mm")}</TableCell>
-                      <TableCell>
-                        <Badge className={typeInfo.color}>
-                          <Icon className="h-3 w-3 ml-1" />
-                          {typeInfo.label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className={tx.transactionType === 'payment' ? 'text-blue-600' : 'text-green-600'}>
-                        {formatCurrency(tx.amount)}
-                      </TableCell>
-                      <TableCell>{tx.balanceBefore ? formatCurrency(tx.balanceBefore) : "-"}</TableCell>
-                      <TableCell>{tx.balanceAfter ? formatCurrency(tx.balanceAfter) : "-"}</TableCell>
-                      <TableCell className="max-w-[200px] truncate">{tx.description || "-"}</TableCell>
+          ) : (() => {
+            const filteredTransactions = vendorTransactions?.transactions.filter((tx) => {
+              const txDate = new Date(tx.createdAt);
+              if (txFilterStartDate) {
+                const start = new Date(txFilterStartDate);
+                start.setHours(0, 0, 0, 0);
+                if (txDate < start) return false;
+              }
+              if (txFilterEndDate) {
+                const end = new Date(txFilterEndDate);
+                end.setHours(23, 59, 59, 999);
+                if (txDate > end) return false;
+              }
+              return true;
+            }) || [];
+
+            const totalSales = filteredTransactions
+              .filter(tx => tx.transactionType === 'sale')
+              .reduce((sum, tx) => sum + parseFloat(tx.amount || "0"), 0);
+
+            const totalPayments = filteredTransactions
+              .filter(tx => tx.transactionType === 'payment')
+              .reduce((sum, tx) => sum + parseFloat(tx.amount || "0"), 0);
+
+            return (
+              <>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>تاریخ</TableHead>
+                      <TableHead>نوع</TableHead>
+                      <TableHead>مبلغ</TableHead>
+                      <TableHead>مانده قبل</TableHead>
+                      <TableHead>مانده بعد</TableHead>
+                      <TableHead>توضیحات</TableHead>
                     </TableRow>
-                  );
-                })}
-                {(!vendorTransactions?.transactions || vendorTransactions.transactions.length === 0) && (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                      هیچ تراکنشی یافت نشد
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          )}
+                  </TableHeader>
+                  <TableBody>
+                    {filteredTransactions.map((tx) => {
+                      const typeInfo = getTransactionTypeLabel(tx.transactionType);
+                      const Icon = typeInfo.icon;
+                      return (
+                        <TableRow key={tx.id}>
+                          <TableCell>{format(new Date(tx.createdAt), "yyyy/MM/dd HH:mm")}</TableCell>
+                          <TableCell>
+                            <Badge className={typeInfo.color}>
+                              <Icon className="h-3 w-3 ml-1" />
+                              {typeInfo.label}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className={tx.transactionType === 'payment' ? 'text-blue-600' : 'text-green-600'}>
+                            {formatCurrency(tx.amount)}
+                          </TableCell>
+                          <TableCell>{tx.balanceBefore ? formatCurrency(tx.balanceBefore) : "-"}</TableCell>
+                          <TableCell>{tx.balanceAfter ? formatCurrency(tx.balanceAfter) : "-"}</TableCell>
+                          <TableCell className="max-w-[200px] truncate">{tx.description || "-"}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    {filteredTransactions.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                          هیچ تراکنشی یافت نشد
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+
+                <div className="mt-4 p-4 bg-muted/50 rounded-lg border">
+                  <div className="grid grid-cols-2 gap-4 text-center">
+                    <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                      <div className="text-sm text-muted-foreground mb-1">ته جمع فروش</div>
+                      <div className="text-xl font-bold text-green-600" data-testid="text-total-sales">
+                        {formatCurrency(totalSales.toString())}
+                      </div>
+                    </div>
+                    <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <div className="text-sm text-muted-foreground mb-1">ته جمع پرداختی‌ها</div>
+                      <div className="text-xl font-bold text-blue-600" data-testid="text-total-payments">
+                        {formatCurrency(totalPayments.toString())}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
         </DialogContent>
       </Dialog>
 
