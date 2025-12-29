@@ -17985,6 +17985,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 totalPrice: (parseFloat(product.price || "0") * (quantity as number)).toString(),
               });
 
+              // Create vendor transaction if product belongs to a vendor
+              if (product.vendorId) {
+                try {
+                  const { db } = await import('./db');
+                  const { vendors, vendorTransactions } = await import('@shared/schema');
+                  const { eq } = await import('drizzle-orm');
+                  
+                  // Get vendor's commission rate
+                  const [vendor] = await db
+                    .select({ commissionRate: vendors.commissionRate })
+                    .from(vendors)
+                    .where(eq(vendors.id, product.vendorId));
+                  
+                  if (vendor) {
+                    const saleAmount = parseFloat(product.price || "0") * (quantity as number);
+                    const commissionRate = parseFloat(vendor.commissionRate || "10");
+                    const commissionAmount = (saleAmount * commissionRate) / 100;
+                    const netAmount = saleAmount - commissionAmount;
+                    
+                    // Create vendor sale transaction
+                    await db.insert(vendorTransactions).values({
+                      vendorId: product.vendorId,
+                      transactionType: 'sale',
+                      amount: saleAmount.toString(),
+                      customerOrderId: order.id,
+                      productId: parseInt(productId as string),
+                      saleAmount: saleAmount.toString(),
+                      commissionAmount: commissionAmount.toString(),
+                      netAmount: netAmount.toString(),
+                      status: 'completed',
+                      description: `فروش ${product.name} - ${quantity} عدد - سفارش ${orderNumber}`,
+                    });
+                    
+                    console.log(`💰 [VENDOR SALE] Created transaction for vendor ${product.vendorId}: Sale=${saleAmount}, Commission=${commissionAmount}, Net=${netAmount}`);
+                  }
+                } catch (vendorTxError) {
+                  console.error(`⚠️ [VENDOR SALE ERROR] Failed to create vendor transaction for product ${productId}:`, vendorTxError);
+                  // Continue with order - don't fail the order due to vendor transaction error
+                }
+              }
+
               // Update product stock with batch tracking
               if (product.stockQuantity !== null && product.stockQuantity !== undefined) {
                 const currentStock = product.stockQuantity;
