@@ -55307,14 +55307,22 @@ momtazchem.com
 
       const productCountMap = new Map(productCounts.map(p => [p.vendorId, p.count]));
 
-      const result = vendorsData.map(v => ({
-        ...v,
-        currentBalance: v.currentBalance || '0.00',
-        totalSales: salesMap.get(v.vendorId) || '0.00',
-        totalCommission: commissionMap.get(v.vendorId) || '0.00',
-        totalPaid: paymentsMap.get(v.vendorId) || v.totalPaid || '0.00',
-        productCount: productCountMap.get(v.vendorId) || 0
-      }));
+      const result = vendorsData.map(v => {
+        const totalSales = parseFloat(salesMap.get(v.vendorId) || '0');
+        const totalCommission = parseFloat(commissionMap.get(v.vendorId) || '0');
+        const totalPaid = parseFloat(paymentsMap.get(v.vendorId) || v.totalPaid || '0');
+        // مانده بدهی = فروش کل - کمیسیون - پرداخت شده
+        const calculatedBalance = totalSales - totalCommission - totalPaid;
+        
+        return {
+          ...v,
+          currentBalance: calculatedBalance.toFixed(2),
+          totalSales: totalSales.toFixed(2),
+          totalCommission: totalCommission.toFixed(2),
+          totalPaid: totalPaid.toFixed(2),
+          productCount: productCountMap.get(v.vendorId) || 0
+        };
+      });
 
       res.json({ success: true, vendors: result });
     } catch (error) {
