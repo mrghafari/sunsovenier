@@ -1,12 +1,15 @@
 import {
   vendors,
   vendorUsers,
+  vendorPayments,
   showcaseProducts,
   shopProducts,
   type Vendor,
   type InsertVendor,
   type VendorUser,
   type InsertVendorUser,
+  type VendorPayment,
+  type InsertVendorPayment,
   type ShowcaseProduct,
   type ShopProduct
 } from "@shared/schema";
@@ -100,6 +103,13 @@ export interface IVendorStorage {
       commissionRate: number;
     };
   }>;
+  
+  // Vendor payments management
+  getVendorPayments(vendorId: number): Promise<VendorPayment[]>;
+  getVendorPaymentById(id: number): Promise<VendorPayment | undefined>;
+  createVendorPayment(payment: InsertVendorPayment): Promise<VendorPayment>;
+  confirmVendorPayment(id: number, confirmedBy: number): Promise<VendorPayment>;
+  getAllPendingPayments(): Promise<Array<VendorPayment & { vendorName: string }>>;
 }
 
 export class VendorStorage implements IVendorStorage {
@@ -778,6 +788,77 @@ export class VendorStorage implements IVendorStorage {
         commissionRate
       }
     };
+  }
+
+  // ============================================================================
+  // VENDOR PAYMENTS MANAGEMENT
+  // ============================================================================
+
+  async getVendorPayments(vendorId: number): Promise<VendorPayment[]> {
+    return await db
+      .select()
+      .from(vendorPayments)
+      .where(eq(vendorPayments.vendorId, vendorId))
+      .orderBy(desc(vendorPayments.createdAt));
+  }
+
+  async getVendorPaymentById(id: number): Promise<VendorPayment | undefined> {
+    const [payment] = await db
+      .select()
+      .from(vendorPayments)
+      .where(eq(vendorPayments.id, id));
+    return payment;
+  }
+
+  async createVendorPayment(payment: InsertVendorPayment): Promise<VendorPayment> {
+    const [created] = await db
+      .insert(vendorPayments)
+      .values(payment)
+      .returning();
+    return created;
+  }
+
+  async confirmVendorPayment(id: number, confirmedBy: number): Promise<VendorPayment> {
+    const [updated] = await db
+      .update(vendorPayments)
+      .set({
+        isConfirmed: true,
+        confirmedAt: new Date(),
+        confirmedBy,
+        status: 'confirmed'
+      })
+      .where(eq(vendorPayments.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getAllPendingPayments(): Promise<Array<VendorPayment & { vendorName: string }>> {
+    const result = await db
+      .select({
+        id: vendorPayments.id,
+        vendorId: vendorPayments.vendorId,
+        amount: vendorPayments.amount,
+        paymentMethod: vendorPayments.paymentMethod,
+        referenceNumber: vendorPayments.referenceNumber,
+        description: vendorPayments.description,
+        declaredBy: vendorPayments.declaredBy,
+        declaredAt: vendorPayments.declaredAt,
+        isConfirmed: vendorPayments.isConfirmed,
+        confirmedAt: vendorPayments.confirmedAt,
+        confirmedBy: vendorPayments.confirmedBy,
+        status: vendorPayments.status,
+        createdAt: vendorPayments.createdAt,
+        vendorName: vendors.vendorName
+      })
+      .from(vendorPayments)
+      .leftJoin(vendors, eq(vendorPayments.vendorId, vendors.id))
+      .where(eq(vendorPayments.status, 'pending'))
+      .orderBy(desc(vendorPayments.createdAt));
+    
+    return result.map(row => ({
+      ...row,
+      vendorName: row.vendorName || 'Unknown Vendor'
+    }));
   }
 }
 

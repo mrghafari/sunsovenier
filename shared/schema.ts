@@ -1841,6 +1841,26 @@ export const vendors = pgTable("vendors", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+// Vendor Payments table - track payments from admin to vendors
+export const vendorPayments = pgTable("vendor_payments", {
+  id: serial("id").primaryKey(),
+  vendorId: integer("vendor_id").notNull().references(() => vendors.id),
+  amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
+  paymentMethod: text("payment_method").default("bank_transfer"),
+  referenceNumber: text("reference_number"),
+  description: text("description"),
+  declaredBy: integer("declared_by").notNull(),
+  declaredAt: timestamp("declared_at").notNull().defaultNow(),
+  isConfirmed: boolean("is_confirmed").default(false),
+  confirmedAt: timestamp("confirmed_at"),
+  confirmedBy: integer("confirmed_by"),
+  status: text("status").default("pending"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export type VendorPayment = typeof vendorPayments.$inferSelect;
+export type InsertVendorPayment = typeof vendorPayments.$inferInsert;
+
 // Vendor Users table - authentication and access control for vendor portal
 export const vendorUsers = pgTable("vendor_users", {
   id: serial("id").primaryKey(),
