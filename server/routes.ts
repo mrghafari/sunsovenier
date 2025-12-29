@@ -55206,11 +55206,11 @@ momtazchem.com
   app.get('/api/admin/vendor-accounting/balances', requireAuth, async (req, res) => {
     try {
       const { db } = await import('./db');
-      const { vendors, vendorBalances } = await import('@shared/schema');
+      const { vendors, vendorBalances, vendorTransactions } = await import('@shared/schema');
       const { showcaseProducts } = await import('@shared/showcase-schema');
       const { eq, sql } = await import('drizzle-orm');
 
-      // Get vendors with their balances and product count in single query
+      // Get vendors with their balances
       const vendorsData = await db
         .select({
           vendorId: vendors.id,
@@ -55219,13 +55219,36 @@ momtazchem.com
           isActive: vendors.isActive,
           isApproved: vendors.isApproved,
           currentBalance: vendorBalances.currentBalance,
-          totalSales: vendorBalances.totalSales,
-          totalCommission: vendorBalances.totalCommission,
           totalPaid: vendorBalances.totalPaid,
           lastTransactionAt: vendorBalances.lastTransactionAt,
         })
         .from(vendors)
         .leftJoin(vendorBalances, eq(vendors.id, vendorBalances.vendorId));
+
+      // Calculate actual totals from vendor_transactions (single batch query)
+      const transactionTotals = await db
+        .select({
+          vendorId: vendorTransactions.vendorId,
+          transactionType: vendorTransactions.transactionType,
+          totalAmount: sql<string>`COALESCE(SUM(CAST(${vendorTransactions.amount} AS DECIMAL)), 0)::text`,
+          totalCommission: sql<string>`COALESCE(SUM(CAST(${vendorTransactions.commissionAmount} AS DECIMAL)), 0)::text`
+        })
+        .from(vendorTransactions)
+        .groupBy(vendorTransactions.vendorId, vendorTransactions.transactionType);
+
+      // Build maps for sales and commission per vendor
+      const salesMap = new Map<number, string>();
+      const commissionMap = new Map<number, string>();
+      const paymentsMap = new Map<number, string>();
+      
+      for (const row of transactionTotals) {
+        if (row.transactionType === 'sale') {
+          salesMap.set(row.vendorId, row.totalAmount);
+          commissionMap.set(row.vendorId, row.totalCommission);
+        } else if (row.transactionType === 'payment') {
+          paymentsMap.set(row.vendorId, row.totalAmount);
+        }
+      }
 
       // Get product counts per vendor in single query
       const productCounts = await db
@@ -55242,9 +55265,9 @@ momtazchem.com
       const result = vendorsData.map(v => ({
         ...v,
         currentBalance: v.currentBalance || '0.00',
-        totalSales: v.totalSales || '0.00',
-        totalCommission: v.totalCommission || '0.00',
-        totalPaid: v.totalPaid || '0.00',
+        totalSales: salesMap.get(v.vendorId) || '0.00',
+        totalCommission: commissionMap.get(v.vendorId) || '0.00',
+        totalPaid: paymentsMap.get(v.vendorId) || v.totalPaid || '0.00',
         productCount: productCountMap.get(v.vendorId) || 0
       }));
 
