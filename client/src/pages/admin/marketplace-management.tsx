@@ -10,7 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Store, Check, X, Eye, Package, Mail, Phone, MapPin, Calendar, TrendingUp, Star, Calculator, AlertTriangle, XCircle, EyeOff, Box, ShoppingCart } from "lucide-react";
+import { Store, Check, X, Eye, Package, Mail, Phone, MapPin, Calendar, TrendingUp, Star, Calculator, AlertTriangle, XCircle, EyeOff, Box, ShoppingCart, CreditCard, Wallet } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import VendorAccountingTab from "./vendor-accounting-tab";
 
 type Vendor = {
@@ -46,6 +48,11 @@ export default function MarketplaceManagement() {
   const [showApproveDialog, setShowApproveDialog] = useState(false);
   const [showToggleDialog, setShowToggleDialog] = useState(false);
   const [toggleAction, setToggleAction] = useState<{ vendorId: number; currentStatus: boolean } | null>(null);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("bank_transfer");
+  const [paymentReference, setPaymentReference] = useState("");
+  const [paymentDescription, setPaymentDescription] = useState("");
 
   // Fetch all vendors
   const { data: allVendors, isLoading: loadingAll } = useQuery<{ vendors: Vendor[] }>({
@@ -207,6 +214,65 @@ export default function MarketplaceManagement() {
       });
       setShowToggleDialog(false);
     }
+  };
+
+  // Declare payment to vendor mutation
+  const declarePaymentMutation = useMutation({
+    mutationFn: async ({ vendorId, amount, paymentMethod, referenceNumber, description }: { 
+      vendorId: number; 
+      amount: number; 
+      paymentMethod: string;
+      referenceNumber?: string;
+      description?: string;
+    }) => {
+      return await apiRequest(`/api/admin/vendors/${vendorId}/payments`, {
+        method: "POST",
+        body: { amount, paymentMethod, referenceNumber, description },
+      });
+    },
+    onSuccess: () => {
+      setShowPaymentDialog(false);
+      setPaymentAmount("");
+      setPaymentMethod("bank_transfer");
+      setPaymentReference("");
+      setPaymentDescription("");
+      toast({
+        title: "موفق!",
+        description: "پرداخت با موفقیت اعلام شد",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "خطا!",
+        description: "خطا در ثبت پرداخت",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeclarePayment = (vendor: Vendor) => {
+    setSelectedVendor(vendor);
+    setShowPaymentDialog(true);
+  };
+
+  const handlePaymentSubmit = () => {
+    if (!selectedVendor) return;
+    const amount = parseFloat(paymentAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast({
+        title: "خطا!",
+        description: "مبلغ پرداخت نامعتبر است",
+        variant: "destructive",
+      });
+      return;
+    }
+    declarePaymentMutation.mutate({
+      vendorId: selectedVendor.id,
+      amount,
+      paymentMethod,
+      referenceNumber: paymentReference || undefined,
+      description: paymentDescription || undefined,
+    });
   };
 
   const handleViewDetails = (vendor: Vendor) => {
@@ -717,6 +783,20 @@ export default function MarketplaceManagement() {
                     </p>
                   </div>
                 )}
+
+                {/* Payment Action Button */}
+                {selectedVendor.isApproved && (
+                  <div className="pt-4 border-t">
+                    <Button 
+                      onClick={() => handleDeclarePayment(selectedVendor)}
+                      className="w-full bg-green-600 hover:bg-green-700"
+                      data-testid="button-declare-payment"
+                    >
+                      <Wallet className="w-4 h-4 ml-2" />
+                      اعلام پرداخت به فروشنده
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </DialogContent>
@@ -766,6 +846,90 @@ export default function MarketplaceManagement() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Declare Payment Dialog */}
+        <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+          <DialogContent className="max-w-md" data-testid="dialog-declare-payment">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Wallet className="w-5 h-5" />
+                اعلام پرداخت به فروشنده
+              </DialogTitle>
+              <DialogDescription>
+                اعلام پرداخت وجه به {selectedVendor?.vendorName}. فروشنده باید دریافت این مبلغ را تایید کند.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="payment-amount">مبلغ پرداخت (IQD) *</Label>
+                <Input
+                  id="payment-amount"
+                  type="number"
+                  placeholder="مبلغ را وارد کنید"
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  data-testid="input-payment-amount"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="payment-method">روش پرداخت *</Label>
+                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                  <SelectTrigger data-testid="select-payment-method">
+                    <SelectValue placeholder="انتخاب روش پرداخت" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bank_transfer">انتقال بانکی</SelectItem>
+                    <SelectItem value="cash">نقدی</SelectItem>
+                    <SelectItem value="check">چک</SelectItem>
+                    <SelectItem value="other">سایر</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="payment-reference">شماره مرجع / پیگیری</Label>
+                <Input
+                  id="payment-reference"
+                  placeholder="شماره تراکنش یا پیگیری"
+                  value={paymentReference}
+                  onChange={(e) => setPaymentReference(e.target.value)}
+                  data-testid="input-payment-reference"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="payment-description">توضیحات</Label>
+                <Textarea
+                  id="payment-description"
+                  placeholder="توضیحات اختیاری"
+                  value={paymentDescription}
+                  onChange={(e) => setPaymentDescription(e.target.value)}
+                  data-testid="textarea-payment-description"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowPaymentDialog(false)}
+                data-testid="button-cancel-payment"
+              >
+                لغو
+              </Button>
+              <Button
+                onClick={handlePaymentSubmit}
+                disabled={declarePaymentMutation.isPending}
+                className="bg-green-600 hover:bg-green-700"
+                data-testid="button-submit-payment"
+              >
+                {declarePaymentMutation.isPending ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white ml-2"></div>
+                ) : (
+                  <CreditCard className="w-4 h-4 ml-2" />
+                )}
+                ثبت پرداخت
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
