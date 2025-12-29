@@ -393,15 +393,15 @@ export default function VendorAccountingTab() {
                             </Button>
                             <Button
                               size="sm"
+                              className="bg-green-600 hover:bg-green-700"
                               onClick={() => {
                                 setSelectedVendor(vendor);
                                 setShowPaymentDialog(true);
                               }}
-                              disabled={parseFloat(vendor.currentBalance) <= 0}
                               data-testid={`btn-pay-${vendor.vendorId}`}
                             >
                               <DollarSign className="h-4 w-4 ml-1" />
-                              پرداخت
+                              پرداخت $
                             </Button>
                           </div>
                         </TableCell>
