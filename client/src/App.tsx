@@ -157,6 +157,7 @@ import BlogPost from "@/pages/blog-post";
 import FibPaymentPage from "@/pages/fib-payment";
 
 import NotFound from "@/pages/not-found";
+import AdminRoute from "@/components/AdminRoute";
 
 function Router() {
   return (
@@ -194,38 +195,38 @@ function Router() {
           <Route path="/order-success/:orderNumber" component={OrderSuccess} />
           <Route path="/bank-receipt-upload/:orderId" component={BankReceiptUpload} />
           <Route path="/shop-search" component={ShopSearch} />
-          <Route path="/shop-admin" component={ShopAdmin} />
-          <Route path="/admin/shop" component={ShopAdmin} />
+          <Route path="/shop-admin" component={() => <AdminRoute><ShopAdmin /></AdminRoute>} />
+          <Route path="/admin/shop" component={() => <AdminRoute><ShopAdmin /></AdminRoute>} />
           <Route path="/admin" component={AdminPage} />
           <Route path="/admin/login" component={AdminLogin} />
-          <Route path="/admin/users" component={AdminUsers} />
+          <Route path="/admin/users" component={() => <AdminRoute><AdminUsers /></AdminRoute>} />
 
-          <Route path="/admin/barcode-inventory" component={BarcodeInventory} />
-          <Route path="/admin/database-management" component={DatabaseManagement} />
-          <Route path="/admin/user-management" component={UserManagementRedesign} />
-          <Route path="/user-management" component={UserManagementRedesign} />
-          <Route path="/admin/factory-management" component={FactoryManagement} />
-          <Route path="/admin/procedures-management" component={ProceduresManagement} />
+          <Route path="/admin/barcode-inventory" component={() => <AdminRoute><BarcodeInventory /></AdminRoute>} />
+          <Route path="/admin/database-management" component={() => <AdminRoute><DatabaseManagement /></AdminRoute>} />
+          <Route path="/admin/user-management" component={() => <AdminRoute><UserManagementRedesign /></AdminRoute>} />
+          <Route path="/user-management" component={() => <AdminRoute><UserManagementRedesign /></AdminRoute>} />
+          <Route path="/admin/factory-management" component={() => <AdminRoute><FactoryManagement /></AdminRoute>} />
+          <Route path="/admin/procedures-management" component={() => <AdminRoute><ProceduresManagement /></AdminRoute>} />
 
-          <Route path="/admin/email-settings" component={EmailSettingsPage} />
-          <Route path="/admin/advanced-email-settings" component={AdvancedEmailSettingsPage} />
-          <Route path="/admin/email-address-manager" component={EmailAddressManagerFixed} />
-          <Route path="/admin/email-progress" component={EmailProgressPage} />
-          <Route path="/admin/email-templates" component={EmailTemplates} />
-          <Route path="/admin/email-routing-stats" component={EmailRoutingStats} />
+          <Route path="/admin/email-settings" component={() => <AdminRoute><EmailSettingsPage /></AdminRoute>} />
+          <Route path="/admin/advanced-email-settings" component={() => <AdminRoute><AdvancedEmailSettingsPage /></AdminRoute>} />
+          <Route path="/admin/email-address-manager" component={() => <AdminRoute><EmailAddressManagerFixed /></AdminRoute>} />
+          <Route path="/admin/email-progress" component={() => <AdminRoute><EmailProgressPage /></AdminRoute>} />
+          <Route path="/admin/email-templates" component={() => <AdminRoute><EmailTemplates /></AdminRoute>} />
+          <Route path="/admin/email-routing-stats" component={() => <AdminRoute><EmailRoutingStats /></AdminRoute>} />
 
-          <Route path="/admin/email-templates-central" component={EmailTemplatesCentral} />
-          <Route path="/admin/automated-email-logs" component={AutomatedEmailLogs} />
-          <Route path="/admin/email-templates-fixed" component={EmailTemplatesFixed} />
-          <Route path="/admin/template-distribution" component={TemplateDistribution} />
-          <Route path="/admin/invoice-management" component={InvoiceManagement} />
-          <Route path="/admin/payment-settings" component={PaymentSettings} />
-          <Route path="/test-payment" component={PaymentTestPage} />
-          <Route path="/admin/wallet-management" component={WalletManagement} />
-          <Route path="/admin/wallet-correction" component={WalletCorrection} />
-          <Route path="/wallet-debug-test" component={WalletDebugTest} />
-          <Route path="/admin/inquiries" component={Dashboard} />
-          <Route path="/admin/inquiry/:id" component={InquiryDetail} />
+          <Route path="/admin/email-templates-central" component={() => <AdminRoute><EmailTemplatesCentral /></AdminRoute>} />
+          <Route path="/admin/automated-email-logs" component={() => <AdminRoute><AutomatedEmailLogs /></AdminRoute>} />
+          <Route path="/admin/email-templates-fixed" component={() => <AdminRoute><EmailTemplatesFixed /></AdminRoute>} />
+          <Route path="/admin/template-distribution" component={() => <AdminRoute><TemplateDistribution /></AdminRoute>} />
+          <Route path="/admin/invoice-management" component={() => <AdminRoute><InvoiceManagement /></AdminRoute>} />
+          <Route path="/admin/payment-settings" component={() => <AdminRoute><PaymentSettings /></AdminRoute>} />
+          <Route path="/test-payment" component={() => <AdminRoute><PaymentTestPage /></AdminRoute>} />
+          <Route path="/admin/wallet-management" component={() => <AdminRoute><WalletManagement /></AdminRoute>} />
+          <Route path="/admin/wallet-correction" component={() => <AdminRoute><WalletCorrection /></AdminRoute>} />
+          <Route path="/wallet-debug-test" component={() => <AdminRoute><WalletDebugTest /></AdminRoute>} />
+          <Route path="/admin/inquiries" component={() => <AdminRoute><Dashboard /></AdminRoute>} />
+          <Route path="/admin/inquiry/:id" component={() => <AdminRoute><InquiryDetail /></AdminRoute>} />
           <Route path="/forgot-password" component={ForgotPassword} />
           <Route path="/reset-password/:token" component={ResetPassword} />
           <Route path="/password-reset" component={PasswordReset} />
@@ -235,7 +236,7 @@ function Router() {
           <Route path="/customer/login" component={CustomerLogin} />
           <Route path="/customer/register" component={CustomerRegister} />
           <Route path="/complete-profile" component={CompleteProfile} />
-          <Route path="/crm" component={CRMPage} />
+          <Route path="/crm" component={() => <AdminRoute><CRMPage /></AdminRoute>} />
           <Route path="/customer/profile" component={CustomerProfile} />
           <Route path="/customer-profile" component={CustomerProfile} />
           <Route path="/customer/profile/edit" component={CustomerProfileEdit} />
@@ -244,93 +245,93 @@ function Router() {
           <Route path="/customer/wallet" component={CustomerWallet} />
           <Route path="/customer/bank-receipt-upload" component={BankReceiptUpload} />
           <Route path="/customer/bank-receipt-upload/:orderId" component={BankReceiptUpload} />
-          <Route path="/category-management" component={CategoryManagement} />
-          <Route path="/seo-management" component={SeoManagement} />
-          <Route path="/admin/sms-management" component={AdminSmsManagement} />
-          <Route path="/admin/whatsapp-crm" component={WhatsAppCRM} />
-          <Route path="/admin/whatsapp-crm-en" component={WhatsAppCRMEnglish} />
-          <Route path="/admin/email-logs" component={lazy(() => import("@/pages/admin-email-logs"))} />
-          <Route path="/admin/sms" component={AdminSmsManagement} />
-          <Route path="/admin/widgets" component={WidgetRecommendations} />
-          <Route path="/admin/order-management" component={OrderTrackingManagement} />
-          <Route path="/admin/order-tracking" component={OrderTrackingManagement} />
-          <Route path="/admin/order-tracking-management" component={OrderTrackingManagement} />
-          <Route path="/admin/abandoned-cart-management" component={AbandonedCartManagement} />
-          <Route path="/site-management" component={SiteManagementFixed} />
-          <Route path="/admin/site-management" component={SiteManagementFixed} />
-          <Route path="/admin/products" component={ProductsPage} />
+          <Route path="/category-management" component={() => <AdminRoute><CategoryManagement /></AdminRoute>} />
+          <Route path="/seo-management" component={() => <AdminRoute><SeoManagement /></AdminRoute>} />
+          <Route path="/admin/sms-management" component={() => <AdminRoute><AdminSmsManagement /></AdminRoute>} />
+          <Route path="/admin/whatsapp-crm" component={() => <AdminRoute><WhatsAppCRM /></AdminRoute>} />
+          <Route path="/admin/whatsapp-crm-en" component={() => <AdminRoute><WhatsAppCRMEnglish /></AdminRoute>} />
+          <Route path="/admin/email-logs" component={() => <AdminRoute>{(() => { const Comp = lazy(() => import("@/pages/admin-email-logs")); return <Comp />; })()}</AdminRoute>} />
+          <Route path="/admin/sms" component={() => <AdminRoute><AdminSmsManagement /></AdminRoute>} />
+          <Route path="/admin/widgets" component={() => <AdminRoute><WidgetRecommendations /></AdminRoute>} />
+          <Route path="/admin/order-management" component={() => <AdminRoute><OrderTrackingManagement /></AdminRoute>} />
+          <Route path="/admin/order-tracking" component={() => <AdminRoute><OrderTrackingManagement /></AdminRoute>} />
+          <Route path="/admin/order-tracking-management" component={() => <AdminRoute><OrderTrackingManagement /></AdminRoute>} />
+          <Route path="/admin/abandoned-cart-management" component={() => <AdminRoute><AbandonedCartManagement /></AdminRoute>} />
+          <Route path="/site-management" component={() => <AdminRoute><SiteManagementFixed /></AdminRoute>} />
+          <Route path="/admin/site-management" component={() => <AdminRoute><SiteManagementFixed /></AdminRoute>} />
+          <Route path="/admin/products" component={() => <AdminRoute><ProductsPage /></AdminRoute>} />
           <Route path="/vendor/products" component={ProductsPage} />
-          <Route path="/admin/product-variants" component={ProductVariants} />
-          <Route path="/admin/geographic-reports" component={GeographicReports} />
-          <Route path="/admin/geographic-analytics" component={GeographicAnalytics} />
-          <Route path="/admin/iraqi-geography" component={IraqiGeography} />
-          <Route path="/admin/ai-settings" component={AISettings} />
+          <Route path="/admin/product-variants" component={() => <AdminRoute><ProductVariants /></AdminRoute>} />
+          <Route path="/admin/geographic-reports" component={() => <AdminRoute><GeographicReports /></AdminRoute>} />
+          <Route path="/admin/geographic-analytics" component={() => <AdminRoute><GeographicAnalytics /></AdminRoute>} />
+          <Route path="/admin/iraqi-geography" component={() => <AdminRoute><IraqiGeography /></AdminRoute>} />
+          <Route path="/admin/ai-settings" component={() => <AdminRoute><AISettings /></AdminRoute>} />
           <Route path="/documentation" component={DocumentationPage} />
           
           {/* New Department Order Management Pages */}
-          <Route path="/admin/finance-orders" component={FinanceOrders} />
-          <Route path="/admin/logistics-orders" component={LogisticsOrders} />
-          <Route path="/admin/logistics-management" component={LogisticsManagement} />
-          <Route path="/admin/logistics" component={LogisticsManagement} />
-          <Route path="/admin/vehicle-types-management" component={lazy(() => import("@/pages/admin/vehicle-types-management"))} />
-          <Route path="/admin/delivered-orders" component={DeliveredOrders} />
-          <Route path="/admin/financial-workflow" component={FinancialWorkflowDashboard} />
+          <Route path="/admin/finance-orders" component={() => <AdminRoute><FinanceOrders /></AdminRoute>} />
+          <Route path="/admin/logistics-orders" component={() => <AdminRoute><LogisticsOrders /></AdminRoute>} />
+          <Route path="/admin/logistics-management" component={() => <AdminRoute><LogisticsManagement /></AdminRoute>} />
+          <Route path="/admin/logistics" component={() => <AdminRoute><LogisticsManagement /></AdminRoute>} />
+          <Route path="/admin/vehicle-types-management" component={() => <AdminRoute>{(() => { const Comp = lazy(() => import("@/pages/admin/vehicle-types-management")); return <Comp />; })()}</AdminRoute>} />
+          <Route path="/admin/delivered-orders" component={() => <AdminRoute><DeliveredOrders /></AdminRoute>} />
+          <Route path="/admin/financial-workflow" component={() => <AdminRoute><FinancialWorkflowDashboard /></AdminRoute>} />
           <Route path="/payment-options" component={PaymentOptions} />
-          <Route path="/admin/global-refresh-settings" component={GlobalRefreshSettings} />
+          <Route path="/admin/global-refresh-settings" component={() => <AdminRoute><GlobalRefreshSettings /></AdminRoute>} />
 
-          <Route path="/admin/inventory-notification-settings" component={InventoryNotificationSettings} />
-          <Route path="/admin/warehouse-management" component={WarehouseManagementFixed} />
+          <Route path="/admin/inventory-notification-settings" component={() => <AdminRoute><InventoryNotificationSettings /></AdminRoute>} />
+          <Route path="/admin/warehouse-management" component={() => <AdminRoute><WarehouseManagementFixed /></AdminRoute>} />
 
-          <Route path="/admin/content-management" component={ContentManagement} />
-          <Route path="/content-management" component={ContentManagement} />
-          <Route path="/admin/footer-management" component={FooterManagement} />
-          <Route path="/admin/shop-management" component={ShopManagement} />
-          <Route path="/admin/marketplace-management" component={MarketplaceManagement} />
-          <Route path="/admin/vendor-accounting" component={VendorAccounting} />
-          <Route path="/admin/email-templates" component={EmailTemplatesFixed} />
-          <Route path="/admin/email-templates-fixed" component={EmailTemplatesFixed} />
-          <Route path="/admin/email-templates-central" component={EmailTemplatesCentral} />
-          <Route path="/admin/template05-view" component={Template05View} />
-          <Route path="/admin/template05-static" component={Template05StaticView} />
-          <Route path="/admin/inquiry-responses" component={InquiryResponses} />
-          <Route path="/admin/marketing-module" component={MarketingModule} />
+          <Route path="/admin/content-management" component={() => <AdminRoute><ContentManagement /></AdminRoute>} />
+          <Route path="/content-management" component={() => <AdminRoute><ContentManagement /></AdminRoute>} />
+          <Route path="/admin/footer-management" component={() => <AdminRoute><FooterManagement /></AdminRoute>} />
+          <Route path="/admin/shop-management" component={() => <AdminRoute><ShopManagement /></AdminRoute>} />
+          <Route path="/admin/marketplace-management" component={() => <AdminRoute><MarketplaceManagement /></AdminRoute>} />
+          <Route path="/admin/vendor-accounting" component={() => <AdminRoute><VendorAccounting /></AdminRoute>} />
+          <Route path="/admin/email-templates" component={() => <AdminRoute><EmailTemplatesFixed /></AdminRoute>} />
+          <Route path="/admin/email-templates-fixed" component={() => <AdminRoute><EmailTemplatesFixed /></AdminRoute>} />
+          <Route path="/admin/email-templates-central" component={() => <AdminRoute><EmailTemplatesCentral /></AdminRoute>} />
+          <Route path="/admin/template05-view" component={() => <AdminRoute><Template05View /></AdminRoute>} />
+          <Route path="/admin/template05-static" component={() => <AdminRoute><Template05StaticView /></AdminRoute>} />
+          <Route path="/admin/inquiry-responses" component={() => <AdminRoute><InquiryResponses /></AdminRoute>} />
+          <Route path="/admin/marketing-module" component={() => <AdminRoute><MarketingModule /></AdminRoute>} />
 
-          <Route path="/admin/security-management" component={SecurityManagement} />
-          <Route path="/admin/ticketing-system" component={TicketingSystemFixed} />
-          <Route path="/admin/abandoned-orders" component={AdminAbandonedOrders} />
-          <Route path="/admin/remote-desktop" component={RemoteDesktop} />
-          <Route path="/admin/server-config" component={ServerConfig} />
-          <Route path="/admin/aws-s3-settings" component={AwsS3Settings} />
-          <Route path="/admin/missing-images" component={AdminMissingImages} />
-          <Route path="/admin/fib-settings" component={FibSettings} />
-          <Route path="/admin/batch-management" component={BatchManagement} />
-          <Route path="/admin/kpi-dashboard" component={KpiDashboard} />
-          <Route path="/admin/kpi-report" component={KpiReport} />
-          <Route path="/admin/management-dashboard" component={ManagementDashboard} />
-          <Route path="/admin/accounting-management" component={AccountingManagement} />
-          <Route path="/admin/company-information" component={CompanyInformation} />
-          <Route path="/admin/vehicle-optimization" component={VehicleOptimization} />
-          <Route path="/admin/vehicle-history" component={VehicleHistoryPage} />
-          <Route path="/admin/logistics-geography" component={LogisticsGeography} />
-          <Route path="/admin/pdf-test" component={lazy(() => import("@/pages/admin/pdf-test"))} />
-          <Route path="/admin/blog-management" component={BlogManagement} />
+          <Route path="/admin/security-management" component={() => <AdminRoute><SecurityManagement /></AdminRoute>} />
+          <Route path="/admin/ticketing-system" component={() => <AdminRoute><TicketingSystemFixed /></AdminRoute>} />
+          <Route path="/admin/abandoned-orders" component={() => <AdminRoute><AdminAbandonedOrders /></AdminRoute>} />
+          <Route path="/admin/remote-desktop" component={() => <AdminRoute><RemoteDesktop /></AdminRoute>} />
+          <Route path="/admin/server-config" component={() => <AdminRoute><ServerConfig /></AdminRoute>} />
+          <Route path="/admin/aws-s3-settings" component={() => <AdminRoute><AwsS3Settings /></AdminRoute>} />
+          <Route path="/admin/missing-images" component={() => <AdminRoute><AdminMissingImages /></AdminRoute>} />
+          <Route path="/admin/fib-settings" component={() => <AdminRoute><FibSettings /></AdminRoute>} />
+          <Route path="/admin/batch-management" component={() => <AdminRoute><BatchManagement /></AdminRoute>} />
+          <Route path="/admin/kpi-dashboard" component={() => <AdminRoute><KpiDashboard /></AdminRoute>} />
+          <Route path="/admin/kpi-report" component={() => <AdminRoute><KpiReport /></AdminRoute>} />
+          <Route path="/admin/management-dashboard" component={() => <AdminRoute><ManagementDashboard /></AdminRoute>} />
+          <Route path="/admin/accounting-management" component={() => <AdminRoute><AccountingManagement /></AdminRoute>} />
+          <Route path="/admin/company-information" component={() => <AdminRoute><CompanyInformation /></AdminRoute>} />
+          <Route path="/admin/vehicle-optimization" component={() => <AdminRoute><VehicleOptimization /></AdminRoute>} />
+          <Route path="/admin/vehicle-history" component={() => <AdminRoute><VehicleHistoryPage /></AdminRoute>} />
+          <Route path="/admin/logistics-geography" component={() => <AdminRoute><LogisticsGeography /></AdminRoute>} />
+          <Route path="/admin/pdf-test" component={() => <AdminRoute>{(() => { const Comp = lazy(() => import("@/pages/admin/pdf-test")); return <Comp />; })()}</AdminRoute>} />
+          <Route path="/admin/blog-management" component={() => <AdminRoute><BlogManagement /></AdminRoute>} />
 
 
           
           {/* Department-specific routes */}
-          <Route path="/financial" component={FinancialDepartment} />
+          <Route path="/financial" component={() => <AdminRoute><FinancialDepartment /></AdminRoute>} />
           <Route path="/financial/login" component={FinancialLogin} />
-          <Route path="/warehouse" component={WarehouseManagementFixed} />
+          <Route path="/warehouse" component={() => <AdminRoute><WarehouseManagementFixed /></AdminRoute>} />
           <Route path="/warehouse/login" component={WarehouseLogin} />
           <Route path="/logistics/login" component={LogisticsLogin} />
           <Route path="/test-logistics" component={TestLogistics} />
 
-          <Route path="/super-admin/settings" component={SuperAdminSettings} />
-          <Route path="/admin/super-admin-settings" component={SuperAdminSettings} />
-          <Route path="/admin/super-admin-order-management" component={SuperAdminOrderManagement} />
-          <Route path="/super-admin/order-management" component={SuperAdminOrderManagement} />
+          <Route path="/super-admin/settings" component={() => <AdminRoute><SuperAdminSettings /></AdminRoute>} />
+          <Route path="/admin/super-admin-settings" component={() => <AdminRoute><SuperAdminSettings /></AdminRoute>} />
+          <Route path="/admin/super-admin-order-management" component={() => <AdminRoute><SuperAdminOrderManagement /></AdminRoute>} />
+          <Route path="/super-admin/order-management" component={() => <AdminRoute><SuperAdminOrderManagement /></AdminRoute>} />
           
-          <Route path="/analytics/sales" component={SalesAnalytics} />
+          <Route path="/analytics/sales" component={() => <AdminRoute><SalesAnalytics /></AdminRoute>} />
           <Route path="/products" component={Products} />
           <Route path="/test-product-image-upload" component={TestProductImageUpload} />
           <Route path="/products/fuel-additives" component={FuelAdditives} />
