@@ -498,16 +498,28 @@ export default function MarketplaceManagement() {
             )}
             
             {vendor.isApproved && (
-              <Button
-                variant={vendor.isActive ? "outline" : "default"}
-                size="sm"
-                className="flex-1"
-                onClick={() => handleToggleStatus(vendor)}
-                disabled={updateStatusMutation.isPending}
-                data-testid={`button-toggle-status-${vendor.id}`}
-              >
-                {vendor.isActive ? "غیرفعال کردن" : "فعال کردن"}
-              </Button>
+              <>
+                <Button
+                  variant={vendor.isActive ? "outline" : "default"}
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => handleToggleStatus(vendor)}
+                  disabled={updateStatusMutation.isPending}
+                  data-testid={`button-toggle-status-${vendor.id}`}
+                >
+                  {vendor.isActive ? "غیرفعال کردن" : "فعال کردن"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 text-green-600 border-green-600 hover:bg-green-50"
+                  onClick={() => handleDeclarePayment(vendor)}
+                  data-testid={`button-declare-payment-${vendor.id}`}
+                >
+                  <Wallet className="w-4 h-4 mr-1" />
+                  پرداخت
+                </Button>
+              </>
             )}
           </div>
         </div>
