@@ -1046,6 +1046,119 @@ export function createVendorRouter() {
     }
   });
 
+  
+  // ==========================================================================
+  // VENDOR PAYMENTS - For vendors to view and confirm payments from admin
+  // ==========================================================================
+
+  // Get payments for the authenticated vendor
+  router.get("/payments", requireVendorAuth, async (req, res) => {
+    try {
+      const vendorUser = (req as any).vendorUser;
+      
+      if (!vendorUser?.vendorId) {
+        return res.status(401).json({
+          success: false,
+          message: "Vendor authentication required"
+        });
+      }
+
+      const { vendorPayments } = await import("@shared/schema");
+      const { desc, eq } = await import("drizzle-orm");
+      
+      const payments = await db
+        .select()
+        .from(vendorPayments)
+        .where(eq(vendorPayments.vendorId, vendorUser.vendorId))
+        .orderBy(desc(vendorPayments.declaredAt));
+
+      res.json({
+        success: true,
+        payments
+      });
+    } catch (error: any) {
+      console.error("Error fetching vendor payments:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error fetching payments"
+      });
+    }
+  });
+
+  // Confirm payment receipt
+  router.post("/payments/:paymentId/confirm", requireVendorAuth, async (req, res) => {
+    try {
+      const vendorUser = (req as any).vendorUser;
+      const paymentId = parseInt(req.params.paymentId);
+      
+      if (!vendorUser?.vendorId) {
+        return res.status(401).json({
+          success: false,
+          message: "Vendor authentication required"
+        });
+      }
+
+      if (isNaN(paymentId)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid payment ID"
+        });
+      }
+
+      const { vendorPayments } = await import("@shared/schema");
+      const { eq, and } = await import("drizzle-orm");
+      
+      // Verify the payment belongs to this vendor
+      const [payment] = await db
+        .select()
+        .from(vendorPayments)
+        .where(and(
+          eq(vendorPayments.id, paymentId),
+          eq(vendorPayments.vendorId, vendorUser.vendorId)
+        ));
+
+      if (!payment) {
+        return res.status(404).json({
+          success: false,
+          message: "Payment not found"
+        });
+      }
+
+      if (payment.isConfirmed) {
+        return res.status(400).json({
+          success: false,
+          message: "Payment already confirmed"
+        });
+      }
+
+      // Update the payment to confirmed
+      const [updatedPayment] = await db
+        .update(vendorPayments)
+        .set({
+          isConfirmed: true,
+          confirmedAt: new Date(),
+          status: 'confirmed'
+        })
+        .where(eq(vendorPayments.id, paymentId))
+        .returning();
+
+      console.log(`✅ [VENDOR PAYMENT] Payment ${paymentId} confirmed by vendor ${vendorUser.vendorId}`);
+
+      res.json({
+        success: true,
+        message: "پرداخت با موفقیت تایید شد",
+        payment: updatedPayment
+      });
+    } catch (error: any) {
+      console.error("Error confirming payment:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error confirming payment"
+      });
+    }
+  });
+
+
   console.log("✅ [VENDOR] Vendor router created successfully");
   
   return router;
