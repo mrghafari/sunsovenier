@@ -954,6 +954,98 @@ export function createVendorRouter() {
     }
   });
 
+  // Submit profile changes for admin approval
+  router.post("/profile/submit-changes", requireVendorAuth, async (req, res) => {
+    try {
+      const vendorUser = (req as any).vendorUser;
+      
+      if (!vendorUser?.vendorId) {
+        return res.status(401).json({
+          success: false,
+          message: "Vendor authentication required"
+        });
+      }
+
+      const { changes } = req.body;
+      if (!changes || typeof changes !== 'object') {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid changes data"
+        });
+      }
+
+      // Only allow specific fields to be changed
+      const allowedFields = [
+        'vendorName', 'vendorNameEn', 'vendorNameAr', 'vendorNameKu', 'vendorNameTr',
+        'contactPhone', 'description', 'descriptionEn', 'descriptionAr', 'descriptionKu', 'descriptionTr',
+        'address', 'city', 'postalCode', 'businessLicense', 'taxId'
+      ];
+      
+      const filteredChanges: Record<string, any> = {};
+      for (const field of allowedFields) {
+        if (changes[field] !== undefined) {
+          filteredChanges[field] = changes[field];
+        }
+      }
+
+      if (Object.keys(filteredChanges).length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "No valid changes provided"
+        });
+      }
+
+      const updatedVendor = await vendorStorage.submitProfileChanges(vendorUser.vendorId, filteredChanges);
+
+      res.json({
+        success: true,
+        message: "تغییرات ارسال شد و در انتظار تایید مدیر است",
+        vendor: updatedVendor
+      });
+    } catch (error: any) {
+      console.error("Error submitting profile changes:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error submitting changes"
+      });
+    }
+  });
+
+  // Get current profile with pending changes status
+  router.get("/profile", requireVendorAuth, async (req, res) => {
+    try {
+      const vendorUser = (req as any).vendorUser;
+      
+      if (!vendorUser?.vendorId) {
+        return res.status(401).json({
+          success: false,
+          message: "Vendor authentication required"
+        });
+      }
+
+      const vendor = await vendorStorage.getVendorById(vendorUser.vendorId);
+      if (!vendor) {
+        return res.status(404).json({
+          success: false,
+          message: "Vendor not found"
+        });
+      }
+
+      res.json({
+        success: true,
+        vendor,
+        hasPendingChanges: !!vendor.pendingProfileChanges,
+        pendingChanges: vendor.pendingProfileChanges
+      });
+    } catch (error: any) {
+      console.error("Error getting vendor profile:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error getting profile"
+      });
+    }
+  });
+
   console.log("✅ [VENDOR] Vendor router created successfully");
   
   return router;

@@ -405,6 +405,65 @@ export function createAdminVendorRouter() {
     }
   });
 
+  // Get vendors with pending profile changes
+  router.get("/pending-profile-changes", async (req, res) => {
+    try {
+      const vendors = await vendorStorage.getVendorsWithPendingChanges();
+
+      res.json({
+        success: true,
+        vendors,
+        totalCount: vendors.length
+      });
+    } catch (error: any) {
+      console.error("Error getting vendors with pending changes:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error getting vendors with pending changes"
+      });
+    }
+  });
+
+  // Approve vendor profile changes
+  router.post("/:id/profile-changes/approve", async (req, res) => {
+    try {
+      const vendorId = parseInt(req.params.id);
+      const vendor = await vendorStorage.approveProfileChanges(vendorId);
+
+      res.json({
+        success: true,
+        message: "Profile changes approved and applied",
+        vendor
+      });
+    } catch (error: any) {
+      console.error("Error approving profile changes:", error);
+      res.status(500).json({
+        success: false,
+        message: error.message || "Error approving profile changes"
+      });
+    }
+  });
+
+  // Reject vendor profile changes
+  router.post("/:id/profile-changes/reject", async (req, res) => {
+    try {
+      const vendorId = parseInt(req.params.id);
+      const vendor = await vendorStorage.rejectProfileChanges(vendorId);
+
+      res.json({
+        success: true,
+        message: "Profile changes rejected",
+        vendor
+      });
+    } catch (error: any) {
+      console.error("Error rejecting profile changes:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error rejecting profile changes"
+      });
+    }
+  });
+
   console.log("✅ [ADMIN-VENDOR] Admin vendor management router created");
   
   return router;

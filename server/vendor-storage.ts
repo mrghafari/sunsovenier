@@ -110,6 +110,12 @@ export interface IVendorStorage {
   createVendorPayment(payment: InsertVendorPayment): Promise<VendorPayment>;
   confirmVendorPayment(id: number, confirmedBy: number): Promise<VendorPayment>;
   getAllPendingPayments(): Promise<Array<VendorPayment & { vendorName: string }>>;
+  
+  // Vendor profile change requests
+  submitProfileChanges(vendorId: number, changes: Record<string, any>): Promise<Vendor>;
+  getVendorsWithPendingChanges(): Promise<Vendor[]>;
+  approveProfileChanges(vendorId: number): Promise<Vendor>;
+  rejectProfileChanges(vendorId: number): Promise<Vendor>;
 }
 
 export class VendorStorage implements IVendorStorage {
@@ -859,6 +865,67 @@ export class VendorStorage implements IVendorStorage {
       ...row,
       vendorName: row.vendorName || 'Unknown Vendor'
     }));
+  }
+
+  // ============================================================================
+  // VENDOR PROFILE CHANGE REQUESTS
+  // ============================================================================
+
+  async submitProfileChanges(vendorId: number, changes: Record<string, any>): Promise<Vendor> {
+    const [updated] = await db
+      .update(vendors)
+      .set({
+        pendingProfileChanges: changes,
+        pendingChangesSubmittedAt: new Date(),
+        updatedAt: new Date()
+      })
+      .where(eq(vendors.id, vendorId))
+      .returning();
+    return updated;
+  }
+
+  async getVendorsWithPendingChanges(): Promise<Vendor[]> {
+    return await db
+      .select()
+      .from(vendors)
+      .where(sql`${vendors.pendingProfileChanges} IS NOT NULL`)
+      .orderBy(desc(vendors.pendingChangesSubmittedAt));
+  }
+
+  async approveProfileChanges(vendorId: number): Promise<Vendor> {
+    // First get the pending changes
+    const vendor = await this.getVendorById(vendorId);
+    if (!vendor || !vendor.pendingProfileChanges) {
+      throw new Error('No pending changes found');
+    }
+
+    const changes = vendor.pendingProfileChanges as Record<string, any>;
+    
+    // Apply the changes and clear pending
+    const [updated] = await db
+      .update(vendors)
+      .set({
+        ...changes,
+        pendingProfileChanges: null,
+        pendingChangesSubmittedAt: null,
+        updatedAt: new Date()
+      })
+      .where(eq(vendors.id, vendorId))
+      .returning();
+    return updated;
+  }
+
+  async rejectProfileChanges(vendorId: number): Promise<Vendor> {
+    const [updated] = await db
+      .update(vendors)
+      .set({
+        pendingProfileChanges: null,
+        pendingChangesSubmittedAt: null,
+        updatedAt: new Date()
+      })
+      .where(eq(vendors.id, vendorId))
+      .returning();
+    return updated;
   }
 }
 
