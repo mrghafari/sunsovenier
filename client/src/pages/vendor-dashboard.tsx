@@ -29,11 +29,11 @@ function BarcodeImage({ value, align = 'center' }: { value: string; align?: 'lef
       try {
         JsBarcode(svgRef.current, value, {
           format: "CODE128",
-          width: 2.5,
-          height: 70,
+          width: 3,
+          height: 100,
           displayValue: false,
-          margin: 8,
-          background: "transparent"
+          margin: 10,
+          background: "#ffffff"
         });
       } catch (e) {
         console.error("Barcode error:", e);
@@ -46,9 +46,9 @@ function BarcodeImage({ value, align = 'center' }: { value: string; align?: 'lef
   const alignClass = align === 'left' ? 'items-start' : align === 'right' ? 'items-end' : 'items-center';
 
   return (
-    <div className={`flex flex-col ${alignClass}`}>
-      <svg ref={svgRef} className="w-[180px]" />
-      <span className="text-xs font-mono text-muted-foreground mt-1 font-bold">{value}</span>
+    <div className={`flex flex-col ${alignClass} py-2`}>
+      <svg ref={svgRef} />
+      <span className="text-sm font-mono text-gray-700 mt-2 font-bold">{value}</span>
     </div>
   );
 }
