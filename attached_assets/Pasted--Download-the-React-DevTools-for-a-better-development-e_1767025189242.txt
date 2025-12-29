@@ -1,0 +1,90 @@
+ Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ 📥 Loading Tawk.to widget at bottom-left position...
+/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+/api/vendors/auth/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ ✅ Tawk.to Live Chat loaded successfully at bottom-left
+ Error: Unable to store cookie
+    at e.value (embed.tawk.to/_s/v4/app/69525090bcf/js/twk-chunk-common.js:2:118472)
+    at t.value (embed.tawk.to/_s/v4/app/69525090bcf/js/twk-chunk-common.js:2:151556)
+    at p.updateUUID (embed.tawk.to/_s/v4/app/69525090bcf/js/twk-chunk-common.js:2:203208)
+    at Array.<anonymous> (embed.tawk.to/_s/v4/app/69525090bcf/js/twk-vendor.js:2:76358)
+    at p.dispatch (embed.tawk.to/_s/v4/app/69525090bcf/js/twk-vendor.js:2:78106)
+    at p.dispatch (embed.tawk.to/_s/v4/app/69525090bcf/js/twk-vendor.js:2:73855)
+    at t.value (embed.tawk.to/_s/v4/app/69525090bcf/js/twk-chunk-common.js:2:125487)
+    at embed.tawk.to/_s/v4/app/69525090bcf/js/twk-chunk-common.js:2:124798
+value @ embed.tawk.to/_s/v4/…k-chunk-common.js:2
+128x128?text=WeChat+QR:1  Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+about:blank:1 [Intervention] Slow network is detected. See https://www.chromestatus.com/feature/5636954674692096 for more details. Fallback font will be used while loading: https://embed.tawk.to/_s/v4/assets/fonts/tawk-font-icon-3.woff?55755728=
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+/api/vendors/payments:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ Auth check result: Object
+/api/vendors/payments:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+/api/vendors/profile/submit-changes:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ Failed to parse JSON response: TypeError: Failed to execute 'json' on 'Response': body stream already read
+    at apiRequest (/src/lib/queryClient.ts:49:22)
+    at async Object.mutationFn (/src/pages/vendor-dashboard.tsx:194:24)
+apiRequest @ /src/lib/queryClient.ts:51
+ Auth check result: Object
+/api/vendors/profile/submit-changes:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ Failed to parse JSON response: TypeError: Failed to execute 'json' on 'Response': body stream already read
+    at apiRequest (/src/lib/queryClient.ts:49:22)
+    at async Object.mutationFn (/src/pages/vendor-dashboard.tsx:194:24)
+apiRequest @ /src/lib/queryClient.ts:51
+  POST https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/vendors/profile/submit-changes 401 (Unauthorized)
+apiRequest @ /src/lib/queryClient.ts:39
+mutationFn @ /src/pages/vendor-dashboard.tsx:194
+fn @ /@fs/home/runner/wor….js?v=5e0d855b:1189
+run @ /@fs/home/runner/wor…y.js?v=5e0d855b:494
+start @ /@fs/home/runner/wor…y.js?v=5e0d855b:536
+execute @ /@fs/home/runner/wor….js?v=5e0d855b:1225
+await in execute
+mutate @ /@fs/home/runner/wor….js?v=5e0d855b:2630
+(anonymous) @ /@fs/home/runner/wor….js?v=5e0d855b:3295
+handleProfileSubmit @ /src/pages/vendor-dashboard.tsx:249
+callCallback2 @ /@fs/home/runner/wor….js?v=5e0d855b:3674
+invokeGuardedCallbackDev @ /@fs/home/runner/wor….js?v=5e0d855b:3699
+invokeGuardedCallback @ /@fs/home/runner/wor….js?v=5e0d855b:3733
+invokeGuardedCallbackAndCatchFirstError @ /@fs/home/runner/wor….js?v=5e0d855b:3736
+executeDispatch @ /@fs/home/runner/wor….js?v=5e0d855b:7014
+processDispatchQueueItemsInOrder @ /@fs/home/runner/wor….js?v=5e0d855b:7034
+processDispatchQueue @ /@fs/home/runner/wor….js?v=5e0d855b:7043
+dispatchEventsForPlugins @ /@fs/home/runner/wor….js?v=5e0d855b:7051
+(anonymous) @ /@fs/home/runner/wor….js?v=5e0d855b:7174
+batchedUpdates$1 @ /@fs/home/runner/wor…js?v=5e0d855b:18913
+batchedUpdates @ /@fs/home/runner/wor….js?v=5e0d855b:3579
+dispatchEventForPluginEventSystem @ /@fs/home/runner/wor….js?v=5e0d855b:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ /@fs/home/runner/wor….js?v=5e0d855b:5478
+dispatchEvent @ /@fs/home/runner/wor….js?v=5e0d855b:5472
+dispatchDiscreteEvent @ /@fs/home/runner/wor….js?v=5e0d855b:5449
+ Failed to parse JSON response: TypeError: Failed to execute 'json' on 'Response': body stream already read
+    at apiRequest (/src/lib/queryClient.ts:49:22)
+    at async Object.mutationFn (/src/pages/vendor-dashboard.tsx:194:24)
+apiRequest @ /src/lib/queryClient.ts:51
+await in apiRequest
+mutationFn @ /src/pages/vendor-dashboard.tsx:194
+fn @ /@fs/home/runner/wor….js?v=5e0d855b:1189
+run @ /@fs/home/runner/wor…y.js?v=5e0d855b:494
+start @ /@fs/home/runner/wor…y.js?v=5e0d855b:536
+execute @ /@fs/home/runner/wor….js?v=5e0d855b:1225
+await in execute
+mutate @ /@fs/home/runner/wor….js?v=5e0d855b:2630
+(anonymous) @ /@fs/home/runner/wor….js?v=5e0d855b:3295
+handleProfileSubmit @ /src/pages/vendor-dashboard.tsx:249
+callCallback2 @ /@fs/home/runner/wor….js?v=5e0d855b:3674
+invokeGuardedCallbackDev @ /@fs/home/runner/wor….js?v=5e0d855b:3699
+invokeGuardedCallback @ /@fs/home/runner/wor….js?v=5e0d855b:3733
+invokeGuardedCallbackAndCatchFirstError @ /@fs/home/runner/wor….js?v=5e0d855b:3736
+executeDispatch @ /@fs/home/runner/wor….js?v=5e0d855b:7014
+processDispatchQueueItemsInOrder @ /@fs/home/runner/wor….js?v=5e0d855b:7034
+processDispatchQueue @ /@fs/home/runner/wor….js?v=5e0d855b:7043
+dispatchEventsForPlugins @ /@fs/home/runner/wor….js?v=5e0d855b:7051
+(anonymous) @ /@fs/home/runner/wor….js?v=5e0d855b:7174
+batchedUpdates$1 @ /@fs/home/runner/wor…js?v=5e0d855b:18913
+batchedUpdates @ /@fs/home/runner/wor….js?v=5e0d855b:3579
+dispatchEventForPluginEventSystem @ /@fs/home/runner/wor….js?v=5e0d855b:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ /@fs/home/runner/wor….js?v=5e0d855b:5478
+dispatchEvent @ /@fs/home/runner/wor….js?v=5e0d855b:5472
+dispatchDiscreteEvent @ /@fs/home/runner/wor….js?v=5e0d855b:5449

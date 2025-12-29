@@ -116,6 +116,25 @@ export function createAdminVendorRouter() {
     }
   });
 
+  // Get vendors with pending profile changes (MUST be before /:id route)
+  router.get("/pending-profile-changes", async (req, res) => {
+    try {
+      const vendors = await vendorStorage.getVendorsWithPendingChanges();
+
+      res.json({
+        success: true,
+        vendors,
+        totalCount: vendors.length
+      });
+    } catch (error: any) {
+      console.error("Error getting vendors with pending changes:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error getting vendors with pending changes"
+      });
+    }
+  });
+
   // Get vendor by ID
   router.get("/:id", async (req, res) => {
     try {
@@ -401,25 +420,6 @@ export function createAdminVendorRouter() {
       res.status(500).json({
         success: false,
         message: "Error getting pending payments"
-      });
-    }
-  });
-
-  // Get vendors with pending profile changes
-  router.get("/pending-profile-changes", async (req, res) => {
-    try {
-      const vendors = await vendorStorage.getVendorsWithPendingChanges();
-
-      res.json({
-        success: true,
-        vendors,
-        totalCount: vendors.length
-      });
-    } catch (error: any) {
-      console.error("Error getting vendors with pending changes:", error);
-      res.status(500).json({
-        success: false,
-        message: "Error getting vendors with pending changes"
       });
     }
   });
