@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -85,6 +85,32 @@ export default function VendorAccountingTab() {
   const [productCommissionOverride, setProductCommissionOverride] = useState("");
   const [txFilterStartDate, setTxFilterStartDate] = useState("");
   const [txFilterEndDate, setTxFilterEndDate] = useState("");
+  
+  // Draggable dialog state
+  const [dialogPosition, setDialogPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartPos = useRef({ x: 0, y: 0 });
+  
+  const handleDragStart = useCallback((e: React.MouseEvent) => {
+    setIsDragging(true);
+    dragStartPos.current = { x: e.clientX - dialogPosition.x, y: e.clientY - dialogPosition.y };
+  }, [dialogPosition]);
+  
+  const handleDrag = useCallback((e: React.MouseEvent) => {
+    if (!isDragging) return;
+    setDialogPosition({
+      x: e.clientX - dragStartPos.current.x,
+      y: e.clientY - dragStartPos.current.y
+    });
+  }, [isDragging]);
+  
+  const handleDragEnd = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+  
+  const resetDialogPosition = useCallback(() => {
+    setDialogPosition({ x: 0, y: 0 });
+  }, []);
 
   const { data: vendorBalances, isLoading: loadingBalances, refetch: refetchBalances } = useQuery<{ vendors: VendorBalance[] }>({
     queryKey: ["/api/admin/vendor-accounting/balances"],
@@ -486,10 +512,26 @@ export default function VendorAccountingTab() {
         </TabsContent>
       </Tabs>
 
-      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-        <DialogContent className="max-w-md" dir="rtl">
-          <DialogHeader>
-            <DialogTitle>ثبت پرداخت به {selectedVendor?.vendorName}</DialogTitle>
+      <Dialog open={showPaymentDialog} onOpenChange={(open) => { setShowPaymentDialog(open); if (!open) resetDialogPosition(); }}>
+        <DialogContent 
+          className="max-w-md" 
+          dir="rtl"
+          style={{ 
+            transform: `translate(${dialogPosition.x}px, ${dialogPosition.y}px)`,
+            transition: isDragging ? 'none' : 'transform 0.1s ease-out'
+          }}
+          onMouseMove={handleDrag}
+          onMouseUp={handleDragEnd}
+          onMouseLeave={handleDragEnd}
+        >
+          <DialogHeader 
+            className="cursor-move select-none bg-gray-50 -mx-6 -mt-6 px-6 pt-6 pb-3 rounded-t-lg border-b"
+            onMouseDown={handleDragStart}
+          >
+            <DialogTitle className="flex items-center gap-2">
+              <span className="text-gray-400">⋮⋮</span>
+              ثبت پرداخت به {selectedVendor?.vendorName}
+            </DialogTitle>
             <DialogDescription>
               مانده بدهی: {selectedVendor && formatCurrency(selectedVendor.currentBalance)}
             </DialogDescription>
