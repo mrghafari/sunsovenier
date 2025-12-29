@@ -28889,20 +28889,24 @@ ${message ? `Additional Requirements:\n${message}` : ''}
       // Get order items using direct pool query to avoid Drizzle issues
       const result = await customerPool.query(
         `SELECT 
-          id, 
-          product_id, 
-          product_name, 
-          product_sku, 
-          quantity, 
-          unit, 
-          unit_price, 
-          total_price, 
-          specifications, 
-          notes,
-          created_at
-        FROM order_items 
-        WHERE order_id = $1 
-        ORDER BY id`,
+          oi.id, 
+          oi.product_id, 
+          oi.product_name, 
+          oi.product_sku, 
+          oi.quantity, 
+          oi.unit, 
+          oi.unit_price, 
+          oi.total_price, 
+          oi.specifications, 
+          oi.notes,
+          oi.created_at,
+          p.vendor_id,
+          v.vendor_name
+        FROM order_items oi
+        LEFT JOIN kardex p ON oi.product_id = p.id
+        LEFT JOIN vendors v ON p.vendor_id = v.id
+        WHERE oi.order_id = $1 
+        ORDER BY v.vendor_name NULLS LAST, oi.id`,
         [parseInt(customerOrderId)]
       );
       

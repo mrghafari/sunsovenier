@@ -1956,7 +1956,14 @@ const WarehouseManagement: React.FC = () => {
                     <Card key={item.id || index} className="p-4">
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
                         <div className="space-y-1">
-                          <h4 className="font-semibold text-gray-900">{item.product_name}</h4>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-semibold text-gray-900">{item.product_name}</h4>
+                            {item.vendor_name && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
+                                🏪 {item.vendor_name}
+                              </span>
+                            )}
+                          </div>
                           <p className="text-sm text-gray-500">SKU: {item.product_sku || 'نامشخص'}</p>
                           {item.barcode && (
                             <p className="text-xs text-gray-400">بارکد: {item.barcode}</p>
