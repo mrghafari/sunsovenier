@@ -1830,6 +1830,9 @@ export const vendors = pgTable("vendors", {
   approvedBy: integer("approved_by"), // Admin user ID who approved
   approvedAt: timestamp("approved_at"),
   rejectionReason: text("rejection_reason"),
+  // Pending profile changes (awaiting admin approval)
+  pendingProfileChanges: json("pending_profile_changes"), // Proposed changes by vendor
+  pendingChangesSubmittedAt: timestamp("pending_changes_submitted_at"),
   // Statistics
   totalProducts: integer("total_products").default(0),
   totalSales: decimal("total_sales", { precision: 12, scale: 2 }).default("0.00"),
