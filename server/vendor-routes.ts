@@ -266,7 +266,17 @@ export function createVendorRouter() {
           vendorEmail: vendor.contactEmail,
           vendorApproved: vendor.isApproved,
           vendorActive: vendor.isActive,
-          isSuperAdmin: false
+          isSuperAdmin: false,
+          // Full vendor profile fields for dashboard
+          contactPhone: vendor.contactPhone,
+          description: vendor.description,
+          address: vendor.address,
+          city: vendor.city,
+          postalCode: vendor.postalCode,
+          businessLicense: vendor.businessLicense,
+          taxId: vendor.taxId,
+          commissionRate: vendor.commissionRate,
+          pendingProfileChanges: vendor.pendingProfileChanges
         }
       });
     } catch (error: any) {
@@ -955,7 +965,7 @@ export function createVendorRouter() {
   });
 
   // Submit profile changes for admin approval
-  router.post("/profile/submit-changes", requireVendorAuth, async (req, res) => {
+  router.post("/profile/submit-changes", ...vendorAuth, async (req, res) => {
     try {
       const vendorUser = (req as any).vendorUser;
       
@@ -1012,7 +1022,7 @@ export function createVendorRouter() {
   });
 
   // Get current profile with pending changes status
-  router.get("/profile", requireVendorAuth, async (req, res) => {
+  router.get("/profile", ...vendorAuth, async (req, res) => {
     try {
       const vendorUser = (req as any).vendorUser;
       
@@ -1052,7 +1062,7 @@ export function createVendorRouter() {
   // ==========================================================================
 
   // Get payments for the authenticated vendor
-  router.get("/payments", requireVendorAuth, async (req, res) => {
+  router.get("/payments", ...vendorAuth, async (req, res) => {
     try {
       const vendorUser = (req as any).vendorUser;
       
@@ -1086,7 +1096,7 @@ export function createVendorRouter() {
   });
 
   // Confirm payment receipt
-  router.post("/payments/:paymentId/confirm", requireVendorAuth, async (req, res) => {
+  router.post("/payments/:paymentId/confirm", ...vendorAuth, async (req, res) => {
     try {
       const vendorUser = (req as any).vendorUser;
       const paymentId = parseInt(req.params.paymentId);
