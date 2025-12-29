@@ -55337,8 +55337,15 @@ momtazchem.com
   app.post('/api/admin/vendor-accounting/payment', requireAuth, async (req, res) => {
     try {
       const { vendorId, amount, method, reference, notes } = req.body;
+      const adminId = (req as any).session?.adminId;
       
-      if (!vendorId || !amount || amount <= 0) {
+      if (!adminId) {
+        return res.status(401).json({ success: false, message: 'نیاز به احراز هویت ادمین' });
+      }
+      
+      // Validate amount is a valid positive number
+      const amountNum = typeof amount === 'number' ? amount : parseFloat(String(amount).replace(/,/g, ''));
+      if (!vendorId || isNaN(amountNum) || amountNum <= 0) {
         return res.status(400).json({ success: false, message: 'اطلاعات پرداخت نامعتبر است' });
       }
 
@@ -55369,56 +55376,61 @@ momtazchem.com
       }
 
       const balanceBefore = parseFloat(currentBalance?.currentBalance || '0');
-      const balanceAfter = balanceBefore - amount;
+      const balanceAfter = balanceBefore - amountNum;
 
-      // Insert transaction
-      const [transaction] = await db
-        .insert(vendorTransactions)
-        .values({
-          vendorId,
-          transactionType: 'payment',
-          amount: amount.toString(),
-          currency: 'IQD',
-          paymentMethod: method,
-          paymentReference: reference,
-          balanceBefore: balanceBefore.toString(),
-          balanceAfter: balanceAfter.toString(),
-          status: 'completed',
-          description: 'پرداخت به وندور',
-          notes,
-          createdBy: (req as any).session?.adminId || null,
-        })
-        .returning();
+      // Use transaction to ensure atomicity
+      const result = await db.transaction(async (tx) => {
+        // Insert transaction record
+        const [transaction] = await tx
+          .insert(vendorTransactions)
+          .values({
+            vendorId,
+            transactionType: 'payment',
+            amount: amountNum.toString(),
+            currency: 'IQD',
+            paymentMethod: method,
+            paymentReference: reference,
+            balanceBefore: balanceBefore.toString(),
+            balanceAfter: balanceAfter.toString(),
+            status: 'completed',
+            description: 'پرداخت به وندور',
+            notes,
+            createdBy: adminId,
+          })
+          .returning();
 
-      // Also create a vendor payment record for vendor confirmation
-      await db
-        .insert(vendorPayments)
-        .values({
-          vendorId,
-          amount: amount.toString(),
-          paymentMethod: method,
-          referenceNumber: reference,
-          description: notes || 'پرداخت از طرف مدیر',
-          declaredBy: (req as any).session?.adminId || 1,
-          declaredAt: new Date(),
-          isConfirmed: false,
-          status: 'pending',
-        });
+        // Create vendor payment record for vendor confirmation
+        await tx
+          .insert(vendorPayments)
+          .values({
+            vendorId,
+            amount: amountNum.toString(),
+            paymentMethod: method,
+            referenceNumber: reference,
+            description: notes || 'پرداخت از طرف مدیر',
+            declaredBy: adminId,
+            declaredAt: new Date(),
+            isConfirmed: false,
+            status: 'pending',
+          });
+
+        // Update balance
+        await tx
+          .update(vendorBalances)
+          .set({
+            currentBalance: balanceAfter.toString(),
+            totalPaid: (parseFloat(currentBalance?.totalPaid || '0') + amountNum).toFixed(2),
+            lastTransactionAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(eq(vendorBalances.vendorId, vendorId));
+
+        return transaction;
+      });
+
       console.log(`💳 [VENDOR PAYMENT] Created payment record for vendor ${vendorId} - awaiting confirmation`);
-
-      // Update balance
-      await db
-        .update(vendorBalances)
-        .set({
-          currentBalance: balanceAfter.toString(),
-          totalPaid: ((parseFloat(currentBalance?.totalPaid || '0')) + amount).toString(),
-          lastTransactionAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .where(eq(vendorBalances.vendorId, vendorId));
-
-      console.log(`💰 [VENDOR PAYMENT] Paid ${amount} IQD to vendor ${vendorId}`);
-      res.json({ success: true, transaction, message: 'پرداخت با موفقیت ثبت شد' });
+      console.log(`💰 [VENDOR PAYMENT] Paid ${amountStr} IQD to vendor ${vendorId}`);
+      res.json({ success: true, transaction: result, message: 'پرداخت با موفقیت ثبت شد' });
     } catch (error) {
       console.error('Error recording vendor payment:', error);
       res.status(500).json({ success: false, message: 'خطا در ثبت پرداخت' });
