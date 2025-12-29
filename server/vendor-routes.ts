@@ -877,7 +877,7 @@ export function createVendorRouter() {
   // ============================================================================
 
   // Get payments for the authenticated vendor
-  router.get("/payments", requireVendorAuth, async (req, res) => {
+  router.get("/payments", ...vendorAuth, async (req, res) => {
     try {
       const vendorUser = (req as any).vendorUser;
       if (!vendorUser?.vendorId) {
@@ -903,7 +903,7 @@ export function createVendorRouter() {
   });
 
   // Confirm a payment receipt
-  router.post("/payments/:paymentId/confirm", requireVendorAuth, async (req, res) => {
+  router.post("/payments/:paymentId/confirm", ...vendorAuth, async (req, res) => {
     try {
       const paymentId = parseInt(req.params.paymentId);
       const vendorUser = (req as any).vendorUser;
