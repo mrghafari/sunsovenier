@@ -319,6 +319,92 @@ export function createAdminVendorRouter() {
     }
   });
 
+  // ============================================================================
+  // VENDOR PAYMENTS (ADMIN)
+  // ============================================================================
+
+  // Declare a payment to a vendor
+  router.post("/:id/payments", async (req, res) => {
+    try {
+      const vendorId = parseInt(req.params.id);
+      const { amount, paymentMethod, referenceNumber, description } = req.body;
+      const adminId = (req as any).session?.user?.id;
+
+      if (!amount || parseFloat(amount) <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid payment amount"
+        });
+      }
+
+      const vendor = await vendorStorage.getVendorById(vendorId);
+      if (!vendor) {
+        return res.status(404).json({
+          success: false,
+          message: "Vendor not found"
+        });
+      }
+
+      const payment = await vendorStorage.createVendorPayment({
+        vendorId,
+        amount: amount.toString(),
+        paymentMethod: paymentMethod || "bank_transfer",
+        referenceNumber,
+        description,
+        declaredBy: adminId || 1
+      });
+
+      res.json({
+        success: true,
+        message: "Payment declared successfully",
+        payment
+      });
+    } catch (error: any) {
+      console.error("Error declaring vendor payment:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error declaring payment"
+      });
+    }
+  });
+
+  // Get vendor payments
+  router.get("/:id/payments", async (req, res) => {
+    try {
+      const vendorId = parseInt(req.params.id);
+      const payments = await vendorStorage.getVendorPayments(vendorId);
+
+      res.json({
+        success: true,
+        payments
+      });
+    } catch (error: any) {
+      console.error("Error getting vendor payments:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error getting payments"
+      });
+    }
+  });
+
+  // Get all pending payments (for admin overview)
+  router.get("/payments/pending", async (req, res) => {
+    try {
+      const pendingPayments = await vendorStorage.getAllPendingPayments();
+
+      res.json({
+        success: true,
+        payments: pendingPayments
+      });
+    } catch (error: any) {
+      console.error("Error getting pending payments:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error getting pending payments"
+      });
+    }
+  });
+
   console.log("✅ [ADMIN-VENDOR] Admin vendor management router created");
   
   return router;

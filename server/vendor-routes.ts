@@ -872,6 +872,88 @@ export function createVendorRouter() {
     }
   });
 
+  // ============================================================================
+  // VENDOR PAYMENTS
+  // ============================================================================
+
+  // Get payments for the authenticated vendor
+  router.get("/payments", requireVendorAuth, async (req, res) => {
+    try {
+      const vendorUser = (req as any).vendorUser;
+      if (!vendorUser?.vendorId) {
+        return res.status(401).json({
+          success: false,
+          message: "Vendor authentication required"
+        });
+      }
+
+      const payments = await vendorStorage.getVendorPayments(vendorUser.vendorId);
+
+      res.json({
+        success: true,
+        payments
+      });
+    } catch (error: any) {
+      console.error("Error getting vendor payments:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error getting payments"
+      });
+    }
+  });
+
+  // Confirm a payment receipt
+  router.post("/payments/:paymentId/confirm", requireVendorAuth, async (req, res) => {
+    try {
+      const paymentId = parseInt(req.params.paymentId);
+      const vendorUser = (req as any).vendorUser;
+      
+      if (!vendorUser?.vendorId) {
+        return res.status(401).json({
+          success: false,
+          message: "Vendor authentication required"
+        });
+      }
+
+      // Get the payment and verify it belongs to this vendor
+      const payment = await vendorStorage.getVendorPaymentById(paymentId);
+      if (!payment) {
+        return res.status(404).json({
+          success: false,
+          message: "Payment not found"
+        });
+      }
+
+      if (payment.vendorId !== vendorUser.vendorId) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied - payment does not belong to this vendor"
+        });
+      }
+
+      if (payment.isConfirmed) {
+        return res.status(400).json({
+          success: false,
+          message: "Payment already confirmed"
+        });
+      }
+
+      const confirmedPayment = await vendorStorage.confirmVendorPayment(paymentId, vendorUser.id);
+
+      res.json({
+        success: true,
+        message: "Payment confirmed successfully",
+        payment: confirmedPayment
+      });
+    } catch (error: any) {
+      console.error("Error confirming payment:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error confirming payment"
+      });
+    }
+  });
+
   console.log("✅ [VENDOR] Vendor router created successfully");
   
   return router;
