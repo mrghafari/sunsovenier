@@ -17,6 +17,39 @@ import {
   Percent,
   Calculator
 } from "lucide-react";
+import { useEffect, useRef } from "react";
+import JsBarcode from "jsbarcode";
+
+// Barcode component with image rendering
+function BarcodeImage({ value }: { value: string }) {
+  const svgRef = useRef<SVGSVGElement>(null);
+  
+  useEffect(() => {
+    if (svgRef.current && value) {
+      try {
+        JsBarcode(svgRef.current, value, {
+          format: "CODE128",
+          width: 1.2,
+          height: 35,
+          displayValue: false,
+          margin: 2,
+          background: "transparent"
+        });
+      } catch (e) {
+        console.error("Barcode error:", e);
+      }
+    }
+  }, [value]);
+
+  if (!value) return <span className="text-muted-foreground">-</span>;
+
+  return (
+    <div className="flex flex-col items-center">
+      <svg ref={svgRef} className="max-w-[100px]" />
+      <span className="text-[10px] font-mono text-muted-foreground mt-0.5">{value}</span>
+    </div>
+  );
+}
 import { Link, useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -433,59 +466,43 @@ export default function VendorDashboard() {
           {/* Accounting Tab */}
           <TabsContent value="accounting">
             <div className="space-y-6">
-              {/* Summary Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Card className="border-green-200 bg-green-50 dark:bg-green-900/20">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-green-700 dark:text-green-400">کل فروش</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-green-600" data-testid="total-sales-amount">
-                      {salesDetailsData?.data?.summary?.totalSales?.toLocaleString() || 0} IQD
-                    </div>
-                  </CardContent>
+              {/* Compact Summary Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <Card className="border-green-200 bg-green-50 dark:bg-green-900/20 p-3">
+                  <div className="text-xs text-green-700 dark:text-green-400 mb-1">کل فروش</div>
+                  <div className="text-lg font-bold text-green-600" data-testid="total-sales-amount">
+                    {salesDetailsData?.data?.summary?.totalSales?.toLocaleString() || 0} <span className="text-xs">IQD</span>
+                  </div>
                 </Card>
 
-                <Card className="border-orange-200 bg-orange-50 dark:bg-orange-900/20">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-orange-700 dark:text-orange-400 flex items-center gap-2">
-                      <Percent className="w-4 h-4" />
-                      کمیسیون ({salesDetailsData?.data?.summary?.commissionRate || 10}%)
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-orange-600" data-testid="total-commission">
-                      {salesDetailsData?.data?.summary?.totalCommission?.toLocaleString() || 0} IQD
-                    </div>
-                  </CardContent>
+                <Card className="border-orange-200 bg-orange-50 dark:bg-orange-900/20 p-3">
+                  <div className="text-xs text-orange-700 dark:text-orange-400 mb-1 flex items-center gap-1">
+                    <Percent className="w-3 h-3" />
+                    کمیسیون ({salesDetailsData?.data?.summary?.commissionRate || 10}%)
+                  </div>
+                  <div className="text-lg font-bold text-orange-600" data-testid="total-commission">
+                    {salesDetailsData?.data?.summary?.totalCommission?.toLocaleString() || 0} <span className="text-xs">IQD</span>
+                  </div>
                 </Card>
 
-                <Card className="border-blue-200 bg-blue-50 dark:bg-blue-900/20">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-400 flex items-center gap-2">
-                      <Calculator className="w-4 h-4" />
-                      خالص دریافتی
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-blue-600" data-testid="net-amount">
-                      {salesDetailsData?.data?.summary?.totalBalance?.toLocaleString() || 0} IQD
-                    </div>
-                  </CardContent>
+                <Card className="border-blue-200 bg-blue-50 dark:bg-blue-900/20 p-3">
+                  <div className="text-xs text-blue-700 dark:text-blue-400 mb-1 flex items-center gap-1">
+                    <Calculator className="w-3 h-3" />
+                    خالص دریافتی
+                  </div>
+                  <div className="text-lg font-bold text-blue-600" data-testid="net-amount">
+                    {salesDetailsData?.data?.summary?.totalBalance?.toLocaleString() || 0} <span className="text-xs">IQD</span>
+                  </div>
                 </Card>
 
-                <Card className="border-purple-200 bg-purple-50 dark:bg-purple-900/20">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-400 flex items-center gap-2">
-                      <Wallet className="w-4 h-4" />
-                      طلب شما
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-purple-600" data-testid="balance-owed">
-                      {salesDetailsData?.data?.summary?.totalBalance?.toLocaleString() || 0} IQD
-                    </div>
-                  </CardContent>
+                <Card className="border-purple-200 bg-purple-50 dark:bg-purple-900/20 p-3">
+                  <div className="text-xs text-purple-700 dark:text-purple-400 mb-1 flex items-center gap-1">
+                    <Wallet className="w-3 h-3" />
+                    طلب شما
+                  </div>
+                  <div className="text-lg font-bold text-purple-600" data-testid="balance-owed">
+                    {salesDetailsData?.data?.summary?.totalBalance?.toLocaleString() || 0} <span className="text-xs">IQD</span>
+                  </div>
                 </Card>
               </div>
 
@@ -515,13 +532,13 @@ export default function VendorDashboard() {
                       <table className="w-full text-sm">
                         <thead className="bg-gray-100 dark:bg-gray-800">
                           <tr>
-                            <th className="text-right p-3 font-medium">نام محصول</th>
-                            <th className="text-center p-3 font-medium">بارکد</th>
-                            <th className="text-center p-3 font-medium">تعداد فروش</th>
-                            <th className="text-center p-3 font-medium">سفارشات</th>
-                            <th className="text-left p-3 font-medium">مبلغ فروش</th>
-                            <th className="text-left p-3 font-medium">کمیسیون</th>
-                            <th className="text-left p-3 font-medium">خالص دریافتی</th>
+                            <th className="text-right p-2 text-xs font-medium">نام محصول</th>
+                            <th className="text-center p-2 text-xs font-medium">بارکد</th>
+                            <th className="text-center p-2 text-xs font-medium">تعداد</th>
+                            <th className="text-center p-2 text-xs font-medium">سفارش</th>
+                            <th className="text-left p-2 text-xs font-medium">فروش (IQD)</th>
+                            <th className="text-left p-2 text-xs font-medium">کمیسیون</th>
+                            <th className="text-left p-2 text-xs font-medium">خالص</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -531,37 +548,37 @@ export default function VendorDashboard() {
                               className="border-b hover:bg-gray-50 dark:hover:bg-gray-800"
                               data-testid={`product-sale-row-${product.productId}`}
                             >
-                              <td className="p-3 font-medium">{product.productName}</td>
-                              <td className="p-3 text-center text-xs text-muted-foreground font-mono">
-                                {product.barcode || '-'}
+                              <td className="p-2 font-medium text-sm">{product.productName}</td>
+                              <td className="p-2 text-center">
+                                <BarcodeImage value={product.barcode || ''} />
                               </td>
-                              <td className="p-3 text-center">
-                                <Badge variant="secondary">{product.totalQuantity}</Badge>
+                              <td className="p-2 text-center">
+                                <Badge variant="secondary" className="text-xs">{product.totalQuantity}</Badge>
                               </td>
-                              <td className="p-3 text-center">{product.orderCount}</td>
-                              <td className="p-3 text-left font-medium text-green-600">
-                                {product.totalSales?.toLocaleString()} IQD
+                              <td className="p-2 text-center text-sm">{product.orderCount}</td>
+                              <td className="p-2 text-left text-sm font-medium text-green-600">
+                                {product.totalSales?.toLocaleString()}
                               </td>
-                              <td className="p-3 text-left text-orange-600">
-                                -{product.commissionAmount?.toLocaleString()} IQD
+                              <td className="p-2 text-left text-sm text-orange-600">
+                                -{product.commissionAmount?.toLocaleString()}
                               </td>
-                              <td className="p-3 text-left font-bold text-blue-600">
-                                {product.netAmount?.toLocaleString()} IQD
+                              <td className="p-2 text-left text-sm font-bold text-blue-600">
+                                {product.netAmount?.toLocaleString()}
                               </td>
                             </tr>
                           ))}
                         </tbody>
-                        <tfoot className="bg-gray-100 dark:bg-gray-800 font-bold">
+                        <tfoot className="bg-gray-100 dark:bg-gray-800 font-bold text-sm">
                           <tr>
-                            <td colSpan={4} className="p-3 text-right">جمع کل:</td>
-                            <td className="p-3 text-left text-green-600">
-                              {salesDetailsData.data.summary.totalSales?.toLocaleString()} IQD
+                            <td colSpan={4} className="p-2 text-right">جمع کل:</td>
+                            <td className="p-2 text-left text-green-600">
+                              {salesDetailsData.data.summary.totalSales?.toLocaleString()}
                             </td>
-                            <td className="p-3 text-left text-orange-600">
-                              -{salesDetailsData.data.summary.totalCommission?.toLocaleString()} IQD
+                            <td className="p-2 text-left text-orange-600">
+                              -{salesDetailsData.data.summary.totalCommission?.toLocaleString()}
                             </td>
-                            <td className="p-3 text-left text-blue-600">
-                              {salesDetailsData.data.summary.totalBalance?.toLocaleString()} IQD
+                            <td className="p-2 text-left text-blue-600">
+                              {salesDetailsData.data.summary.totalBalance?.toLocaleString()}
                             </td>
                           </tr>
                         </tfoot>
