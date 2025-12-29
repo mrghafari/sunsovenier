@@ -82,6 +82,8 @@ const formSchema = insertShowcaseProductSchema.extend({
   model3dKey: z.string().optional(),
   model3dFileName: z.string().optional(),
   model3dUploadDate: z.string().optional(),
+  // Vendor assignment (admin mode only)
+  vendorId: z.coerce.number().optional(),
 });
 import { useToast } from "@/hooks/use-toast";
 import { getPersonalizedWelcome, getDashboardMotivation } from "@/utils/greetings";
@@ -201,6 +203,15 @@ export default function ProductsPage() {
     enabled: isVendorMode,
     staleTime: 5 * 60 * 1000,
   });
+
+  // Fetch approved vendors for admin mode (to assign products to vendors)
+  type VendorOption = { id: number; vendorName: string };
+  const { data: vendorsData } = useQuery<{ vendors: VendorOption[] }>({
+    queryKey: ["/api/admin/vendors/approved"],
+    enabled: !isVendorMode && isAuthenticated,
+    staleTime: 5 * 60 * 1000,
+  });
+  const vendors = vendorsData?.vendors || [];
 
   // Fetch categories from API
   const { data: categoriesData = [] } = useQuery({
@@ -2092,6 +2103,58 @@ export default function ProductsPage() {
                       )}
                     />
                   </div>
+
+                  {/* Vendor Assignment (Admin Mode Only) */}
+                  {!isVendorMode && vendors.length > 0 && (
+                    <div className="mt-3">
+                      <FormField
+                        control={form.control}
+                        name="vendorId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-sm font-medium flex items-center gap-2">
+                              <Factory className="h-4 w-4" />
+                              Assign to Vendor (Optional)
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <HelpCircle className="h-3 w-3 text-gray-400" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Optionally assign this product to a marketplace vendor</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </FormLabel>
+                            <Select 
+                              onValueChange={(value) => field.onChange(value === "none" ? undefined : parseInt(value))} 
+                              value={field.value ? String(field.value) : "none"}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="h-9">
+                                  <SelectValue placeholder="Select vendor (optional)" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="none">
+                                  <div className="flex items-center gap-2 text-gray-500">
+                                    No Vendor (Company Product)
+                                  </div>
+                                </SelectItem>
+                                {vendors.map((vendor) => (
+                                  <SelectItem key={vendor.id} value={String(vendor.id)}>
+                                    <div className="flex items-center gap-2">
+                                      <Factory className="h-4 w-4" />
+                                      {vendor.vendorName}
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  )}
 
                   <div className="mt-3">
                     <FormField

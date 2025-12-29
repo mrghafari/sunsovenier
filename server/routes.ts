@@ -102,6 +102,7 @@ import {
   companyDocuments,
   businessCards,
   companyImages,
+  vendorUsers,
   insertCompanyInformationSchema,
   insertCorrespondenceSchema,
   insertCompanyDocumentsSchema,

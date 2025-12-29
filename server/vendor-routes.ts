@@ -529,7 +529,11 @@ export function createVendorRouter() {
   // Create new product (uses main products table like admin does)
   router.post("/products", ...vendorProductAuth, async (req, res) => {
     try {
+      console.log('🏪 [VENDOR PRODUCT CREATE] Request received');
+      console.log('🏪 [VENDOR PRODUCT CREATE] vendorUser:', req.vendorUser);
+      
       if (!req.vendorUser) {
+        console.log('❌ [VENDOR PRODUCT CREATE] Not authenticated - vendorUser is undefined');
         return res.status(401).json({
           success: false,
           message: "Not authenticated"
@@ -550,11 +554,16 @@ export function createVendorRouter() {
         updatedAt: new Date()
       };
 
+      console.log('🏪 [VENDOR PRODUCT CREATE] Creating product with vendorId:', req.vendorUser.vendorId);
+      console.log('🏪 [VENDOR PRODUCT CREATE] Product name:', productData.name);
+
       // Insert into main products table
       const [product] = await db
         .insert(products)
         .values(productData)
         .returning();
+
+      console.log('✅ [VENDOR PRODUCT CREATE] Product created:', product.id, 'vendorId:', product.vendorId);
 
       res.json({
         success: true,
@@ -562,7 +571,7 @@ export function createVendorRouter() {
         product
       });
     } catch (error: any) {
-      console.error("Error creating product:", error);
+      console.error("❌ [VENDOR PRODUCT CREATE] Error:", error);
       res.status(500).json({
         success: false,
         message: error.message || "Error creating product"
