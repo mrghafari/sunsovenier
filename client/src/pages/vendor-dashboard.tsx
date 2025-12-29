@@ -15,7 +15,11 @@ import {
   Plus,
   Wallet,
   Percent,
-  Calculator
+  Calculator,
+  CreditCard,
+  Check,
+  Clock,
+  AlertCircle
 } from "lucide-react";
 import { useEffect, useRef, useState, useMemo } from "react";
 import JsBarcode from "jsbarcode";
@@ -55,8 +59,9 @@ function BarcodeImage({ value, align = 'center' }: { value: string; align?: 'lef
   );
 }
 import { Link, useLocation } from "wouter";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useMutation } from "@tanstack/react-query";
 
 export default function VendorDashboard() {
   const { toast } = useToast();
@@ -122,6 +127,44 @@ export default function VendorDashboard() {
       return response.json();
     },
   });
+
+  // Fetch vendor payments
+  const { data: paymentsData, isLoading: isLoadingPayments } = useQuery({
+    queryKey: ["/api/vendors/payments"],
+    enabled: !!vendorData?.user,
+    queryFn: async () => {
+      const response = await fetch("/api/vendors/payments");
+      if (!response.ok) throw new Error("خطا در دریافت پرداخت‌ها");
+      return response.json();
+    },
+  });
+
+  // Confirm payment mutation
+  const confirmPaymentMutation = useMutation({
+    mutationFn: async (paymentId: number) => {
+      const response = await apiRequest(`/api/vendors/payments/${paymentId}/confirm`, {
+        method: "POST"
+      });
+      return response;
+    },
+    onSuccess: () => {
+      toast({
+        title: "موفق",
+        description: "پرداخت با موفقیت تایید شد"
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/vendors/payments"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "خطا",
+        description: error?.message || "خطا در تایید پرداخت",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Sub-tab state for accounting
+  const [accountingSubTab, setAccountingSubTab] = useState("sales");
 
   // Filter products by search term (minimum 3 characters) - must be before any conditional returns
   const filteredSalesProducts = useMemo(() => {
@@ -483,147 +526,264 @@ export default function VendorDashboard() {
           {/* Accounting Tab */}
           <TabsContent value="accounting">
             <div className="space-y-6">
-              {/* Compact Summary Cards */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <Card className="border-green-200 bg-green-50 dark:bg-green-900/20 p-3">
-                  <div className="text-xs text-green-700 dark:text-green-400 mb-1">کل فروش</div>
-                  <div className="text-lg font-bold text-green-600" data-testid="total-sales-amount">
-                    {salesDetailsData?.data?.summary?.totalSales?.toLocaleString() || 0} <span className="text-xs">IQD</span>
-                  </div>
-                </Card>
-
-                <Card className="border-orange-200 bg-orange-50 dark:bg-orange-900/20 p-3">
-                  <div className="text-xs text-orange-700 dark:text-orange-400 mb-1 flex items-center gap-1">
-                    <Percent className="w-3 h-3" />
-                    کمیسیون ({salesDetailsData?.data?.summary?.commissionRate || 10}%)
-                  </div>
-                  <div className="text-lg font-bold text-orange-600" data-testid="total-commission">
-                    {salesDetailsData?.data?.summary?.totalCommission?.toLocaleString() || 0} <span className="text-xs">IQD</span>
-                  </div>
-                </Card>
-
-                <Card className="border-blue-200 bg-blue-50 dark:bg-blue-900/20 p-3">
-                  <div className="text-xs text-blue-700 dark:text-blue-400 mb-1 flex items-center gap-1">
-                    <Calculator className="w-3 h-3" />
-                    خالص دریافتی
-                  </div>
-                  <div className="text-lg font-bold text-blue-600" data-testid="net-amount">
-                    {salesDetailsData?.data?.summary?.totalBalance?.toLocaleString() || 0} <span className="text-xs">IQD</span>
-                  </div>
-                </Card>
-
-                <Card className="border-purple-200 bg-purple-50 dark:bg-purple-900/20 p-3">
-                  <div className="text-xs text-purple-700 dark:text-purple-400 mb-1 flex items-center gap-1">
-                    <Wallet className="w-3 h-3" />
-                    طلب شما
-                  </div>
-                  <div className="text-lg font-bold text-purple-600" data-testid="balance-owed">
-                    {salesDetailsData?.data?.summary?.totalBalance?.toLocaleString() || 0} <span className="text-xs">IQD</span>
-                  </div>
-                </Card>
+              {/* Accounting Sub-tabs */}
+              <div className="flex gap-2 border-b pb-2">
+                <Button
+                  variant={accountingSubTab === "sales" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setAccountingSubTab("sales")}
+                  className="gap-2"
+                  data-testid="accounting-subtab-sales"
+                >
+                  <DollarSign className="w-4 h-4" />
+                  فروش
+                </Button>
+                <Button
+                  variant={accountingSubTab === "payments" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setAccountingSubTab("payments")}
+                  className="gap-2"
+                  data-testid="accounting-subtab-payments"
+                >
+                  <CreditCard className="w-4 h-4" />
+                  پرداخت‌ها
+                  {(paymentsData?.payments?.filter((p: any) => !p.isConfirmed)?.length || 0) > 0 && (
+                    <Badge variant="destructive" className="text-xs px-1.5">
+                      {paymentsData.payments.filter((p: any) => !p.isConfirmed).length}
+                    </Badge>
+                  )}
+                </Button>
               </div>
 
-              {/* Product Sales Details */}
-              <Card>
-                <CardHeader>
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
-                        <DollarSign className="w-5 h-5" />
-                        ریز فروش محصولات
-                      </CardTitle>
-                      <CardDescription>
-                        لیست محصولات فروخته شده با جزئیات کمیسیون و خالص دریافتی
-                      </CardDescription>
-                    </div>
-                    <div className="relative w-full md:w-64">
-                      <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input
-                        type="text"
-                        placeholder="جستجو (حداقل ۳ حرف)..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pr-10"
-                        data-testid="input-search-products"
-                      />
-                    </div>
+              {/* Sales Sub-tab Content */}
+              {accountingSubTab === "sales" && (
+                <>
+                  {/* Compact Summary Cards */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <Card className="border-green-200 bg-green-50 dark:bg-green-900/20 p-3">
+                      <div className="text-xs text-green-700 dark:text-green-400 mb-1">کل فروش</div>
+                      <div className="text-lg font-bold text-green-600" data-testid="total-sales-amount">
+                        {salesDetailsData?.data?.summary?.totalSales?.toLocaleString() || 0} <span className="text-xs">IQD</span>
+                      </div>
+                    </Card>
+
+                    <Card className="border-orange-200 bg-orange-50 dark:bg-orange-900/20 p-3">
+                      <div className="text-xs text-orange-700 dark:text-orange-400 mb-1 flex items-center gap-1">
+                        <Percent className="w-3 h-3" />
+                        کمیسیون ({salesDetailsData?.data?.summary?.commissionRate || 10}%)
+                      </div>
+                      <div className="text-lg font-bold text-orange-600" data-testid="total-commission">
+                        {salesDetailsData?.data?.summary?.totalCommission?.toLocaleString() || 0} <span className="text-xs">IQD</span>
+                      </div>
+                    </Card>
+
+                    <Card className="border-blue-200 bg-blue-50 dark:bg-blue-900/20 p-3">
+                      <div className="text-xs text-blue-700 dark:text-blue-400 mb-1 flex items-center gap-1">
+                        <Calculator className="w-3 h-3" />
+                        خالص دریافتی
+                      </div>
+                      <div className="text-lg font-bold text-blue-600" data-testid="net-amount">
+                        {salesDetailsData?.data?.summary?.totalBalance?.toLocaleString() || 0} <span className="text-xs">IQD</span>
+                      </div>
+                    </Card>
+
+                    <Card className="border-purple-200 bg-purple-50 dark:bg-purple-900/20 p-3">
+                      <div className="text-xs text-purple-700 dark:text-purple-400 mb-1 flex items-center gap-1">
+                        <Wallet className="w-3 h-3" />
+                        طلب شما
+                      </div>
+                      <div className="text-lg font-bold text-purple-600" data-testid="balance-owed">
+                        {salesDetailsData?.data?.summary?.totalBalance?.toLocaleString() || 0} <span className="text-xs">IQD</span>
+                      </div>
+                    </Card>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  {isLoadingSalesDetails ? (
-                    <div className="text-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
-                    </div>
-                  ) : !salesDetailsData?.data?.products?.length ? (
-                    <div className="text-center py-12">
-                      <DollarSign className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                      <p className="text-muted-foreground">هنوز فروشی ثبت نشده است</p>
-                    </div>
-                  ) : filteredSalesProducts.length === 0 ? (
-                    <div className="text-center py-12">
-                      <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                      <p className="text-muted-foreground">محصولی با این عبارت یافت نشد</p>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead className="bg-gray-100 dark:bg-gray-800">
-                          <tr>
-                            <th className="text-right p-2 text-xs font-medium">نام محصول</th>
-                            <th className="text-center p-2 text-xs font-medium">بارکد</th>
-                            <th className="text-center p-2 text-xs font-medium">تعداد</th>
-                            <th className="text-center p-2 text-xs font-medium">سفارش</th>
-                            <th className="text-left p-2 text-xs font-medium">فروش (IQD)</th>
-                            <th className="text-left p-2 text-xs font-medium">کمیسیون</th>
-                            <th className="text-left p-2 text-xs font-medium">خالص</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredSalesProducts.map((product: any, index: number) => (
-                            <tr 
-                              key={product.productId || index} 
-                              className="border-b hover:bg-gray-50 dark:hover:bg-gray-800"
-                              data-testid={`product-sale-row-${product.productId}`}
-                            >
-                              <td className="p-2 font-bold text-base">{product.productName}</td>
-                              <td className="p-2">
-                                <BarcodeImage value={product.barcode || ''} align="center" />
-                              </td>
-                              <td className="p-2 text-center">
-                                <Badge variant="secondary" className="text-xs">{product.totalQuantity}</Badge>
-                              </td>
-                              <td className="p-2 text-center text-sm">{product.orderCount}</td>
-                              <td className="p-2 text-left text-sm font-medium text-green-600">
-                                {product.totalSales?.toLocaleString()}
-                              </td>
-                              <td className="p-2 text-left text-sm text-orange-600">
-                                -{product.commissionAmount?.toLocaleString()}
-                              </td>
-                              <td className="p-2 text-left text-sm font-bold text-blue-600">
-                                {product.netAmount?.toLocaleString()}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                        <tfoot className="bg-gray-100 dark:bg-gray-800 font-bold text-sm">
-                          <tr>
-                            <td colSpan={4} className="p-2 text-right">جمع کل:</td>
-                            <td className="p-2 text-left text-green-600">
-                              {salesDetailsData.data.summary.totalSales?.toLocaleString()}
-                            </td>
-                            <td className="p-2 text-left text-orange-600">
-                              -{salesDetailsData.data.summary.totalCommission?.toLocaleString()}
-                            </td>
-                            <td className="p-2 text-left text-blue-600">
-                              {salesDetailsData.data.summary.totalBalance?.toLocaleString()}
-                            </td>
-                          </tr>
-                        </tfoot>
-                      </table>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+
+                  {/* Product Sales Details */}
+                  <Card>
+                    <CardHeader>
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div>
+                          <CardTitle className="flex items-center gap-2">
+                            <DollarSign className="w-5 h-5" />
+                            ریز فروش محصولات
+                          </CardTitle>
+                          <CardDescription>
+                            لیست محصولات فروخته شده با جزئیات کمیسیون و خالص دریافتی
+                          </CardDescription>
+                        </div>
+                        <div className="relative w-full md:w-64">
+                          <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            type="text"
+                            placeholder="جستجو (حداقل ۳ حرف)..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pr-10"
+                            data-testid="input-search-products"
+                          />
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      {isLoadingSalesDetails ? (
+                        <div className="text-center py-8">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+                        </div>
+                      ) : !salesDetailsData?.data?.products?.length ? (
+                        <div className="text-center py-12">
+                          <DollarSign className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                          <p className="text-muted-foreground">هنوز فروشی ثبت نشده است</p>
+                        </div>
+                      ) : filteredSalesProducts.length === 0 ? (
+                        <div className="text-center py-12">
+                          <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                          <p className="text-muted-foreground">محصولی با این عبارت یافت نشد</p>
+                        </div>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead className="bg-gray-100 dark:bg-gray-800">
+                              <tr>
+                                <th className="text-right p-2 text-xs font-medium">نام محصول</th>
+                                <th className="text-center p-2 text-xs font-medium">بارکد</th>
+                                <th className="text-center p-2 text-xs font-medium">تعداد</th>
+                                <th className="text-center p-2 text-xs font-medium">سفارش</th>
+                                <th className="text-left p-2 text-xs font-medium">فروش (IQD)</th>
+                                <th className="text-left p-2 text-xs font-medium">کمیسیون</th>
+                                <th className="text-left p-2 text-xs font-medium">خالص</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {filteredSalesProducts.map((product: any, index: number) => (
+                                <tr 
+                                  key={product.productId || index} 
+                                  className="border-b hover:bg-gray-50 dark:hover:bg-gray-800"
+                                  data-testid={`product-sale-row-${product.productId}`}
+                                >
+                                  <td className="p-2 font-bold text-base">{product.productName}</td>
+                                  <td className="p-2">
+                                    <BarcodeImage value={product.barcode || ''} align="center" />
+                                  </td>
+                                  <td className="p-2 text-center">
+                                    <Badge variant="secondary" className="text-xs">{product.totalQuantity}</Badge>
+                                  </td>
+                                  <td className="p-2 text-center text-sm">{product.orderCount}</td>
+                                  <td className="p-2 text-left text-sm font-medium text-green-600">
+                                    {product.totalSales?.toLocaleString()}
+                                  </td>
+                                  <td className="p-2 text-left text-sm text-orange-600">
+                                    -{product.commissionAmount?.toLocaleString()}
+                                  </td>
+                                  <td className="p-2 text-left text-sm font-bold text-blue-600">
+                                    {product.netAmount?.toLocaleString()}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                            <tfoot className="bg-gray-100 dark:bg-gray-800 font-bold text-sm">
+                              <tr>
+                                <td colSpan={4} className="p-2 text-right">جمع کل:</td>
+                                <td className="p-2 text-left text-green-600">
+                                  {salesDetailsData.data.summary.totalSales?.toLocaleString()}
+                                </td>
+                                <td className="p-2 text-left text-orange-600">
+                                  -{salesDetailsData.data.summary.totalCommission?.toLocaleString()}
+                                </td>
+                                <td className="p-2 text-left text-blue-600">
+                                  {salesDetailsData.data.summary.totalBalance?.toLocaleString()}
+                                </td>
+                              </tr>
+                            </tfoot>
+                          </table>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </>
+              )}
+
+              {/* Payments Sub-tab Content */}
+              {accountingSubTab === "payments" && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <CreditCard className="w-5 h-5" />
+                      پرداخت‌های اعلام شده
+                    </CardTitle>
+                    <CardDescription>
+                      پرداخت‌هایی که توسط مدیر سایت اعلام شده است را در اینجا مشاهده و تایید کنید
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {isLoadingPayments ? (
+                      <div className="text-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+                      </div>
+                    ) : !paymentsData?.payments?.length ? (
+                      <div className="text-center py-12">
+                        <CreditCard className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                        <p className="text-muted-foreground">هنوز پرداختی اعلام نشده است</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {paymentsData.payments.map((payment: any) => (
+                          <div
+                            key={payment.id}
+                            className={`border rounded-lg p-4 ${
+                              payment.isConfirmed 
+                                ? 'bg-green-50 dark:bg-green-900/20 border-green-200' 
+                                : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200'
+                            }`}
+                            data-testid={`payment-row-${payment.id}`}
+                          >
+                            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                  {payment.isConfirmed ? (
+                                    <Check className="w-5 h-5 text-green-600" />
+                                  ) : (
+                                    <Clock className="w-5 h-5 text-yellow-600" />
+                                  )}
+                                  <span className="text-xl font-bold">
+                                    {parseFloat(payment.amount).toLocaleString()} IQD
+                                  </span>
+                                  <Badge variant={payment.isConfirmed ? "default" : "secondary"}>
+                                    {payment.isConfirmed ? "تایید شده" : "در انتظار تایید"}
+                                  </Badge>
+                                </div>
+                                <div className="text-sm text-muted-foreground space-y-1">
+                                  <p>روش پرداخت: {payment.paymentMethod === 'bank_transfer' ? 'انتقال بانکی' : payment.paymentMethod}</p>
+                                  {payment.referenceNumber && <p>شماره مرجع: {payment.referenceNumber}</p>}
+                                  {payment.description && <p>توضیحات: {payment.description}</p>}
+                                  <p>تاریخ اعلام: {new Date(payment.declaredAt).toLocaleDateString('fa-IR')}</p>
+                                  {payment.confirmedAt && (
+                                    <p className="text-green-600">تاریخ تایید: {new Date(payment.confirmedAt).toLocaleDateString('fa-IR')}</p>
+                                  )}
+                                </div>
+                              </div>
+                              {!payment.isConfirmed && (
+                                <Button
+                                  onClick={() => confirmPaymentMutation.mutate(payment.id)}
+                                  disabled={confirmPaymentMutation.isPending}
+                                  className="bg-green-600 hover:bg-green-700"
+                                  data-testid={`confirm-payment-${payment.id}`}
+                                >
+                                  {confirmPaymentMutation.isPending ? (
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                  ) : (
+                                    <Check className="w-4 h-4 mr-2" />
+                                  )}
+                                  تایید دریافت وجه
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </TabsContent>
 
