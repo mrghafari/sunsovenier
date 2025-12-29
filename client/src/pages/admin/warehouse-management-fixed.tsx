@@ -937,7 +937,16 @@ const WarehouseManagementFixed: React.FC = () => {
                       <tbody>
                         {orderDetails.items?.map((item: any, index: number) => (
                           <tr key={item.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                            <td className="p-3 text-sm truncate" style={{ width: '35%' }} title={item.productName}>{item.productName}</td>
+                            <td className="p-3 text-sm" style={{ width: '35%' }}>
+                              <div className="flex items-center gap-2">
+                                <span className="truncate" title={item.productName}>{item.productName}</span>
+                                {item.vendorName && (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200 whitespace-nowrap">
+                                    🏪 {item.vendorName}
+                                  </span>
+                                )}
+                              </div>
+                            </td>
                             <td className="p-3 text-sm font-mono text-gray-600 truncate" style={{ width: '20%' }} title={item.productSku}>{item.productSku}</td>
                             <td className="p-3 text-sm text-center font-medium" style={{ width: '15%' }}>{item.quantity}</td>
                             <td className="p-3 text-sm truncate" style={{ width: '15%' }}>{formatCurrency(parseFloat(item.unitPrice) || 0)}</td>
