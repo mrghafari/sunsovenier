@@ -95,6 +95,8 @@ export function createAdminVendorRouter() {
         outOfStock: number;
         hiddenProducts: number;
         totalProducts: number;
+        totalSales: number;
+        totalOrders: number;
       }> = {};
       
       statsMap.forEach((value, key) => {

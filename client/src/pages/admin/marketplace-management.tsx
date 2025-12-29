@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Store, Check, X, Eye, Package, Mail, Phone, MapPin, Calendar, TrendingUp, Star, Calculator, AlertTriangle, XCircle, EyeOff, Box } from "lucide-react";
+import { Store, Check, X, Eye, Package, Mail, Phone, MapPin, Calendar, TrendingUp, Star, Calculator, AlertTriangle, XCircle, EyeOff, Box, ShoppingCart } from "lucide-react";
 import VendorAccountingTab from "./vendor-accounting-tab";
 
 type Vendor = {
@@ -74,6 +74,8 @@ export default function MarketplaceManagement() {
     outOfStock: number;
     hiddenProducts: number;
     totalProducts: number;
+    totalSales: number;
+    totalOrders: number;
   };
   const { data: vendorStats } = useQuery<{ stats: Record<number, VendorProductStats> }>({
     queryKey: ["/api/admin/vendors/product-stats"],
@@ -314,9 +316,16 @@ export default function MarketplaceManagement() {
             <div className="text-center">
               <div className="flex items-center justify-center gap-1 text-sm font-semibold">
                 <TrendingUp className="w-4 h-4 text-green-600" />
-                {parseFloat(vendor.totalSales).toLocaleString("en-US")} IQD
+                {(vendorStats?.stats?.[vendor.id]?.totalSales || 0).toLocaleString("en-US")} IQD
               </div>
               <div className="text-xs text-muted-foreground mt-1">کل فروش</div>
+            </div>
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-1 text-sm font-semibold">
+                <ShoppingCart className="w-4 h-4 text-purple-600" />
+                {vendorStats?.stats?.[vendor.id]?.totalOrders || 0}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">سفارشات</div>
             </div>
             <div className="text-center">
               <div className="flex items-center justify-center gap-1 text-sm font-semibold">
@@ -324,13 +333,6 @@ export default function MarketplaceManagement() {
                 {parseFloat(vendor.rating).toFixed(1)}
               </div>
               <div className="text-xs text-muted-foreground mt-1">امتیاز</div>
-            </div>
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-1 text-sm font-semibold">
-                <Package className="w-4 h-4 text-blue-600" />
-                {vendor.totalReviews}
-              </div>
-              <div className="text-xs text-muted-foreground mt-1">نظرات</div>
             </div>
           </div>
 

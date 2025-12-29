@@ -64,6 +64,8 @@ export interface IVendorStorage {
     outOfStock: number;
     hiddenProducts: number;
     totalProducts: number;
+    totalSales: number;
+    totalOrders: number;
   }>>;
   searchVendorProducts(vendorId: number, query: string): Promise<{
     showcaseProducts: ShowcaseProduct[];
@@ -420,6 +422,8 @@ export class VendorStorage implements IVendorStorage {
     outOfStock: number;
     hiddenProducts: number;
     totalProducts: number;
+    totalSales: number;
+    totalOrders: number;
   }>> {
     const statsMap = new Map<number, {
       inStock: number;
@@ -427,9 +431,19 @@ export class VendorStorage implements IVendorStorage {
       outOfStock: number;
       hiddenProducts: number;
       totalProducts: number;
+      totalSales: number;
+      totalOrders: number;
     }>();
 
+    // Combined query for showcase_products and shop_products inventory stats
     const stats = await db.execute(sql`
+      WITH combined_products AS (
+        SELECT vendor_id, is_active, stock_quantity, min_stock_level
+        FROM showcase_products WHERE vendor_id IS NOT NULL
+        UNION ALL
+        SELECT vendor_id, is_active, stock_quantity, min_stock_level
+        FROM shop_products WHERE vendor_id IS NOT NULL
+      )
       SELECT 
         vendor_id,
         COUNT(*) as total_products,
@@ -437,18 +451,42 @@ export class VendorStorage implements IVendorStorage {
         SUM(CASE WHEN is_active = true AND stock_quantity > COALESCE(min_stock_level, 10) THEN 1 ELSE 0 END) as in_stock,
         SUM(CASE WHEN is_active = true AND stock_quantity > 0 AND stock_quantity <= COALESCE(min_stock_level, 10) THEN 1 ELSE 0 END) as low_stock,
         SUM(CASE WHEN is_active = true AND (stock_quantity IS NULL OR stock_quantity <= 0) THEN 1 ELSE 0 END) as out_of_stock
-      FROM showcase_products
-      WHERE vendor_id IS NOT NULL
+      FROM combined_products
       GROUP BY vendor_id
     `);
 
+    // Get sales stats from order_items joined with shop_products (where orders are placed)
+    const salesStats = await db.execute(sql`
+      SELECT 
+        sp.vendor_id,
+        COALESCE(SUM(oi.total_price), 0) as total_sales,
+        COUNT(DISTINCT oi.order_id) as total_orders
+      FROM shop_products sp
+      INNER JOIN order_items oi ON oi.product_id = sp.id
+      WHERE sp.vendor_id IS NOT NULL
+      GROUP BY sp.vendor_id
+    `);
+
+    // Build a map of vendor sales
+    const salesMap = new Map<number, { totalSales: number; totalOrders: number }>();
+    for (const row of salesStats.rows as any[]) {
+      salesMap.set(Number(row.vendor_id), {
+        totalSales: Number(row.total_sales) || 0,
+        totalOrders: Number(row.total_orders) || 0,
+      });
+    }
+
     for (const row of stats.rows as any[]) {
-      statsMap.set(Number(row.vendor_id), {
+      const vendorId = Number(row.vendor_id);
+      const sales = salesMap.get(vendorId) || { totalSales: 0, totalOrders: 0 };
+      statsMap.set(vendorId, {
         inStock: Number(row.in_stock) || 0,
         lowStock: Number(row.low_stock) || 0,
         outOfStock: Number(row.out_of_stock) || 0,
         hiddenProducts: Number(row.hidden_products) || 0,
         totalProducts: Number(row.total_products) || 0,
+        totalSales: sales.totalSales,
+        totalOrders: sales.totalOrders,
       });
     }
 
