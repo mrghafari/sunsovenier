@@ -123,6 +123,18 @@ export default function VendorDashboard() {
     },
   });
 
+  // Filter products by search term (minimum 3 characters) - must be before any conditional returns
+  const filteredSalesProducts = useMemo(() => {
+    const allProducts = salesDetailsData?.data?.products || [];
+    if (searchTerm.length < 3) return allProducts;
+    
+    const term = searchTerm.toLowerCase();
+    return allProducts.filter((product: any) => 
+      product.productName?.toLowerCase().includes(term) ||
+      product.barcode?.toLowerCase().includes(term)
+    );
+  }, [salesDetailsData?.data?.products, searchTerm]);
+
   const handleLogout = async () => {
     try {
       await apiRequest("/api/vendors/auth/logout", { method: "POST" });
@@ -175,18 +187,6 @@ export default function VendorDashboard() {
     pendingOrders: 0,
     completedOrders: 0,
   };
-
-  // Filter products by search term (minimum 3 characters)
-  const filteredSalesProducts = useMemo(() => {
-    const allProducts = salesDetailsData?.data?.products || [];
-    if (searchTerm.length < 3) return allProducts;
-    
-    const term = searchTerm.toLowerCase();
-    return allProducts.filter((product: any) => 
-      product.productName?.toLowerCase().includes(term) ||
-      product.barcode?.toLowerCase().includes(term)
-    );
-  }, [salesDetailsData?.data?.products, searchTerm]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
