@@ -89,11 +89,21 @@ export default function VendorAccountingTab() {
 
   const { data: vendorProducts, isLoading: loadingProducts } = useQuery<{ products: VendorProduct[] }>({
     queryKey: ["/api/admin/vendor-accounting/products", selectedVendor?.vendorId],
+    queryFn: async () => {
+      const response = await fetch(`/api/admin/vendor-accounting/products?vendorId=${selectedVendor?.vendorId}`);
+      if (!response.ok) throw new Error("خطا در دریافت محصولات");
+      return response.json();
+    },
     enabled: !!selectedVendor,
   });
 
   const { data: vendorTransactions, isLoading: loadingTransactions } = useQuery<{ transactions: VendorTransaction[] }>({
     queryKey: ["/api/admin/vendor-accounting/transactions", selectedVendor?.vendorId],
+    queryFn: async () => {
+      const response = await fetch(`/api/admin/vendor-accounting/transactions?vendorId=${selectedVendor?.vendorId}`);
+      if (!response.ok) throw new Error("خطا در دریافت تراکنش‌ها");
+      return response.json();
+    },
     enabled: !!selectedVendor,
   });
 
