@@ -28945,7 +28945,7 @@ ${message ? `Additional Requirements:\n${message}` : ''}
           v.vendor_name
         FROM order_items oi
         LEFT JOIN shop_products sp ON oi.product_id = sp.id
-        LEFT JOIN vendors v ON p.vendor_id = v.id
+        LEFT JOIN vendors v ON sp.vendor_id = v.id
         WHERE oi.order_id = $1 
         ORDER BY v.vendor_name NULLS LAST, oi.id`,
         [parseInt(customerOrderId)]

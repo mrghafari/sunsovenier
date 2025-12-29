@@ -25,7 +25,7 @@ import {
   orderStatuses
 } from "@shared/order-management-schema";
 import { customerOrders, orderItems } from "@shared/customer-schema";
-import { crmCustomers } from "@shared/schema";
+import { crmCustomers, vendors } from "@shared/schema";
 import { showcaseProducts as products } from "@shared/showcase-schema";
 import { shopProducts } from "@shared/shop-schema";
 import { db } from "./db";
@@ -2087,11 +2087,29 @@ export class OrderManagementStorage implements IOrderManagementStorage {
       
       const customerOrder = customerOrderResult[0];
       
-      // Get order items
+      // Get order items with vendor information
       const orderItemsResult = await db
-        .select()
+        .select({
+          id: orderItems.id,
+          orderId: orderItems.orderId,
+          productId: orderItems.productId,
+          productName: orderItems.productName,
+          productSku: orderItems.productSku,
+          quantity: orderItems.quantity,
+          unit: orderItems.unit,
+          unitPrice: orderItems.unitPrice,
+          totalPrice: orderItems.totalPrice,
+          specifications: orderItems.specifications,
+          notes: orderItems.notes,
+          createdAt: orderItems.createdAt,
+          vendorId: shopProducts.vendorId,
+          vendorName: vendors.vendorName,
+        })
         .from(orderItems)
-        .where(eq(orderItems.orderId, orderId));
+        .leftJoin(shopProducts, eq(orderItems.productId, shopProducts.id))
+        .leftJoin(vendors, eq(shopProducts.vendorId, vendors.id))
+        .where(eq(orderItems.orderId, orderId))
+        .orderBy(sql`${vendors.vendorName} NULLS LAST`, orderItems.id);
       
       // Get customer details
       let customerDetails = null;
@@ -2124,7 +2142,7 @@ export class OrderManagementStorage implements IOrderManagementStorage {
         
         // Calculated fields
         totalItems: orderItemsResult.length,
-        totalQuantity: orderItemsResult.reduce((sum, item) => sum + item.quantity, 0),
+        totalQuantity: orderItemsResult.reduce((sum, item) => sum + parseInt(item.quantity || '0'), 0),
         totalAmount: customerOrder.totalAmount,
         totalWeight: totalWeight,
         weightUnit: 'kg',
