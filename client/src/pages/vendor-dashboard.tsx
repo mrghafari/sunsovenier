@@ -17,8 +17,10 @@ import {
   Percent,
   Calculator
 } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import JsBarcode from "jsbarcode";
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
 
 // Barcode component with image rendering
 function BarcodeImage({ value, align = 'center' }: { value: string; align?: 'left' | 'right' | 'center' }) {
@@ -29,10 +31,10 @@ function BarcodeImage({ value, align = 'center' }: { value: string; align?: 'lef
       try {
         JsBarcode(svgRef.current, value, {
           format: "CODE128",
-          width: 3,
-          height: 100,
+          width: 2,
+          height: 60,
           displayValue: false,
-          margin: 10,
+          margin: 6,
           background: "#ffffff"
         });
       } catch (e) {
@@ -59,6 +61,7 @@ import { useToast } from "@/hooks/use-toast";
 export default function VendorDashboard() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Fetch vendor profile
   const { data: vendorData, isLoading: isLoadingVendor } = useQuery({
@@ -172,6 +175,18 @@ export default function VendorDashboard() {
     pendingOrders: 0,
     completedOrders: 0,
   };
+
+  // Filter products by search term (minimum 3 characters)
+  const filteredSalesProducts = useMemo(() => {
+    const allProducts = salesDetailsData?.data?.products || [];
+    if (searchTerm.length < 3) return allProducts;
+    
+    const term = searchTerm.toLowerCase();
+    return allProducts.filter((product: any) => 
+      product.productName?.toLowerCase().includes(term) ||
+      product.barcode?.toLowerCase().includes(term)
+    );
+  }, [salesDetailsData?.data?.products, searchTerm]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -511,13 +526,28 @@ export default function VendorDashboard() {
               {/* Product Sales Details */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <DollarSign className="w-5 h-5" />
-                    ریز فروش محصولات
-                  </CardTitle>
-                  <CardDescription>
-                    لیست محصولات فروخته شده با جزئیات کمیسیون و خالص دریافتی
-                  </CardDescription>
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <DollarSign className="w-5 h-5" />
+                        ریز فروش محصولات
+                      </CardTitle>
+                      <CardDescription>
+                        لیست محصولات فروخته شده با جزئیات کمیسیون و خالص دریافتی
+                      </CardDescription>
+                    </div>
+                    <div className="relative w-full md:w-64">
+                      <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        type="text"
+                        placeholder="جستجو (حداقل ۳ حرف)..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pr-10"
+                        data-testid="input-search-products"
+                      />
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {isLoadingSalesDetails ? (
@@ -528,6 +558,11 @@ export default function VendorDashboard() {
                     <div className="text-center py-12">
                       <DollarSign className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                       <p className="text-muted-foreground">هنوز فروشی ثبت نشده است</p>
+                    </div>
+                  ) : filteredSalesProducts.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">محصولی با این عبارت یافت نشد</p>
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
@@ -544,15 +579,15 @@ export default function VendorDashboard() {
                           </tr>
                         </thead>
                         <tbody>
-                          {salesDetailsData.data.products.map((product: any, index: number) => (
+                          {filteredSalesProducts.map((product: any, index: number) => (
                             <tr 
                               key={product.productId || index} 
                               className="border-b hover:bg-gray-50 dark:hover:bg-gray-800"
                               data-testid={`product-sale-row-${product.productId}`}
                             >
-                              <td className="p-2 font-medium text-sm">{product.productName}</td>
+                              <td className="p-2 font-bold text-base">{product.productName}</td>
                               <td className="p-2">
-                                <BarcodeImage value={product.barcode || ''} align={index % 2 === 0 ? 'left' : 'right'} />
+                                <BarcodeImage value={product.barcode || ''} align="center" />
                               </td>
                               <td className="p-2 text-center">
                                 <Badge variant="secondary" className="text-xs">{product.totalQuantity}</Badge>
