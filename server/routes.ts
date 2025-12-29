@@ -55374,7 +55374,29 @@ momtazchem.com
 
       const { db } = await import('./db');
       const { vendors, vendorTransactions, vendorBalances, vendorPayments } = await import('@shared/schema');
-      const { eq } = await import('drizzle-orm');
+      const { eq, sql } = await import('drizzle-orm');
+
+      // Calculate actual vendor balance from transactions (net sales = total sales - commission - total paid)
+      const [transactionTotals] = await db
+        .select({
+          totalSales: sql<string>`COALESCE(SUM(CASE WHEN ${vendorTransactions.transactionType} = 'sale' THEN CAST(${vendorTransactions.amount} AS DECIMAL) ELSE 0 END), 0)::text`,
+          totalCommission: sql<string>`COALESCE(SUM(CASE WHEN ${vendorTransactions.transactionType} = 'sale' THEN CAST(${vendorTransactions.commissionAmount} AS DECIMAL) ELSE 0 END), 0)::text`,
+          totalPaid: sql<string>`COALESCE(SUM(CASE WHEN ${vendorTransactions.transactionType} = 'payment' THEN CAST(${vendorTransactions.amount} AS DECIMAL) ELSE 0 END), 0)::text`
+        })
+        .from(vendorTransactions)
+        .where(eq(vendorTransactions.vendorId, vendorId));
+
+      const netSales = parseFloat(transactionTotals?.totalSales || '0') - parseFloat(transactionTotals?.totalCommission || '0');
+      const alreadyPaid = parseFloat(transactionTotals?.totalPaid || '0');
+      const availableBalance = netSales - alreadyPaid;
+
+      // Validate payment doesn't exceed available balance
+      if (amountNum > availableBalance) {
+        return res.status(400).json({ 
+          success: false, 
+          message: `مبلغ پرداخت (${amountNum.toLocaleString()} IQD) بیشتر از موجودی قابل پرداخت (${availableBalance.toLocaleString()} IQD) است`
+        });
+      }
 
       // Get or create balance record (upsert pattern)
       let [currentBalance] = await db
