@@ -12911,14 +12911,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let flammableProducts: any[] = [];
       
       if (productIds.length > 0) {
-        flammableProducts = await db
-          .select({
-            id: showcaseProducts.id,
-            name: showcaseProducts.name,
-            isFlammable: showcaseProducts.isFlammable
-          })
-          .from(showcaseProducts)
-          .where(or(...productIds.map(id => eq(showcaseProducts.id, id))));
+        // Guard against empty productIds array - or() throws error with no arguments
+        if (productIds.length > 0) {
+          flammableProducts = await db
+            .select({
+              id: showcaseProducts.id,
+              name: showcaseProducts.name,
+              isFlammable: showcaseProducts.isFlammable
+            })
+            .from(showcaseProducts)
+            .where(or(...productIds.map(id => eq(showcaseProducts.id, id))));
+        }
 
         containsFlammableProducts = flammableProducts.some(product => product.isFlammable);
       }
@@ -12965,10 +12968,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         weightSource = 'order_management';
       } else if (orderItemsList.length > 0 && productIds.length > 0) {
         // Fallback for legacy orders: calculate from product weights (single query)
-        const productWeights = await db
+        // Guard against empty productIds - use ANY() for efficiency
+        const productWeights = productIds.length > 0 ? await db
           .select({ id: showcaseProducts.id, weight: showcaseProducts.weight })
           .from(showcaseProducts)
-          .where(or(...productIds.map(id => eq(showcaseProducts.id, id))));
+          .where(sql`${showcaseProducts.id} = ANY(${productIds})`) : [];
         
         const weightMap = new Map(productWeights.map(p => [p.id, parseFloat(p.weight || '1')]));
         orderWeight = orderItemsList.reduce((total, item) => {
