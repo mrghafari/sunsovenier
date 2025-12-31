@@ -17883,15 +17883,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const productId = parseInt(productIdStr);
           const qty = typeof quantity === 'number' ? quantity : parseInt(String(quantity)) || 1;
           
-          const productWeight = await db.select({ grossWeight: shopProducts.grossWeight })
+          const productWeight = await db.select({ grossWeight: shopProducts.grossWeight, weight: shopProducts.weight })
             .from(shopProducts)
             .where(eq(shopProducts.id, productId))
             .limit(1);
           
-          if (productWeight.length > 0 && productWeight[0].grossWeight) {
-            const weight = parseFloat(productWeight[0].grossWeight.toString());
-            calculatedTotalWeight += weight * qty;
+
+          if (productWeight.length > 0) {
+            // Use grossWeight if available, otherwise fallback to legacy weight column
+            const weightValue = productWeight[0].grossWeight || productWeight[0].weight;
+            if (weightValue) {
+              const weight = parseFloat(weightValue.toString());
+              calculatedTotalWeight += weight * qty;
+            }
           }
+
+
+
         }
         console.log(`🏋️ [WEIGHT PRE-CALC] Calculated total weight before order creation: ${calculatedTotalWeight}kg`);
       } catch (weightError) {
