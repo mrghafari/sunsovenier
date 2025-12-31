@@ -1,6 +1,6 @@
 import { shopDb } from "./shop-db";
 import { db } from "./db";
-import { invoices, invoiceItems, orders, orderItems, customers, type Invoice, type InvoiceItem, type InsertInvoice, type InsertInvoiceItem } from "@shared/shop-schema";
+import { invoices, invoiceItems, orderItems, customers, type Invoice, type InvoiceItem, type InsertInvoice, type InsertInvoiceItem } from "@shared/shop-schema";
 import { orderManagement } from "@shared/order-management-schema";
 import { customerOrders } from "@shared/customer-schema";
 import { eq, desc, and, isNotNull } from "drizzle-orm";
@@ -183,62 +183,8 @@ export class InvoiceStorage implements IInvoiceStorage {
       return invoice;
     }
 
-    // If not found in customer_orders, try shop orders (legacy)
-    const [order] = await shopDb
-      .select()
-      .from(orders)
-      .where(eq(orders.id, orderId));
-
-    if (!order) {
-      throw new Error("سفارش یافت نشد");
-    }
-
-    // BUSINESS RULE CHANGE: No longer require payment completion for shop orders either
-    // This maintains consistency across all order types
-    console.log(`📄 [INVOICE GEN] Generating invoice for shop order ${order.id} with payment status: ${order.paymentStatus}`);
-
-    // Get order items
-    const items = await shopDb
-      .select()
-      .from(orderItems)
-      .where(eq(orderItems.orderId, orderId));
-
-    // Generate invoice number
-    const invoiceNumber = await this.generateInvoiceNumber();
-
-    // Create invoice with language support
-    const invoiceData: InsertInvoice = {
-      invoiceNumber,
-      orderId: order.id,
-      customerId: order.customerId,
-      status: 'paid',
-      subtotal: order.subtotal,
-      taxAmount: order.taxAmount,
-      discountAmount: order.discountAmount,
-      totalAmount: order.totalAmount,
-      currency: order.currency,
-      billingAddress: order.billingAddress,
-      notes: order.notes,
-      language: language,
-      paymentDate: new Date(),
-    };
-
-    const invoice = await this.createInvoice(invoiceData);
-
-    // Create invoice items
-    for (const item of items) {
-      await this.createInvoiceItem({
-        invoiceId: invoice.id,
-        productId: item.productId,
-        productName: item.productName,
-        productSku: item.productSku,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        totalPrice: item.totalPrice,
-      });
-    }
-
-    return invoice;
+    // Order not found in customer_orders
+    throw new Error("سفارش یافت نشد");
   }
 
   async requestOfficialInvoice(invoiceId: number, language: string = 'ar'): Promise<Invoice> {

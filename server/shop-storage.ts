@@ -3,7 +3,6 @@ import {
   shopCategories,
   customers,
   customerAddresses,
-  orders,
   orderItems,
   shopInventoryMovements,
   goodsInTransit,
@@ -19,8 +18,6 @@ import {
   type InsertCustomer,
   type CustomerAddress,
   type InsertCustomerAddress,
-  type Order,
-  type InsertOrder,
   type OrderItem,
   type InsertOrderItem,
   type ShopInventoryMovement,
@@ -36,6 +33,11 @@ import {
   type ProductReturn,
   type InsertProductReturn
 } from "@shared/shop-schema";
+import { 
+  customerOrders as orders,
+  type CustomerOrder as Order,
+  type InsertCustomerOrder as InsertOrder
+} from "@shared/customer-schema";
 import { shopDb } from "./shop-db";
 import { eq, desc, and, gte, lte, gt, sql, count, or, like, ilike, asc } from "drizzle-orm";
 

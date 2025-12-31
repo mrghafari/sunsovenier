@@ -30,7 +30,7 @@ import { requireDepartment, attachUserDepartments } from "./department-auth";
 import { insertCustomerInquirySchema, insertEmailTemplateSchema, insertCustomerSchema, insertCustomerAddressSchema, walletRechargeRequests, customerOrders, orderItems, walletTransactions, customerWallets } from "@shared/customer-schema";
 import { customerDb, customerPool } from "./customer-db";
 import { insertEmailCategorySchema, insertSmtpSettingSchema, insertEmailRecipientSchema, smtpConfigSchema, emailLogs, emailCategories, smtpSettings, emailRecipients, categoryEmailAssignments, insertCategoryEmailAssignmentSchema } from "@shared/email-schema";
-import { insertShopProductSchema, insertShopCategorySchema, paymentGateways, orders as shopOrders, shopProducts } from "@shared/shop-schema";
+import { insertShopProductSchema, insertShopCategorySchema, paymentGateways, shopProducts } from "@shared/shop-schema";
 import { sendContactEmail } from "./email";
 import { insertBlogPostSchema, insertBlogPostTranslationSchema, blogPosts, blogPostTranslations } from "@shared/blog-schema";
 import TemplateProcessor from "./template-processor";
@@ -52181,17 +52181,6 @@ momtazchem.com
           console.log(`⚠️ [DELETE] Abandoned orders table not accessible, skipping`);
         }
 
-        // 10. Delete from shop orders table (if order exists there)
-        try {
-          const { orders: shopOrders } = await import('@shared/shop-schema');
-          const deletedShopOrders = await tx
-            .delete(shopOrders)
-            .where(eq(shopOrders.orderNumber, orderNumber))
-            .returning();
-          console.log(`🛍️ [DELETE] Removed ${deletedShopOrders.length} shop order records`);
-        } catch (shopError) {
-          console.log(`⚠️ [DELETE] Shop orders table not accessible, skipping`);
-        }
 
         // 11. Delete any email logs related to this order
         try {
