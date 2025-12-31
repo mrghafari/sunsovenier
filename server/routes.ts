@@ -41119,6 +41119,7 @@ momtazchem.com
         totalWeight: order.totalWeight || order.customerOrderTotalWeight || null, // Weight from order_management or customer_orders
         weightUnit: order.weightUnit || 'kg', // Weight unit
         currentStatus: order.currentStatus,
+        customerNotes: order.customerNotes || order.notes || null, // یادداشت مشتری از چک‌اوت
         warehouseNotes: order.warehouseNotes,
         warehouseProcessedAt: order.warehouseProcessedAt,
         financialReviewedAt: order.financialReviewedAt,
@@ -41234,6 +41235,7 @@ momtazchem.com
         totalAmount: order.totalAmount,
         currency: order.currency || 'IQD',
         currentStatus: order.currentStatus,
+        customerNotes: order.customerNotes || order.notes || null, // یادداشت مشتری از چک‌اوت
         warehouseNotes: order.warehouseNotes,
         warehouseProcessedAt: order.warehouseProcessedAt,
         warehouseAssigneeId: order.warehouseAssigneeId,

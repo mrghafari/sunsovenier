@@ -90,6 +90,7 @@ interface Order {
   shippingAddress: string;
   paymentMethod: string;
   notes?: string;
+  customerNotes?: string;
   warehouseNotes?: string;
   fulfilledAt?: string;
   fulfilledBy?: string;
@@ -1852,6 +1853,15 @@ const WarehouseManagement: React.FC = () => {
                 <div>
                   <Label className="text-sm font-medium">آدرس ارسال:</Label>
                   <p className="mt-1">{selectedOrder.shippingAddress}</p>
+                </div>
+              )}
+              {(selectedOrder.customerNotes || selectedOrder.notes) && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                  <Label className="text-sm font-medium text-amber-800 flex items-center gap-2">
+                    <FileText className="w-4 h-4" />
+                    یادداشت مشتری:
+                  </Label>
+                  <p className="mt-1 text-amber-900">{selectedOrder.customerNotes || selectedOrder.notes}</p>
                 </div>
               )}
               {selectedOrder.items && selectedOrder.items.length > 0 && (

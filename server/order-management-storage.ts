@@ -655,6 +655,7 @@ export class OrderManagementStorage implements IOrderManagementStorage {
       recipientPhone: customerOrders.recipientPhone,
       recipientAddress: customerOrders.recipientAddress,
       deliveryNotes: customerOrders.deliveryNotes,
+      customerNotes: customerOrders.notes, // یادداشت‌های مشتری از چک‌اوت
       
       // GPS Location data for logistics coordination
       gpsLatitude: customerOrders.gpsLatitude,
@@ -824,6 +825,7 @@ export class OrderManagementStorage implements IOrderManagementStorage {
           } catch { return null; }
         })(),
         deliveryNotes: row.deliveryNotes,
+        customerNotes: row.customerNotes, // یادداشت‌های مشتری از چک‌اوت
         
         // GPS Location data for distribution partner coordination
         gpsLatitude: row.gpsLatitude,
