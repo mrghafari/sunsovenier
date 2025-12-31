@@ -920,6 +920,17 @@ const WarehouseManagementFixed: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Customer Notes - یادداشت مشتری از چک‌اوت */}
+                {(orderDetails.customerNotes || orderDetails.notes) && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <h3 className="font-semibold mb-2 text-lg text-amber-800 flex items-center gap-2">
+                      <FileText className="w-5 h-5" />
+                      یادداشت مشتری
+                    </h3>
+                    <p className="text-amber-900">{orderDetails.customerNotes || orderDetails.notes}</p>
+                  </div>
+                )}
+
                 {/* Order Items */}
                 <div>
                   <h3 className="font-semibold mb-3 text-lg">آیتم‌های سفارش</h3>

@@ -2152,6 +2152,9 @@ export class OrderManagementStorage implements IOrderManagementStorage {
         totalWeight: totalWeight,
         weightUnit: 'kg',
         orderDate: customerOrder.createdAt,
+        orderNumber: customerOrder.orderNumber, // شماره سفارش M[YY][NNNNN]
+        customerNotes: customerOrder.notes, // یادداشت مشتری از چک‌اوت
+        notes: customerOrder.notes, // فیلد جایگزین برای سازگاری
         
         // Status info
         currentStatus: orderManagement.currentStatus,
