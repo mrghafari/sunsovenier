@@ -6249,6 +6249,51 @@ const LogisticsManagement = () => {
                 </div>
               )}
 
+              {/* سیستم یادداشت‌های سلسله‌مراتبی - لجستیک تمام یادداشت‌های قبلی را می‌بیند */}
+              {((selectedOrderForDetails as any).customerNotes || (selectedOrderForDetails as any).notes || 
+                (selectedOrderForDetails as any).financialNotes || (selectedOrderForDetails as any).warehouseNotes) && (
+                <div className="border rounded-lg p-4 bg-gray-50">
+                  <h3 className="font-semibold mb-3 flex items-center gap-2">
+                    <FileText className="w-4 h-4" />
+                    یادداشت‌های سفارش
+                  </h3>
+                  <div className="space-y-3">
+                    {/* یادداشت مشتری */}
+                    {((selectedOrderForDetails as any).customerNotes || (selectedOrderForDetails as any).notes) && (
+                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="bg-amber-200 text-amber-800 px-2 py-0.5 rounded text-xs font-medium">مشتری</span>
+                          <span className="text-xs text-amber-600">یادداشت چک‌اوت</span>
+                        </div>
+                        <p className="text-amber-900">{(selectedOrderForDetails as any).customerNotes || (selectedOrderForDetails as any).notes}</p>
+                      </div>
+                    )}
+                    
+                    {/* یادداشت بخش مالی */}
+                    {(selectedOrderForDetails as any).financialNotes && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="bg-blue-200 text-blue-800 px-2 py-0.5 rounded text-xs font-medium">بخش مالی</span>
+                          <span className="text-xs text-blue-600">یادداشت تایید پرداخت</span>
+                        </div>
+                        <p className="text-blue-900">{(selectedOrderForDetails as any).financialNotes}</p>
+                      </div>
+                    )}
+                    
+                    {/* یادداشت انبار */}
+                    {(selectedOrderForDetails as any).warehouseNotes && (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="bg-green-200 text-green-800 px-2 py-0.5 rounded text-xs font-medium">انبار</span>
+                          <span className="text-xs text-green-600">یادداشت پردازش انبار</span>
+                        </div>
+                        <p className="text-green-900">{(selectedOrderForDetails as any).warehouseNotes}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Financial Information */}
               {(selectedOrderForDetails as any).financialReviewedAt && (
                 <div className="border rounded-lg p-4 bg-yellow-50">
@@ -6261,12 +6306,6 @@ const LogisticsManagement = () => {
                       <p className="text-sm text-gray-600 mb-1">تاریخ بررسی مالی:</p>
                       <p className="font-medium">{new Date((selectedOrderForDetails as any).financialReviewedAt).toLocaleDateString('en-GB')}</p>
                     </div>
-                    {(selectedOrderForDetails as any).financialNotes && (
-                      <div>
-                        <p className="text-sm text-gray-600 mb-1">یادداشت‌های مالی:</p>
-                        <p className="font-medium">{(selectedOrderForDetails as any).financialNotes}</p>
-                      </div>
-                    )}
                   </div>
                 </div>
               )}

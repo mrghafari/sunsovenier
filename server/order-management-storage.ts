@@ -2155,6 +2155,9 @@ export class OrderManagementStorage implements IOrderManagementStorage {
         orderNumber: customerOrder.orderNumber, // شماره سفارش M[YY][NNNNN]
         customerNotes: customerOrder.notes, // یادداشت مشتری از چک‌اوت
         notes: customerOrder.notes, // فیلد جایگزین برای سازگاری
+        financialNotes: orderManagement.financialNotes, // یادداشت بخش مالی
+        warehouseNotes: orderManagement.warehouseNotes, // یادداشت انبار
+        logisticsNotes: orderManagement.logisticsNotes, // یادداشت لجستیک
         
         // Status info
         currentStatus: orderManagement.currentStatus,

@@ -1581,6 +1581,27 @@ function FinanceOrders() {
                 </CardContent>
               </Card>
 
+              {/* یادداشت مشتری از چک‌اوت - بخش مالی می‌تواند یادداشت مشتری را ببیند */}
+              {(orderDetails.customerNotes || orderDetails.notes) && (
+                <Card className="border-amber-200 bg-amber-50">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-amber-800 flex items-center gap-2">
+                      <FileText className="w-5 h-5" />
+                      یادداشت مشتری
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="bg-white p-3 rounded border border-amber-200">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="bg-amber-200 text-amber-800 px-2 py-0.5 rounded text-xs font-medium">مشتری</span>
+                        <span className="text-xs text-amber-600">یادداشت چک‌اوت</span>
+                      </div>
+                      <p className="text-amber-900">{orderDetails.customerNotes || orderDetails.notes}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Order Items */}
               <Card>
                 <CardHeader>

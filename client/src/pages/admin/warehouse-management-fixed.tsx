@@ -927,14 +927,35 @@ const WarehouseManagementFixed: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Customer Notes - یادداشت مشتری از چک‌اوت */}
-                {(orderDetails.customerNotes || orderDetails.notes) && (
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                    <h3 className="font-semibold mb-2 text-lg text-amber-800 flex items-center gap-2">
+                {/* سیستم یادداشت‌های سلسله‌مراتبی - انبار یادداشت مشتری و مالی را می‌بیند */}
+                {((orderDetails.customerNotes || orderDetails.notes) || (orderDetails.financialNotes || orderDetails.orderManagement?.financialNotes)) && (
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-lg flex items-center gap-2">
                       <FileText className="w-5 h-5" />
-                      یادداشت مشتری
+                      یادداشت‌ها
                     </h3>
-                    <p className="text-amber-900">{orderDetails.customerNotes || orderDetails.notes}</p>
+                    
+                    {/* یادداشت مشتری از چک‌اوت */}
+                    {(orderDetails.customerNotes || orderDetails.notes) && (
+                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="bg-amber-200 text-amber-800 px-2 py-0.5 rounded text-xs font-medium">مشتری</span>
+                          <span className="text-xs text-amber-600">یادداشت چک‌اوت</span>
+                        </div>
+                        <p className="text-amber-900">{orderDetails.customerNotes || orderDetails.notes}</p>
+                      </div>
+                    )}
+                    
+                    {/* یادداشت بخش مالی */}
+                    {(orderDetails.financialNotes || orderDetails.orderManagement?.financialNotes) && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="bg-blue-200 text-blue-800 px-2 py-0.5 rounded text-xs font-medium">بخش مالی</span>
+                          <span className="text-xs text-blue-600">یادداشت تایید پرداخت</span>
+                        </div>
+                        <p className="text-blue-900">{orderDetails.financialNotes || orderDetails.orderManagement?.financialNotes}</p>
+                      </div>
+                    )}
                   </div>
                 )}
 
