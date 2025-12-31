@@ -93,6 +93,8 @@ interface Order {
   warehouseNotes?: string;
   fulfilledAt?: string;
   fulfilledBy?: string;
+  totalWeight?: string;
+  weightUnit?: string;
 }
 
 interface WarehouseStats {

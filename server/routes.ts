@@ -41101,6 +41101,8 @@ momtazchem.com
           'آدرس نامشخص',
         orderTotal: order.totalAmount || 0,
         shippingCost: order.shippingCost || 0, // Include shipping cost
+        totalWeight: order.totalWeight || null, // Include stored weight from order_management
+        weightUnit: order.weightUnit || 'kg', // Weight unit
         currentStatus: order.currentStatus,
         warehouseNotes: order.warehouseNotes,
         warehouseProcessedAt: order.warehouseProcessedAt,
