@@ -1221,6 +1221,8 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
       // This is used for exact filtering in logistics
       vehicleType: selectedVehicleRef.current?.type || selectedVehicle?.type ||
                    selectedVehicleRef.current?.vehicleType || selectedVehicle?.vehicleType || null, // Customer's selected vehicle TYPE for logistics
+      // CRITICAL: Send total weight calculated from cart items for logistics vehicle matching
+      totalWeight: totalWeight > 0 ? totalWeight : null, // Total weight in kg for optimal vehicle selection
     };
 
     // Debug logging for payment data
