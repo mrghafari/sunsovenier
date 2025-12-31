@@ -13191,6 +13191,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             destinationCity: destinationCity,
             weight: orderWeight,
             weightUnit: 'kg',
+          vehicleType: checkoutVehicleType,
             weightSource: weightSource, // NEW: Shows where weight came from
             containsFlammableProducts: containsFlammableProducts,
             flammableProducts: flammableProducts.filter(p => p.isFlammable),
@@ -18082,6 +18083,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Add calculated weight
           totalWeight: calculatedTotalWeight > 0 ? calculatedTotalWeight.toFixed(3) : null,
           weightUnit: 'kg',
+          vehicleType: checkoutVehicleType,
         
         // Store frozen tax rates at order creation time
         vatRate: taxCalculation.vatRate.toString(),
@@ -18411,6 +18413,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Add calculated weight
           totalWeight: calculatedTotalWeight > 0 ? calculatedTotalWeight.toFixed(3) : null,
           weightUnit: 'kg',
+          vehicleType: checkoutVehicleType,
         };
 
         // Add vehicle type from checkout payload if customer selected one
@@ -18691,6 +18694,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             notes: orderData.notes || "",
             totalWeight: calculatedTotalWeight > 0 ? calculatedTotalWeight.toFixed(3) : null,
             weightUnit: 'kg',
+          vehicleType: checkoutVehicleType,
             paymentMethod: 'wallet_full' as const,
           };
           
@@ -18774,6 +18778,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               notes: orderData.notes || "",
               totalWeight: calculatedTotalWeight > 0 ? calculatedTotalWeight.toFixed(3) : null,
               weightUnit: 'kg',
+          vehicleType: checkoutVehicleType,
               paymentMethod: 'wallet_full' as const,
             };
             
