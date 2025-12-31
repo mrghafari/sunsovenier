@@ -176,6 +176,8 @@ export const customerOrders = pgTable("customer_orders", {
   // Delivery method selected by customer during checkout
   deliveryMethod: text("delivery_method").default("courier"), // post, courier, truck, personal_pickup
   vehicleType: text("vehicle_type"), // نوع خودروی انتخابی مشتری در ارسال هوشمند (کامیون‌ها، اتوبوس‌ها، و غیره)
+  totalWeight: decimal("total_weight", { precision: 10, scale: 3 }), // وزن کل سفارش
+  weightUnit: text("weight_unit").default("kg"), // واحد وزن
   deliveryNotes: text("delivery_notes"), // Special delivery instructions from customer
   
   // Tax information saved at order creation time (frozen values)

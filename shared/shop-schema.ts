@@ -409,6 +409,9 @@ export const orders = pgTable("orders", {
   shippingAddress: json("shipping_address"),
   shippingMethod: text("shipping_method"),
   trackingNumber: text("tracking_number"),
+  totalWeight: decimal("total_weight", { precision: 10, scale: 3 }), // وزن کل سفارش
+  weightUnit: text("weight_unit").default("kg"), // واحد وزن
+  vehicleType: text("vehicle_type"), // نوع وسیله انتخابی مشتری
   orderDate: timestamp("order_date").notNull().defaultNow(),
   shippedDate: timestamp("shipped_date"),
   deliveredDate: timestamp("delivered_date"),
