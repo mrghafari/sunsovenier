@@ -722,29 +722,22 @@ const WarehouseManagementFixed: React.FC = () => {
                     <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
                       <thead>
                         <tr className="bg-gray-50 border-b border-gray-200">
-                          <th className="text-right p-4 font-semibold text-gray-700" style={{ width: '120px' }}>شماره سفارش</th>
-                          <th className="text-right p-4 font-semibold text-gray-700" style={{ width: '250px' }}>اطلاعات مشتری</th>
-                          <th className="text-right p-4 font-semibold text-gray-700" style={{ width: '140px' }}>وزن محموله</th>
-                          <th className="text-right p-4 font-semibold text-gray-700" style={{ width: '120px' }}>مبلغ کل</th>
-                          <th className="text-right p-4 font-semibold text-gray-700" style={{ width: '120px' }}>وضعیت</th>
-                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '140px' }}>یادداشت</th>
-                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '200px' }}>عملیات</th>
+                          <th className="text-right p-4 font-semibold text-gray-700" style={{ width: '10%' }}>شماره سفارش</th>
+                          <th className="text-right p-4 font-semibold text-gray-700" style={{ width: '20%' }}>اطلاعات مشتری</th>
+                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '10%' }}>وزن محموله</th>
+                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '12%' }}>مبلغ کل</th>
+                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '12%' }}>وضعیت</th>
+                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '14%' }}>یادداشت</th>
+                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '22%' }}>عملیات</th>
                         </tr>
                       </thead>
                       <tbody>
                         {filteredOrders.map((order: Order) => (
                           <tr key={order.id} className="border-b hover:bg-blue-50 transition-colors">
-                            <td className="p-4" style={{ width: '120px' }}>
-                              <div className="flex items-center gap-2">
-                                <div className="font-bold text-blue-600 truncate">{order.orderNumber || `#${order.id}`}</div>
-                                {order.notes && order.notes.trim().length > 0 && (
-                                  <div className="bg-orange-100 text-orange-600 p-1 rounded-full" title="دارای یادداشت">
-                                    <Edit3 className="w-3 h-3" />
-                                  </div>
-                                )}
-                              </div>
+                            <td className="p-4" style={{ width: '10%' }}>
+                              <div className="font-bold text-blue-600 truncate">{order.orderNumber || `#${order.id}`}</div>
                             </td>
-                            <td className="p-4" style={{ width: '250px' }}>
+                            <td className="p-4" style={{ width: '20%' }}>
                               <div className="space-y-1">
                                 <div className="font-medium text-gray-900 truncate">{
                                   order.customer?.firstName && order.customer?.lastName 
@@ -766,19 +759,19 @@ const WarehouseManagementFixed: React.FC = () => {
                                 />
                               </div>
                             </td>
-                            <td className="p-4" style={{ width: '140px' }}>
+                            <td className="p-4 text-center" style={{ width: '10%' }}>
                               <div className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1">
                                 <Weight className="w-3 h-3" />
                                 {order.totalWeight ? `${parseFloat(order.totalWeight).toFixed(1)} kg` : 'محاسبه...'}
                               </div>
                             </td>
-                            <td className="p-4" style={{ width: '120px' }}>
-                              <div className="font-semibold text-green-600 text-sm truncate">
+                            <td className="p-4 text-center" style={{ width: '12%' }}>
+                              <div className="font-semibold text-green-600 text-sm">
                                 {formatCurrency(parseFloat(order.totalAmount) || 0)}
                               </div>
                             </td>
-                            <td className="p-4" style={{ width: '120px' }}>{getStatusBadge(order.currentStatus || order.status)}</td>
-                            <td className="p-4 text-center" style={{ width: '140px' }}>
+                            <td className="p-4 text-center" style={{ width: '12%' }}>{getStatusBadge(order.currentStatus || order.status)}</td>
+                            <td className="p-4 text-center" style={{ width: '14%' }}>
                               {order.customerNotes && order.customerNotes.trim().length > 0 ? (
                                 <div className="bg-amber-100 text-amber-700 px-2 py-1 rounded text-xs font-medium inline-flex items-center gap-1">
                                   <Edit3 className="w-3 h-3" />
@@ -788,7 +781,7 @@ const WarehouseManagementFixed: React.FC = () => {
                                 <span className="text-gray-400 text-xs">—</span>
                               )}
                             </td>
-                            <td className="p-4 text-center" style={{ width: '200px' }}>
+                            <td className="p-4 text-center" style={{ width: '22%' }}>
                               <div className="flex items-center justify-center gap-1">
                                 <Button
                                   size="sm"
