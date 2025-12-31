@@ -389,7 +389,10 @@ export const insertCustomerAddressSchema = createInsertSchema(customerAddresses)
 export type InsertCustomerAddress = z.infer<typeof insertCustomerAddressSchema>;
 export type CustomerAddress = typeof customerAddresses.$inferSelect;
 
-// Orders
+// DEPRECATED: Legacy Orders table - DO NOT USE
+// Use customerOrders from @shared/customer-schema.ts instead
+// This table is kept for database schema compatibility only
+// All new code should use customerOrders table exclusively
 export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
   orderNumber: text("order_number").unique().notNull(),

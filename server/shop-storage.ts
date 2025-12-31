@@ -837,7 +837,7 @@ export class ShopStorage implements IShopStorage {
     return await shopDb
       .select()
       .from(orders)
-      .orderBy(desc(orders.orderDate));
+      .orderBy(desc(orders.createdAt));
   }
 
   async getOrderById(id: number): Promise<Order | undefined> {
@@ -853,7 +853,7 @@ export class ShopStorage implements IShopStorage {
       .select()
       .from(orders)
       .where(eq(orders.customerId, customerId))
-      .orderBy(desc(orders.orderDate));
+      .orderBy(desc(orders.createdAt));
   }
 
   async createOrder(order: InsertOrder): Promise<Order> {
