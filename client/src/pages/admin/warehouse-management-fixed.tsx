@@ -727,6 +727,7 @@ const WarehouseManagementFixed: React.FC = () => {
                           <th className="text-right p-4 font-semibold text-gray-700" style={{ width: '140px' }}>وزن محموله</th>
                           <th className="text-right p-4 font-semibold text-gray-700" style={{ width: '120px' }}>مبلغ کل</th>
                           <th className="text-right p-4 font-semibold text-gray-700" style={{ width: '120px' }}>وضعیت</th>
+                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '140px' }}>یادداشت</th>
                           <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '200px' }}>عملیات</th>
                         </tr>
                       </thead>
@@ -777,9 +778,15 @@ const WarehouseManagementFixed: React.FC = () => {
                               </div>
                             </td>
                             <td className="p-4" style={{ width: '120px' }}>{getStatusBadge(order.currentStatus || order.status)}</td>
-                            <td className="p-4" style={{ width: '140px' }}>
-                              <div className="text-sm text-gray-600 truncate">
-                              </div>
+                            <td className="p-4 text-center" style={{ width: '140px' }}>
+                              {order.customerNotes && order.customerNotes.trim().length > 0 ? (
+                                <div className="bg-amber-100 text-amber-700 px-2 py-1 rounded text-xs font-medium inline-flex items-center gap-1">
+                                  <Edit3 className="w-3 h-3" />
+                                  دارای یادداشت مشتری
+                                </div>
+                              ) : (
+                                <span className="text-gray-400 text-xs">—</span>
+                              )}
                             </td>
                             <td className="p-4 text-center" style={{ width: '200px' }}>
                               <div className="flex items-center justify-center gap-1">
