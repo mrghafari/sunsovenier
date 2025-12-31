@@ -759,6 +759,7 @@ export class OrderManagementStorage implements IOrderManagementStorage {
         totalWeight: calculatedWeight,
         calculatedWeight: calculatedWeight, // For frontend compatibility
         weightUnit: row.weightUnit || 'kg',
+        customerOrderTotalWeight: row.customerOrderTotalWeight, // وزن از جدول customer_orders
         deliveryMethod: row.customerDeliveryMethod || row.deliveryMethod, // اول روش مشتری، بعد روش لجستیک
         customerDeliveryMethod: row.customerDeliveryMethod, // روش ارسال انتخابی مشتری در چک‌اوت
         customerVehicleType: row.customerVehicleType, // نوع خودروی انتخابی مشتری در ارسال هوشمند
