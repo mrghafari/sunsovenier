@@ -1157,6 +1157,22 @@ const LogisticsManagement = () => {
         if (suitableVehiclesData.success) {
           setSuitableVehiclesData(suitableVehiclesData.data);
           console.log('✅ [SUITABLE VEHICLES] Found vehicles:', suitableVehiclesData.data.suitableVehicles.length);
+          
+          // Set ready fleet vehicles from API response (filtered by customer's template)
+          if (suitableVehiclesData.data.readyFleetVehicles && suitableVehiclesData.data.readyFleetVehicles.length > 0) {
+            // Map ready fleet vehicles to match expected format with template match indicators
+            const mappedFleetVehicles = suitableVehiclesData.data.readyFleetVehicles.map((rv: any) => ({
+              ...rv,
+              vehicleName: rv.templateName,
+              vehicleTemplateName: rv.templateName,
+              vehicleType: rv.templateVehicleType,
+              templateMatchType: rv.isTemplateMatch ? 'exact' : null,
+              isCheckoutSuggested: false
+            }));
+            setAvailableFleetVehicles(mappedFleetVehicles);
+            console.log(`✅ [READY FLEET] Set ${mappedFleetVehicles.length} filtered fleet vehicles (customer template: ${suitableVehiclesData.data.order?.customerVehicleType})`);
+          }
+          
           setSelectedOrderForVehicle(order);
           setIsSuitableVehiclesOpen(true);
           return;
@@ -5750,22 +5766,37 @@ const LogisticsManagement = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                     <div className="flex items-center gap-2">
                       <MapPin className="h-4 w-4 text-gray-500" />
                       <span className="text-sm text-gray-600">مقصد:</span>
                       <span className="font-medium">{suitableVehiclesData.order?.destinationCity}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Weight className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm text-gray-600">وزن:</span>
-                      <span className="font-medium">{suitableVehiclesData.order?.weight} {suitableVehiclesData.order?.weightUnit}</span>
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-2">
+                        <Weight className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm text-gray-600">وزن:</span>
+                        <span className="font-bold text-blue-700">{suitableVehiclesData.order?.weight?.toLocaleString()} {suitableVehiclesData.order?.weightUnit}</span>
+                      </div>
+                      {suitableVehiclesData.order?.weightSource && (
+                        <span className="text-xs text-gray-400 mt-1">
+                          ({suitableVehiclesData.order.weightSource === 'order_management_calculated' ? 'محاسبه انبار' : 
+                            suitableVehiclesData.order.weightSource === 'order_management_total' ? 'وزن ثبت شده' : 'محاسبه خودکار'})
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       <ArrowUpDown className="h-4 w-4 text-gray-500" />
                       <span className="text-sm text-gray-600">مسافت:</span>
                       <span className="font-medium">{suitableVehiclesData.order?.distance} کیلومتر</span>
                     </div>
+                    {suitableVehiclesData.order?.customerVehicleType && (
+                      <div className="flex items-center gap-2">
+                        <Truck className="h-4 w-4 text-purple-500" />
+                        <span className="text-sm text-gray-600">خودرو انتخابی مشتری:</span>
+                        <Badge className="bg-purple-100 text-purple-800">{suitableVehiclesData.order.customerVehicleType}</Badge>
+                      </div>
+                    )}
                     {suitableVehiclesData.order?.containsFlammableProducts && (
                       <div className="flex items-center gap-2">
                         <Flame className="h-4 w-4 text-red-500" />

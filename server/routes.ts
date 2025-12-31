@@ -12863,20 +12863,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get suitable vehicles for order - recreate delivery cost calculation for specific order
+  // Get suitable vehicles for order - with customer vehicle template and ready fleet filtering
   app.get("/api/orders/:orderId/suitable-vehicles", requireAuth, async (req, res) => {
     try {
       const { orderId } = req.params;
       console.log(`🚚 [SUITABLE VEHICLES] Getting suitable vehicles for order ${orderId}`);
       
-      // Get order details and items
+      // OPTIMIZED: Get order with order_management data for vehicle template and weight in single JOIN
       const orderResult = await db
         .select({
           id: customerOrders.id,
           orderNumber: customerOrders.orderNumber,
-          shippingAddress: customerOrders.shippingAddress
+          shippingAddress: customerOrders.shippingAddress,
+          // Order management data for customer's vehicle selection and calculated weight
+          customerVehicleType: orderManagement.vehicleType,
+          storedTotalWeight: orderManagement.totalWeight,
+          storedCalculatedWeight: orderManagement.calculatedWeight
         })
         .from(customerOrders)
+        .leftJoin(orderManagement, eq(orderManagement.customerOrderId, customerOrders.id))
         .where(eq(customerOrders.id, parseInt(orderId)))
         .limit(1);
 
@@ -12949,19 +12954,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       destinationCity = standardizeCityName(destinationCity);
       
-      // Calculate order weight from items
+      // SINGLE SOURCE OF TRUTH: Use weight and vehicle template from order_management (set at checkout)
+      // With fallback for legacy orders that don't have stored values
       let orderWeight = 0;
-      if (orderItemsList.length > 0) {
-        // Use calculated weight function similar to logistics endpoint
+      let weightSource = 'not_set';
+      
+      // Primary: Use stored weight from order_management (set at checkout)
+      if (order.storedTotalWeight && parseFloat(order.storedTotalWeight.toString()) > 0) {
+        orderWeight = parseFloat(order.storedTotalWeight.toString());
+        weightSource = 'order_management';
+      } else if (orderItemsList.length > 0 && productIds.length > 0) {
+        // Fallback for legacy orders: calculate from product weights (single query)
+        const productWeights = await db
+          .select({ id: showcaseProducts.id, weight: showcaseProducts.weight })
+          .from(showcaseProducts)
+          .where(or(...productIds.map(id => eq(showcaseProducts.id, id))));
+        
+        const weightMap = new Map(productWeights.map(p => [p.id, parseFloat(p.weight || '1')]));
         orderWeight = orderItemsList.reduce((total, item) => {
-          const itemQuantity = parseFloat(item.quantity.toString()) || 0;
-          // For simplicity, use a default weight or get from product
-          const itemWeight = 10; // kg - this could be fetched from product data
-          return total + (itemWeight * itemQuantity);
+          const qty = parseFloat(item.quantity.toString()) || 0;
+          return total + ((weightMap.get(item.productId) || 1) * qty);
         }, 0);
+        weightSource = 'legacy_calculation';
+        console.log(`⚠️ [LEGACY] Order ${orderId} missing stored weight, calculated: ${orderWeight}kg`);
       }
+      
+      const customerVehicleType = order.customerVehicleType || null;
 
-      console.log(`📍 [ORDER DETAILS] City: ${destinationCity}, Weight: ${orderWeight}kg, Flammable: ${containsFlammableProducts}`);
+      console.log(`📍 [ORDER DETAILS] City: ${destinationCity}, Weight: ${orderWeight}kg (${weightSource}), Vehicle: ${customerVehicleType}, Flammable: ${containsFlammableProducts}`);
 
       // Get suitable vehicles from vehicle templates
       const availableVehicles = await db
@@ -13037,6 +13057,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`🚛 [SUITABLE VEHICLES] Found ${suitableVehicles.length} suitable vehicles for order ${orderId}`);
 
+      // Get ready vehicles from fleet, filtered by customer's vehicle template
+      const { readyVehicles } = await import('@shared/logistics-schema');
+      let readyFleetVehicles: any[] = [];
+      
+      // Single query to get ready vehicles with their template info
+      const allReadyVehicles = await db
+        .select({
+          id: readyVehicles.id,
+          vehicleTemplateId: readyVehicles.vehicleTemplateId,
+          licensePlate: readyVehicles.licensePlate,
+          driverName: readyVehicles.driverName,
+          driverMobile: readyVehicles.driverMobile,
+          loadCapacity: readyVehicles.loadCapacity,
+          supportsFlammable: readyVehicles.supportsFlammable,
+          notAllowedFlammable: readyVehicles.notAllowedFlammable,
+          isAvailable: readyVehicles.isAvailable,
+          currentLocation: readyVehicles.currentLocation,
+          notes: readyVehicles.notes,
+          templateName: vehicleTemplates.name,
+          templateVehicleType: vehicleTemplates.vehicleType,
+          templateMaxWeight: vehicleTemplates.maxWeightKg
+        })
+        .from(readyVehicles)
+        .leftJoin(vehicleTemplates, eq(readyVehicles.vehicleTemplateId, vehicleTemplates.id))
+        .where(eq(readyVehicles.isAvailable, true));
+      
+      // Filter ready vehicles based on customer's vehicle template selection (if any)
+      if (customerVehicleType) {
+        // Match by vehicle type name or template name
+        readyFleetVehicles = allReadyVehicles.filter(rv => {
+          const templateMatch = rv.templateName?.toLowerCase().includes(customerVehicleType.toLowerCase()) ||
+                               rv.templateVehicleType?.toLowerCase().includes(customerVehicleType.toLowerCase()) ||
+                               customerVehicleType.toLowerCase().includes(rv.templateName?.toLowerCase() || '') ||
+                               customerVehicleType.toLowerCase().includes(rv.templateVehicleType?.toLowerCase() || '');
+          
+          // Also check flammable safety
+          if (containsFlammableProducts && rv.notAllowedFlammable) return false;
+          if (containsFlammableProducts && !rv.supportsFlammable) return false;
+          
+          return templateMatch;
+        });
+      } else {
+        // No template specified, show all that can handle the order
+        readyFleetVehicles = allReadyVehicles.filter(rv => {
+          const capacity = parseFloat(rv.loadCapacity?.toString() || '0');
+          if (orderWeight > capacity) return false;
+          if (containsFlammableProducts && rv.notAllowedFlammable) return false;
+          if (containsFlammableProducts && !rv.supportsFlammable) return false;
+          return true;
+        });
+      }
+      
+      console.log(`🚛 [READY FLEET] Found ${readyFleetVehicles.length} matching ready vehicles (template: ${customerVehicleType})`);
+      
       res.json({
         success: true,
         data: {
@@ -13046,14 +13120,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
             destinationCity: destinationCity,
             weight: orderWeight,
             weightUnit: 'kg',
+            weightSource: weightSource, // NEW: Shows where weight came from
             containsFlammableProducts: containsFlammableProducts,
             flammableProducts: flammableProducts.filter(p => p.isFlammable),
             distance: distance,
-            orderItems: orderItemsList
+            orderItems: orderItemsList,
+            customerVehicleType: customerVehicleType // NEW: Customer's checkout selection
           },
           suitableVehicles: suitableVehicles,
           optimalVehicle: suitableVehicles.length > 0 ? suitableVehicles[0] : null,
-          alternatives: suitableVehicles.slice(1, 4) // Top 3 alternatives
+          alternatives: suitableVehicles.slice(1, 4),
+          // NEW: Ready fleet vehicles filtered by customer's template
+          readyFleetVehicles: readyFleetVehicles.map(rv => ({
+            id: rv.id,
+            licensePlate: rv.licensePlate,
+            driverName: rv.driverName,
+            driverMobile: rv.driverMobile,
+            loadCapacity: parseFloat(rv.loadCapacity?.toString() || '0'),
+            supportsFlammable: rv.supportsFlammable,
+            currentLocation: rv.currentLocation,
+            notes: rv.notes,
+            templateName: rv.templateName,
+            templateVehicleType: rv.templateVehicleType,
+            isTemplateMatch: customerVehicleType ? true : false
+          })),
+          totalReadyVehicles: allReadyVehicles.length,
+          matchingReadyVehicles: readyFleetVehicles.length
         }
       });
 
