@@ -755,10 +755,10 @@ export class OrderManagementStorage implements IOrderManagementStorage {
         orderNumber: row.orderNumber, // شماره سفارش M[YY][NNNNN] یا فرمت قدیمی
         paymentMethod: row.paymentMethod, // 🔥 CRITICAL: Include payment method from database
         
-        // Weight and delivery information - with calculated weight
-        totalWeight: calculatedWeight,
-        calculatedWeight: calculatedWeight, // For frontend compatibility
-        weightUnit: row.weightUnit || 'kg',
+        // Weight and delivery information - with fallback to customer_orders weight
+        totalWeight: calculatedWeight || row.customerOrderTotalWeight || 0,
+        calculatedWeight: calculatedWeight || row.customerOrderTotalWeight || 0, // For frontend compatibility
+        weightUnit: row.weightUnit || row.customerOrderWeightUnit || 'kg',
         customerOrderTotalWeight: row.customerOrderTotalWeight, // وزن از جدول customer_orders
         deliveryMethod: row.customerDeliveryMethod || row.deliveryMethod, // اول روش مشتری، بعد روش لجستیک
         customerDeliveryMethod: row.customerDeliveryMethod, // روش ارسال انتخابی مشتری در چک‌اوت
