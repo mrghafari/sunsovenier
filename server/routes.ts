@@ -13083,21 +13083,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .leftJoin(vehicleTemplates, eq(readyVehicles.vehicleTemplateId, vehicleTemplates.id))
         .where(eq(readyVehicles.isAvailable, true));
       
-      // Filter ready vehicles based on customer's vehicle template selection (if any)
+      // Filter ready vehicles based on customer's EXACT vehicle template selection
+      // Only show vehicles that match the customer's chosen type (no suggestions for other types)
       if (customerVehicleType) {
-        // Match by vehicle type name or template name
+        // Persian/English vehicle type mapping for exact matching
+        const vehicleTypeNormalizer = (type: string): string => {
+          const normalized = type?.toLowerCase().trim();
+          // Map Persian names to English equivalents
+          const persianToEnglish: Record<string, string> = {
+            'وانت': 'van',
+            'موتورسیکلت': 'motorcycle',
+            'کامیون': 'truck',
+            'کامیون سبک': 'light_truck',
+            'کامیون چادری': 'heavy_truck',
+            'ون': 'cargo_van',
+            'اتوبوس': 'bus',
+            'pickup': 'van', // pickup is equivalent to van
+            'پیکاپ': 'van'
+          };
+          return persianToEnglish[normalized] || normalized;
+        };
+        
+        const normalizedCustomerType = vehicleTypeNormalizer(customerVehicleType);
+        console.log(`🎯 [EXACT FILTER] Customer selected: "${customerVehicleType}" → normalized: "${normalizedCustomerType}"`);
+        
+        // EXACT MATCH: Only show vehicles of the exact same type
         readyFleetVehicles = allReadyVehicles.filter(rv => {
-          const templateMatch = rv.templateName?.toLowerCase().includes(customerVehicleType.toLowerCase()) ||
-                               rv.templateVehicleType?.toLowerCase().includes(customerVehicleType.toLowerCase()) ||
-                               customerVehicleType.toLowerCase().includes(rv.templateName?.toLowerCase() || '') ||
-                               customerVehicleType.toLowerCase().includes(rv.templateVehicleType?.toLowerCase() || '');
+          const normalizedTemplateType = vehicleTypeNormalizer(rv.templateVehicleType || '');
+          const isExactMatch = normalizedTemplateType === normalizedCustomerType;
           
           // Also check flammable safety
           if (containsFlammableProducts && rv.notAllowedFlammable) return false;
           if (containsFlammableProducts && !rv.supportsFlammable) return false;
           
-          return templateMatch;
+          if (isExactMatch) {
+            console.log(`✅ [MATCH] Vehicle ${rv.licensePlate} (${rv.templateVehicleType}) matches customer's choice`);
+          }
+          
+          return isExactMatch;
         });
+        
+        console.log(`📋 [RESULT] Found ${readyFleetVehicles.length} vehicles of type "${normalizedCustomerType}"`);
       } else {
         // No template specified, show all that can handle the order
         readyFleetVehicles = allReadyVehicles.filter(rv => {
