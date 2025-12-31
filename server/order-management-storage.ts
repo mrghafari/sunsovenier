@@ -639,6 +639,8 @@ export class OrderManagementStorage implements IOrderManagementStorage {
       paymentMethod: customerOrders.paymentMethod, // نوع تسویه حساب
       customerDeliveryMethod: customerOrders.deliveryMethod, // روش ارسال انتخابی مشتری در چک‌اوت
       customerVehicleType: customerOrders.vehicleType, // نوع خودروی انتخابی مشتری در ارسال هوشمند
+      customerOrderTotalWeight: customerOrders.totalWeight, // وزن ذخیره شده در جدول سفارشات مشتری
+      customerOrderWeightUnit: customerOrders.weightUnit, // واحد وزن از جدول سفارشات مشتری
       
       // Customer info
       customerFirstName: crmCustomers.firstName,
