@@ -1217,10 +1217,10 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
       walletAmountUsed: actualWalletUsage,
       remainingAmount: beforeWalletTotal - actualWalletUsage, // Fix: Send actual remaining amount after wallet deduction
       // Use ref to get current vehicle (avoids stale closure in callbacks)
-      // Check multiple property names: name, vehicleName (from API), or type as fallback
-      vehicleType: selectedVehicleRef.current?.name || selectedVehicleRef.current?.vehicleName || 
-                   selectedVehicle?.name || selectedVehicle?.vehicleName || 
-                   selectedVehicleRef.current?.type || selectedVehicle?.type || null, // Customer's selected vehicle for logistics
+      // CRITICAL: Send vehicle TYPE (like "van", "motorcycle") NOT vehicle name (like "وانت")
+      // This is used for exact filtering in logistics
+      vehicleType: selectedVehicleRef.current?.type || selectedVehicle?.type ||
+                   selectedVehicleRef.current?.vehicleType || selectedVehicle?.vehicleType || null, // Customer's selected vehicle TYPE for logistics
     };
 
     // Debug logging for payment data
