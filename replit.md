@@ -48,6 +48,12 @@ The architecture emphasizes modularity and scalability, utilizing a RESTful API 
 ### Database Schema
 Key tables cover Customer Management, Order Processing, Product Catalog, Inventory, Logistics, Content Management, and User Management.
 
+**Product Table Convention (CRITICAL)**:
+- Use ONLY `shop_products` table for all product operations (80+ columns, complete with pricing, inventory, weights, MSDS, 3D models, vendor support)
+- The `products` table is DEPRECATED and EMPTY - do not use it
+- Weight fields: Use `gross_weight` first, fallback to `weight` column if null
+- All checkout, inventory, and order operations must reference `shop_products`
+
 ## External Dependencies
 
 - **Database**: Neon PostgreSQL cloud service
