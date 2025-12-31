@@ -1,0 +1,152 @@
+ Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ 📥 Loading Tawk.to widget at bottom-left position...
+ ✅ Tawk.to Live Chat loaded successfully at bottom-left
+ 
+value @ twk-chunk-common.js:2
+ Auth check result: Object
+128x128?text=WeChat+QR:1  Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] useEffect triggered, userPermissions: undefined
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] useEffect triggered, userPermissions: Object
+ 🔍 [DEBUG] userPermissions modules: Array(38)
+ 🔍 [DEBUG] Full userPermissions response: Object
+ 🔍 [DEBUG] userPermissions.modules: Array(38)
+ 🔍 [DEBUG] userPermissions.permissions: Array(38)
+ 🔍 [DEBUG] Total allButtons count: 40
+ 🔍 [DEBUG] AI Settings exists in allButtons: true
+ 🔍 [DEBUG] Content Management exists in allButtons: true
+ 🔍 [DEBUG] allowedModules: Array(38)
+ 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+ 🔍 [DEBUG] management_dashboard in allowedModules? true
+ 🔍 [DEBUG] finance in allowedModules? true
+ 🔍 [DEBUG] geography_analytics in allowedModules? true
+ 🔍 [DEBUG] ai_settings in allowedModules? true
+ 🔍 [DEBUG] content_management in allowedModules? true
+ 🔍 [CRITICAL] Missing button detection:
+ 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+ 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+ 🔍 [CRITICAL] Missing buttons count: 2
+ 🔍 [DEBUG] finance button found in allButtons? Object
+ 🔍 [DEBUG] geography_analytics button found in allButtons? Object
+site-management-fixed.tsx:475 🔍 [DEBUG] ai_settings button found in allButtons? Object
+site-management-fixed.tsx:476 🔍 [DEBUG] content_management button found in allButtons? Object
+site-management-fixed.tsx:477 🔍 [DEBUG] finance button in filtered? Object
+site-management-fixed.tsx:478 🔍 [DEBUG] geography_analytics button in filtered? Object
+site-management-fixed.tsx:479 🔍 [DEBUG] ai_settings button in filtered? Object
+site-management-fixed.tsx:480 🔍 [DEBUG] content_management button in filtered? Object
+site-management-fixed.tsx:75 🔍 [DEBUG] filtered buttons count: 38
+site-management-fixed.tsx:76 🔍 [DEBUG] First 5 filtered buttons: Array(5)
+site-management-fixed.tsx:77 🔍 [DEBUG] AI Control button in filtered: Object
+site-management-fixed.tsx:78 🔍 [DEBUG] Content Management button in filtered: Object
+site-management-fixed.tsx:24 🔍 [DEBUG] Site Management component initialized
+logistics-management.tsx:840 Company Info: undefined
+site-management-fixed.tsx:440 🔍 [DEBUG] Full userPermissions response: Object
+site-management-fixed.tsx:441 🔍 [DEBUG] userPermissions.modules: Array(38)
+site-management-fixed.tsx:442 🔍 [DEBUG] userPermissions.permissions: Array(38)
+site-management-fixed.tsx:447 🔍 [DEBUG] Total allButtons count: 40
+site-management-fixed.tsx:448 🔍 [DEBUG] AI Settings exists in allButtons: true
+site-management-fixed.tsx:449 🔍 [DEBUG] Content Management exists in allButtons: true
+site-management-fixed.tsx:451 🔍 [DEBUG] allowedModules: Array(38)
+site-management-fixed.tsx:452 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+site-management-fixed.tsx:453 🔍 [DEBUG] management_dashboard in allowedModules? true
+site-management-fixed.tsx:454 🔍 [DEBUG] finance in allowedModules? true
+site-management-fixed.tsx:455 🔍 [DEBUG] geography_analytics in allowedModules? true
+site-management-fixed.tsx:456 🔍 [DEBUG] ai_settings in allowedModules? true
+site-management-fixed.tsx:457 🔍 [DEBUG] content_management in allowedModules? true
+site-management-fixed.tsx:463 🔍 [CRITICAL] Missing button detection:
+site-management-fixed.tsx:467 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+site-management-fixed.tsx:467 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+site-management-fixed.tsx:471 🔍 [CRITICAL] Missing buttons count: 2
+site-management-fixed.tsx:473 🔍 [DEBUG] finance button found in allButtons? Object
+site-management-fixed.tsx:474 🔍 [DEBUG] geography_analytics button found in allButtons? Object
+site-management-fixed.tsx:475 🔍 [DEBUG] ai_settings button found in allButtons? Object
+site-management-fixed.tsx:476 🔍 [DEBUG] content_management button found in allButtons? Object
+site-management-fixed.tsx:477 🔍 [DEBUG] finance button in filtered? Object
+site-management-fixed.tsx:478 🔍 [DEBUG] geography_analytics button in filtered? Object
+site-management-fixed.tsx:479 🔍 [DEBUG] ai_settings button in filtered? Object
+site-management-fixed.tsx:480 🔍 [DEBUG] content_management button in filtered? Object
+logistics-management.tsx:840 Company Info: Object
+logistics-management.tsx:840 Company Info: Object
+logistics-management.tsx:880 🔍 [LOGISTICS MGMT] Frontend query recipient data: Object
+useOrderNotifications.ts:108 🔔 [LOGISTICS] نوتیفیکیشن: 10 سفارش جدید دریافت شد
+logistics-management.tsx:1136 🚚 [ENHANCED VEHICLE ASSIGNMENT] Starting for order: M2511743
+logistics-management.tsx:1137 🚚 [ORDER DETAILS] Weight: 0 kg
+logistics-management.tsx:840 Company Info: Object
+logistics-management.tsx:880 🔍 [LOGISTICS MGMT] Frontend query recipient data: Object
+/api/orders/532/suitable-vehicles:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+logistics-management.tsx:1183 ⚠️ [FALLBACK] Using enhanced vehicle assignment method
+/api/orders/532/vehicle-details:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+logistics-management.tsx:1206 🚛 [READY VEHICLES] Found ready vehicles: 7
+logistics-management.tsx:1209 📦 [ORDER DETAILS] Weight: 0 kg
+logistics-management.tsx:1350 ✅ [VEHICLE ASSIGNMENT] Dialog opened with 5 vehicles available
+logistics-management.tsx:840 Company Info: Object
+logistics-management.tsx:880 🔍 [LOGISTICS MGMT] Frontend query recipient data: Object
+logistics-management.tsx:840 Company Info: Object
+logistics-management.tsx:880 🔍 [LOGISTICS MGMT] Frontend query recipient data: Object
+logistics-management.tsx:1136 🚚 [ENHANCED VEHICLE ASSIGNMENT] Starting for order: M2511743
+logistics-management.tsx:1137 🚚 [ORDER DETAILS] Weight: 0 kg
+logistics-management.tsx:840 Company Info: Object
+logistics-management.tsx:880 🔍 [LOGISTICS MGMT] Frontend query recipient data: Object
+/api/orders/532/suitable-vehicles:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+logistics-management.tsx:1183 ⚠️ [FALLBACK] Using enhanced vehicle assignment method
+/api/orders/532/vehicle-details:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+logistics-management.tsx:1206 🚛 [READY VEHICLES] Found ready vehicles: 7
+logistics-management.tsx:1209 📦 [ORDER DETAILS] Weight: 0 kg
+logistics-management.tsx:1350 ✅ [VEHICLE ASSIGNMENT] Dialog opened with 5 vehicles available
+logistics-management.tsx:840 Company Info: Object
+logistics-management.tsx:880 🔍 [LOGISTICS MGMT] Frontend query recipient data: Object
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+useAuth.ts:43 Auth check result: Object
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+useAuth.ts:43 Auth check result: Object
+logistics-management.tsx:840 Company Info: Object
+logistics-management.tsx:880 🔍 [LOGISTICS MGMT] Frontend query recipient data: Object
+logistics-management.tsx:1136 🚚 [ENHANCED VEHICLE ASSIGNMENT] Starting for order: M2511743
+logistics-management.tsx:1137 🚚 [ORDER DETAILS] Weight: 0 kg
+logistics-management.tsx:840 Company Info: {success: true, data: {…}}
+logistics-management.tsx:880 🔍 [LOGISTICS MGMT] Frontend query recipient data: {id: 926, customerOrderId: 492, orderNumber: 'M2511703', recipientName: 'Omid Mohammad', recipientPhone: '+9647503533769', …}
+logistics-management.tsx:1151  GET https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/orders/532/suitable-vehicles 500 (Internal Server Error)
+handleVehicleAssignment @ logistics-management.tsx:1151
+onClick @ logistics-management.tsx:3046
+callCallback2 @ chunk-RPCDYKBN.js?v=1b604b35:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=1b604b35:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=1b604b35:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=1b604b35:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=1b604b35:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=1b604b35:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=1b604b35:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=1b604b35:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=1b604b35:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=1b604b35:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=1b604b35:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=1b604b35:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=1b604b35:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=1b604b35:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=1b604b35:5449
+logistics-management.tsx:1183 ⚠️ [FALLBACK] Using enhanced vehicle assignment method
+logistics-management.tsx:1186  GET https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/orders/532/vehicle-details 500 (Internal Server Error)
+handleVehicleAssignment @ logistics-management.tsx:1186
+await in handleVehicleAssignment
+onClick @ logistics-management.tsx:3046
+callCallback2 @ chunk-RPCDYKBN.js?v=1b604b35:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=1b604b35:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=1b604b35:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=1b604b35:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=1b604b35:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=1b604b35:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=1b604b35:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=1b604b35:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=1b604b35:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=1b604b35:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=1b604b35:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=1b604b35:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=1b604b35:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=1b604b35:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=1b604b35:5449
+logistics-management.tsx:1206 🚛 [READY VEHICLES] Found ready vehicles: 7
+logistics-management.tsx:1209 📦 [ORDER DETAILS] Weight: 0 kg
+logistics-management.tsx:1350 ✅ [VEHICLE ASSIGNMENT] Dialog opened with 5 vehicles available
+logistics-management.tsx:840 Company Info: {success: true, data: {…}}
+logistics-management.tsx:880 🔍 [LOGISTICS MGMT] Frontend query recipient data: {id: 926, customerOrderId: 492, orderNumber: 'M2511703', recipientName: 'Omid Mohammad', recipientPhone: '+9647503533769', …}

@@ -1144,8 +1144,7 @@ const LogisticsManagement = () => {
       // Set the selected order for vehicle assignment IMMEDIATELY
       setSelectedOrderForVehicle(order);
       
-      // Open the vehicle assignment dialog immediately
-      setIsVehicleAssignmentOpen(true);
+      // NOTE: Do NOT open modal here - wait for API response to determine which modal to open
       
       // Get all suitable vehicles identified during checkout
       const suitableVehiclesResponse = await fetch(`/api/orders/${order.customerOrderId}/suitable-vehicles`, {
@@ -1349,6 +1348,9 @@ const LogisticsManagement = () => {
         setAvailableFleetVehicles(availableVehicles);
         console.log('✅ [VEHICLE ASSIGNMENT] Dialog opened with', availableVehicles.length, 'vehicles available');
         
+        // Open the vehicle assignment dialog after loading vehicles
+        setIsVehicleAssignmentOpen(true);
+        
       } else {
         // If ready-vehicles API failed, try fleet-vehicles as fallback
         console.log('⚠️ [FALLBACK] Ready vehicles API failed, trying fleet vehicles...');
@@ -1384,6 +1386,9 @@ const LogisticsManagement = () => {
           console.error('❌ [FLEET VEHICLES] Failed to fetch fleet vehicles');
           setAvailableFleetVehicles([]);
         }
+        
+        // Open the vehicle assignment dialog after loading vehicles
+        setIsVehicleAssignmentOpen(true);
       }
     } catch (error) {
       console.error('❌ [VEHICLE ASSIGNMENT ERROR]:', error);
