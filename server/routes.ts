@@ -13129,14 +13129,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         console.log(`📋 [RESULT] Found ${readyFleetVehicles.length} vehicles of type "${normalizedCustomerType}"`);
       } else {
-        // No template specified, show all that can handle the order
-        readyFleetVehicles = allReadyVehicles.filter(rv => {
-          const capacity = parseFloat(rv.loadCapacity?.toString() || '0');
-          if (orderWeight > capacity) return false;
-          if (containsFlammableProducts && rv.notAllowedFlammable) return false;
-          if (containsFlammableProducts && !rv.supportsFlammable) return false;
-          return true;
-        });
+        // NO CUSTOMER VEHICLE TYPE - Calculate optimal vehicle type based on weight
+        // Find the smallest vehicle type that can handle the order weight
+        let calculatedVehicleType: string | null = null;
+        
+        if (orderWeight > 0) {
+          // Find optimal vehicle type based on weight from vehicle_templates
+          const optimalTemplate = await db
+            .select({
+              vehicleType: vehicleTemplates.vehicleType,
+              maxWeight: vehicleTemplates.maxWeightKg
+            })
+            .from(vehicleTemplates)
+            .where(
+              and(
+                eq(vehicleTemplates.isActive, true),
+                sql`${vehicleTemplates.maxWeightKg} >= ${orderWeight}`
+              )
+            )
+            .orderBy(vehicleTemplates.maxWeightKg)
+            .limit(1);
+          
+          if (optimalTemplate.length > 0) {
+            calculatedVehicleType = optimalTemplate[0].vehicleType;
+            console.log(`📊 [SMART CALC] Weight ${orderWeight}kg → optimal vehicle type: ${calculatedVehicleType}`);
+          }
+        }
+        
+        if (calculatedVehicleType) {
+          // Filter by calculated vehicle type
+          readyFleetVehicles = allReadyVehicles.filter(rv => {
+            const templateType = rv.templateVehicleType?.toLowerCase();
+            if (templateType !== calculatedVehicleType?.toLowerCase()) return false;
+            if (containsFlammableProducts && rv.notAllowedFlammable) return false;
+            if (containsFlammableProducts && !rv.supportsFlammable) return false;
+            return true;
+          });
+          console.log(`🎯 [SMART FILTER] Found ${readyFleetVehicles.length} vehicles of calculated type: ${calculatedVehicleType}`);
+        } else {
+          // If no weight or no matching template, show smallest available vehicles (motorcycle/van)
+          const smallVehicleTypes = ['motorcycle', 'van'];
+          readyFleetVehicles = allReadyVehicles.filter(rv => {
+            const templateType = rv.templateVehicleType?.toLowerCase();
+            if (!smallVehicleTypes.includes(templateType || '')) return false;
+            if (containsFlammableProducts && rv.notAllowedFlammable) return false;
+            if (containsFlammableProducts && !rv.supportsFlammable) return false;
+            return true;
+          });
+          console.log(`📦 [DEFAULT FILTER] No weight/template - showing small vehicles: ${readyFleetVehicles.length} found`);
+        }
       }
       
       console.log(`🚛 [READY FLEET] Found ${readyFleetVehicles.length} matching ready vehicles (template: ${customerVehicleType})`);
