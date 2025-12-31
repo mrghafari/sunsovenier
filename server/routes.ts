@@ -28971,6 +28971,8 @@ ${message ? `Additional Requirements:\n${message}` : ''}
           o.financial_approved_at as "financialApprovedAt",
           o.fulfilled_at as "fulfilledAt",
           o.fulfilled_by as "fulfilledBy",
+          om.total_weight as "totalWeight",
+          om.weight_unit as "weightUnit",
           COALESCE(
             json_agg(
               json_build_object(
@@ -28986,10 +28988,12 @@ ${message ? `Additional Requirements:\n${message}` : ''}
           ) as items
         FROM orders o
         LEFT JOIN order_items oi ON o.id = oi.order_id
+        LEFT JOIN order_management om ON o.id = om.customer_order_id
         WHERE o.status IN ('financial_approved', 'warehouse_pending', 'warehouse_processing', 'warehouse_verified', 'warehouse_approved')
         GROUP BY o.id, o.customer_name, o.customer_email, o.total_amount, o.status, 
                  o.created_at, o.shipping_address, o.payment_method, o.notes, 
-                 o.warehouse_notes, o.financial_approved_at, o.fulfilled_at, o.fulfilled_by
+                 o.warehouse_notes, o.financial_approved_at, o.fulfilled_at, o.fulfilled_by,
+                 om.total_weight, om.weight_unit
         ORDER BY o.financial_approved_at DESC
       `);
       
@@ -28998,8 +29002,6 @@ ${message ? `Additional Requirements:\n${message}` : ''}
       console.log('📦 [WAREHOUSE] Orders ready for warehouse processing:', JSON.stringify(orders, null, 2));
       res.json({ success: true, orders });
     } catch (error) {
-      console.error('❌ [WAREHOUSE] Error fetching warehouse orders:', error);
-      res.status(500).json({ success: false, message: 'خطا در بارگیری سفارشات انبار' });
     }
   });
 
