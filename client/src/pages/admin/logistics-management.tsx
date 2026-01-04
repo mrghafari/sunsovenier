@@ -3276,6 +3276,8 @@ const LogisticsManagement = () => {
   // Delivered Orders Tab Component
   const DeliveredOrdersTab = () => {
     const deliveredOrders = (deliveredOrdersResponse as any)?.orders || [];
+    const [deliveredSearchQuery, setDeliveredSearchQuery] = useState('');
+    const [deliveredSortBy, setDeliveredSortBy] = useState<'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc' | 'order_number'>('date_desc');
     
     // Map data for compatibility
     const mappedDeliveredOrders = deliveredOrders.map((order: any) => ({
@@ -3290,6 +3292,34 @@ const LogisticsManagement = () => {
       hasGpsLocation: !!(order.gpsLatitude && order.gpsLongitude)
     }));
 
+    // Filter orders based on search query (minimum 3 characters)
+    const filteredOrders = mappedDeliveredOrders.filter((order: any) => {
+      if (deliveredSearchQuery.length < 3) return true;
+      const query = deliveredSearchQuery.toLowerCase();
+      const email = (order.customer?.email || order.customerEmail || '').toLowerCase();
+      const phone = (order.customer?.phone || order.customerPhone || '').toLowerCase();
+      const orderNumber = (order.orderNumber || '').toLowerCase();
+      return email.includes(query) || phone.includes(query) || orderNumber.includes(query);
+    });
+
+    // Sort filtered orders
+    const sortedOrders = [...filteredOrders].sort((a: any, b: any) => {
+      switch (deliveredSortBy) {
+        case 'date_desc':
+          return new Date(b.actualDeliveryDate || b.createdAt).getTime() - new Date(a.actualDeliveryDate || a.createdAt).getTime();
+        case 'date_asc':
+          return new Date(a.actualDeliveryDate || a.createdAt).getTime() - new Date(b.actualDeliveryDate || b.createdAt).getTime();
+        case 'amount_desc':
+          return parseFloat(b.totalAmount || 0) - parseFloat(a.totalAmount || 0);
+        case 'amount_asc':
+          return parseFloat(a.totalAmount || 0) - parseFloat(b.totalAmount || 0);
+        case 'order_number':
+          return (a.orderNumber || '').localeCompare(b.orderNumber || '');
+        default:
+          return 0;
+      }
+    });
+
     if (loadingDeliveredOrders) {
       return (
         <div className="flex justify-center items-center py-12">
@@ -3301,41 +3331,87 @@ const LogisticsManagement = () => {
 
     return (
       <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <h2 className="text-xl font-bold text-green-700 flex items-center">
-              <CheckCircle className="w-6 h-6 mr-2" />
-              سفارشات تحویل شده
-            </h2>
-            <Badge variant="secondary" className="bg-green-100 text-green-800">
-              {mappedDeliveredOrders.length} سفارش
-            </Badge>
+        <div className="flex flex-col gap-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <h2 className="text-xl font-bold text-green-700 flex items-center">
+                <CheckCircle className="w-6 h-6 mr-2" />
+                سفارشات تحویل شده
+              </h2>
+              <Badge variant="secondary" className="bg-green-100 text-green-800">
+                {sortedOrders.length} سفارش
+              </Badge>
+            </div>
+            
+            <Button 
+              onClick={() => refetchDeliveredOrders()}
+              variant="outline" 
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              بروزرسانی
+            </Button>
           </div>
-          
-          <Button 
-            onClick={() => refetchDeliveredOrders()}
-            variant="outline" 
-            size="sm"
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className="w-4 h-4" />
-            بروزرسانی
-          </Button>
+
+          {/* Search and Sort Controls */}
+          <div className="flex flex-wrap gap-3 items-center bg-gray-50 p-3 rounded-lg border">
+            {/* Search Input */}
+            <div className="flex-1 min-w-[250px]">
+              <div className="relative">
+                <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="جستجو با ایمیل، شماره تلفن یا شماره سفارش (حداقل ۳ حرف)..."
+                  value={deliveredSearchQuery}
+                  onChange={(e) => setDeliveredSearchQuery(e.target.value)}
+                  className="pr-10 text-right"
+                  data-testid="input-delivered-search"
+                />
+                {deliveredSearchQuery.length > 0 && deliveredSearchQuery.length < 3 && (
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-xs text-amber-600">
+                    حداقل ۳ حرف
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Sort Dropdown */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">مرتب‌سازی:</span>
+              <Select value={deliveredSortBy} onValueChange={(v: any) => setDeliveredSortBy(v)}>
+                <SelectTrigger className="w-[180px]" data-testid="select-delivered-sort">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="date_desc">جدیدترین تحویل</SelectItem>
+                  <SelectItem value="date_asc">قدیمی‌ترین تحویل</SelectItem>
+                  <SelectItem value="amount_desc">بیشترین مبلغ</SelectItem>
+                  <SelectItem value="amount_asc">کمترین مبلغ</SelectItem>
+                  <SelectItem value="order_number">شماره سفارش</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
 
-        {mappedDeliveredOrders.length === 0 ? (
+        {sortedOrders.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
               <CheckCircle className="w-16 h-16 text-green-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">هیچ سفارش تحویل شده‌ای وجود ندارد</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                {deliveredSearchQuery.length >= 3 ? 'نتیجه‌ای یافت نشد' : 'هیچ سفارش تحویل شده‌ای وجود ندارد'}
+              </h3>
               <p className="text-gray-500 text-center">
-                پس از تحویل سفارشات، آن‌ها در این بخش نمایش داده می‌شوند
+                {deliveredSearchQuery.length >= 3 
+                  ? 'سفارشی با این مشخصات پیدا نشد. لطفاً عبارت جستجو را تغییر دهید.'
+                  : 'پس از تحویل سفارشات، آن‌ها در این بخش نمایش داده می‌شوند'}
               </p>
             </CardContent>
           </Card>
         ) : (
           <div className="grid gap-4">
-            {mappedDeliveredOrders.map((order: any) => (
+            {sortedOrders.map((order: any) => (
               <Card key={order.id} className="border-green-200 bg-green-50">
                 <CardContent className="p-6">
                   <div className="flex justify-between items-start mb-4">
