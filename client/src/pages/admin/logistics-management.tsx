@@ -3091,11 +3091,12 @@ const LogisticsManagement = () => {
                               size="sm"
                               variant={customerMethod === 'smart_vehicle' ? 'default' : 'outline'}
                               className={customerMethod === 'smart_vehicle' 
-                                ? 'bg-orange-600 text-white cursor-default' 
+                                ? 'bg-orange-600 hover:bg-orange-700 text-white cursor-pointer' 
                                 : 'border-gray-300 text-gray-400 cursor-not-allowed opacity-50'}
                               disabled={customerMethod !== 'smart_vehicle'}
+                              onClick={() => customerMethod === 'smart_vehicle' && handleVehicleAssignment(order)}
                             >
-                              🚚 حمل با خودرو
+                              🚚 حمل با خودرو {customerMethod === 'smart_vehicle' && '(اختصاص وسیله)'}
                             </Button>
                             <Button
                               size="sm"
@@ -3164,15 +3165,6 @@ const LogisticsManagement = () => {
                         )}
                       </Button>
 
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="border-orange-500 text-orange-700 hover:bg-orange-100"
-                        onClick={() => handleVehicleAssignment(order)}
-                      >
-                        <Truck className="w-4 h-4 mr-2" />
-                        اختصاص وسیله ارسال محموله
-                      </Button>
                       <Button size="sm" variant="outline" className="border-green-500 text-green-700 hover:bg-green-100">
                         <MapPin className="w-4 h-4 mr-2" />
                         پیگیری مسیر
