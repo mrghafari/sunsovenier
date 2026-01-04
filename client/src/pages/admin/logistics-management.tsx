@@ -3069,57 +3069,63 @@ const LogisticsManagement = () => {
                     </div>
                   </div>
 
-                  {/* Delivery Type Selection Buttons */}
+                  {/* Delivery Type Display - Shows customer's selected method */}
                   <div className="flex items-center gap-2 mb-3 p-3 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border">
-                    <span className="text-sm font-medium text-gray-700 ml-2">نوع ارسال:</span>
+                    <span className="text-sm font-medium text-gray-700 ml-2">نوع ارسال انتخابی مشتری:</span>
                     <div className="flex flex-wrap gap-2">
-                      <Button
-                        size="sm"
-                        variant={order.deliveryMethod === 'postal' ? 'default' : 'outline'}
-                        className={order.deliveryMethod === 'postal' 
-                          ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                          : 'border-blue-400 text-blue-700 hover:bg-blue-50'}
-                        onClick={() => updateDeliveryMethod(order.id, order.customerOrderId, 'postal')}
-                        disabled={updatingDeliveryMethod[order.id]}
-                      >
-                        📮 پستی
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={order.deliveryMethod === 'smart_vehicle' ? 'default' : 'outline'}
-                        className={order.deliveryMethod === 'smart_vehicle' 
-                          ? 'bg-orange-600 hover:bg-orange-700 text-white' 
-                          : 'border-orange-400 text-orange-700 hover:bg-orange-50'}
-                        onClick={() => updateDeliveryMethod(order.id, order.customerOrderId, 'smart_vehicle')}
-                        disabled={updatingDeliveryMethod[order.id]}
-                      >
-                        🚚 حمل با خودرو
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={order.deliveryMethod === 'self_pickup' ? 'default' : 'outline'}
-                        className={order.deliveryMethod === 'self_pickup' 
-                          ? 'bg-green-600 hover:bg-green-700 text-white' 
-                          : 'border-green-400 text-green-700 hover:bg-green-50'}
-                        onClick={() => updateDeliveryMethod(order.id, order.customerOrderId, 'self_pickup')}
-                        disabled={updatingDeliveryMethod[order.id]}
-                      >
-                        🏢 حمل توسط مشتری
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={order.deliveryMethod === 'freight_collect' ? 'default' : 'outline'}
-                        className={order.deliveryMethod === 'freight_collect' 
-                          ? 'bg-purple-600 hover:bg-purple-700 text-white' 
-                          : 'border-purple-400 text-purple-700 hover:bg-purple-50'}
-                        onClick={() => updateDeliveryMethod(order.id, order.customerOrderId, 'freight_collect')}
-                        disabled={updatingDeliveryMethod[order.id]}
-                      >
-                        💰 پس کرایه
-                      </Button>
-                      {updatingDeliveryMethod[order.id] && (
-                        <span className="text-sm text-gray-500 animate-pulse">در حال ذخیره...</span>
-                      )}
+                      {(() => {
+                        const customerMethod = order.customerDeliveryMethod || order.deliveryMethod;
+                        return (
+                          <>
+                            <Button
+                              size="sm"
+                              variant={customerMethod === 'postal' ? 'default' : 'outline'}
+                              className={customerMethod === 'postal' 
+                                ? 'bg-blue-600 text-white cursor-default' 
+                                : 'border-gray-300 text-gray-400 cursor-not-allowed opacity-50'}
+                              disabled={customerMethod !== 'postal'}
+                            >
+                              📮 پستی
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant={customerMethod === 'smart_vehicle' ? 'default' : 'outline'}
+                              className={customerMethod === 'smart_vehicle' 
+                                ? 'bg-orange-600 text-white cursor-default' 
+                                : 'border-gray-300 text-gray-400 cursor-not-allowed opacity-50'}
+                              disabled={customerMethod !== 'smart_vehicle'}
+                            >
+                              🚚 حمل با خودرو
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant={customerMethod === 'self_pickup' ? 'default' : 'outline'}
+                              className={customerMethod === 'self_pickup' 
+                                ? 'bg-green-600 text-white cursor-default' 
+                                : 'border-gray-300 text-gray-400 cursor-not-allowed opacity-50'}
+                              disabled={customerMethod !== 'self_pickup'}
+                            >
+                              🏢 حمل توسط مشتری
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant={customerMethod === 'freight_collect' ? 'default' : 'outline'}
+                              className={customerMethod === 'freight_collect' 
+                                ? 'bg-purple-600 text-white cursor-default' 
+                                : 'border-gray-300 text-gray-400 cursor-not-allowed opacity-50'}
+                              disabled={customerMethod !== 'freight_collect'}
+                            >
+                              💰 پس کرایه
+                            </Button>
+                            {/* Show vehicle type if smart_vehicle selected */}
+                            {customerMethod === 'smart_vehicle' && order.customerVehicleType && (
+                              <span className="text-sm text-orange-700 bg-orange-100 px-2 py-1 rounded-md font-medium">
+                                🚛 {order.customerVehicleType}
+                              </span>
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
 
