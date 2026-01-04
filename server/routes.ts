@@ -10593,6 +10593,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update delivery method for an order (used by logistics department)
+  app.patch("/api/order-management/:id/delivery-method", requireAuth, async (req, res) => {
+    try {
+      const orderManagementId = parseInt(req.params.id);
+      const { deliveryMethod, customerOrderId } = req.body;
+      
+      console.log(`🚚 [DELIVERY] Updating delivery method for order ${orderManagementId} to ${deliveryMethod}`);
+      
+      if (!orderManagementId || !deliveryMethod) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "شناسه سفارش و روش ارسال الزامی است" 
+        });
+      }
+
+      const { pool } = await import("./db");
+      
+      // Update order_management table
+      await pool.query(
+        `UPDATE order_management SET delivery_method = $1, updated_at = NOW() WHERE id = $2`,
+        [deliveryMethod, orderManagementId]
+      );
+      
+      // Also update customer_orders table to keep in sync
+      if (customerOrderId) {
+        await pool.query(
+          `UPDATE customer_orders SET delivery_method = $1, updated_at = NOW() WHERE id = $2`,
+          [deliveryMethod, customerOrderId]
+        );
+      }
+      
+      console.log(`✅ [DELIVERY] Updated delivery method for order ${orderManagementId} to ${deliveryMethod}`);
+      
+      res.json({ 
+        success: true, 
+        message: "روش ارسال با موفقیت تغییر یافت" 
+      });
+    } catch (error) {
+      console.error("Error updating delivery method:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "خطا در به‌روزرسانی روش ارسال" 
+      });
+    }
+  });
+
   // Get order status history
   app.get("/api/orders/:orderId/status-history", requireAuth, async (req, res) => {
     try {

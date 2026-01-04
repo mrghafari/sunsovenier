@@ -676,6 +676,49 @@ const LogisticsManagement = () => {
   const [deliveryConfirmStep, setDeliveryConfirmStep] = useState<1 | 2>(1);
   const [deliveryConfirmDialogOpen, setDeliveryConfirmDialogOpen] = useState(false);
 
+  // State for updating delivery method
+  const [updatingDeliveryMethod, setUpdatingDeliveryMethod] = useState<{[orderId: number]: boolean}>({});
+
+  // Function to update delivery method for an order
+  const updateDeliveryMethod = async (orderManagementId: number, customerOrderId: number, deliveryMethod: string) => {
+    setUpdatingDeliveryMethod(prev => ({ ...prev, [orderManagementId]: true }));
+    try {
+      const response = await apiRequest(`/api/order-management/${orderManagementId}/delivery-method`, {
+        method: 'PATCH',
+        body: { deliveryMethod, customerOrderId }
+      });
+      
+      if (response.success) {
+        toast({
+          title: '✅ روش ارسال تغییر یافت',
+          description: `روش ارسال به "${
+            deliveryMethod === 'postal' ? 'پستی' :
+            deliveryMethod === 'smart_vehicle' ? 'حمل با خودرو' :
+            deliveryMethod === 'self_pickup' ? 'حمل توسط مشتری' :
+            deliveryMethod === 'freight_collect' ? 'پس کرایه' : deliveryMethod
+          }" تغییر یافت`,
+        });
+        // Refresh orders to show updated delivery method
+        queryClient.invalidateQueries({ queryKey: ['/api/order-management/logistics'] });
+      } else {
+        toast({
+          title: '❌ خطا',
+          description: response.message || 'خطا در تغییر روش ارسال',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('❌ Error updating delivery method:', error);
+      toast({
+        title: '❌ خطا',
+        description: 'خطا در اتصال به سرور',
+        variant: 'destructive',
+      });
+    } finally {
+      setUpdatingDeliveryMethod(prev => ({ ...prev, [orderManagementId]: false }));
+    }
+  };
+
   // Fleet vehicles API integration (previously "ready vehicles")
   const { data: fleetVehiclesData, isLoading: loadingFleetVehicles } = useQuery({
     queryKey: ['/api/logistics/ready-vehicles'],
@@ -3006,6 +3049,60 @@ const LogisticsManagement = () => {
                         {order.actualDeliveryDate ? formatDateSafe(order.actualDeliveryDate) : 'در انتظار تحویل'}
                       </p>
                       <p className="text-xs text-yellow-600 mt-1">تاریخ تحویل سفارش</p>
+                    </div>
+                  </div>
+
+                  {/* Delivery Type Selection Buttons */}
+                  <div className="flex items-center gap-2 mb-3 p-3 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border">
+                    <span className="text-sm font-medium text-gray-700 ml-2">نوع ارسال:</span>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant={order.deliveryMethod === 'postal' ? 'default' : 'outline'}
+                        className={order.deliveryMethod === 'postal' 
+                          ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                          : 'border-blue-400 text-blue-700 hover:bg-blue-50'}
+                        onClick={() => updateDeliveryMethod(order.id, order.customerOrderId, 'postal')}
+                        disabled={updatingDeliveryMethod[order.id]}
+                      >
+                        📮 پستی
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={order.deliveryMethod === 'smart_vehicle' ? 'default' : 'outline'}
+                        className={order.deliveryMethod === 'smart_vehicle' 
+                          ? 'bg-orange-600 hover:bg-orange-700 text-white' 
+                          : 'border-orange-400 text-orange-700 hover:bg-orange-50'}
+                        onClick={() => updateDeliveryMethod(order.id, order.customerOrderId, 'smart_vehicle')}
+                        disabled={updatingDeliveryMethod[order.id]}
+                      >
+                        🚚 حمل با خودرو
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={order.deliveryMethod === 'self_pickup' ? 'default' : 'outline'}
+                        className={order.deliveryMethod === 'self_pickup' 
+                          ? 'bg-green-600 hover:bg-green-700 text-white' 
+                          : 'border-green-400 text-green-700 hover:bg-green-50'}
+                        onClick={() => updateDeliveryMethod(order.id, order.customerOrderId, 'self_pickup')}
+                        disabled={updatingDeliveryMethod[order.id]}
+                      >
+                        🏢 حمل توسط مشتری
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={order.deliveryMethod === 'freight_collect' ? 'default' : 'outline'}
+                        className={order.deliveryMethod === 'freight_collect' 
+                          ? 'bg-purple-600 hover:bg-purple-700 text-white' 
+                          : 'border-purple-400 text-purple-700 hover:bg-purple-50'}
+                        onClick={() => updateDeliveryMethod(order.id, order.customerOrderId, 'freight_collect')}
+                        disabled={updatingDeliveryMethod[order.id]}
+                      >
+                        💰 پس کرایه
+                      </Button>
+                      {updatingDeliveryMethod[order.id] && (
+                        <span className="text-sm text-gray-500 animate-pulse">در حال ذخیره...</span>
+                      )}
                     </div>
                   </div>
 
