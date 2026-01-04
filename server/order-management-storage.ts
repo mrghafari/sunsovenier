@@ -784,6 +784,7 @@ export class OrderManagementStorage implements IOrderManagementStorage {
         financialReviewerId: row.financialReviewerId,
         financialReviewedAt: row.financialReviewedAt,
         financialNotes: row.financialNotes,
+        warehouseNotes: row.warehouseNotes, // یادداشت‌های انبار
         paymentReceiptUrl: row.paymentReceiptUrl || row.receiptUrl, // Use receipt from payment_receipts if available
         createdAt: row.createdAt,
         updatedAt: row.updatedAt,

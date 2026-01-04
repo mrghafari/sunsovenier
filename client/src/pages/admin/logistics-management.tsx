@@ -2834,11 +2834,28 @@ const LogisticsManagement = () => {
               </CardContent>
             </Card>
           ) : (
-            mappedLogisticsOrders.map((order: LogisticsOrder) => (
-              <Card key={order.id} className="border-r-4 border-r-green-500 bg-green-50">
+            mappedLogisticsOrders.map((order: LogisticsOrder) => {
+              const hasCustomerNotes = !!(order as any).customerNotes || !!(order as any).notes;
+              const hasFinancialNotes = !!(order as any).financialNotes;
+              const hasWarehouseNotes = !!(order as any).warehouseNotes;
+              const hasAnyNotes = hasCustomerNotes || hasFinancialNotes || hasWarehouseNotes;
+              
+              return (
+              <Card key={order.id} className={`border-r-4 ${hasAnyNotes ? 'border-r-amber-500 bg-amber-50' : 'border-r-green-500 bg-green-50'}`}>
                 <CardContent className="p-4">
                   <div className="flex justify-between items-center mb-3">
-                    <h4 className="font-semibold text-green-800 text-lg">سفارش {order.orderNumber}</h4>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-semibold text-green-800 text-lg">سفارش {order.orderNumber}</h4>
+                      {hasAnyNotes && (
+                        <div className="flex items-center gap-1 bg-amber-200 text-amber-800 px-2 py-1 rounded-full text-xs font-medium animate-pulse">
+                          <FileText className="w-3 h-3" />
+                          دارای یادداشت
+                          {hasCustomerNotes && <span className="bg-amber-300 px-1 rounded">مشتری</span>}
+                          {hasFinancialNotes && <span className="bg-blue-300 px-1 rounded">مالی</span>}
+                          {hasWarehouseNotes && <span className="bg-green-300 px-1 rounded">انبار</span>}
+                        </div>
+                      )}
+                    </div>
                     <Badge variant="default" className="bg-green-600 text-white">
                       تایید شده انبار
                     </Badge>
@@ -3251,7 +3268,7 @@ const LogisticsManagement = () => {
                     </div>
                 </CardContent>
               </Card>
-            ))
+            );})
           )}
         </div>
       </div>
