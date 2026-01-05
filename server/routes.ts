@@ -20408,6 +20408,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       `);
       
       const rows = result.rows || result;
+      console.log('🚗 [VEHICLE STATS] Raw DB result first row:', JSON.stringify(rows[0] || {}));
+      
       const stats = (rows as any[]).map((row: any) => ({
         id: row.id,
         plateNumber: row.plate_number,
@@ -20424,6 +20426,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         driverName: row.driver_name,
         driverPhone: row.driver_phone
       }));
+      
+      console.log('🚗 [VEHICLE STATS] Mapped first stat:', JSON.stringify(stats[0] || {}));
       
       res.json({
         success: true,
