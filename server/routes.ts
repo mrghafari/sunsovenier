@@ -20473,10 +20473,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const plateNumber = req.params.plateNumber;
       
-      // Get vehicle stats
-      const [vehicleStats] = await db.select()
-        .from(vehicleUsageStats)
-        .where(eq(vehicleUsageStats.plateNumber, plateNumber));
+      // Get vehicle stats with driver info
+      const statsResult = await db.execute(sql`
+        SELECT 
+          vus.*,
+          latest_driver.driver_name,
+          latest_driver.driver_phone
+        FROM vehicle_usage_stats vus
+        LEFT JOIN LATERAL (
+          SELECT vdh.driver_name, om.driver_phone
+          FROM vehicle_delivery_history vdh
+          LEFT JOIN order_management om ON om.vehicle_plate = vdh.plate_number
+          WHERE vdh.plate_number = vus.plate_number
+          ORDER BY vdh.created_at DESC
+          LIMIT 1
+        ) latest_driver ON true
+        WHERE vus.plate_number = ${plateNumber}
+      `);
+      const statsRows = statsResult.rows || statsResult;
+      const vehicleStats = statsRows[0] ? {
+        id: (statsRows[0] as any).id,
+        plateNumber: (statsRows[0] as any).plate_number,
+        totalDeliveries: (statsRows[0] as any).total_deliveries,
+        successfulDeliveries: (statsRows[0] as any).successful_deliveries,
+        failedDeliveries: (statsRows[0] as any).failed_deliveries,
+        totalDistance: (statsRows[0] as any).total_distance,
+        totalWeight: (statsRows[0] as any).total_weight,
+        totalRevenue: (statsRows[0] as any).total_revenue,
+        averageRating: (statsRows[0] as any).average_rating,
+        onTimeDeliveryRate: (statsRows[0] as any).on_time_delivery_rate,
+        firstDeliveryDate: (statsRows[0] as any).first_delivery_date,
+        lastDeliveryDate: (statsRows[0] as any).last_delivery_date,
+        driverName: (statsRows[0] as any).driver_name,
+        driverPhone: (statsRows[0] as any).driver_phone
+      } : null;
         
       // Get recent deliveries (last 10)
       const recentDeliveries = await db.select()
@@ -20506,7 +20536,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
   // Function to update vehicle usage statistics
   async function updateVehicleUsageStats(plateNumber: string) {
     try {

@@ -438,6 +438,18 @@ export default function VehicleHistoryPage() {
                           <span className="font-medium">حداکثر وزن:</span>
                           <span>{summaryData.data.vehicle?.maxWeight} kg</span>
                         </div>
+                        {summaryData.data.stats?.driverName && (
+                          <div className="flex justify-between mt-3 pt-3 border-t">
+                            <span className="font-medium">👤 راننده:</span>
+                            <span className="text-blue-600">{summaryData.data.stats.driverName}</span>
+                          </div>
+                        )}
+                        {summaryData.data.stats?.driverPhone && (
+                          <div className="flex justify-between">
+                            <span className="font-medium">📞 تلفن راننده:</span>
+                            <span className="text-blue-600">{summaryData.data.stats.driverPhone}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
 
