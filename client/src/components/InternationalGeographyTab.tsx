@@ -112,10 +112,14 @@ const REGIONS = {
   'oceania': 'اقیانوسیه'
 };
 
-const InternationalGeographyTab: React.FC = () => {
+interface InternationalGeographyTabProps {
+  iraqContent?: React.ReactNode;
+}
+
+const InternationalGeographyTab: React.FC<InternationalGeographyTabProps> = ({ iraqContent }) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState('countries');
+  const [activeTab, setActiveTab] = useState('iraq');
   
   // Dialog states
   const [isAddCountryOpen, setIsAddCountryOpen] = useState(false);
@@ -432,10 +436,14 @@ const InternationalGeographyTab: React.FC = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="iraq" className="flex items-center gap-2 bg-amber-100 data-[state=active]:bg-amber-500 data-[state=active]:text-white">
+            <MapPin className="w-4 h-4" />
+            🇮🇶 عراق
+          </TabsTrigger>
           <TabsTrigger value="countries" className="flex items-center gap-2">
             <Globe className="w-4 h-4" />
-            کشورها
+            سایر کشورها
           </TabsTrigger>
           <TabsTrigger value="cities" className="flex items-center gap-2">
             <MapPin className="w-4 h-4" />
@@ -446,6 +454,17 @@ const InternationalGeographyTab: React.FC = () => {
             نرخ‌های حمل
           </TabsTrigger>
         </TabsList>
+
+        {/* Iraq Tab - Full Iraqi Geography Management */}
+        <TabsContent value="iraq">
+          {iraqContent || (
+            <Card>
+              <CardContent className="text-center py-8 text-gray-500">
+                محتوای جغرافیای عراق در دسترس نیست
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
 
         {/* Countries Tab */}
         <TabsContent value="countries">

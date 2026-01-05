@@ -5160,11 +5160,10 @@ const LogisticsManagement = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-10">
+        <TabsList className="grid w-full grid-cols-9">
           <TabsTrigger value="orders">سفارشات</TabsTrigger>
           <TabsTrigger value="delivered">تحویل شده</TabsTrigger>
           <TabsTrigger value="companies">شرکت‌های حمل</TabsTrigger>
-          <TabsTrigger value="geography">جغرافیای عراق</TabsTrigger>
           <TabsTrigger value="international">کشورها</TabsTrigger>
           <TabsTrigger value="vehicle-templates">قالب‌های خودرو</TabsTrigger>
           <TabsTrigger value="fleet-vehicles">ناوگان خودروها</TabsTrigger>
@@ -5186,13 +5185,6 @@ const LogisticsManagement = () => {
           <CompaniesTab />
         </TabsContent>
 
-        <TabsContent value="geography">
-          <GeographyTab />
-        </TabsContent>
-
-
-
-
 
         <TabsContent value="vehicle-templates">
           <VehicleTemplatesTab />
@@ -5207,7 +5199,7 @@ const LogisticsManagement = () => {
         </TabsContent>
 
         <TabsContent value="international">
-          <InternationalGeographyTab />
+          <InternationalGeographyTab iraqContent={<GeographyTab />} />
         </TabsContent>
 
         <TabsContent value="postal">
