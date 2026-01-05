@@ -2846,6 +2846,7 @@ const LogisticsManagement = () => {
                   <div className="flex justify-between items-center mb-3">
                     <div className="flex items-center gap-2">
                       <h4 className="font-semibold text-green-800 text-lg">سفارش {order.orderNumber}</h4>
+                      <span className="text-sm text-gray-500">| {formatDateSafe(order.createdAt)}</span>
                       {hasAnyNotes && (
                         <div className="flex items-center gap-1 bg-amber-200 text-amber-800 px-2 py-1 rounded-full text-xs font-medium animate-pulse">
                           <FileText className="w-3 h-3" />
@@ -3044,17 +3045,6 @@ const LogisticsManagement = () => {
 
 
 
-                    {/* Order Date Block */}
-                    <div className="bg-green-50 rounded-lg p-3 border border-green-200">
-                      <h5 className="font-medium text-green-800 mb-2 flex items-center">
-                        <Package className="w-4 h-4 mr-2" />
-                        تاریخ سفارش
-                      </h5>
-                      <p className="text-sm font-medium text-green-700">
-                        {formatDateSafe(order.createdAt)}
-                      </p>
-                      <p className="text-xs text-green-600 mt-1">تاریخ ثبت سفارش</p>
-                    </div>
                   </div>
 
                   {/* Delivery Type Display - Shows customer's selected method */}
