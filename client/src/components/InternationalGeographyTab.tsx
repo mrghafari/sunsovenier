@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,7 +27,9 @@ import {
   AlertCircle,
   Flame,
   Snowflake,
-  AlertTriangle
+  AlertTriangle,
+  ArrowUpDown,
+  RotateCcw
 } from 'lucide-react';
 
 interface InternationalCountry {
@@ -110,6 +112,377 @@ const REGIONS = {
   'africa': 'آفریقا',
   'americas': 'قاره آمریکا',
   'oceania': 'اقیانوسیه'
+};
+
+interface CountryDetailViewProps {
+  countries: InternationalCountry[];
+  cities: InternationalCity[];
+  selectedCountry: string;
+  loadingCities: boolean;
+  setEditingCountry: (country: InternationalCountry | null) => void;
+  setIsEditCountryOpen: (open: boolean) => void;
+  setCityForm: (fn: (prev: any) => any) => void;
+  setIsAddCityOpen: (open: boolean) => void;
+  setEditingCity: (city: InternationalCity | null) => void;
+  setIsEditCityOpen: (open: boolean) => void;
+}
+
+const CountryDetailView: React.FC<CountryDetailViewProps> = ({
+  countries,
+  cities,
+  selectedCountry,
+  loadingCities,
+  setEditingCountry,
+  setIsEditCountryOpen,
+  setCityForm,
+  setIsAddCityOpen,
+  setEditingCity,
+  setIsEditCityOpen,
+}) => {
+  const [selectedOriginCity, setSelectedOriginCity] = useState<InternationalCity | null>(null);
+  const [citySortField, setCitySortField] = useState<string | null>('name');
+  const [citySortDirection, setCitySortDirection] = useState<'asc' | 'desc'>('asc');
+
+  useEffect(() => {
+    setSelectedOriginCity(null);
+    setCitySortField('name');
+    setCitySortDirection('asc');
+  }, [selectedCountry]);
+
+  const selectedCountryData = countries.find((c: InternationalCountry) => c.countryCode.toLowerCase() === selectedCountry);
+  
+  if (!selectedCountryData) {
+    return (
+      <div className="text-center py-8 text-gray-500">
+        لطفاً یک کشور از لیست بالا انتخاب کنید
+      </div>
+    );
+  }
+
+  const countryCities = cities.filter((city: InternationalCity) => city.countryId === selectedCountryData.id);
+  const provinceGroups: { [key: string]: InternationalCity[] } = {};
+  countryCities.forEach((city: InternationalCity) => {
+    const province = city.provinceState || 'بدون استان';
+    if (!provinceGroups[province]) {
+      provinceGroups[province] = [];
+    }
+    provinceGroups[province].push(city);
+  });
+  const provinces = Object.keys(provinceGroups).sort();
+
+  const calculateDistance = (targetCity: InternationalCity): number => {
+    if (!selectedOriginCity) return targetCity.distanceFromErbilKm || 0;
+    const originDistance = selectedOriginCity.distanceFromErbilKm || 0;
+    const targetDistance = targetCity.distanceFromErbilKm || 0;
+    return Math.abs(targetDistance - originDistance);
+  };
+
+  const handleCitySort = (field: string) => {
+    if (citySortField === field) {
+      setCitySortDirection(citySortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setCitySortField(field);
+      setCitySortDirection('asc');
+    }
+  };
+
+  const sortedCities = [...countryCities].sort((a: InternationalCity, b: InternationalCity) => {
+    if (!citySortField) return 0;
+    
+    let aValue: any, bValue: any;
+    
+    switch (citySortField) {
+      case 'id':
+        aValue = a.id || 0;
+        bValue = b.id || 0;
+        break;
+      case 'name':
+        aValue = a.name || '';
+        bValue = b.name || '';
+        break;
+      case 'province':
+        aValue = a.provinceState || '';
+        bValue = b.provinceState || '';
+        break;
+      case 'distance':
+        aValue = calculateDistance(a);
+        bValue = calculateDistance(b);
+        break;
+      case 'cityType':
+        aValue = a.cityType || '';
+        bValue = b.cityType || '';
+        break;
+      default:
+        return 0;
+    }
+    
+    if (typeof aValue === 'string' && typeof bValue === 'string') {
+      const result = aValue.localeCompare(bValue, 'fa');
+      return citySortDirection === 'asc' ? result : -result;
+    }
+    
+    if (typeof aValue === 'number' && typeof bValue === 'number') {
+      const result = aValue - bValue;
+      return citySortDirection === 'asc' ? result : -result;
+    }
+    
+    return 0;
+  });
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            <Globe className="h-5 w-5" />
+            مدیریت جغرافیای {selectedCountryData.name}
+          </h3>
+          <p className="text-sm text-gray-600 mt-1">
+            مدیریت {provinces.length} استان و {countryCities.length} شهر {selectedCountryData.nameEn} با قابلیت انتخاب مبدا
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Badge variant="outline" className="bg-blue-50">
+            {provinces.length} استان
+          </Badge>
+          <Badge variant="outline" className="bg-green-50">
+            {countryCities.length} شهر
+          </Badge>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setEditingCountry(selectedCountryData);
+              setIsEditCountryOpen(true);
+            }}
+          >
+            <Edit className="w-4 h-4 ml-1" />
+            ویرایش کشور
+          </Button>
+        </div>
+      </div>
+
+      <Card className="border-2 border-blue-200 bg-blue-50">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-blue-600 p-2 rounded-full">
+                <MapPin className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-blue-900">انتخاب شهر مبدا برای محاسبه فواصل</h4>
+                <p className="text-sm text-blue-700">
+                  {selectedOriginCity 
+                    ? `مبدا انتخاب شده: ${selectedOriginCity.name}` 
+                    : 'مبدا پیش‌فرض: اربیل (تمام فاصله‌ها از اربیل محاسبه می‌شوند)'
+                  }
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <select
+                value={selectedOriginCity?.id || ''}
+                onChange={(e) => {
+                  const cityId = parseInt(e.target.value);
+                  const city = countryCities.find((c: InternationalCity) => c.id === cityId);
+                  setSelectedOriginCity(city || null);
+                }}
+                className="p-2 border rounded-md bg-white text-sm min-w-[200px]"
+              >
+                <option value="">اربیل (پیش‌فرض)</option>
+                {countryCities.map((city: InternationalCity) => (
+                  <option key={city.id} value={city.id}>
+                    {city.name} - {city.provinceState || 'بدون استان'}
+                  </option>
+                ))}
+              </select>
+              {selectedOriginCity && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setSelectedOriginCity(null)}
+                  className="text-blue-600 border-blue-600 hover:bg-blue-100"
+                >
+                  <RotateCcw className="h-4 w-4 ml-1" />
+                  بازنشانی
+                </Button>
+              )}
+            </div>
+          </div>
+          {selectedOriginCity && (
+            <div className="mt-3 p-3 bg-blue-100 rounded-md">
+              <p className="text-sm text-blue-800">
+                <strong>نکته:</strong> فاصله‌ها بر اساس تفاوت فاصله شهرها از اربیل محاسبه می‌شوند. 
+                شهر انتخابی به عنوان مبدا (0 کیلومتر) نمایش داده می‌شود.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="w-full">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-5 w-5" />
+                شهرهای {selectedCountryData.name} ({countryCities.length})
+              </CardTitle>
+              <CardDescription>
+                مدیریت شهرها با فاصله‌های قابل تنظیم بر اساس مبدا انتخابی
+              </CardDescription>
+            </div>
+            <Button onClick={() => {
+              setCityForm((prev: any) => ({ ...prev, countryId: selectedCountryData.id }));
+              setIsAddCityOpen(true);
+            }}>
+              <Plus className="w-4 h-4 ml-2" />
+              افزودن شهر
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {loadingCities ? (
+            <div className="flex items-center justify-center p-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+            </div>
+          ) : countryCities.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              هیچ شهری برای این کشور ثبت نشده است. برای افزودن شهر جدید از دکمه "افزودن شهر" استفاده کنید.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <div className="max-h-96 overflow-y-auto border border-gray-200 rounded-lg" style={{ position: 'relative' }}>
+                <Table className="relative" style={{ position: 'relative' }}>
+                  <TableHeader 
+                    className="sticky top-0 bg-white z-50 shadow-sm border-b"
+                    style={{ 
+                      position: 'sticky', 
+                      top: 0, 
+                      backgroundColor: 'white', 
+                      zIndex: 50,
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                    }}>
+                    <TableRow className="bg-white" style={{ backgroundColor: 'white', position: 'relative', zIndex: 50 }}>
+                      <TableHead className="text-right w-20 bg-white sticky top-0 z-50 border-b" style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 50 }}>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleCitySort('id')}
+                          className="flex items-center justify-end gap-1 p-0 h-auto font-medium text-right w-full"
+                        >
+                          ردیف
+                          <ArrowUpDown className="h-3 w-3" />
+                        </Button>
+                      </TableHead>
+                      <TableHead className="text-right w-48 bg-white sticky top-0 z-50 border-b" style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 50 }}>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleCitySort('name')}
+                          className="flex items-center justify-end gap-1 p-0 h-auto font-medium text-right w-full"
+                        >
+                          نام شهر
+                          <ArrowUpDown className="h-3 w-3" />
+                        </Button>
+                      </TableHead>
+                      <TableHead className="text-right w-32 bg-white sticky top-0 z-50 border-b" style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 50 }}>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleCitySort('province')}
+                          className="flex items-center justify-end gap-1 p-0 h-auto font-medium text-right w-full"
+                        >
+                          استان
+                          <ArrowUpDown className="h-3 w-3" />
+                        </Button>
+                      </TableHead>
+                      <TableHead className="text-right w-36 bg-white sticky top-0 z-50 border-b" style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 50 }}>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleCitySort('distance')}
+                          className="flex items-center justify-end gap-1 p-0 h-auto font-medium text-right w-full"
+                        >
+                          فاصله (کیلومتر)
+                          <ArrowUpDown className="h-3 w-3" />
+                        </Button>
+                      </TableHead>
+                      <TableHead className="text-right w-32 bg-white sticky top-0 z-50 border-b" style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 50 }}>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleCitySort('cityType')}
+                          className="flex items-center justify-end gap-1 p-0 h-auto font-medium text-right w-full"
+                        >
+                          نوع شهر
+                          <ArrowUpDown className="h-3 w-3" />
+                        </Button>
+                      </TableHead>
+                      <TableHead className="text-center w-24 bg-white sticky top-0 z-50 border-b" style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 50 }}>
+                        وضعیت
+                      </TableHead>
+                      <TableHead className="text-center w-24 bg-white sticky top-0 z-50 border-b" style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 50 }}>
+                        عملیات
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sortedCities.map((city: InternationalCity, index: number) => (
+                      <TableRow 
+                        key={city.id} 
+                        className={`${selectedOriginCity?.id === city.id ? 'bg-blue-100' : ''} hover:bg-gray-50`}
+                      >
+                        <TableCell className="text-right font-medium">{index + 1}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex flex-col">
+                            <span className="font-medium">{city.name}</span>
+                            <span className="text-xs text-gray-500">{city.nameEn}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">{city.provinceState || '-'}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            {selectedOriginCity?.id === city.id ? (
+                              <Badge className="bg-blue-600">مبدا</Badge>
+                            ) : (
+                              <span>{calculateDistance(city).toLocaleString()} کیلومتر</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Badge variant="outline">
+                            {CITY_TYPES[city.cityType as keyof typeof CITY_TYPES] || city.cityType}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge className={city.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                            {city.isActive ? 'فعال' : 'غیرفعال'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setEditingCity(city);
+                              setIsEditCityOpen(true);
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
 };
 
 interface InternationalGeographyTabProps {
@@ -505,115 +878,20 @@ const InternationalGeographyTab: React.FC<InternationalGeographyTabProps> = ({ i
                     </div>
                   )}
                 </div>
-              ) : (() => {
-                const selectedCountryData = countries.find((c: InternationalCountry) => c.countryCode.toLowerCase() === selectedCountry);
-                if (!selectedCountryData) {
-                  return (
-                    <div className="text-center py-8 text-gray-500">
-                      لطفاً یک کشور از لیست بالا انتخاب کنید
-                    </div>
-                  );
-                }
-                
-                const countryCities = cities.filter((city: InternationalCity) => city.countryId === selectedCountryData.id);
-                const provinceGroups: { [key: string]: InternationalCity[] } = {};
-                countryCities.forEach((city: InternationalCity) => {
-                  const province = city.provinceState || 'بدون استان';
-                  if (!provinceGroups[province]) {
-                    provinceGroups[province] = [];
-                  }
-                  provinceGroups[province].push(city);
-                });
-                const provinces = Object.keys(provinceGroups).sort();
-
-                return (
-                  <div className="space-y-4">
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-blue-800">
-                          <Globe className="w-6 h-6" />
-                          <span className="font-bold">{selectedCountryData.name}</span>
-                          <span className="text-sm text-blue-600">({selectedCountryData.nameEn})</span>
-                          <Badge variant="outline">{selectedCountryData.countryCode}</Badge>
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setEditingCountry(selectedCountryData);
-                            setIsEditCountryOpen(true);
-                          }}
-                        >
-                          <Edit className="w-4 h-4 ml-1" />
-                          ویرایش کشور
-                        </Button>
-                      </div>
-                      <div className="flex gap-4 mt-2 text-sm text-blue-700">
-                        <span>منطقه: {REGIONS[selectedCountryData.region as keyof typeof REGIONS] || selectedCountryData.region}</span>
-                        <span>ارز: {selectedCountryData.currency}</span>
-                        <span>{provinces.length} استان</span>
-                        <span>{countryCities.length} شهر</span>
-                      </div>
-                    </div>
-                    
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="font-semibold text-lg">استان‌ها و شهرها</h3>
-                      <Button onClick={() => {
-                        setCityForm(prev => ({ ...prev, countryId: selectedCountryData.id }));
-                        setIsAddCityOpen(true);
-                      }}>
-                        <Plus className="w-4 h-4 ml-2" />
-                        افزودن شهر
-                      </Button>
-                    </div>
-
-                    {loadingCities ? (
-                      <div className="text-center py-8">در حال بارگذاری...</div>
-                    ) : provinces.length === 0 ? (
-                      <div className="text-center py-8 text-gray-500">
-                        هیچ شهری برای این کشور ثبت نشده است. برای افزودن شهر جدید از دکمه "افزودن شهر" استفاده کنید.
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {provinces.map((province) => (
-                          <div key={province} className="border rounded-lg p-4">
-                            <div className="flex items-center gap-2 mb-3">
-                              <MapPin className="w-5 h-5 text-blue-600" />
-                              <h4 className="font-semibold text-lg">{province}</h4>
-                              <Badge variant="secondary">{provinceGroups[province].length} شهر</Badge>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                              {provinceGroups[province].map((city: InternationalCity) => (
-                                <div key={city.id} className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 p-2 rounded">
-                                  <div>
-                                    <span className="font-medium">{city.name}</span>
-                                    <span className="text-sm text-gray-500 mr-2">({city.nameEn})</span>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <Badge variant="outline" className="text-xs">
-                                      {CITY_TYPES[city.cityType as keyof typeof CITY_TYPES] || city.cityType}
-                                    </Badge>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => {
-                                        setEditingCity(city);
-                                        setIsEditCityOpen(true);
-                                      }}
-                                    >
-                                      <Edit className="w-3 h-3" />
-                                    </Button>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
+              ) : (
+                <CountryDetailView 
+                  countries={countries}
+                  cities={cities}
+                  selectedCountry={selectedCountry}
+                  loadingCities={loadingCities}
+                  setEditingCountry={setEditingCountry}
+                  setIsEditCountryOpen={setIsEditCountryOpen}
+                  setCityForm={setCityForm}
+                  setIsAddCityOpen={setIsAddCityOpen}
+                  setEditingCity={setEditingCity}
+                  setIsEditCityOpen={setIsEditCityOpen}
+                />
+              )}
             </CardContent>
           </Card>
         </TabsContent>
