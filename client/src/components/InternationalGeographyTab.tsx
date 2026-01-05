@@ -437,14 +437,10 @@ const InternationalGeographyTab: React.FC<InternationalGeographyTabProps> = ({ i
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="countries" className="flex items-center gap-2 bg-amber-100 data-[state=active]:bg-amber-500 data-[state=active]:text-white">
             <Globe className="w-4 h-4" />
             کشور
-          </TabsTrigger>
-          <TabsTrigger value="cities" className="flex items-center gap-2">
-            <MapPin className="w-4 h-4" />
-            شهرها
           </TabsTrigger>
           <TabsTrigger value="rates" className="flex items-center gap-2">
             <DollarSign className="w-4 h-4" />
@@ -569,89 +565,6 @@ const InternationalGeographyTab: React.FC<InternationalGeographyTabProps> = ({ i
                     </Table>
                   )}
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Cities Tab */}
-        <TabsContent value="cities">
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <MapPin className="w-5 h-5" />
-                    شهرهای بین‌المللی
-                  </CardTitle>
-                  <CardDescription>
-                    مدیریت شهرها و بنادر برای حمل بین‌المللی
-                  </CardDescription>
-                </div>
-                <Button onClick={() => setIsAddCityOpen(true)}>
-                  <Plus className="w-4 h-4 ml-2" />
-                  افزودن شهر
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {loadingCities ? (
-                <div className="text-center py-8">در حال بارگذاری...</div>
-              ) : cities.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  هیچ شهری ثبت نشده است
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>نام شهر</TableHead>
-                      <TableHead>کشور</TableHead>
-                      <TableHead>نوع</TableHead>
-                      <TableHead>فاصله از اربیل</TableHead>
-                      <TableHead>وضعیت</TableHead>
-                      <TableHead>عملیات</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {cities.map((city: InternationalCity) => (
-                      <TableRow key={city.id}>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">{city.name}</div>
-                            <div className="text-sm text-gray-500">{city.nameEn}</div>
-                          </div>
-                        </TableCell>
-                        <TableCell>{city.countryName}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            {CITY_TYPES[city.cityType as keyof typeof CITY_TYPES] || city.cityType}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{city.distanceFromErbilKm.toLocaleString()} کیلومتر</TableCell>
-                        <TableCell>
-                          {city.isActive ? (
-                            <Badge className="bg-green-100 text-green-800">فعال</Badge>
-                          ) : (
-                            <Badge className="bg-red-100 text-red-800">غیرفعال</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setEditingCity(city);
-                              setIsEditCityOpen(true);
-                            }}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
               )}
             </CardContent>
           </Card>
