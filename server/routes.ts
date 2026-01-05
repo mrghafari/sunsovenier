@@ -10421,6 +10421,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           actualDeliveryDate: orderManagement.actualDeliveryDate,
           deliveryPersonName: orderManagement.deliveryPersonName,
           deliveryPersonPhone: orderManagement.deliveryPersonPhone,
+          // Vehicle assignment details
+          deliveryMethod: orderManagement.deliveryMethod,
+          vehicleType: orderManagement.vehicleType,
+          vehiclePlate: orderManagement.vehiclePlate,
+          vehicleModel: orderManagement.vehicleModel,
+          vehicleColor: orderManagement.vehicleColor,
+          driverName: orderManagement.driverName,
+          driverPhone: orderManagement.driverPhone,
+          // Customer's selected delivery method and vehicle type from customer_orders
+          customerDeliveryMethod: customerOrders.deliveryMethod,
+          customerVehicleType: customerOrders.vehicleType,
+          // Weight info
+          totalWeight: customerOrders.totalWeight,
+          weightUnit: customerOrders.weightUnit,
           financialReviewerId: orderManagement.financialReviewerId,
           financialReviewedAt: orderManagement.financialReviewedAt,
           financialNotes: orderManagement.financialNotes,
@@ -10477,7 +10491,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Extract delivery date info
         orderDate: order.createdAt,
         // GPS location data
-        hasGpsLocation: !!(order.gpsLatitude && order.gpsLongitude)
+        hasGpsLocation: !!(order.gpsLatitude && order.gpsLongitude),
+        // Ensure delivery method and vehicle info are available (use customer selection as fallback)
+        deliveryMethod: order.deliveryMethod || order.customerDeliveryMethod || null,
+        customerVehicleType: order.customerVehicleType || null,
+        calculatedWeight: order.totalWeight || '0'
       }));
       
       res.json({ 
