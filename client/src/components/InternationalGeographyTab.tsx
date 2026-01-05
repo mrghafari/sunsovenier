@@ -505,67 +505,115 @@ const InternationalGeographyTab: React.FC<InternationalGeographyTabProps> = ({ i
                     </div>
                   )}
                 </div>
-              ) : (
-                /* Show other countries list */
-                <div>
-                  {loadingCountries ? (
-                    <div className="text-center py-8">در حال بارگذاری...</div>
-                  ) : countries.length === 0 ? (
+              ) : (() => {
+                const selectedCountryData = countries.find((c: InternationalCountry) => c.countryCode.toLowerCase() === selectedCountry);
+                if (!selectedCountryData) {
+                  return (
                     <div className="text-center py-8 text-gray-500">
-                      هیچ کشوری ثبت نشده است. برای افزودن کشور جدید از دکمه "افزودن کشور" استفاده کنید.
+                      لطفاً یک کشور از لیست بالا انتخاب کنید
                     </div>
-                  ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>نام کشور</TableHead>
-                          <TableHead>کد کشور</TableHead>
-                          <TableHead>منطقه</TableHead>
-                          <TableHead>ارز</TableHead>
-                          <TableHead>وضعیت</TableHead>
-                          <TableHead>عملیات</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {countries.map((country: InternationalCountry) => (
-                          <TableRow key={country.id}>
-                            <TableCell>
-                              <div>
-                                <div className="font-medium">{country.name}</div>
-                                <div className="text-sm text-gray-500">{country.nameEn}</div>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="outline">{country.countryCode}</Badge>
-                            </TableCell>
-                            <TableCell>{REGIONS[country.region as keyof typeof REGIONS] || country.region}</TableCell>
-                            <TableCell>{country.currency}</TableCell>
-                            <TableCell>
-                              {country.isActive ? (
-                                <Badge className="bg-green-100 text-green-800">فعال</Badge>
-                              ) : (
-                                <Badge className="bg-red-100 text-red-800">غیرفعال</Badge>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setEditingCountry(country);
-                                  setIsEditCountryOpen(true);
-                                }}
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
+                  );
+                }
+                
+                const countryCities = cities.filter((city: InternationalCity) => city.countryId === selectedCountryData.id);
+                const provinceGroups: { [key: string]: InternationalCity[] } = {};
+                countryCities.forEach((city: InternationalCity) => {
+                  const province = city.provinceState || 'بدون استان';
+                  if (!provinceGroups[province]) {
+                    provinceGroups[province] = [];
+                  }
+                  provinceGroups[province].push(city);
+                });
+                const provinces = Object.keys(provinceGroups).sort();
+
+                return (
+                  <div className="space-y-4">
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-blue-800">
+                          <Globe className="w-6 h-6" />
+                          <span className="font-bold">{selectedCountryData.name}</span>
+                          <span className="text-sm text-blue-600">({selectedCountryData.nameEn})</span>
+                          <Badge variant="outline">{selectedCountryData.countryCode}</Badge>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setEditingCountry(selectedCountryData);
+                            setIsEditCountryOpen(true);
+                          }}
+                        >
+                          <Edit className="w-4 h-4 ml-1" />
+                          ویرایش کشور
+                        </Button>
+                      </div>
+                      <div className="flex gap-4 mt-2 text-sm text-blue-700">
+                        <span>منطقه: {REGIONS[selectedCountryData.region as keyof typeof REGIONS] || selectedCountryData.region}</span>
+                        <span>ارز: {selectedCountryData.currency}</span>
+                        <span>{provinces.length} استان</span>
+                        <span>{countryCities.length} شهر</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="font-semibold text-lg">استان‌ها و شهرها</h3>
+                      <Button onClick={() => {
+                        setCityForm(prev => ({ ...prev, countryId: selectedCountryData.id }));
+                        setIsAddCityOpen(true);
+                      }}>
+                        <Plus className="w-4 h-4 ml-2" />
+                        افزودن شهر
+                      </Button>
+                    </div>
+
+                    {loadingCities ? (
+                      <div className="text-center py-8">در حال بارگذاری...</div>
+                    ) : provinces.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500">
+                        هیچ شهری برای این کشور ثبت نشده است. برای افزودن شهر جدید از دکمه "افزودن شهر" استفاده کنید.
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {provinces.map((province) => (
+                          <div key={province} className="border rounded-lg p-4">
+                            <div className="flex items-center gap-2 mb-3">
+                              <MapPin className="w-5 h-5 text-blue-600" />
+                              <h4 className="font-semibold text-lg">{province}</h4>
+                              <Badge variant="secondary">{provinceGroups[province].length} شهر</Badge>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                              {provinceGroups[province].map((city: InternationalCity) => (
+                                <div key={city.id} className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 p-2 rounded">
+                                  <div>
+                                    <span className="font-medium">{city.name}</span>
+                                    <span className="text-sm text-gray-500 mr-2">({city.nameEn})</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="outline" className="text-xs">
+                                      {CITY_TYPES[city.cityType as keyof typeof CITY_TYPES] || city.cityType}
+                                    </Badge>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        setEditingCity(city);
+                                        setIsEditCityOpen(true);
+                                      }}
+                                    >
+                                      <Edit className="w-3 h-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
                         ))}
-                      </TableBody>
-                    </Table>
-                  )}
-                </div>
-              )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
         </TabsContent>
