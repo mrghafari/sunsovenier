@@ -51028,38 +51028,52 @@ momtazchem.com
         .where(eq(orderManagement.id, orderManagementId));
       
       // Record vehicle delivery history
-      const orderDetails = await db.execute(sql`
-        SELECT co.order_number, co.total_weight, co.weight_unit,
-               c.first_name || ' ' || c.last_name as customer_name,
-               c.phone as customer_phone,
-               co.shipping_address,
-               co.shipping_cost
-        FROM customer_orders co
-        JOIN customers c ON co.customer_id = c.id
-        JOIN order_management om ON om.customer_order_id = co.id
-        WHERE co.id = ${orderId}
-      `);
-      
-      if (orderDetails.length > 0) {
-        const order = orderDetails[0];
-        await db.execute(sql`
-          INSERT INTO vehicle_delivery_history (
-            vehicle_id, plate_number, customer_order_id, order_number,
-            driver_name, customer_name, customer_phone,
-            origin_address, destination_address, destination_city,
-            total_weight, weight_unit, delivery_cost, currency,
-            delivery_status, pickup_datetime, created_at, updated_at
-          ) VALUES (
-            ${vehicleId}, ${truckNumber}, ${orderId}, ${order.order_number},
-            ${driverName}, ${order.customer_name}, ${order.customer_phone},
-            'انبار شرکت', ${order.shipping_address?.address || 'آدرس نامشخص'},
-            ${order.shipping_address?.city || 'شهر نامشخص'},
-            ${order.total_weight || 0}, ${order.weight_unit || 'kg'},
-            ${order.shipping_cost || 0}, 'IQD',
-            'assigned', NOW(), NOW(), NOW()
-          )
+      try {
+        const orderDetailsResult = await db.execute(sql`
+          SELECT co.order_number, co.total_weight, co.weight_unit,
+                 c.first_name || ' ' || c.last_name as customer_name,
+                 c.phone as customer_phone,
+                 co.shipping_address,
+                 co.shipping_cost
+          FROM customer_orders co
+          JOIN customers c ON co.customer_id = c.id
+          JOIN order_management om ON om.customer_order_id = co.id
+          WHERE co.id = ${orderId}
         `);
-        console.log('📊 [VEHICLE HISTORY] Recorded delivery history for order:', order.order_number);
+        
+        const orderRows = orderDetailsResult.rows || orderDetailsResult;
+        console.log('📊 [VEHICLE HISTORY] Query result rows:', orderRows?.length || 0);
+        
+        if (orderRows && orderRows.length > 0) {
+          const order = orderRows[0] as any;
+          // Parse shipping_address if it's a string
+          let shippingAddr = order.shipping_address;
+          if (typeof shippingAddr === 'string') {
+            try { shippingAddr = JSON.parse(shippingAddr); } catch(e) { shippingAddr = {}; }
+          }
+          const destAddress = shippingAddr?.address || 'آدرس نامشخص';
+          const destCity = shippingAddr?.city || 'شهر نامشخص';
+          
+          await db.execute(sql`
+            INSERT INTO vehicle_delivery_history (
+              vehicle_id, plate_number, customer_order_id, order_number,
+              driver_name, customer_name, customer_phone,
+              origin_address, destination_address, destination_city,
+              total_weight, weight_unit, delivery_cost, currency,
+              delivery_status, pickup_datetime, created_at, updated_at
+            ) VALUES (
+              ${vehicleId}, ${truckNumber}, ${orderId}, ${order.order_number},
+              ${driverName}, ${order.customer_name}, ${order.customer_phone},
+              'انبار شرکت', ${destAddress}, ${destCity},
+              ${order.total_weight || 0}, ${order.weight_unit || 'kg'},
+              ${order.shipping_cost || 0}, 'IQD',
+              'assigned', NOW(), NOW(), NOW()
+            )
+          `);
+          console.log('📊 [VEHICLE HISTORY] Recorded delivery history for order:', order.order_number);
+        }
+      } catch (historyError) {
+        console.error('⚠️ [VEHICLE HISTORY] Failed to record history:', historyError);
       }
 
 
@@ -51224,38 +51238,52 @@ momtazchem.com
 
       
       // Record vehicle delivery history
-      const orderDetails2 = await db.execute(sql`
-        SELECT co.order_number, co.total_weight, co.weight_unit, co.id as order_id,
-               c.first_name || ' ' || c.last_name as customer_name,
-               c.phone as customer_phone,
-               co.shipping_address,
-               co.shipping_cost
-        FROM order_management om
-        JOIN customer_orders co ON om.customer_order_id = co.id
-        JOIN customers c ON co.customer_id = c.id
-        WHERE om.id = ${orderManagementId}
-      `);
-      
-      if (orderDetails2.length > 0) {
-        const order2 = orderDetails2[0];
-        await db.execute(sql`
-          INSERT INTO vehicle_delivery_history (
-            vehicle_id, plate_number, customer_order_id, order_number,
-            driver_name, customer_name, customer_phone,
-            origin_address, destination_address, destination_city,
-            total_weight, weight_unit, delivery_cost, currency,
-            delivery_status, pickup_datetime, created_at, updated_at
-          ) VALUES (
-            ${vehicleId}, ${truckNumber}, ${order2.order_id}, ${order2.order_number},
-            ${driverName}, ${order2.customer_name}, ${order2.customer_phone},
-            'انبار شرکت', ${order2.shipping_address?.address || 'آدرس نامشخص'},
-            ${order2.shipping_address?.city || 'شهر نامشخص'},
-            ${order2.total_weight || 0}, ${order2.weight_unit || 'kg'},
-            ${order2.shipping_cost || 0}, 'IQD',
-            'assigned', NOW(), NOW(), NOW()
-          )
+      try {
+        const orderDetails2Result = await db.execute(sql`
+          SELECT co.order_number, co.total_weight, co.weight_unit, co.id as order_id,
+                 c.first_name || ' ' || c.last_name as customer_name,
+                 c.phone as customer_phone,
+                 co.shipping_address,
+                 co.shipping_cost
+          FROM order_management om
+          JOIN customer_orders co ON om.customer_order_id = co.id
+          JOIN customers c ON co.customer_id = c.id
+          WHERE om.id = ${orderManagementId}
         `);
-        console.log('📊 [VEHICLE HISTORY] Recorded delivery history for order:', order2.order_number);
+        
+        const orderRows2 = orderDetails2Result.rows || orderDetails2Result;
+        console.log('📊 [VEHICLE HISTORY 2] Query result rows:', orderRows2?.length || 0);
+        
+        if (orderRows2 && orderRows2.length > 0) {
+          const order2 = orderRows2[0] as any;
+          // Parse shipping_address if it's a string
+          let shippingAddr2 = order2.shipping_address;
+          if (typeof shippingAddr2 === 'string') {
+            try { shippingAddr2 = JSON.parse(shippingAddr2); } catch(e) { shippingAddr2 = {}; }
+          }
+          const destAddress2 = shippingAddr2?.address || 'آدرس نامشخص';
+          const destCity2 = shippingAddr2?.city || 'شهر نامشخص';
+          
+          await db.execute(sql`
+            INSERT INTO vehicle_delivery_history (
+              vehicle_id, plate_number, customer_order_id, order_number,
+              driver_name, customer_name, customer_phone,
+              origin_address, destination_address, destination_city,
+              total_weight, weight_unit, delivery_cost, currency,
+              delivery_status, pickup_datetime, created_at, updated_at
+            ) VALUES (
+              ${vehicleId}, ${truckNumber}, ${order2.order_id}, ${order2.order_number},
+              ${driverName}, ${order2.customer_name}, ${order2.customer_phone},
+              'انبار شرکت', ${destAddress2}, ${destCity2},
+              ${order2.total_weight || 0}, ${order2.weight_unit || 'kg'},
+              ${order2.shipping_cost || 0}, 'IQD',
+              'assigned', NOW(), NOW(), NOW()
+            )
+          `);
+          console.log('📊 [VEHICLE HISTORY] Recorded delivery history for order:', order2.order_number);
+        }
+      } catch (historyError2) {
+        console.error('⚠️ [VEHICLE HISTORY 2] Failed to record history:', historyError2);
       }
 
       console.log('✅ [ASSIGN VEHICLE] Vehicle successfully assigned to order');
