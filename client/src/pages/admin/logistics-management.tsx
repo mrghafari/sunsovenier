@@ -1572,6 +1572,14 @@ const LogisticsManagement = () => {
         // Refresh the orders list
         queryClient.invalidateQueries({ queryKey: ['/api/order-management/logistics'] });
         setIsVehicleAssignmentOpen(false);
+      } else if (response.status === 409) {
+        // Vehicle is already assigned to another undelivered order
+        const errorData = await response.json();
+        toast({
+          title: "خودرو در دسترس نیست",
+          description: errorData.message || "این خودرو قبلاً به سفارش دیگری تخصیص یافته و هنوز تحویل نشده است",
+          variant: "destructive"
+        });
       } else {
         throw new Error('Assignment failed');
       }

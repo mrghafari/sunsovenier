@@ -50989,6 +50989,25 @@ momtazchem.com
     try {
       const { orderId, orderManagementId, vehicleId, truckNumber, driverName, driverPhone } = req.body;
       
+      
+      // Check if vehicle is already assigned to an undelivered order
+      const existingAssignment = await db.execute(sql`
+        SELECT id, customer_order_id, current_status 
+        FROM order_management 
+        WHERE vehicle_plate = ${truckNumber}
+        AND current_status NOT IN ('delivered', 'cancelled')
+        AND id != ${orderManagementId}
+        LIMIT 1
+      `);
+      
+      if (existingAssignment.length > 0) {
+        return res.status(409).json({
+          success: false,
+          message: "این خودرو قبلاً به سفارش دیگری تخصیص یافته و هنوز تحویل نشده است",
+          conflictingOrderId: existingAssignment[0].customer_order_id
+        });
+      }
+
       if (!orderId || !orderManagementId || !vehicleId || !truckNumber || !driverName || !driverPhone) {
         return res.status(400).json({
           success: false,
@@ -51124,6 +51143,26 @@ momtazchem.com
     try {
       const { orderId, orderManagementId, vehicleId, truckNumber, driverName, driverPhone } = req.body;
       console.log('🚛 [ASSIGN VEHICLE] Assigning vehicle to order:', { orderId, vehicleId, truckNumber });
+      
+      // Check if vehicle is already assigned to an undelivered order
+      const existingAssignment = await db.execute(sql`
+        SELECT id, customer_order_id, order_number, current_status 
+        FROM order_management 
+        WHERE vehicle_plate = ${truckNumber}
+        AND current_status NOT IN ('delivered', 'cancelled')
+        AND id != ${orderManagementId}
+        LIMIT 1
+      `);
+      
+      if (existingAssignment.length > 0) {
+        console.log('🚫 [ASSIGN VEHICLE] Vehicle already assigned to undelivered order:', existingAssignment[0].order_number);
+        return res.status(409).json({
+          success: false,
+          message: "این خودرو قبلاً به سفارش دیگری تخصیص یافته و هنوز تحویل نشده است",
+          conflictingOrderNumber: existingAssignment[0].order_number
+        });
+      }
+
 
       // Update order management record with vehicle assignment
       await db.execute(sql`
