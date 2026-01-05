@@ -51072,6 +51072,24 @@ momtazchem.com
           const destAddress = shippingAddr?.address || 'آدرس نامشخص';
           const destCity = shippingAddr?.city || 'شهر نامشخص';
           
+          const historyValues = {
+            vehicleId: vehicleId || null,
+            plateNumber: truckNumber || 'نامشخص',
+            customerOrderId: orderId,
+            orderNumber: order.order_number || 'ORD-' + orderId,
+            driverName: driverName || 'نامشخص',
+            customerName: order.customer_name || 'مشتری نامشخص',
+            customerPhone: order.customer_phone || '',
+            originAddress: 'انبار شرکت',
+            destAddress: destAddress || 'آدرس نامشخص',
+            destCity: destCity || 'شهر نامشخص',
+            totalWeight: parseFloat(order.total_weight) || 0,
+            weightUnit: order.weight_unit || 'kg',
+            deliveryCost: parseFloat(order.shipping_cost) || 0
+          };
+          
+          console.log('📊 [VEHICLE HISTORY] Inserting record with values:', JSON.stringify(historyValues));
+          
           await db.execute(sql`
             INSERT INTO vehicle_delivery_history (
               vehicle_id, plate_number, customer_order_id, order_number,
@@ -51080,15 +51098,14 @@ momtazchem.com
               total_weight, weight_unit, delivery_cost, currency,
               delivery_status, pickup_datetime, created_at, updated_at
             ) VALUES (
-              ${vehicleId}, ${truckNumber}, ${orderId}, ${order.order_number},
-              ${driverName}, ${order.customer_name}, ${order.customer_phone},
-              'انبار شرکت', ${destAddress}, ${destCity},
-              ${order.total_weight || 0}, ${order.weight_unit || 'kg'},
-              ${order.shipping_cost || 0}, 'IQD',
+              ${historyValues.vehicleId}, ${historyValues.plateNumber}, ${historyValues.customerOrderId}, ${historyValues.orderNumber},
+              ${historyValues.driverName}, ${historyValues.customerName}, ${historyValues.customerPhone},
+              ${historyValues.originAddress}, ${historyValues.destAddress}, ${historyValues.destCity},
+              ${historyValues.totalWeight}, ${historyValues.weightUnit}, ${historyValues.deliveryCost}, 'IQD',
               'assigned', NOW(), NOW(), NOW()
             )
           `);
-          console.log('📊 [VEHICLE HISTORY] Recorded delivery history for order:', order.order_number);
+          console.log('📊 [VEHICLE HISTORY] Successfully recorded delivery history for order:', historyValues.orderNumber);
         }
       } catch (historyError) {
         console.error('⚠️ [VEHICLE HISTORY] Failed to record history:', historyError);
@@ -51282,6 +51299,24 @@ momtazchem.com
           const destAddress2 = shippingAddr2?.address || 'آدرس نامشخص';
           const destCity2 = shippingAddr2?.city || 'شهر نامشخص';
           
+          const historyValues2 = {
+            vehicleId: vehicleId || null,
+            plateNumber: truckNumber || 'نامشخص',
+            customerOrderId: order2.order_id || order2.customer_order_id,
+            orderNumber: order2.order_number || 'ORD-UNKNOWN',
+            driverName: driverName || 'نامشخص',
+            customerName: order2.customer_name || 'مشتری نامشخص',
+            customerPhone: order2.customer_phone || '',
+            originAddress: 'انبار شرکت',
+            destAddress: destAddress2 || 'آدرس نامشخص',
+            destCity: destCity2 || 'شهر نامشخص',
+            totalWeight: parseFloat(order2.total_weight) || 0,
+            weightUnit: order2.weight_unit || 'kg',
+            deliveryCost: parseFloat(order2.shipping_cost) || 0
+          };
+          
+          console.log('📊 [VEHICLE HISTORY 2] Inserting record with values:', JSON.stringify(historyValues2));
+          
           await db.execute(sql`
             INSERT INTO vehicle_delivery_history (
               vehicle_id, plate_number, customer_order_id, order_number,
@@ -51290,15 +51325,14 @@ momtazchem.com
               total_weight, weight_unit, delivery_cost, currency,
               delivery_status, pickup_datetime, created_at, updated_at
             ) VALUES (
-              ${vehicleId}, ${truckNumber}, ${order2.order_id}, ${order2.order_number},
-              ${driverName}, ${order2.customer_name}, ${order2.customer_phone},
-              'انبار شرکت', ${destAddress2}, ${destCity2},
-              ${order2.total_weight || 0}, ${order2.weight_unit || 'kg'},
-              ${order2.shipping_cost || 0}, 'IQD',
+              ${historyValues2.vehicleId}, ${historyValues2.plateNumber}, ${historyValues2.customerOrderId}, ${historyValues2.orderNumber},
+              ${historyValues2.driverName}, ${historyValues2.customerName}, ${historyValues2.customerPhone},
+              ${historyValues2.originAddress}, ${historyValues2.destAddress}, ${historyValues2.destCity},
+              ${historyValues2.totalWeight}, ${historyValues2.weightUnit}, ${historyValues2.deliveryCost}, 'IQD',
               'assigned', NOW(), NOW(), NOW()
             )
           `);
-          console.log('📊 [VEHICLE HISTORY] Recorded delivery history for order:', order2.order_number);
+          console.log('📊 [VEHICLE HISTORY 2] Successfully recorded delivery history for order:', historyValues2.orderNumber);
         }
       } catch (historyError2) {
         console.error('⚠️ [VEHICLE HISTORY 2] Failed to record history:', historyError2);
