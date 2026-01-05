@@ -31164,6 +31164,72 @@ ${message ? `Additional Requirements:\n${message}` : ''}
           deliveryCompanyPhone,
           deliveryCompanyAddress
         });
+        
+        // Record vehicle delivery history if vehicle is assigned
+        if (vehiclePlate && driverName) {
+          try {
+            const { db } = await import('./db');
+            const { sql } = await import('drizzle-orm');
+            
+            // Get order details
+            const orderDetailsResult = await db.execute(sql`
+              SELECT co.order_number, co.total_weight, co.weight_unit, co.shipping_cost,
+                     c.first_name || ' ' || c.last_name as customer_name,
+                     c.phone as customer_phone,
+                     co.shipping_address, om.customer_order_id
+              FROM order_management om
+              JOIN customer_orders co ON om.customer_order_id = co.id
+              JOIN customers c ON co.customer_id = c.id
+              WHERE om.id = ${orderId}
+            `);
+            
+            const orderRows = orderDetailsResult.rows || orderDetailsResult;
+            if (orderRows && orderRows.length > 0) {
+              const order = orderRows[0] as any;
+              let shippingAddr = order.shipping_address;
+              if (typeof shippingAddr === 'string') {
+                try { shippingAddr = JSON.parse(shippingAddr); } catch(e) { shippingAddr = {}; }
+              }
+              const destAddress = shippingAddr?.address || 'آدرس نامشخص';
+              const destCity = shippingAddr?.city || 'شهر نامشخص';
+              
+              const historyValues = {
+                plateNumber: vehiclePlate || 'نامشخص',
+                customerOrderId: order.customer_order_id,
+                orderNumber: order.order_number || 'ORD-' + orderId,
+                driverName: driverName || 'نامشخص',
+                customerName: order.customer_name || 'مشتری نامشخص',
+                customerPhone: order.customer_phone || '',
+                destAddress: destAddress,
+                destCity: destCity,
+                totalWeight: parseFloat(order.total_weight) || 0,
+                weightUnit: order.weight_unit || 'kg',
+                deliveryCost: parseFloat(order.shipping_cost) || 0
+              };
+              
+              console.log('📊 [VEHICLE HISTORY - PROCESS] Inserting record:', JSON.stringify(historyValues));
+              
+              await db.execute(sql`
+                INSERT INTO vehicle_delivery_history (
+                  vehicle_id, plate_number, customer_order_id, order_number,
+                  driver_name, customer_name, customer_phone,
+                  origin_address, destination_address, destination_city,
+                  total_weight, weight_unit, delivery_cost, currency,
+                  delivery_status, pickup_datetime, created_at, updated_at
+                ) VALUES (
+                  null, ${historyValues.plateNumber}, ${historyValues.customerOrderId}, ${historyValues.orderNumber},
+                  ${historyValues.driverName}, ${historyValues.customerName}, ${historyValues.customerPhone},
+                  'انبار شرکت', ${historyValues.destAddress}, ${historyValues.destCity},
+                  ${historyValues.totalWeight}, ${historyValues.weightUnit}, ${historyValues.deliveryCost}, 'IQD',
+                  'assigned', NOW(), NOW(), NOW()
+                )
+              `);
+              console.log('📊 [VEHICLE HISTORY - PROCESS] Successfully recorded for order:', historyValues.orderNumber);
+            }
+          } catch (historyError) {
+            console.error('⚠️ [VEHICLE HISTORY - PROCESS] Failed to record:', historyError);
+          }
+        }
       } else {
         await orderManagementStorage.updateOrderStatus(
           orderId,
@@ -45999,6 +46065,72 @@ momtazchem.com
           success: false,
           message: 'سفارش یافت نشد'
         });
+      }
+
+      // Record vehicle delivery history if vehicle is assigned
+      if (vehiclePlate) {
+        try {
+          const { sql } = await import('drizzle-orm');
+          const { customerOrders, crmCustomers } = await import('../shared/customer-schema');
+          
+          // Get order details for history
+          const orderDetailsResult = await db.execute(sql`
+            SELECT co.order_number, co.total_weight, co.weight_unit, co.shipping_cost,
+                   c.first_name || ' ' || c.last_name as customer_name,
+                   c.phone as customer_phone,
+                   co.shipping_address
+            FROM order_management om
+            JOIN customer_orders co ON om.customer_order_id = co.id
+            JOIN customers c ON co.customer_id = c.id
+            WHERE om.id = ${orderId}
+          `);
+          
+          const orderRows = orderDetailsResult.rows || orderDetailsResult;
+          if (orderRows && orderRows.length > 0) {
+            const order = orderRows[0] as any;
+            let shippingAddr = order.shipping_address;
+            if (typeof shippingAddr === 'string') {
+              try { shippingAddr = JSON.parse(shippingAddr); } catch(e) { shippingAddr = {}; }
+            }
+            const destAddress = shippingAddr?.address || 'آدرس نامشخص';
+            const destCity = shippingAddr?.city || 'شهر نامشخص';
+            
+            const historyValues = {
+              plateNumber: vehiclePlate || 'نامشخص',
+              customerOrderId: updatedOrder.customerOrderId,
+              orderNumber: order.order_number || 'ORD-' + orderId,
+              driverName: carrierName || 'نامشخص',
+              customerName: order.customer_name || 'مشتری نامشخص',
+              customerPhone: order.customer_phone || '',
+              destAddress: destAddress,
+              destCity: destCity,
+              totalWeight: parseFloat(order.total_weight) || 0,
+              weightUnit: order.weight_unit || 'kg',
+              deliveryCost: parseFloat(order.shipping_cost) || 0
+            };
+            
+            console.log('📊 [VEHICLE HISTORY - CARRIER] Inserting record:', JSON.stringify(historyValues));
+            
+            await db.execute(sql`
+              INSERT INTO vehicle_delivery_history (
+                vehicle_id, plate_number, customer_order_id, order_number,
+                driver_name, customer_name, customer_phone,
+                origin_address, destination_address, destination_city,
+                total_weight, weight_unit, delivery_cost, currency,
+                delivery_status, pickup_datetime, created_at, updated_at
+              ) VALUES (
+                null, ${historyValues.plateNumber}, ${historyValues.customerOrderId}, ${historyValues.orderNumber},
+                ${historyValues.driverName}, ${historyValues.customerName}, ${historyValues.customerPhone},
+                'انبار شرکت', ${historyValues.destAddress}, ${historyValues.destCity},
+                ${historyValues.totalWeight}, ${historyValues.weightUnit}, ${historyValues.deliveryCost}, 'IQD',
+                'dispatched', NOW(), NOW(), NOW()
+              )
+            `);
+            console.log('📊 [VEHICLE HISTORY - CARRIER] Successfully recorded for order:', historyValues.orderNumber);
+          }
+        } catch (historyError) {
+          console.error('⚠️ [VEHICLE HISTORY - CARRIER] Failed to record:', historyError);
+        }
       }
 
       res.json({
