@@ -20388,13 +20388,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { plateNumber } = req.query;
       
-      let query = db.select().from(vehicleUsageStats);
+      // Get stats with driver info from most recent delivery
+      const result = await db.execute(sql`
+        SELECT 
+          vus.*,
+          latest_driver.driver_name,
+          latest_driver.driver_phone
+        FROM vehicle_usage_stats vus
+        LEFT JOIN LATERAL (
+          SELECT vdh.driver_name, om.driver_phone
+          FROM vehicle_delivery_history vdh
+          LEFT JOIN order_management om ON om.vehicle_plate = vdh.plate_number
+          WHERE vdh.plate_number = vus.plate_number
+          ORDER BY vdh.created_at DESC
+          LIMIT 1
+        ) latest_driver ON true
+        ${plateNumber ? sql`WHERE vus.plate_number = ${plateNumber}` : sql``}
+        ORDER BY vus.total_deliveries DESC
+      `);
       
-      if (plateNumber) {
-        query = query.where(eq(vehicleUsageStats.plateNumber, plateNumber.toString()));
-      }
-      
-      const stats = await query.orderBy(desc(vehicleUsageStats.totalDeliveries));
+      const rows = result.rows || result;
+      const stats = (rows as any[]).map((row: any) => ({
+        id: row.id,
+        plateNumber: row.plate_number,
+        totalDeliveries: row.total_deliveries,
+        successfulDeliveries: row.successful_deliveries,
+        failedDeliveries: row.failed_deliveries,
+        totalDistance: row.total_distance,
+        totalWeight: row.total_weight,
+        totalRevenue: row.total_revenue,
+        averageRating: row.average_rating,
+        onTimeDeliveryRate: row.on_time_delivery_rate,
+        firstDeliveryDate: row.first_delivery_date,
+        lastDeliveryDate: row.last_delivery_date,
+        driverName: row.driver_name,
+        driverPhone: row.driver_phone
+      }));
       
       res.json({
         success: true,

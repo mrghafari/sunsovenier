@@ -51,6 +51,8 @@ interface VehicleUsageStats {
   onTimeDeliveryRate: number;
   firstDeliveryDate?: string;
   lastDeliveryDate?: string;
+  driverName?: string;
+  driverPhone?: string;
 }
 
 interface VehicleSummary {
@@ -522,6 +524,12 @@ export default function VehicleHistoryPage() {
                                 <p className="text-sm text-muted-foreground">
                                   {stat.totalDeliveries} تحویل | {Math.round(Number(stat.totalDistance) || 0)} km
                                 </p>
+                                {stat.driverName && (
+                                  <p className="text-sm text-blue-600 mt-1">
+                                    👤 راننده: {stat.driverName}
+                                    {stat.driverPhone && ` | 📞 ${stat.driverPhone}`}
+                                  </p>
+                                )}
                               </div>
                             </div>
                             <div className="text-right">
