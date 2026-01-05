@@ -13345,6 +13345,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`✅ [ORDER STATUS UPDATE] Successfully updated order ${orderManagementId} to ${newStatus}`);
       
+      // Record vehicle history when order is marked as delivered
+      if (newStatus === 'delivered' || newStatus === 'logistics_delivered') {
+        try {
+          // Get vehicle and order details from order_management and customer_orders
+          const orderDetails = await db.execute(sql`
+            SELECT om.*, co.order_number, co.customer_name, co.customer_phone, 
+                   co.shipping_address, co.total_weight, co.weight_unit, co.shipping_cost
+            FROM order_management om
+            LEFT JOIN customer_orders co ON om.customer_order_id = co.id
+            WHERE om.id = ${orderManagementId}
+          `);
+          
+          if (orderDetails.rows && orderDetails.rows.length > 0) {
+            const order = orderDetails.rows[0] as any;
+            const vehiclePlate = order.vehicle_plate;
+            const driverName = order.driver_name;
+            
+            if (vehiclePlate) {
+              let shippingAddr = order.shipping_address;
+              if (typeof shippingAddr === 'string') {
+                try { shippingAddr = JSON.parse(shippingAddr); } catch(e) { shippingAddr = {}; }
+              }
+              const destAddress = shippingAddr?.address || 'آدرس نامشخص';
+              const destCity = shippingAddr?.city || 'شهر نامشخص';
+              
+              const historyValues = {
+                plateNumber: vehiclePlate,
+                customerOrderId: order.customer_order_id,
+                orderNumber: order.order_number || 'ORD-' + orderManagementId,
+                driverName: driverName || 'نامشخص',
+                customerName: order.customer_name || 'مشتری نامشخص',
+                customerPhone: order.customer_phone || '',
+                destAddress: destAddress,
+                destCity: destCity,
+                totalWeight: parseFloat(order.total_weight) || 0,
+                weightUnit: order.weight_unit || 'kg',
+                deliveryCost: parseFloat(order.shipping_cost) || 0
+              };
+              
+              console.log('📊 [VEHICLE HISTORY - DELIVERED] Inserting record:', JSON.stringify(historyValues));
+              
+              await db.execute(sql`
+                INSERT INTO vehicle_delivery_history (
+                  vehicle_id, plate_number, customer_order_id, order_number,
+                  driver_name, customer_name, customer_phone,
+                  origin_address, destination_address, destination_city,
+                  total_weight, weight_unit, delivery_cost, currency,
+                  delivery_status, delivery_datetime, created_at, updated_at
+                ) VALUES (
+                  null, ${historyValues.plateNumber}, ${historyValues.customerOrderId}, ${historyValues.orderNumber},
+                  ${historyValues.driverName}, ${historyValues.customerName}, ${historyValues.customerPhone},
+                  'انبار ممتاز شیمی', ${historyValues.destAddress}, ${historyValues.destCity},
+                  ${historyValues.totalWeight}, ${historyValues.weightUnit}, ${historyValues.deliveryCost}, 'IQD',
+                  'delivered', NOW(), NOW(), NOW()
+                )
+              `);
+              console.log('📊 [VEHICLE HISTORY - DELIVERED] Successfully recorded for order:', historyValues.orderNumber);
+              
+              // Update vehicle_usage_stats
+              await db.execute(sql`
+                INSERT INTO vehicle_usage_stats (plate_number, total_deliveries, successful_deliveries, total_revenue, last_delivery_date)
+                VALUES (${historyValues.plateNumber}, 1, 1, ${historyValues.deliveryCost}, NOW())
+                ON CONFLICT (plate_number) 
+                DO UPDATE SET 
+                  total_deliveries = vehicle_usage_stats.total_deliveries + 1,
+                  successful_deliveries = vehicle_usage_stats.successful_deliveries + 1,
+                  total_revenue = vehicle_usage_stats.total_revenue + EXCLUDED.total_revenue,
+                  last_delivery_date = NOW()
+              `);
+            }
+          }
+        } catch (historyError) {
+          console.error('⚠️ [VEHICLE HISTORY - DELIVERED] Failed to record:', historyError);
+        }
+      }
+      
       res.json({
         success: true,
         message: `وضعیت سفارش با موفقیت به ${newStatus} تغییر یافت`,
