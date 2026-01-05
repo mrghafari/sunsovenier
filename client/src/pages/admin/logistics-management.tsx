@@ -5949,55 +5949,61 @@ const LogisticsManagement = () => {
                 <CardContent>
                   {availableFleetVehicles && availableFleetVehicles.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {availableFleetVehicles.map((vehicle: any) => (
+                      {availableFleetVehicles.map((vehicle: any) => {
+                        const isCustomerSelected = vehicle.templateMatchType === 'exact' || 
+                          (suitableVehiclesData.order?.customerVehicleType && 
+                           (vehicle.vehicleTemplateName || vehicle.vehicleName || vehicle.vehicleType || '')
+                             .toLowerCase().includes(suitableVehiclesData.order.customerVehicleType.toLowerCase()));
+                        
+                        return (
                         <div 
                           key={vehicle.id} 
-                          className={`bg-white rounded-lg p-4 border-2 transition-all duration-300 cursor-pointer hover:shadow-lg relative ${
-                            vehicle.templateMatchType === 'exact'
-                              ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200 shadow-lg' 
+                          className={`rounded-lg p-4 border-2 transition-all duration-300 cursor-pointer hover:shadow-lg relative ${
+                            isCustomerSelected
+                              ? 'border-amber-500 bg-gradient-to-br from-amber-50 to-yellow-100 ring-4 ring-amber-300 shadow-xl scale-[1.02]' 
                               : vehicle.templateMatchType === 'partial'
                               ? 'border-yellow-500 bg-yellow-50 ring-2 ring-yellow-200 shadow-md'
                               : vehicle.isCheckoutSuggested 
                               ? 'border-green-500 bg-green-50 ring-2 ring-green-200 shadow-lg' 
-                              : 'border-orange-300 hover:border-orange-500'
+                              : 'border-gray-300 bg-white hover:border-orange-500'
                           }`}
                           onClick={() => {
                             // Handle vehicle selection
                             console.log('انتخاب خودرو آماده:', vehicle);
                           }}
                         >
-                          {/* Template Match Indicator */}
-                          {vehicle.templateMatchType === 'exact' && (
-                            <div className="absolute -top-2 -right-2 bg-blue-600 text-white text-xs px-3 py-1 rounded-full shadow-md">
-                              تطابق دقیق ✨
+                          {/* Customer Selected Vehicle Indicator */}
+                          {isCustomerSelected && (
+                            <div className="absolute -top-3 -right-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm px-4 py-1.5 rounded-full shadow-lg font-bold animate-pulse">
+                              ⭐ انتخاب مشتری
                             </div>
                           )}
-                          {vehicle.templateMatchType === 'partial' && (
+                          {vehicle.templateMatchType === 'partial' && !isCustomerSelected && (
                             <div className="absolute -top-2 -right-2 bg-yellow-600 text-white text-xs px-3 py-1 rounded-full shadow-md">
                               تطابق جزئی 🔄
                             </div>
                           )}
                           
                           <div className="flex items-center justify-between mb-3">
-                            <h4 className={`font-semibold ${
-                              vehicle.templateMatchType === 'exact' ? 'text-blue-800' :
+                            <h4 className={`font-semibold text-lg ${
+                              isCustomerSelected ? 'text-amber-800' :
                               vehicle.templateMatchType === 'partial' ? 'text-yellow-800' :
                               vehicle.isCheckoutSuggested ? 'text-green-800' : 'text-gray-800'
                             }`}>
                               {vehicle.vehicleTemplateName || vehicle.vehicleName || vehicle.vehicleType}
                             </h4>
                             <div className="flex gap-2">
-                              {vehicle.templateMatchType === 'exact' && (
-                                <Badge className="bg-blue-600 text-white">
-                                  ✨ انتخاب مشتری
+                              {isCustomerSelected && (
+                                <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm px-3 py-1">
+                                  ⭐ انتخاب مشتری
                                 </Badge>
                               )}
-                              {vehicle.templateMatchType === 'partial' && (
+                              {vehicle.templateMatchType === 'partial' && !isCustomerSelected && (
                                 <Badge className="bg-yellow-600 text-white">
                                   🔄 مشابه انتخاب مشتری
                                 </Badge>
                               )}
-                              {vehicle.isCheckoutSuggested && !vehicle.templateMatchType && (
+                              {vehicle.isCheckoutSuggested && !isCustomerSelected && !vehicle.templateMatchType && (
                                 <Badge className="bg-gradient-to-r from-green-600 to-emerald-600 text-white animate-pulse">
                                   🎯 پیشنهاد سیستم
                                 </Badge>
@@ -6006,16 +6012,16 @@ const LogisticsManagement = () => {
                             </div>
                           </div>
                           
-                          {vehicle.templateMatchType === 'exact' && (
-                            <div className="bg-blue-100 border border-blue-300 rounded-lg p-3 mb-4">
-                              <div className="flex items-center gap-2 text-blue-800 text-sm font-medium">
-                                <CheckCircle className="w-4 h-4" />
-                                ✨ تطابق کامل با قالب انتخابی مشتری - اولویت اول
+                          {isCustomerSelected && (
+                            <div className="bg-gradient-to-r from-amber-100 to-yellow-100 border-2 border-amber-400 rounded-lg p-3 mb-4">
+                              <div className="flex items-center gap-2 text-amber-800 text-sm font-bold">
+                                <Star className="w-5 h-5 text-amber-600 fill-amber-400" />
+                                ⭐ این خودرو انتخاب مشتری در چک‌اوت است - اولویت اول
                               </div>
                             </div>
                           )}
                           
-                          {vehicle.templateMatchType === 'partial' && (
+                          {vehicle.templateMatchType === 'partial' && !isCustomerSelected && (
                             <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-3 mb-4">
                               <div className="flex items-center gap-2 text-yellow-800 text-sm font-medium">
                                 <AlertTriangle className="w-4 h-4" />
@@ -6024,7 +6030,7 @@ const LogisticsManagement = () => {
                             </div>
                           )}
                           
-                          {!vehicle.templateMatchType && vehicle.isCheckoutSuggested && (
+                          {!vehicle.templateMatchType && !isCustomerSelected && vehicle.isCheckoutSuggested && (
                             <div className="bg-green-100 border border-green-300 rounded-lg p-3 mb-4">
                               <div className="flex items-center gap-2 text-green-800 text-sm font-medium">
                                 <CheckCircle className="w-4 h-4" />
@@ -6054,7 +6060,9 @@ const LogisticsManagement = () => {
                           
                           <Button 
                             className={`w-full transition-all duration-300 ${
-                              vehicle.isCheckoutSuggested 
+                              isCustomerSelected 
+                                ? 'bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 shadow-lg' 
+                                : vehicle.isCheckoutSuggested 
                                 ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg' 
                                 : 'bg-orange-600 hover:bg-orange-700'
                             } text-white`}
@@ -6069,10 +6077,10 @@ const LogisticsManagement = () => {
                             }}
                           >
                             <CheckCircle className="w-4 h-4 mr-2" />
-                            {vehicle.isCheckoutSuggested ? 'اختصاص خودروی پیشنهادی' : 'اختصاص این خودرو'}
+                            {isCustomerSelected ? '⭐ اختصاص خودروی انتخابی مشتری' : vehicle.isCheckoutSuggested ? 'اختصاص خودروی پیشنهادی' : 'اختصاص این خودرو'}
                           </Button>
                         </div>
-                      ))}
+                      );})}
                     </div>
                   ) : (
                     <div className="text-center py-8">
