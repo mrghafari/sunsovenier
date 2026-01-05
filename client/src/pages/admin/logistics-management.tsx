@@ -1061,18 +1061,18 @@ const LogisticsManagement = () => {
   // Iraqi provinces and cities data
   const { data: provincesResponse, isLoading: loadingProvinces } = useQuery({
     queryKey: ['/api/logistics/provinces'],
-    enabled: activeTab === 'cities' || activeTab === 'geography'
+    enabled: activeTab === 'cities' || activeTab === 'geography' || activeTab === 'international'
   });
 
-  // Geography data for new geography tab
+  // Geography data for new geography tab (also enabled for international tab)
   const { data: geographyProvincesResponse, isLoading: loadingGeographyProvinces } = useQuery({
     queryKey: ['/api/logistics/provinces-detailed'],
-    enabled: activeTab === 'geography'
+    enabled: activeTab === 'geography' || activeTab === 'international'
   });
 
   const { data: geographyCitiesResponse, isLoading: loadingGeographyCities } = useQuery({
     queryKey: ['/api/logistics/cities-detailed'],
-    enabled: activeTab === 'geography'
+    enabled: activeTab === 'geography' || activeTab === 'international'
   });
 
   // Vehicle optimization states
@@ -1081,7 +1081,7 @@ const LogisticsManagement = () => {
 
   const { data: citiesResponse, isLoading: loadingCities } = useQuery({
     queryKey: ['/api/logistics/cities'],
-    enabled: activeTab === 'cities' || activeTab === 'geography'
+    enabled: activeTab === 'cities' || activeTab === 'geography' || activeTab === 'international'
   });
 
 
