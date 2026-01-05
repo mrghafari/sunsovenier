@@ -607,6 +607,7 @@ const LogisticsManagement = () => {
   const [selectedOrderForVehicle, setSelectedOrderForVehicle] = useState<LogisticsOrder | null>(null);
   const [selectedVehicleDetails, setSelectedVehicleDetails] = useState<any>(null);
   const [availableFleetVehicles, setAvailableFleetVehicles] = useState<any[]>([]);
+  const [expandedVehicleIds, setExpandedVehicleIds] = useState<Set<number>>(new Set());
   
   // States for enhanced suitable vehicles display
   const [isSuitableVehiclesOpen, setIsSuitableVehiclesOpen] = useState(false);
@@ -3106,6 +3107,31 @@ const LogisticsManagement = () => {
                         );
                       })()}
                     </div>
+                    
+                    {/* Assigned Vehicle Info - Show when vehicle is assigned */}
+                    {(order.vehiclePlate || order.driverName) && (
+                      <div className="flex items-center gap-3 bg-green-100 border border-green-300 rounded-lg px-3 py-2 mr-4">
+                        <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+                        <span className="text-xs font-bold text-green-800">خودرو اختصاص یافته:</span>
+                        <div className="flex items-center gap-3 text-xs">
+                          {order.vehiclePlate && (
+                            <span className="bg-white border border-green-400 px-2 py-0.5 rounded font-medium">
+                              🚛 پلاک: {order.vehiclePlate}
+                            </span>
+                          )}
+                          {order.driverName && (
+                            <span className="text-green-700">
+                              👤 راننده: {order.driverName}
+                            </span>
+                          )}
+                          {order.driverPhone && (
+                            <span className="text-green-700">
+                              📞 {order.driverPhone}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Action Buttons */}
@@ -5139,7 +5165,7 @@ const LogisticsManagement = () => {
           <TabsTrigger value="delivered">تحویل شده</TabsTrigger>
           <TabsTrigger value="companies">شرکت‌های حمل</TabsTrigger>
           <TabsTrigger value="geography">جغرافیای عراق</TabsTrigger>
-          <TabsTrigger value="international">جغرافیای خارج از عراق</TabsTrigger>
+          <TabsTrigger value="international">کشورها</TabsTrigger>
           <TabsTrigger value="vehicle-templates">قالب‌های خودرو</TabsTrigger>
           <TabsTrigger value="fleet-vehicles">ناوگان خودروها</TabsTrigger>
           <TabsTrigger value="vehicle-history">تاریخچه خودروها</TabsTrigger>
@@ -5332,7 +5358,7 @@ const LogisticsManagement = () => {
                     )}
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
                     {availableFleetVehicles.map((vehicle) => {
                       const customerVehicleType = selectedOrderForVehicle?.customerVehicleType || selectedOrderForVehicle?.vehicleType;
                       const isCustomerSelected = customerVehicleType && (
@@ -5341,50 +5367,109 @@ const LogisticsManagement = () => {
                         (vehicle.vehicleType && customerVehicleType.includes(vehicle.vehicleType)) ||
                         (vehicle.vehicleName && customerVehicleType.includes(vehicle.vehicleName))
                       );
+                      const showDetails = expandedVehicleIds.has(vehicle.id);
+                      const toggleDetails = () => {
+                        setExpandedVehicleIds(prev => {
+                          const newSet = new Set(prev);
+                          if (newSet.has(vehicle.id)) {
+                            newSet.delete(vehicle.id);
+                          } else {
+                            newSet.add(vehicle.id);
+                          }
+                          return newSet;
+                        });
+                      };
                       
                       return (
                       <div 
                         key={vehicle.id} 
-                        className={`bg-white rounded-lg p-4 border transition-all duration-300 ${
+                        className={`bg-white rounded-lg p-3 border transition-all duration-300 ${
                           isCustomerSelected
-                            ? 'border-amber-500 bg-gradient-to-br from-amber-50 to-yellow-100 ring-4 ring-amber-300 shadow-xl scale-[1.02]'
+                            ? 'border-amber-500 bg-gradient-to-br from-amber-50 to-yellow-100 ring-2 ring-amber-300 shadow-lg'
                             : vehicle.isCheckoutSuggested 
-                            ? 'border-green-500 bg-green-50 ring-2 ring-green-200 shadow-lg' 
+                            ? 'border-green-500 bg-green-50 ring-1 ring-green-200 shadow-md' 
                             : 'border-orange-200'
                         }`}
                       >
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className={`font-semibold ${
-                            isCustomerSelected ? 'text-amber-800' : vehicle.isCheckoutSuggested ? 'text-green-800' : 'text-gray-800'
-                          }`}>
-                            {vehicle.vehicleType || vehicle.vehicleName}
-                          </h4>
-                          <div className="flex gap-2">
+                        {/* Single Row Layout */}
+                        <div className="flex items-center justify-between gap-3 flex-wrap">
+                          {/* Vehicle Type & Badges */}
+                          <div className="flex items-center gap-2 min-w-[120px]">
+                            <h4 className={`font-bold text-sm ${
+                              isCustomerSelected ? 'text-amber-800' : vehicle.isCheckoutSuggested ? 'text-green-800' : 'text-gray-800'
+                            }`}>
+                              {vehicle.vehicleType || vehicle.vehicleName}
+                            </h4>
                             {isCustomerSelected && (
-                              <Badge className="bg-gradient-to-r from-amber-500 to-yellow-500 text-white animate-pulse">
+                              <Badge className="bg-gradient-to-r from-amber-500 to-yellow-500 text-white animate-pulse text-xs px-2 py-0.5">
                                 ⭐ انتخاب مشتری
                               </Badge>
                             )}
-                            {vehicle.isCheckoutSuggested && !isCustomerSelected && (
-                              <Badge className={`${
-                                vehicle.matchType === 'exact' 
-                                  ? 'bg-gradient-to-r from-green-600 to-emerald-600 animate-pulse' 
-                                  : 'bg-gradient-to-r from-yellow-500 to-orange-500'
-                              } text-white`}>
-                                {vehicle.matchType === 'exact' ? '🎯 انطباق کامل' : '🔍 انطباق نزدیک'}
-                              </Badge>
+                            <Badge className="bg-green-500 text-white text-xs px-2 py-0.5">آماده</Badge>
+                          </div>
+
+                          {/* Key Info in Row */}
+                          <div className="flex items-center gap-4 text-xs flex-wrap">
+                            <div className="flex items-center gap-1">
+                              <span className="text-gray-500">پلاک:</span>
+                              <span className="font-medium">{vehicle.licensePlate || vehicle.plateNumber}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-gray-500">راننده:</span>
+                              <span className="font-medium">{vehicle.driverName}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-gray-500">تلفن:</span>
+                              <span className="font-medium">{vehicle.driverMobile || vehicle.driverPhone}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-gray-500">ظرفیت:</span>
+                              <span className="font-medium">{vehicle.loadCapacity || vehicle.maxWeight} kg</span>
+                            </div>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex items-center gap-2">
+                            {(vehicle.recommendationScore || vehicle.matchReason) && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-xs h-8"
+                                onClick={toggleDetails}
+                              >
+                                <Info className="w-3 h-3 ml-1" />
+                                {showDetails ? 'بستن' : 'جزئیات'}
+                              </Button>
                             )}
-                            <Badge className="bg-green-500 text-white">آماده</Badge>
+                            <Button 
+                              size="sm"
+                              className={`h-8 transition-all duration-300 ${
+                                isCustomerSelected
+                                  ? 'bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600'
+                                  : vehicle.matchType === 'exact'
+                                  ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700' 
+                                  : 'bg-blue-600 hover:bg-blue-700'
+                              } text-white text-xs`}
+                              onClick={() => assignVehicleToOrder(
+                                vehicle.id, 
+                                vehicle.licensePlate || vehicle.plateNumber, 
+                                vehicle.driverName, 
+                                vehicle.driverMobile || vehicle.driverPhone
+                              )}
+                            >
+                              <Truck className="w-3 h-3 ml-1" />
+                              اختصاص
+                            </Button>
                           </div>
                         </div>
-                        
-                        {/* Recommendation Score and Reasons */}
-                        {vehicle.recommendationScore && (
-                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-sm font-medium text-blue-800">امتیاز هوشمند</span>
-                              <div className="flex items-center gap-2">
-                                <div className={`w-12 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+
+                        {/* Expandable Details Section */}
+                        {showDetails && (
+                          <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
+                            {vehicle.recommendationScore && (
+                              <div className="flex items-center gap-3 text-xs">
+                                <span className="text-gray-600">امتیاز هوشمند:</span>
+                                <div className={`px-2 py-1 rounded-full font-bold ${
                                   vehicle.recommendationScore >= 80 ? 'bg-green-600 text-white' :
                                   vehicle.recommendationScore >= 60 ? 'bg-yellow-500 text-white' :
                                   'bg-orange-500 text-white'
@@ -5392,106 +5477,26 @@ const LogisticsManagement = () => {
                                   {vehicle.recommendationScore}
                                 </div>
                                 {vehicle.isRecommended && (
-                                  <Badge className="bg-green-600 text-white text-xs">
-                                    🤖 پیشنهاد سیستم
-                                  </Badge>
+                                  <Badge className="bg-green-600 text-white text-xs">🤖 پیشنهاد سیستم</Badge>
                                 )}
                               </div>
-                            </div>
+                            )}
                             {vehicle.recommendationReasons && vehicle.recommendationReasons.length > 0 && (
-                              <div className="space-y-1">
-                                <span className="text-xs text-blue-700 font-medium">دلایل پیشنهاد:</span>
-                                <ul className="text-xs text-blue-600 space-y-1">
-                                  {vehicle.recommendationReasons.map((reason: string, idx: number) => (
-                                    <li key={idx} className="flex items-center gap-1">
-                                      <div className="w-1 h-1 bg-blue-500 rounded-full flex-shrink-0"></div>
-                                      {reason}
-                                    </li>
-                                  ))}
-                                </ul>
+                              <div className="text-xs text-gray-600">
+                                <span className="font-medium">دلایل: </span>
+                                {vehicle.recommendationReasons.join(' | ')}
+                              </div>
+                            )}
+                            {vehicle.matchReason && (
+                              <div className={`text-xs ${
+                                vehicle.matchType === 'exact' ? 'text-green-700' : 
+                                vehicle.matchType === 'partial' ? 'text-yellow-700' : 'text-blue-700'
+                              }`}>
+                                {vehicle.matchReason}
                               </div>
                             )}
                           </div>
                         )}
-
-                        {vehicle.matchReason && (
-                          <div className={`border rounded-lg p-3 mb-4 ${
-                            vehicle.matchType === 'exact' 
-                              ? 'bg-green-100 border-green-300' 
-                              : vehicle.matchType === 'partial'
-                              ? 'bg-yellow-50 border-yellow-300'
-                              : 'bg-blue-50 border-blue-300'
-                          }`}>
-                            <div className={`flex items-start gap-2 text-xs ${
-                              vehicle.matchType === 'exact' 
-                                ? 'text-green-800' 
-                                : vehicle.matchType === 'partial'
-                                ? 'text-yellow-800'
-                                : 'text-blue-800'
-                            }`}>
-                              {vehicle.matchType === 'exact' ? (
-                                <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                              ) : vehicle.matchType === 'partial' ? (
-                                <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                              ) : (
-                                <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                              )}
-                              <span className="leading-relaxed">{vehicle.matchReason}</span>
-                            </div>
-                          </div>
-                        )}
-                        
-                        <div className="space-y-2 mb-4">
-                          <div className="flex justify-between">
-                            <span className="text-sm text-gray-600">شماره پلاک:</span>
-                            <span className="font-medium">{vehicle.licensePlate || vehicle.plateNumber}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-sm text-gray-600">راننده:</span>
-                            <span className="font-medium">{vehicle.driverName}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-sm text-gray-600">تلفن راننده:</span>
-                            <span className="font-medium">{vehicle.driverMobile || vehicle.driverPhone}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-sm text-gray-600">ظرفیت:</span>
-                            <span className="font-medium">{vehicle.loadCapacity || vehicle.maxWeight} کیلوگرم</span>
-                          </div>
-                        </div>
-                        
-                        <Button 
-                          className={`w-full transition-all duration-300 ${
-                            vehicle.matchType === 'exact'
-                              ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg border-2 border-green-400' 
-                              : vehicle.matchType === 'partial'
-                              ? 'bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 shadow-lg border-2 border-yellow-400'
-                              : 'bg-blue-600 hover:bg-blue-700 border-2 border-blue-400'
-                          } text-white`}
-                          onClick={() => assignVehicleToOrder(
-                            vehicle.id, 
-                            vehicle.licensePlate || vehicle.plateNumber, 
-                            vehicle.driverName, 
-                            vehicle.driverMobile || vehicle.driverPhone
-                          )}
-                        >
-                          {vehicle.matchType === 'exact' ? (
-                            <>
-                              <CheckCircle className="w-4 h-4 mr-2" />
-                              🎯 اختصاص خودروی کاملاً مطابق
-                            </>
-                          ) : vehicle.matchType === 'partial' ? (
-                            <>
-                              <AlertTriangle className="w-4 h-4 mr-2" />
-                              🔍 اختصاص خودروی مشابه
-                            </>
-                          ) : (
-                            <>
-                              <Info className="w-4 h-4 mr-2" />
-                              🚛 اختصاص خودروی جایگزین
-                            </>
-                          )}
-                        </Button>
                       </div>
                       );
                     })}
