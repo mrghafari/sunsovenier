@@ -51033,7 +51033,7 @@ momtazchem.com
                c.first_name || ' ' || c.last_name as customer_name,
                c.phone as customer_phone,
                co.shipping_address,
-               om.shipping_cost
+               co.shipping_cost
         FROM customer_orders co
         JOIN customers c ON co.customer_id = c.id
         JOIN order_management om ON om.customer_order_id = co.id
@@ -51229,7 +51229,7 @@ momtazchem.com
                c.first_name || ' ' || c.last_name as customer_name,
                c.phone as customer_phone,
                co.shipping_address,
-               om.shipping_cost
+               co.shipping_cost
         FROM order_management om
         JOIN customer_orders co ON om.customer_order_id = co.id
         JOIN customers c ON co.customer_id = c.id

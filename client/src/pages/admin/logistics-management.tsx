@@ -3573,6 +3573,45 @@ const LogisticsManagement = () => {
                     </div>
                   </div>
 
+                  {/* Vehicle/Delivery Method Details */}
+                  <div className="bg-white rounded-lg p-4 mb-4 border border-green-200">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Truck className="w-5 h-5 text-green-600" />
+                      <span className="font-semibold text-gray-800">اطلاعات تحویل</span>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div>
+                        <Label className="text-xs text-gray-500">روش تحویل</Label>
+                        <p className="font-medium text-sm">
+                          {order.deliveryMethod === 'smart_vehicle' ? 'خودرو هوشمند' :
+                           order.deliveryMethod === 'courier' ? 'پیک' :
+                           order.deliveryMethod === 'postal' ? 'پست' :
+                           order.deliveryMethod === 'pickup' ? 'تحویل حضوری' :
+                           order.deliveryMethod || 'نامشخص'}
+                        </p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-gray-500">نوع خودرو (انتخاب مشتری)</Label>
+                        <p className="font-medium text-sm text-blue-600">
+                          {order.customerVehicleType || 'انتخاب نشده'}
+                        </p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-gray-500">پلاک خودرو</Label>
+                        <p className="font-medium text-sm">
+                          {order.vehiclePlate || 'تخصیص نشده'}
+                        </p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-gray-500">راننده</Label>
+                        <p className="font-medium text-sm">
+                          {order.driverName || 'نامشخص'}
+                          {order.driverPhone && <span className="text-gray-500 text-xs mr-1">({order.driverPhone})</span>}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
                   {order.trackingNumber && (
                     <div className="bg-blue-50 rounded-lg p-3 mb-4">
                       <div className="flex items-center gap-2">
@@ -3585,8 +3624,8 @@ const LogisticsManagement = () => {
 
                   <div className="flex justify-between items-center">
                     <div className="text-sm text-gray-500">
-                      تحویل‌دهنده: {order.deliveryPersonName || 'نامشخص'} 
-                      {order.deliveryPersonPhone && ` - ${order.deliveryPersonPhone}`}
+                      تحویل‌دهنده: {order.deliveryPersonName || order.driverName || 'نامشخص'} 
+                      {(order.deliveryPersonPhone || order.driverPhone) && ` - ${order.deliveryPersonPhone || order.driverPhone}`}
                     </div>
                     
                     <div className="flex gap-2">
