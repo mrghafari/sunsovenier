@@ -3055,18 +3055,6 @@ const LogisticsManagement = () => {
                       </p>
                       <p className="text-xs text-green-600 mt-1">تاریخ ثبت سفارش</p>
                     </div>
-
-                    {/* Delivery Date Block */}
-                    <div className="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
-                      <h5 className="font-medium text-yellow-800 mb-2 flex items-center">
-                        <Truck className="w-4 h-4 mr-2" />
-                        تاریخ تحویل
-                      </h5>
-                      <p className="text-sm font-medium text-yellow-700">
-                        {order.actualDeliveryDate ? formatDateSafe(order.actualDeliveryDate) : 'در انتظار تحویل'}
-                      </p>
-                      <p className="text-xs text-yellow-600 mt-1">تاریخ تحویل سفارش</p>
-                    </div>
                   </div>
 
                   {/* Delivery Type Display - Shows customer's selected method */}
