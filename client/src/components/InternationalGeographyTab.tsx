@@ -119,7 +119,8 @@ interface InternationalGeographyTabProps {
 const InternationalGeographyTab: React.FC<InternationalGeographyTabProps> = ({ iraqContent }) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState('iraq');
+  const [activeTab, setActiveTab] = useState('countries');
+  const [selectedCountry, setSelectedCountry] = useState<string>('iraq');
   
   // Dialog states
   const [isAddCountryOpen, setIsAddCountryOpen] = useState(false);
@@ -436,14 +437,10 @@ const InternationalGeographyTab: React.FC<InternationalGeographyTabProps> = ({ i
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="iraq" className="flex items-center gap-2 bg-amber-100 data-[state=active]:bg-amber-500 data-[state=active]:text-white">
-            <MapPin className="w-4 h-4" />
-            🇮🇶 عراق
-          </TabsTrigger>
-          <TabsTrigger value="countries" className="flex items-center gap-2">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="countries" className="flex items-center gap-2 bg-amber-100 data-[state=active]:bg-amber-500 data-[state=active]:text-white">
             <Globe className="w-4 h-4" />
-            سایر کشورها
+            کشور
           </TabsTrigger>
           <TabsTrigger value="cities" className="flex items-center gap-2">
             <MapPin className="w-4 h-4" />
@@ -455,18 +452,7 @@ const InternationalGeographyTab: React.FC<InternationalGeographyTabProps> = ({ i
           </TabsTrigger>
         </TabsList>
 
-        {/* Iraq Tab - Full Iraqi Geography Management */}
-        <TabsContent value="iraq">
-          {iraqContent || (
-            <Card>
-              <CardContent className="text-center py-8 text-gray-500">
-                محتوای جغرافیای عراق در دسترس نیست
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-
-        {/* Countries Tab */}
+        {/* Countries Tab - Combined Country Selection with Iraq and Other Countries */}
         <TabsContent value="countries">
           <Card>
             <CardHeader>
@@ -474,74 +460,115 @@ const InternationalGeographyTab: React.FC<InternationalGeographyTabProps> = ({ i
                 <div>
                   <CardTitle className="flex items-center gap-2">
                     <Globe className="w-5 h-5" />
-                    کشورهای بین‌المللی
+                    انتخاب کشور
                   </CardTitle>
                   <CardDescription>
-                    مدیریت کشورهای مقصد برای حمل بین‌المللی
+                    انتخاب کشور برای مشاهده استان‌ها، شهرها و تنظیمات
                   </CardDescription>
                 </div>
-                <Button onClick={() => setIsAddCountryOpen(true)}>
-                  <Plus className="w-4 h-4 ml-2" />
-                  افزودن کشور
-                </Button>
+                <div className="flex items-center gap-3">
+                  <div className="w-[200px]">
+                    <Select value={selectedCountry} onValueChange={setSelectedCountry}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="انتخاب کشور" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="iraq">🇮🇶 عراق</SelectItem>
+                        {countries.map((country: InternationalCountry) => (
+                          <SelectItem key={country.id} value={country.countryCode.toLowerCase()}>
+                            {country.name} ({country.nameEn})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button onClick={() => setIsAddCountryOpen(true)}>
+                    <Plus className="w-4 h-4 ml-2" />
+                    افزودن کشور
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
-              {loadingCountries ? (
-                <div className="text-center py-8">در حال بارگذاری...</div>
-              ) : countries.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  هیچ کشوری ثبت نشده است
+              {/* Show Iraq content if Iraq is selected */}
+              {selectedCountry === 'iraq' ? (
+                <div className="space-y-4">
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+                    <div className="flex items-center gap-2 text-amber-800">
+                      <span className="text-2xl">🇮🇶</span>
+                      <span className="font-bold">جمهوری عراق</span>
+                      <Badge className="bg-amber-100 text-amber-800">کشور پیش‌فرض</Badge>
+                    </div>
+                    <p className="text-sm text-amber-700 mt-2">
+                      مدیریت استان‌ها، شهرها، مناطق و شهر پیش‌فرض عراق
+                    </p>
+                  </div>
+                  {iraqContent || (
+                    <div className="text-center py-8 text-gray-500">
+                      محتوای جغرافیای عراق در دسترس نیست
+                    </div>
+                  )}
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>نام کشور</TableHead>
-                      <TableHead>کد کشور</TableHead>
-                      <TableHead>منطقه</TableHead>
-                      <TableHead>ارز</TableHead>
-                      <TableHead>وضعیت</TableHead>
-                      <TableHead>عملیات</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {countries.map((country: InternationalCountry) => (
-                      <TableRow key={country.id}>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">{country.name}</div>
-                            <div className="text-sm text-gray-500">{country.nameEn}</div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{country.countryCode}</Badge>
-                        </TableCell>
-                        <TableCell>{REGIONS[country.region as keyof typeof REGIONS] || country.region}</TableCell>
-                        <TableCell>{country.currency}</TableCell>
-                        <TableCell>
-                          {country.isActive ? (
-                            <Badge className="bg-green-100 text-green-800">فعال</Badge>
-                          ) : (
-                            <Badge className="bg-red-100 text-red-800">غیرفعال</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setEditingCountry(country);
-                              setIsEditCountryOpen(true);
-                            }}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                /* Show other countries list */
+                <div>
+                  {loadingCountries ? (
+                    <div className="text-center py-8">در حال بارگذاری...</div>
+                  ) : countries.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      هیچ کشوری ثبت نشده است. برای افزودن کشور جدید از دکمه "افزودن کشور" استفاده کنید.
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>نام کشور</TableHead>
+                          <TableHead>کد کشور</TableHead>
+                          <TableHead>منطقه</TableHead>
+                          <TableHead>ارز</TableHead>
+                          <TableHead>وضعیت</TableHead>
+                          <TableHead>عملیات</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {countries.map((country: InternationalCountry) => (
+                          <TableRow key={country.id}>
+                            <TableCell>
+                              <div>
+                                <div className="font-medium">{country.name}</div>
+                                <div className="text-sm text-gray-500">{country.nameEn}</div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{country.countryCode}</Badge>
+                            </TableCell>
+                            <TableCell>{REGIONS[country.region as keyof typeof REGIONS] || country.region}</TableCell>
+                            <TableCell>{country.currency}</TableCell>
+                            <TableCell>
+                              {country.isActive ? (
+                                <Badge className="bg-green-100 text-green-800">فعال</Badge>
+                              ) : (
+                                <Badge className="bg-red-100 text-red-800">غیرفعال</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setEditingCountry(country);
+                                  setIsEditCountryOpen(true);
+                                }}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </div>
               )}
             </CardContent>
           </Card>
