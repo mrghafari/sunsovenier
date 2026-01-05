@@ -5333,23 +5333,39 @@ const LogisticsManagement = () => {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {availableFleetVehicles.map((vehicle) => (
+                    {availableFleetVehicles.map((vehicle) => {
+                      const customerVehicleType = selectedOrderForVehicle?.customerVehicleType || selectedOrderForVehicle?.vehicleType;
+                      const isCustomerSelected = customerVehicleType && (
+                        vehicle.vehicleType === customerVehicleType ||
+                        vehicle.vehicleName === customerVehicleType ||
+                        (vehicle.vehicleType && customerVehicleType.includes(vehicle.vehicleType)) ||
+                        (vehicle.vehicleName && customerVehicleType.includes(vehicle.vehicleName))
+                      );
+                      
+                      return (
                       <div 
                         key={vehicle.id} 
                         className={`bg-white rounded-lg p-4 border transition-all duration-300 ${
-                          vehicle.isCheckoutSuggested 
+                          isCustomerSelected
+                            ? 'border-amber-500 bg-gradient-to-br from-amber-50 to-yellow-100 ring-4 ring-amber-300 shadow-xl scale-[1.02]'
+                            : vehicle.isCheckoutSuggested 
                             ? 'border-green-500 bg-green-50 ring-2 ring-green-200 shadow-lg' 
                             : 'border-orange-200'
                         }`}
                       >
                         <div className="flex items-center justify-between mb-3">
                           <h4 className={`font-semibold ${
-                            vehicle.isCheckoutSuggested ? 'text-green-800' : 'text-gray-800'
+                            isCustomerSelected ? 'text-amber-800' : vehicle.isCheckoutSuggested ? 'text-green-800' : 'text-gray-800'
                           }`}>
                             {vehicle.vehicleType || vehicle.vehicleName}
                           </h4>
                           <div className="flex gap-2">
-                            {vehicle.isCheckoutSuggested && (
+                            {isCustomerSelected && (
+                              <Badge className="bg-gradient-to-r from-amber-500 to-yellow-500 text-white animate-pulse">
+                                ⭐ انتخاب مشتری
+                              </Badge>
+                            )}
+                            {vehicle.isCheckoutSuggested && !isCustomerSelected && (
                               <Badge className={`${
                                 vehicle.matchType === 'exact' 
                                   ? 'bg-gradient-to-r from-green-600 to-emerald-600 animate-pulse' 
@@ -5477,7 +5493,8 @@ const LogisticsManagement = () => {
                           )}
                         </Button>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
