@@ -20162,11 +20162,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get vehicle delivery history
   app.get("/api/logistics/vehicle-history", requireAuth, async (req, res) => {
     try {
-      const { plateNumber, page = 1, limit = 20, startDate, endDate } = req.query;
+      const { plateNumber, page = 1, limit = 20, startDate, endDate, search, searchType } = req.query;
       const offset = (parseInt(page.toString()) - 1) * parseInt(limit.toString());
       
-      let query = db.select().from(vehicleDeliveryHistory);
       let whereConditions = [];
+      
+      // Search functionality
+      if (search && search.toString().length >= 3) {
+        const searchTerm = `%${search.toString()}%`;
+        if (searchType === "driver") {
+          whereConditions.push(sql`${vehicleDeliveryHistory.driverName} ILIKE ${searchTerm}`);
+        } else if (searchType === "phone") {
+          whereConditions.push(sql`${vehicleDeliveryHistory.customerPhone} ILIKE ${searchTerm}`);
+        } else if (searchType === "order") {
+          whereConditions.push(sql`${vehicleDeliveryHistory.orderNumber} ILIKE ${searchTerm}`);
+        } else {
+          whereConditions.push(sql`${vehicleDeliveryHistory.plateNumber} ILIKE ${searchTerm}`);
+        }
+      }
       
       if (plateNumber) {
         whereConditions.push(eq(vehicleDeliveryHistory.plateNumber, plateNumber.toString()));
@@ -20180,6 +20193,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         whereConditions.push(sql`${vehicleDeliveryHistory.deliveryDateTime} <= ${new Date(endDate.toString())}`);
       }
       
+      let query = db.select().from(vehicleDeliveryHistory);
       if (whereConditions.length > 0) {
         query = query.where(and(...whereConditions));
       }

@@ -102,7 +102,8 @@ function VehicleHistorySection() {
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(20);
-  const [searchPlate, setSearchPlate] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchType, setSearchType] = useState<'plate' | 'driver' | 'phone' | 'order'>('plate');
 
   // Get vehicle usage statistics
   const { data: statsData, isLoading: statsLoading } = useQuery({
@@ -110,7 +111,34 @@ function VehicleHistorySection() {
     queryFn: () => apiRequest('/api/logistics/vehicle-stats', { method: 'GET' }),
   });
 
-  // Get vehicle delivery history
+  // Get all vehicle delivery history with search
+  const { data: allHistoryData, isLoading: allHistoryLoading, refetch: refetchHistory } = useQuery({
+    queryKey: [
+      '/api/logistics/vehicle-history',
+      searchQuery,
+      searchType,
+      currentPage,
+      pageSize,
+      dateRange.from?.toISOString(),
+      dateRange.to?.toISOString()
+    ],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      if (searchQuery && searchQuery.length >= 3) {
+        params.append('search', searchQuery);
+        params.append('searchType', searchType);
+      }
+      if (selectedPlate) params.append('plateNumber', selectedPlate);
+      params.append('page', currentPage.toString());
+      params.append('limit', pageSize.toString());
+      if (dateRange.from) params.append('startDate', dateRange.from.toISOString());
+      if (dateRange.to) params.append('endDate', dateRange.to.toISOString());
+      
+      return apiRequest(`/api/logistics/vehicle-history?${params.toString()}`, { method: 'GET' });
+    },
+  });
+
+  // Get vehicle delivery history for specific plate
   const { data: historyData, isLoading: historyLoading } = useQuery({
     queryKey: [
       '/api/logistics/vehicle-history',
@@ -140,17 +168,22 @@ function VehicleHistorySection() {
     enabled: viewMode === 'details' && !!selectedPlate,
   });
 
-  const handlePlateSearch = () => {
-    if (searchPlate.trim()) {
-      setSelectedPlate(searchPlate.trim().toUpperCase());
-      setViewMode('details');
+  const handleSearch = () => {
+    if (searchQuery.trim() && searchQuery.length >= 3) {
+      setCurrentPage(1);
+      refetchHistory();
     }
+  };
+
+  const handlePlateClick = (plate: string) => {
+    setSelectedPlate(plate);
+    setViewMode('details');
   };
 
   const handleBackToOverview = () => {
     setViewMode('overview');
     setSelectedPlate("");
-    setSearchPlate("");
+    setSearchQuery("");
     setCurrentPage(1);
     setDateRange({});
   };
@@ -196,26 +229,96 @@ function VehicleHistorySection() {
         <CardContent>
           <div className="space-y-6">
             {/* Search Section */}
-            <div className="flex gap-4 items-end">
-              <div className="flex-1">
-                <Label htmlFor="search-plate">جستجوی شماره پلاک</Label>
-                <Input
-                  id="search-plate"
-                  placeholder="مثال: ABC123"
-                  value={searchPlate}
-                  onChange={(e) => setSearchPlate(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handlePlateSearch()}
-                />
+            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+              <h4 className="font-medium text-blue-800 mb-3 flex items-center gap-2">
+                <Search className="w-4 h-4" />
+                جستجوی تاریخچه (حداقل ۳ حرف)
+              </h4>
+              <div className="flex gap-3 items-end flex-wrap">
+                <div className="flex-1 min-w-[200px]">
+                  <Label htmlFor="search-query">عبارت جستجو</Label>
+                  <Input
+                    id="search-query"
+                    placeholder="پلاک، نام راننده، موبایل یا شماره سفارش..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                  />
+                </div>
+                <div className="w-[150px]">
+                  <Label>نوع جستجو</Label>
+                  <Select value={searchType} onValueChange={(v) => setSearchType(v as any)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="plate">پلاک خودرو</SelectItem>
+                      <SelectItem value="driver">نام راننده</SelectItem>
+                      <SelectItem value="phone">موبایل</SelectItem>
+                      <SelectItem value="order">شماره سفارش</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="w-[140px]">
+                  <Label>از تاریخ</Label>
+                  <Input
+                    type="date"
+                    value={dateRange.from?.toISOString().split('T')[0] || ''}
+                    onChange={(e) => setDateRange(prev => ({ ...prev, from: e.target.value ? new Date(e.target.value) : undefined }))}
+                  />
+                </div>
+                <div className="w-[140px]">
+                  <Label>تا تاریخ</Label>
+                  <Input
+                    type="date"
+                    value={dateRange.to?.toISOString().split('T')[0] || ''}
+                    onChange={(e) => setDateRange(prev => ({ ...prev, to: e.target.value ? new Date(e.target.value) : undefined }))}
+                  />
+                </div>
+                <Button 
+                  onClick={handleSearch}
+                  disabled={!searchQuery.trim() || searchQuery.length < 3}
+                  className="flex items-center gap-2"
+                >
+                  <Search className="h-4 w-4" />
+                  جستجو
+                </Button>
               </div>
-              <Button 
-                onClick={handlePlateSearch}
-                disabled={!searchPlate.trim()}
-                className="flex items-center gap-2"
-              >
-                <Search className="h-4 w-4" />
-                جستجو
-              </Button>
+              {searchQuery && searchQuery.length < 3 && (
+                <p className="text-xs text-orange-600 mt-2">حداقل ۳ حرف وارد کنید</p>
+              )}
             </div>
+
+            {/* Search Results */}
+            {allHistoryData?.data && allHistoryData.data.length > 0 && searchQuery.length >= 3 && (
+              <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                <h4 className="font-medium text-green-800 mb-3">
+                  نتایج جستجو ({allHistoryData.data.length} مورد)
+                </h4>
+                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                  {allHistoryData.data.map((item: any) => (
+                    <div 
+                      key={item.id}
+                      className="bg-white rounded-lg p-3 border flex justify-between items-center cursor-pointer hover:bg-green-50"
+                      onClick={() => handlePlateClick(item.plateNumber)}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="bg-blue-100 px-2 py-1 rounded text-sm font-bold text-blue-800">
+                          {item.plateNumber}
+                        </div>
+                        <div>
+                          <span className="text-sm font-medium">{item.driverName || 'راننده نامشخص'}</span>
+                          <span className="text-xs text-gray-500 mr-2">| سفارش: {item.orderNumber}</span>
+                        </div>
+                      </div>
+                      <div className="text-left text-xs text-gray-500">
+                        {item.deliveryDateTime ? new Date(item.deliveryDateTime).toLocaleDateString('fa-IR') : '-'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Overview Statistics */}
             {statsData?.data?.length > 0 ? (
@@ -231,11 +334,7 @@ function VehicleHistorySection() {
                   <div className="grid gap-4">
                     {statsData.data.map((stat: VehicleUsageStats) => (
                       <Card key={stat.id} className="p-4 hover:shadow-md transition-shadow cursor-pointer"
-                            onClick={() => {
-                              setSelectedPlate(stat.plateNumber);
-                              setSearchPlate(stat.plateNumber);
-                              setViewMode('details');
-                            }}>
+                            onClick={() => handlePlateClick(stat.plateNumber)}>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <Car className="h-8 w-8 text-blue-500" />
