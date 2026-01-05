@@ -5306,7 +5306,7 @@ const LogisticsManagement = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-9">
+        <TabsList className="grid w-full grid-cols-10 gap-1">
           <TabsTrigger value="orders">سفارشات</TabsTrigger>
           <TabsTrigger value="delivered">تحویل شده</TabsTrigger>
           <TabsTrigger value="companies">شرکت‌های حمل</TabsTrigger>
@@ -5316,7 +5316,12 @@ const LogisticsManagement = () => {
           <TabsTrigger value="vehicle-history">تاریخچه خودروها</TabsTrigger>
           <TabsTrigger value="postal">خدمات پست</TabsTrigger>
           <TabsTrigger value="postal-params">محاسبات پست</TabsTrigger>
-          <TabsTrigger value="delivery-services">سرویس دلیوری</TabsTrigger>
+          <TabsTrigger 
+            value="delivery-services" 
+            className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white data-[state=active]:from-indigo-600 data-[state=active]:to-purple-600 data-[state=active]:text-white hover:from-indigo-600 hover:to-purple-600"
+          >
+            سرویس دلیوری
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="orders">
