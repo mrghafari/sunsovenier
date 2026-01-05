@@ -10598,6 +10598,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`✅ [ROUTES] Order ${orderManagementId} status updated to ${newStatus}`);
       
+      // Record vehicle history when order is marked as delivered
+      if (newStatus === 'delivered') {
+        try {
+          const vehiclePlate = currentOrder.vehiclePlate;
+          const driverName = currentOrder.driverName;
+          
+          if (vehiclePlate) {
+            // Get customer order details
+            const orderDetails = await db.execute(sql`
+              SELECT order_number, customer_name, customer_phone, shipping_address, 
+                     total_weight, weight_unit, shipping_cost
+              FROM customer_orders WHERE id = ${currentOrder.customerOrderId}
+            `);
+            
+            if (orderDetails.rows && orderDetails.rows.length > 0) {
+              const coData = orderDetails.rows[0] as any;
+              let shippingAddr = coData.shipping_address;
+              if (typeof shippingAddr === 'string') {
+                try { shippingAddr = JSON.parse(shippingAddr); } catch(e) { shippingAddr = {}; }
+              }
+              const destAddress = shippingAddr?.address || 'آدرس نامشخص';
+              const destCity = shippingAddr?.city || 'شهر نامشخص';
+              
+              console.log('📊 [VEHICLE HISTORY - DELIVERED] Recording for plate:', vehiclePlate, 'order:', coData.order_number);
+              
+              await db.execute(sql`
+                INSERT INTO vehicle_delivery_history (
+                  vehicle_id, plate_number, customer_order_id, order_number,
+                  driver_name, customer_name, customer_phone,
+                  origin_address, destination_address, destination_city,
+                  total_weight, weight_unit, delivery_cost, currency,
+                  delivery_status, delivery_datetime, created_at, updated_at
+                ) VALUES (
+                  null, ${vehiclePlate}, ${currentOrder.customerOrderId}, ${coData.order_number || 'ORD-' + orderManagementId},
+                  ${driverName || 'نامشخص'}, ${coData.customer_name || 'مشتری نامشخص'}, ${coData.customer_phone || ''},
+                  'انبار ممتاز شیمی', ${destAddress}, ${destCity},
+                  ${parseFloat(coData.total_weight) || 0}, ${coData.weight_unit || 'kg'}, ${parseFloat(coData.shipping_cost) || 0}, 'IQD',
+                  'delivered', NOW(), NOW(), NOW()
+                )
+              `);
+              console.log('✅ [VEHICLE HISTORY - DELIVERED] Successfully recorded');
+              
+              // Update vehicle_usage_stats
+              await db.execute(sql`
+                INSERT INTO vehicle_usage_stats (plate_number, total_deliveries, successful_deliveries, total_revenue, last_delivery_date)
+                VALUES (${vehiclePlate}, 1, 1, ${parseFloat(coData.shipping_cost) || 0}, NOW())
+                ON CONFLICT (plate_number) 
+                DO UPDATE SET 
+                  total_deliveries = vehicle_usage_stats.total_deliveries + 1,
+                  successful_deliveries = vehicle_usage_stats.successful_deliveries + 1,
+                  total_revenue = vehicle_usage_stats.total_revenue + EXCLUDED.total_revenue,
+                  last_delivery_date = NOW()
+              `);
+            }
+          }
+        } catch (historyError) {
+          console.error('⚠️ [VEHICLE HISTORY - DELIVERED] Failed to record:', historyError);
+        }
+      }
+      
       res.json({ 
         success: true, 
         message: newStatus === 'delivered' ? "سفارش با موفقیت به عنوان تحویل شده ثبت گردید" : "وضعیت سفارش به‌روزرسانی شد" 
