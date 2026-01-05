@@ -104,10 +104,10 @@ const DeliveryServicesTab = () => {
   }
 
   return (
-    <div className="space-y-6" dir="rtl">
+    <div className="space-y-6 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-indigo-950 dark:via-purple-950 dark:to-pink-950 p-6 rounded-xl border-2 border-indigo-200 dark:border-indigo-800" dir="rtl">
       <div className="mb-6">
-        <h2 className="text-xl font-bold">مدیریت سرویس‌های ارسال</h2>
-        <p className="text-sm text-muted-foreground mt-1">
+        <h2 className="text-xl font-bold text-indigo-800 dark:text-indigo-200">مدیریت سرویس‌های ارسال</h2>
+        <p className="text-sm text-indigo-600 dark:text-indigo-400 mt-1">
           روش‌های ارسال فعال در صفحه پرداخت نمایش داده می‌شوند
         </p>
       </div>
@@ -116,7 +116,7 @@ const DeliveryServicesTab = () => {
         {deliveryMethods.map((method) => (
           <Card 
             key={method.id} 
-            className={`transition-all ${method.isActive ? 'border-green-500/50 shadow-sm' : 'border-gray-200 opacity-70'}`}
+            className={`transition-all bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm ${method.isActive ? 'border-green-500 shadow-lg ring-2 ring-green-200 dark:ring-green-800' : 'border-gray-300 opacity-70'}`}
             data-testid={`card-delivery-${method.id}`}
           >
             <CardContent className="p-4">
