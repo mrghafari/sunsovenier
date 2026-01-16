@@ -22,4 +22,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/<github-username>/momtazchem:1.0.0
+          tags: ghcr.io/<mrghafari>/momtazchem:1.0.0
