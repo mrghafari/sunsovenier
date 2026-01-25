@@ -1,0 +1,694 @@
+app-1  | Starting Momtaz Chem Application...
+app-1  | P1D
+app-1  | 🔍 [SECURITY] clamscan not in PATH, checking common locations...
+app-1  | 🔍 [SECURITY] clamscan not in PATH, checking common locations...
+app-1  | 🚫 [AUTO APPROVAL] Service DISABLED - all orders require manual approval
+app-1  | 🔍 [AUTO APPROVAL] Checking for orders ready for auto-approval...
+app-1  | 🚫 [AUTO APPROVAL] ALL AUTO-PROCESSING DISABLED
+app-1  | 💡 [AUTO APPROVAL] All orders require manual financial department approval
+app-1  | 🔥 [REALTIME SYNC] Installing database triggers for INSTANT synchronization...
+app-1  | ⚠️ [SECURITY] Virus scanner not available - ClamAV not installed or virus definitions missing
+app-1  | 💡 [SECURITY] To enable virus scanning: 1) Install clamav package 2) Run freshclam to download definitions
+app-1  | ⚠️ [SECURITY] Virus scanner not available - ClamAV not installed or virus definitions missing
+app-1  | 💡 [SECURITY] To enable virus scanning: 1) Install clamav package 2) Run freshclam to download definitions
+app-1  | ✅ [AUTO APPROVAL] No orders ready for auto-approval
+app-1  | ✅ [REALTIME SYNC] Database triggers installed successfully
+app-1  | 🔥 [REALTIME SYNC] Data consistency is now GUARANTEED at database level
+app-1  | 🧪 [REALTIME SYNC] Testing triggers...
+app-1  | ✅ [REALTIME SYNC] Found triggers: [
+app-1  |   {
+app-1  |     trigger_name: 'customer_orders_delete_sync_trigger',
+app-1  |     event_manipulation: 'DELETE',
+app-1  |     action_timing: 'AFTER',
+app-1  |     action_statement: 'EXECUTE FUNCTION prevent_orphaned_management()'
+app-1  |   },
+app-1  |   {
+app-1  |     trigger_name: 'customer_orders_insert_sync_trigger',
+app-1  |     event_manipulation: 'INSERT',
+app-1  |     action_timing: 'AFTER',
+app-1  |     action_statement: 'EXECUTE FUNCTION sync_order_management_realtime()'
+app-1  |   },
+app-1  |   {
+app-1  |     trigger_name: 'customer_orders_sync_trigger',
+app-1  |     event_manipulation: 'UPDATE',
+app-1  |     action_timing: 'AFTER',
+app-1  |     action_statement: 'EXECUTE FUNCTION sync_order_management_realtime()'
+app-1  |   }
+app-1  | ]
+app-1  | ✅ [REALTIME SYNC] Found functions: [
+app-1  |   {
+app-1  |     routine_name: 'sync_order_management_realtime',
+app-1  |     routine_type: 'FUNCTION'
+app-1  |   }
+app-1  | ]
+app-1  | 🚀 [AUTO-SYNC] Starting automatic sync service - checking every 5 minutes
+app-1  | 🔄 [AUTO-SYNC] Starting full synchronization...
+app-1  | 🔍 [AUTO-SYNC] Checking order_management synchronization...
+app-1  | 🔄 [SYSTEM] Backup sync service started - orders will be checked every 5 minutes as secondary safety
+app-1  | 🔌 [WebRTC] Routes registered in index.ts
+app-1  | 🔍 [AUTO-SYNC] Checking for status mismatches...
+app-1  | ✅ AWS S3 Client initialized successfully
+app-1  | ✅ AWS S3 Service initialized from database
+app-1  | ✅ [S3 ROUTES] S3 file serving routes registered (images, product-images, product-catalogs, product-msds, payment-receipts, general-files, company-logos)
+app-1  | 4:40:57 PM [express] 💾 [BACKUP] Backup routes registered
+app-1  | 4:40:57 PM [express] 🔐 [OTP] OTP verification routes registered
+app-1  | 4:40:57 PM [express] 📦 [S3 MGMT] S3 management routes registered
+app-1  | ✅ [VENDOR] Vendor router created successfully
+app-1  | 4:40:57 PM [express] 🏪 [VENDOR] Vendor marketplace routes registered
+app-1  | ✅ [ADMIN-VENDOR] Admin vendor management router created
+app-1  | 4:40:57 PM [express] 👨‍💼 [ADMIN-VENDOR] Admin vendor management routes registered
+app-1  | 🔄 [SYNC SERVICE] Initializing automatic table synchronization system...
+app-1  | 🚀 [AUTO-SYNC] Starting automatic sync service - checking every 5 minutes
+app-1  | 🔄 [AUTO-SYNC] Starting full synchronization...
+app-1  | 🔍 [AUTO-SYNC] Checking order_management synchronization...
+app-1  | ✅ [SYNC SERVICE] Automatic synchronization service started successfully
+app-1  | 🚀 REGISTERING ROUTES - Vehicle optimization endpoints loading...
+app-1  | ✅ [OAUTH] Authentication routes registered at /api/auth
+app-1  | 📧 [ABANDONED REMINDERS] Reminder service started - checking every 30 minutes
+app-1  | 🚀 [ROUTE DEBUG] Registering order tracking endpoints BEFORE catch-all...
+app-1  | ✅ [ROUTE DEBUG] Test endpoint registered BEFORE catch-all
+app-1  | ✅ [ROUTE DEBUG] All order tracking endpoints registered BEFORE catch-all
+app-1  | 🚀 [ROUTE DEBUG] Registering order tracking endpoints...
+app-1  | ✅ [ROUTE DEBUG] Test endpoint registered
+app-1  | 🚫 [AUTO APPROVAL] Service DISABLED - all orders require manual approval
+app-1  | 🔍 [AUTO APPROVAL] Checking for orders ready for auto-approval...
+app-1  | 🚫 [AUTO APPROVAL] ALL AUTO-PROCESSING DISABLED
+app-1  | 💡 [AUTO APPROVAL] All orders require manual financial department approval
+app-1  | 🤖 [SYSTEM] Auto-approval service started for bank transfers and payment uploads
+app-1  | 🎥 [WebRTC] Socket server initialized
+app-1  | 🔌 [WebRTC] Routes and Socket initialized
+app-1  | ✅ [FIB] Payment routes registered successfully
+app-1  | 🔍 [MONITORING] Registering system monitoring endpoints...
+app-1  | ✅ [MONITORING] System monitoring endpoints registered
+app-1  | ✅ [FLEET] Fleet vehicles API registered
+app-1  | ✅ [SHOP SETTINGS] Shop settings API registered
+app-1  | 📊 [VENDOR ACCOUNTING] Registering vendor accounting routes...
+app-1  | ✅ [VENDOR ACCOUNTING] Vendor accounting routes registered
+app-1  | 4:40:57 PM [express] serving on port 5000
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511264
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511262
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511327
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511263
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511388
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511400
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511291
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511408
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511395
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511265
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511391
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511389
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511260
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511292
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511401
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511318
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511397
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511396
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511326
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511267
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511293
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511366
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511402
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511367
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511317
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511398
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511330
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511289
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511403
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511405
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511406
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511290
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511320
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511245
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511250
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511394
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511399
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511404
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511310
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511407
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511411
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511243
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511422
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511420
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511412
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511423
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511594
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511552
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511592
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511543
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511557
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511607
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511571
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511572
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511581
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511582
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511583
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511556
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511585
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511558
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511587
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511589
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511588
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511590
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511574
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511591
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511593
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511575
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511542
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511603
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511555
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511462
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511457
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511608
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511611
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511463
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511464
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511465
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511466
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511467
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511468
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511469
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511470
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511471
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511472
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511473
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511474
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511475
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511476
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511604
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511566
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511602
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511609
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511614
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511600
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511563
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511595
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511605
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511599
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511601
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511606
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511613
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511494
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511489
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511490
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511491
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511492
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511493
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511598
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511624
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511597
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511596
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511519
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511512
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511514
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511520
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511521
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511522
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511546
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511636
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511531
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511532
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511533
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511524
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511544
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511526
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511529
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511610
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511612
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511615
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511616
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511621
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511619
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511622
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511623
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511618
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511620
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511617
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511628
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511627
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511632
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511631
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511629
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511626
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511625
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511635
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511638
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511634
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511633
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511640
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511641
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511642
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511637
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511639
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511643
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511645
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511644
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511424
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511390
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511651
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511652
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511653
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511654
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511444
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511679
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511669
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511655
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511656
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511387
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511663
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511658
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511666
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511668
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511657
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511667
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511670
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511676
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511672
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511675
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511674
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511673
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511671
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511247
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511677
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511681
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511678
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511680
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511682
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511392
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511694
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511693
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511695
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511699
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511697
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511698
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511701
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511700
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511703
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511702
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511704
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511705
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511712
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511714
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511706
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511711
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511710
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511709
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511707
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511708
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511720
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511718
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511721
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511719
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511717
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511723
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511722
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511716
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511715
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511696
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511724
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511725
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511726
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511730
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511727
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511731
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511728
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511729
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511732
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511713
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511734
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511735
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511737
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511738
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511747
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511736
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511739
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511740
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511742
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511745
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511743
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511744
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511746
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511733
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511741
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511750
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511748
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511749
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511751
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511752
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511753
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511755
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511754
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511758
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511756
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511757
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511759
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2601112
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2601113
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2601114
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2601111
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2601123
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2601125
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2601115
+app-1  | 💰 [STATUS MAPPING] Paid order (wallet_full) going to financial for approval
+app-1  | 🚛 [AUTO-SYNC] LOGISTICS PROTECTION: Order M2601128 stays in logistics (logistics_dispatched)
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2601126
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2601116
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2601119
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2601117
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2601121
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2601118
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2601120
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2601122
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2601124
+app-1  | ✅ [AUTO-SYNC] No status mismatches found
+app-1  | 🔍 [AUTO-SYNC] Checking for missing records...
+app-1  | 🔍 [AUTO-SYNC] Checking for status mismatches...
+app-1  | [SHIPPING] Rates already exist, skipping seed
+app-1  | [SHIPPING] Fee configs already exist, skipping seed
+app-1  | ✅ [AUTO APPROVAL] No orders ready for auto-approval
+app-1  | ✅ [AUTO-SYNC] Full synchronization completed
+app-1  | ✅ [AUTO-SYNC] Service started successfully
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511264
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511262
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511327
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511263
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511388
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511400
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511291
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511408
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511395
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511265
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511391
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511389
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511260
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511292
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511401
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511318
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511397
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511396
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511326
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511267
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511293
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511366
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511402
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511367
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511317
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511398
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511330
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511289
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511403
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511405
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511406
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511290
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511320
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511245
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511250
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511394
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511399
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511404
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511310
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511407
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511411
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511243
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511422
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511420
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511412
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511423
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511594
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511552
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511592
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511543
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511557
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511607
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511571
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511572
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511581
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511582
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511583
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511556
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511585
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511558
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511587
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511589
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511588
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511590
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511574
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511591
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511593
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511575
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511542
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511603
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511555
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511462
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511457
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511608
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511611
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511463
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511464
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511465
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511466
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511467
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511468
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511469
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511470
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511471
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511472
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511473
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511474
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511475
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511476
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511604
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511566
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511602
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511609
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511614
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511600
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511563
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511595
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511605
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511599
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511601
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511606
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511613
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511494
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511489
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511490
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511491
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511492
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511493
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511598
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511624
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511597
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511596
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511519
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511512
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511514
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511520
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511521
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511522
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511546
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511636
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511531
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511532
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511533
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511524
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511544
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511526
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511529
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511610
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511612
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511615
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511616
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511621
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511619
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511622
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511623
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511618
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511620
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511617
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511628
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511627
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511632
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511631
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511629
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511626
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511625
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511635
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511638
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511634
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511633
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511640
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511641
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511642
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511637
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511639
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511643
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511645
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511644
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511424
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511390
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511651
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511652
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511653
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511654
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511444
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511679
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511669
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511655
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511656
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511387
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511663
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511658
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511666
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511668
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511657
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511667
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511670
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511676
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511672
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511675
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511674
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511673
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511671
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511247
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511677
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511681
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511678
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511680
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511682
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511392
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511694
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511693
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511695
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511699
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511697
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511698
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511701
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511700
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511703
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511702
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511704
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511705
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511712
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511714
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511706
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511711
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511710
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511709
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511707
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511708
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511720
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511718
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511721
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511719
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511717
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511723
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511722
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511716
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511715
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511696
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511724
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511725
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511726
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511730
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511727
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511731
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511728
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511729
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511732
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511713
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511734
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511735
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511737
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511738
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511747
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511736
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511739
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2511740
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511742
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511745
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511743
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511744
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511746
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511733
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511741
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511750
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511748
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511749
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511751
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511752
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511753
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511755
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511754
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511758
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511756
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511757
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2511759
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2601112
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2601113
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2601114
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2601111
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2601123
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2601125
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2601115
+app-1  | 💰 [STATUS MAPPING] Paid order (wallet_full) going to financial for approval
+app-1  | 🚛 [AUTO-SYNC] LOGISTICS PROTECTION: Order M2601128 stays in logistics (logistics_dispatched)
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2601126
+app-1  | 🔒 [AUTO-SYNC] Skipping final status cancelled for order M2601116
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2601119
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2601117
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2601121
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2601118
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2601120
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2601122
+app-1  | 🔒 [AUTO-SYNC] Skipping final status delivered for order M2601124
+app-1  | ✅ [AUTO-SYNC] No status mismatches found
+app-1  | 🔍 [AUTO-SYNC] Checking for missing records...
+app-1  | ✅ [AUTO-SYNC] Full synchronization completed
+app-1  | ✅ [AUTO-SYNC] Service started successfully
+app-1  | 4:40:58 PM [express] GET /api/health 200 in 22ms :: {"status":"healthy","timestamp":"2026-01-19T16:4…
+app-1  | 🔄 [SEQUENCE SYNC] Starting sequence synchronization for all critical tables...
+app-1  | ✅ [SEQUENCE SYNC] customer_orders_id_seq synced to 567
+app-1  | ✅ [SEQUENCE SYNC] vehicle_selection_history_id_seq synced to 903
+app-1  | ✅ [SEQUENCE SYNC] order_management_id_seq synced to 1025
+app-1  | ✅ [SEQUENCE SYNC] customer_activities_id_seq synced to 3689
+app-1  | ✅ [SEQUENCE SYNC] financial_transactions_id_seq synced to 60
+app-1  | ✅ [SEQUENCE SYNC] wallet_transactions_id_seq synced to 201
+app-1  | ✅ [SEQUENCE SYNC] fib_payments_id_seq synced to 159
+app-1  | ✅ [SEQUENCE SYNC] order_items_id_seq synced to 719
+app-1  | ✅ [SEQUENCE SYNC] All sequences synchronized successfully
+app-1  | 4:41:02 PM [express] 🔧 Database sequences synchronized
+app-1  | 🚀 [EXPIRED CLEANUP] Starting expired orders cleanup service
+app-1  | 4:41:02 PM [express] 🧹 Expired orders cleanup service started
+app-1  | 🛒 [CART CLEANUP] Starting abandoned cart cleanup service
+app-1  | 4:41:02 PM [express] 🛒 Abandoned cart cleanup service started
+app-1  | 🚀 [BANK REMINDER] Starting bank receipt reminder service
+app-1  | 4:41:02 PM [express] 🔔 Bank receipt reminder service started
+app-1  | 🚮 [INCOMPLETE PAYMENT CLEANER] Service starting...
+app-1  | 🔍 [INCOMPLETE PAYMENT CLEANER] Processing incomplete payments...
+app-1  | 4:41:02 PM [express] 🚮 Incomplete payment cleaner service started
+app-1  | 4:41:02 PM [express] ℹ️  Database backup scheduler temporarily disabled
+app-1  | Inventory monitoring started - checking every 60 minutes during business hours
+app-1  | 4:41:02 PM [express] 📅 Proforma reminder service started
+app-1  | 🕐 [AUTO INVOICE] Starting periodic auto-conversion check (every 10 minutes)
+app-1  | 🔍 [AUTO INVOICE] Checking for shipped/delivered proforma orders...
+app-1  | 4:41:02 PM [express] 🧾 Auto-invoice conversion service started
+app-1  | 🔍 [AGGRESSIVE CLEANUP] Found 0 incomplete online payment orders (including orderless)
+app-1  | ✅ [AUTO INVOICE] No eligible proforma orders found for conversion
+app-1  | 🔍 [INCOMPLETE PAYMENT CLEANER] Found 0 grace period orders
+app-1  | ✅ [PROFORMA REMINDER] Log table initialized
+app-1  | 🕐 [ORPHAN CLEANER] Found 0 failed bank payment orphan orders
+app-1  | 🔍 [WALLET CLEANUP] Found 0 expired wallet reservations (>30 min)
+app-1  | 🔍 [WALLET PARTIAL CLEANUP] Found 0 stale wallet_partial orders (>30 min)
+app-1  | ✅ [INCOMPLETE PAYMENT CLEANER] Processing completed
+app-1  | 🚮 [INCOMPLETE PAYMENT CLEANER] Service started - checking every 5 minutes
+app-1  | 🛒 [CART CLEANUP] Processing abandoned carts...
+app-1  | 🛒 [CART CLEANUP] Starting abandoned cart processing...
+app-1  | 🛒 [CART CLEANUP] Found 0 carts for first notification
+app-1  | 🛒 [CART CLEANUP] Found 0 carts for second notification
+app-1  | 🛒 [CART CLEANUP] Found 0 carts to delete
+app-1  | 🛒 [CART CLEANUP] Processed 0 first notifications, 0 second notifications, deleted 0 carts
+app-1  | 4:41:28 PM [express] GET /api/health 200 in 16ms :: {"status":"healthy","timestamp":"2026-01-19T16:4…
+app-1  | 🧹 [EXPIRED CLEANUP] Starting cleanup process...
+app-1  | 🔔 [BANK REMINDER] Starting reminder process...
+app-1  | ✅ [EXPIRED CLEANUP] No expired orders found
+app-1  | ✅ [BANK REMINDER] No orders requiring reminders found
