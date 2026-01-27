@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { db } from './db';
 import { customersOtp, crmCustomers } from '../shared/schema';
-import { emailTemplates } from '../shared/customer-schema';
+import { emailTemplates, customerVerificationSettings } from '../shared/customer-schema';
 import { eq, and, gt } from 'drizzle-orm';
 import { SmsService } from './sms-service';
 import { WhatsAppService } from './whatsapp-service';
@@ -11,6 +11,18 @@ import bcrypt from 'bcryptjs';
 
 const router = Router();
 const emailStorage = new EmailStorage();
+
+// Helper: Get verification settings from database
+async function getVerificationSettings() {
+  const settings = await db.select().from(customerVerificationSettings).limit(1);
+  return settings[0] || {
+    smsVerificationEnabled: false,
+    emailVerificationEnabled: true,
+    whatsappVerificationEnabled: false,
+    requireBothVerifications: false,
+    allowSkipVerification: false,
+  };
+}
 
 // Helper: Generate 4-digit OTP code
 function generateOtpCode(): string {
@@ -197,23 +209,61 @@ router.post('/api/customers/send-otp', async (req, res) => {
 
     console.log(`🔐 [OTP] Generated code for ${phone}/${email}: ${code}`);
 
-    // Send OTP simultaneously to WhatsApp, SMS, and Email
-    const sendPromises = [
-      sendOtpWhatsApp(phone, code),
-      sendOtpSms(phone, code),
-      sendOtpEmail(email, code, registrationData?.firstName),
-    ];
+    // Get verification settings from database
+    const verificationSettings = await getVerificationSettings();
+    console.log(`⚙️ [OTP] Verification settings - SMS: ${verificationSettings.smsVerificationEnabled}, Email: ${verificationSettings.emailVerificationEnabled}, WhatsApp: ${verificationSettings.whatsappVerificationEnabled}`);
+
+    // Send OTP only via enabled channels
+    const sendPromises: Promise<boolean>[] = [];
+    const channelNames: string[] = [];
+
+    if (verificationSettings.whatsappVerificationEnabled) {
+      sendPromises.push(sendOtpWhatsApp(phone, code));
+      channelNames.push('whatsapp');
+    }
+    if (verificationSettings.smsVerificationEnabled) {
+      sendPromises.push(sendOtpSms(phone, code));
+      channelNames.push('sms');
+    }
+    if (verificationSettings.emailVerificationEnabled) {
+      sendPromises.push(sendOtpEmail(email, code, registrationData?.firstName));
+      channelNames.push('email');
+    }
+
+    // If no channels are enabled, allow skip if configured
+    if (sendPromises.length === 0) {
+      if (verificationSettings.allowSkipVerification) {
+        // Skip verification and create customer directly
+        console.log(`⚠️ [OTP] No verification channels enabled, skipping verification`);
+        return res.json({
+          success: true,
+          message: 'Verification skipped - no channels enabled',
+          skipVerification: true,
+        });
+      } else {
+        return res.status(500).json({
+          success: false,
+          message: 'No verification channels are enabled. Please contact support.',
+        });
+      }
+    }
 
     const results = await Promise.allSettled(sendPromises);
     
-    const whatsappSuccess = results[0].status === 'fulfilled' && results[0].value;
-    const smsSuccess = results[1].status === 'fulfilled' && results[1].value;
-    const emailSuccess = results[2].status === 'fulfilled' && results[2].value;
+    const sentVia: { whatsapp?: boolean; sms?: boolean; email?: boolean } = {};
+    let anySuccess = false;
 
-    console.log(`📤 [OTP] Delivery results - WhatsApp: ${whatsappSuccess}, SMS: ${smsSuccess}, Email: ${emailSuccess}`);
+    results.forEach((result, index) => {
+      const success = result.status === 'fulfilled' && result.value;
+      const channel = channelNames[index];
+      sentVia[channel as keyof typeof sentVia] = success;
+      if (success) anySuccess = true;
+    });
 
-    // At least one channel must succeed
-    if (!whatsappSuccess && !smsSuccess && !emailSuccess) {
+    console.log(`📤 [OTP] Delivery results:`, sentVia);
+
+    // At least one enabled channel must succeed
+    if (!anySuccess) {
       return res.status(500).json({
         success: false,
         message: 'Failed to send OTP. Please try again.',
@@ -224,11 +274,7 @@ router.post('/api/customers/send-otp', async (req, res) => {
       success: true,
       message: 'Verification code sent successfully',
       expiresAt: otpRecord.expiresAt,
-      sentVia: {
-        whatsapp: whatsappSuccess,
-        sms: smsSuccess,
-        email: emailSuccess,
-      },
+      sentVia,
     });
 
   } catch (error) {
@@ -436,22 +482,48 @@ router.post('/api/customers/resend-otp', async (req, res) => {
 
     console.log(`🔄 [OTP] Resent code for ${phone}/${email}: ${code}`);
 
-    // Send OTP simultaneously to all channels
-    const sendPromises = [
-      sendOtpWhatsApp(phone, code),
-      sendOtpSms(phone, code),
-      sendOtpEmail(email, code, (lastOtp?.registrationData as any)?.firstName),
-    ];
+    // Get verification settings from database
+    const verificationSettings = await getVerificationSettings();
+
+    // Send OTP only via enabled channels
+    const sendPromises: Promise<boolean>[] = [];
+    const channelNames: string[] = [];
+
+    if (verificationSettings.whatsappVerificationEnabled) {
+      sendPromises.push(sendOtpWhatsApp(phone, code));
+      channelNames.push('whatsapp');
+    }
+    if (verificationSettings.smsVerificationEnabled) {
+      sendPromises.push(sendOtpSms(phone, code));
+      channelNames.push('sms');
+    }
+    if (verificationSettings.emailVerificationEnabled) {
+      sendPromises.push(sendOtpEmail(email, code, (lastOtp?.registrationData as any)?.firstName));
+      channelNames.push('email');
+    }
+
+    if (sendPromises.length === 0) {
+      return res.status(500).json({
+        success: false,
+        message: 'No verification channels are enabled.',
+      });
+    }
 
     const results = await Promise.allSettled(sendPromises);
     
-    const whatsappSuccess = results[0].status === 'fulfilled' && results[0].value;
-    const smsSuccess = results[1].status === 'fulfilled' && results[1].value;
-    const emailSuccess = results[2].status === 'fulfilled' && results[2].value;
+    const sentVia: { whatsapp?: boolean; sms?: boolean; email?: boolean } = {};
+    let anySuccess = false;
 
-    console.log(`📤 [OTP Resend] Delivery results - WhatsApp: ${whatsappSuccess}, SMS: ${smsSuccess}, Email: ${emailSuccess}`);
+    results.forEach((result, index) => {
+      const success = result.status === 'fulfilled' && result.value;
+      const channel = channelNames[index];
+      sentVia[channel as keyof typeof sentVia] = success;
+      if (success) anySuccess = true;
+    });
 
-    if (!whatsappSuccess && !smsSuccess && !emailSuccess) {
+    console.log(`📤 [OTP Resend] Delivery results:`, sentVia);
+
+    if (!anySuccess) {
       return res.status(500).json({
         success: false,
         message: 'Failed to resend OTP. Please try again.',
@@ -462,11 +534,7 @@ router.post('/api/customers/resend-otp', async (req, res) => {
       success: true,
       message: 'New verification code sent successfully',
       expiresAt: otpRecord.expiresAt,
-      sentVia: {
-        whatsapp: whatsappSuccess,
-        sms: smsSuccess,
-        email: emailSuccess,
-      },
+      sentVia,
     });
 
   } catch (error) {

@@ -525,6 +525,7 @@ export const customerVerificationSettings = pgTable("customer_verification_setti
   id: serial("id").primaryKey(),
   smsVerificationEnabled: boolean("sms_verification_enabled").default(true),
   emailVerificationEnabled: boolean("email_verification_enabled").default(true),
+  whatsappVerificationEnabled: boolean("whatsapp_verification_enabled").default(false),
   requireBothVerifications: boolean("require_both_verifications").default(true), // Dual authentication requirement
   allowSkipVerification: boolean("allow_skip_verification").default(false), // Allow skip during registration
   updatedBy: integer("updated_by"), // Admin who updated settings

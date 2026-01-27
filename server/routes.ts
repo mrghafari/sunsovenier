@@ -27,7 +27,7 @@ import { widgetRecommendationStorage } from "./widget-recommendation-storage";
 import { orderManagementStorage } from "./order-management-storage";
 import { walletStorage } from "./wallet-storage";
 import { requireDepartment, attachUserDepartments } from "./department-auth";
-import { insertCustomerInquirySchema, insertEmailTemplateSchema, insertCustomerSchema, insertCustomerAddressSchema, walletRechargeRequests, customerOrders, orderItems, walletTransactions, customerWallets } from "@shared/customer-schema";
+import { insertCustomerInquirySchema, insertEmailTemplateSchema, insertCustomerSchema, insertCustomerAddressSchema, walletRechargeRequests, customerOrders, orderItems, walletTransactions, customerWallets, customerVerificationSettings } from "@shared/customer-schema";
 import { customerDb, customerPool } from "./customer-db";
 import { insertEmailCategorySchema, insertSmtpSettingSchema, insertEmailRecipientSchema, smtpConfigSchema, emailLogs, emailCategories, smtpSettings, emailRecipients, categoryEmailAssignments, insertCategoryEmailAssignmentSchema } from "@shared/email-schema";
 import { insertShopProductSchema, insertShopCategorySchema, paymentGateways, shopProducts } from "@shared/shop-schema";
@@ -16544,9 +16544,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.json({
           success: true,
           settings: {
-            smsVerificationEnabled: true,
+            smsVerificationEnabled: false,
             emailVerificationEnabled: true,
-            requireBothVerifications: true,
+            whatsappVerificationEnabled: false,
+            requireBothVerifications: false,
             allowSkipVerification: false
           }
         });
@@ -16556,6 +16557,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           settings: {
             smsVerificationEnabled: settings.smsVerificationEnabled,
             emailVerificationEnabled: settings.emailVerificationEnabled,
+            whatsappVerificationEnabled: settings.whatsappVerificationEnabled ?? false,
             requireBothVerifications: settings.requireBothVerifications,
             allowSkipVerification: settings.allowSkipVerification
           }
@@ -16566,6 +16568,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         success: false, 
         message: "خطا در دریافت تنظیمات احراز هویت" 
+      });
+    }
+  });
+
+  // Update verification settings (admin only)
+  app.put("/api/customer/verification-settings", async (req, res) => {
+    try {
+      // Check admin authentication
+      const adminId = (req.session as any).adminId;
+      if (!adminId) {
+        return res.status(401).json({ success: false, message: "Unauthorized - Admin login required" });
+      }
+
+      const { smsVerificationEnabled, emailVerificationEnabled, whatsappVerificationEnabled, requireBothVerifications, allowSkipVerification } = req.body;
+
+      // Update settings in database
+      await db.update(customerVerificationSettings)
+        .set({
+          smsVerificationEnabled: smsVerificationEnabled ?? false,
+          emailVerificationEnabled: emailVerificationEnabled ?? true,
+          whatsappVerificationEnabled: whatsappVerificationEnabled ?? false,
+          requireBothVerifications: requireBothVerifications ?? false,
+          allowSkipVerification: allowSkipVerification ?? false,
+          updatedBy: adminId,
+          updatedAt: new Date(),
+        })
+        .where(eq(customerVerificationSettings.id, 1));
+
+      console.log("[Verification Settings] Updated by admin " + adminId + ":", {
+        sms: smsVerificationEnabled,
+        email: emailVerificationEnabled,
+        whatsapp: whatsappVerificationEnabled,
+      });
+
+      res.json({ 
+        success: true, 
+        message: "تنظیمات احراز هویت با موفقیت بروزرسانی شد"
+      });
+    } catch (error) {
+      console.error("Error updating verification settings:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "خطا در بروزرسانی تنظیمات احراز هویت"
       });
     }
   });
