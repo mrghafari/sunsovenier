@@ -16584,7 +16584,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { smsVerificationEnabled, emailVerificationEnabled, whatsappVerificationEnabled, requireBothVerifications, allowSkipVerification } = req.body;
 
       // Update settings in database
-      await db.update(customerVerificationSettings)
+      await customerDb.update(customerVerificationSettings)
         .set({
           smsVerificationEnabled: smsVerificationEnabled ?? false,
           emailVerificationEnabled: emailVerificationEnabled ?? true,
