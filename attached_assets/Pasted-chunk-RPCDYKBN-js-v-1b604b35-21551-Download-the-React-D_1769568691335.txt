@@ -1,0 +1,982 @@
+chunk-RPCDYKBN.js?v=1b604b35:21551 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+useAuth.ts:30  GET https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me 401 (Unauthorized)
+queryFn @ useAuth.ts:30
+fetchFn @ @tanstack_react-query.js?v=1b604b35:840
+run @ @tanstack_react-query.js?v=1b604b35:494
+start @ @tanstack_react-query.js?v=1b604b35:536
+fetch @ @tanstack_react-query.js?v=1b604b35:926
+executeFetch_fn @ @tanstack_react-query.js?v=1b604b35:2211
+onSubscribe @ @tanstack_react-query.js?v=1b604b35:1898
+subscribe @ @tanstack_react-query.js?v=1b604b35:24
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:3022
+subscribeToStore @ chunk-RPCDYKBN.js?v=1b604b35:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=1b604b35:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=1b604b35:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=1b604b35:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=1b604b35:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=1b604b35:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=1b604b35:19447
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=1b604b35:18868
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=1b604b35:9119
+commitRootImpl @ chunk-RPCDYKBN.js?v=1b604b35:19432
+commitRoot @ chunk-RPCDYKBN.js?v=1b604b35:19277
+finishConcurrentRender @ chunk-RPCDYKBN.js?v=1b604b35:18805
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=1b604b35:18718
+workLoop @ chunk-RPCDYKBN.js?v=1b604b35:197
+flushWork @ chunk-RPCDYKBN.js?v=1b604b35:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=1b604b35:384
+queryClient.ts:81  GET https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me 401 (Unauthorized)
+(anonymous) @ queryClient.ts:81
+fetchFn @ @tanstack_react-query.js?v=1b604b35:840
+run @ @tanstack_react-query.js?v=1b604b35:494
+start @ @tanstack_react-query.js?v=1b604b35:536
+fetch @ @tanstack_react-query.js?v=1b604b35:926
+executeFetch_fn @ @tanstack_react-query.js?v=1b604b35:2211
+onSubscribe @ @tanstack_react-query.js?v=1b604b35:1898
+subscribe @ @tanstack_react-query.js?v=1b604b35:24
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:3022
+subscribeToStore @ chunk-RPCDYKBN.js?v=1b604b35:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=1b604b35:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=1b604b35:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=1b604b35:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=1b604b35:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=1b604b35:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=1b604b35:19447
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=1b604b35:18868
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=1b604b35:9119
+commitRootImpl @ chunk-RPCDYKBN.js?v=1b604b35:19432
+commitRoot @ chunk-RPCDYKBN.js?v=1b604b35:19277
+finishConcurrentRender @ chunk-RPCDYKBN.js?v=1b604b35:18805
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=1b604b35:18718
+workLoop @ chunk-RPCDYKBN.js?v=1b604b35:197
+flushWork @ chunk-RPCDYKBN.js?v=1b604b35:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=1b604b35:384
+TawkToChat.tsx:134 📥 Loading Tawk.to widget at bottom-left position...
+TawkToChat.tsx:149 ✅ Tawk.to Live Chat loaded successfully at bottom-left
+twk-chunk-common.js:2 Error: Unable to store cookie
+    at e.value (twk-chunk-common.js:2:118472)
+    at t.value (twk-chunk-common.js:2:151556)
+    at p.updateUUID (twk-chunk-common.js:2:203208)
+    at Array.<anonymous> (twk-vendor.js:2:76358)
+    at p.dispatch (twk-vendor.js:2:78106)
+    at p.dispatch (twk-vendor.js:2:73855)
+    at t.value (twk-chunk-common.js:2:125487)
+    at twk-chunk-common.js:2:124798
+value @ twk-chunk-common.js:2
+updateUUID @ twk-chunk-common.js:2
+(anonymous) @ twk-vendor.js:2
+p.dispatch @ twk-vendor.js:2
+dispatch @ twk-vendor.js:2
+value @ twk-chunk-common.js:2
+(anonymous) @ twk-chunk-common.js:2
+Promise.then
+value @ twk-chunk-common.js:2
+value @ twk-chunk-common.js:2
+(anonymous) @ twk-chunk-common.js:2
+(anonymous) @ twk-chunk-common.js:2
+56d7 @ twk-chunk-common.js:2
+a @ twk-runtime.js:1
+r @ twk-runtime.js:1
+t @ twk-runtime.js:1
+(anonymous) @ twk-runtime.js:1
+(anonymous) @ twk-runtime.js:1
+via.placeholder.com/128x128?text=WeChat+QR:1  GET https://via.placeholder.com/128x128?text=WeChat+QR net::ERR_NAME_NOT_RESOLVED
+Image
+commitMount @ chunk-RPCDYKBN.js?v=1b604b35:8412
+commitLayoutEffectOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17102
+commitLayoutMountEffects_complete @ chunk-RPCDYKBN.js?v=1b604b35:17980
+commitLayoutEffects_begin @ chunk-RPCDYKBN.js?v=1b604b35:17969
+commitLayoutEffects @ chunk-RPCDYKBN.js?v=1b604b35:17920
+commitRootImpl @ chunk-RPCDYKBN.js?v=1b604b35:19353
+commitRoot @ chunk-RPCDYKBN.js?v=1b604b35:19277
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=1b604b35:18895
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=1b604b35:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=1b604b35:18627
+setTimeout
+scheduleFn @ @tanstack_react-query.js?v=1b604b35:555
+flush @ @tanstack_react-query.js?v=1b604b35:569
+batch @ @tanstack_react-query.js?v=1b604b35:587
+dispatch_fn @ @tanstack_react-query.js?v=1b604b35:996
+setData @ @tanstack_react-query.js?v=1b604b35:696
+onSuccess @ @tanstack_react-query.js?v=1b604b35:897
+resolve @ @tanstack_react-query.js?v=1b604b35:456
+Promise.then
+run @ @tanstack_react-query.js?v=1b604b35:498
+start @ @tanstack_react-query.js?v=1b604b35:536
+fetch @ @tanstack_react-query.js?v=1b604b35:926
+executeFetch_fn @ @tanstack_react-query.js?v=1b604b35:2211
+onSubscribe @ @tanstack_react-query.js?v=1b604b35:1898
+subscribe @ @tanstack_react-query.js?v=1b604b35:24
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:3022
+subscribeToStore @ chunk-RPCDYKBN.js?v=1b604b35:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=1b604b35:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=1b604b35:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=1b604b35:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=1b604b35:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=1b604b35:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=1b604b35:19447
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=1b604b35:18868
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=1b604b35:9119
+commitRootImpl @ chunk-RPCDYKBN.js?v=1b604b35:19432
+commitRoot @ chunk-RPCDYKBN.js?v=1b604b35:19277
+finishConcurrentRender @ chunk-RPCDYKBN.js?v=1b604b35:18805
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=1b604b35:18718
+workLoop @ chunk-RPCDYKBN.js?v=1b604b35:197
+flushWork @ chunk-RPCDYKBN.js?v=1b604b35:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=1b604b35:384
+useAuth.ts:30  GET https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me 401 (Unauthorized)
+queryFn @ useAuth.ts:30
+fetchFn @ @tanstack_react-query.js?v=1b604b35:840
+run @ @tanstack_react-query.js?v=1b604b35:494
+start @ @tanstack_react-query.js?v=1b604b35:536
+fetch @ @tanstack_react-query.js?v=1b604b35:926
+executeFetch_fn @ @tanstack_react-query.js?v=1b604b35:2211
+fetch @ @tanstack_react-query.js?v=1b604b35:2011
+refetch @ @tanstack_react-query.js?v=1b604b35:2001
+onFocus @ @tanstack_react-query.js?v=1b604b35:749
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:1112
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:1111
+batch @ @tanstack_react-query.js?v=1b604b35:583
+onFocus @ @tanstack_react-query.js?v=1b604b35:1110
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:1601
+await in (anonymous)
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:313
+onFocus @ @tanstack_react-query.js?v=1b604b35:312
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:299
+listener @ @tanstack_react-query.js?v=1b604b35:270
+queryClient.ts:81  GET https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me 401 (Unauthorized)
+(anonymous) @ queryClient.ts:81
+fetchFn @ @tanstack_react-query.js?v=1b604b35:840
+run @ @tanstack_react-query.js?v=1b604b35:494
+start @ @tanstack_react-query.js?v=1b604b35:536
+fetch @ @tanstack_react-query.js?v=1b604b35:926
+executeFetch_fn @ @tanstack_react-query.js?v=1b604b35:2211
+fetch @ @tanstack_react-query.js?v=1b604b35:2011
+refetch @ @tanstack_react-query.js?v=1b604b35:2001
+onFocus @ @tanstack_react-query.js?v=1b604b35:749
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:1112
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:1111
+batch @ @tanstack_react-query.js?v=1b604b35:583
+onFocus @ @tanstack_react-query.js?v=1b604b35:1110
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:1601
+await in (anonymous)
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:313
+onFocus @ @tanstack_react-query.js?v=1b604b35:312
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:299
+listener @ @tanstack_react-query.js?v=1b604b35:270
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: false
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {}
+usePersistentCart.ts:43 🛒 Loading guest cart from localStorage: {506: 1}
+shop.tsx:433 🔐 [AUTH] Guest user confirmed
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: false
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {}
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: false
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: false
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: []
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 512: Stock=4, Cart=0, Display=4
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 513: Stock=8045, Cart=0, Display=8045
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 506: Stock=54540, Cart=1, Display=54539
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 509: Stock=1015, Cart=0, Display=1015
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 511: Stock=100, Cart=0, Display=100
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 516: Stock=11, Cart=0, Display=11
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 515: Stock=11, Cart=0, Display=11
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 508: Stock=1300, Cart=0, Display=1300
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 507: Stock=11, Cart=0, Display=11
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 510: Stock=8055, Cart=0, Display=8055
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: []
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: []
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 512: Stock=4, Cart=0, Display=4
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 513: Stock=8045, Cart=0, Display=8045
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 506: Stock=54540, Cart=1, Display=54539
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 509: Stock=1015, Cart=0, Display=1015
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 511: Stock=100, Cart=0, Display=100
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 516: Stock=11, Cart=0, Display=11
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 515: Stock=11, Cart=0, Display=11
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 508: Stock=1300, Cart=0, Display=1300
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 507: Stock=11, Cart=0, Display=11
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 510: Stock=8055, Cart=0, Display=8055
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: []
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: []
+chunk-RPCDYKBN.js?v=1b604b35:521 Warning: A component is changing an uncontrolled input to be controlled. This is likely caused by the value changing from undefined to a defined value, which should not happen. Decide between using a controlled or uncontrolled input element for the lifetime of the component. More info: https://reactjs.org/link/controlled-components
+    at input
+    at _c (https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/src/components/ui/input.tsx:20:11)
+    at https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2K77HOHX.js?v=1b604b35:79:13
+    at https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2K77HOHX.js?v=1b604b35:56:13
+    at https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/src/components/ui/form.tsx:130:9
+    at div
+    at https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/src/components/ui/form.tsx:72:6
+    at Controller (https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-4BFJKWC4.js?v=1b604b35:298:35)
+    at FormField (https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/src/components/ui/form.tsx:33:6)
+    at div
+    at https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-AXMZZQ2X.js?v=1b604b35:42:13
+    at https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-collapsible.js?v=1b604b35:110:11
+    at Presence (https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-YE5GEEUL.js?v=1b604b35:24:11)
+    at https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-collapsible.js?v=1b604b35:103:13
+    at div
+    at https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-AXMZZQ2X.js?v=1b604b35:42:13
+    at Provider (https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=1b604b35:38:15)
+    at https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-collapsible.js?v=1b604b35:44:7
+    at form
+    at FormProvider (https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-4BFJKWC4.js?v=1b604b35:102:11)
+    at div
+    at https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-AXMZZQ2X.js?v=1b604b35:42:13
+    at Presence (https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-YE5GEEUL.js?v=1b604b35:24:11)
+    at https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=1b604b35:175:13
+    at _c5 (https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/src/components/ui/tabs.tsx:72:12)
+    at div
+    at https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-AXMZZQ2X.js?v=1b604b35:42:13
+    at Provider (https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=1b604b35:38:15)
+    at https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=1b604b35:53:7
+    at div
+    at https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-AXMZZQ2X.js?v=1b604b35:42:13
+    at https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OUO7YT6V.js?v=1b604b35:55:7
+    at https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2K77HOHX.js?v=1b604b35:79:13
+    at https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2K77HOHX.js?v=1b604b35:56:13
+    at https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-AXMZZQ2X.js?v=1b604b35:42:13
+    at https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-CLPYIDGD.js?v=1b604b35:29:5
+    at https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-JE4QB3BB.js?v=1b604b35:237:13
+    at https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-JE4QB3BB.js?v=1b604b35:160:58
+    at Presence (https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-YE5GEEUL.js?v=1b604b35:24:11)
+    at https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-JE4QB3BB.js?v=1b604b35:151:64
+    at https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2K77HOHX.js?v=1b604b35:79:13
+    at https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-2K77HOHX.js?v=1b604b35:56:13
+    at https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-AXMZZQ2X.js?v=1b604b35:42:13
+    at https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-3SVIXKAI.js?v=1b604b35:27:22
+    at Presence (https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-YE5GEEUL.js?v=1b604b35:24:11)
+    at Provider (https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=1b604b35:38:15)
+    at DialogPortal (https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-JE4QB3BB.js?v=1b604b35:113:11)
+    at _c3 (https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/src/components/ui/dialog.tsx:52:12)
+    at Provider (https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=1b604b35:38:15)
+    at Dialog (https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-JE4QB3BB.js?v=1b604b35:54:5)
+    at CustomerAuth (https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/src/components/auth/customer-auth.tsx:125:40)
+    at div
+    at Shop (https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/src/pages/shop.tsx:47:21)
+    at Route (https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=1b604b35:265:16)
+    at Switch (https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=1b604b35:321:17)
+    at main
+    at div
+    at Router
+    at Provider (https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=1b604b35:38:15)
+    at TooltipProvider (https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=1b604b35:65:5)
+    at LanguageProvider (https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/src/contexts/LanguageContext.tsx:21:36)
+    at QueryClientProvider (https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=1b604b35:2805:3)
+    at App
+printWarning @ chunk-RPCDYKBN.js?v=1b604b35:521
+error @ chunk-RPCDYKBN.js?v=1b604b35:505
+updateWrapper @ chunk-RPCDYKBN.js?v=1b604b35:1968
+updateProperties @ chunk-RPCDYKBN.js?v=1b604b35:7762
+commitUpdate @ chunk-RPCDYKBN.js?v=1b604b35:8419
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17763
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17737
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17896
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17896
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17737
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17737
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17896
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17737
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17896
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17737
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17737
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17896
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17896
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17737
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17813
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17896
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17896
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17737
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17896
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17737
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17737
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17896
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17896
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17896
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17699
+recursivelyTraverseMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17685
+commitMutationEffectsOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:17794
+commitMutationEffects @ chunk-RPCDYKBN.js?v=1b604b35:17663
+commitRootImpl @ chunk-RPCDYKBN.js?v=1b604b35:19347
+commitRoot @ chunk-RPCDYKBN.js?v=1b604b35:19277
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=1b604b35:18895
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=1b604b35:9119
+flushSync @ chunk-RPCDYKBN.js?v=1b604b35:18959
+finishEventHandler @ chunk-RPCDYKBN.js?v=1b604b35:3569
+batchedUpdates @ chunk-RPCDYKBN.js?v=1b604b35:3582
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=1b604b35:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=1b604b35:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=1b604b35:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=1b604b35:5449
+useAuth.ts:30  GET https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me 401 (Unauthorized)
+queryFn @ useAuth.ts:30
+fetchFn @ @tanstack_react-query.js?v=1b604b35:840
+run @ @tanstack_react-query.js?v=1b604b35:494
+start @ @tanstack_react-query.js?v=1b604b35:536
+fetch @ @tanstack_react-query.js?v=1b604b35:926
+executeFetch_fn @ @tanstack_react-query.js?v=1b604b35:2211
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:2245
+setInterval
+updateRefetchInterval_fn @ @tanstack_react-query.js?v=1b604b35:2243
+updateTimers_fn @ @tanstack_react-query.js?v=1b604b35:2250
+onQueryUpdate @ @tanstack_react-query.js?v=1b604b35:2206
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:998
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:997
+batch @ @tanstack_react-query.js?v=1b604b35:583
+dispatch_fn @ @tanstack_react-query.js?v=1b604b35:996
+setData @ @tanstack_react-query.js?v=1b604b35:696
+onSuccess @ @tanstack_react-query.js?v=1b604b35:897
+resolve @ @tanstack_react-query.js?v=1b604b35:456
+Promise.then
+run @ @tanstack_react-query.js?v=1b604b35:498
+start @ @tanstack_react-query.js?v=1b604b35:536
+fetch @ @tanstack_react-query.js?v=1b604b35:926
+executeFetch_fn @ @tanstack_react-query.js?v=1b604b35:2211
+fetch @ @tanstack_react-query.js?v=1b604b35:2011
+refetch @ @tanstack_react-query.js?v=1b604b35:2001
+onFocus @ @tanstack_react-query.js?v=1b604b35:749
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:1112
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:1111
+batch @ @tanstack_react-query.js?v=1b604b35:583
+onFocus @ @tanstack_react-query.js?v=1b604b35:1110
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:1601
+await in (anonymous)
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:313
+onFocus @ @tanstack_react-query.js?v=1b604b35:312
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:299
+listener @ @tanstack_react-query.js?v=1b604b35:270
+useCustomerAuth.ts:13  GET https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me 401 (Unauthorized)
+queryFn @ useCustomerAuth.ts:13
+fetchFn @ @tanstack_react-query.js?v=1b604b35:840
+run @ @tanstack_react-query.js?v=1b604b35:494
+start @ @tanstack_react-query.js?v=1b604b35:536
+fetch @ @tanstack_react-query.js?v=1b604b35:926
+executeFetch_fn @ @tanstack_react-query.js?v=1b604b35:2211
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:2245
+setInterval
+updateRefetchInterval_fn @ @tanstack_react-query.js?v=1b604b35:2243
+updateTimers_fn @ @tanstack_react-query.js?v=1b604b35:2250
+onSubscribe @ @tanstack_react-query.js?v=1b604b35:1902
+subscribe @ @tanstack_react-query.js?v=1b604b35:24
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:3022
+subscribeToStore @ chunk-RPCDYKBN.js?v=1b604b35:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=1b604b35:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=1b604b35:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=1b604b35:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=1b604b35:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=1b604b35:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=1b604b35:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=1b604b35:19447
+commitRootImpl @ chunk-RPCDYKBN.js?v=1b604b35:19416
+commitRoot @ chunk-RPCDYKBN.js?v=1b604b35:19277
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=1b604b35:18895
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=1b604b35:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=1b604b35:18627
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: []
+customer-auth.tsx:360  POST https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/send-otp 500 (Internal Server Error)
+onRegister @ customer-auth.tsx:360
+(anonymous) @ chunk-4BFJKWC4.js?v=1b604b35:1465
+await in (anonymous)
+callCallback2 @ chunk-RPCDYKBN.js?v=1b604b35:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=1b604b35:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=1b604b35:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=1b604b35:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=1b604b35:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=1b604b35:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=1b604b35:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=1b604b35:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=1b604b35:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=1b604b35:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=1b604b35:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=1b604b35:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=1b604b35:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=1b604b35:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=1b604b35:5449
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: []
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: []
+customer-auth.tsx:360  POST https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/send-otp 429 (Too Many Requests)
+onRegister @ customer-auth.tsx:360
+(anonymous) @ chunk-4BFJKWC4.js?v=1b604b35:1465
+await in (anonymous)
+callCallback2 @ chunk-RPCDYKBN.js?v=1b604b35:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=1b604b35:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=1b604b35:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=1b604b35:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=1b604b35:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=1b604b35:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=1b604b35:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=1b604b35:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=1b604b35:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=1b604b35:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=1b604b35:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=1b604b35:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=1b604b35:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=1b604b35:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=1b604b35:5449
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: []
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: []
+customer-auth.tsx:360  POST https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/send-otp 429 (Too Many Requests)
+onRegister @ customer-auth.tsx:360
+(anonymous) @ chunk-4BFJKWC4.js?v=1b604b35:1465
+await in (anonymous)
+callCallback2 @ chunk-RPCDYKBN.js?v=1b604b35:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=1b604b35:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=1b604b35:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=1b604b35:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=1b604b35:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=1b604b35:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=1b604b35:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=1b604b35:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=1b604b35:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=1b604b35:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=1b604b35:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=1b604b35:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=1b604b35:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=1b604b35:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=1b604b35:5449
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: []
+useAuth.ts:30  GET https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me 401 (Unauthorized)
+queryFn @ useAuth.ts:30
+fetchFn @ @tanstack_react-query.js?v=1b604b35:840
+run @ @tanstack_react-query.js?v=1b604b35:494
+start @ @tanstack_react-query.js?v=1b604b35:536
+fetch @ @tanstack_react-query.js?v=1b604b35:926
+executeFetch_fn @ @tanstack_react-query.js?v=1b604b35:2211
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:2245
+setInterval
+updateRefetchInterval_fn @ @tanstack_react-query.js?v=1b604b35:2243
+updateTimers_fn @ @tanstack_react-query.js?v=1b604b35:2250
+onQueryUpdate @ @tanstack_react-query.js?v=1b604b35:2206
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:998
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:997
+batch @ @tanstack_react-query.js?v=1b604b35:583
+dispatch_fn @ @tanstack_react-query.js?v=1b604b35:996
+setData @ @tanstack_react-query.js?v=1b604b35:696
+onSuccess @ @tanstack_react-query.js?v=1b604b35:897
+resolve @ @tanstack_react-query.js?v=1b604b35:456
+Promise.then
+run @ @tanstack_react-query.js?v=1b604b35:498
+start @ @tanstack_react-query.js?v=1b604b35:536
+fetch @ @tanstack_react-query.js?v=1b604b35:926
+executeFetch_fn @ @tanstack_react-query.js?v=1b604b35:2211
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:2245
+useCustomerAuth.ts:13  GET https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me 401 (Unauthorized)
+queryFn @ useCustomerAuth.ts:13
+fetchFn @ @tanstack_react-query.js?v=1b604b35:840
+run @ @tanstack_react-query.js?v=1b604b35:494
+start @ @tanstack_react-query.js?v=1b604b35:536
+fetch @ @tanstack_react-query.js?v=1b604b35:926
+executeFetch_fn @ @tanstack_react-query.js?v=1b604b35:2211
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:2245
+setInterval
+updateRefetchInterval_fn @ @tanstack_react-query.js?v=1b604b35:2243
+updateTimers_fn @ @tanstack_react-query.js?v=1b604b35:2250
+onQueryUpdate @ @tanstack_react-query.js?v=1b604b35:2206
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:998
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:997
+batch @ @tanstack_react-query.js?v=1b604b35:583
+dispatch_fn @ @tanstack_react-query.js?v=1b604b35:996
+setData @ @tanstack_react-query.js?v=1b604b35:696
+onSuccess @ @tanstack_react-query.js?v=1b604b35:897
+resolve @ @tanstack_react-query.js?v=1b604b35:456
+Promise.then
+run @ @tanstack_react-query.js?v=1b604b35:498
+start @ @tanstack_react-query.js?v=1b604b35:536
+fetch @ @tanstack_react-query.js?v=1b604b35:926
+executeFetch_fn @ @tanstack_react-query.js?v=1b604b35:2211
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:2245
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: []
+useAuth.ts:30  GET https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me 401 (Unauthorized)
+queryFn @ useAuth.ts:30
+fetchFn @ @tanstack_react-query.js?v=1b604b35:840
+run @ @tanstack_react-query.js?v=1b604b35:494
+start @ @tanstack_react-query.js?v=1b604b35:536
+fetch @ @tanstack_react-query.js?v=1b604b35:926
+executeFetch_fn @ @tanstack_react-query.js?v=1b604b35:2211
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:2245
+setInterval
+updateRefetchInterval_fn @ @tanstack_react-query.js?v=1b604b35:2243
+updateTimers_fn @ @tanstack_react-query.js?v=1b604b35:2250
+onQueryUpdate @ @tanstack_react-query.js?v=1b604b35:2206
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:998
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:997
+batch @ @tanstack_react-query.js?v=1b604b35:583
+dispatch_fn @ @tanstack_react-query.js?v=1b604b35:996
+setData @ @tanstack_react-query.js?v=1b604b35:696
+onSuccess @ @tanstack_react-query.js?v=1b604b35:897
+resolve @ @tanstack_react-query.js?v=1b604b35:456
+Promise.then
+run @ @tanstack_react-query.js?v=1b604b35:498
+start @ @tanstack_react-query.js?v=1b604b35:536
+fetch @ @tanstack_react-query.js?v=1b604b35:926
+executeFetch_fn @ @tanstack_react-query.js?v=1b604b35:2211
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:2245
+setInterval
+updateRefetchInterval_fn @ @tanstack_react-query.js?v=1b604b35:2243
+updateTimers_fn @ @tanstack_react-query.js?v=1b604b35:2250
+onQueryUpdate @ @tanstack_react-query.js?v=1b604b35:2206
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:998
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:997
+batch @ @tanstack_react-query.js?v=1b604b35:583
+dispatch_fn @ @tanstack_react-query.js?v=1b604b35:996
+setData @ @tanstack_react-query.js?v=1b604b35:696
+onSuccess @ @tanstack_react-query.js?v=1b604b35:897
+resolve @ @tanstack_react-query.js?v=1b604b35:456
+Promise.then
+run @ @tanstack_react-query.js?v=1b604b35:498
+start @ @tanstack_react-query.js?v=1b604b35:536
+fetch @ @tanstack_react-query.js?v=1b604b35:926
+executeFetch_fn @ @tanstack_react-query.js?v=1b604b35:2211
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:2245
+useCustomerAuth.ts:13  GET https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me 401 (Unauthorized)
+queryFn @ useCustomerAuth.ts:13
+fetchFn @ @tanstack_react-query.js?v=1b604b35:840
+run @ @tanstack_react-query.js?v=1b604b35:494
+start @ @tanstack_react-query.js?v=1b604b35:536
+fetch @ @tanstack_react-query.js?v=1b604b35:926
+executeFetch_fn @ @tanstack_react-query.js?v=1b604b35:2211
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:2245
+setInterval
+updateRefetchInterval_fn @ @tanstack_react-query.js?v=1b604b35:2243
+updateTimers_fn @ @tanstack_react-query.js?v=1b604b35:2250
+onQueryUpdate @ @tanstack_react-query.js?v=1b604b35:2206
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:998
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:997
+batch @ @tanstack_react-query.js?v=1b604b35:583
+dispatch_fn @ @tanstack_react-query.js?v=1b604b35:996
+setData @ @tanstack_react-query.js?v=1b604b35:696
+onSuccess @ @tanstack_react-query.js?v=1b604b35:897
+resolve @ @tanstack_react-query.js?v=1b604b35:456
+Promise.then
+run @ @tanstack_react-query.js?v=1b604b35:498
+start @ @tanstack_react-query.js?v=1b604b35:536
+fetch @ @tanstack_react-query.js?v=1b604b35:926
+executeFetch_fn @ @tanstack_react-query.js?v=1b604b35:2211
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:2245
+setInterval
+updateRefetchInterval_fn @ @tanstack_react-query.js?v=1b604b35:2243
+updateTimers_fn @ @tanstack_react-query.js?v=1b604b35:2250
+onQueryUpdate @ @tanstack_react-query.js?v=1b604b35:2206
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:998
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:997
+batch @ @tanstack_react-query.js?v=1b604b35:583
+dispatch_fn @ @tanstack_react-query.js?v=1b604b35:996
+setData @ @tanstack_react-query.js?v=1b604b35:696
+onSuccess @ @tanstack_react-query.js?v=1b604b35:897
+resolve @ @tanstack_react-query.js?v=1b604b35:456
+Promise.then
+run @ @tanstack_react-query.js?v=1b604b35:498
+start @ @tanstack_react-query.js?v=1b604b35:536
+fetch @ @tanstack_react-query.js?v=1b604b35:926
+executeFetch_fn @ @tanstack_react-query.js?v=1b604b35:2211
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:2245
+customer-auth.tsx:360  POST https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/send-otp 500 (Internal Server Error)
+onRegister @ customer-auth.tsx:360
+(anonymous) @ chunk-4BFJKWC4.js?v=1b604b35:1465
+await in (anonymous)
+callCallback2 @ chunk-RPCDYKBN.js?v=1b604b35:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=1b604b35:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=1b604b35:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=1b604b35:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=1b604b35:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=1b604b35:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=1b604b35:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=1b604b35:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=1b604b35:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=1b604b35:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=1b604b35:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=1b604b35:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=1b604b35:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=1b604b35:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=1b604b35:5449
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: []
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: []
+customer-auth.tsx:360  POST https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/send-otp 429 (Too Many Requests)
+onRegister @ customer-auth.tsx:360
+(anonymous) @ chunk-4BFJKWC4.js?v=1b604b35:1465
+await in (anonymous)
+callCallback2 @ chunk-RPCDYKBN.js?v=1b604b35:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=1b604b35:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=1b604b35:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=1b604b35:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=1b604b35:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=1b604b35:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=1b604b35:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=1b604b35:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=1b604b35:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=1b604b35:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=1b604b35:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=1b604b35:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=1b604b35:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=1b604b35:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=1b604b35:5449
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: []
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: []
+useAuth.ts:30  GET https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me 401 (Unauthorized)
+queryFn @ useAuth.ts:30
+fetchFn @ @tanstack_react-query.js?v=1b604b35:840
+run @ @tanstack_react-query.js?v=1b604b35:494
+start @ @tanstack_react-query.js?v=1b604b35:536
+fetch @ @tanstack_react-query.js?v=1b604b35:926
+executeFetch_fn @ @tanstack_react-query.js?v=1b604b35:2211
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:2245
+setInterval
+updateRefetchInterval_fn @ @tanstack_react-query.js?v=1b604b35:2243
+updateTimers_fn @ @tanstack_react-query.js?v=1b604b35:2250
+onQueryUpdate @ @tanstack_react-query.js?v=1b604b35:2206
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:998
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:997
+batch @ @tanstack_react-query.js?v=1b604b35:583
+dispatch_fn @ @tanstack_react-query.js?v=1b604b35:996
+setData @ @tanstack_react-query.js?v=1b604b35:696
+onSuccess @ @tanstack_react-query.js?v=1b604b35:897
+resolve @ @tanstack_react-query.js?v=1b604b35:456
+Promise.then
+run @ @tanstack_react-query.js?v=1b604b35:498
+start @ @tanstack_react-query.js?v=1b604b35:536
+fetch @ @tanstack_react-query.js?v=1b604b35:926
+executeFetch_fn @ @tanstack_react-query.js?v=1b604b35:2211
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:2245
+setInterval
+updateRefetchInterval_fn @ @tanstack_react-query.js?v=1b604b35:2243
+updateTimers_fn @ @tanstack_react-query.js?v=1b604b35:2250
+onQueryUpdate @ @tanstack_react-query.js?v=1b604b35:2206
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:998
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:997
+batch @ @tanstack_react-query.js?v=1b604b35:583
+dispatch_fn @ @tanstack_react-query.js?v=1b604b35:996
+setData @ @tanstack_react-query.js?v=1b604b35:696
+onSuccess @ @tanstack_react-query.js?v=1b604b35:897
+resolve @ @tanstack_react-query.js?v=1b604b35:456
+Promise.then
+run @ @tanstack_react-query.js?v=1b604b35:498
+start @ @tanstack_react-query.js?v=1b604b35:536
+fetch @ @tanstack_react-query.js?v=1b604b35:926
+executeFetch_fn @ @tanstack_react-query.js?v=1b604b35:2211
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:2245
+useCustomerAuth.ts:13  GET https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me 401 (Unauthorized)
+queryFn @ useCustomerAuth.ts:13
+fetchFn @ @tanstack_react-query.js?v=1b604b35:840
+run @ @tanstack_react-query.js?v=1b604b35:494
+start @ @tanstack_react-query.js?v=1b604b35:536
+fetch @ @tanstack_react-query.js?v=1b604b35:926
+executeFetch_fn @ @tanstack_react-query.js?v=1b604b35:2211
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:2245
+setInterval
+updateRefetchInterval_fn @ @tanstack_react-query.js?v=1b604b35:2243
+updateTimers_fn @ @tanstack_react-query.js?v=1b604b35:2250
+onQueryUpdate @ @tanstack_react-query.js?v=1b604b35:2206
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:998
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:997
+batch @ @tanstack_react-query.js?v=1b604b35:583
+dispatch_fn @ @tanstack_react-query.js?v=1b604b35:996
+setData @ @tanstack_react-query.js?v=1b604b35:696
+onSuccess @ @tanstack_react-query.js?v=1b604b35:897
+resolve @ @tanstack_react-query.js?v=1b604b35:456
+Promise.then
+run @ @tanstack_react-query.js?v=1b604b35:498
+start @ @tanstack_react-query.js?v=1b604b35:536
+fetch @ @tanstack_react-query.js?v=1b604b35:926
+executeFetch_fn @ @tanstack_react-query.js?v=1b604b35:2211
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:2245
+setInterval
+updateRefetchInterval_fn @ @tanstack_react-query.js?v=1b604b35:2243
+updateTimers_fn @ @tanstack_react-query.js?v=1b604b35:2250
+onQueryUpdate @ @tanstack_react-query.js?v=1b604b35:2206
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:998
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:997
+batch @ @tanstack_react-query.js?v=1b604b35:583
+dispatch_fn @ @tanstack_react-query.js?v=1b604b35:996
+setData @ @tanstack_react-query.js?v=1b604b35:696
+onSuccess @ @tanstack_react-query.js?v=1b604b35:897
+resolve @ @tanstack_react-query.js?v=1b604b35:456
+Promise.then
+run @ @tanstack_react-query.js?v=1b604b35:498
+start @ @tanstack_react-query.js?v=1b604b35:536
+fetch @ @tanstack_react-query.js?v=1b604b35:926
+executeFetch_fn @ @tanstack_react-query.js?v=1b604b35:2211
+(anonymous) @ @tanstack_react-query.js?v=1b604b35:2245
+customer-auth.tsx:360  POST https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/send-otp 500 (Internal Server Error)
+onRegister @ customer-auth.tsx:360
+(anonymous) @ chunk-4BFJKWC4.js?v=1b604b35:1465
+await in (anonymous)
+callCallback2 @ chunk-RPCDYKBN.js?v=1b604b35:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=1b604b35:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=1b604b35:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=1b604b35:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=1b604b35:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=1b604b35:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=1b604b35:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=1b604b35:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=1b604b35:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=1b604b35:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=1b604b35:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=1b604b35:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=1b604b35:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=1b604b35:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=1b604b35:5449
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: []
+customer-auth.tsx:360  POST https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/send-otp 429 (Too Many Requests)
+onRegister @ customer-auth.tsx:360
+(anonymous) @ chunk-4BFJKWC4.js?v=1b604b35:1465
+await in (anonymous)
+callCallback2 @ chunk-RPCDYKBN.js?v=1b604b35:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=1b604b35:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=1b604b35:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=1b604b35:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=1b604b35:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=1b604b35:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=1b604b35:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=1b604b35:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=1b604b35:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=1b604b35:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=1b604b35:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=1b604b35:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=1b604b35:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=1b604b35:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=1b604b35:5449
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: []
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: []
