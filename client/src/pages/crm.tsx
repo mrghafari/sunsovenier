@@ -43,7 +43,11 @@ function VerificationSettingsPanel() {
   // Update verification settings mutation
   const updateSettingsMutation = useMutation({
     mutationFn: async (newSettings: any) => {
-      return await apiRequest("/api/customer/verification-settings", "PUT", newSettings);
+      const response = await apiRequest("/api/customer/verification-settings", { method: "PUT", body: newSettings });
+      if (response && response.success === false) {
+        throw new Error(response.message || "Failed to update settings");
+      }
+      return response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/customer/verification-settings"] });
@@ -56,7 +60,7 @@ function VerificationSettingsPanel() {
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to update settings",
+        description: error.message || "Failed to update settings - please login as admin",
       });
     },
   });
