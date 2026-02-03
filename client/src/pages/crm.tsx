@@ -66,7 +66,26 @@ function VerificationSettingsPanel() {
   });
 
   const handleToggle = (field: string, value: boolean) => {
-    const newSettings = { ...settings, [field]: value };
+    let newSettings = { ...settings, [field]: value };
+    
+    // When "Allow Skip Verification" is enabled, disable all other channels
+    if (field === "allowSkipVerification" && value === true) {
+      newSettings = {
+        ...newSettings,
+        emailVerificationEnabled: false,
+        smsVerificationEnabled: false,
+        whatsappVerificationEnabled: false,
+      };
+    }
+    
+    // When any channel is enabled, disable "Allow Skip Verification"
+    if ((field === "emailVerificationEnabled" || field === "smsVerificationEnabled" || field === "whatsappVerificationEnabled") && value === true) {
+      newSettings = {
+        ...newSettings,
+        allowSkipVerification: false,
+      };
+    }
+    
     updateSettingsMutation.mutate(newSettings);
   };
 
@@ -90,7 +109,7 @@ function VerificationSettingsPanel() {
           id="email-verification"
           checked={settings.emailVerificationEnabled}
           onCheckedChange={(checked) => handleToggle("emailVerificationEnabled", checked)}
-          disabled={updateSettingsMutation.isPending}
+          disabled={updateSettingsMutation.isPending || settings.allowSkipVerification}
         />
       </div>
 
@@ -108,7 +127,7 @@ function VerificationSettingsPanel() {
           id="sms-verification"
           checked={settings.smsVerificationEnabled}
           onCheckedChange={(checked) => handleToggle("smsVerificationEnabled", checked)}
-          disabled={updateSettingsMutation.isPending}
+          disabled={updateSettingsMutation.isPending || settings.allowSkipVerification}
         />
       </div>
 
@@ -126,7 +145,7 @@ function VerificationSettingsPanel() {
           id="whatsapp-verification"
           checked={settings.whatsappVerificationEnabled}
           onCheckedChange={(checked) => handleToggle("whatsappVerificationEnabled", checked)}
-          disabled={updateSettingsMutation.isPending}
+          disabled={updateSettingsMutation.isPending || settings.allowSkipVerification}
         />
       </div>
 
