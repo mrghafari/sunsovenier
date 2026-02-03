@@ -34,14 +34,16 @@ function VerificationSettingsPanel() {
   
   const isAdminLoggedIn = !!(adminData as any)?.id;
 
-  // Fetch current verification settings
+  // Fetch current verification settings - always get fresh data
   const { data: settingsData, isLoading: settingsLoading } = useQuery({
     queryKey: ["/api/customer/verification-settings"],
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
   const settings = (settingsData as any)?.settings || {
     smsVerificationEnabled: false,
-    emailVerificationEnabled: true,
+    emailVerificationEnabled: false,
     whatsappVerificationEnabled: false,
     requireBothVerifications: false,
     allowSkipVerification: false,
