@@ -112,6 +112,8 @@ const CustomerRegister = () => {
       });
     },
     onSuccess: (response, variables) => {
+      console.log('📧 [OTP RESPONSE]', JSON.stringify(response));
+      
       const { confirmPassword, ...registerData } = variables;
       const registrationPayload = {
         ...registerData,
@@ -122,6 +124,7 @@ const CustomerRegister = () => {
       };
       
       // If skipVerification is true, register directly without OTP
+      console.log('🔍 [SKIP CHECK] skipVerification:', response.skipVerification);
       if (response.skipVerification) {
         setIsSubmitting(false);
         toast({
