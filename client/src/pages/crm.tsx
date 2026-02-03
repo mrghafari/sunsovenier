@@ -106,11 +106,6 @@ function VerificationSettingsPanel() {
 
   return (
     <div className="space-y-4">
-      {!isAdminLoggedIn && (
-        <div className="p-4 bg-yellow-100 border border-yellow-400 rounded-lg text-yellow-800">
-          <strong>Warning:</strong> You must be logged in as admin to save changes. Please login first.
-        </div>
-      )}
       <div className="flex items-center justify-between p-4 border rounded-lg">
         <div>
           <Label htmlFor="email-verification" className="font-medium flex items-center gap-2">
