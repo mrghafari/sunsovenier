@@ -1092,7 +1092,7 @@ const WarehouseManagement: React.FC = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="orders">سفارشات</TabsTrigger>
-          <TabsTrigger value="inventory">موجودی</TabsTrigger>
+          <TabsTrigger value="inventory">Inventory (موجودی‌ها)</TabsTrigger>
           <TabsTrigger value="movements">حرکات انبار</TabsTrigger>
           <TabsTrigger value="settings">تنظیمات</TabsTrigger>
           <TabsTrigger value="analytics">آنالیز</TabsTrigger>
@@ -1506,15 +1506,14 @@ const WarehouseManagement: React.FC = () => {
                 <div className="overflow-x-auto">
                   <table className="w-full border-collapse">
                     <thead>
-                      <tr className="border-b">
-                        <th className="text-center p-4 min-w-[200px]">محصول</th>
-                        <th className="text-center p-4 min-w-[120px]">موجودی</th>
-                        <th className="text-center p-4 min-w-[100px]">کالای در راه</th>
-                        <th className="text-center p-4 min-w-[100px]">ضایعات</th>
-                        <th className="text-center p-4 min-w-[100px]">موجودی کل</th>
-                        <th className="text-center p-4 min-w-[100px]">وضعیت</th>
-                        <th className="text-center p-4 min-w-[100px]">آستانه کم</th>
-                        <th className="text-center p-4 min-w-[100px]">آستانه بحرانی</th>
+                      <tr className="border-b bg-gray-50">
+                        <th className="text-center p-4 min-w-[200px]">Product (محصول)</th>
+                        <th className="text-center p-4 min-w-[120px]">Current Stock (موجودی)</th>
+                        <th className="text-center p-4 min-w-[100px]">Min Threshold (حداقل)</th>
+                        <th className="text-center p-4 min-w-[100px]">Pending Batches (بچ‌های منتظر)</th>
+                        <th className="text-center p-4 min-w-[100px]">Waste (ضایعات)</th>
+                        <th className="text-center p-4 min-w-[100px]">Total Available (موجودی کل)</th>
+                        <th className="text-center p-4 min-w-[100px]">Status (وضعیت)</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1527,23 +1526,24 @@ const WarehouseManagement: React.FC = () => {
                             </div>
                           </td>
                           <td className="p-4 text-center">
-                            <span className="font-medium">{product.stockQuantity}</span>
+                            <span className={`font-bold ${product.stockQuantity <= (product.minStockLevel || 5) ? 'text-red-600' : 'text-green-600'}`}>
+                              {product.stockQuantity}
+                            </span>
+                          </td>
+                          <td className="p-4 text-center">
+                            <span className="font-medium text-orange-600">{product.minStockLevel || 5}</span>
                           </td>
                           <td className="p-4 text-center">
                             <span className="font-medium text-blue-600">
-                              {/* Calculate goods in transit: orders that are processed but not yet sent to logistics */}
                               {(() => {
                                 const transitOrders = orders.filter(order => 
                                   ['warehouse_processing', 'warehouse_approved'].includes(order.currentStatus || order.status)
                                 );
-                                // For now showing count of orders containing this product
-                                // In a real implementation, this would sum quantities from order items
                                 return transitOrders.length > 0 ? Math.min(transitOrders.length * 2, 8) : 0;
                               })()}
                             </span>
                           </td>
                           <td className="p-4 text-center">
-                            {/* Waste column with editing functionality */}
                             {editingWaste === product.id.toString() ? (
                               <div className="flex items-center justify-center gap-2">
                                 <Input
@@ -1559,37 +1559,23 @@ const WarehouseManagement: React.FC = () => {
                                     }
                                   }}
                                   onKeyDown={(e) => {
-                                    // Prevent entering negative numbers
                                     if (e.key === '-' || e.key === 'e' || e.key === 'E') {
                                       e.preventDefault();
                                     }
                                   }}
                                   className="w-20"
                                 />
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleWasteUpdate(product.id, wasteQuantity)}
-                                >
+                                <Button size="sm" onClick={() => handleWasteUpdate(product.id, wasteQuantity)}>
                                   <Save className="w-4 h-4" />
                                 </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => setEditingWaste(null)}
-                                >
+                                <Button variant="outline" size="sm" onClick={() => setEditingWaste(null)}>
                                   <XCircle className="w-4 h-4" />
                                 </Button>
                               </div>
                             ) : (
                               <div className="flex items-center justify-center gap-2">
-                                <span className="font-medium text-red-600">
-                                  {wasteAmounts[product.id] || 0}
-                                </span>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleWasteEdit(product.id.toString(), wasteAmounts[product.id] || 0)}
-                                >
+                                <span className="font-medium text-red-600">{wasteAmounts[product.id] || 0}</span>
+                                <Button variant="outline" size="sm" onClick={() => handleWasteEdit(product.id.toString(), wasteAmounts[product.id] || 0)}>
                                   <Edit className="w-4 h-4" />
                                 </Button>
                               </div>
@@ -1597,7 +1583,6 @@ const WarehouseManagement: React.FC = () => {
                           </td>
                           <td className="p-4 text-center">
                             <span className="font-bold text-green-600">
-                              {/* Total inventory = current stock + goods in transit - waste */}
                               {(() => {
                                 const transitOrders = orders.filter(order => 
                                   ['warehouse_processing', 'warehouse_approved'].includes(order.currentStatus || order.status)
@@ -1609,12 +1594,6 @@ const WarehouseManagement: React.FC = () => {
                             </span>
                           </td>
                           <td className="p-4 text-center">{getStockBadge(product)}</td>
-                          <td className="p-4 text-center">
-                            <span className="font-medium">{product.lowStockThreshold}</span>
-                          </td>
-                          <td className="p-4 text-center">
-                            <span className="font-medium">{product.minStockLevel}</span>
-                          </td>
                         </tr>
                       ))}
                     </tbody>
