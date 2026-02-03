@@ -5,6 +5,7 @@ logBuffer.init();
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import MemoryStore from "memorystore";
+import rateLimit from "express-rate-limit";
 import path from "path";
 import { registerRoutes } from "./routes";
 import backupRoutes from "./backup-routes";
