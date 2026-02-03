@@ -1,0 +1,317 @@
+index-D9moR1zr.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+index-D9moR1zr.js:1090 🎛️ [VISIBILITY] Discount Banner: false
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats data: {}
+index-D9moR1zr.js:1090 🔐 [AUTH] Guest user confirmed
+index-D9moR1zr.js:1086  GET https://momtaz-chem-website-admin3119.replit.app/api/admin/me 401 (Unauthorized)
+queryFn @ index-D9moR1zr.js:1086
+i @ index-D9moR1zr.js:48
+v @ index-D9moR1zr.js:48
+start @ index-D9moR1zr.js:48
+fetch @ index-D9moR1zr.js:48
+PN @ index-D9moR1zr.js:48
+onSubscribe @ index-D9moR1zr.js:48
+subscribe @ index-D9moR1zr.js:48
+(anonymous) @ index-D9moR1zr.js:48
+rne @ index-D9moR1zr.js:38
+Nk @ index-D9moR1zr.js:40
+lj @ index-D9moR1zr.js:40
+rz @ index-D9moR1zr.js:40
+M0 @ index-D9moR1zr.js:38
+uSe @ index-D9moR1zr.js:40
+ng @ index-D9moR1zr.js:40
+Dne @ index-D9moR1zr.js:40
+T @ index-D9moR1zr.js:25
+R @ index-D9moR1zr.js:25
+index-D9moR1zr.js:48  GET https://momtaz-chem-website-admin3119.replit.app/api/customers/me 401 (Unauthorized)
+(anonymous) @ index-D9moR1zr.js:48
+i @ index-D9moR1zr.js:48
+v @ index-D9moR1zr.js:48
+start @ index-D9moR1zr.js:48
+fetch @ index-D9moR1zr.js:48
+PN @ index-D9moR1zr.js:48
+onSubscribe @ index-D9moR1zr.js:48
+subscribe @ index-D9moR1zr.js:48
+(anonymous) @ index-D9moR1zr.js:48
+rne @ index-D9moR1zr.js:38
+Nk @ index-D9moR1zr.js:40
+lj @ index-D9moR1zr.js:40
+rz @ index-D9moR1zr.js:40
+M0 @ index-D9moR1zr.js:38
+uSe @ index-D9moR1zr.js:40
+ng @ index-D9moR1zr.js:40
+Dne @ index-D9moR1zr.js:40
+T @ index-D9moR1zr.js:25
+R @ index-D9moR1zr.js:25
+index-D9moR1zr.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+index-D9moR1zr.js:1090 🎛️ [VISIBILITY] Discount Banner: false
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats data: {}
+index-D9moR1zr.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+index-D9moR1zr.js:1090 🎛️ [VISIBILITY] Discount Banner: false
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats data: {}
+index-D9moR1zr.js:2830 📥 Loading Tawk.to widget at bottom-left position...
+index-D9moR1zr.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+index-D9moR1zr.js:1090 🎛️ [VISIBILITY] Discount Banner: false
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+index-D9moR1zr.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+index-D9moR1zr.js:1090 🎛️ [VISIBILITY] Discount Banner: false
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+index-D9moR1zr.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+index-D9moR1zr.js:1090 🎛️ [VISIBILITY] Discount Banner: false
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+index-D9moR1zr.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+index-D9moR1zr.js:1090 🎛️ [VISIBILITY] Discount Banner: false
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Products with ratings: []
+index-D9moR1zr.js:1090 📦 [INIT DISPLAY STOCK] Product 512: Stock=4, Cart=0, Display=4
+index-D9moR1zr.js:1090 📦 [INIT DISPLAY STOCK] Product 513: Stock=8045, Cart=0, Display=8045
+index-D9moR1zr.js:1090 📦 [INIT DISPLAY STOCK] Product 506: Stock=54540, Cart=0, Display=54540
+index-D9moR1zr.js:1090 📦 [INIT DISPLAY STOCK] Product 509: Stock=1015, Cart=0, Display=1015
+index-D9moR1zr.js:1090 📦 [INIT DISPLAY STOCK] Product 511: Stock=100, Cart=0, Display=100
+index-D9moR1zr.js:1090 📦 [INIT DISPLAY STOCK] Product 516: Stock=11, Cart=0, Display=11
+index-D9moR1zr.js:1090 📦 [INIT DISPLAY STOCK] Product 515: Stock=11, Cart=0, Display=11
+index-D9moR1zr.js:1090 📦 [INIT DISPLAY STOCK] Product 508: Stock=1300, Cart=0, Display=1300
+index-D9moR1zr.js:1090 📦 [INIT DISPLAY STOCK] Product 507: Stock=11, Cart=0, Display=11
+index-D9moR1zr.js:1090 📦 [INIT DISPLAY STOCK] Product 510: Stock=8055, Cart=0, Display=8055
+index-D9moR1zr.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+index-D9moR1zr.js:1090 🎛️ [VISIBILITY] Discount Banner: false
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Products with ratings: []
+index-D9moR1zr.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+index-D9moR1zr.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Products with ratings: []
+via.placeholder.com/128x128?text=WeChat+QR:1  GET https://via.placeholder.com/128x128?text=WeChat+QR net::ERR_EMPTY_RESPONSE
+Image
+ez @ index-D9moR1zr.js:40
+Mne @ index-D9moR1zr.js:40
+iSe @ index-D9moR1zr.js:40
+uSe @ index-D9moR1zr.js:40
+ng @ index-D9moR1zr.js:40
+rz @ index-D9moR1zr.js:40
+M0 @ index-D9moR1zr.js:38
+(anonymous) @ index-D9moR1zr.js:40
+setTimeout
+a @ index-D9moR1zr.js:48
+l @ index-D9moR1zr.js:48
+batch @ index-D9moR1zr.js:48
+Yf @ index-D9moR1zr.js:48
+setData @ index-D9moR1zr.js:48
+onSuccess @ index-D9moR1zr.js:48
+h @ index-D9moR1zr.js:48
+Promise.then
+v @ index-D9moR1zr.js:48
+start @ index-D9moR1zr.js:48
+fetch @ index-D9moR1zr.js:48
+PN @ index-D9moR1zr.js:48
+onSubscribe @ index-D9moR1zr.js:48
+subscribe @ index-D9moR1zr.js:48
+(anonymous) @ index-D9moR1zr.js:48
+rne @ index-D9moR1zr.js:38
+Nk @ index-D9moR1zr.js:40
+lj @ index-D9moR1zr.js:40
+rz @ index-D9moR1zr.js:40
+M0 @ index-D9moR1zr.js:38
+uSe @ index-D9moR1zr.js:40
+ng @ index-D9moR1zr.js:40
+Dne @ index-D9moR1zr.js:40
+T @ index-D9moR1zr.js:25
+R @ index-D9moR1zr.js:25
+index-D9moR1zr.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+index-D9moR1zr.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Products with ratings: []
+index-D9moR1zr.js:1090 📦 [INIT DISPLAY STOCK] Product 512: Stock=4, Cart=0, Display=4
+index-D9moR1zr.js:1090 📦 [INIT DISPLAY STOCK] Product 513: Stock=8045, Cart=0, Display=8045
+index-D9moR1zr.js:1090 📦 [INIT DISPLAY STOCK] Product 506: Stock=54540, Cart=0, Display=54540
+index-D9moR1zr.js:1090 📦 [INIT DISPLAY STOCK] Product 509: Stock=1015, Cart=0, Display=1015
+index-D9moR1zr.js:1090 📦 [INIT DISPLAY STOCK] Product 511: Stock=100, Cart=0, Display=100
+index-D9moR1zr.js:1090 📦 [INIT DISPLAY STOCK] Product 516: Stock=11, Cart=0, Display=11
+index-D9moR1zr.js:1090 📦 [INIT DISPLAY STOCK] Product 515: Stock=11, Cart=0, Display=11
+index-D9moR1zr.js:1090 📦 [INIT DISPLAY STOCK] Product 508: Stock=1300, Cart=0, Display=1300
+index-D9moR1zr.js:1090 📦 [INIT DISPLAY STOCK] Product 507: Stock=11, Cart=0, Display=11
+index-D9moR1zr.js:1090 📦 [INIT DISPLAY STOCK] Product 510: Stock=8055, Cart=0, Display=8055
+index-D9moR1zr.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+index-D9moR1zr.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Products with ratings: []
+shop:1 Access to script at 'https://embed.tawk.to/692013a38c9683195b70e4b3/1jaikpe3n' from origin 'https://momtaz-chem-website-admin3119.replit.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+index-D9moR1zr.js:2830  GET https://embed.tawk.to/692013a38c9683195b70e4b3/1jaikpe3n net::ERR_FAILED 403 (Forbidden)
+(anonymous) @ index-D9moR1zr.js:2830
+Nk @ index-D9moR1zr.js:40
+lj @ index-D9moR1zr.js:40
+uSe @ index-D9moR1zr.js:40
+ng @ index-D9moR1zr.js:40
+rz @ index-D9moR1zr.js:40
+M0 @ index-D9moR1zr.js:38
+(anonymous) @ index-D9moR1zr.js:40
+setTimeout
+a @ index-D9moR1zr.js:48
+l @ index-D9moR1zr.js:48
+batch @ index-D9moR1zr.js:48
+Yf @ index-D9moR1zr.js:48
+setData @ index-D9moR1zr.js:48
+onSuccess @ index-D9moR1zr.js:48
+h @ index-D9moR1zr.js:48
+Promise.then
+v @ index-D9moR1zr.js:48
+start @ index-D9moR1zr.js:48
+fetch @ index-D9moR1zr.js:48
+PN @ index-D9moR1zr.js:48
+onSubscribe @ index-D9moR1zr.js:48
+subscribe @ index-D9moR1zr.js:48
+(anonymous) @ index-D9moR1zr.js:48
+rne @ index-D9moR1zr.js:38
+Nk @ index-D9moR1zr.js:40
+lj @ index-D9moR1zr.js:40
+rz @ index-D9moR1zr.js:40
+M0 @ index-D9moR1zr.js:38
+uSe @ index-D9moR1zr.js:40
+ng @ index-D9moR1zr.js:40
+Dne @ index-D9moR1zr.js:40
+T @ index-D9moR1zr.js:25
+R @ index-D9moR1zr.js:25
+index-D9moR1zr.js:2830 ❌ Failed to load Tawk.to script
+v.parentNode.f.onerror @ index-D9moR1zr.js:2830
+script
+(anonymous) @ index-D9moR1zr.js:2830
+Nk @ index-D9moR1zr.js:40
+lj @ index-D9moR1zr.js:40
+uSe @ index-D9moR1zr.js:40
+ng @ index-D9moR1zr.js:40
+rz @ index-D9moR1zr.js:40
+M0 @ index-D9moR1zr.js:38
+(anonymous) @ index-D9moR1zr.js:40
+setTimeout
+a @ index-D9moR1zr.js:48
+l @ index-D9moR1zr.js:48
+batch @ index-D9moR1zr.js:48
+Yf @ index-D9moR1zr.js:48
+setData @ index-D9moR1zr.js:48
+onSuccess @ index-D9moR1zr.js:48
+h @ index-D9moR1zr.js:48
+Promise.then
+v @ index-D9moR1zr.js:48
+start @ index-D9moR1zr.js:48
+fetch @ index-D9moR1zr.js:48
+PN @ index-D9moR1zr.js:48
+onSubscribe @ index-D9moR1zr.js:48
+subscribe @ index-D9moR1zr.js:48
+(anonymous) @ index-D9moR1zr.js:48
+rne @ index-D9moR1zr.js:38
+Nk @ index-D9moR1zr.js:40
+lj @ index-D9moR1zr.js:40
+rz @ index-D9moR1zr.js:40
+M0 @ index-D9moR1zr.js:38
+uSe @ index-D9moR1zr.js:40
+ng @ index-D9moR1zr.js:40
+Dne @ index-D9moR1zr.js:40
+T @ index-D9moR1zr.js:25
+R @ index-D9moR1zr.js:25
+index-D9moR1zr.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+index-D9moR1zr.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Products with ratings: []
+index-D9moR1zr.js:1090  GET https://momtaz-chem-website-admin3119.replit.app/api/customers/me 401 (Unauthorized)
+queryFn @ index-D9moR1zr.js:1090
+i @ index-D9moR1zr.js:48
+v @ index-D9moR1zr.js:48
+start @ index-D9moR1zr.js:48
+fetch @ index-D9moR1zr.js:48
+PN @ index-D9moR1zr.js:48
+(anonymous) @ index-D9moR1zr.js:48
+setInterval
+$8 @ index-D9moR1zr.js:48
+U8 @ index-D9moR1zr.js:48
+onQueryUpdate @ index-D9moR1zr.js:48
+(anonymous) @ index-D9moR1zr.js:48
+(anonymous) @ index-D9moR1zr.js:48
+batch @ index-D9moR1zr.js:48
+Yf @ index-D9moR1zr.js:48
+setData @ index-D9moR1zr.js:48
+onSuccess @ index-D9moR1zr.js:48
+h @ index-D9moR1zr.js:48
+Promise.then
+v @ index-D9moR1zr.js:48
+start @ index-D9moR1zr.js:48
+fetch @ index-D9moR1zr.js:48
+PN @ index-D9moR1zr.js:48
+onSubscribe @ index-D9moR1zr.js:48
+subscribe @ index-D9moR1zr.js:48
+(anonymous) @ index-D9moR1zr.js:48
+rne @ index-D9moR1zr.js:38
+Nk @ index-D9moR1zr.js:40
+lj @ index-D9moR1zr.js:40
+rz @ index-D9moR1zr.js:40
+M0 @ index-D9moR1zr.js:38
+uSe @ index-D9moR1zr.js:40
+ng @ index-D9moR1zr.js:40
+Dne @ index-D9moR1zr.js:40
+T @ index-D9moR1zr.js:25
+R @ index-D9moR1zr.js:25
+index-D9moR1zr.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+index-D9moR1zr.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Products with ratings: []
+index-D9moR1zr.js:1086  GET https://momtaz-chem-website-admin3119.replit.app/api/admin/me 401 (Unauthorized)
+queryFn @ index-D9moR1zr.js:1086
+i @ index-D9moR1zr.js:48
+v @ index-D9moR1zr.js:48
+start @ index-D9moR1zr.js:48
+fetch @ index-D9moR1zr.js:48
+PN @ index-D9moR1zr.js:48
+(anonymous) @ index-D9moR1zr.js:48
+setInterval
+$8 @ index-D9moR1zr.js:48
+U8 @ index-D9moR1zr.js:48
+onQueryUpdate @ index-D9moR1zr.js:48
+(anonymous) @ index-D9moR1zr.js:48
+(anonymous) @ index-D9moR1zr.js:48
+batch @ index-D9moR1zr.js:48
+Yf @ index-D9moR1zr.js:48
+setData @ index-D9moR1zr.js:48
+onSuccess @ index-D9moR1zr.js:48
+h @ index-D9moR1zr.js:48
+Promise.then
+v @ index-D9moR1zr.js:48
+start @ index-D9moR1zr.js:48
+fetch @ index-D9moR1zr.js:48
+PN @ index-D9moR1zr.js:48
+onSubscribe @ index-D9moR1zr.js:48
+subscribe @ index-D9moR1zr.js:48
+(anonymous) @ index-D9moR1zr.js:48
+rne @ index-D9moR1zr.js:38
+Nk @ index-D9moR1zr.js:40
+lj @ index-D9moR1zr.js:40
+rz @ index-D9moR1zr.js:40
+M0 @ index-D9moR1zr.js:38
+uSe @ index-D9moR1zr.js:40
+ng @ index-D9moR1zr.js:40
+Dne @ index-D9moR1zr.js:40
+T @ index-D9moR1zr.js:25
+R @ index-D9moR1zr.js:25
+index-D9moR1zr.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+index-D9moR1zr.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Products with ratings: []

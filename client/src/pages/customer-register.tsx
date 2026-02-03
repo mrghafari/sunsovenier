@@ -112,7 +112,9 @@ const CustomerRegister = () => {
       });
     },
     onSuccess: (response, variables) => {
-      console.log('📧 [OTP RESPONSE]', JSON.stringify(response));
+      console.log('📧 [OTP RESPONSE] Full response:', response);
+      console.log('📧 [OTP RESPONSE] skipVerification value:', response?.skipVerification);
+      console.log('📧 [OTP RESPONSE] Response type:', typeof response);
       
       const { confirmPassword, ...registerData } = variables;
       const registrationPayload = {
@@ -123,9 +125,11 @@ const CustomerRegister = () => {
         whatsappNumber: registerData.phone,
       };
       
-      // If skipVerification is true, register directly without OTP
-      console.log('🔍 [SKIP CHECK] skipVerification:', response.skipVerification);
-      if (response.skipVerification) {
+      // If skipVerification is true OR no channels configured, register directly without OTP
+      const shouldSkip = response?.skipVerification === true || response?.skipVerification === 'true';
+      console.log('🔍 [SKIP CHECK] Should skip:', shouldSkip);
+      
+      if (shouldSkip) {
         setIsSubmitting(false);
         toast({
           title: "Creating Account",

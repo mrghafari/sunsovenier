@@ -1,0 +1,175 @@
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🔐 [AUTH] Guest user confirmed
+me:1  Failed to load resource: the server responded with a status of 401 ()
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+me:1  Failed to load resource: the server responded with a status of 401 ()
+ 📥 Loading Tawk.to widget at bottom-left position...
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(10)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 📦 [INIT DISPLAY STOCK] Product 512: Stock=4, Cart=0, Display=4
+ 📦 [INIT DISPLAY STOCK] Product 513: Stock=8045, Cart=0, Display=8045
+ 📦 [INIT DISPLAY STOCK] Product 506: Stock=54540, Cart=0, Display=54540
+ 📦 [INIT DISPLAY STOCK] Product 509: Stock=1015, Cart=0, Display=1015
+ 📦 [INIT DISPLAY STOCK] Product 511: Stock=100, Cart=0, Display=100
+ 📦 [INIT DISPLAY STOCK] Product 516: Stock=11, Cart=0, Display=11
+ 📦 [INIT DISPLAY STOCK] Product 515: Stock=11, Cart=0, Display=11
+ 📦 [INIT DISPLAY STOCK] Product 508: Stock=1300, Cart=0, Display=1300
+ 📦 [INIT DISPLAY STOCK] Product 507: Stock=11, Cart=0, Display=11
+ 📦 [INIT DISPLAY STOCK] Product 510: Stock=8055, Cart=0, Display=8055
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Current products: Array(10)
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+index-D9moR1zr.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: Object
+index-D9moR1zr.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Current products: Array(10)
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+128x128?text=WeChat+QR:1  Failed to load resource: net::ERR_EMPTY_RESPONSE
+index-D9moR1zr.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: Object
+index-D9moR1zr.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Current products: Array(10)
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+index-D9moR1zr.js:1090 📦 [INIT DISPLAY STOCK] Product 512: Stock=4, Cart=0, Display=4
+index-D9moR1zr.js:1090 📦 [INIT DISPLAY STOCK] Product 513: Stock=8045, Cart=0, Display=8045
+index-D9moR1zr.js:1090 📦 [INIT DISPLAY STOCK] Product 506: Stock=54540, Cart=0, Display=54540
+index-D9moR1zr.js:1090 📦 [INIT DISPLAY STOCK] Product 509: Stock=1015, Cart=0, Display=1015
+index-D9moR1zr.js:1090 📦 [INIT DISPLAY STOCK] Product 511: Stock=100, Cart=0, Display=100
+index-D9moR1zr.js:1090 📦 [INIT DISPLAY STOCK] Product 516: Stock=11, Cart=0, Display=11
+index-D9moR1zr.js:1090 📦 [INIT DISPLAY STOCK] Product 515: Stock=11, Cart=0, Display=11
+index-D9moR1zr.js:1090 📦 [INIT DISPLAY STOCK] Product 508: Stock=1300, Cart=0, Display=1300
+index-D9moR1zr.js:1090 📦 [INIT DISPLAY STOCK] Product 507: Stock=11, Cart=0, Display=11
+index-D9moR1zr.js:1090 📦 [INIT DISPLAY STOCK] Product 510: Stock=8055, Cart=0, Display=8055
+index-D9moR1zr.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: Object
+index-D9moR1zr.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Current products: Array(10)
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+shop:1 Access to script at 'https://embed.tawk.to/692013a38c9683195b70e4b3/1jaikpe3n' from origin 'https://momtaz-chem-website-admin3119.replit.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+embed.tawk.to/692013a38c9683195b70e4b3/1jaikpe3n:1  Failed to load resource: net::ERR_FAILED
+index-D9moR1zr.js:2830 ❌ Failed to load Tawk.to script
+v.parentNode.f.onerror @ index-D9moR1zr.js:2830
+index-D9moR1zr.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: Object
+index-D9moR1zr.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Current products: Array(10)
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+api/customers/me:1  Failed to load resource: the server responded with a status of 401 ()
+index-D9moR1zr.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: Object
+index-D9moR1zr.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Current products: Array(10)
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+api/admin/me:1  Failed to load resource: the server responded with a status of 401 ()
+index-D9moR1zr.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: Object
+index-D9moR1zr.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Current products: Array(10)
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+index-D9moR1zr.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: Object
+index-D9moR1zr.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Current products: Array(10)
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+api/admin/me:1  Failed to load resource: the server responded with a status of 401 ()
+api/customers/me:1  Failed to load resource: the server responded with a status of 401 ()
+index-D9moR1zr.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: Object
+index-D9moR1zr.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Current products: Array(10)
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+index-D9moR1zr.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: Object
+index-D9moR1zr.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Current products: Array(10)
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+index-D9moR1zr.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+index-D9moR1zr.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Products with ratings: []
+index-D9moR1zr.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+index-D9moR1zr.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Products with ratings: []
+index-D9moR1zr.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+index-D9moR1zr.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Products with ratings: []
+index-D9moR1zr.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+index-D9moR1zr.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Products with ratings: []
+index-D9moR1zr.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+index-D9moR1zr.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Products with ratings: []
+index-D9moR1zr.js:1090  GET https://momtaz-chem-website-admin3119.replit.app/api/customers/me 401 (Unauthorized)
+queryFn @ index-D9moR1zr.js:1090
+i @ index-D9moR1zr.js:48
+v @ index-D9moR1zr.js:48
+start @ index-D9moR1zr.js:48
+fetch @ index-D9moR1zr.js:48
+PN @ index-D9moR1zr.js:48
+(anonymous) @ index-D9moR1zr.js:48
+index-D9moR1zr.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+index-D9moR1zr.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+index-D9moR1zr.js:1090 🌟 [RATINGS DEBUG] Products with ratings: []
+index-D9moR1zr.js:1086  GET https://momtaz-chem-website-admin3119.replit.app/api/admin/me 401 (Unauthorized)
+queryFn @ index-D9moR1zr.js:1086
+i @ index-D9moR1zr.js:48
+v @ index-D9moR1zr.js:48
+start @ index-D9moR1zr.js:48
+fetch @ index-D9moR1zr.js:48
+PN @ index-D9moR1zr.js:48
+(anonymous) @ index-D9moR1zr.js:48
