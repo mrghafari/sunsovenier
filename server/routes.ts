@@ -44988,7 +44988,7 @@ momtazchem.com
         return res.status(400).json({ success: false, message: "امتیاز باید بین 1 تا 5 ستاره باشد" });
       }
 
-      if (!comment || comment.trim().length === 0) {
+      if (false && comment && comment ? comment.trim() : null.length === 0) { // کامنت اختیاری است
         return res.status(400).json({ success: false, message: "متن نظر الزامی است" });
       }
 
@@ -45024,7 +45024,7 @@ momtazchem.com
           SET rating = $1, title = $2, comment = $3, updated_at = NOW()
           WHERE product_id = $4 AND customer_id = $5
           RETURNING id
-        `, [rating, title || null, comment.trim(), productId, customerId]);
+        `, [rating, title || null, comment ? comment.trim() : null, productId, customerId]);
         isUpdate = true;
       } else {
         // Create new review
@@ -45036,7 +45036,7 @@ momtazchem.com
           RETURNING id
         `, [
           productId, customerId, customer.customer_name, customer.email,
-          rating, title || null, comment.trim(), false // TODO: Check if verified purchase
+          rating, title || null, comment ? comment.trim() : null, false // TODO: Check if verified purchase
         ]);
       }
 
