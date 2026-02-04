@@ -91,16 +91,16 @@ export default function WarehouseInventoryManagement() {
     isActive: true
   });
 
-  const { data: productsData, isLoading: productsLoading, refetch: refetchProducts } = useQuery({
+  const { data: productsData, isLoading: productsLoading, refetch: refetchProducts } = useQuery<{ products: InventoryProduct[] }>({
     queryKey: ["/api/warehouse/inventory-products"],
   });
 
-  const { data: settingsData, isLoading: settingsLoading } = useQuery({
+  const { data: settingsData, isLoading: settingsLoading } = useQuery<{ success: boolean; settings: InventoryNotificationSettings }>({
     queryKey: ["/api/warehouse/inventory-notification-settings"],
   });
 
   useEffect(() => {
-    if (settingsData?.success && settingsData.settings) {
+    if (settingsData?.success && settingsData?.settings) {
       setSettings(settingsData.settings);
     }
   }, [settingsData]);
@@ -115,10 +115,13 @@ export default function WarehouseInventoryManagement() {
 
   const updateProductMutation = useMutation({
     mutationFn: (product: InventoryProduct) => 
-      apiRequest(`/api/warehouse/inventory-products/${product.id}`, "PATCH", {
-        minStockLevel: product.minStockLevel,
-        maxStockLevel: product.maxStockLevel,
-        lowStockThreshold: product.lowStockThreshold
+      apiRequest(`/api/warehouse/inventory-products/${product.id}`, {
+        method: "PATCH",
+        body: {
+          minStockLevel: product.minStockLevel,
+          maxStockLevel: product.maxStockLevel,
+          lowStockThreshold: product.lowStockThreshold
+        }
       }),
     onSuccess: () => {
       toast({
@@ -140,7 +143,10 @@ export default function WarehouseInventoryManagement() {
 
   const saveSettingsMutation = useMutation({
     mutationFn: (data: InventoryNotificationSettings) => 
-      apiRequest("/api/warehouse/inventory-notification-settings", "POST", data),
+      apiRequest("/api/warehouse/inventory-notification-settings", {
+        method: "POST",
+        body: data
+      }),
     onSuccess: () => {
       toast({
         title: "تنظیمات ذخیره شد",
@@ -159,7 +165,7 @@ export default function WarehouseInventoryManagement() {
 
   const testNotificationMutation = useMutation({
     mutationFn: (type: 'email' | 'sms' | 'whatsapp') => 
-      apiRequest(`/api/warehouse/test-notification/${type}`, "POST"),
+      apiRequest(`/api/warehouse/test-notification/${type}`, { method: "POST" }),
     onSuccess: (_, type) => {
       const typeNames = { email: 'ایمیل', sms: 'پیامک', whatsapp: 'واتساپ' };
       toast({

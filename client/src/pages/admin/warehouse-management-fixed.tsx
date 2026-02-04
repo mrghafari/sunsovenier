@@ -507,7 +507,7 @@ const WarehouseManagementFixed: React.FC = () => {
   }) || [];
 
   // Debug log the final sorted order
-  console.log('🔄 [FINAL ORDER] Orders after sorting:', filteredOrders?.map(o => ({ 
+  console.log('🔄 [FINAL ORDER] Orders after sorting:', filteredOrders?.map((o: Order) => ({ 
     id: o.id, 
     customerOrderId: o.customerOrderId, 
     orderNumber: o.orderNumber 
@@ -636,10 +636,14 @@ const WarehouseManagementFixed: React.FC = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="orders" className="w-full">
-          <TabsList className="grid w-full grid-cols-1 mb-6">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
             <TabsTrigger value="orders" className="flex items-center gap-2">
               <Package className="w-4 h-4" />
               سفارشات
+            </TabsTrigger>
+            <TabsTrigger value="inventory" className="flex items-center gap-2">
+              <Package2 className="w-4 h-4" />
+              موجودی انبار
             </TabsTrigger>
           </TabsList>
 
@@ -772,7 +776,7 @@ const WarehouseManagementFixed: React.FC = () => {
                             </td>
                             <td className="p-4 text-center" style={{ width: '12%' }}>{getStatusBadge(order.currentStatus || order.status)}</td>
                             <td className="p-4 text-center" style={{ width: '14%' }}>
-                              {order.customerNotes && order.customerNotes.trim().length > 0 ? (
+                              {(order as any).customerNotes && (order as any).customerNotes.trim().length > 0 ? (
                                 <div className="bg-amber-100 text-amber-700 px-2 py-1 rounded text-xs font-medium inline-flex items-center gap-1">
                                   <Edit3 className="w-3 h-3" />
                                   دارای یادداشت مشتری
@@ -854,6 +858,33 @@ const WarehouseManagementFixed: React.FC = () => {
                     </table>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Inventory Tab */}
+          <TabsContent value="inventory" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Package2 className="w-5 h-5" />
+                  مدیریت موجودی انبار
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8">
+                  <Package2 className="w-16 h-16 mx-auto text-blue-500 mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">سیستم مدیریت موجودی</h3>
+                  <p className="text-gray-600 mb-6">
+                    مدیریت سطح موجودی، تنظیمات هشدار کمبود موجودی، و تنظیم گیرندگان اعلان
+                  </p>
+                  <a href="/admin/warehouse-inventory-management">
+                    <Button className="bg-blue-600 hover:bg-blue-700">
+                      <Package2 className="w-4 h-4 mr-2" />
+                      ورود به مدیریت موجودی
+                    </Button>
+                  </a>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
