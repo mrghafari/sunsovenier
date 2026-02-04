@@ -2852,7 +2852,7 @@ const LogisticsManagement = () => {
     return allOrders.find((order: any) => order.id === confirmingDeliveryOrderId);
   };
 
-  // Send or resend delivery code SMS using template #3
+  // Send or resend delivery code using configured notification channels (Email/SMS/WhatsApp)
   const handleSendDeliveryCode = async (orderManagementId: number, hasExistingCode: boolean) => {
     setResendingCodes(prev => ({ ...prev, [orderManagementId]: true }));
     
@@ -2874,7 +2874,7 @@ const LogisticsManagement = () => {
         setResentCodes(prev => ({ ...prev, [orderManagementId]: true }));
         toast({
           title: '✅ کد تحویل ارسال شد',
-          description: `کد تحویل ${result.deliveryCode} با استفاده از قالب شماره 3 ارسال شد`,
+          description: `کد تحویل ${result.deliveryCode} از طریق کانال‌های فعال (ایمیل/پیامک/واتساپ) ارسال شد`,
         });
         
         // Reset success state after 3 seconds
@@ -2887,7 +2887,7 @@ const LogisticsManagement = () => {
       } else {
         toast({
           title: '❌ خطا در ارسال کد',
-          description: result.message || 'خطا در ارسال پیامک کد تحویل',
+          description: result.message || 'خطا در ارسال کد تحویل',
           variant: 'destructive',
         });
       }

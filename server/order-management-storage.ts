@@ -36,6 +36,40 @@ import { AutoInvoiceConverter } from "./auto-invoice-converter";
 import { orderConsolidationService } from "./order-consolidation-service";
 import { sequenceSyncService } from "./sequence-sync";
 
+// Helper function to get logistics notification settings
+async function getLogisticsNotificationSettings(): Promise<{email: boolean, sms: boolean, whatsapp: boolean}> {
+  try {
+    const { pool } = await import('./db');
+    const result = await pool.query(`
+      SELECT setting_key, setting_value 
+      FROM shop_settings 
+      WHERE category = 'logistics_notifications'
+    `);
+    
+    const settings = {
+      email: true,  // Default: email enabled
+      sms: false,   // Default: SMS disabled
+      whatsapp: false // Default: WhatsApp disabled
+    };
+    
+    for (const row of result.rows) {
+      if (row.setting_key === 'logistics_notification_email') {
+        settings.email = row.setting_value === 'true';
+      } else if (row.setting_key === 'logistics_notification_sms') {
+        settings.sms = row.setting_value === 'true';
+      } else if (row.setting_key === 'logistics_notification_whatsapp') {
+        settings.whatsapp = row.setting_value === 'true';
+      }
+    }
+    
+    console.log('📋 [NOTIFICATION SETTINGS] Loaded:', settings);
+    return settings;
+  } catch (error) {
+    console.error('❌ [NOTIFICATION SETTINGS] Error loading settings, using defaults:', error);
+    return { email: true, sms: false, whatsapp: false };
+  }
+}
+
 export interface IOrderManagementStorage {
   // Order Management
   createOrderManagement(orderData: InsertOrderManagement): Promise<OrderManagement>;
@@ -326,46 +360,54 @@ export class OrderManagementStorage implements IOrderManagementStorage {
           // Generate delivery code
           const deliveryCode = await this.generateDeliveryCode(currentOrder.id, targetPhone);
           
-          // Send notifications via all three channels: SMS, WhatsApp, and Email
+          // Send notifications based on settings from shop_settings table
           // NON-BLOCKING: Fire and forget to prevent slow response
           const sendNotifications = async () => {
             const notificationPromises = [];
             
-            // 1. Send SMS using template 3 to target phone
-            notificationPromises.push(
-              this.sendDeliveryCodeSms(
-                targetPhone, 
-                deliveryCode, 
-                customerData.customerOrderId,
-                customerName || 'مشتری عزیز',
-                orderNumber
-              ).then(result => {
-                console.log(`✅ [SMS] Delivery code sent: ${result}`);
-                return { channel: 'SMS', success: result };
-              }).catch(err => {
-                console.error(`❌ [SMS] Error:`, err);
-                return { channel: 'SMS', success: false };
-              })
-            );
+            // Get notification settings from shop_settings
+            const settings = await getLogisticsNotificationSettings();
+            console.log(`📋 [DELIVERY CODE] Notification settings: Email=${settings.email}, SMS=${settings.sms}, WhatsApp=${settings.whatsapp}`);
             
-            // 2. Send WhatsApp message
-            notificationPromises.push(
-              this.sendDeliveryCodeWhatsApp(
-                targetPhone, 
-                deliveryCode, 
-                customerName || 'مشتری عزیز',
-                orderNumber
-              ).then(result => {
-                console.log(`✅ [WHATSAPP] Delivery code sent: ${result}`);
-                return { channel: 'WhatsApp', success: result };
-              }).catch(err => {
-                console.error(`❌ [WHATSAPP] Error:`, err);
-                return { channel: 'WhatsApp', success: false };
-              })
-            );
+            // 1. Send SMS if enabled
+            if (settings.sms) {
+              notificationPromises.push(
+                this.sendDeliveryCodeSms(
+                  targetPhone, 
+                  deliveryCode, 
+                  customerData.customerOrderId,
+                  customerName || 'مشتری عزیز',
+                  orderNumber
+                ).then(result => {
+                  console.log(`✅ [SMS] Delivery code sent: ${result}`);
+                  return { channel: 'SMS', success: result };
+                }).catch(err => {
+                  console.error(`❌ [SMS] Error:`, err);
+                  return { channel: 'SMS', success: false };
+                })
+              );
+            }
             
-            // 3. Send Email if customer has email
-            if (customerData.customerEmail) {
+            // 2. Send WhatsApp if enabled
+            if (settings.whatsapp) {
+              notificationPromises.push(
+                this.sendDeliveryCodeWhatsApp(
+                  targetPhone, 
+                  deliveryCode, 
+                  customerName || 'مشتری عزیز',
+                  orderNumber
+                ).then(result => {
+                  console.log(`✅ [WHATSAPP] Delivery code sent: ${result}`);
+                  return { channel: 'WhatsApp', success: result };
+                }).catch(err => {
+                  console.error(`❌ [WHATSAPP] Error:`, err);
+                  return { channel: 'WhatsApp', success: false };
+                })
+              );
+            }
+            
+            // 3. Send Email if enabled and customer has email
+            if (settings.email && customerData.customerEmail) {
               notificationPromises.push(
                 this.sendDeliveryCodeEmail(
                   customerData.customerEmail,
@@ -380,6 +422,11 @@ export class OrderManagementStorage implements IOrderManagementStorage {
                   return { channel: 'Email', success: false };
                 })
               );
+            }
+            
+            if (notificationPromises.length === 0) {
+              console.log(`⚠️ [DELIVERY CODE] No notification channels enabled!`);
+              return;
             }
             
             const results = await Promise.all(notificationPromises);
@@ -1356,19 +1403,19 @@ export class OrderManagementStorage implements IOrderManagementStorage {
     try {
       const { emailService } = await import('./email-service');
       
-      // Use template #03 for delivery verification code (قالب شماره 3 - کد تحویل سفارش)
+      // Use template #20 for delivery verification code (قالب شماره 20 - کد تحویل سفارش)
       // Template variables: customer_name, order_number, delivery_code
-      const result = await emailService.sendEmailWithTemplate('#03', {
+      const result = await emailService.sendEmailWithTemplate('#20', {
         customer_name: customerName,
         order_number: orderNumber,
         delivery_code: deliveryCode
       }, customerEmail, 'orders');
       
-      console.log(`📧 [EMAIL TEMPLATE #03] Delivery code ${deliveryCode} sent to ${customerEmail} for order ${orderNumber}:`, result);
+      console.log(`📧 [EMAIL TEMPLATE #20] Delivery code ${deliveryCode} sent to ${customerEmail} for order ${orderNumber}:`, result);
       
       return result;
     } catch (error) {
-      console.error('❌ [EMAIL] Error sending delivery code using template #03:', error);
+      console.error('❌ [EMAIL] Error sending delivery code using template #20:', error);
       return false;
     }
   }
@@ -1401,7 +1448,7 @@ export class OrderManagementStorage implements IOrderManagementStorage {
         hasDeliveryCode: !!orderData.deliveryCode 
       });
 
-      // Get customer information including recipient mobile
+      // Get customer information including recipient mobile and email
       const { pool } = await import('./db');
       const customerQuery = `
         SELECT 
@@ -1409,7 +1456,8 @@ export class OrderManagementStorage implements IOrderManagementStorage {
           co.recipient_mobile as recipientMobile,
           c.first_name as firstName,
           c.last_name as lastName,
-          c.phone as phone
+          c.phone as phone,
+          c.email as email
         FROM customer_orders co
         LEFT JOIN crm_customers c ON co.customer_id = c.id
         WHERE co.id = $1
@@ -1422,7 +1470,8 @@ export class OrderManagementStorage implements IOrderManagementStorage {
       }
 
       const customer = customerResult.rows[0];
-      const customerName = `${customer.firstName || ''} ${customer.lastName || ''}`.trim();
+      const customerName = `${customer.firstname || ''} ${customer.lastname || ''}`.trim();
+      const customerEmail = customer.email;
       
       // Determine target phone: use recipient mobile if provided, otherwise customer phone
       const targetPhone = customer.recipientmobile || customer.phone;
@@ -1434,7 +1483,8 @@ export class OrderManagementStorage implements IOrderManagementStorage {
         recipientMobile: customer.recipientmobile,
         targetPhone: targetPhone,
         phoneSource: phoneSource,
-        orderNumber: customer.orderNumber 
+        orderNumber: customer.ordernumber,
+        email: customerEmail
       });
 
       // Generate delivery code if not exists
@@ -1446,22 +1496,58 @@ export class OrderManagementStorage implements IOrderManagementStorage {
         console.log('📱 [DELIVERY CODE] Using existing code:', deliveryCode);
       }
 
-      // Send SMS using template 3 to target phone (recipient mobile if provided, otherwise customer phone)
-      const smsSuccess = await this.sendDeliveryCodeSms(
-        targetPhone,
-        deliveryCode,
-        orderData.customerOrderId,
-        customerName,
-        customer.orderNumber
-      );
+      // Get notification settings from shop_settings
+      const settings = await getLogisticsNotificationSettings();
+      console.log(`📋 [DELIVERY CODE] Manual send - Notification settings: Email=${settings.email}, SMS=${settings.sms}, WhatsApp=${settings.whatsapp}`);
       
-      console.log(`📱 [SMS ROUTING] Delivery code sent to ${phoneSource}: ${targetPhone}`);
-
-      if (smsSuccess) {
-        console.log('✅ [DELIVERY CODE] Manual SMS sent successfully');
+      const results: {channel: string, success: boolean}[] = [];
+      
+      // Send via SMS if enabled
+      if (settings.sms && targetPhone) {
+        const smsSuccess = await this.sendDeliveryCodeSms(
+          targetPhone,
+          deliveryCode,
+          orderData.customerOrderId,
+          customerName,
+          customer.ordernumber
+        );
+        results.push({ channel: 'SMS', success: smsSuccess });
+        console.log(`📱 [SMS] Delivery code sent to ${phoneSource}: ${targetPhone} - Success: ${smsSuccess}`);
+      }
+      
+      // Send via WhatsApp if enabled
+      if (settings.whatsapp && targetPhone) {
+        const whatsappSuccess = await this.sendDeliveryCodeWhatsApp(
+          targetPhone,
+          deliveryCode,
+          customerName || 'مشتری عزیز',
+          customer.ordernumber
+        );
+        results.push({ channel: 'WhatsApp', success: whatsappSuccess });
+        console.log(`💬 [WHATSAPP] Delivery code sent - Success: ${whatsappSuccess}`);
+      }
+      
+      // Send via Email if enabled
+      if (settings.email && customerEmail) {
+        const emailSuccess = await this.sendDeliveryCodeEmail(
+          customerEmail,
+          deliveryCode,
+          customerName || 'مشتری عزیز',
+          customer.ordernumber
+        );
+        results.push({ channel: 'Email', success: emailSuccess });
+        console.log(`📧 [EMAIL] Delivery code sent to ${customerEmail} - Success: ${emailSuccess}`);
+      }
+      
+      const successfulChannels = results.filter(r => r.success).map(r => r.channel);
+      
+      if (successfulChannels.length > 0) {
+        console.log(`✅ [DELIVERY CODE] Manual send successful via: ${successfulChannels.join(', ')}`);
         return { success: true, deliveryCode };
+      } else if (results.length === 0) {
+        return { success: false, error: 'هیچ کانال اطلاع‌رسانی فعال نیست یا اطلاعات تماس مشتری موجود نیست' };
       } else {
-        return { success: false, error: 'خطا در ارسال پیامک' };
+        return { success: false, error: 'خطا در ارسال اطلاع‌رسانی' };
       }
 
     } catch (error) {
