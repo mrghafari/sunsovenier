@@ -414,7 +414,7 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
         if (result.success) {
           // Store registration data and show verification form
           setRegistrationData(result.customer);
-          setShowVerificationForm(true);
+          setShowOtpVerification(true);
           
           toast({
             title: t.auth.registrationVerificationSent,
