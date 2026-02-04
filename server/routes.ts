@@ -19358,7 +19358,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: 'UNSUPPORTED_PAYMENT_METHOD'
       });
     } catch (error) {
-      console.error("Error creating customer order:", error);
+      console.error("❌ [ORDER CREATION ERROR] Full error details:"); console.error("Error message:", error instanceof Error ? error.message : String(error)); console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace");
       res.status(500).json({
         success: false,
         message: "Failed to create order"
