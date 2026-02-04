@@ -263,8 +263,11 @@ export default function ProductsPage() {
         { value: "Commercial goods", label: "Commercial goods", icon: <Package className="w-4 h-4" /> },
       ];
 
+  // Use vendor API endpoint when in vendor mode to get only vendor's products
+  const productsEndpoint = isVendorMode ? "/api/vendors/products" : "/api/products";
+  
   const { data: products, isLoading, refetch } = useQuery<ShowcaseProduct[]>({
-    queryKey: ["/api/products"],
+    queryKey: [productsEndpoint],
     staleTime: 0, // Always refetch for real-time updates
     gcTime: 0, // Don't cache data
     refetchOnMount: true,
@@ -273,9 +276,9 @@ export default function ProductsPage() {
 
   // Force refresh every time component mounts
   useEffect(() => {
-    queryClient.removeQueries({ queryKey: ["/api/products"] });
+    queryClient.removeQueries({ queryKey: [productsEndpoint] });
     refetch();
-  }, [refetch]);
+  }, [refetch, productsEndpoint]);
 
   // Consolidate products by barcode for batch management
   const consolidateProductsByBarcode = (products: ShowcaseProduct[]) => {
@@ -378,7 +381,7 @@ export default function ProductsPage() {
       });
 
       // Refresh products list
-      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      queryClient.invalidateQueries({ queryKey: [productsEndpoint] });
       
     } catch (error: any) {
       console.error("❌ [DELETE-BATCH] Error deleting batch:", error);
@@ -393,11 +396,13 @@ export default function ProductsPage() {
   const { mutate: createProduct } = useMutation({
     mutationFn: (data: any) => {
       setIsSubmitting(true);
-      return apiRequest("/api/products", { method: "POST", body: data });
+      // Use vendor API endpoint when in vendor mode
+      const endpoint = isVendorMode ? "/api/vendors/products" : "/api/products";
+      return apiRequest(endpoint, { method: "POST", body: data });
     },
     onSuccess: async () => {
       setIsSubmitting(false);
-      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      queryClient.invalidateQueries({ queryKey: [productsEndpoint] });
       setDialogOpen(false);
       setImagePreview(null);
       setImagePreviews([null, null, null]); // Reset multiple image previews
@@ -424,7 +429,10 @@ export default function ProductsPage() {
   const { mutate: updateProduct } = useMutation({
     mutationFn: ({ id, data }: { id: number; data: any }) => {
       setIsSubmitting(true);
-      return apiRequest(`/api/products/${id}`, { method: "PUT", body: data });
+      // Use vendor API endpoint when in vendor mode
+      const endpoint = isVendorMode ? `/api/vendors/products/${id}` : `/api/products/${id}`;
+      const method = isVendorMode ? "PATCH" : "PUT";
+      return apiRequest(endpoint, { method, body: data });
     },
     onSuccess: async (result) => {
       console.log('✅ [DEBUG] Update mutation successful, result:', result);
@@ -445,7 +453,7 @@ export default function ProductsPage() {
       }
       
       // Refresh products list to ensure UI is in sync
-      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      queryClient.invalidateQueries({ queryKey: [productsEndpoint] });
       
       toast({
         title: t.productManagement.productUpdated,
@@ -481,7 +489,7 @@ export default function ProductsPage() {
     },
     onSuccess: async () => {
       console.log(`✅ [DELETE] Product deleted successfully`);
-      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      queryClient.invalidateQueries({ queryKey: [productsEndpoint] });
       setDeletingProduct(null); // Close the confirmation dialog
       toast({
         title: t.productManagement.productDeleted,
@@ -525,7 +533,7 @@ export default function ProductsPage() {
     },
     onSuccess: (result) => {
       console.log('✅ [DEBUG] Toggle sync successful:', result);
-      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      queryClient.invalidateQueries({ queryKey: [productsEndpoint] });
       toast({
         title: t.productManagement.productUpdated,
         description: t.productManagement.productUpdated,
@@ -1481,7 +1489,7 @@ export default function ProductsPage() {
           <Button 
             onClick={() => {
               queryClient.clear();
-              queryClient.removeQueries({ queryKey: ["/api/products"] });
+              queryClient.removeQueries({ queryKey: [productsEndpoint] });
               refetch();
               toast({
                 title: t.productManagement.cacheCleared,

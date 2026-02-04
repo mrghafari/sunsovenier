@@ -2903,7 +2903,193 @@ const LogisticsManagement = () => {
     }
   };
 
+  const NotificationSettingsTab = () => {
+    const [emailEnabled, setEmailEnabled] = useState(true);
+    const [smsEnabled, setSmsEnabled] = useState(false);
+    const [whatsappEnabled, setWhatsappEnabled] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
 
+    useEffect(() => {
+      const fetchSettings = async () => {
+        try {
+          const response = await fetch('/api/admin/shop-settings/logistics_notifications');
+          if (response.ok) {
+            const result = await response.json();
+            const settings = result.data || [];
+            settings.forEach((setting: any) => {
+              if (setting.settingKey === 'logistics_notification_email') {
+                setEmailEnabled(setting.settingValue === 'true');
+              } else if (setting.settingKey === 'logistics_notification_sms') {
+                setSmsEnabled(setting.settingValue === 'true');
+              } else if (setting.settingKey === 'logistics_notification_whatsapp') {
+                setWhatsappEnabled(setting.settingValue === 'true');
+              }
+            });
+          }
+        } catch (error) {
+          console.error('Error fetching notification settings:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      fetchSettings();
+    }, []);
+
+    const saveSettings = async () => {
+      setIsSaving(true);
+      try {
+        const updates = [
+          { key: 'logistics_notification_email', value: emailEnabled.toString() },
+          { key: 'logistics_notification_sms', value: smsEnabled.toString() },
+          { key: 'logistics_notification_whatsapp', value: whatsappEnabled.toString() }
+        ];
+
+        for (const update of updates) {
+          await fetch(`/api/admin/shop-settings/${update.key}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ setting_value: update.value })
+          });
+        }
+
+        toast({
+          title: 'تنظیمات ذخیره شد',
+          description: 'تنظیمات اطلاع‌رسانی با موفقیت ذخیره شد',
+        });
+      } catch (error) {
+        console.error('Error saving notification settings:', error);
+        toast({
+          title: 'خطا در ذخیره',
+          description: 'خطا در ذخیره تنظیمات اطلاع‌رسانی',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsSaving(false);
+      }
+    };
+
+    if (isLoading) {
+      return (
+        <Card>
+          <CardContent className="flex justify-center items-center py-12">
+            <RefreshCw className="w-8 h-8 animate-spin text-gray-400" />
+          </CardContent>
+        </Card>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Mail className="w-5 h-5" />
+              تنظیمات اطلاع‌رسانی به مشتری
+            </CardTitle>
+            <CardDescription>
+              انتخاب روش‌های اطلاع‌رسانی به مشتری هنگام ارسال سفارش - هر کدام یا ترکیبی از آنها را می‌توانید فعال کنید
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid gap-4">
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <Mail className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium">ایمیل</h4>
+                    <p className="text-sm text-gray-500">ارسال اطلاعات حمل و کد تحویل از طریق ایمیل</p>
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    checked={emailEnabled}
+                    onChange={(e) => setEmailEnabled(e.target.checked)}
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <Phone className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium">پیامک (SMS)</h4>
+                    <p className="text-sm text-gray-500">ارسال اطلاعات حمل و کد تحویل از طریق پیامک</p>
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    checked={smsEnabled}
+                    onChange={(e) => setSmsEnabled(e.target.checked)}
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                </label>
+              </div>
+
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-emerald-100 rounded-lg">
+                    <Send className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium">واتساپ (WhatsApp)</h4>
+                    <p className="text-sm text-gray-500">ارسال اطلاعات حمل و کد تحویل از طریق واتساپ</p>
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    checked={whatsappEnabled}
+                    onChange={(e) => setWhatsappEnabled(e.target.checked)}
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                </label>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-4 border-t">
+              <Button onClick={saveSettings} disabled={isSaving}>
+                {isSaving ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    در حال ذخیره...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    ذخیره تنظیمات
+                  </>
+                )}
+              </Button>
+            </div>
+
+            <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5" />
+                <div>
+                  <h4 className="font-medium text-amber-800">توجه</h4>
+                  <p className="text-sm text-amber-700">
+                    این تنظیمات برای تمام سفارشاتی که به بخش لجستیک می‌رسند اعمال می‌شود. 
+                    پس از فعال‌سازی هر روش اطلاع‌رسانی، اطمینان حاصل کنید که سرویس مربوطه به درستی پیکربندی شده است.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
 
   const OrdersTab = () => {
     return (
@@ -5306,7 +5492,7 @@ const LogisticsManagement = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-10 gap-1">
+        <TabsList className="grid w-full grid-cols-11 gap-1">
           <TabsTrigger value="orders">سفارشات</TabsTrigger>
           <TabsTrigger value="delivered">تحویل شده</TabsTrigger>
           <TabsTrigger value="companies">شرکت‌های حمل</TabsTrigger>
@@ -5322,6 +5508,7 @@ const LogisticsManagement = () => {
           >
             سرویس دلیوری
           </TabsTrigger>
+          <TabsTrigger value="settings">تنظیمات</TabsTrigger>
         </TabsList>
 
         <TabsContent value="orders">
@@ -5363,6 +5550,10 @@ const LogisticsManagement = () => {
 
         <TabsContent value="delivery-services">
           <DeliveryServicesTab />
+        </TabsContent>
+
+        <TabsContent value="settings">
+          <NotificationSettingsTab />
         </TabsContent>
       </Tabs>
 

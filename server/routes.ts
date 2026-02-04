@@ -13318,6 +13318,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             weight: orderWeight,
             weightUnit: 'kg',
           vehicleType: checkoutVehicleType,
+          // 🔥 CRITICAL: Include payment method for finance department filtering
+          paymentMethod: finalPaymentMethod,
             weightSource: weightSource, // NEW: Shows where weight came from
             containsFlammableProducts: containsFlammableProducts,
             flammableProducts: flammableProducts.filter(p => p.isFlammable),
@@ -18452,6 +18454,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           totalWeight: calculatedTotalWeight > 0 ? calculatedTotalWeight.toFixed(3) : null,
           weightUnit: 'kg',
           vehicleType: checkoutVehicleType,
+          // 🔥 CRITICAL: Include payment method for finance department filtering
+          paymentMethod: finalPaymentMethod,
         
         // Store frozen tax rates at order creation time
         vatRate: taxCalculation.vatRate.toString(),
@@ -18782,6 +18786,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           totalWeight: calculatedTotalWeight > 0 ? calculatedTotalWeight.toFixed(3) : null,
           weightUnit: 'kg',
           vehicleType: checkoutVehicleType,
+          // 🔥 CRITICAL: Include payment method for finance department filtering
+          paymentMethod: finalPaymentMethod,
         };
 
         // Add vehicle type from checkout payload if customer selected one
@@ -19062,7 +19068,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             notes: orderData.notes || "",
             totalWeight: calculatedTotalWeight > 0 ? calculatedTotalWeight.toFixed(3) : null,
             weightUnit: 'kg',
-          vehicleType: checkoutVehicleType,
             paymentMethod: 'wallet_full' as const,
           };
           
@@ -19146,7 +19151,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
               notes: orderData.notes || "",
               totalWeight: calculatedTotalWeight > 0 ? calculatedTotalWeight.toFixed(3) : null,
               weightUnit: 'kg',
-          vehicleType: checkoutVehicleType,
               paymentMethod: 'wallet_full' as const,
             };
             

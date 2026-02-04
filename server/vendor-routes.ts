@@ -441,11 +441,8 @@ export function createVendorRouter() {
         .where(eq(products.vendorId, req.vendorUser.vendorId))
         .orderBy(products.createdAt);
 
-      res.json({
-        success: true,
-        products: vendorProducts,
-        totalCount: vendorProducts.length
-      });
+      // Return array directly for consistency with admin products endpoint
+      res.json(vendorProducts);
     } catch (error: any) {
       console.error("Error getting vendor products:", error);
       res.status(500).json({
