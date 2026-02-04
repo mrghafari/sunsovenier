@@ -504,7 +504,7 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
         setRegistrationData(null);
         
         // Navigate to customer dashboard
-        window.location.href = '/customer-dashboard';
+        window.location.href = '/customer/profile';
       } else {
         setOtpError(result.message || t.auth.invalidVerificationCode || "Invalid code");
       }
