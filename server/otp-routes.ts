@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { db } from './db';
 import { customersOtp, crmCustomers } from '../shared/schema';
 import { emailTemplates, customerVerificationSettings } from '../shared/customer-schema';
-import { eq, and, gt } from 'drizzle-orm';
+import { eq, and, gt, or } from 'drizzle-orm';
 import { SmsService } from './sms-service';
 import { WhatsAppService } from './whatsapp-service';
 import nodemailer from 'nodemailer';
@@ -170,6 +170,30 @@ router.post('/api/customers/send-otp', async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Phone and email are required',
+      });
+    }
+
+    // Check if email or phone already exists in database
+    const existingCustomer = await db.query.crmCustomers.findFirst({
+      where: or(
+        eq(crmCustomers.email, email),
+        eq(crmCustomers.phone, phone)
+      ),
+    });
+
+    if (existingCustomer) {
+      const duplicateField = existingCustomer.email === email ? 'email' : 'phone';
+      const duplicateValue = duplicateField === 'email' ? email : phone;
+      
+      console.log(`⚠️ [OTP] Registration blocked - ${duplicateField} already exists: ${duplicateValue}`);
+      
+      return res.status(409).json({
+        success: false,
+        message: duplicateField === 'email' 
+          ? 'این ایمیل قبلاً ثبت شده است. اگر رمز عبور خود را فراموش کرده‌اید، از گزینه «فراموشی رمز عبور» استفاده کنید.'
+          : 'این شماره تلفن قبلاً ثبت شده است. اگر رمز عبور خود را فراموش کرده‌اید، از گزینه «فراموشی رمز عبور» استفاده کنید.',
+        duplicateField,
+        duplicateValue,
       });
     }
 

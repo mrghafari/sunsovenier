@@ -383,11 +383,28 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
           description: `${t.auth.codeSentTo || "Code sent to"}: ${channels.join(", ")}`,
         });
       } else {
-        toast({
-          variant: "destructive",
-          title: t.auth.verificationCodesError || "Error",
-          description: otpResult.message || "Failed to send verification code",
-        });
+        // Check for duplicate email/phone error
+        if (otpResult.duplicateField) {
+          setEmailExists(true);
+          if (otpResult.duplicateField === 'email') {
+            setDuplicateEmail(registerData.email);
+            loginForm.setValue("email", registerData.email);
+          }
+          setActiveTab("login");
+          toast({
+            variant: "destructive",
+            title: otpResult.duplicateField === 'email' 
+              ? (t.auth.emailAlreadyRegistered || "ایمیل قبلاً ثبت شده")
+              : (t.auth.phoneAlreadyRegistered || "شماره تلفن قبلاً ثبت شده"),
+            description: otpResult.message,
+          });
+        } else {
+          toast({
+            variant: "destructive",
+            title: t.auth.verificationCodesError || "Error",
+            description: otpResult.message || "Failed to send verification code",
+          });
+        }
       }
       
       // Skip old code
