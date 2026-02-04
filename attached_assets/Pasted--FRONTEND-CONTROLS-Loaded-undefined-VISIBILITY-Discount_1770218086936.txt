@@ -1,0 +1,125 @@
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🔐 [AUTH] Guest user confirmed
+api/customers/me:1  Failed to load resource: the server responded with a status of 401 ()
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+api/admin/me:1  Failed to load resource: the server responded with a status of 401 ()
+ 📥 Loading Tawk.to widget at bottom-left position...
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(9)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 📦 [INIT DISPLAY STOCK] Product 529: Stock=17, Cart=0, Display=17
+ 📦 [INIT DISPLAY STOCK] Product 510: Stock=8055, Cart=0, Display=8055
+ 📦 [INIT DISPLAY STOCK] Product 532: Stock=21410, Cart=0, Display=21410
+ 📦 [INIT DISPLAY STOCK] Product 525: Stock=1015, Cart=0, Display=1015
+ 📦 [INIT DISPLAY STOCK] Product 528: Stock=100, Cart=0, Display=100
+ 📦 [INIT DISPLAY STOCK] Product 524: Stock=1300, Cart=0, Display=1300
+index-B_aGZN2S.js:1090 📦 [INIT DISPLAY STOCK] Product 526: Stock=11, Cart=0, Display=11
+index-B_aGZN2S.js:1090 📦 [INIT DISPLAY STOCK] Product 531: Stock=205, Cart=0, Display=205
+index-B_aGZN2S.js:1090 📦 [INIT DISPLAY STOCK] Product 530: Stock=20021, Cart=0, Display=20021
+index-B_aGZN2S.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: Object
+index-B_aGZN2S.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-B_aGZN2S.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+index-B_aGZN2S.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+index-B_aGZN2S.js:1090 🌟 [RATINGS DEBUG] Current products: Array(9)
+index-B_aGZN2S.js:1090 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+shop:1 Access to script at 'https://embed.tawk.to/692013a38c9683195b70e4b3/1jaikpe3n' from origin 'https://momtaz-chem-website-admin3119.replit.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+embed.tawk.to/692013a38c9683195b70e4b3/1jaikpe3n:1  Failed to load resource: net::ERR_FAILED
+index-B_aGZN2S.js:2830 ❌ Failed to load Tawk.to script
+v.parentNode.f.onerror @ index-B_aGZN2S.js:2830
+128x128?text=WeChat+QR:1  Failed to load resource: net::ERR_EMPTY_RESPONSE
+index-B_aGZN2S.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: Object
+index-B_aGZN2S.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-B_aGZN2S.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+index-B_aGZN2S.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+index-B_aGZN2S.js:1090 🌟 [RATINGS DEBUG] Current products: Array(9)
+index-B_aGZN2S.js:1090 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+index-B_aGZN2S.js:1090 📦 [INIT DISPLAY STOCK] Product 529: Stock=17, Cart=0, Display=17
+index-B_aGZN2S.js:1090 📦 [INIT DISPLAY STOCK] Product 510: Stock=8055, Cart=0, Display=8055
+index-B_aGZN2S.js:1090 📦 [INIT DISPLAY STOCK] Product 532: Stock=21410, Cart=0, Display=21410
+index-B_aGZN2S.js:1090 📦 [INIT DISPLAY STOCK] Product 525: Stock=1015, Cart=0, Display=1015
+index-B_aGZN2S.js:1090 📦 [INIT DISPLAY STOCK] Product 528: Stock=100, Cart=0, Display=100
+index-B_aGZN2S.js:1090 📦 [INIT DISPLAY STOCK] Product 524: Stock=1300, Cart=0, Display=1300
+index-B_aGZN2S.js:1090 📦 [INIT DISPLAY STOCK] Product 526: Stock=11, Cart=0, Display=11
+index-B_aGZN2S.js:1090 📦 [INIT DISPLAY STOCK] Product 531: Stock=205, Cart=0, Display=205
+index-B_aGZN2S.js:1090 📦 [INIT DISPLAY STOCK] Product 530: Stock=20021, Cart=0, Display=20021
+index-B_aGZN2S.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: Object
+index-B_aGZN2S.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-B_aGZN2S.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+index-B_aGZN2S.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+index-B_aGZN2S.js:1090 🌟 [RATINGS DEBUG] Current products: Array(9)
+index-B_aGZN2S.js:1090 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+api/admin/me:1  Failed to load resource: the server responded with a status of 401 ()
+api/customers/me:1  Failed to load resource: the server responded with a status of 401 ()
+index-B_aGZN2S.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: Object
+index-B_aGZN2S.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-B_aGZN2S.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+index-B_aGZN2S.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+index-B_aGZN2S.js:1090 🌟 [RATINGS DEBUG] Current products: Array(9)
+index-B_aGZN2S.js:1090 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+index-B_aGZN2S.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: Object
+index-B_aGZN2S.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-B_aGZN2S.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+index-B_aGZN2S.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+index-B_aGZN2S.js:1090 🌟 [RATINGS DEBUG] Current products: Array(9)
+index-B_aGZN2S.js:1090 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+index-B_aGZN2S.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: Object
+index-B_aGZN2S.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-B_aGZN2S.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+index-B_aGZN2S.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+index-B_aGZN2S.js:1090 🌟 [RATINGS DEBUG] Current products: Array(9)
+index-B_aGZN2S.js:1090 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+api/customers/me:1  Failed to load resource: the server responded with a status of 401 ()
+api/admin/me:1  Failed to load resource: the server responded with a status of 401 ()
+index-B_aGZN2S.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: Object
+index-B_aGZN2S.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-B_aGZN2S.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+index-B_aGZN2S.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+index-B_aGZN2S.js:1090 🌟 [RATINGS DEBUG] Current products: Array(9)
+index-B_aGZN2S.js:1090 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+api/customers/me:1  Failed to load resource: the server responded with a status of 401 ()
+api/admin/me:1  Failed to load resource: the server responded with a status of 401 ()
+index-B_aGZN2S.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: Object
+index-B_aGZN2S.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-B_aGZN2S.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+index-B_aGZN2S.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+index-B_aGZN2S.js:1090 🌟 [RATINGS DEBUG] Current products: Array(9)
+index-B_aGZN2S.js:1090 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+index-B_aGZN2S.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: Object
+index-B_aGZN2S.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-B_aGZN2S.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+index-B_aGZN2S.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+index-B_aGZN2S.js:1090 🌟 [RATINGS DEBUG] Current products: Array(9)
+index-B_aGZN2S.js:1090 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
