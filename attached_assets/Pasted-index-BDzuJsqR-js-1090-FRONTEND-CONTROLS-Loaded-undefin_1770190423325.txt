@@ -1,0 +1,278 @@
+index-BDzuJsqR.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+index-BDzuJsqR.js:1090 🎛️ [VISIBILITY] Discount Banner: false
+index-BDzuJsqR.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+index-BDzuJsqR.js:1090 🌟 [RATINGS DEBUG] Product stats data: {}
+index-BDzuJsqR.js:1090 🔐 [AUTH] Guest user confirmed
+index-BDzuJsqR.js:48  GET https://momtaz-chem-website-admin3119.replit.app/api/customers/me 401 (Unauthorized)
+(anonymous) @ index-BDzuJsqR.js:48
+i @ index-BDzuJsqR.js:48
+v @ index-BDzuJsqR.js:48
+start @ index-BDzuJsqR.js:48
+fetch @ index-BDzuJsqR.js:48
+PN @ index-BDzuJsqR.js:48
+onSubscribe @ index-BDzuJsqR.js:48
+subscribe @ index-BDzuJsqR.js:48
+(anonymous) @ index-BDzuJsqR.js:48
+rne @ index-BDzuJsqR.js:38
+bk @ index-BDzuJsqR.js:40
+lj @ index-BDzuJsqR.js:40
+sz @ index-BDzuJsqR.js:40
+M0 @ index-BDzuJsqR.js:38
+uSe @ index-BDzuJsqR.js:40
+ng @ index-BDzuJsqR.js:40
+Dne @ index-BDzuJsqR.js:40
+E @ index-BDzuJsqR.js:25
+R @ index-BDzuJsqR.js:25
+index-BDzuJsqR.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+index-BDzuJsqR.js:1090 🎛️ [VISIBILITY] Discount Banner: false
+index-BDzuJsqR.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+index-BDzuJsqR.js:1090 🌟 [RATINGS DEBUG] Product stats data: {}
+index-BDzuJsqR.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+index-BDzuJsqR.js:1090 🎛️ [VISIBILITY] Discount Banner: false
+index-BDzuJsqR.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+index-BDzuJsqR.js:1090 🌟 [RATINGS DEBUG] Product stats data: {}
+index-BDzuJsqR.js:1086  GET https://momtaz-chem-website-admin3119.replit.app/api/admin/me 401 (Unauthorized)
+queryFn @ index-BDzuJsqR.js:1086
+i @ index-BDzuJsqR.js:48
+v @ index-BDzuJsqR.js:48
+start @ index-BDzuJsqR.js:48
+fetch @ index-BDzuJsqR.js:48
+PN @ index-BDzuJsqR.js:48
+onSubscribe @ index-BDzuJsqR.js:48
+subscribe @ index-BDzuJsqR.js:48
+(anonymous) @ index-BDzuJsqR.js:48
+rne @ index-BDzuJsqR.js:38
+bk @ index-BDzuJsqR.js:40
+lj @ index-BDzuJsqR.js:40
+sz @ index-BDzuJsqR.js:40
+M0 @ index-BDzuJsqR.js:38
+uSe @ index-BDzuJsqR.js:40
+ng @ index-BDzuJsqR.js:40
+Dne @ index-BDzuJsqR.js:40
+E @ index-BDzuJsqR.js:25
+R @ index-BDzuJsqR.js:25
+index-BDzuJsqR.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+index-BDzuJsqR.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-BDzuJsqR.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+index-BDzuJsqR.js:1090 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+index-BDzuJsqR.js:1090 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+index-BDzuJsqR.js:1090 🌟 [RATINGS DEBUG] Products with ratings: []
+index-BDzuJsqR.js:1090 📦 [INIT DISPLAY STOCK] Product 512: Stock=4, Cart=0, Display=4
+index-BDzuJsqR.js:1090 📦 [INIT DISPLAY STOCK] Product 513: Stock=8045, Cart=0, Display=8045
+index-BDzuJsqR.js:1090 📦 [INIT DISPLAY STOCK] Product 506: Stock=54540, Cart=0, Display=54540
+index-BDzuJsqR.js:1090 📦 [INIT DISPLAY STOCK] Product 509: Stock=1015, Cart=0, Display=1015
+index-BDzuJsqR.js:1090 📦 [INIT DISPLAY STOCK] Product 511: Stock=100, Cart=0, Display=100
+index-BDzuJsqR.js:1090 📦 [INIT DISPLAY STOCK] Product 516: Stock=11, Cart=0, Display=11
+index-BDzuJsqR.js:1090 📦 [INIT DISPLAY STOCK] Product 515: Stock=11, Cart=0, Display=11
+index-BDzuJsqR.js:1090 📦 [INIT DISPLAY STOCK] Product 508: Stock=1300, Cart=0, Display=1300
+index-BDzuJsqR.js:1090 📦 [INIT DISPLAY STOCK] Product 507: Stock=11, Cart=0, Display=11
+index-BDzuJsqR.js:1090 📦 [INIT DISPLAY STOCK] Product 510: Stock=8055, Cart=0, Display=8055
+index-BDzuJsqR.js:2830 📥 Loading Tawk.to widget at bottom-left position...
+index-BDzuJsqR.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+index-BDzuJsqR.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-BDzuJsqR.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+index-BDzuJsqR.js:1090 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+index-BDzuJsqR.js:1090 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+index-BDzuJsqR.js:1090 🌟 [RATINGS DEBUG] Products with ratings: []
+index-BDzuJsqR.js:2830 ✅ Tawk.to Live Chat loaded successfully at bottom-left
+index-BDzuJsqR.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+index-BDzuJsqR.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-BDzuJsqR.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+index-BDzuJsqR.js:1090 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+index-BDzuJsqR.js:1090 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+index-BDzuJsqR.js:1090 🌟 [RATINGS DEBUG] Products with ratings: []
+via.placeholder.com/128x128?text=WeChat+QR:1  GET https://via.placeholder.com/128x128?text=WeChat+QR net::ERR_EMPTY_RESPONSE
+Image
+JU @ index-BDzuJsqR.js:40
+Mne @ index-BDzuJsqR.js:40
+iSe @ index-BDzuJsqR.js:40
+uSe @ index-BDzuJsqR.js:40
+ng @ index-BDzuJsqR.js:40
+sz @ index-BDzuJsqR.js:40
+M0 @ index-BDzuJsqR.js:38
+(anonymous) @ index-BDzuJsqR.js:40
+setTimeout
+a @ index-BDzuJsqR.js:48
+l @ index-BDzuJsqR.js:48
+batch @ index-BDzuJsqR.js:48
+Yf @ index-BDzuJsqR.js:48
+setData @ index-BDzuJsqR.js:48
+onSuccess @ index-BDzuJsqR.js:48
+h @ index-BDzuJsqR.js:48
+Promise.then
+v @ index-BDzuJsqR.js:48
+start @ index-BDzuJsqR.js:48
+fetch @ index-BDzuJsqR.js:48
+PN @ index-BDzuJsqR.js:48
+onSubscribe @ index-BDzuJsqR.js:48
+subscribe @ index-BDzuJsqR.js:48
+(anonymous) @ index-BDzuJsqR.js:48
+rne @ index-BDzuJsqR.js:38
+bk @ index-BDzuJsqR.js:40
+lj @ index-BDzuJsqR.js:40
+sz @ index-BDzuJsqR.js:40
+M0 @ index-BDzuJsqR.js:38
+uSe @ index-BDzuJsqR.js:40
+ng @ index-BDzuJsqR.js:40
+Dne @ index-BDzuJsqR.js:40
+E @ index-BDzuJsqR.js:25
+R @ index-BDzuJsqR.js:25
+twk-chunk-common.js:2 Error: Unable to store cookie
+    at e.value (twk-chunk-common.js:2:118472)
+    at t.value (twk-chunk-common.js:2:151556)
+    at p.updateUUID (twk-chunk-common.js:2:203208)
+    at Array.<anonymous> (twk-vendor.js:2:76358)
+    at p.dispatch (twk-vendor.js:2:78106)
+    at p.dispatch (twk-vendor.js:2:73855)
+    at t.value (twk-chunk-common.js:2:125487)
+    at twk-chunk-common.js:2:124798
+value @ twk-chunk-common.js:2
+updateUUID @ twk-chunk-common.js:2
+(anonymous) @ twk-vendor.js:2
+p.dispatch @ twk-vendor.js:2
+dispatch @ twk-vendor.js:2
+value @ twk-chunk-common.js:2
+(anonymous) @ twk-chunk-common.js:2
+Promise.then
+value @ twk-chunk-common.js:2
+value @ twk-chunk-common.js:2
+(anonymous) @ twk-chunk-common.js:2
+(anonymous) @ twk-chunk-common.js:2
+56d7 @ twk-chunk-common.js:2
+a @ twk-runtime.js:1
+r @ twk-runtime.js:1
+t @ twk-runtime.js:1
+(anonymous) @ twk-chunk-common.js:2
+PendingScript
+l @ 1jaikpe3n:58
+(anonymous) @ 1jaikpe3n:62
+(anonymous) @ 1jaikpe3n:68
+(anonymous) @ 1jaikpe3n:70
+PendingScript
+(anonymous) @ index-BDzuJsqR.js:2830
+bk @ index-BDzuJsqR.js:40
+lj @ index-BDzuJsqR.js:40
+uSe @ index-BDzuJsqR.js:40
+ng @ index-BDzuJsqR.js:40
+sz @ index-BDzuJsqR.js:40
+M0 @ index-BDzuJsqR.js:38
+(anonymous) @ index-BDzuJsqR.js:40
+setTimeout
+a @ index-BDzuJsqR.js:48
+l @ index-BDzuJsqR.js:48
+batch @ index-BDzuJsqR.js:48
+Yf @ index-BDzuJsqR.js:48
+setData @ index-BDzuJsqR.js:48
+onSuccess @ index-BDzuJsqR.js:48
+h @ index-BDzuJsqR.js:48
+Promise.then
+v @ index-BDzuJsqR.js:48
+start @ index-BDzuJsqR.js:48
+fetch @ index-BDzuJsqR.js:48
+PN @ index-BDzuJsqR.js:48
+onSubscribe @ index-BDzuJsqR.js:48
+subscribe @ index-BDzuJsqR.js:48
+(anonymous) @ index-BDzuJsqR.js:48
+rne @ index-BDzuJsqR.js:38
+bk @ index-BDzuJsqR.js:40
+lj @ index-BDzuJsqR.js:40
+sz @ index-BDzuJsqR.js:40
+M0 @ index-BDzuJsqR.js:38
+uSe @ index-BDzuJsqR.js:40
+ng @ index-BDzuJsqR.js:40
+Dne @ index-BDzuJsqR.js:40
+E @ index-BDzuJsqR.js:25
+R @ index-BDzuJsqR.js:25
+about:blank:1 [Intervention] Slow network is detected. See https://www.chromestatus.com/feature/5636954674692096 for more details. Fallback font will be used while loading: https://embed.tawk.to/_s/v4/assets/fonts/tawk-font-icon-3.woff?55755728=
+index-BDzuJsqR.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+index-BDzuJsqR.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-BDzuJsqR.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+index-BDzuJsqR.js:1090 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+index-BDzuJsqR.js:1090 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+index-BDzuJsqR.js:1090 🌟 [RATINGS DEBUG] Products with ratings: []
+index-BDzuJsqR.js:1090  GET https://momtaz-chem-website-admin3119.replit.app/api/customers/me 401 (Unauthorized)
+queryFn @ index-BDzuJsqR.js:1090
+i @ index-BDzuJsqR.js:48
+v @ index-BDzuJsqR.js:48
+start @ index-BDzuJsqR.js:48
+fetch @ index-BDzuJsqR.js:48
+PN @ index-BDzuJsqR.js:48
+(anonymous) @ index-BDzuJsqR.js:48
+setInterval
+B8 @ index-BDzuJsqR.js:48
+$8 @ index-BDzuJsqR.js:48
+onQueryUpdate @ index-BDzuJsqR.js:48
+(anonymous) @ index-BDzuJsqR.js:48
+(anonymous) @ index-BDzuJsqR.js:48
+batch @ index-BDzuJsqR.js:48
+Yf @ index-BDzuJsqR.js:48
+setData @ index-BDzuJsqR.js:48
+onSuccess @ index-BDzuJsqR.js:48
+h @ index-BDzuJsqR.js:48
+Promise.then
+v @ index-BDzuJsqR.js:48
+start @ index-BDzuJsqR.js:48
+fetch @ index-BDzuJsqR.js:48
+PN @ index-BDzuJsqR.js:48
+onSubscribe @ index-BDzuJsqR.js:48
+subscribe @ index-BDzuJsqR.js:48
+(anonymous) @ index-BDzuJsqR.js:48
+rne @ index-BDzuJsqR.js:38
+bk @ index-BDzuJsqR.js:40
+lj @ index-BDzuJsqR.js:40
+sz @ index-BDzuJsqR.js:40
+M0 @ index-BDzuJsqR.js:38
+uSe @ index-BDzuJsqR.js:40
+ng @ index-BDzuJsqR.js:40
+Dne @ index-BDzuJsqR.js:40
+E @ index-BDzuJsqR.js:25
+R @ index-BDzuJsqR.js:25
+index-BDzuJsqR.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+index-BDzuJsqR.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-BDzuJsqR.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+index-BDzuJsqR.js:1090 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+index-BDzuJsqR.js:1090 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+index-BDzuJsqR.js:1090 🌟 [RATINGS DEBUG] Products with ratings: []
+index-BDzuJsqR.js:1086  GET https://momtaz-chem-website-admin3119.replit.app/api/admin/me 401 (Unauthorized)
+queryFn @ index-BDzuJsqR.js:1086
+i @ index-BDzuJsqR.js:48
+v @ index-BDzuJsqR.js:48
+start @ index-BDzuJsqR.js:48
+fetch @ index-BDzuJsqR.js:48
+PN @ index-BDzuJsqR.js:48
+(anonymous) @ index-BDzuJsqR.js:48
+setInterval
+B8 @ index-BDzuJsqR.js:48
+$8 @ index-BDzuJsqR.js:48
+onQueryUpdate @ index-BDzuJsqR.js:48
+(anonymous) @ index-BDzuJsqR.js:48
+(anonymous) @ index-BDzuJsqR.js:48
+batch @ index-BDzuJsqR.js:48
+Yf @ index-BDzuJsqR.js:48
+setData @ index-BDzuJsqR.js:48
+onSuccess @ index-BDzuJsqR.js:48
+h @ index-BDzuJsqR.js:48
+Promise.then
+v @ index-BDzuJsqR.js:48
+start @ index-BDzuJsqR.js:48
+fetch @ index-BDzuJsqR.js:48
+PN @ index-BDzuJsqR.js:48
+onSubscribe @ index-BDzuJsqR.js:48
+subscribe @ index-BDzuJsqR.js:48
+(anonymous) @ index-BDzuJsqR.js:48
+rne @ index-BDzuJsqR.js:38
+bk @ index-BDzuJsqR.js:40
+lj @ index-BDzuJsqR.js:40
+sz @ index-BDzuJsqR.js:40
+M0 @ index-BDzuJsqR.js:38
+uSe @ index-BDzuJsqR.js:40
+ng @ index-BDzuJsqR.js:40
+Dne @ index-BDzuJsqR.js:40
+E @ index-BDzuJsqR.js:25
+R @ index-BDzuJsqR.js:25
+index-BDzuJsqR.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+index-BDzuJsqR.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-BDzuJsqR.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+index-BDzuJsqR.js:1090 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+index-BDzuJsqR.js:1090 🌟 [RATINGS DEBUG] Current products: (10) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+index-BDzuJsqR.js:1090 🌟 [RATINGS DEBUG] Products with ratings: []
