@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ShoppingCart, Plus, Minus, Filter, Search, Grid, List, Star, User, LogOut, X, ChevronDown, ChevronLeft, ChevronRight, Eye, EyeOff, Brain, Sparkles, Wallet, FileText, Download, AlertTriangle, Package, MessageSquare, ZoomIn, Flame } from "lucide-react";
+import { ShoppingCart, Plus, Minus, Filter, Search, Grid, List, Star, User, LogOut, X, ChevronDown, ChevronLeft, ChevronRight, Eye, EyeOff, Brain, Sparkles, Wallet, FileText, Download, AlertTriangle, Package, MessageSquare, ZoomIn, Flame, Heart } from "lucide-react";
 import { useLocation } from "wouter";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { usePersistentCart } from "@/hooks/usePersistentCart";
+import { useWishlist } from "@/hooks/useWishlist";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +40,7 @@ const Shop = () => {
   const { t, direction } = useLanguage();
   const queryClient = useQueryClient();
   const { isAuthenticated, user: authenticatedCustomer, logout: customerLogout } = useCustomerAuth();
+  const { isInWishlist, toggleWishlist, isAdding, isRemoving, isAuthenticated: wishlistAuth } = useWishlist();
   
   // استفاده از لوگو شرکت به جای placeholder
   const COMPANY_LOGO = '/uploads/company-logos/Momtazchem-Logo.png';
@@ -1407,6 +1409,45 @@ const Shop = () => {
                             </Badge>
                           )}
 
+                          {/* Wishlist Heart Button - Top Right (below image counter) */}
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className={`absolute top-10 right-2 p-1.5 h-8 w-8 rounded-full bg-white/90 backdrop-blur-sm shadow-lg hover:scale-110 transition-all duration-200 ${
+                                    isInWishlist(product.id) ? 'text-red-500 hover:bg-red-50' : 'text-gray-400 hover:bg-gray-50 hover:text-red-400'
+                                  }`}
+                                  onClick={async (e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    const wasInWishlist = isInWishlist(product.id);
+                                    const result = await toggleWishlist(product.id);
+                                    if (!result.success && result.error === "not_authenticated") {
+                                      toast({
+                                        title: direction === 'rtl' ? 'لطفا وارد شوید' : 'Please log in',
+                                        description: direction === 'rtl' ? 'برای افزودن به لیست علاقه‌مندی‌ها باید وارد حساب خود شوید' : 'You need to log in to add items to your wishlist',
+                                        variant: 'destructive',
+                                      });
+                                    } else if (result.success) {
+                                      toast({
+                                        title: wasInWishlist ? (direction === 'rtl' ? 'حذف شد' : 'Removed') : (direction === 'rtl' ? 'اضافه شد' : 'Added'),
+                                        description: wasInWishlist ? (direction === 'rtl' ? 'از لیست علاقه‌مندی‌ها حذف شد' : 'Removed from wishlist') : (direction === 'rtl' ? 'به لیست علاقه‌مندی‌ها اضافه شد' : 'Added to wishlist'),
+                                      });
+                                    }
+                                  }}
+                                  disabled={isAdding || isRemoving}
+                                >
+                                  <Heart className={`w-4 h-4 ${isInWishlist(product.id) ? 'fill-current' : ''}`} />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="left" sideOffset={5}>
+                                <p>{isInWishlist(product.id) ? (t.shop?.removeFromWishlist || 'Remove from wishlist') : (t.shop?.addToWishlist || 'Add to wishlist')}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+
                           {/* Reviews and Specs - Right side */}
                           <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-white/90 backdrop-blur-sm rounded-lg p-1 shadow-lg">
                             <TooltipProvider>
@@ -1856,6 +1897,45 @@ const Shop = () => {
                               آتش‌زا
                             </Badge>
                           )}
+
+                          {/* Wishlist Heart Button - Top Right - List View */}
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className={`absolute top-2 right-2 p-1.5 h-8 w-8 rounded-full bg-white/90 backdrop-blur-sm shadow-lg hover:scale-110 transition-all duration-200 ${
+                                    isInWishlist(product.id) ? 'text-red-500 hover:bg-red-50' : 'text-gray-400 hover:bg-gray-50 hover:text-red-400'
+                                  }`}
+                                  onClick={async (e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    const wasInWishlist = isInWishlist(product.id);
+                                    const result = await toggleWishlist(product.id);
+                                    if (!result.success && result.error === "not_authenticated") {
+                                      toast({
+                                        title: direction === 'rtl' ? 'لطفا وارد شوید' : 'Please log in',
+                                        description: direction === 'rtl' ? 'برای افزودن به لیست علاقه‌مندی‌ها باید وارد حساب خود شوید' : 'You need to log in to add items to your wishlist',
+                                        variant: 'destructive',
+                                      });
+                                    } else if (result.success) {
+                                      toast({
+                                        title: wasInWishlist ? (direction === 'rtl' ? 'حذف شد' : 'Removed') : (direction === 'rtl' ? 'اضافه شد' : 'Added'),
+                                        description: wasInWishlist ? (direction === 'rtl' ? 'از لیست علاقه‌مندی‌ها حذف شد' : 'Removed from wishlist') : (direction === 'rtl' ? 'به لیست علاقه‌مندی‌ها اضافه شد' : 'Added to wishlist'),
+                                      });
+                                    }
+                                  }}
+                                  disabled={isAdding || isRemoving}
+                                >
+                                  <Heart className={`w-4 h-4 ${isInWishlist(product.id) ? 'fill-current' : ''}`} />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="left" sideOffset={5}>
+                                <p>{isInWishlist(product.id) ? (t.shop?.removeFromWishlist || 'Remove from wishlist') : (t.shop?.addToWishlist || 'Add to wishlist')}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
 
                           {/* Reviews and Specs - Right side - List View */}
                           <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-white/90 backdrop-blur-sm rounded-lg p-1 shadow-lg">

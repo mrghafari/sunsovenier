@@ -13,6 +13,7 @@ import About from "@/pages/about";
 import Services from "@/pages/services";
 import Contact from "@/pages/contact";
 import Shop from "@/pages/shop";
+import WishlistPage from "@/pages/wishlist";
 import Checkout from "@/pages/checkout";
 import Payment from "@/pages/payment";
 import CheckoutSuccess from "@/pages/checkout-success";
@@ -172,6 +173,7 @@ function Router() {
           <Route path="/user-guide" component={UserGuide} />
           <Route path="/help" component={UserGuide} />
           <Route path="/shop" component={Shop} />
+          <Route path="/wishlist" component={WishlistPage} />
           <Route path="/vendor" component={VendorPortal} />
           <Route path="/vendor-registration" component={VendorRegistration} />
           <Route path="/become-vendor" component={VendorRegistration} />
