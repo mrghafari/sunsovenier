@@ -16629,6 +16629,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Customer Wishlist Routes
+  app.get("/api/customer/wishlist", async (req, res) => {
+    try {
+      const customerId = (req.session as any).customerId;
+      if (!customerId) {
+        return res.status(401).json({ success: false, message: "لطفا وارد شوید" });
+      }
+
+      const wishlist = await customerStorage.getWishlist(customerId);
+      
+      // Get product details for each wishlist item
+      const productIds = wishlist.map(item => item.productId);
+      let products: any[] = [];
+      
+      if (productIds.length > 0) {
+        products = await db.query.shopProducts.findMany({
+          where: sql`id = ANY(${productIds})`,
+        });
+      }
+      
+      const wishlistWithProducts = wishlist.map(item => ({
+        ...item,
+        product: products.find(p => p.id === item.productId) || null
+      }));
+
+      res.json({ success: true, wishlist: wishlistWithProducts });
+    } catch (error) {
+      console.error("Error fetching wishlist:", error);
+      res.status(500).json({ success: false, message: "خطا در دریافت لیست علاقه‌مندی‌ها" });
+    }
+  });
+
+  app.post("/api/customer/wishlist", async (req, res) => {
+    try {
+      const customerId = (req.session as any).customerId;
+      if (!customerId) {
+        return res.status(401).json({ success: false, message: "لطفا وارد شوید" });
+      }
+
+      const { productId } = req.body;
+      if (!productId) {
+        return res.status(400).json({ success: false, message: "شناسه محصول الزامی است" });
+      }
+
+      const wishlistItem = await customerStorage.addToWishlist(customerId, productId);
+      res.json({ success: true, message: "محصول به لیست علاقه‌مندی‌ها اضافه شد", wishlistItem });
+    } catch (error) {
+      console.error("Error adding to wishlist:", error);
+      res.status(500).json({ success: false, message: "خطا در افزودن به لیست علاقه‌مندی‌ها" });
+    }
+  });
+
+  app.delete("/api/customer/wishlist/:productId", async (req, res) => {
+    try {
+      const customerId = (req.session as any).customerId;
+      if (!customerId) {
+        return res.status(401).json({ success: false, message: "لطفا وارد شوید" });
+      }
+
+      const productId = parseInt(req.params.productId);
+      if (isNaN(productId)) {
+        return res.status(400).json({ success: false, message: "شناسه محصول نامعتبر است" });
+      }
+
+      await customerStorage.removeFromWishlist(customerId, productId);
+      res.json({ success: true, message: "محصول از لیست علاقه‌مندی‌ها حذف شد" });
+    } catch (error) {
+      console.error("Error removing from wishlist:", error);
+      res.status(500).json({ success: false, message: "خطا در حذف از لیست علاقه‌مندی‌ها" });
+    }
+  });
+
+  app.get("/api/customer/wishlist/check/:productId", async (req, res) => {
+    try {
+      const customerId = (req.session as any).customerId;
+      if (!customerId) {
+        return res.json({ success: true, isInWishlist: false });
+      }
+
+      const productId = parseInt(req.params.productId);
+      if (isNaN(productId)) {
+        return res.status(400).json({ success: false, message: "شناسه محصول نامعتبر است" });
+      }
+
+      const isInWishlist = await customerStorage.isInWishlist(customerId, productId);
+      res.json({ success: true, isInWishlist });
+    } catch (error) {
+      console.error("Error checking wishlist:", error);
+      res.status(500).json({ success: false, message: "خطا در بررسی لیست علاقه‌مندی‌ها" });
+    }
+  });
+
+  app.delete("/api/customer/wishlist", async (req, res) => {
+    try {
+      const customerId = (req.session as any).customerId;
+      if (!customerId) {
+        return res.status(401).json({ success: false, message: "لطفا وارد شوید" });
+      }
+
+      await customerStorage.clearWishlist(customerId);
+      res.json({ success: true, message: "لیست علاقه‌مندی‌ها پاک شد" });
+    } catch (error) {
+      console.error("Error clearing wishlist:", error);
+      res.status(500).json({ success: false, message: "خطا در پاک کردن لیست علاقه‌مندی‌ها" });
+    }
+  });
+
   app.post("/api/customers/logout", async (req, res) => {
     try {
       const customerId = (req.session as any).customerId;
