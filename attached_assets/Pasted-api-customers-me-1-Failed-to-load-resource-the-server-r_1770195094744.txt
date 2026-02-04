@@ -1,0 +1,109 @@
+api/customers/me:1  Failed to load resource: the server responded with a status of 401 ()
+api/admin/me:1  Failed to load resource: the server responded with a status of 401 ()
+tawk-support:1  Failed to load resource: the server responded with a status of 500 ()
+api/products:1  Failed to load resource: the server responded with a status of 500 ()
+api/public/content-settings?language=en&section=social_media:1  Failed to load resource: the server responded with a status of 500 ()
+api/footer-settings?language=en:1  Failed to load resource: the server responded with a status of 500 ()
+index-w8iuYUkv.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+index-w8iuYUkv.js:1090 🎛️ [VISIBILITY] Discount Banner: false
+index-w8iuYUkv.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+index-w8iuYUkv.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+index-w8iuYUkv.js:1090 🔐 [AUTH] Guest user confirmed
+api/admin/me:1  Failed to load resource: the server responded with a status of 401 ()
+api/customers/me:1  Failed to load resource: the server responded with a status of 401 ()
+api/shop/categories:1  Failed to load resource: the server responded with a status of 500 ()
+index-w8iuYUkv.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+index-w8iuYUkv.js:1090 🎛️ [VISIBILITY] Discount Banner: false
+index-w8iuYUkv.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+index-w8iuYUkv.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+api/products:1  Failed to load resource: the server responded with a status of 500 ()
+index-w8iuYUkv.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+index-w8iuYUkv.js:1090 🎛️ [VISIBILITY] Discount Banner: false
+index-w8iuYUkv.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+index-w8iuYUkv.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+api/tawk-support:1  Failed to load resource: the server responded with a status of 500 ()
+api/shop/search?q=&limit=12&offset=0&sortBy=relevance&sortOrder=desc:1  Failed to load resource: the server responded with a status of 500 ()
+api/frontend-controls:1  Failed to load resource: the server responded with a status of 500 ()
+api/shop/discounts:1  Failed to load resource: the server responded with a status of 500 ()
+index-w8iuYUkv.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+index-w8iuYUkv.js:1090 🎛️ [VISIBILITY] Discount Banner: false
+index-w8iuYUkv.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+index-w8iuYUkv.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+api/shop/product-stats:1  Failed to load resource: the server responded with a status of 500 ()
+api/shop/products:1  Failed to load resource: the server responded with a status of 500 ()
+index-w8iuYUkv.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+index-w8iuYUkv.js:1090 🎛️ [VISIBILITY] Discount Banner: false
+index-w8iuYUkv.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+index-w8iuYUkv.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+api/logistics/provinces:1  Failed to load resource: the server responded with a status of 500 ()
+index-w8iuYUkv.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+index-w8iuYUkv.js:1090 🎛️ [VISIBILITY] Discount Banner: false
+index-w8iuYUkv.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+index-w8iuYUkv.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+api/admin/me:1  Failed to load resource: the server responded with a status of 401 ()
+api/customers/me:1  Failed to load resource: the server responded with a status of 401 ()
+api/shop/discounts:1  Failed to load resource: the server responded with a status of 500 ()
+api/tawk-support:1  Failed to load resource: the server responded with a status of 500 ()
+api/shop/products:1  Failed to load resource: the server responded with a status of 500 ()
+api/frontend-controls:1  Failed to load resource: the server responded with a status of 500 ()
+api/shop/search?q=&limit=12&offset=0&sortBy=relevance&sortOrder=desc:1  Failed to load resource: the server responded with a status of 500 ()
+index-w8iuYUkv.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+index-w8iuYUkv.js:1090 🎛️ [VISIBILITY] Discount Banner: false
+index-w8iuYUkv.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+index-w8iuYUkv.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+api/shop/product-stats:1  Failed to load resource: the server responded with a status of 500 ()
+api/shop/categories:1  Failed to load resource: the server responded with a status of 500 ()
+api/logistics/provinces:1  Failed to load resource: the server responded with a status of 500 ()
+index-w8iuYUkv.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+index-w8iuYUkv.js:1090 🎛️ [VISIBILITY] Discount Banner: false
+index-w8iuYUkv.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+index-w8iuYUkv.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+index-w8iuYUkv.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+index-w8iuYUkv.js:1090 🎛️ [VISIBILITY] Discount Banner: false
+index-w8iuYUkv.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+index-w8iuYUkv.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+api/customers/login:1  Failed to load resource: the server responded with a status of 500 ()
+index-w8iuYUkv.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+index-w8iuYUkv.js:1090 🎛️ [VISIBILITY] Discount Banner: false
+index-w8iuYUkv.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+index-w8iuYUkv.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+index-w8iuYUkv.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+index-w8iuYUkv.js:1090 🎛️ [VISIBILITY] Discount Banner: false
+index-w8iuYUkv.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+index-w8iuYUkv.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+index-w8iuYUkv.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+index-w8iuYUkv.js:1090 🎛️ [VISIBILITY] Discount Banner: false
+index-w8iuYUkv.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+index-w8iuYUkv.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+api/tawk-support:1  Failed to load resource: the server responded with a status of 500 ()
+index-w8iuYUkv.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+index-w8iuYUkv.js:1090 🎛️ [VISIBILITY] Discount Banner: false
+index-w8iuYUkv.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+index-w8iuYUkv.js:1090 🌟 [RATINGS DEBUG] Product stats data: {}
+index-w8iuYUkv.js:1090  POST https://momtaz-chem-website-admin3119.replit.app/api/customers/login 500 (Internal Server Error)
+ie @ index-w8iuYUkv.js:1090
+(anonymous) @ index-w8iuYUkv.js:1090
+await in (anonymous)
+Iwe @ index-w8iuYUkv.js:37
+Mwe @ index-w8iuYUkv.js:37
+Dwe @ index-w8iuYUkv.js:37
+kU @ index-w8iuYUkv.js:37
+qre @ index-w8iuYUkv.js:37
+(anonymous) @ index-w8iuYUkv.js:37
+sL @ index-w8iuYUkv.js:40
+mre @ index-w8iuYUkv.js:37
+f6 @ index-w8iuYUkv.js:37
+TR @ index-w8iuYUkv.js:37
+Xwe @ index-w8iuYUkv.js:37
+index-w8iuYUkv.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+index-w8iuYUkv.js:1090 🎛️ [VISIBILITY] Discount Banner: false
+index-w8iuYUkv.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+index-w8iuYUkv.js:1090 🌟 [RATINGS DEBUG] Product stats data: {}
+index-w8iuYUkv.js:48  GET https://momtaz-chem-website-admin3119.replit.app/api/tawk-support 500 (Internal Server Error)
+(anonymous) @ index-w8iuYUkv.js:48
+i @ index-w8iuYUkv.js:48
+v @ index-w8iuYUkv.js:48
+start @ index-w8iuYUkv.js:48
+fetch @ index-w8iuYUkv.js:48
+IN @ index-w8iuYUkv.js:48
+(anonymous) @ index-w8iuYUkv.js:48
