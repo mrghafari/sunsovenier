@@ -51,8 +51,14 @@ const CustomerRegister = () => {
   });
 
   // Fetch verification settings to check if skip verification is enabled
-  const { data: verificationSettings } = useQuery<any>({
+  const { data: verificationSettings, isLoading: isLoadingSettings } = useQuery<any>({
     queryKey: ["/api/customer/verification-settings"],
+    queryFn: async () => {
+      const response = await fetch("/api/customer/verification-settings");
+      const data = await response.json();
+      console.log("🔐 [SETTINGS LOADED] Verification settings:", data);
+      return data;
+    },
     staleTime: 60000,
   });
 
@@ -195,9 +201,13 @@ const CustomerRegister = () => {
     
     // Check if skip verification is enabled - directly register without OTP
     // API returns settings in nested object with camelCase keys
-    const skipEnabled = verificationSettings?.settings?.allowSkipVerification === true || 
-                        verificationSettings?.allowSkipVerification === true;
-    console.log("🔐 [REGISTRATION] Skip verification enabled:", skipEnabled, verificationSettings);
+    const skipEnabled = verificationSettings?.settings?.allowSkipVerification === true;
+    console.log("🔐 [REGISTRATION] Verification settings check:", {
+      skipEnabled,
+      settings: verificationSettings?.settings,
+      fullData: verificationSettings,
+      isLoadingSettings
+    });
     
     if (skipEnabled) {
       // Skip OTP verification - register directly
@@ -210,10 +220,11 @@ const CustomerRegister = () => {
         whatsappNumber: registerData.phone,
         skipOtpVerification: true,
       };
-      console.log("🔐 [REGISTRATION] Registering directly without OTP");
+      console.log("🔐 [REGISTRATION] Registering directly without OTP - skip enabled");
       registerMutation.mutate(registrationPayload);
     } else {
       // Normal flow - send OTP first
+      console.log("🔐 [REGISTRATION] Sending OTP first - skip NOT enabled");
       sendOtpMutation.mutate(data);
     }
   };
