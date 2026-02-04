@@ -50,6 +50,12 @@ const CustomerRegister = () => {
     email: false,
   });
 
+  // Fetch verification settings to check if skip verification is enabled
+  const { data: verificationSettings } = useQuery<any>({
+    queryKey: ["/api/customer/verification-settings"],
+    staleTime: 60000,
+  });
+
   // Fetch provinces data
   const { data: provinces = [] } = useQuery({
     queryKey: ["/api/logistics/provinces"],
@@ -163,6 +169,7 @@ const CustomerRegister = () => {
         description: "Your account has been created. You can now log in.",
       });
       setShowOtpModal(false);
+      setIsSubmitting(false);
       setLocation("/customer/login");
     },
     onError: (error: any) => {
@@ -172,6 +179,7 @@ const CustomerRegister = () => {
         variant: "destructive",
       });
       setShowOtpModal(false);
+      setIsSubmitting(false);
     },
   });
 
@@ -184,7 +192,30 @@ const CustomerRegister = () => {
 
   const onSubmit = (data: CustomerRegistrationData) => {
     setIsSubmitting(true);
-    sendOtpMutation.mutate(data);
+    
+    // Check if skip verification is enabled - directly register without OTP
+    // API returns settings in nested object with camelCase keys
+    const skipEnabled = verificationSettings?.settings?.allowSkipVerification === true || 
+                        verificationSettings?.allowSkipVerification === true;
+    console.log("🔐 [REGISTRATION] Skip verification enabled:", skipEnabled, verificationSettings);
+    
+    if (skipEnabled) {
+      // Skip OTP verification - register directly
+      const { confirmPassword, ...registerData } = data;
+      const registrationPayload = {
+        ...registerData,
+        passwordHash: registerData.password,
+        customerSource: "website",
+        customerType: "retail",
+        whatsappNumber: registerData.phone,
+        skipOtpVerification: true,
+      };
+      console.log("🔐 [REGISTRATION] Registering directly without OTP");
+      registerMutation.mutate(registrationPayload);
+    } else {
+      // Normal flow - send OTP first
+      sendOtpMutation.mutate(data);
+    }
   };
 
   return (

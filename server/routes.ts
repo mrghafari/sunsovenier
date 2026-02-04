@@ -15819,8 +15819,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         preferredPaymentMethod,
         assignedSalesRep,
         tags,
-        publicNotes
+        publicNotes,
+        skipOtpVerification, // Flag to skip OTP when allow_skip_verification is enabled
+        cityRegion, // Support cityRegion from frontend
       } = req.body;
+      
+      // If skipOtpVerification is requested, verify that backend settings allow it
+      if (skipOtpVerification) {
+        const verificationSettings = await customerStorage.getVerificationSettings();
+        if (!verificationSettings?.allowSkipVerification) {
+          return res.status(400).json({
+            success: false,
+            message: "OTP verification is required for registration"
+          });
+        }
+        console.log("🔐 [REGISTRATION] Skipping OTP verification - admin setting enabled");
+      }
       
       // Check if customer already exists in CRM (primary check)
       const existingCrmCustomer = await crmStorage.getCrmCustomerByEmail(email);
@@ -15867,7 +15881,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         alternatePhone: alternatePhone || null,
         country,
         province: province || null,
-        cityRegion: city, // Support both city and cityRegion for Excel format
+        cityRegion: city || cityRegion, // Support both city and cityRegion from frontend
         address,
         secondaryAddress: secondaryAddress || null,
         postalCode: postalCode || null,
