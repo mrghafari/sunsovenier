@@ -125,13 +125,25 @@ const CustomerRegister = () => {
     },
     onSuccess: (response, variables) => {
       const { confirmPassword, ...registerData } = variables;
-      setPendingRegistrationData({
+      const registrationPayload = {
         ...registerData,
         passwordHash: registerData.password,
         customerSource: "website",
         customerType: "retail",
         whatsappNumber: registerData.phone,
-      });
+      };
+      
+      // Check if verification is skipped - register directly without OTP
+      if (response.skipVerification === true) {
+        console.log("🔐 [REGISTRATION] Skip verification enabled - registering directly");
+        registerMutation.mutate({
+          ...registrationPayload,
+          skipOtpVerification: true,
+        });
+        return;
+      }
+      
+      setPendingRegistrationData(registrationPayload);
       
       // Store sentVia info from response
       if (response.sentVia) {
