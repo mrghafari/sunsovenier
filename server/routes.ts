@@ -19785,65 +19785,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`📊 [CSV EXPORT] After date filtering: ${filteredOrders.length} orders`);
       
-      // Generate CSV headers in Persian
+      // Generate CSV headers in Persian - one row per item
       const headers = [
         'شماره سفارش',
         'تاریخ سفارش', 
         'وضعیت',
         'وضعیت پرداخت',
         'روش پرداخت',
-        'مبلغ کل (دینار)',
-        'محصولات',
-        'تعداد اقلام',
+        'مبلغ کل سفارش (دینار)',
+        'نام محصول',
+        'تعداد',
+        'قیمت واحد (دینار)',
+        'جمع ردیف (دینار)',
         'آدرس تحویل'
       ];
       
-      // Generate CSV rows
+      // Generate CSV rows - one row per item
       const csvRows = [headers.join(',')];
+      
+      const statusMap: Record<string, string> = {
+        'pending': 'در انتظار',
+        'confirmed': 'تایید شده',
+        'processing': 'در حال پردازش',
+        'shipped': 'ارسال شده',
+        'delivered': 'تحویل داده شده',
+        'cancelled': 'لغو شده'
+      };
+      
+      const paymentStatusMap: Record<string, string> = {
+        'pending': 'در انتظار پرداخت',
+        'paid': 'پرداخت شده',
+        'failed': 'ناموفق',
+        'refunded': 'برگشت داده شده'
+      };
+      
+      const paymentMethodMap: Record<string, string> = {
+        'online': 'آنلاین پرداخت',
+        'cash': 'نقدی',
+        'bank_transfer': 'واریز بانکی',
+        'wallet': 'والت',
+        'wallet_full': 'والت کامل',
+        'partial_wallet': 'پرداخت ترکیبی',
+        'bank_transfer_grace': 'واریز بانکی با مهلت 3 روزه'
+      };
       
       for (const order of filteredOrders) {
         const orderDate = new Date(order.createdAt).toLocaleDateString('fa-IR');
-        const statusMap = {
-          'pending': 'در انتظار',
-          'confirmed': 'تایید شده',
-          'processing': 'در حال پردازش',
-          'shipped': 'ارسال شده',
-          'delivered': 'تحویل داده شده',
-          'cancelled': 'لغو شده'
-        };
+        const orderStatus = statusMap[order.status] || order.status;
+        const paymentStatus = paymentStatusMap[order.paymentStatus] || order.paymentStatus;
+        const paymentMethod = paymentMethodMap[order.paymentMethod] || order.paymentMethod;
+        const totalAmount = order.totalAmount ? order.totalAmount.toLocaleString('fa-IR') : '0';
+        const address = order.address || 'نامشخص';
         
-        const paymentStatusMap = {
-          'pending': 'در انتظار پرداخت',
-          'paid': 'پرداخت شده',
-          'failed': 'ناموفق',
-          'refunded': 'برگشت داده شده'
-        };
-        
-        const paymentMethodMap = {
-          'online': 'آنلاین پرداخت',
-          'cash': 'نقدی',
-          'bank_transfer': 'واریز بانکی',
-          'wallet': 'والت',
-          'partial_wallet': 'پرداخت ترکیبی',
-          'bank_transfer_grace': 'واریز بانکی با مهلت 3 روزه'
-        };
-        
-        const products = order.items ? order.items.map(item => `${item.productName} (${item.quantity})`).join('; ') : 'نامشخص';
-        const totalItems = order.items ? order.items.reduce((sum, item) => sum + item.quantity, 0) : 0;
-        
-        const row = [
-          order.orderNumber || 'نامشخص',
-          orderDate,
-          statusMap[order.status] || order.status,
-          paymentStatusMap[order.paymentStatus] || order.paymentStatus,
-          paymentMethodMap[order.paymentMethod] || order.paymentMethod,
-          order.totalAmount ? order.totalAmount.toLocaleString('fa-IR') : '0',
-          `"${products}"`, // Wrap in quotes to handle commas
-          totalItems,
-          `"${order.address || 'نامشخص'}"` // Wrap in quotes to handle commas
-        ];
-        
-        csvRows.push(row.join(','));
+        // Create one row per item in the order
+        if (order.items && order.items.length > 0) {
+          for (const item of order.items) {
+            const unitPrice = item.price ? Number(item.price).toLocaleString('fa-IR') : '0';
+            const lineTotal = item.price && item.quantity ? (Number(item.price) * item.quantity).toLocaleString('fa-IR') : '0';
+            
+            const row = [
+              order.orderNumber || 'نامشخص',
+              orderDate,
+              orderStatus,
+              paymentStatus,
+              paymentMethod,
+              totalAmount,
+              `"${item.productName || 'نامشخص'}"`,
+              item.quantity || 0,
+              unitPrice,
+              lineTotal,
+              `"${address}"`
+            ];
+            
+            csvRows.push(row.join(','));
+          }
+        } else {
+          // Order with no items - still add a row
+          const row = [
+            order.orderNumber || 'نامشخص',
+            orderDate,
+            orderStatus,
+            paymentStatus,
+            paymentMethod,
+            totalAmount,
+            '"بدون محصول"',
+            0,
+            '0',
+            '0',
+            `"${address}"`
+          ];
+          
+          csvRows.push(row.join(','));
+        }
       }
       
       const csvContent = csvRows.join('\n');
