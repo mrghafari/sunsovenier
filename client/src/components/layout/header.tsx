@@ -7,7 +7,6 @@ import { cn } from '@/lib/utils';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useCustomer } from '@/hooks/useCustomer';
-import { useWishlist } from '@/hooks/useWishlist';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -34,8 +33,7 @@ export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { t, direction } = useLanguage();
   const { customer, isAuthenticated, logout } = useCustomer();
-  const { wishlistCount } = useWishlist();
-  
+    
   // Only check admin auth when in admin routes
   const isInAdminRoute = location.startsWith('/admin');
   const { isAuthenticated: isAdminAuthenticated, logout: adminLogout, user: adminUser } = useAuth();
@@ -324,21 +322,7 @@ export default function Header() {
                   </Button>
                 </Link>
                 <div className="h-4 w-px bg-gray-300 dark:bg-gray-600" />
-                <Link href="/wishlist">
-                  <Button variant="ghost" className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 relative">
-                    <Heart className="h-4 w-4 text-red-500" />
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {direction === 'rtl' ? 'علاقه‌مندی‌ها' : 'Wishlist'}
-                    </span>
-                    {wishlistCount > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                        {wishlistCount > 9 ? '9+' : wishlistCount}
-                      </span>
-                    )}
-                  </Button>
-                </Link>
-                <div className="h-4 w-px bg-gray-300 dark:bg-gray-600" />
-                <Link href="/customer/wallet">
+                                <Link href="/customer/wallet">
                   <Button variant="ghost" className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-800">
                     <Wallet className="h-4 w-4 text-green-600 dark:text-green-400" />
                     <div className="flex flex-col items-start">
@@ -501,24 +485,7 @@ export default function Header() {
                     className="px-4 py-2 border-t border-gray-200 dark:border-gray-700 mt-4 pt-4"
                   >
                     <div className="space-y-2">
-                      <Link href="/wishlist">
-                        <motion.div
-                          className="flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800 relative"
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => setIsMobileMenuOpen(false)}
-                        >
-                          <Heart className="h-4 w-4 text-red-500" />
-                          <span className="font-medium text-gray-700 dark:text-gray-300">
-                            {direction === 'rtl' ? 'علاقه‌مندی‌ها' : 'Wishlist'}
-                          </span>
-                          {wishlistCount > 0 && (
-                            <span className="ml-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                              {wishlistCount > 9 ? '9+' : wishlistCount}
-                            </span>
-                          )}
-                        </motion.div>
-                      </Link>
-                      <Link href="/customer/wallet">
+                                            <Link href="/customer/wallet">
                         <motion.div
                           className="flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
                           whileTap={{ scale: 0.98 }}
