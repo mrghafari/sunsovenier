@@ -43,7 +43,7 @@ function VerificationSettingsPanel() {
   // Update verification settings mutation
   const updateSettingsMutation = useMutation({
     mutationFn: async (newSettings: any) => {
-      return await apiRequest("/api/customer/verification-settings", "PUT", newSettings);
+      return await apiRequest("/api/customer/verification-settings", { method: "PUT", body: newSettings });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/customer/verification-settings"] });
@@ -62,7 +62,31 @@ function VerificationSettingsPanel() {
   });
 
   const handleToggle = (field: string, value: boolean) => {
-    const newSettings = { ...settings, [field]: value };
+    let newSettings = { ...settings, [field]: value };
+    
+    // Mutual exclusivity logic:
+    // If Allow Skip Verification is enabled -> disable all channels
+    // If any channel is enabled -> disable Allow Skip Verification
+    if (field === "allowSkipVerification" && value === true) {
+      newSettings = {
+        ...newSettings,
+        smsVerificationEnabled: false,
+        emailVerificationEnabled: false,
+        whatsappVerificationEnabled: false,
+        requireBothVerifications: false,
+      };
+    } else if (
+      (field === "smsVerificationEnabled" || 
+       field === "emailVerificationEnabled" || 
+       field === "whatsappVerificationEnabled") && 
+      value === true
+    ) {
+      newSettings = {
+        ...newSettings,
+        allowSkipVerification: false,
+      };
+    }
+    
     updateSettingsMutation.mutate(newSettings);
   };
 
