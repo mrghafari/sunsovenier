@@ -56580,6 +56580,259 @@ momtazchem.com
   });
 
   console.log('✅ [VENDOR ACCOUNTING] Vendor accounting routes registered');
+  // ==================== WAREHOUSE INVENTORY MANAGEMENT API ====================
+  
+  // Get all products with inventory data from shop_products (Kardex)
+  app.get("/api/warehouse/inventory-products", requireAuth, async (req, res) => {
+    try {
+      const { pool } = await import('./db');
+      
+      const result = await pool.query(`
+        SELECT 
+          id,
+          name,
+          sku,
+          barcode,
+          stock_quantity as "stockQuantity",
+          available_quantity as "availableQuantity",
+          reserved_quantity as "reservedQuantity",
+          min_stock_level as "minStockLevel",
+          max_stock_level as "maxStockLevel",
+          low_stock_threshold as "lowStockThreshold",
+          is_active as "isActive"
+        FROM shop_products
+        WHERE is_active = true
+        ORDER BY name ASC
+      `);
+      
+      res.json({
+        success: true,
+        products: result.rows
+      });
+    } catch (error) {
+      console.error('❌ [WAREHOUSE INVENTORY] Error fetching products:', error);
+      res.status(500).json({
+        success: false,
+        message: "خطا در دریافت اطلاعات موجودی"
+      });
+    }
+  });
+
+  // Update product inventory settings
+  app.patch("/api/warehouse/inventory-products/:id", requireAuth, async (req, res) => {
+    try {
+      const productId = parseInt(req.params.id);
+      const { minStockLevel, maxStockLevel, lowStockThreshold } = req.body;
+      
+      const { pool } = await import('./db');
+      
+      await pool.query(`
+        UPDATE shop_products
+        SET 
+          min_stock_level = 
+
+
+  return httpServer;
+},
+          max_stock_level = $2,
+          low_stock_threshold = $3,
+          updated_at = NOW()
+        WHERE id = $4
+      `, [minStockLevel || 0, maxStockLevel || 0, lowStockThreshold || 0, productId]);
+      
+      console.log(`✅ [WAREHOUSE INVENTORY] Updated inventory settings for product ${productId}`);
+      
+      res.json({
+        success: true,
+        message: "تنظیمات موجودی محصول با موفقیت ذخیره شد"
+      });
+    } catch (error) {
+      console.error('❌ [WAREHOUSE INVENTORY] Error updating product:', error);
+      res.status(500).json({
+        success: false,
+        message: "خطا در ذخیره تنظیمات"
+      });
+    }
+  });
+
+  // Get warehouse inventory notification settings
+  app.get("/api/warehouse/inventory-notification-settings", requireAuth, async (req, res) => {
+    try {
+      const { pool } = await import('./db');
+      
+      const settingsResult = await pool.query(`
+        SELECT setting_key, setting_value, setting_type
+        FROM shop_settings 
+        WHERE category = 'warehouse_inventory_notifications'
+      `);
+      
+      const settingsMap = {};
+      for (const row of settingsResult.rows) {
+        if (row.setting_type === 'boolean') {
+          settingsMap[row.setting_key] = row.setting_value === 'true';
+        } else if (row.setting_type === 'number') {
+          settingsMap[row.setting_key] = parseInt(row.setting_value) || 0;
+        } else if (row.setting_type === 'json') {
+          try {
+            settingsMap[row.setting_key] = JSON.parse(row.setting_value);
+          } catch {
+            settingsMap[row.setting_key] = row.setting_value;
+          }
+        } else {
+          settingsMap[row.setting_key] = row.setting_value;
+        }
+      }
+      
+      res.json({
+        success: true,
+        settings: {
+          emailEnabled: settingsMap.email_enabled ?? true,
+          smsEnabled: settingsMap.sms_enabled ?? false,
+          whatsappEnabled: settingsMap.whatsapp_enabled ?? false,
+          maxNotifications: settingsMap.max_notifications ?? 1,
+          recipients: settingsMap.recipients ?? []
+        }
+      });
+    } catch (error) {
+      console.error('❌ [WAREHOUSE INVENTORY] Error fetching notification settings:', error);
+      res.status(500).json({
+        success: false,
+        message: "خطا در دریافت تنظیمات"
+      });
+    }
+  });
+
+  // Save warehouse inventory notification settings
+  app.post("/api/warehouse/inventory-notification-settings", requireAuth, async (req, res) => {
+    try {
+      const { emailEnabled, smsEnabled, whatsappEnabled, maxNotifications, recipients } = req.body;
+      
+      const { pool } = await import('./db');
+      
+      const settings = [
+        { key: 'email_enabled', value: String(emailEnabled), type: 'boolean' },
+        { key: 'sms_enabled', value: String(smsEnabled), type: 'boolean' },
+        { key: 'whatsapp_enabled', value: String(whatsappEnabled), type: 'boolean' },
+        { key: 'max_notifications', value: String(maxNotifications || 1), type: 'number' },
+        { key: 'recipients', value: JSON.stringify(recipients || []), type: 'json' }
+      ];
+      
+      for (const setting of settings) {
+        await pool.query(`
+          INSERT INTO shop_settings (setting_key, setting_value, setting_type, category, display_name, display_name_en, is_public)
+          VALUES (
+
+
+  return httpServer;
+}, $2, $3, 'warehouse_inventory_notifications', 
+
+
+  return httpServer;
+}, 
+
+
+  return httpServer;
+}, false)
+          ON CONFLICT (setting_key) 
+          DO UPDATE SET setting_value = $2, updated_at = NOW()
+        `, [setting.key, setting.value, setting.type]);
+      }
+      
+      console.log(`✅ [WAREHOUSE INVENTORY] Notification settings saved`);
+      
+      res.json({
+        success: true,
+        message: "تنظیمات اطلاع‌رسانی با موفقیت ذخیره شد"
+      });
+    } catch (error) {
+      console.error('❌ [WAREHOUSE INVENTORY] Error saving notification settings:', error);
+      res.status(500).json({
+        success: false,
+        message: "خطا در ذخیره تنظیمات"
+      });
+    }
+  });
+
+  // Test notification
+  app.post("/api/warehouse/test-notification/:type", requireAuth, async (req, res) => {
+    try {
+      const type = req.params.type;
+      
+      console.log(`📧 [WAREHOUSE INVENTORY] Test notification requested: ${type}`);
+      
+      const { pool } = await import('./db');
+      const recipientsResult = await pool.query(`
+        SELECT setting_value FROM shop_settings 
+        WHERE setting_key = 'recipients' AND category = 'warehouse_inventory_notifications'
+      `);
+      
+      let recipients = [];
+      if (recipientsResult.rows.length > 0) {
+        try {
+          recipients = JSON.parse(recipientsResult.rows[0].setting_value);
+        } catch {}
+      }
+      
+      if (recipients.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "هیچ گیرنده‌ای تعریف نشده است"
+        });
+      }
+      
+      const activeRecipients = recipients.filter((r) => {
+        if (!r.isActive) return false;
+        if (type === 'email') return r.receiveEmail && r.email;
+        if (type === 'sms') return r.receiveSms && r.phone;
+        if (type === 'whatsapp') return r.receiveWhatsapp && r.whatsappNumber;
+        return false;
+      });
+      
+      if (activeRecipients.length === 0) {
+        const typeNames = { email: 'ایمیل', sms: 'پیامک', whatsapp: 'واتساپ' };
+        return res.status(400).json({
+          success: false,
+          message: `هیچ گیرنده فعالی برای ${typeNames[type] || type} یافت نشد`
+        });
+      }
+      
+      if (type === 'email') {
+        const { emailService } = await import('./email-service');
+        for (const recipient of activeRecipients) {
+          await emailService.sendCustomEmail(
+            recipient.email,
+            'تست سیستم هشدار موجودی - ممتاز شیمی',
+            `<div style="direction: rtl; font-family: Tahoma, Arial;">
+              <h2>تست سیستم هشدار موجودی</h2>
+              <p>سلام ${recipient.name}،</p>
+              <p>این یک پیام تست از سیستم هشدار موجودی انبار است.</p>
+              <p>اگر این پیام را دریافت کرده‌اید، سیستم اطلاع‌رسانی ایمیل به درستی کار می‌کند.</p>
+              <p>با احترام،<br/>سیستم انبار ممتاز شیمی</p>
+            </div>`
+          );
+        }
+      }
+      
+      console.log(`✅ [WAREHOUSE INVENTORY] Test ${type} sent to ${activeRecipients.length} recipients`);
+      
+      const typeNames = { email: 'ایمیل', sms: 'پیامک', whatsapp: 'واتساپ' };
+      res.json({
+        success: true,
+        message: `تست ${typeNames[type] || type} با موفقیت ارسال شد`,
+        recipientCount: activeRecipients.length
+      });
+    } catch (error) {
+      console.error('❌ [WAREHOUSE INVENTORY] Error sending test notification:', error);
+      res.status(500).json({
+        success: false,
+        message: "خطا در ارسال تست"
+      });
+    }
+  });
+
+  console.log('✅ [WAREHOUSE INVENTORY] Warehouse inventory management routes registered');
+
+
 
 
   return httpServer;

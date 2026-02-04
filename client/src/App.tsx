@@ -114,6 +114,7 @@ import GlobalRefreshSettings from "@/pages/admin/global-refresh-settings";
 import InventoryNotificationSettings from "@/pages/admin/inventory-notification-settings";
 import WarehouseManagement from "@/pages/admin/warehouse-management";
 import WarehouseManagementFixed from "@/pages/admin/warehouse-management-fixed";
+import WarehouseInventoryManagement from "@/pages/admin/warehouse-inventory-management";
 import ContentManagement from "@/pages/content-management";
 
 import SecurityManagement from "@/pages/security-management-new";
@@ -283,6 +284,7 @@ function Router() {
 
           <Route path="/admin/inventory-notification-settings" component={() => <AdminRoute><InventoryNotificationSettings /></AdminRoute>} />
           <Route path="/admin/warehouse-management" component={() => <AdminRoute><WarehouseManagementFixed /></AdminRoute>} />
+          <Route path="/admin/warehouse-inventory-management" component={() => <AdminRoute><WarehouseInventoryManagement /></AdminRoute>} />
 
           <Route path="/admin/content-management" component={() => <AdminRoute><ContentManagement /></AdminRoute>} />
           <Route path="/content-management" component={() => <AdminRoute><ContentManagement /></AdminRoute>} />
