@@ -20,10 +20,13 @@ export function useWishlist() {
   const { isAuthenticated } = useCustomer();
   const queryClient = useQueryClient();
 
-  const { data: wishlistItems = [], isLoading, error: queryError } = useQuery<WishlistItem[]>({
+  const { data: wishlistData, isLoading, error: queryError } = useQuery<WishlistItem[]>({
     queryKey: ["/api/customer/wishlist"],
     enabled: isAuthenticated,
   });
+  
+  // Ensure wishlistItems is always an array
+  const wishlistItems = Array.isArray(wishlistData) ? wishlistData : [];
 
   const addToWishlistMutation = useMutation({
     mutationFn: async (productId: number) => {
