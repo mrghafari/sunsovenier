@@ -15,7 +15,8 @@ import {
   type CartRecoveryAnalytics
 } from "@shared/cart-schema";
 
-const sql_client = neon(process.env.DATABASE_URL!);
+const databaseUrl = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
+const sql_client = neon(databaseUrl!);
 const cartDb = drizzle(sql_client);
 
 export class CartStorage {

@@ -4,7 +4,8 @@ const { Pool } = pkg;
 import { eq, desc, sql } from "drizzle-orm";
 import { simpleSmsTemplates, type InsertSimpleSmsTemplate, type SimpleSmsTemplate } from "../shared/schema";
 
-export const simpleSmsPool = new Pool({ connectionString: process.env.DATABASE_URL });
+const databaseUrl = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
+export const simpleSmsPool = new Pool({ connectionString: databaseUrl });
 export const simpleSmsDb = drizzle({ client: simpleSmsPool, schema: { simpleSmsTemplates } });
 
 export interface ISimpleSmsStorage {
