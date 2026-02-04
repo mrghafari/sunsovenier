@@ -557,3 +557,21 @@ export type CustomerEmailVerificationCode = typeof customerEmailVerificationCode
 
 export type InsertCustomerVerificationSettings = z.infer<typeof insertCustomerVerificationSettingsSchema>;
 export type CustomerVerificationSettings = typeof customerVerificationSettings.$inferSelect;
+
+// Customer wishlist - stores products that customers want to save for later
+export const customerWishlists = pgTable("customer_wishlists", {
+  id: serial("id").primaryKey(),
+  customerId: integer("customer_id").notNull(),
+  productId: integer("product_id").notNull(),
+  addedAt: timestamp("added_at").notNull().defaultNow(),
+});
+
+// Create insert schema for wishlist
+export const insertCustomerWishlistSchema = createInsertSchema(customerWishlists).omit({
+  id: true,
+  addedAt: true,
+});
+
+// Wishlist types
+export type InsertCustomerWishlist = z.infer<typeof insertCustomerWishlistSchema>;
+export type CustomerWishlist = typeof customerWishlists.$inferSelect;
