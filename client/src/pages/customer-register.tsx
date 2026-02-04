@@ -196,16 +196,30 @@ const CustomerRegister = () => {
     }
   };
 
-  const onSubmit = (data: CustomerRegistrationData) => {
+  const onSubmit = async (data: CustomerRegistrationData) => {
     setIsSubmitting(true);
+    
+    // Wait for verification settings to load if still loading
+    let settings = verificationSettings;
+    if (isLoadingSettings || !settings) {
+      console.log("🔐 [REGISTRATION] Settings not loaded yet, fetching directly...");
+      try {
+        const response = await fetch("/api/customer/verification-settings");
+        settings = await response.json();
+        console.log("🔐 [REGISTRATION] Fetched settings directly:", settings);
+      } catch (error) {
+        console.error("🔐 [REGISTRATION] Error fetching settings:", error);
+        settings = null;
+      }
+    }
     
     // Check if skip verification is enabled - directly register without OTP
     // API returns settings in nested object with camelCase keys
-    const skipEnabled = verificationSettings?.settings?.allowSkipVerification === true;
+    const skipEnabled = settings?.settings?.allowSkipVerification === true;
     console.log("🔐 [REGISTRATION] Verification settings check:", {
       skipEnabled,
-      settings: verificationSettings?.settings,
-      fullData: verificationSettings,
+      settings: settings?.settings,
+      fullData: settings,
       isLoadingSettings
     });
     
