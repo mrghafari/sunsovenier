@@ -204,6 +204,7 @@ router.post('/api/customers/send-otp', async (req, res) => {
       attempts: 0,
       verified: false,
       lastSentAt: new Date(),
+      createdAt: new Date(),
       registrationData: registrationData || null,
     }).returning();
 
@@ -477,6 +478,7 @@ router.post('/api/customers/resend-otp', async (req, res) => {
       attempts: 0,
       verified: false,
       lastSentAt: new Date(),
+      createdAt: new Date(),
       registrationData: lastOtp?.registrationData || null,
     }).returning();
 
