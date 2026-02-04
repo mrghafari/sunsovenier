@@ -211,48 +211,19 @@ const CustomerRegister = () => {
   const onSubmit = async (data: CustomerRegistrationData) => {
     setIsSubmitting(true);
     
-    // Wait for verification settings to load if still loading
-    let settings = verificationSettings;
-    if (isLoadingSettings || !settings) {
-      console.log("🔐 [REGISTRATION] Settings not loaded yet, fetching directly...");
-      try {
-        const response = await fetch("/api/customer/verification-settings");
-        settings = await response.json();
-        console.log("🔐 [REGISTRATION] Fetched settings directly:", settings);
-      } catch (error) {
-        console.error("🔐 [REGISTRATION] Error fetching settings:", error);
-        settings = null;
-      }
-    }
+    // Always try direct registration - backend will check if OTP is needed
+    const { confirmPassword, ...registerData } = data;
+    const registrationPayload = {
+      ...registerData,
+      passwordHash: registerData.password,
+      customerSource: "website",
+      customerType: "retail",
+      whatsappNumber: registerData.phone,
+      skipOtpVerification: true,
+    };
     
-    // Check if skip verification is enabled - directly register without OTP
-    // API returns settings in nested object with camelCase keys
-    const skipEnabled = settings?.settings?.allowSkipVerification === true;
-    console.log("🔐 [REGISTRATION] Verification settings check:", {
-      skipEnabled,
-      settings: settings?.settings,
-      fullData: settings,
-      isLoadingSettings
-    });
-    
-    if (skipEnabled) {
-      // Skip OTP verification - register directly
-      const { confirmPassword, ...registerData } = data;
-      const registrationPayload = {
-        ...registerData,
-        passwordHash: registerData.password,
-        customerSource: "website",
-        customerType: "retail",
-        whatsappNumber: registerData.phone,
-        skipOtpVerification: true,
-      };
-      console.log("🔐 [REGISTRATION] Registering directly without OTP - skip enabled");
-      registerMutation.mutate(registrationPayload);
-    } else {
-      // Normal flow - send OTP first
-      console.log("🔐 [REGISTRATION] Sending OTP first - skip NOT enabled");
-      sendOtpMutation.mutate(data);
-    }
+    console.log("🔐 [REGISTRATION] Attempting direct registration...");
+    registerMutation.mutate(registrationPayload);
   };
 
   return (
