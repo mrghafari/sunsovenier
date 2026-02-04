@@ -173,33 +173,7 @@ router.post('/api/customers/send-otp', async (req, res) => {
       });
     }
 
-    // Get verification settings from database FIRST
-    const verificationSettings = await getVerificationSettings();
-    console.log(`⚙️ [OTP] Verification settings - SMS: ${verificationSettings.smsVerificationEnabled}, Email: ${verificationSettings.emailVerificationEnabled}, WhatsApp: ${verificationSettings.whatsappVerificationEnabled}, Skip: ${verificationSettings.allowSkipVerification}`);
-
-    // If allowSkipVerification is enabled, skip OTP entirely - this is the FIRST check
-    if (verificationSettings.allowSkipVerification) {
-      console.log(`⚠️ [OTP] Skip verification enabled - bypassing OTP completely`);
-      return res.json({
-        success: true,
-        message: 'Verification skipped',
-        skipVerification: true,
-      });
-    }
-
-    // Check if all channels are disabled
-    const hasAnyChannelEnabled = verificationSettings.smsVerificationEnabled || 
-                                  verificationSettings.emailVerificationEnabled || 
-                                  verificationSettings.whatsappVerificationEnabled;
-    
-    if (!hasAnyChannelEnabled) {
-      return res.status(500).json({
-        success: false,
-        message: 'No verification channels are enabled. Please contact support.',
-      });
-    }
-
-    // Check rate limiting (max 1 OTP every 1 minute per phone/email) - only if we need to send OTP
+    // Check rate limiting (max 1 OTP every 1 minute per phone/email)
     const recentOtp = await db.query.customersOtp.findFirst({
       where: and(
         eq(customersOtp.phone, phone),
@@ -235,6 +209,10 @@ router.post('/api/customers/send-otp', async (req, res) => {
 
     console.log(`🔐 [OTP] Generated code for ${phone}/${email}: ${code}`);
 
+    // Get verification settings from database
+    const verificationSettings = await getVerificationSettings();
+    console.log(`⚙️ [OTP] Verification settings - SMS: ${verificationSettings.smsVerificationEnabled}, Email: ${verificationSettings.emailVerificationEnabled}, WhatsApp: ${verificationSettings.whatsappVerificationEnabled}`);
+
     // Send OTP only via enabled channels
     const sendPromises: Promise<boolean>[] = [];
     const channelNames: string[] = [];
@@ -252,7 +230,23 @@ router.post('/api/customers/send-otp', async (req, res) => {
       channelNames.push('email');
     }
 
-    // Note: Skip verification is already handled at the beginning of this endpoint
+    // If no channels are enabled, allow skip if configured
+    if (sendPromises.length === 0) {
+      if (verificationSettings.allowSkipVerification) {
+        // Skip verification and create customer directly
+        console.log(`⚠️ [OTP] No verification channels enabled, skipping verification`);
+        return res.json({
+          success: true,
+          message: 'Verification skipped - no channels enabled',
+          skipVerification: true,
+        });
+      } else {
+        return res.status(500).json({
+          success: false,
+          message: 'No verification channels are enabled. Please contact support.',
+        });
+      }
+    }
 
     const results = await Promise.allSettled(sendPromises);
     

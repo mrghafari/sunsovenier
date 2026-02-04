@@ -1477,6 +1477,23 @@ export default function ProductsPage() {
             <Plus className="w-4 h-4 mr-2" />
             {t.addProduct}
           </Button>
+          
+          <Button 
+            onClick={() => {
+              queryClient.clear();
+              queryClient.removeQueries({ queryKey: ["/api/products"] });
+              refetch();
+              toast({
+                title: t.productManagement.cacheCleared,
+                description: t.productManagement.dataRefreshed,
+              });
+            }}
+            variant="outline" 
+            className="h-12 text-sm"
+          >
+            <Database className="w-4 h-4 mr-2" />
+            {t.productManagement.forceRefresh}
+          </Button>
         </div>
       </div>
 

@@ -1,7 +1,5 @@
 import { shopStorage } from "./shop-storage";
 import { UniversalEmailService } from "./universal-email-service";
-import { db } from "./db";
-import { sql } from "drizzle-orm";
 
 interface InventoryAlert {
   productId: number;
@@ -13,15 +11,6 @@ interface InventoryAlert {
   alertLevel: 'low_stock' | 'out_of_stock';
 }
 
-interface NotificationSettings {
-  emailEnabled: boolean;
-  smsEnabled: boolean;
-  whatsappEnabled: boolean;
-  managerEmail: string;
-  managerPhone: string;
-  whatsappNumber: string;
-}
-
 export class InventoryAlertService {
   // Configuration for notifications
   private static notificationConfig = {
@@ -29,93 +18,12 @@ export class InventoryAlertService {
     categoryKey: 'inventory-alerts', // Use universal email service  
     emergencyContacts: [
       { name: 'Manager', email: 'inventory@momtazchem.com' },
+      // می‌توانید اعضای دیگر تیم مدیریت را اضافه کنید
     ]
   };
 
   /**
-   * Get notification settings from database
-   */
-  private static async getNotificationSettings(): Promise<NotificationSettings> {
-    try {
-      const result = await db.execute(sql`
-        SELECT email_enabled, sms_enabled, whatsapp_enabled, 
-               manager_email, manager_phone, whatsapp_number
-        FROM inventory_threshold_settings 
-        WHERE id = 1
-      `);
-      const row = result.rows[0] as any;
-      return {
-        emailEnabled: row?.email_enabled ?? true,
-        smsEnabled: row?.sms_enabled ?? false,
-        whatsappEnabled: row?.whatsapp_enabled ?? false,
-        managerEmail: row?.manager_email ?? 'inventory@momtazchem.com',
-        managerPhone: row?.manager_phone ?? '',
-        whatsappNumber: row?.whatsapp_number ?? ''
-      };
-    } catch (error) {
-      console.error('[INVENTORY] Error fetching notification settings:', error);
-      return {
-        emailEnabled: true,
-        smsEnabled: false,
-        whatsappEnabled: false,
-        managerEmail: 'inventory@momtazchem.com',
-        managerPhone: '',
-        whatsappNumber: ''
-      };
-    }
-  }
-
-  /**
-   * Check if alert was already sent for this product (one-time notification)
-   */
-  private static async wasAlertSent(productId: number, alertLevel: string): Promise<boolean> {
-    try {
-      const hash = `${productId}_${alertLevel}`;
-      const result = await db.execute(sql`
-        SELECT id FROM inventory_product_alert_log 
-        WHERE notification_hash = ${hash}
-      `);
-      return (result.rows?.length || 0) > 0;
-    } catch (error) {
-      console.error('[INVENTORY] Error checking alert log:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Log sent alert to prevent duplicates
-   */
-  private static async logAlertSent(alert: InventoryAlert, sentVia: string, sentTo: string): Promise<void> {
-    try {
-      const hash = `${alert.productId}_${alert.alertLevel}`;
-      await db.execute(sql`
-        INSERT INTO inventory_product_alert_log 
-        (product_id, product_name, alert_type, alert_level, current_stock, min_threshold, sent_via, sent_to, notification_hash)
-        VALUES (${alert.productId}, ${alert.productName}, 'inventory', ${alert.alertLevel}, ${alert.currentStock}, ${alert.minimumThreshold}, ${sentVia}, ${sentTo}, ${hash})
-        ON CONFLICT (notification_hash) DO NOTHING
-      `);
-      console.log(`📝 [INVENTORY] Alert logged for ${alert.productName} (${alert.alertLevel})`);
-    } catch (error) {
-      console.error('[INVENTORY] Error logging alert:', error);
-    }
-  }
-
-  /**
-   * Reset alert log when stock is replenished (can send alert again next time)
-   */
-  static async resetAlertForProduct(productId: number): Promise<void> {
-    try {
-      await db.execute(sql`
-        DELETE FROM inventory_product_alert_log WHERE product_id = ${productId}
-      `);
-      console.log(`🔄 [INVENTORY] Alert reset for product ${productId}`);
-    } catch (error) {
-      console.error('[INVENTORY] Error resetting alert:', error);
-    }
-  }
-
-  /**
-   * Check all products and send alerts for low stock items (ONE-TIME per product)
+   * Check all products and send alerts for low stock items
    */
   static async checkInventoryLevels(): Promise<void> {
     try {
@@ -124,35 +32,32 @@ export class InventoryAlertService {
 
       for (const product of products) {
         const currentStock = product.stockQuantity || 0;
-        const minimumThreshold = product.minStockLevel || 5;
-        
-        let alertLevel: 'low_stock' | 'out_of_stock' | null = null;
+        const minimumThreshold = product.minStockLevel || 5; // حد مینیمم برای اعلام به مدیر تولید
         
         if (currentStock <= 0) {
-          alertLevel = 'out_of_stock';
+          alertProducts.push({
+            productId: product.id,
+            productName: product.name,
+            currentStock,
+            minimumThreshold,
+            category: product.category,
+            sku: product.sku,
+            alertLevel: 'out_of_stock'
+          });
         } else if (currentStock <= minimumThreshold) {
-          alertLevel = 'low_stock';
-        }
-
-        if (alertLevel) {
-          // Check if alert was already sent (one-time notification)
-          const alreadySent = await this.wasAlertSent(product.id, alertLevel);
-          if (!alreadySent) {
-            alertProducts.push({
-              productId: product.id,
-              productName: product.name,
-              currentStock,
-              minimumThreshold,
-              category: product.category,
-              sku: product.sku,
-              alertLevel
-            });
-          }
+          alertProducts.push({
+            productId: product.id,
+            productName: product.name,
+            currentStock,
+            minimumThreshold,
+            category: product.category,
+            sku: product.sku,
+            alertLevel: 'low_stock'
+          });
         }
       }
 
       if (alertProducts.length > 0) {
-        console.log(`🚨 [INVENTORY] ${alertProducts.length} products need alert (first time)`);
         await this.sendInventoryAlert(alertProducts);
       }
     } catch (error) {
@@ -161,43 +66,13 @@ export class InventoryAlertService {
   }
 
   /**
-   * Send inventory alert via email, SMS, and WhatsApp based on settings
+   * Send inventory alert via email only
    */
   private static async sendInventoryAlert(alerts: InventoryAlert[]): Promise<void> {
     try {
-      const settings = await this.getNotificationSettings();
-      const sentVia: string[] = [];
-      const sentTo: string[] = [];
-      
       // Send Email Alert
-      if (settings.emailEnabled && settings.managerEmail) {
-        await this.sendEmailAlert(alerts, settings.managerEmail);
-        sentVia.push('email');
-        sentTo.push(settings.managerEmail);
-      }
-      
-      // Send WhatsApp Alert
-      if (settings.whatsappEnabled && settings.whatsappNumber) {
-        await this.sendWhatsAppAlert(alerts, settings.whatsappNumber);
-        sentVia.push('whatsapp');
-        sentTo.push(settings.whatsappNumber);
-      }
-      
-      // Send SMS Alert
-      if (settings.smsEnabled && settings.managerPhone) {
-        await this.sendSmsAlert(alerts, settings.managerPhone);
-        sentVia.push('sms');
-        sentTo.push(settings.managerPhone);
-      }
-      
-      // Only log alerts as sent if at least one channel was used
-      if (sentVia.length > 0) {
-        for (const alert of alerts) {
-          await this.logAlertSent(alert, sentVia.join(','), sentTo.join(', '));
-        }
-        console.log(`✅ [INVENTORY] Alerts sent via: ${sentVia.join(', ')} for ${alerts.length} products`);
-      } else {
-        console.log(`⚠️ [INVENTORY] No notification channels enabled - alerts not logged as sent (will retry next check)`);
+      if (this.notificationConfig.emailEnabled) {
+        await this.sendEmailAlert(alerts);
       }
     } catch (error) {
       console.error('Error sending inventory alerts:', error);
@@ -205,68 +80,15 @@ export class InventoryAlertService {
   }
 
   /**
-   * Send WhatsApp alert
-   */
-  private static async sendWhatsAppAlert(alerts: InventoryAlert[], phoneNumber: string): Promise<void> {
-    try {
-      const criticalAlerts = alerts.filter(a => a.alertLevel === 'out_of_stock');
-      const lowStockAlerts = alerts.filter(a => a.alertLevel === 'low_stock');
-      
-      let message = `🚨 *Inventory Alert - Momtazchem*\n\n`;
-      
-      if (criticalAlerts.length > 0) {
-        message += `❌ *Out of Stock (${criticalAlerts.length}):*\n`;
-        criticalAlerts.forEach(a => {
-          message += `• ${a.productName} (SKU: ${a.sku})\n`;
-        });
-        message += `\n`;
-      }
-      
-      if (lowStockAlerts.length > 0) {
-        message += `⚠️ *Low Stock (${lowStockAlerts.length}):*\n`;
-        lowStockAlerts.forEach(a => {
-          message += `• ${a.productName}: ${a.currentStock} (Min: ${a.minimumThreshold})\n`;
-        });
-      }
-      
-      message += `\n📅 ${new Date().toLocaleString('en-IQ')}`;
-      
-      console.log(`📱 [INVENTORY] WhatsApp alert prepared for ${phoneNumber}`);
-      // WhatsApp integration would be implemented here
-      // For now, logging the message
-      console.log(`📱 [INVENTORY] WhatsApp message: ${message.substring(0, 100)}...`);
-    } catch (error) {
-      console.error('[INVENTORY] Error sending WhatsApp alert:', error);
-    }
-  }
-
-  /**
-   * Send SMS alert
-   */
-  private static async sendSmsAlert(alerts: InventoryAlert[], phoneNumber: string): Promise<void> {
-    try {
-      const criticalCount = alerts.filter(a => a.alertLevel === 'out_of_stock').length;
-      const lowStockCount = alerts.filter(a => a.alertLevel === 'low_stock').length;
-      
-      const message = `Momtazchem Inventory Alert: ${criticalCount} out of stock, ${lowStockCount} low stock. Check admin panel.`;
-      
-      console.log(`📲 [INVENTORY] SMS alert prepared for ${phoneNumber}: ${message}`);
-      // SMS integration would be implemented here
-    } catch (error) {
-      console.error('[INVENTORY] Error sending SMS alert:', error);
-    }
-  }
-
-  /**
    * Send inventory alert email to management using Template #13 or #17
    */
-  private static async sendEmailAlert(alerts: InventoryAlert[], recipientEmail: string): Promise<void> {
+  private static async sendEmailAlert(alerts: InventoryAlert[]): Promise<void> {
     try {
       const { emailStorage } = await import('./email-storage');
       
       // Determine which template to use based on alert severity
       const criticalAlerts = alerts.filter(a => a.alertLevel === 'out_of_stock');
-      const templateNumber = criticalAlerts.length > 0 ? '#17' : '#13';
+      const templateNumber = criticalAlerts.length > 0 ? '#17' : '#13'; // Use #17 for comprehensive alerts, #13 for low stock
       
       const alertTemplate = await emailStorage.getTemplateByNumber(templateNumber);
       
@@ -283,6 +105,7 @@ export class InventoryAlertService {
           products_list: alerts.map(a => `${a.productName} (موجودی: ${a.currentStock})`).join(', ')
         };
 
+        // Process template content with variables
         let processedHtml = alertTemplate.htmlContent;
         let processedSubject = alertTemplate.subject;
         
@@ -294,23 +117,24 @@ export class InventoryAlertService {
 
         await UniversalEmailService.sendEmail({
           categoryKey: this.notificationConfig.categoryKey,
-          to: [recipientEmail],
+          to: ['inventory@momtazchem.com'],
           subject: processedSubject,
           html: processedHtml,
           templateNumber: templateNumber,
           variables: templateVariables
         });
 
-        console.log(`✅ Inventory alert sent to ${recipientEmail} using Template ${templateNumber} for ${alerts.length} products`);
+        console.log(`✅ Inventory alert sent using Template ${templateNumber} for ${alerts.length} products`);
       } else {
         console.warn(`⚠️ Template ${templateNumber} not found, using fallback method`);
         
+        // Fallback to hardcoded template
         const htmlContent = this.generateAlertEmailHtml(alerts);
         const textContent = this.generateAlertEmailText(alerts);
 
         await UniversalEmailService.sendEmail({
           categoryKey: this.notificationConfig.categoryKey,
-          to: [recipientEmail],
+          to: ['inventory@momtazchem.com'],
           subject: `🚨 Inventory Alert - ${alerts.length} Product${alerts.length > 1 ? 's' : ''} Need Attention`,
           html: htmlContent,
           text: textContent,
@@ -511,18 +335,9 @@ export class InventoryAlertService {
       if (!product) return false;
 
       const currentStock = product.stockQuantity || 0;
-      const minimumThreshold = product.minStockLevel || 5;
+      const minimumThreshold = product.minStockLevel || 5; // حد مینیمم برای اعلام به مدیر تولید
       
       if (currentStock <= minimumThreshold) {
-        const alertLevel = currentStock <= 0 ? 'out_of_stock' : 'low_stock';
-        
-        // Check if alert was already sent (one-time notification)
-        const alreadySent = await this.wasAlertSent(product.id, alertLevel);
-        if (alreadySent) {
-          console.log(`⏭️ [INVENTORY] Alert already sent for ${product.name} (${alertLevel}), skipping`);
-          return false;
-        }
-        
         const alert: InventoryAlert = {
           productId: product.id,
           productName: product.name,
@@ -530,7 +345,7 @@ export class InventoryAlertService {
           minimumThreshold,
           category: product.category,
           sku: product.sku,
-          alertLevel
+          alertLevel: currentStock <= 0 ? 'out_of_stock' : 'low_stock'
         };
 
         await this.sendInventoryAlert([alert]);

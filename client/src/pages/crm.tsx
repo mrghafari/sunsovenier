@@ -27,23 +27,14 @@ function VerificationSettingsPanel() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Check if admin is logged in
-  const { data: adminData } = useQuery({
-    queryKey: ["/api/admin/me"],
-  });
-  
-  const isAdminLoggedIn = !!(adminData as any)?.id;
-
-  // Fetch current verification settings - always get fresh data
+  // Fetch current verification settings
   const { data: settingsData, isLoading: settingsLoading } = useQuery({
     queryKey: ["/api/customer/verification-settings"],
-    staleTime: 0,
-    refetchOnMount: "always",
   });
 
   const settings = (settingsData as any)?.settings || {
     smsVerificationEnabled: false,
-    emailVerificationEnabled: false,
+    emailVerificationEnabled: true,
     whatsappVerificationEnabled: false,
     requireBothVerifications: false,
     allowSkipVerification: false,
@@ -52,13 +43,7 @@ function VerificationSettingsPanel() {
   // Update verification settings mutation
   const updateSettingsMutation = useMutation({
     mutationFn: async (newSettings: any) => {
-      console.log("[OTP Settings] Attempting to save:", newSettings);
-      const response = await apiRequest("/api/customer/verification-settings", { method: "PUT", body: newSettings });
-      console.log("[OTP Settings] Response:", response);
-      if (response && response.success === false) {
-        throw new Error(response.message || "Failed to update settings");
-      }
-      return response;
+      return await apiRequest("/api/customer/verification-settings", "PUT", newSettings);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/customer/verification-settings"] });
@@ -68,37 +53,16 @@ function VerificationSettingsPanel() {
       });
     },
     onError: (error: any) => {
-      console.error("[OTP Settings] Error:", error);
-      queryClient.invalidateQueries({ queryKey: ["/api/customer/verification-settings"] });
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to update settings - please login as admin",
+        description: error.message || "Failed to update settings",
       });
     },
   });
 
   const handleToggle = (field: string, value: boolean) => {
-    let newSettings = { ...settings, [field]: value };
-    
-    // When "Allow Skip Verification" is enabled, disable all other channels
-    if (field === "allowSkipVerification" && value === true) {
-      newSettings = {
-        ...newSettings,
-        emailVerificationEnabled: false,
-        smsVerificationEnabled: false,
-        whatsappVerificationEnabled: false,
-      };
-    }
-    
-    // When any channel is enabled, disable "Allow Skip Verification"
-    if ((field === "emailVerificationEnabled" || field === "smsVerificationEnabled" || field === "whatsappVerificationEnabled") && value === true) {
-      newSettings = {
-        ...newSettings,
-        allowSkipVerification: false,
-      };
-    }
-    
+    const newSettings = { ...settings, [field]: value };
     updateSettingsMutation.mutate(newSettings);
   };
 
@@ -122,7 +86,7 @@ function VerificationSettingsPanel() {
           id="email-verification"
           checked={settings.emailVerificationEnabled}
           onCheckedChange={(checked) => handleToggle("emailVerificationEnabled", checked)}
-          disabled={updateSettingsMutation.isPending || settings.allowSkipVerification}
+          disabled={updateSettingsMutation.isPending}
         />
       </div>
 
@@ -140,7 +104,7 @@ function VerificationSettingsPanel() {
           id="sms-verification"
           checked={settings.smsVerificationEnabled}
           onCheckedChange={(checked) => handleToggle("smsVerificationEnabled", checked)}
-          disabled={updateSettingsMutation.isPending || settings.allowSkipVerification}
+          disabled={updateSettingsMutation.isPending}
         />
       </div>
 
@@ -158,7 +122,7 @@ function VerificationSettingsPanel() {
           id="whatsapp-verification"
           checked={settings.whatsappVerificationEnabled}
           onCheckedChange={(checked) => handleToggle("whatsappVerificationEnabled", checked)}
-          disabled={updateSettingsMutation.isPending || settings.allowSkipVerification}
+          disabled={updateSettingsMutation.isPending}
         />
       </div>
 

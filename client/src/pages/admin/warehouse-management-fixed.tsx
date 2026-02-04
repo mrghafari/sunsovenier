@@ -16,90 +16,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import PaymentMethodBadge from '@/components/PaymentMethodBadge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-
-// Inventory Table Component
-const InventoryTable: React.FC = () => {
-  const { data: products, isLoading, error } = useQuery({
-    queryKey: ['/api/shop/products'],
-  });
-
-  if (isLoading) {
-    return (
-      <div className="text-center py-8">
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <p className="mt-4 text-gray-600">Loading inventory...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-8 text-red-500">
-        <AlertTriangle className="w-8 h-8 mx-auto mb-2" />
-        <p>Error loading inventory data</p>
-      </div>
-    );
-  }
-
-  const productList = Array.isArray(products) ? products : [];
-
-  return (
-    <div className="overflow-x-auto">
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-gray-100">
-            <TableHead className="text-center font-bold">Product Name (نام محصول)</TableHead>
-            <TableHead className="text-center font-bold">SKU</TableHead>
-            <TableHead className="text-center font-bold">Current Stock (موجودی)</TableHead>
-            <TableHead className="text-center font-bold">Min Threshold (حداقل)</TableHead>
-            <TableHead className="text-center font-bold">Pending Batches (بچ‌های منتظر)</TableHead>
-            <TableHead className="text-center font-bold">Total Available (کل موجودی)</TableHead>
-            <TableHead className="text-center font-bold">Status (وضعیت)</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {productList.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={7} className="text-center py-8 text-gray-500">
-                No products found
-              </TableCell>
-            </TableRow>
-          ) : (
-            productList.map((product: any) => {
-              const currentStock = product.stockQuantity || 0;
-              const minThreshold = product.minStockLevel || 0;
-              const pendingBatches = 0; // Would need backend support for actual pending batches
-              const totalAvailable = currentStock + pendingBatches;
-              const isLowStock = currentStock <= minThreshold && currentStock > 0;
-              const isOutOfStock = currentStock <= 0;
-
-              return (
-                <TableRow key={product.id} className={isOutOfStock ? 'bg-red-50' : isLowStock ? 'bg-yellow-50' : ''}>
-                  <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell className="text-center font-mono text-sm">{product.sku || '-'}</TableCell>
-                  <TableCell className="text-center font-bold">{currentStock}</TableCell>
-                  <TableCell className="text-center">{minThreshold}</TableCell>
-                  <TableCell className="text-center">{pendingBatches}</TableCell>
-                  <TableCell className="text-center font-bold">{totalAvailable}</TableCell>
-                  <TableCell className="text-center">
-                    {isOutOfStock ? (
-                      <Badge variant="destructive">Out of Stock</Badge>
-                    ) : isLowStock ? (
-                      <Badge variant="secondary" className="bg-yellow-500 text-white">Low Stock</Badge>
-                    ) : (
-                      <Badge variant="default" className="bg-green-500">In Stock</Badge>
-                    )}
-                  </TableCell>
-                </TableRow>
-              );
-            })
-          )}
-        </TableBody>
-      </Table>
-    </div>
-  );
-};
 
 interface Order {
   id: number;
@@ -720,14 +636,10 @@ const WarehouseManagementFixed: React.FC = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="orders" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsList className="grid w-full grid-cols-1 mb-6">
             <TabsTrigger value="orders" className="flex items-center gap-2">
               <Package className="w-4 h-4" />
               سفارشات
-            </TabsTrigger>
-            <TabsTrigger value="inventory" className="flex items-center gap-2">
-              <Package2 className="w-4 h-4" />
-              Inventory (موجودی‌ها)
             </TabsTrigger>
           </TabsList>
 
@@ -942,21 +854,6 @@ const WarehouseManagementFixed: React.FC = () => {
                     </table>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Inventory Tab */}
-          <TabsContent value="inventory" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Package2 className="w-5 h-5" />
-                  Inventory Overview (نمای کلی موجودی)
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <InventoryTable />
               </CardContent>
             </Card>
           </TabsContent>
