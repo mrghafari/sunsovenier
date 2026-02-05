@@ -767,88 +767,100 @@ export default function WarehouseInventoryManagement() {
       </Dialog>
 
       {/* Add Recipient Dialog */}
-      <Dialog open={showAddRecipient} onOpenChange={setShowAddRecipient}>
+      <Dialog open={showAddRecipient} onOpenChange={(open) => {
+        setShowAddRecipient(open);
+        if (!open) {
+          setSelectedCrmCustomer("");
+          setNewRecipient({
+            name: '',
+            email: '',
+            phone: '',
+            whatsappNumber: '',
+            receiveEmail: true,
+            receiveSms: false,
+            receiveWhatsapp: false,
+            isActive: true
+          });
+        }
+      }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>افزودن گیرنده جدید</DialogTitle>
+            <DialogTitle>افزودن گیرنده جدید از CRM</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="recipientName">نام *</Label>
-              <Input
-                id="recipientName"
-                value={newRecipient.name}
-                onChange={(e) => setNewRecipient({ ...newRecipient, name: e.target.value })}
-                placeholder="نام گیرنده"
-              />
+              <Label htmlFor="crmCustomer">انتخاب از CRM *</Label>
+              <Select value={selectedCrmCustomer} onValueChange={handleSelectCrmCustomer}>
+                <SelectTrigger>
+                  <SelectValue placeholder="یک مشتری از CRM انتخاب کنید..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {crmCustomers.map((customer) => (
+                    <SelectItem key={customer.id} value={customer.id.toString()}>
+                      {customer.name || customer.company_name} - {customer.email || customer.phone || 'بدون اطلاعات تماس'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <div>
-              <Label htmlFor="recipientEmail">ایمیل</Label>
-              <Input
-                id="recipientEmail"
-                type="email"
-                value={newRecipient.email}
-                onChange={(e) => setNewRecipient({ ...newRecipient, email: e.target.value })}
-                placeholder="email@example.com"
-              />
-            </div>
-            <div>
-              <Label htmlFor="recipientPhone">شماره تلفن (برای پیامک)</Label>
-              <Input
-                id="recipientPhone"
-                type="tel"
-                value={newRecipient.phone}
-                onChange={(e) => setNewRecipient({ ...newRecipient, phone: e.target.value })}
-                placeholder="+964xxxxxxxxx"
-                dir="ltr"
-              />
-            </div>
-            <div>
-              <Label htmlFor="recipientWhatsapp">شماره واتساپ</Label>
-              <Input
-                id="recipientWhatsapp"
-                type="tel"
-                value={newRecipient.whatsappNumber}
-                onChange={(e) => setNewRecipient({ ...newRecipient, whatsappNumber: e.target.value })}
-                placeholder="+964xxxxxxxxx"
-                dir="ltr"
-              />
-            </div>
-            <Separator />
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label>دریافت ایمیل</Label>
-                <Switch
-                  checked={newRecipient.receiveEmail}
-                  onCheckedChange={(checked) => 
-                    setNewRecipient({ ...newRecipient, receiveEmail: checked })
-                  }
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label>دریافت پیامک</Label>
-                <Switch
-                  checked={newRecipient.receiveSms}
-                  onCheckedChange={(checked) => 
-                    setNewRecipient({ ...newRecipient, receiveSms: checked })
-                  }
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label>دریافت واتساپ</Label>
-                <Switch
-                  checked={newRecipient.receiveWhatsapp}
-                  onCheckedChange={(checked) => 
-                    setNewRecipient({ ...newRecipient, receiveWhatsapp: checked })
-                  }
-                />
-              </div>
-            </div>
+            
+            {selectedCrmCustomer && (
+              <>
+                <Separator />
+                <div className="bg-gray-50 p-3 rounded-lg space-y-2">
+                  <p className="text-sm font-medium text-gray-700">اطلاعات انتخاب شده:</p>
+                  <div className="text-sm text-gray-600">
+                    <p><strong>نام:</strong> {newRecipient.name}</p>
+                    {newRecipient.email && <p><strong>ایمیل:</strong> {newRecipient.email}</p>}
+                    {newRecipient.phone && <p><strong>تلفن:</strong> {newRecipient.phone}</p>}
+                    {newRecipient.whatsappNumber && <p><strong>واتساپ:</strong> {newRecipient.whatsappNumber}</p>}
+                  </div>
+                </div>
+              </>
+            )}
+            {selectedCrmCustomer && (
+              <>
+                <Separator />
+                <div className="space-y-3">
+                  <p className="text-sm font-medium">کانال‌های اطلاع‌رسانی:</p>
+                  <div className="flex items-center justify-between">
+                    <Label>دریافت ایمیل</Label>
+                    <Switch
+                      checked={newRecipient.receiveEmail}
+                      onCheckedChange={(checked) => 
+                        setNewRecipient({ ...newRecipient, receiveEmail: checked })
+                      }
+                      disabled={!newRecipient.email}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label>دریافت پیامک</Label>
+                    <Switch
+                      checked={newRecipient.receiveSms}
+                      onCheckedChange={(checked) => 
+                        setNewRecipient({ ...newRecipient, receiveSms: checked })
+                      }
+                      disabled={!newRecipient.phone}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label>دریافت واتساپ</Label>
+                    <Switch
+                      checked={newRecipient.receiveWhatsapp}
+                      onCheckedChange={(checked) => 
+                        setNewRecipient({ ...newRecipient, receiveWhatsapp: checked })
+                      }
+                      disabled={!newRecipient.whatsappNumber}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
             <div className="flex justify-end gap-2 pt-4">
               <Button variant="outline" onClick={() => setShowAddRecipient(false)}>
                 انصراف
               </Button>
-              <Button onClick={addRecipient}>
+              <Button onClick={addRecipient} disabled={!selectedCrmCustomer}>
                 <Plus className="w-4 h-4 ml-2" />
                 افزودن
               </Button>
