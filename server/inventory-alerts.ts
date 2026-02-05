@@ -110,7 +110,7 @@ export class InventoryAlertService {
 
       for (const product of products) {
         const currentStock = product.stockQuantity || 0;
-        const threshold = product.lowStockThreshold || product.minStockLevel || 5;
+        const threshold = product.minStockLevel || 5;
         
         if (currentStock <= 0) {
           alertProducts.push({
@@ -491,7 +491,7 @@ export class InventoryAlertService {
       if (!product) return false;
 
       const currentStock = product.stockQuantity || 0;
-      const threshold = product.lowStockThreshold || product.minStockLevel || 5;
+      const threshold = product.minStockLevel || 5;
       
       if (currentStock <= threshold) {
         const alert: InventoryAlert = {

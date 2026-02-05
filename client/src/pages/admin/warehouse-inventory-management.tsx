@@ -246,13 +246,10 @@ export default function WarehouseInventoryManagement() {
 
   const getStockStatus = (product: InventoryProduct) => {
     const stock = product.stockQuantity || 0;
-    const threshold = product.lowStockThreshold || 0;
     const minLevel = product.minStockLevel || 0;
     
     if (stock <= 0) {
       return { status: 'out', label: 'اتمام موجودی', color: 'bg-red-500' };
-    } else if (stock <= threshold) {
-      return { status: 'critical', label: 'بحرانی', color: 'bg-orange-500' };
     } else if (stock <= minLevel) {
       return { status: 'low', label: 'کم', color: 'bg-yellow-500' };
     }
@@ -321,15 +318,14 @@ export default function WarehouseInventoryManagement() {
                       <TableHead className="text-right whitespace-nowrap">فروشنده</TableHead>
                       <TableHead className="text-right whitespace-nowrap">کد کالا</TableHead>
                       <TableHead className="text-center whitespace-nowrap">موجودی</TableHead>
-                      <TableHead className="text-center whitespace-nowrap">حداقل</TableHead>
-                      <TableHead className="text-center whitespace-nowrap">آستانه هشدار</TableHead>
+                      <TableHead className="text-center whitespace-nowrap">حداقل موجودی</TableHead>
                       <TableHead className="text-center whitespace-nowrap">وضعیت</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredProducts.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                        <TableCell colSpan={6} className="text-center py-8 text-gray-500">
                           محصولی یافت نشد
                         </TableCell>
                       </TableRow>
@@ -354,7 +350,6 @@ export default function WarehouseInventoryManagement() {
                             <TableCell className="text-right">{product.sku || '-'}</TableCell>
                             <TableCell className="text-center font-bold">{product.stockQuantity || 0}</TableCell>
                             <TableCell className="text-center">{product.minStockLevel || 0}</TableCell>
-                            <TableCell className="text-center">{product.lowStockThreshold || 0}</TableCell>
                             <TableCell className="text-center">
                               <Badge className={stockStatus.color}>
                                 {stockStatus.label}
