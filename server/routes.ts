@@ -56589,20 +56589,23 @@ momtazchem.com
       
       const result = await pool.query(`
         SELECT 
-          id,
-          name,
-          sku,
-          barcode,
-          stock_quantity as "stockQuantity",
-          available_quantity as "availableQuantity",
-          reserved_quantity as "reservedQuantity",
-          min_stock_level as "minStockLevel",
-          max_stock_level as "maxStockLevel",
-          low_stock_threshold as "lowStockThreshold",
-          is_active as "isActive"
-        FROM shop_products
-        WHERE is_active = true
-        ORDER BY name ASC
+          sp.id,
+          sp.name,
+          sp.sku,
+          sp.barcode,
+          sp.stock_quantity as "stockQuantity",
+          sp.available_quantity as "availableQuantity",
+          sp.reserved_quantity as "reservedQuantity",
+          sp.min_stock_level as "minStockLevel",
+          sp.max_stock_level as "maxStockLevel",
+          sp.low_stock_threshold as "lowStockThreshold",
+          sp.is_active as "isActive",
+          sp.vendor_id as "vendorId",
+          COALESCE(v.company_name, v.name, 'ممتاز کم') as "vendorName"
+        FROM shop_products sp
+        LEFT JOIN vendors v ON sp.vendor_id = v.id
+        WHERE sp.is_active = true
+        ORDER BY sp.name ASC
       `);
       
       res.json({

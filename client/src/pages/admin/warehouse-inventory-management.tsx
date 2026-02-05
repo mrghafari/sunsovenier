@@ -42,6 +42,8 @@ interface InventoryProduct {
   maxStockLevel: number;
   lowStockThreshold: number;
   isActive: boolean;
+  vendorId: number | null;
+  vendorName: string;
 }
 
 interface NotificationRecipient {
@@ -314,21 +316,22 @@ export default function WarehouseInventoryManagement() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="text-right">نام محصول</TableHead>
-                      <TableHead className="text-right">کد کالا (SKU)</TableHead>
-                      <TableHead className="text-right">بارکد</TableHead>
-                      <TableHead className="text-center">موجودی فعلی</TableHead>
-                      <TableHead className="text-center">حداقل</TableHead>
-                      <TableHead className="text-center">حداکثر</TableHead>
-                      <TableHead className="text-center">آستانه هشدار</TableHead>
-                      <TableHead className="text-center">وضعیت</TableHead>
-                      <TableHead className="text-center">عملیات</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">نام محصول</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">فروشنده</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">کد کالا (SKU)</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">بارکد</TableHead>
+                      <TableHead className="text-center whitespace-nowrap">موجودی فعلی</TableHead>
+                      <TableHead className="text-center whitespace-nowrap">حداقل</TableHead>
+                      <TableHead className="text-center whitespace-nowrap">حداکثر</TableHead>
+                      <TableHead className="text-center whitespace-nowrap">آستانه هشدار</TableHead>
+                      <TableHead className="text-center whitespace-nowrap">وضعیت</TableHead>
+                      <TableHead className="text-center whitespace-nowrap">عملیات</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredProducts.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={9} className="text-center py-8 text-gray-500">
+                        <TableCell colSpan={10} className="text-center py-8 text-gray-500">
                           محصولی یافت نشد
                         </TableCell>
                       </TableRow>
@@ -337,9 +340,14 @@ export default function WarehouseInventoryManagement() {
                         const stockStatus = getStockStatus(product);
                         return (
                           <TableRow key={product.id}>
-                            <TableCell className="font-medium">{product.name}</TableCell>
-                            <TableCell>{product.sku || '-'}</TableCell>
-                            <TableCell>{product.barcode || '-'}</TableCell>
+                            <TableCell className="font-medium text-right">{product.name}</TableCell>
+                            <TableCell className="text-right">
+                              <Badge variant={product.vendorId ? "secondary" : "outline"}>
+                                {product.vendorName || 'ممتاز کم'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">{product.sku || '-'}</TableCell>
+                            <TableCell className="text-right">{product.barcode || '-'}</TableCell>
                             <TableCell className="text-center font-bold">{product.stockQuantity || 0}</TableCell>
                             <TableCell className="text-center">{product.minStockLevel || 0}</TableCell>
                             <TableCell className="text-center">{product.maxStockLevel || 0}</TableCell>
