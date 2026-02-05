@@ -5124,6 +5124,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      // Handle inventory addition without batch (add to existing stock)
+      if (productData.inventoryAddition && Number(productData.inventoryAddition) > 0 && !productData.newBatchNumber?.trim()) {
+        const oldProduct = await storage.getProductById(id);
+        if (oldProduct) {
+          const currentStock = oldProduct.stockQuantity || 0;
+          productData.stockQuantity = currentStock + Number(productData.inventoryAddition);
+          console.log(`📦 [INVENTORY] Adding ${productData.inventoryAddition} to product ${id}. New total: ${productData.stockQuantity}`);
+        }
+      }
+      
+      // Remove fields that shouldn't be in database update
+      delete productData.inventoryAddition;
+      delete productData.newBatchNumber;
+      
       // Map frontend fields to backend fields for update
       const mappedData = {
         ...productData,
