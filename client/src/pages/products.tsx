@@ -1842,6 +1842,15 @@ export default function ProductsPage() {
                               </span>
                             </div>
                           )}
+                          {/* Vendor Company Tag */}
+                          {(product as any).vendorName && (
+                            <div className="flex items-center gap-1">
+                              <Badge className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white border-0 shadow-md px-3 py-1 text-xs font-semibold">
+                                <span className="mr-1">🏢</span>
+                                {(product as any).vendorName}
+                              </Badge>
+                            </div>
+                          )}
                         </div>
                       )}
 
