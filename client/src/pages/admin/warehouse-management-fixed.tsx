@@ -47,6 +47,7 @@ interface NotificationRecipient {
 }
 
 interface InventoryNotificationSettings {
+  notificationIntervalHours: number;
   emailEnabled: boolean;
   smsEnabled: boolean;
   whatsappEnabled: boolean;
@@ -126,6 +127,7 @@ const WarehouseManagementFixed: React.FC = () => {
   const [adminSearchTerm, setAdminSearchTerm] = useState("");
   const [showAddRecipient, setShowAddRecipient] = useState(false);
   const [inventorySettings, setInventorySettings] = useState<InventoryNotificationSettings>({
+    notificationIntervalHours: 24,
     emailEnabled: true,
     smsEnabled: false,
     whatsappEnabled: false,

@@ -56630,13 +56630,8 @@ momtazchem.com
       const { pool } = await import('./db');
       
       await pool.query(`
-        UPDATE shop_products
-        SET 
-          min_stock_level = 
-
-
-  return httpServer;
-},
+        UPDATE shop_products SET
+          min_stock_level = $1,
           max_stock_level = $2,
           low_stock_threshold = $3,
           updated_at = NOW()
