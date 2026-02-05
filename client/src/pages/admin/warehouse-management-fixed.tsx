@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -65,7 +64,6 @@ interface Order {
 }
 
 const WarehouseManagementFixed: React.FC = () => {
-  const [, setLocation] = useLocation();
   // All state declarations at the top
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
@@ -76,14 +74,6 @@ const WarehouseManagementFixed: React.FC = () => {
   const [activeTab, setActiveTab] = useState("orders");
   const [orderDetails, setOrderDetails] = useState<any>(null);
   const [loadingOrderDetails, setLoadingOrderDetails] = useState(false);
-  
-  const handleTabChange = (value: string) => {
-    if (value === "inventory") {
-      setLocation("/admin/warehouse-inventory-management");
-    } else {
-      setActiveTab(value);
-    }
-  };
 
   // Print function for order details
   const handlePrintOrder = () => {
@@ -645,7 +635,7 @@ const WarehouseManagementFixed: React.FC = () => {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="orders" value={activeTab} onValueChange={handleTabChange} className="w-full">
+        <Tabs defaultValue="orders" className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-6">
             <TabsTrigger value="orders" className="flex items-center gap-2">
               <Package className="w-4 h-4" />
@@ -737,13 +727,12 @@ const WarehouseManagementFixed: React.FC = () => {
                       <thead>
                         <tr className="bg-gray-50 border-b border-gray-200">
                           <th className="text-right p-4 font-semibold text-gray-700" style={{ width: '10%' }}>شماره سفارش</th>
-                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '12%' }}>تاریخ دریافت</th>
-                          <th className="text-right p-4 font-semibold text-gray-700" style={{ width: '18%' }}>اطلاعات مشتری</th>
-                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '8%' }}>وزن محموله</th>
-                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '10%' }}>مبلغ کل</th>
-                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '10%' }}>وضعیت</th>
-                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '12%' }}>یادداشت</th>
-                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '20%' }}>عملیات</th>
+                          <th className="text-right p-4 font-semibold text-gray-700" style={{ width: '20%' }}>اطلاعات مشتری</th>
+                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '10%' }}>وزن محموله</th>
+                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '12%' }}>مبلغ کل</th>
+                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '12%' }}>وضعیت</th>
+                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '14%' }}>یادداشت</th>
+                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '22%' }}>عملیات</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -752,13 +741,7 @@ const WarehouseManagementFixed: React.FC = () => {
                             <td className="p-4" style={{ width: '10%' }}>
                               <div className="font-bold text-blue-600 truncate">{order.orderNumber || `#${order.id}`}</div>
                             </td>
-                            <td className="p-4 text-center" style={{ width: '12%' }}>
-                              <div className="text-xs text-gray-600">
-                                <div>{order.createdAt ? new Date(order.createdAt).toLocaleDateString('fa-IR') : '-'}</div>
-                                <div className="text-gray-400">{order.createdAt ? new Date(order.createdAt).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }) : ''}</div>
-                              </div>
-                            </td>
-                            <td className="p-4" style={{ width: '18%' }}>
+                            <td className="p-4" style={{ width: '20%' }}>
                               <div className="space-y-1">
                                 <div className="font-medium text-gray-900 truncate">{
                                   order.customer?.firstName && order.customer?.lastName 
@@ -879,11 +862,13 @@ const WarehouseManagementFixed: React.FC = () => {
             </Card>
           </TabsContent>
 
-          {/* Inventory Tab - Redirects to dedicated page */}
+          {/* Inventory Tab - Embedded Inventory Management */}
           <TabsContent value="inventory" className="space-y-6">
-            <div className="text-center py-8 text-gray-500">
-              در حال انتقال به صفحه مدیریت موجودی...
-            </div>
+            <iframe 
+              src="/admin/warehouse-inventory-management" 
+              className="w-full h-[calc(100vh-200px)] border-0 rounded-lg"
+              title="مدیریت موجودی انبار"
+            />
           </TabsContent>
         </Tabs>
 
