@@ -48,9 +48,6 @@ interface NotificationRecipient {
 
 interface InventoryNotificationSettings {
   notificationIntervalHours: number;
-  emailEnabled: boolean;
-  smsEnabled: boolean;
-  whatsappEnabled: boolean;
   maxNotifications: number;
   recipients: NotificationRecipient[];
 }
@@ -128,9 +125,6 @@ const WarehouseManagementFixed: React.FC = () => {
   const [showAddRecipient, setShowAddRecipient] = useState(false);
   const [inventorySettings, setInventorySettings] = useState<InventoryNotificationSettings>({
     notificationIntervalHours: 24,
-    emailEnabled: true,
-    smsEnabled: false,
-    whatsappEnabled: false,
     maxNotifications: 1,
     recipients: []
   });
@@ -1148,40 +1142,6 @@ const WarehouseManagementFixed: React.FC = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Notification Channels */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <Label className="flex items-center gap-2">
-                      <Mail className="w-4 h-4" />
-                      ایمیل
-                    </Label>
-                    <Switch
-                      checked={inventorySettings.emailEnabled}
-                      onCheckedChange={(checked) => setInventorySettings(prev => ({ ...prev, emailEnabled: checked }))}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <Label className="flex items-center gap-2">
-                      <MessageSquare className="w-4 h-4" />
-                      پیامک
-                    </Label>
-                    <Switch
-                      checked={inventorySettings.smsEnabled}
-                      onCheckedChange={(checked) => setInventorySettings(prev => ({ ...prev, smsEnabled: checked }))}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <Label className="flex items-center gap-2">
-                      <Phone className="w-4 h-4" />
-                      واتساپ
-                    </Label>
-                    <Switch
-                      checked={inventorySettings.whatsappEnabled}
-                      onCheckedChange={(checked) => setInventorySettings(prev => ({ ...prev, whatsappEnabled: checked }))}
-                    />
-                  </div>
-                </div>
-
                 {/* Notification Timing Settings */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-lg bg-gray-50">
                   <div className="space-y-2">
