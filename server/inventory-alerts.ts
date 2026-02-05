@@ -284,63 +284,88 @@ export class InventoryAlertService {
   // SMS notification functionality removed per requirements
 
   /**
-   * Generate HTML email content for inventory alerts
+   * Generate HTML email content for inventory alerts (Persian/Farsi)
    */
   private static generateAlertEmailHtml(alerts: InventoryAlert[]): string {
     const outOfStock = alerts.filter(a => a.alertLevel === 'out_of_stock');
     const lowStock = alerts.filter(a => a.alertLevel === 'low_stock');
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('fa-IR');
+    const timeStr = now.toLocaleTimeString('fa-IR');
 
     return `
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inventory Alert</title>
+    <title>هشدار موجودی انبار</title>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px; }
+        body { font-family: 'Tahoma', Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px; direction: rtl; }
         .container { max-width: 800px; margin: 0 auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .header { background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%); color: white; padding: 25px; text-align: center; }
-        .header h1 { margin: 0; font-size: 28px; }
+        .header h1 { margin: 0; font-size: 24px; }
+        .header p { margin: 5px 0; font-size: 14px; }
         .content { padding: 30px; }
+        .summary { background: #fef2f2; border-radius: 8px; padding: 15px; margin-bottom: 20px; border-right: 4px solid #dc2626; }
+        .summary-item { display: inline-block; margin: 0 20px; text-align: center; }
+        .summary-number { font-size: 28px; font-weight: bold; color: #dc2626; }
+        .summary-label { font-size: 12px; color: #6b7280; }
         .alert-section { margin-bottom: 30px; }
-        .alert-title { color: #dc2626; font-size: 20px; font-weight: bold; margin-bottom: 15px; border-bottom: 2px solid #dc2626; padding-bottom: 5px; }
+        .alert-title { color: #dc2626; font-size: 18px; font-weight: bold; margin-bottom: 15px; border-bottom: 2px solid #dc2626; padding-bottom: 8px; }
         .product-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        .product-table th { background: #fee2e2; color: #dc2626; padding: 12px; text-align: left; font-weight: bold; }
-        .product-table td { padding: 12px; border-bottom: 1px solid #e5e7eb; }
+        .product-table th { background: #fee2e2; color: #dc2626; padding: 12px; text-align: right; font-weight: bold; font-size: 13px; }
+        .product-table td { padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 13px; }
         .out-of-stock { background-color: #fef2f2; }
         .low-stock { background-color: #fffbeb; }
-        .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        .status-badge { padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; }
         .status-out { background: #dc2626; color: white; }
         .status-low { background: #f59e0b; color: white; }
-        .footer { background: #f9fafb; padding: 20px; text-align: center; color: #6b7280; }
-        .urgent { color: #dc2626; font-weight: bold; }
+        .footer { background: #f9fafb; padding: 20px; text-align: center; color: #6b7280; font-size: 12px; }
+        .urgent { color: #dc2626; font-weight: bold; font-size: 16px; }
+        .action-needed { background: #fef3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 15px; margin-top: 20px; }
+        .action-title { color: #856404; font-weight: bold; margin-bottom: 10px; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🚨 Inventory Alert</h1>
-            <p>Automated Report from Momtazchem Inventory Management System</p>
-            <p>${new Date().toLocaleDateString('en-US')} - ${new Date().toLocaleTimeString('en-US')}</p>
+            <h1>🚨 هشدار کمبود موجودی انبار</h1>
+            <p>سیستم مدیریت موجودی ممتاز شیمی</p>
+            <p>تاریخ: ${dateStr} - ساعت: ${timeStr}</p>
         </div>
         
         <div class="content">
-            <p>Dear Management,</p>
-            <p>The inventory management system has identified <strong>${alerts.length}</strong> product${alerts.length > 1 ? 's' : ''} that require immediate attention:</p>
+            <div class="summary">
+                <div class="summary-item">
+                    <div class="summary-number">${alerts.length}</div>
+                    <div class="summary-label">کل محصولات هشدار</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-number" style="color: #dc2626;">${outOfStock.length}</div>
+                    <div class="summary-label">اتمام موجودی</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-number" style="color: #f59e0b;">${lowStock.length}</div>
+                    <div class="summary-label">موجودی کم</div>
+                </div>
+            </div>
+
+            <p>مدیر محترم،</p>
+            <p>سیستم مدیریت موجودی <strong>${alerts.length}</strong> محصول را شناسایی کرده که نیاز به توجه فوری دارند:</p>
             
             ${outOfStock.length > 0 ? `
             <div class="alert-section">
-                <div class="alert-title">📵 Out of Stock Products (${outOfStock.length} items)</div>
+                <div class="alert-title">📵 محصولات اتمام موجودی (${outOfStock.length} مورد)</div>
                 <table class="product-table">
                     <thead>
                         <tr>
-                            <th>Product Name</th>
-                            <th>Category</th>
-                            <th>SKU</th>
-                            <th>Current Stock</th>
-                            <th>Minimum Required</th>
-                            <th>Status</th>
+                            <th>نام محصول</th>
+                            <th>دسته‌بندی</th>
+                            <th>کد کالا (SKU)</th>
+                            <th>موجودی فعلی</th>
+                            <th>حداقل مورد نیاز</th>
+                            <th>وضعیت</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -351,7 +376,7 @@ export class InventoryAlertService {
                             <td>${product.sku}</td>
                             <td class="urgent">${product.currentStock}</td>
                             <td>${product.minimumThreshold}</td>
-                            <td><span class="status-badge status-out">Out of Stock</span></td>
+                            <td><span class="status-badge status-out">اتمام موجودی</span></td>
                         </tr>
                         `).join('')}
                     </tbody>
@@ -361,16 +386,16 @@ export class InventoryAlertService {
             
             ${lowStock.length > 0 ? `
             <div class="alert-section">
-                <div class="alert-title">⚠️ Low Stock Products (${lowStock.length} items)</div>
+                <div class="alert-title">⚠️ محصولات با موجودی کم (${lowStock.length} مورد)</div>
                 <table class="product-table">
                     <thead>
                         <tr>
-                            <th>Product Name</th>
-                            <th>Category</th>
-                            <th>SKU</th>
-                            <th>Current Stock</th>
-                            <th>Minimum Required</th>
-                            <th>Status</th>
+                            <th>نام محصول</th>
+                            <th>دسته‌بندی</th>
+                            <th>کد کالا (SKU)</th>
+                            <th>موجودی فعلی</th>
+                            <th>حداقل مورد نیاز</th>
+                            <th>وضعیت</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -381,7 +406,7 @@ export class InventoryAlertService {
                             <td>${product.sku}</td>
                             <td class="urgent">${product.currentStock}</td>
                             <td>${product.minimumThreshold}</td>
-                            <td><span class="status-badge status-low">Low Stock</span></td>
+                            <td><span class="status-badge status-low">موجودی کم</span></td>
                         </tr>
                         `).join('')}
                     </tbody>
@@ -389,21 +414,22 @@ export class InventoryAlertService {
             </div>
             ` : ''}
             
-            <div style="background: #eff6ff; padding: 20px; border-radius: 8px; margin-top: 20px;">
-                <h3 style="color: #1e40af; margin-top: 0;">Recommended Actions:</h3>
-                <ul style="color: #374151;">
-                    <li>Immediately review inventory for out-of-stock products</li>
-                    <li>Place purchase orders for low stock items</li>
-                    <li>Contact suppliers to expedite delivery</li>
-                    <li>Review minimum stock threshold settings</li>
-                    <li>Consider emergency procurement procedures</li>
+            <div class="action-needed">
+                <div class="action-title">📋 اقدامات پیشنهادی:</div>
+                <ul style="color: #374151; margin: 0; padding-right: 20px;">
+                    <li>بررسی فوری محصولات با اتمام موجودی</li>
+                    <li>ثبت سفارش خرید برای محصولات با موجودی کم</li>
+                    <li>تماس با تأمین‌کنندگان برای تسریع در تحویل</li>
+                    <li>بررسی و به‌روزرسانی آستانه حداقل موجودی</li>
+                    <li>فعال‌سازی فرآیند تأمین اضطراری در صورت نیاز</li>
                 </ul>
             </div>
         </div>
         
         <div class="footer">
-            <p>This email was automatically sent from the Momtazchem Inventory Management System.</p>
-            <p>For more information, please contact the IT department.</p>
+            <p>این ایمیل به صورت خودکار از سیستم مدیریت موجودی ممتاز شیمی ارسال شده است.</p>
+            <p>برای اطلاعات بیشتر با بخش فناوری اطلاعات تماس بگیرید.</p>
+            <p style="margin-top: 15px; font-size: 11px; color: #9ca3af;">Momtaz Chemical Solutions - Inventory Management System</p>
         </div>
     </div>
 </body>
