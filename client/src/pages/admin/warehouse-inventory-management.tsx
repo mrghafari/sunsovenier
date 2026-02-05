@@ -108,11 +108,11 @@ export default function WarehouseInventoryManagement() {
     queryKey: ["/api/warehouse/inventory-products"],
   });
 
-  const { data: crmCustomersData } = useQuery<CrmCustomer[]>({
+  const { data: crmCustomersData } = useQuery<{ success: boolean; data: CrmCustomer[] }>({
     queryKey: ["/api/crm/customers"],
   });
 
-  const crmCustomers: CrmCustomer[] = crmCustomersData || [];
+  const crmCustomers: CrmCustomer[] = crmCustomersData?.data || [];
 
   const handleSelectCrmCustomer = (customerId: string) => {
     setSelectedCrmCustomer(customerId);
