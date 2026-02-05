@@ -283,7 +283,7 @@ function Router() {
           <Route path="/admin/global-refresh-settings" component={() => <AdminRoute><GlobalRefreshSettings /></AdminRoute>} />
 
           <Route path="/admin/inventory-notification-settings" component={() => <AdminRoute><InventoryNotificationSettings /></AdminRoute>} />
-          <Route path="/admin/warehouse-management" component={() => <AdminRoute><WarehouseManagementFixed /></AdminRoute>} />
+          <Route path="/admin/warehouse-management" component={() => <AdminRoute><WarehouseManagement /></AdminRoute>} />
           <Route path="/admin/warehouse-inventory-management" component={() => <AdminRoute><WarehouseInventoryManagement /></AdminRoute>} />
 
           <Route path="/admin/content-management" component={() => <AdminRoute><ContentManagement /></AdminRoute>} />
