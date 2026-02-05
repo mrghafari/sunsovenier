@@ -33,10 +33,8 @@ process.on('unhandledRejection', (reason, promise) => {
 
 const app = express();
 
-// Trust first proxy (Replit's reverse proxy) for secure cookies in production
-if (process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1') {
-  app.set('trust proxy', 1);
-}
+// Trust first proxy (Replit's reverse proxy) for secure cookies - always enable for Replit
+app.set('trust proxy', 1);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
