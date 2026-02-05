@@ -319,20 +319,17 @@ export default function WarehouseInventoryManagement() {
                     <TableRow>
                       <TableHead className="text-right whitespace-nowrap">نام محصول</TableHead>
                       <TableHead className="text-right whitespace-nowrap">فروشنده</TableHead>
-                      <TableHead className="text-right whitespace-nowrap">کد کالا (SKU)</TableHead>
-                      <TableHead className="text-right whitespace-nowrap">بارکد</TableHead>
-                      <TableHead className="text-center whitespace-nowrap">موجودی فعلی</TableHead>
+                      <TableHead className="text-right whitespace-nowrap">کد کالا</TableHead>
+                      <TableHead className="text-center whitespace-nowrap">موجودی</TableHead>
                       <TableHead className="text-center whitespace-nowrap">حداقل</TableHead>
-                      <TableHead className="text-center whitespace-nowrap">حداکثر</TableHead>
                       <TableHead className="text-center whitespace-nowrap">آستانه هشدار</TableHead>
                       <TableHead className="text-center whitespace-nowrap">وضعیت</TableHead>
-                      <TableHead className="text-center whitespace-nowrap">عملیات</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredProducts.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={10} className="text-center py-8 text-gray-500">
+                        <TableCell colSpan={7} className="text-center py-8 text-gray-500">
                           محصولی یافت نشد
                         </TableCell>
                       </TableRow>
@@ -340,7 +337,14 @@ export default function WarehouseInventoryManagement() {
                       filteredProducts.map((product) => {
                         const stockStatus = getStockStatus(product);
                         return (
-                          <TableRow key={product.id}>
+                          <TableRow 
+                            key={product.id}
+                            className="cursor-pointer hover:bg-gray-50"
+                            onClick={() => {
+                              setEditingProduct(product);
+                              setShowEditDialog(true);
+                            }}
+                          >
                             <TableCell className="font-medium text-right">{product.name}</TableCell>
                             <TableCell className="text-right">
                               <Badge variant={product.vendorId ? "secondary" : "outline"}>
@@ -348,27 +352,13 @@ export default function WarehouseInventoryManagement() {
                               </Badge>
                             </TableCell>
                             <TableCell className="text-right">{product.sku || '-'}</TableCell>
-                            <TableCell className="text-right">{product.barcode || '-'}</TableCell>
                             <TableCell className="text-center font-bold">{product.stockQuantity || 0}</TableCell>
                             <TableCell className="text-center">{product.minStockLevel || 0}</TableCell>
-                            <TableCell className="text-center">{product.maxStockLevel || 0}</TableCell>
                             <TableCell className="text-center">{product.lowStockThreshold || 0}</TableCell>
                             <TableCell className="text-center">
                               <Badge className={stockStatus.color}>
                                 {stockStatus.label}
                               </Badge>
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => {
-                                  setEditingProduct(product);
-                                  setShowEditDialog(true);
-                                }}
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
                             </TableCell>
                           </TableRow>
                         );
