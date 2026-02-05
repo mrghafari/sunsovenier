@@ -56723,19 +56723,7 @@ momtazchem.com
       for (const setting of settings) {
         await pool.query(`
           INSERT INTO shop_settings (setting_key, setting_value, setting_type, category, display_name, display_name_en, is_public)
-          VALUES (
-
-
-  return httpServer;
-}, $2, $3, 'warehouse_inventory_notifications', 
-
-
-  return httpServer;
-}, 
-
-
-  return httpServer;
-}, false)
+          VALUES ($1, $2, $3, 'warehouse_inventory_notifications', $1, $1, false)
           ON CONFLICT (setting_key) 
           DO UPDATE SET setting_value = $2, updated_at = NOW()
         `, [setting.key, setting.value, setting.type]);
