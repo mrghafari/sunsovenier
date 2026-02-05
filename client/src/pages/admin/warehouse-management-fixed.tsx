@@ -56,8 +56,9 @@ interface InventoryNotificationSettings {
 
 interface AdminUser {
   id: number;
-  username: string;
+  fullName: string;
   email: string;
+  phone: string | null;
   roleId: number;
   isActive: boolean;
 }
@@ -446,9 +447,9 @@ const WarehouseManagementFixed: React.FC = () => {
 
   // Admin Users Query for notification recipients
   const { data: adminUsersData } = useQuery<{ success: boolean; users: AdminUser[] }>({
-    queryKey: ["/api/admin/users"],
+    queryKey: ["/api/warehouse/admin-users"],
     queryFn: async () => {
-      const response = await apiRequest('/api/admin/users', { method: 'GET' });
+      const response = await apiRequest('/api/warehouse/admin-users', { method: 'GET' });
       return response as { success: boolean; users: AdminUser[] };
     },
   });
@@ -458,7 +459,7 @@ const WarehouseManagementFixed: React.FC = () => {
     if (adminSearchTerm.length < 2) return false;
     const searchLower = adminSearchTerm.toLowerCase();
     return (
-      user.username.toLowerCase().includes(searchLower) ||
+      user.fullName?.toLowerCase().includes(searchLower) ||
       (user.email && user.email.toLowerCase().includes(searchLower))
     );
   });
@@ -501,9 +502,9 @@ const WarehouseManagementFixed: React.FC = () => {
     
     const newRecipient: NotificationRecipient = {
       id: Date.now(),
-      name: user.username,
+      name: user.fullName,
       email: user.email || '',
-      phone: '',
+      phone: user.phone || '',
       whatsappNumber: '',
       receiveEmail: !!user.email,
       receiveSms: false,
@@ -517,7 +518,7 @@ const WarehouseManagementFixed: React.FC = () => {
     setAdminSearchTerm("");
     toast({
       title: "گیرنده اضافه شد",
-      description: `${user.username} به لیست گیرندگان اضافه شد`,
+      description: `${user.fullName} به لیست گیرندگان اضافه شد`,
     });
   };
 
@@ -1227,7 +1228,7 @@ const WarehouseManagementFixed: React.FC = () => {
                             onClick={() => addRecipientFromAdmin(user)}
                           >
                             <div>
-                              <div className="font-medium">{user.username}</div>
+                              <div className="font-medium">{user.fullName}</div>
                               <div className="text-sm text-gray-500">{user.email}</div>
                             </div>
                             <Button size="sm" variant="outline">

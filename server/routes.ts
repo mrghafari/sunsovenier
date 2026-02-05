@@ -5083,8 +5083,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       
       // Handle batch addition requests (skip all validations except batch-specific ones)
-      const isBatchAddition = productData.inventoryAddition && productData.newBatchNumber;
       const productData = req.body;
+      const isBatchAddition = productData.inventoryAddition && productData.newBatchNumber;
       if (isBatchAddition) {
         // Get old product data for batch creation
         const oldProduct = await storage.getProductById(id);
@@ -56829,6 +56829,40 @@ momtazchem.com
       res.status(500).json({
         success: false,
         message: "خطا در ارسال تست"
+      });
+    }
+  });
+
+
+  // Get admin users from custom_users table for notification recipients
+  app.get("/api/warehouse/admin-users", requireAuth, async (req, res) => {
+    try {
+      const { pool } = await import('./db');
+      
+      const result = await pool.query(`
+        SELECT 
+          id,
+          full_name as "fullName",
+          email,
+          phone,
+          role_id as "roleId",
+          is_active as "isActive"
+        FROM custom_users
+        WHERE is_active = true
+        ORDER BY full_name ASC
+      `);
+      
+      console.log(`📋 [WAREHOUSE ADMIN USERS] Found ${result.rows.length} active admin users`);
+      
+      res.json({
+        success: true,
+        users: result.rows
+      });
+    } catch (error) {
+      console.error('❌ [WAREHOUSE ADMIN USERS] Error fetching admin users:', error);
+      res.status(500).json({
+        success: false,
+        message: "خطا در دریافت لیست کاربران"
       });
     }
   });
