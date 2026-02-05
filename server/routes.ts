@@ -6971,6 +6971,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Create database backup
   app.post("/api/admin/backup/create", requireAuth, async (req, res) => {
+    console.log('💾 [BACKUP] Starting database backup creation...');
     try {
       const { spawn } = await import('child_process');
       const fsModule = await import('fs');
@@ -6981,20 +6982,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const backupFile = `database_backup_${timestamp}.sql`;
       const backupPath = path.join(backupDir, backupFile);
       
+      console.log('💾 [BACKUP] Backup file:', backupPath);
+      
       // Create backup directory if it doesn't exist
       if (!fs.existsSync(backupDir)) {
         fs.mkdirSync(backupDir, { recursive: true });
+        console.log('💾 [BACKUP] Created backup directory:', backupDir);
       }
       
       // Create backup using pg_dump
       const databaseUrl = process.env.DATABASE_URL;
       if (!databaseUrl) {
+        console.error('❌ [BACKUP] DATABASE_URL not configured');
         return res.status(500).json({
           success: false,
           message: "Database URL not configured"
         });
       }
 
+      console.log('💾 [BACKUP] Starting pg_dump...');
       const pgDump = spawn('pg_dump', [databaseUrl, '--no-owner', '--no-privileges']);
       
       const writeStream = fs.createWriteStream(backupPath);
@@ -7038,6 +7044,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Create S3 database backup
   app.post("/api/admin/backups/create", requireAuth, async (req, res) => {
+    console.log('💾 [S3 BACKUP] Starting S3 database backup creation...');
     try {
       const { spawn } = await import('child_process');
       const fsModule = await import('fs');
@@ -7049,20 +7056,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const backupFile = `database_backup_${timestamp}.sql`;
       const backupPath = path.join(backupDir, backupFile);
       
+      console.log('💾 [S3 BACKUP] Backup file:', backupPath);
+      
       // Create backup directory if it doesn't exist
       if (!fs.existsSync(backupDir)) {
         fs.mkdirSync(backupDir, { recursive: true });
+        console.log('💾 [S3 BACKUP] Created backup directory:', backupDir);
       }
       
       // Create backup using pg_dump
       const databaseUrl = process.env.DATABASE_URL;
       if (!databaseUrl) {
+        console.error('❌ [S3 BACKUP] DATABASE_URL not configured');
         return res.status(500).json({
           success: false,
           message: "Database URL not configured"
         });
       }
 
+      console.log('💾 [S3 BACKUP] Starting pg_dump...');
       const pgDump = spawn('pg_dump', [databaseUrl, '--no-owner', '--no-privileges']);
       
       const writeStream = fs.createWriteStream(backupPath);
