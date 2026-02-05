@@ -1,0 +1,26 @@
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 ()
+index-DOjBHUUt.js:1086 Auth check result: Object
+index-DOjBHUUt.js:1853 Barcode effect triggered:  Canvas ref: null
+index-DOjBHUUt.js:2830 📥 Loading Tawk.to widget at bottom-left position...
+index-DOjBHUUt.js:2830 ✅ Tawk.to Live Chat loaded successfully at bottom-left
+128x128?text=WeChat+QR:1  Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED
+twk-chunk-common.js:2 Error: Unable to store cookie
+    at e.value (twk-chunk-common.js:2:118472)
+    at t.value (twk-chunk-common.js:2:151556)
+    at p.updateUUID (twk-chunk-common.js:2:203208)
+    at Array.<anonymous> (twk-vendor.js:2:76358)
+    at p.dispatch (twk-vendor.js:2:78106)
+    at p.dispatch (twk-vendor.js:2:73855)
+    at t.value (twk-chunk-common.js:2:125487)
+    at twk-chunk-common.js:2:124798
+value @ twk-chunk-common.js:2
+/api/products/%D8%AD%D9%84%D8%A7%D9%84%20%D8%AA%D9%88%D9%84%D9%88%D8%A6%D9%86%20%D8%B5%D9%86%D8%B9%D8%AA%DB%8C%20%DB%B9%DB%B9.5%25/batches/display:1  Failed to load resource: the server responded with a status of 400 ()
+index-DOjBHUUt.js:1849 🗑️ [DELETE] Opening delete confirmation for product: حلال تولوئن صنعتی ۹۹.5%
+about:blank:1 [Intervention] Slow network is detected. See https://www.chromestatus.com/feature/5636954674692096 for more details. Fallback font will be used while loading: https://embed.tawk.to/_s/v4/assets/fonts/tawk-font-icon-3.woff?55755728=
+index-DOjBHUUt.js:1849 🗑️ [DELETE] Confirming delete for product: حلال تولوئن صنعتی ۹۹.5% ID: 79
+index-DOjBHUUt.js:1849 🗑️ [DELETE] Starting delete for product ID: 79
+index-DOjBHUUt.js:1849 ✅ [DELETE] Product deleted successfully
+index-DOjBHUUt.js:1849 🔄 [INSTANT-SYNC] Triggering immediate kardex synchronization...
+index-DOjBHUUt.js:1849 🗑️ [DELETE] Opening delete confirmation for product: حلال تولوئن صنعتی ۹۹.5%
+index-DOjBHUUt.js:1849 🗑️ [DELETE] Confirming delete for product: حلال تولوئن صنعتی ۹۹.5% ID: 79
+index-DOjBHUUt.js:1849 🗑️ [DELETE] Starting delete for product ID: 79

@@ -5748,6 +5748,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      // *** ACTUALLY DELETE THE PRODUCT FROM SHOWCASE_PRODUCTS (KARDEX) ***
+      await storage.deleteProduct(id);
+      console.log(`🗑️ [DELETE] Product ID ${id} deleted from showcase_products (kardex)`);
+      
       // Trigger automatic synchronization after deletion
       try {
         const { KardexSyncMaster } = await import('./kardex-sync-master');
@@ -5757,7 +5761,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("Auto-sync failed after deletion:", syncError);
       }
       
-      console.log(`Product ${id} deleted successfully from both showcase and shop with auto-sync`);
+      console.log(`✅ Product ${id} deleted successfully from both showcase and shop with auto-sync`);
       res.json({ success: true, message: "Product deleted successfully" });
     } catch (error) {
       console.error("Delete product error:", error);
