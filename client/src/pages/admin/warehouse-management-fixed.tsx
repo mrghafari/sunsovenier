@@ -1137,67 +1137,6 @@ const WarehouseManagementFixed: React.FC = () => {
               </CardContent>
             </Card>
 
-            {/* Notification Settings */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Bell className="w-5 h-5" />
-                  تنظیمات اعلان‌رسانی موجودی
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-3 gap-6">
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <Mail className="w-6 h-6 text-blue-500" />
-                      <div>
-                        <Label className="text-base font-medium">ایمیل</Label>
-                        <p className="text-sm text-gray-500">ارسال هشدار از طریق ایمیل</p>
-                      </div>
-                    </div>
-                    <Switch
-                      checked={inventorySettings.emailEnabled}
-                      onCheckedChange={(checked) => 
-                        setInventorySettings(prev => ({ ...prev, emailEnabled: checked }))
-                      }
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <MessageSquare className="w-6 h-6 text-green-500" />
-                      <div>
-                        <Label className="text-base font-medium">پیامک</Label>
-                        <p className="text-sm text-gray-500">ارسال هشدار از طریق پیامک</p>
-                      </div>
-                    </div>
-                    <Switch
-                      checked={inventorySettings.smsEnabled}
-                      onCheckedChange={(checked) => 
-                        setInventorySettings(prev => ({ ...prev, smsEnabled: checked }))
-                      }
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <Phone className="w-6 h-6 text-emerald-500" />
-                      <div>
-                        <Label className="text-base font-medium">واتساپ</Label>
-                        <p className="text-sm text-gray-500">ارسال هشدار از طریق واتساپ</p>
-                      </div>
-                    </div>
-                    <Switch
-                      checked={inventorySettings.whatsappEnabled}
-                      onCheckedChange={(checked) => 
-                        setInventorySettings(prev => ({ ...prev, whatsappEnabled: checked }))
-                      }
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Recipients Management with CRM Search */}
             <Card>
               <CardHeader>
