@@ -3479,8 +3479,10 @@ export default function ProductsPage() {
                                   type="button"
                                   variant="outline"
                                   size="sm"
-                                  className="absolute top-2 right-2 h-6 w-6 p-0"
-                                  onClick={async () => {
+                                  className="absolute top-2 right-2 h-6 w-6 p-0 z-10"
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
                                     // Optimistic update: Remove from UI immediately
                                     setCatalogPreview(null);
                                     form.setValue('pdfCatalogUrl', '');
@@ -3663,8 +3665,10 @@ export default function ProductsPage() {
                                   type="button"
                                   variant="outline"
                                   size="sm"
-                                  className="absolute top-2 right-2 h-6 w-6 p-0"
-                                  onClick={async () => {
+                                  className="absolute top-2 right-2 h-6 w-6 p-0 z-10"
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
                                     // Optimistic update: Remove from UI immediately
                                     setMsdsPreview(null);
                                     form.setValue('msdsUrl', '');
