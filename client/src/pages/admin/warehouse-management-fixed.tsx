@@ -737,12 +737,13 @@ const WarehouseManagementFixed: React.FC = () => {
                       <thead>
                         <tr className="bg-gray-50 border-b border-gray-200">
                           <th className="text-right p-4 font-semibold text-gray-700" style={{ width: '10%' }}>شماره سفارش</th>
-                          <th className="text-right p-4 font-semibold text-gray-700" style={{ width: '20%' }}>اطلاعات مشتری</th>
-                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '10%' }}>وزن محموله</th>
-                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '12%' }}>مبلغ کل</th>
-                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '12%' }}>وضعیت</th>
-                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '14%' }}>یادداشت</th>
-                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '22%' }}>عملیات</th>
+                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '12%' }}>تاریخ دریافت</th>
+                          <th className="text-right p-4 font-semibold text-gray-700" style={{ width: '18%' }}>اطلاعات مشتری</th>
+                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '8%' }}>وزن محموله</th>
+                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '10%' }}>مبلغ کل</th>
+                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '10%' }}>وضعیت</th>
+                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '12%' }}>یادداشت</th>
+                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '20%' }}>عملیات</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -751,7 +752,13 @@ const WarehouseManagementFixed: React.FC = () => {
                             <td className="p-4" style={{ width: '10%' }}>
                               <div className="font-bold text-blue-600 truncate">{order.orderNumber || `#${order.id}`}</div>
                             </td>
-                            <td className="p-4" style={{ width: '20%' }}>
+                            <td className="p-4 text-center" style={{ width: '12%' }}>
+                              <div className="text-xs text-gray-600">
+                                <div>{order.createdAt ? new Date(order.createdAt).toLocaleDateString('fa-IR') : '-'}</div>
+                                <div className="text-gray-400">{order.createdAt ? new Date(order.createdAt).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }) : ''}</div>
+                              </div>
+                            </td>
+                            <td className="p-4" style={{ width: '18%' }}>
                               <div className="space-y-1">
                                 <div className="font-medium text-gray-900 truncate">{
                                   order.customer?.firstName && order.customer?.lastName 

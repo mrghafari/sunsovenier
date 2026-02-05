@@ -3140,7 +3140,7 @@ const LogisticsManagement = () => {
                   <div className="flex justify-between items-center mb-3">
                     <div className="flex items-center gap-2">
                       <h4 className="font-semibold text-green-800 text-lg">سفارش {order.orderNumber}</h4>
-                      <span className="text-sm text-gray-500">| {formatDateSafe(order.createdAt)}</span>
+                      <span className="text-sm text-gray-500">| {formatDateSafe(order.createdAt)} - {order.createdAt ? new Date(order.createdAt).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }) : ''}</span>
                       {hasAnyNotes && (
                         <div className="flex items-center gap-1 bg-amber-200 text-amber-800 px-2 py-1 rounded-full text-xs font-medium animate-pulse">
                           <FileText className="w-3 h-3" />
@@ -6032,12 +6032,12 @@ const LogisticsManagement = () => {
                     </Label>
                     <div className="space-y-2">
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">تاریخ ایجاد:</span>
-                        <span className="font-medium">{formatDateSafe(selectedOrder.createdAt)}</span>
+                        <span className="text-sm text-gray-600">تاریخ دریافت سفارش:</span>
+                        <span className="font-medium">{formatDateSafe(selectedOrder.createdAt)} - {selectedOrder.createdAt ? new Date(selectedOrder.createdAt).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }) : ''}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm text-gray-600">آخرین بروزرسانی:</span>
-                        <span className="font-medium">{formatDateSafe(selectedOrder.updatedAt)}</span>
+                        <span className="font-medium">{formatDateSafe(selectedOrder.updatedAt)} - {selectedOrder.updatedAt ? new Date(selectedOrder.updatedAt).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }) : ''}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm text-gray-600">تاریخ تحویل تخمینی:</span>
