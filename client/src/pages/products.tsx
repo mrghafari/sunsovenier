@@ -1971,6 +1971,15 @@ export default function ProductsPage() {
             <DialogDescription className="text-center text-gray-600">
               {editingProduct ? t.productManagement.editProduct : t.productManagement.addNewProduct}
             </DialogDescription>
+            {/* Vendor Company Tag in Edit Dialog */}
+            {editingProduct && (editingProduct as any).vendorName && (
+              <div className="flex justify-center mt-3">
+                <Badge className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white border-0 shadow-lg px-4 py-2 text-sm font-semibold">
+                  <span className="mr-2">🏢</span>
+                  شرکت: {(editingProduct as any).vendorName}
+                </Badge>
+              </div>
+            )}
           </DialogHeader>
           
           <TooltipProvider>
