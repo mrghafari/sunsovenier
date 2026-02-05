@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Package, Search, Filter, ArrowLeft, FileText, Clock, CheckCircle, XCircle, Plus, Edit3, Trash2, Download, Upload, RefreshCw, AlertTriangle, Calendar, Users, TrendingUp, TrendingDown, Eye, BarChart3, Package2, Truck, Weight, Calculator, FileSpreadsheet, ChevronRight, ChevronLeft, Printer } from 'lucide-react';
-// CRITICAL: Removed ALL Dialog imports and toast to eliminate React Portal removeChild errors
-// Using SafeModal instead - NO PORTALS, NO REMOVECHILD ERRORS
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Separator } from '@/components/ui/separator';
+import { Package, Search, Filter, ArrowLeft, FileText, Clock, CheckCircle, XCircle, Plus, Edit3, Trash2, Download, Upload, RefreshCw, AlertTriangle, Calendar, Users, TrendingUp, TrendingDown, Eye, BarChart3, Package2, Truck, Weight, Calculator, FileSpreadsheet, ChevronRight, ChevronLeft, Printer, Bell, Mail, MessageSquare, Phone, Save, Edit } from 'lucide-react';
 import SafeModal from '@/components/SafeModal';
 import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/useAuth';
@@ -16,6 +16,53 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import PaymentMethodBadge from '@/components/PaymentMethodBadge';
+import { useToast } from '@/hooks/use-toast';
+
+interface InventoryProduct {
+  id: number;
+  name: string;
+  sku: string;
+  barcode: string;
+  stockQuantity: number;
+  availableQuantity: number;
+  reservedQuantity: number;
+  minStockLevel: number;
+  maxStockLevel: number;
+  lowStockThreshold: number;
+  isActive: boolean;
+  vendorId: number | null;
+  vendorName: string;
+}
+
+interface NotificationRecipient {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  whatsappNumber: string;
+  receiveEmail: boolean;
+  receiveSms: boolean;
+  receiveWhatsapp: boolean;
+  isActive: boolean;
+}
+
+interface InventoryNotificationSettings {
+  emailEnabled: boolean;
+  smsEnabled: boolean;
+  whatsappEnabled: boolean;
+  maxNotifications: number;
+  recipients: NotificationRecipient[];
+}
+
+interface CRMCustomer {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  whatsappNumber?: string;
+  companyName?: string;
+}
 
 interface Order {
   id: number;
@@ -74,6 +121,20 @@ const WarehouseManagementFixed: React.FC = () => {
   const [activeTab, setActiveTab] = useState("orders");
   const [orderDetails, setOrderDetails] = useState<any>(null);
   const [loadingOrderDetails, setLoadingOrderDetails] = useState(false);
+
+  // Inventory management states
+  const [inventorySearchTerm, setInventorySearchTerm] = useState("");
+  const [crmSearchTerm, setCrmSearchTerm] = useState("");
+  const [showAddRecipient, setShowAddRecipient] = useState(false);
+  const [inventorySettings, setInventorySettings] = useState<InventoryNotificationSettings>({
+    emailEnabled: true,
+    smsEnabled: false,
+    whatsappEnabled: false,
+    maxNotifications: 1,
+    recipients: []
+  });
+
+  const { toast } = useToast();
 
   // Print function for order details
   const handlePrintOrder = () => {
@@ -367,6 +428,93 @@ const WarehouseManagementFixed: React.FC = () => {
 
   const orders = (ordersResponse as any)?.orders || [];
 
+  // Inventory Products Query
+  const { data: inventoryProductsData, isLoading: inventoryProductsLoading, refetch: refetchInventoryProducts } = useQuery<{ products: InventoryProduct[] }>({
+    queryKey: ["/api/warehouse/inventory-products"],
+  });
+
+  // Inventory Settings Query
+  const { data: inventorySettingsData } = useQuery<{ success: boolean; settings: InventoryNotificationSettings }>({
+    queryKey: ["/api/warehouse/inventory-notification-settings"],
+  });
+
+  // CRM Customers Search Query (only when 3+ characters)
+  const { data: crmCustomersData } = useQuery<{ customers: CRMCustomer[] }>({
+    queryKey: ["/api/crm/customers/search", crmSearchTerm],
+    queryFn: async () => {
+      if (crmSearchTerm.length < 3) return { customers: [] };
+      const response = await apiRequest(`/api/crm/customers/search?q=${encodeURIComponent(crmSearchTerm)}`, { method: 'GET' });
+      return response as { customers: CRMCustomer[] };
+    },
+    enabled: crmSearchTerm.length >= 3,
+  });
+
+  const crmCustomers: CRMCustomer[] = crmCustomersData?.customers || [];
+  const inventoryProducts: InventoryProduct[] = inventoryProductsData?.products || [];
+
+  // Load inventory settings when data arrives
+  useEffect(() => {
+    if (inventorySettingsData?.success && inventorySettingsData?.settings) {
+      setInventorySettings(inventorySettingsData.settings);
+    }
+  }, [inventorySettingsData]);
+
+  // Filter inventory products
+  const filteredInventoryProducts = inventoryProducts.filter(p =>
+    p.name?.toLowerCase().includes(inventorySearchTerm.toLowerCase()) ||
+    p.sku?.toLowerCase().includes(inventorySearchTerm.toLowerCase()) ||
+    p.barcode?.toLowerCase().includes(inventorySearchTerm.toLowerCase())
+  );
+
+  // Get stock status
+  const getStockStatus = (product: InventoryProduct) => {
+    const { stockQuantity, lowStockThreshold, minStockLevel } = product;
+    if (stockQuantity <= 0) return { label: "ناموجود", color: "bg-red-500 text-white" };
+    if (stockQuantity <= (lowStockThreshold || 5)) return { label: "بحرانی", color: "bg-red-400 text-white" };
+    if (stockQuantity <= (minStockLevel || 10)) return { label: "کم", color: "bg-yellow-500 text-white" };
+    return { label: "موجود", color: "bg-green-500 text-white" };
+  };
+
+  // Add recipient from CRM
+  const addRecipientFromCRM = (customer: CRMCustomer) => {
+    const newRecipient: NotificationRecipient = {
+      id: Date.now(),
+      name: `${customer.firstName} ${customer.lastName}`,
+      email: customer.email || '',
+      phone: customer.phone || '',
+      whatsappNumber: customer.whatsappNumber || customer.phone || '',
+      receiveEmail: !!customer.email,
+      receiveSms: !!customer.phone,
+      receiveWhatsapp: !!customer.whatsappNumber || !!customer.phone,
+      isActive: true
+    };
+    setInventorySettings(prev => ({
+      ...prev,
+      recipients: [...prev.recipients, newRecipient]
+    }));
+    setCrmSearchTerm("");
+    toast({
+      title: "گیرنده اضافه شد",
+      description: `${customer.firstName} ${customer.lastName} به لیست گیرندگان اضافه شد`,
+    });
+  };
+
+  // Remove recipient
+  const removeRecipient = (id: number) => {
+    setInventorySettings(prev => ({
+      ...prev,
+      recipients: prev.recipients.filter(r => r.id !== id)
+    }));
+  };
+
+  // Update recipient
+  const updateRecipient = (id: number, updates: Partial<NotificationRecipient>) => {
+    setInventorySettings(prev => ({
+      ...prev,
+      recipients: prev.recipients.map(r => r.id === id ? { ...r, ...updates } : r)
+    }));
+  };
+
   // Mutations
   const updateOrderMutation = useMutation({
     mutationFn: async ({ orderId, status, notes }: { orderId: number; status: string; notes?: string }) => {
@@ -415,6 +563,30 @@ const WarehouseManagementFixed: React.FC = () => {
       console.log({
         title: "خطا در ذخیره",
         description: error.message || "خطایی در ذخیره یادداشت رخ داد",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Save Inventory Settings Mutation
+  const saveInventorySettingsMutation = useMutation({
+    mutationFn: async (settings: InventoryNotificationSettings) => {
+      return await apiRequest('/api/warehouse/inventory-notification-settings', {
+        method: 'POST',
+        body: settings
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/warehouse/inventory-notification-settings'] });
+      toast({
+        title: "تنظیمات ذخیره شد",
+        description: "تنظیمات اعلان موجودی با موفقیت ذخیره شد",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "خطا در ذخیره",
+        description: error.message || "خطایی در ذخیره تنظیمات رخ داد",
         variant: "destructive",
       });
     },
@@ -862,13 +1034,282 @@ const WarehouseManagementFixed: React.FC = () => {
             </Card>
           </TabsContent>
 
-          {/* Inventory Tab - Embedded Inventory Management */}
+          {/* Inventory Tab - Direct Content */}
           <TabsContent value="inventory" className="space-y-6">
-            <iframe 
-              src="/admin/warehouse-inventory-management" 
-              className="w-full h-[calc(100vh-200px)] border-0 rounded-lg"
-              title="مدیریت موجودی انبار"
-            />
+            {/* Products Table */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Package2 className="w-5 h-5" />
+                    محصولات انبار
+                  </CardTitle>
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                      <Input
+                        placeholder="جستجو محصول..."
+                        value={inventorySearchTerm}
+                        onChange={(e) => setInventorySearchTerm(e.target.value)}
+                        className="pr-10 w-64"
+                      />
+                    </div>
+                    <Button variant="outline" onClick={() => refetchInventoryProducts()}>
+                      <RefreshCw className="w-4 h-4 ml-2" />
+                      بروزرسانی
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {inventoryProductsLoading ? (
+                  <div className="text-center py-8">در حال بارگذاری...</div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-right whitespace-nowrap">نام محصول</TableHead>
+                        <TableHead className="text-right whitespace-nowrap">فروشنده</TableHead>
+                        <TableHead className="text-right whitespace-nowrap">کد کالا</TableHead>
+                        <TableHead className="text-center whitespace-nowrap">موجودی</TableHead>
+                        <TableHead className="text-center whitespace-nowrap">حداقل</TableHead>
+                        <TableHead className="text-center whitespace-nowrap">آستانه هشدار</TableHead>
+                        <TableHead className="text-center whitespace-nowrap">وضعیت</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredInventoryProducts.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                            محصولی یافت نشد
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filteredInventoryProducts.slice(0, 50).map((product) => {
+                          const stockStatus = getStockStatus(product);
+                          return (
+                            <TableRow key={product.id}>
+                              <TableCell className="font-medium text-right">{product.name}</TableCell>
+                              <TableCell className="text-right">
+                                <Badge variant={product.vendorId ? "secondary" : "outline"}>
+                                  {product.vendorName || 'ممتاز کم'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right">{product.sku || '-'}</TableCell>
+                              <TableCell className="text-center font-bold">{product.stockQuantity || 0}</TableCell>
+                              <TableCell className="text-center">{product.minStockLevel || 0}</TableCell>
+                              <TableCell className="text-center">{product.lowStockThreshold || 0}</TableCell>
+                              <TableCell className="text-center">
+                                <Badge className={stockStatus.color}>
+                                  {stockStatus.label}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      )}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Notification Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Bell className="w-5 h-5" />
+                  تنظیمات اعلان‌رسانی موجودی
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-3 gap-6">
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <Mail className="w-6 h-6 text-blue-500" />
+                      <div>
+                        <Label className="text-base font-medium">ایمیل</Label>
+                        <p className="text-sm text-gray-500">ارسال هشدار از طریق ایمیل</p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={inventorySettings.emailEnabled}
+                      onCheckedChange={(checked) => 
+                        setInventorySettings(prev => ({ ...prev, emailEnabled: checked }))
+                      }
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <MessageSquare className="w-6 h-6 text-green-500" />
+                      <div>
+                        <Label className="text-base font-medium">پیامک</Label>
+                        <p className="text-sm text-gray-500">ارسال هشدار از طریق پیامک</p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={inventorySettings.smsEnabled}
+                      onCheckedChange={(checked) => 
+                        setInventorySettings(prev => ({ ...prev, smsEnabled: checked }))
+                      }
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <Phone className="w-6 h-6 text-emerald-500" />
+                      <div>
+                        <Label className="text-base font-medium">واتساپ</Label>
+                        <p className="text-sm text-gray-500">ارسال هشدار از طریق واتساپ</p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={inventorySettings.whatsappEnabled}
+                      onCheckedChange={(checked) => 
+                        setInventorySettings(prev => ({ ...prev, whatsappEnabled: checked }))
+                      }
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Recipients Management with CRM Search */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="w-5 h-5" />
+                    گیرندگان اعلان
+                  </CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* CRM Search Dropdown */}
+                <div className="flex items-center gap-4 p-4 border rounded-lg bg-gray-50">
+                  <div className="flex-1">
+                    <Label className="mb-2 block">جستجو و انتخاب از CRM (حداقل 3 حرف)</Label>
+                    <Input
+                      placeholder="نام، ایمیل یا شماره تلفن مشتری..."
+                      value={crmSearchTerm}
+                      onChange={(e) => setCrmSearchTerm(e.target.value)}
+                      className="w-full"
+                    />
+                    {crmSearchTerm.length >= 3 && crmCustomers.length > 0 && (
+                      <div className="mt-2 border rounded-lg max-h-48 overflow-y-auto bg-white shadow-lg">
+                        {crmCustomers.map((customer) => (
+                          <div
+                            key={customer.id}
+                            className="p-3 hover:bg-blue-50 cursor-pointer border-b last:border-b-0 flex items-center justify-between"
+                            onClick={() => addRecipientFromCRM(customer)}
+                          >
+                            <div>
+                              <div className="font-medium">{customer.firstName} {customer.lastName}</div>
+                              <div className="text-sm text-gray-500">{customer.email} | {customer.phone}</div>
+                            </div>
+                            <Button size="sm" variant="outline">
+                              <Plus className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {crmSearchTerm.length >= 3 && crmCustomers.length === 0 && (
+                      <div className="mt-2 text-sm text-gray-500">مشتری‌ای یافت نشد</div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Recipients List */}
+                {inventorySettings.recipients.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                    <p>هیچ گیرنده‌ای تعریف نشده است</p>
+                    <p className="text-sm">از بخش جستجوی بالا، گیرندگان را انتخاب کنید</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-right">نام</TableHead>
+                        <TableHead className="text-right">ایمیل</TableHead>
+                        <TableHead className="text-right">تلفن</TableHead>
+                        <TableHead className="text-center">ایمیل</TableHead>
+                        <TableHead className="text-center">پیامک</TableHead>
+                        <TableHead className="text-center">واتساپ</TableHead>
+                        <TableHead className="text-center">فعال</TableHead>
+                        <TableHead className="text-center">حذف</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {inventorySettings.recipients.map((recipient) => (
+                        <TableRow key={recipient.id}>
+                          <TableCell className="font-medium">{recipient.name}</TableCell>
+                          <TableCell>{recipient.email || '-'}</TableCell>
+                          <TableCell dir="ltr">{recipient.phone || '-'}</TableCell>
+                          <TableCell className="text-center">
+                            <Switch
+                              checked={recipient.receiveEmail}
+                              onCheckedChange={(checked) => updateRecipient(recipient.id, { receiveEmail: checked })}
+                            />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Switch
+                              checked={recipient.receiveSms}
+                              onCheckedChange={(checked) => updateRecipient(recipient.id, { receiveSms: checked })}
+                            />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Switch
+                              checked={recipient.receiveWhatsapp}
+                              onCheckedChange={(checked) => updateRecipient(recipient.id, { receiveWhatsapp: checked })}
+                            />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Switch
+                              checked={recipient.isActive}
+                              onCheckedChange={(checked) => updateRecipient(recipient.id, { isActive: checked })}
+                            />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="text-red-500 hover:text-red-700"
+                              onClick={() => removeRecipient(recipient.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+
+                {/* Save Button */}
+                <div className="flex justify-end pt-4">
+                  <Button 
+                    onClick={() => saveInventorySettingsMutation.mutate(inventorySettings)}
+                    disabled={saveInventorySettingsMutation.isPending}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    {saveInventorySettingsMutation.isPending ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 ml-2 animate-spin" />
+                        در حال ذخیره...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4 ml-2" />
+                        ذخیره تنظیمات
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
 
