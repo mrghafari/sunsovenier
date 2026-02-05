@@ -54,14 +54,12 @@ interface InventoryNotificationSettings {
   recipients: NotificationRecipient[];
 }
 
-interface CRMCustomer {
+interface AdminUser {
   id: number;
-  firstName: string;
-  lastName: string;
+  username: string;
   email: string;
-  phone: string;
-  whatsappNumber?: string;
-  companyName?: string;
+  roleId: number;
+  isActive: boolean;
 }
 
 interface Order {
@@ -124,7 +122,7 @@ const WarehouseManagementFixed: React.FC = () => {
 
   // Inventory management states
   const [inventorySearchTerm, setInventorySearchTerm] = useState("");
-  const [crmSearchTerm, setCrmSearchTerm] = useState("");
+  const [adminSearchTerm, setAdminSearchTerm] = useState("");
   const [showAddRecipient, setShowAddRecipient] = useState(false);
   const [inventorySettings, setInventorySettings] = useState<InventoryNotificationSettings>({
     emailEnabled: true,
@@ -446,18 +444,24 @@ const WarehouseManagementFixed: React.FC = () => {
     },
   });
 
-  // CRM Customers Search Query (only when 3+ characters)
-  const { data: crmCustomersData } = useQuery<{ success: boolean; data: CRMCustomer[] }>({
-    queryKey: ["/api/crm/customers/search", crmSearchTerm],
+  // Admin Users Query for notification recipients
+  const { data: adminUsersData } = useQuery<{ success: boolean; users: AdminUser[] }>({
+    queryKey: ["/api/admin/users"],
     queryFn: async () => {
-      if (crmSearchTerm.length < 3) return { success: true, data: [] };
-      const response = await apiRequest(`/api/crm/customers/search?q=${encodeURIComponent(crmSearchTerm)}`, { method: 'GET' });
-      return response as { success: boolean; data: CRMCustomer[] };
+      const response = await apiRequest('/api/admin/users', { method: 'GET' });
+      return response as { success: boolean; users: AdminUser[] };
     },
-    enabled: crmSearchTerm.length >= 3,
   });
 
-  const crmCustomers: CRMCustomer[] = crmCustomersData?.data || [];
+  // Filter admin users based on search
+  const filteredAdminUsers: AdminUser[] = (adminUsersData?.users || []).filter(user => {
+    if (adminSearchTerm.length < 2) return false;
+    const searchLower = adminSearchTerm.toLowerCase();
+    return (
+      user.username.toLowerCase().includes(searchLower) ||
+      (user.email && user.email.toLowerCase().includes(searchLower))
+    );
+  });
   const inventoryProducts: InventoryProduct[] = inventoryProductsData?.products || [];
 
   // Load inventory settings when data arrives
@@ -483,27 +487,37 @@ const WarehouseManagementFixed: React.FC = () => {
     return { label: "موجود", color: "bg-green-500 text-white" };
   };
 
-  // Add recipient from CRM
-  const addRecipientFromCRM = (customer: CRMCustomer) => {
+  // Add recipient from Admin Users
+  const addRecipientFromAdmin = (user: AdminUser) => {
+    // Check if user already exists in recipients
+    if (inventorySettings.recipients.some(r => r.email === user.email)) {
+      toast({
+        title: "خطا",
+        description: "این کاربر قبلاً به لیست گیرندگان اضافه شده است",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     const newRecipient: NotificationRecipient = {
       id: Date.now(),
-      name: `${customer.firstName} ${customer.lastName}`,
-      email: customer.email || '',
-      phone: customer.phone || '',
-      whatsappNumber: customer.whatsappNumber || customer.phone || '',
-      receiveEmail: !!customer.email,
-      receiveSms: !!customer.phone,
-      receiveWhatsapp: !!customer.whatsappNumber || !!customer.phone,
+      name: user.username,
+      email: user.email || '',
+      phone: '',
+      whatsappNumber: '',
+      receiveEmail: !!user.email,
+      receiveSms: false,
+      receiveWhatsapp: false,
       isActive: true
     };
     setInventorySettings(prev => ({
       ...prev,
       recipients: [...prev.recipients, newRecipient]
     }));
-    setCrmSearchTerm("");
+    setAdminSearchTerm("");
     toast({
       title: "گیرنده اضافه شد",
-      description: `${customer.firstName} ${customer.lastName} به لیست گیرندگان اضافه شد`,
+      description: `${user.username} به لیست گیرندگان اضافه شد`,
     });
   };
 
@@ -1194,27 +1208,27 @@ const WarehouseManagementFixed: React.FC = () => {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* CRM Search Dropdown */}
+                {/* Admin Users Search Dropdown */}
                 <div className="flex items-center gap-4 p-4 border rounded-lg bg-gray-50">
                   <div className="flex-1">
-                    <Label className="mb-2 block">جستجو و انتخاب از CRM (حداقل 3 حرف)</Label>
+                    <Label className="mb-2 block">جستجو و انتخاب از کاربران مدیریتی (حداقل 2 حرف)</Label>
                     <Input
-                      placeholder="نام، ایمیل یا شماره تلفن مشتری..."
-                      value={crmSearchTerm}
-                      onChange={(e) => setCrmSearchTerm(e.target.value)}
+                      placeholder="نام کاربری یا ایمیل..."
+                      value={adminSearchTerm}
+                      onChange={(e) => setAdminSearchTerm(e.target.value)}
                       className="w-full"
                     />
-                    {crmSearchTerm.length >= 3 && crmCustomers.length > 0 && (
+                    {adminSearchTerm.length >= 2 && filteredAdminUsers.length > 0 && (
                       <div className="mt-2 border rounded-lg max-h-48 overflow-y-auto bg-white shadow-lg">
-                        {crmCustomers.map((customer) => (
+                        {filteredAdminUsers.map((user) => (
                           <div
-                            key={customer.id}
+                            key={user.id}
                             className="p-3 hover:bg-blue-50 cursor-pointer border-b last:border-b-0 flex items-center justify-between"
-                            onClick={() => addRecipientFromCRM(customer)}
+                            onClick={() => addRecipientFromAdmin(user)}
                           >
                             <div>
-                              <div className="font-medium">{customer.firstName} {customer.lastName}</div>
-                              <div className="text-sm text-gray-500">{customer.email} | {customer.phone}</div>
+                              <div className="font-medium">{user.username}</div>
+                              <div className="text-sm text-gray-500">{user.email}</div>
                             </div>
                             <Button size="sm" variant="outline">
                               <Plus className="w-4 h-4" />
@@ -1223,8 +1237,8 @@ const WarehouseManagementFixed: React.FC = () => {
                         ))}
                       </div>
                     )}
-                    {crmSearchTerm.length >= 3 && crmCustomers.length === 0 && (
-                      <div className="mt-2 text-sm text-gray-500">مشتری‌ای یافت نشد</div>
+                    {adminSearchTerm.length >= 2 && filteredAdminUsers.length === 0 && (
+                      <div className="mt-2 text-sm text-gray-500">کاربری یافت نشد</div>
                     )}
                   </div>
                 </div>
