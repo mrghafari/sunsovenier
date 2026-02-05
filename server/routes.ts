@@ -56752,7 +56752,7 @@ momtazchem.com
           COALESCE(sp.low_stock_threshold, sp.min_stock_level, 0) as "lowStockThreshold",
           sp.is_active as "isActive",
           sp.vendor_id as "vendorId",
-          COALESCE(v.company_name, v.name, 'ممتاز کم') as "vendorName"
+          COALESCE(v.vendor_name, 'ممتاز کم') as "vendorName"
         FROM showcase_products sp
         LEFT JOIN vendors v ON sp.vendor_id = v.id
         WHERE sp.is_active = true
