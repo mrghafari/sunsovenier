@@ -5,7 +5,9 @@ logBuffer.init();
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import MemoryStore from "memorystore";
+import pgSession from "connect-pg-simple";
 import path from "path";
+import { pool } from "./db";
 import { registerRoutes } from "./routes";
 import backupRoutes from "./backup-routes";
 import otpRoutes from "./otp-routes";
@@ -154,14 +156,23 @@ const vendorSessionMiddleware = session({
 // Detect if running in production (HTTPS)
 const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1';
 
-// Use single unified session middleware for all routes
+// Create PostgreSQL session store for persistence across server restarts
+const PostgresStore = pgSession(session);
+const pgSessionStore = new PostgresStore({
+  pool: pool,
+  tableName: 'session', // Table name for storing sessions
+  createTableIfMissing: true, // Auto-create table if it doesn't exist
+  pruneSessionInterval: 60 * 15, // Prune expired sessions every 15 minutes
+});
+
+// Use single unified session middleware for all routes with PostgreSQL store
 const unifiedSessionMiddleware = session({
   secret: process.env.SESSION_SECRET || "momtazchem-unified-secret-key",
-  store: adminSessionStore, // Use admin store for all sessions
-  resave: true, // Force save sessions to prevent loss
-  saveUninitialized: true, // Save new sessions to ensure they persist
+  store: pgSessionStore, // Use PostgreSQL store for persistence across restarts
+  resave: false, // PostgreSQL store handles this
+  saveUninitialized: false, // Don't save empty sessions
   rolling: true,
-  proxy: isProduction, // Trust reverse proxy in production
+  proxy: true, // Always trust proxy for Replit
   cookie: {
     secure: isProduction, // true for HTTPS in production
     httpOnly: true, // Protect against XSS
