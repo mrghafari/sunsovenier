@@ -212,7 +212,15 @@ export default function CustomerWallet() {
       
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      if (result.paymentUrl) {
+        toast({
+          title: "در حال انتقال به درگاه پرداخت...",
+          description: "لطفاً صبر کنید",
+        });
+        window.location.href = result.paymentUrl;
+        return;
+      }
       toast({
         title: t.rechargeSuccess,
         description: t.requestSubmitted,

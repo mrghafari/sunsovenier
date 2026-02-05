@@ -37830,6 +37830,88 @@ momtazchem.com
         console.log('💰 [WALLET-RECHARGE] New wallet created:', wallet);
       }
 
+      // Handle online payment - redirect to active payment gateway
+      if (paymentMethod === 'online_payment') {
+        console.log('💰 [WALLET-RECHARGE] Online payment selected, checking active gateway...');
+        
+        const { pool } = await import('./db');
+        const gatewayResult = await pool.query(`
+          SELECT id, name, type, enabled, config 
+          FROM payment_gateways 
+          WHERE enabled = true 
+          ORDER BY updated_at DESC 
+          LIMIT 1
+        `);
+
+        if (gatewayResult.rows.length === 0) {
+          return res.status(400).json({ 
+            success: false, 
+            message: "هیچ درگاه پرداخت فعالی یافت نشد" 
+          });
+        }
+
+        const activeGateway = gatewayResult.rows[0];
+        console.log('💰 [WALLET-RECHARGE] Active gateway:', activeGateway.type);
+
+        // Create recharge request first with pending status
+        const rechargeRequest = await walletStorage.createRechargeRequest({
+          customerId: req.session.customerId,
+          walletId: wallet.id,
+          amount: amount.toString(),
+          currency: currency || "IQD",
+          paymentMethod: 'online_payment',
+          paymentReference: '',
+          customerNotes,
+          status: 'pending_payment'
+        });
+
+        // Handle FIB gateway
+        if (activeGateway.type === 'fib') {
+          try {
+            const { fibService } = await import('./fib-service');
+            const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+              ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+              : process.env.BASE_URL || 'https://momtazchem.com';
+            
+            const payment = await fibService.createPayment({
+              amount: amount.toString(),
+              currency: currency || 'IQD',
+              description: `شارژ کیف پول - درخواست #${rechargeRequest.id}`,
+              customerId: req.session.customerId,
+              callbackUrl: `${baseUrl}/api/wallet/fib-callback?rechargeId=${rechargeRequest.id}`
+            });
+
+            console.log('💰 [WALLET-RECHARGE] FIB payment created:', payment);
+
+            // Update recharge request with payment ID
+            await pool.query(`
+              UPDATE wallet_recharge_requests 
+              SET payment_reference = $1, status = 'pending_payment'
+              WHERE id = $2
+            `, [payment.paymentId, rechargeRequest.id]);
+
+            return res.json({ 
+              success: true, 
+              paymentUrl: payment.paymentUrl,
+              paymentId: payment.paymentId,
+              rechargeId: rechargeRequest.id
+            });
+          } catch (fibError) {
+            console.error('💰 [WALLET-RECHARGE] FIB payment error:', fibError);
+            return res.status(500).json({ 
+              success: false, 
+              message: fibError.message || 'خطا در ایجاد پرداخت FIB' 
+            });
+          }
+        }
+
+        // Other gateway types can be added here
+        return res.status(400).json({ 
+          success: false, 
+          message: `نوع درگاه ${activeGateway.type} پشتیبانی نمی‌شود` 
+        });
+      }
+
       console.log('💰 [WALLET-RECHARGE] Creating recharge request...');
       const rechargeRequest = await walletStorage.createRechargeRequest({
         customerId: req.session.customerId,
@@ -37846,6 +37928,75 @@ momtazchem.com
     } catch (error) {
       console.error('💰 [WALLET-RECHARGE] ERROR:', error);
       res.status(500).json({ success: false, message: 'Failed to create recharge request' });
+    }
+  });
+
+  // FIB callback for wallet recharge
+  app.get('/api/wallet/fib-callback', async (req, res) => {
+    try {
+      const { rechargeId, status } = req.query;
+      console.log('💰 [WALLET-FIB-CALLBACK] Received callback:', { rechargeId, status });
+
+      if (!rechargeId) {
+        return res.redirect('/customer-wallet?error=invalid_request');
+      }
+
+      const { pool } = await import('./db');
+      
+      // Get the recharge request
+      const requestResult = await pool.query(`
+        SELECT * FROM wallet_recharge_requests WHERE id = $1
+      `, [rechargeId]);
+
+      if (requestResult.rows.length === 0) {
+        return res.redirect('/customer-wallet?error=request_not_found');
+      }
+
+      const rechargeRequest = requestResult.rows[0];
+      const paymentId = rechargeRequest.payment_reference;
+
+      if (!paymentId) {
+        return res.redirect('/customer-wallet?error=payment_not_found');
+      }
+
+      // Check payment status with FIB
+      const { fibService } = await import('./fib-service');
+      const paymentStatus = await fibService.checkPaymentStatus(paymentId);
+      console.log('💰 [WALLET-FIB-CALLBACK] Payment status:', paymentStatus);
+
+      if (paymentStatus.status === 'PAID') {
+        // Update recharge request status
+        await pool.query(`
+          UPDATE wallet_recharge_requests 
+          SET status = 'approved', approved_at = NOW()
+          WHERE id = $1
+        `, [rechargeId]);
+
+        // Credit the wallet
+        const amount = parseFloat(rechargeRequest.amount);
+        await walletStorage.creditWallet(
+          rechargeRequest.customer_id,
+          amount,
+          `شارژ کیف پول از طریق درگاه FIB - درخواست #${rechargeId}`,
+          'wallet_recharge',
+          parseInt(rechargeId as string)
+        );
+
+        console.log('💰 [WALLET-FIB-CALLBACK] Wallet credited successfully');
+        return res.redirect('/customer-wallet?success=payment_completed');
+      } else if (paymentStatus.status === 'CANCELLED' || paymentStatus.status === 'FAILED') {
+        await pool.query(`
+          UPDATE wallet_recharge_requests 
+          SET status = 'failed'
+          WHERE id = $1
+        `, [rechargeId]);
+        return res.redirect('/customer-wallet?error=payment_failed');
+      } else {
+        return res.redirect('/customer-wallet?status=pending');
+      }
+    } catch (error) {
+      console.error('💰 [WALLET-FIB-CALLBACK] Error:', error);
+      return res.redirect('/customer-wallet?error=callback_error');
     }
   });
 
