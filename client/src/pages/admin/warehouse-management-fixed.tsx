@@ -1139,6 +1139,85 @@ const WarehouseManagementFixed: React.FC = () => {
               </CardContent>
             </Card>
 
+            {/* Notification Settings Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Bell className="w-5 h-5" />
+                  تنظیمات اعلان کمبود موجودی
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Notification Channels */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <Label className="flex items-center gap-2">
+                      <Mail className="w-4 h-4" />
+                      ایمیل
+                    </Label>
+                    <Switch
+                      checked={inventorySettings.emailEnabled}
+                      onCheckedChange={(checked) => setInventorySettings(prev => ({ ...prev, emailEnabled: checked }))}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <Label className="flex items-center gap-2">
+                      <MessageSquare className="w-4 h-4" />
+                      پیامک
+                    </Label>
+                    <Switch
+                      checked={inventorySettings.smsEnabled}
+                      onCheckedChange={(checked) => setInventorySettings(prev => ({ ...prev, smsEnabled: checked }))}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between p-4 border rounded-lg">
+                    <Label className="flex items-center gap-2">
+                      <Phone className="w-4 h-4" />
+                      واتساپ
+                    </Label>
+                    <Switch
+                      checked={inventorySettings.whatsappEnabled}
+                      onCheckedChange={(checked) => setInventorySettings(prev => ({ ...prev, whatsappEnabled: checked }))}
+                    />
+                  </div>
+                </div>
+
+                {/* Notification Timing Settings */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-lg bg-gray-50">
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <Clock className="w-4 h-4" />
+                      فاصله زمانی ارسال اعلان (ساعت)
+                    </Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={168}
+                      value={inventorySettings.notificationIntervalHours}
+                      onChange={(e) => setInventorySettings(prev => ({ ...prev, notificationIntervalHours: parseInt(e.target.value) || 24 }))}
+                      className="w-full"
+                    />
+                    <p className="text-xs text-gray-500">حداقل فاصله بین دو اعلان برای یک محصول (1 تا 168 ساعت)</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4" />
+                      حداکثر تعداد اعلان
+                    </Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={inventorySettings.maxNotifications}
+                      onChange={(e) => setInventorySettings(prev => ({ ...prev, maxNotifications: parseInt(e.target.value) || 1 }))}
+                      className="w-full"
+                    />
+                    <p className="text-xs text-gray-500">حداکثر تعداد اعلان برای هر محصول (تا زمان اصلاح موجودی)</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Recipients Management with CRM Search */}
             <Card>
               <CardHeader>

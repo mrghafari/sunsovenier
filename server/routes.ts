@@ -56688,6 +56688,7 @@ momtazchem.com
           smsEnabled: settingsMap.sms_enabled ?? false,
           whatsappEnabled: settingsMap.whatsapp_enabled ?? false,
           maxNotifications: settingsMap.max_notifications ?? 1,
+          notificationIntervalHours: settingsMap.notification_interval_hours ?? 24,
           recipients: settingsMap.recipients ?? []
         }
       });
@@ -56703,7 +56704,7 @@ momtazchem.com
   // Save warehouse inventory notification settings
   app.post("/api/warehouse/inventory-notification-settings", requireAuth, async (req, res) => {
     try {
-      const { emailEnabled, smsEnabled, whatsappEnabled, maxNotifications, recipients } = req.body;
+      const { emailEnabled, smsEnabled, whatsappEnabled, maxNotifications, notificationIntervalHours, recipients } = req.body;
       
       const { pool } = await import('./db');
       
@@ -56712,6 +56713,7 @@ momtazchem.com
         { key: 'sms_enabled', value: String(smsEnabled), type: 'boolean' },
         { key: 'whatsapp_enabled', value: String(whatsappEnabled), type: 'boolean' },
         { key: 'max_notifications', value: String(maxNotifications || 1), type: 'number' },
+        { key: 'notification_interval_hours', value: String(notificationIntervalHours || 24), type: 'number' },
         { key: 'recipients', value: JSON.stringify(recipients || []), type: 'json' }
       ];
       

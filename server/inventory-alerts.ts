@@ -11,71 +11,201 @@ interface InventoryAlert {
   alertLevel: 'low_stock' | 'out_of_stock';
 }
 
+interface NotificationSettings {
+  emailEnabled: boolean;
+  smsEnabled: boolean;
+  whatsappEnabled: boolean;
+  maxNotifications: number;
+  notificationIntervalHours: number;
+  recipients: { id: number; name: string; email: string; phone: string; notifyByEmail: boolean; notifyBySms: boolean; notifyByWhatsapp: boolean }[];
+}
+
+interface NotificationRecipient {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  notifyByEmail: boolean;
+  notifyBySms: boolean;
+  notifyByWhatsapp: boolean;
+}
+
 export class InventoryAlertService {
-  // Configuration for notifications
+  // Default configuration for notifications (fallback)
   private static notificationConfig = {
     emailEnabled: true,
-    categoryKey: 'inventory-alerts', // Use universal email service  
+    categoryKey: 'inventory-alerts',
     emergencyContacts: [
-      { name: 'Manager', email: 'inventory@momtazchem.com' },
-      // می‌توانید اعضای دیگر تیم مدیریت را اضافه کنید
+      { name: 'Manager', email: 'inventory@momtazchem.com' }
     ]
   };
+
+  /**
+   * Get notification settings from database
+   */
+  static async getNotificationSettings(): Promise<NotificationSettings> {
+    try {
+      const { pool } = await import('./db');
+      
+      const settingsResult = await pool.query(`
+        SELECT setting_key, setting_value, setting_type
+        FROM shop_settings 
+        WHERE category = 'warehouse_inventory_notifications'
+      `);
+      
+      const settingsMap: Record<string, any> = {};
+      for (const row of settingsResult.rows) {
+        if (row.setting_type === 'boolean') {
+          settingsMap[row.setting_key] = row.setting_value === 'true';
+        } else if (row.setting_type === 'number') {
+          settingsMap[row.setting_key] = parseInt(row.setting_value) || 0;
+        } else if (row.setting_type === 'json') {
+          try {
+            settingsMap[row.setting_key] = JSON.parse(row.setting_value);
+          } catch {
+            settingsMap[row.setting_key] = row.setting_value;
+          }
+        } else {
+          settingsMap[row.setting_key] = row.setting_value;
+        }
+      }
+      
+      return {
+        emailEnabled: settingsMap.email_enabled ?? true,
+        smsEnabled: settingsMap.sms_enabled ?? false,
+        whatsappEnabled: settingsMap.whatsapp_enabled ?? false,
+        maxNotifications: settingsMap.max_notifications ?? 1,
+        notificationIntervalHours: settingsMap.notification_interval_hours ?? 24,
+        recipients: settingsMap.recipients ?? []
+      };
+    } catch (error) {
+      console.error('Error fetching notification settings:', error);
+      return {
+        emailEnabled: true,
+        smsEnabled: false,
+        whatsappEnabled: false,
+        maxNotifications: 1,
+        notificationIntervalHours: 24,
+        recipients: []
+      };
+    }
+  }
 
   /**
    * Check all products and send alerts for low stock items
    */
   static async checkInventoryLevels(): Promise<void> {
     try {
+      console.log('🔍 [INVENTORY ALERT] Starting inventory level check...');
+      
+      const settings = await this.getNotificationSettings();
+      
+      if (settings.recipients.length === 0) {
+        console.log('⚠️ [INVENTORY ALERT] No recipients configured - skipping notifications');
+        return;
+      }
+      
       const products = await shopStorage.getShopProducts();
       const alertProducts: InventoryAlert[] = [];
 
       for (const product of products) {
         const currentStock = product.stockQuantity || 0;
-        const minimumThreshold = product.minStockLevel || 5; // حد مینیمم برای اعلام به مدیر تولید
+        const threshold = product.lowStockThreshold || product.minStockLevel || 5;
         
         if (currentStock <= 0) {
           alertProducts.push({
             productId: product.id,
             productName: product.name,
             currentStock,
-            minimumThreshold,
-            category: product.category,
-            sku: product.sku,
+            minimumThreshold: threshold,
+            category: product.category || 'بدون دسته‌بندی',
+            sku: product.sku || '-',
             alertLevel: 'out_of_stock'
           });
-        } else if (currentStock <= minimumThreshold) {
+        } else if (currentStock <= threshold) {
           alertProducts.push({
             productId: product.id,
             productName: product.name,
             currentStock,
-            minimumThreshold,
-            category: product.category,
-            sku: product.sku,
+            minimumThreshold: threshold,
+            category: product.category || 'بدون دسته‌بندی',
+            sku: product.sku || '-',
             alertLevel: 'low_stock'
           });
         }
       }
 
       if (alertProducts.length > 0) {
-        await this.sendInventoryAlert(alertProducts);
+        console.log(`⚠️ [INVENTORY ALERT] Found ${alertProducts.length} products with low/no stock`);
+        await this.sendInventoryAlert(alertProducts, settings);
+      } else {
+        console.log('✅ [INVENTORY ALERT] All products have adequate stock levels');
       }
     } catch (error) {
-      console.error('Error checking inventory levels:', error);
+      console.error('❌ [INVENTORY ALERT] Error checking inventory levels:', error);
     }
   }
 
   /**
-   * Send inventory alert via email only
+   * Send inventory alert to configured recipients
    */
-  private static async sendInventoryAlert(alerts: InventoryAlert[]): Promise<void> {
+  private static async sendInventoryAlert(alerts: InventoryAlert[], settings: NotificationSettings): Promise<void> {
     try {
-      // Send Email Alert
-      if (this.notificationConfig.emailEnabled) {
-        await this.sendEmailAlert(alerts);
+      console.log(`📧 [INVENTORY ALERT] Sending alerts for ${alerts.length} products`);
+      
+      // Send Email Alerts to configured recipients
+      if (settings.emailEnabled) {
+        const emailRecipients = settings.recipients.filter(r => r.notifyByEmail && r.email);
+        if (emailRecipients.length > 0) {
+          await this.sendEmailAlertToRecipients(alerts, emailRecipients);
+        } else {
+          console.log('⚠️ [INVENTORY ALERT] No email recipients configured');
+        }
+      }
+      
+      // SMS notifications (placeholder for future implementation)
+      if (settings.smsEnabled) {
+        const smsRecipients = settings.recipients.filter(r => r.notifyBySms && r.phone);
+        if (smsRecipients.length > 0) {
+          console.log(`📱 [INVENTORY ALERT] SMS notifications would be sent to ${smsRecipients.length} recipients`);
+        }
+      }
+      
+      // WhatsApp notifications (placeholder for future implementation)
+      if (settings.whatsappEnabled) {
+        const whatsappRecipients = settings.recipients.filter(r => r.notifyByWhatsapp && r.phone);
+        if (whatsappRecipients.length > 0) {
+          console.log(`📱 [INVENTORY ALERT] WhatsApp notifications would be sent to ${whatsappRecipients.length} recipients`);
+        }
       }
     } catch (error) {
-      console.error('Error sending inventory alerts:', error);
+      console.error('❌ [INVENTORY ALERT] Error sending inventory alerts:', error);
+    }
+  }
+
+  /**
+   * Send email alerts to configured recipients
+   */
+  private static async sendEmailAlertToRecipients(alerts: InventoryAlert[], recipients: NotificationRecipient[]): Promise<void> {
+    try {
+      const htmlContent = this.generateAlertEmailHtml(alerts);
+      const subject = `🚨 هشدار موجودی - ${alerts.length} محصول نیاز به توجه دارند`;
+      
+      for (const recipient of recipients) {
+        try {
+          await UniversalEmailService.sendEmail({
+            to: [recipient.email],
+            subject: subject,
+            html: htmlContent,
+            categoryKey: 'inventory-alerts'
+          });
+          console.log(`✅ [INVENTORY ALERT] Email sent to ${recipient.name} (${recipient.email})`);
+        } catch (emailError) {
+          console.error(`❌ [INVENTORY ALERT] Failed to send email to ${recipient.email}:`, emailError);
+        }
+      }
+    } catch (error) {
+      console.error('❌ [INVENTORY ALERT] Error sending email alerts:', error);
     }
   }
 
@@ -93,7 +223,7 @@ export class InventoryAlertService {
       const alertTemplate = await emailStorage.getTemplateByNumber(templateNumber);
       
       if (alertTemplate) {
-        console.log(`📧 Using Template ${templateNumber} - ${alertTemplate.templateName} for inventory alerts`);
+        console.log(`📧 Using Template ${templateNumber} - ${alertTemplate.name} for inventory alerts`);
         
         const templateVariables = {
           alert_count: alerts.length.toString(),
@@ -335,20 +465,21 @@ export class InventoryAlertService {
       if (!product) return false;
 
       const currentStock = product.stockQuantity || 0;
-      const minimumThreshold = product.minStockLevel || 5; // حد مینیمم برای اعلام به مدیر تولید
+      const threshold = product.lowStockThreshold || product.minStockLevel || 5;
       
-      if (currentStock <= minimumThreshold) {
+      if (currentStock <= threshold) {
         const alert: InventoryAlert = {
           productId: product.id,
           productName: product.name,
           currentStock,
-          minimumThreshold,
-          category: product.category,
-          sku: product.sku,
+          minimumThreshold: threshold,
+          category: product.category || 'بدون دسته‌بندی',
+          sku: product.sku || '-',
           alertLevel: currentStock <= 0 ? 'out_of_stock' : 'low_stock'
         };
 
-        await this.sendInventoryAlert([alert]);
+        const settings = await this.getNotificationSettings();
+        await this.sendInventoryAlert([alert], settings);
         return true;
       }
 
