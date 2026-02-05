@@ -19844,7 +19844,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       for (const order of filteredOrders) {
-        const orderDate = new Date(order.createdAt).toLocaleDateString('fa-IR');
+        const orderDate = new Date(order.createdAt).toLocaleDateString('en-GB', { year: 'numeric', month: '2-digit', day: '2-digit' });
         const orderStatus = statusMap[order.status] || order.status;
         const paymentStatus = paymentStatusMap[order.paymentStatus] || order.paymentStatus;
         const paymentMethod = paymentMethodMap[order.paymentMethod] || order.paymentMethod;
@@ -51253,7 +51253,7 @@ momtazchem.com
       const csvRows = [];
       
       for (const order of filteredOrders) {
-        const orderDate = new Date(order.createdAt).toLocaleDateString('fa-IR');
+        const orderDate = new Date(order.createdAt).toLocaleDateString('en-GB', { year: 'numeric', month: '2-digit', day: '2-digit' });
         const deliveryDate = order.deliveredAt 
           ? new Date(order.deliveredAt).toLocaleDateString('fa-IR') 
           : 'تحویل نشده';
