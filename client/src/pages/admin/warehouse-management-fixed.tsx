@@ -431,25 +431,33 @@ const WarehouseManagementFixed: React.FC = () => {
   // Inventory Products Query
   const { data: inventoryProductsData, isLoading: inventoryProductsLoading, refetch: refetchInventoryProducts } = useQuery<{ products: InventoryProduct[] }>({
     queryKey: ["/api/warehouse/inventory-products"],
+    queryFn: async () => {
+      const response = await apiRequest('/api/warehouse/inventory-products', { method: 'GET' });
+      return response as { products: InventoryProduct[] };
+    },
   });
 
   // Inventory Settings Query
   const { data: inventorySettingsData } = useQuery<{ success: boolean; settings: InventoryNotificationSettings }>({
     queryKey: ["/api/warehouse/inventory-notification-settings"],
+    queryFn: async () => {
+      const response = await apiRequest('/api/warehouse/inventory-notification-settings', { method: 'GET' });
+      return response as { success: boolean; settings: InventoryNotificationSettings };
+    },
   });
 
   // CRM Customers Search Query (only when 3+ characters)
-  const { data: crmCustomersData } = useQuery<{ customers: CRMCustomer[] }>({
+  const { data: crmCustomersData } = useQuery<{ success: boolean; data: CRMCustomer[] }>({
     queryKey: ["/api/crm/customers/search", crmSearchTerm],
     queryFn: async () => {
-      if (crmSearchTerm.length < 3) return { customers: [] };
+      if (crmSearchTerm.length < 3) return { success: true, data: [] };
       const response = await apiRequest(`/api/crm/customers/search?q=${encodeURIComponent(crmSearchTerm)}`, { method: 'GET' });
-      return response as { customers: CRMCustomer[] };
+      return response as { success: boolean; data: CRMCustomer[] };
     },
     enabled: crmSearchTerm.length >= 3,
   });
 
-  const crmCustomers: CRMCustomer[] = crmCustomersData?.customers || [];
+  const crmCustomers: CRMCustomer[] = crmCustomersData?.data || [];
   const inventoryProducts: InventoryProduct[] = inventoryProductsData?.products || [];
 
   // Load inventory settings when data arrives
