@@ -67,6 +67,15 @@ interface InventoryNotificationSettings {
   recipients: NotificationRecipient[];
 }
 
+interface CrmCustomer {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  whatsapp?: string;
+  company_name?: string;
+}
+
 export default function WarehouseInventoryManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -74,6 +83,7 @@ export default function WarehouseInventoryManagement() {
   const [editingProduct, setEditingProduct] = useState<InventoryProduct | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showAddRecipient, setShowAddRecipient] = useState(false);
+  const [selectedCrmCustomer, setSelectedCrmCustomer] = useState<string>("");
   
   const [settings, setSettings] = useState<InventoryNotificationSettings>({
     emailEnabled: true,
@@ -97,6 +107,29 @@ export default function WarehouseInventoryManagement() {
   const { data: productsData, isLoading: productsLoading, refetch: refetchProducts } = useQuery<{ products: InventoryProduct[] }>({
     queryKey: ["/api/warehouse/inventory-products"],
   });
+
+  const { data: crmCustomersData } = useQuery<CrmCustomer[]>({
+    queryKey: ["/api/crm/customers"],
+  });
+
+  const crmCustomers: CrmCustomer[] = crmCustomersData || [];
+
+  const handleSelectCrmCustomer = (customerId: string) => {
+    setSelectedCrmCustomer(customerId);
+    const customer = crmCustomers.find(c => c.id.toString() === customerId);
+    if (customer) {
+      setNewRecipient({
+        name: customer.name || customer.company_name || '',
+        email: customer.email || '',
+        phone: customer.phone || '',
+        whatsappNumber: customer.whatsapp || customer.phone || '',
+        receiveEmail: !!customer.email,
+        receiveSms: !!customer.phone,
+        receiveWhatsapp: !!(customer.whatsapp || customer.phone),
+        isActive: true
+      });
+    }
+  };
 
   const { data: settingsData, isLoading: settingsLoading } = useQuery<{ success: boolean; settings: InventoryNotificationSettings }>({
     queryKey: ["/api/warehouse/inventory-notification-settings"],
