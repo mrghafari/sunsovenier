@@ -56734,10 +56734,12 @@ momtazchem.com
   // ==================== WAREHOUSE INVENTORY MANAGEMENT API ====================
   
   // Get all products with inventory data from shop_products (Kardex)
+  // Fetch inventory from kardex (showcase_products)
   app.get("/api/warehouse/inventory-products", requireAuth, async (req, res) => {
     try {
       const { pool } = await import('./db');
       
+      // Using showcase_products (kardex) as the source of inventory data
       const result = await pool.query(`
         SELECT 
           sp.id,
@@ -56745,15 +56747,13 @@ momtazchem.com
           sp.sku,
           sp.barcode,
           sp.stock_quantity as "stockQuantity",
-          sp.available_quantity as "availableQuantity",
-          sp.reserved_quantity as "reservedQuantity",
           sp.min_stock_level as "minStockLevel",
           sp.max_stock_level as "maxStockLevel",
-          sp.low_stock_threshold as "lowStockThreshold",
+          COALESCE(sp.low_stock_threshold, sp.min_stock_level, 0) as "lowStockThreshold",
           sp.is_active as "isActive",
           sp.vendor_id as "vendorId",
           COALESCE(v.company_name, v.name, 'ممتاز کم') as "vendorName"
-        FROM shop_products sp
+        FROM showcase_products sp
         LEFT JOIN vendors v ON sp.vendor_id = v.id
         WHERE sp.is_active = true
         ORDER BY sp.name ASC
@@ -56773,6 +56773,7 @@ momtazchem.com
   });
 
   // Update product inventory settings
+  // Update inventory settings in kardex (showcase_products)
   app.patch("/api/warehouse/inventory-products/:id", requireAuth, async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
@@ -56780,8 +56781,9 @@ momtazchem.com
       
       const { pool } = await import('./db');
       
+      // Update in showcase_products (kardex)
       await pool.query(`
-        UPDATE shop_products SET
+        UPDATE showcase_products SET
           min_stock_level = $1,
           max_stock_level = $2,
           low_stock_threshold = $3,
