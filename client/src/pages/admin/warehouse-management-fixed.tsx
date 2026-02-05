@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -64,6 +65,7 @@ interface Order {
 }
 
 const WarehouseManagementFixed: React.FC = () => {
+  const [, setLocation] = useLocation();
   // All state declarations at the top
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
@@ -74,6 +76,14 @@ const WarehouseManagementFixed: React.FC = () => {
   const [activeTab, setActiveTab] = useState("orders");
   const [orderDetails, setOrderDetails] = useState<any>(null);
   const [loadingOrderDetails, setLoadingOrderDetails] = useState(false);
+  
+  const handleTabChange = (value: string) => {
+    if (value === "inventory") {
+      setLocation("/admin/warehouse-inventory-management");
+    } else {
+      setActiveTab(value);
+    }
+  };
 
   // Print function for order details
   const handlePrintOrder = () => {
@@ -635,7 +645,7 @@ const WarehouseManagementFixed: React.FC = () => {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="orders" className="w-full">
+        <Tabs defaultValue="orders" value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-6">
             <TabsTrigger value="orders" className="flex items-center gap-2">
               <Package className="w-4 h-4" />
@@ -862,13 +872,11 @@ const WarehouseManagementFixed: React.FC = () => {
             </Card>
           </TabsContent>
 
-          {/* Inventory Tab - Embedded Inventory Management */}
+          {/* Inventory Tab - Redirects to dedicated page */}
           <TabsContent value="inventory" className="space-y-6">
-            <iframe 
-              src="/admin/warehouse-inventory-management" 
-              className="w-full h-[calc(100vh-200px)] border-0 rounded-lg"
-              title="مدیریت موجودی انبار"
-            />
+            <div className="text-center py-8 text-gray-500">
+              در حال انتقال به صفحه مدیریت موجودی...
+            </div>
           </TabsContent>
         </Tabs>
 
