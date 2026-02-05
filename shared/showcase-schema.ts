@@ -38,6 +38,8 @@ export const showcaseProducts = pgTable("showcase_products", {
   imageUrl: text("image_url"), // Legacy single image - kept for backward compatibility
   imageUrls: json("image_urls"), // Array of multiple product images (up to 3) - supports JPG, PNG, GIF
   pdfCatalogUrl: text("pdf_catalog_url"),
+  catalogFileName: text("catalog_file_name"), // Original filename for display
+  catalogUploadDate: timestamp("catalog_upload_date"), // When catalog was uploaded
   specifications: json("specifications"), // Technical specifications for display
   features: json("features"), // Product features array
   applications: json("applications"), // Applications array
