@@ -862,31 +862,13 @@ const WarehouseManagementFixed: React.FC = () => {
             </Card>
           </TabsContent>
 
-          {/* Inventory Tab */}
+          {/* Inventory Tab - Embedded Inventory Management */}
           <TabsContent value="inventory" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Package2 className="w-5 h-5" />
-                  مدیریت موجودی انبار
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <Package2 className="w-16 h-16 mx-auto text-blue-500 mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">سیستم مدیریت موجودی</h3>
-                  <p className="text-gray-600 mb-6">
-                    مدیریت سطح موجودی، تنظیمات هشدار کمبود موجودی، و تنظیم گیرندگان اعلان
-                  </p>
-                  <a href="/admin/warehouse-inventory-management">
-                    <Button className="bg-blue-600 hover:bg-blue-700">
-                      <Package2 className="w-4 h-4 mr-2" />
-                      ورود به مدیریت موجودی
-                    </Button>
-                  </a>
-                </div>
-              </CardContent>
-            </Card>
+            <iframe 
+              src="/admin/warehouse-inventory-management" 
+              className="w-full h-[calc(100vh-200px)] border-0 rounded-lg"
+              title="مدیریت موجودی انبار"
+            />
           </TabsContent>
         </Tabs>
 
