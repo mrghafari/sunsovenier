@@ -159,21 +159,25 @@ export class InvoiceStorage implements IInvoiceStorage {
       // This supports orders with grace periods and other business scenarios
       console.log(`📄 [INVOICE GEN] Generating invoice for order ${customerOrder.orderNumber} with payment status: ${customerOrder.paymentStatus}`);
 
-      // Generate invoice number
       const invoiceNumber = await this.generateInvoiceNumber();
 
-      // Create invoice for customer order
+      const totalAmount = parseFloat(customerOrder.totalAmount?.toString() || '0');
+      const shippingCost = parseFloat(customerOrder.shippingCost?.toString() || '0');
+      const vatAmount = parseFloat(customerOrder.vatAmount?.toString() || '0');
+      const subtotal = totalAmount - shippingCost - vatAmount;
+
       const invoiceData: InsertInvoice = {
         invoiceNumber,
         orderId: customerOrder.id,
         customerId: customerOrder.customerId,
         status: 'paid',
-        subtotal: customerOrder.totalAmount,
-        taxAmount: 0,
-        discountAmount: 0,
+        subtotal: subtotal.toFixed(2),
+        shippingAmount: shippingCost.toFixed(2),
+        taxAmount: vatAmount.toFixed(2),
+        discountAmount: "0",
         totalAmount: customerOrder.totalAmount,
         currency: customerOrder.currency || 'IQD',
-        billingAddress: customerOrder.billingAddress,
+        billingAddress: customerOrder.billingAddress as any,
         notes: customerOrder.notes,
         language: language,
         paymentDate: new Date(),

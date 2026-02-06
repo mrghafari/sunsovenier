@@ -491,6 +491,7 @@ export const invoices = pgTable("invoices", {
   dueDate: timestamp("due_date"),
   paymentDate: timestamp("payment_date"),
   subtotal: decimal("subtotal", { precision: 12, scale: 2 }).notNull(),
+  shippingAmount: decimal("shipping_amount", { precision: 12, scale: 2 }).default("0"),
   taxAmount: decimal("tax_amount", { precision: 12, scale: 2 }).default("0"),
   discountAmount: decimal("discount_amount", { precision: 12, scale: 2 }).default("0"),
   totalAmount: decimal("total_amount", { precision: 12, scale: 2 }).notNull(),

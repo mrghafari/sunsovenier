@@ -1650,8 +1650,14 @@ function FinanceOrders() {
                         </div>
                         {orderDetails.shippingCost && parseFloat(orderDetails.shippingCost) > 0 && (
                           <div className="flex justify-between">
-                            <span>هزینه ارسال:</span>
+                            <span>کرایه حمل:</span>
                             <span className="font-medium">{parseFloat(orderDetails.shippingCost).toLocaleString()} IQD</span>
+                          </div>
+                        )}
+                        {orderDetails.vatAmount && parseFloat(orderDetails.vatAmount) > 0 && (
+                          <div className="flex justify-between">
+                            <span>مالیات بر ارزش افزوده ({orderDetails.vatRate || 0}%):</span>
+                            <span className="font-medium">{parseFloat(orderDetails.vatAmount).toLocaleString()} IQD</span>
                           </div>
                         )}
                         <div className="flex justify-between text-lg font-bold text-blue-700 border-t pt-2">

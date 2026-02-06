@@ -11004,6 +11004,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           createdAt: order.created_at,
           notes: order.notes,
           customerNotes: order.notes,
+          vatRate: order.vat_rate,
           vatAmount: order.vat_amount,
           surchargeAmount: order.surcharge_amount,
           customer,
@@ -36203,6 +36204,7 @@ momtazchem.com
             subtotal: 'المجموع الفرعي',
             discount: 'الخصم',
             tax: 'الضريبة',
+            shipping: 'أجور الشحن',
             finalTotal: 'المجموع النهائي',
             paid: 'مدفوعة',
             due: 'مستحقة',
@@ -36231,6 +36233,7 @@ momtazchem.com
             subtotal: 'کۆی لاوەکی',
             discount: 'داشکاندن',
             tax: 'باج',
+            shipping: 'کرێی گواستنەوە',
             finalTotal: 'کۆی کۆتایی',
             paid: 'پێدراو',
             due: 'بەدوایە',
@@ -36259,6 +36262,7 @@ momtazchem.com
             subtotal: 'Ara Toplam',
             discount: 'İndirim',
             tax: 'Vergi',
+            shipping: 'Kargo Ücreti',
             finalTotal: 'Genel Toplam',
             paid: 'Ödendi',
             due: 'Ödenmedi',
@@ -36287,6 +36291,7 @@ momtazchem.com
             subtotal: 'Subtotal',
             discount: 'Discount',
             tax: 'Tax',
+            shipping: 'Shipping',
             finalTotal: 'Final Total',
             paid: 'Paid',
             due: 'Due',
@@ -36528,6 +36533,12 @@ momtazchem.com
                     <tr>
                         <td class="multilingual-text"><strong>${t.discount}:</strong></td>
                         <td class="multilingual-text"><strong>-${invoice.discountAmount} ${invoice.currency}</strong></td>
+                    </tr>
+                    ` : ''}
+                    ${invoice.shippingAmount && parseFloat(invoice.shippingAmount) > 0 ? `
+                    <tr>
+                        <td class="multilingual-text"><strong>${t.shipping}:</strong></td>
+                        <td class="multilingual-text"><strong>${invoice.shippingAmount} ${invoice.currency}</strong></td>
                     </tr>
                     ` : ''}
                     ${invoice.taxAmount && parseFloat(invoice.taxAmount) > 0 ? `
