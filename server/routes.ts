@@ -12600,10 +12600,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const enabledMethods = await db.select().from(paymentMethodSettings)
         .where(eq(paymentMethodSettings.enabled, true))
         .orderBy(desc(paymentMethodSettings.priority), paymentMethodSettings.methodKey);
+
+      const gateways = await db.select().from(paymentGateways);
+
+      const gatewayMethodMap: Record<string, string[]> = {
+        'fib_online': ['fib'],
+        'online_payment': ['sep', 'zarinpal'],
+      };
+
+      const filteredMethods = enabledMethods.filter(method => {
+        const requiredGatewayTypes = gatewayMethodMap[method.methodKey];
+        if (!requiredGatewayTypes) return true;
+        return gateways.some(gw => requiredGatewayTypes.includes(gw.type) && gw.enabled);
+      });
       
       res.json({
         success: true,
-        data: enabledMethods
+        data: filteredMethods
       });
     } catch (error) {
       console.error("❌ [PUBLIC PAYMENT METHODS] Error:", error);
