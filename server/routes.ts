@@ -18094,21 +18094,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           const { OrderManagementStorage } = await import('./order-management-storage');
           const omStorage = new OrderManagementStorage();
-          await omStorage.createOrderManagement({
-            customerOrderId: order.id,
-            customerId: finalCrmCustomerId || customerId,
-            currentStatus: 'finance_pending' as const,
-            currentDepartment: 'financial',
-            totalAmount: formattedTotalAmount.toString(),
-            currency: "IQD",
-            notes: notes || "",
-            totalWeight: totalWeight ? parseFloat(totalWeight).toFixed(3) : null,
-            weightUnit: 'kg',
-            vehicleType: vehicleType || null,
-            paymentMethod: 'wallet_full' as const,
-            deliveryMethod: shippingMethod || 'courier',
-          });
-          console.log(`📦 [WALLET→FINANCE] Order ${order.orderNumber} routed to finance department for approval`);
+          const existingMgmt = await omStorage.getOrderManagementByCustomerOrderId(order.id);
+          if (existingMgmt) {
+            await omStorage.updateOrderManagement(existingMgmt.id, {
+              currentStatus: 'finance_pending' as any,
+              paymentMethod: 'wallet_full',
+              deliveryMethod: shippingMethod || 'courier',
+              vehicleType: vehicleType || null,
+              totalWeight: totalWeight ? parseFloat(totalWeight).toFixed(3) : null,
+              weightUnit: 'kg',
+            });
+            console.log(`📦 [WALLET→FINANCE] Updated existing order_management ${existingMgmt.id} to finance_pending for order ${order.orderNumber}`);
+          } else {
+            await omStorage.createOrderManagement({
+              customerOrderId: order.id,
+              customerId: finalCrmCustomerId || customerId,
+              currentStatus: 'finance_pending' as const,
+              totalAmount: formattedTotalAmount.toString(),
+              currency: "IQD",
+              notes: notes || "",
+              totalWeight: totalWeight ? parseFloat(totalWeight).toFixed(3) : null,
+              weightUnit: 'kg',
+              vehicleType: vehicleType || null,
+              paymentMethod: 'wallet_full' as const,
+              deliveryMethod: shippingMethod || 'courier',
+            });
+            console.log(`📦 [WALLET→FINANCE] Created order_management with finance_pending for order ${order.orderNumber}`);
+          };
         } catch (walletMgmtError) {
           console.error(`❌ [WALLET→FINANCE] Error creating order management for wallet order:`, walletMgmtError);
         }
@@ -19007,8 +19019,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`🕒 Grace period activated for order ${orderNumber} - ${gracePeriodDays} days period expires: ${gracePeriodEnd.toISOString()}`);
         }
 
-        await orderManagementStorage.createOrderManagement(orderMgmtData);
-        console.log(`✅ Order management record created for order ${orderNumber}`);
+        const existingMgmtRecord = await orderManagementStorage.getOrderManagementByCustomerOrderId(order.id);
+        if (existingMgmtRecord) {
+          await orderManagementStorage.updateOrderManagement(existingMgmtRecord.id, {
+            currentStatus: orderMgmtData.currentStatus as any,
+            paymentMethod: orderMgmtData.paymentMethod,
+            deliveryMethod: orderMgmtData.deliveryMethod,
+            vehicleType: orderMgmtData.vehicleType,
+            totalWeight: orderMgmtData.totalWeight,
+            weightUnit: orderMgmtData.weightUnit || 'kg',
+          });
+          console.log(`📦 [ORDER MGMT] Updated existing record ${existingMgmtRecord.id} for order ${orderNumber} with status ${orderMgmtData.currentStatus}`);
+        } else {
+          await orderManagementStorage.createOrderManagement(orderMgmtData);
+          console.log(`✅ [ORDER MGMT] Created new record for order ${orderNumber} with status ${orderMgmtData.currentStatus}`);
+        }
         
         // Trigger automatic synchronization after order creation
         try {
@@ -52955,19 +52980,19 @@ momtazchem.com
     
     // Status determination logic based on payment and order status
     if (paymentStatus === 'paid') {
-      if (customerStatus === 'pending') return 'warehouse_ready';
-      if (customerStatus === 'confirmed') return 'warehouse_ready';
-      if (customerStatus === 'warehouse_ready') return 'warehouse_ready';
-      return 'warehouse_ready';
+      if (customerStatus === 'pending') return 'finance_pending';
+      if (customerStatus === 'confirmed') return 'warehouse_pending';
+      if (customerStatus === 'warehouse_ready') return 'warehouse_pending';
+      return 'finance_pending';
     }
     
-    // CRITICAL FIX: receipt_uploaded should go to financial_review, not warehouse_ready
+    // CRITICAL FIX: receipt_uploaded should go to finance_pending for review
     if (paymentStatus === 'receipt_uploaded') {
-      return 'financial_review';
+      return 'finance_pending';
     }
     
     if (paymentStatus === 'pending') {
-      return 'payment_uploaded';
+      return 'pending';
     }
     
     if (paymentStatus === 'grace_period') {

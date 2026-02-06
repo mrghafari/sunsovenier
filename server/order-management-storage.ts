@@ -928,11 +928,13 @@ export class OrderManagementStorage implements IOrderManagementStorage {
     // Determine initial status based on payment method
     let initialStatus = 'pending' as OrderStatus;
     
-    // For wallet payments that are already paid, set to payment_uploaded for immediate financial review
     if ((customerOrder.paymentMethod === 'wallet_full' || customerOrder.paymentMethod === 'wallet_partial') 
         && customerOrder.paymentStatus === 'paid') {
-      initialStatus = 'payment_uploaded';
-      console.log(`💰 [WALLET ORDER] Setting wallet order ${customerOrder.orderNumber} to payment_uploaded status for financial review`);
+      initialStatus = 'finance_pending' as OrderStatus;
+      console.log(`💰 [WALLET ORDER] Setting wallet order ${customerOrder.orderNumber} to finance_pending for financial review`);
+    } else if (customerOrder.paymentStatus === 'receipt_uploaded') {
+      initialStatus = 'finance_pending' as OrderStatus;
+      console.log(`📄 [RECEIPT ORDER] Setting order ${customerOrder.orderNumber} to finance_pending for financial review`);
     }
 
     // Create new order management entry with payment method and delivery method from customer order
