@@ -18609,6 +18609,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         activeDeliveryInfo: orderData.activeDeliveryInfo
       });
 
+      // Save secondary address and alternate phone to CRM customer profile if provided
+      if (finalCustomerId && (orderData.activeDeliveryInfo?.isSecondAddressUsed || orderData.recipientInfo?.recipientPhone)) {
+        try {
+          const { pool } = await import('./db');
+          const updateFields: string[] = [];
+          const updateValues: any[] = [];
+          let paramIndex = 1;
+          
+          // Save second address if used
+          if (orderData.activeDeliveryInfo?.isSecondAddressUsed && orderData.recipientInfo?.recipientAddress) {
+            updateFields.push(`secondary_address = $${paramIndex++}`);
+            updateValues.push(orderData.recipientInfo.recipientAddress);
+          }
+          
+          // Save alternate phone if different from primary
+          if (orderData.activeDeliveryInfo?.isDifferentPhoneUsed && orderData.recipientInfo?.recipientPhone) {
+            updateFields.push(`alternate_phone = $${paramIndex++}`);
+            updateValues.push(orderData.recipientInfo.recipientPhone);
+          }
+          
+          if (updateFields.length > 0) {
+            updateValues.push(finalCustomerId);
+            await pool.query(
+              `UPDATE crm_customers SET ${updateFields.join(', ')} WHERE id = $${paramIndex}`,
+              updateValues
+            );
+            console.log(`📋 [CRM UPDATE] Saved secondary address/phone for customer ${finalCustomerId}`);
+          }
+        } catch (crmUpdateError) {
+          console.error('⚠️ [CRM UPDATE] Failed to save secondary address/phone:', crmUpdateError);
+        }
+      }
+
       // Server-side discount calculation matching frontend logic
       const getServerDiscountedPrice = (product: any, qty: number): number => {
         const basePrice = Math.round(parseFloat(product.price || '0'));

@@ -329,6 +329,14 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
         console.log('✅ [FORM DEBUG] Recipient phone set:', customer.phone);
       }
       
+      // Pre-fill secondary address and alternate phone if saved in customer profile
+      if (customer.secondaryAddress) {
+        form.setValue("secondDeliveryAddress", customer.secondaryAddress);
+      }
+      if (customer.alternatePhone) {
+        form.setValue("recipientMobile", customer.alternatePhone);
+      }
+
       // Debug: Log all form values after setting
       setTimeout(() => {
         const currentValues = form.getValues();
@@ -1170,6 +1178,11 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
         city: selectedAddress.city,
         address: `${selectedAddress.address}${selectedAddress.postalCode ? `, ${selectedAddress.postalCode}` : ''}`,
       };
+      // Also use selected address phone as recipient phone if no explicit recipientMobile was set
+      if (!data.recipientMobile && selectedAddress.phone) {
+        recipientPhone = selectedAddress.phone;
+        activeDeliveryInfo.phoneSource = 'selected_address';
+      }
     } else if (isUserLoggedIn && customerData?.customer) {
       // Use CRM customer data
       const customer = customerData.customer;
