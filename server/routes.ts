@@ -29727,13 +29727,17 @@ ${message ? `Additional Requirements:\n${message}` : ''}
                 'quantity', oi.quantity,
                 'price', oi.price,
                 'sku', oi.sku,
-                'barcode', oi.barcode
+                'barcode', oi.barcode,
+                'vendor_id', sp.vendor_id,
+                'vendor_name', v.vendor_name
               )
             ) FILTER (WHERE oi.id IS NOT NULL),
             '[]'::json
           ) as items
         FROM orders o
         LEFT JOIN order_items oi ON o.id = oi.order_id
+        LEFT JOIN shop_products sp ON oi.product_id = sp.id
+        LEFT JOIN vendors v ON sp.vendor_id = v.id
         LEFT JOIN order_management om ON o.id = om.customer_order_id
         WHERE o.status IN ('financial_approved', 'warehouse_pending', 'warehouse_processing', 'warehouse_verified', 'warehouse_approved')
         GROUP BY o.id, o.customer_name, o.customer_email, o.total_amount, o.status, 
