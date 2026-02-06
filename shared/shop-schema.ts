@@ -113,6 +113,7 @@ export const shopProducts = pgTable("shop_products", {
   isFeatured: boolean("is_featured").default(false),
   // Marketplace vendor field
   vendorId: integer("vendor_id"), // Reference to vendor (null = owned by Momtazchem)
+  commissionRate: decimal("commission_rate", { precision: 5, scale: 2 }), // نرخ کمیسیون اختصاصی کالا (اگر خالی باشد از درصد پیش‌فرض وندور استفاده می‌شود)
   visibleInShop: boolean("visible_in_shop").default(true), // کنترل نمایش در فروشگاه
   showWhenOutOfStock: boolean("show_when_out_of_stock").default(false), // نمایش در فروشگاه حتی با موجودی صفر
   metaTitle: text("meta_title"),

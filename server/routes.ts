@@ -18664,9 +18664,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 try {
                   const { db } = await import('./db');
                   const { vendors, vendorTransactions } = await import('@shared/schema');
+                  const { showcaseProducts } = await import('@shared/showcase-schema');
                   const { eq } = await import('drizzle-orm');
                   
-                  // Get vendor's commission rate
+                  // Get vendor's default commission rate (fallback)
                   const [vendor] = await db
                     .select({ commissionRate: vendors.commissionRate })
                     .from(vendors)
@@ -18674,9 +18675,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   
                   if (vendor) {
                     const saleAmount = discountedUnitPrice * qty;
-                    const commissionRate = parseFloat(vendor.commissionRate || "10");
+                    // Priority: 1) shop_products.commission_rate, 2) showcase_products.commission_override (by SKU), 3) vendor default
+                    let commissionRate: number;
+                    let rateSource = 'vendor-default';
+                    if (product.commissionRate) {
+                      commissionRate = parseFloat(product.commissionRate);
+                      rateSource = 'product-level (shop)';
+                    } else if (product.sku) {
+                      const [showcase] = await db.select({ commissionOverride: showcaseProducts.commissionOverride }).from(showcaseProducts).where(eq(showcaseProducts.sku, product.sku));
+                      if (showcase?.commissionOverride) {
+                        commissionRate = parseFloat(showcase.commissionOverride);
+                        rateSource = 'product-level (kardex)';
+                      } else {
+                        commissionRate = parseFloat(vendor.commissionRate || "10");
+                      }
+                    } else {
+                      commissionRate = parseFloat(vendor.commissionRate || "10");
+                    }
                     const commissionAmount = (saleAmount * commissionRate) / 100;
                     const netAmount = saleAmount - commissionAmount;
+                    console.log(`💰 [COMMISSION] Product ${product.name}: using ${rateSource} rate=${commissionRate}%`);
                     
                     // Create vendor sale transaction
                     await db.insert(vendorTransactions).values({
@@ -56942,6 +56960,7 @@ momtazchem.com
 
       const { db } = await import('./db');
       const { showcaseProducts } = await import('@shared/showcase-schema');
+      const { shopProducts } = await import('@shared/shop-schema');
       const { eq } = await import('drizzle-orm');
 
       const [updatedProduct] = await db
@@ -56955,6 +56974,23 @@ momtazchem.com
 
       if (!updatedProduct) {
         return res.status(404).json({ success: false, message: 'محصول یافت نشد' });
+      }
+
+      // Also sync commission rate to shop_products for order processing
+      try {
+        const sku = updatedProduct.sku;
+        if (sku) {
+          await db
+            .update(shopProducts)
+            .set({
+              commissionRate: commissionOverride !== null ? commissionOverride.toString() : null,
+              updatedAt: new Date(),
+            })
+            .where(eq(shopProducts.sku, sku));
+          console.log(`📦 [PRODUCT COMMISSION] Synced commission rate to shop_products for SKU ${sku}`);
+        }
+      } catch (syncError) {
+        console.error(`⚠️ [PRODUCT COMMISSION] Failed to sync to shop_products:`, syncError);
       }
 
       console.log(`📦 [PRODUCT COMMISSION] Updated product ${productId} commission override to ${commissionOverride === null ? 'default' : commissionOverride + '%'}`);
