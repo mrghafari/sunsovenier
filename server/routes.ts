@@ -23101,15 +23101,28 @@ Momtaz Chemical Technical Team`,
 
       const searchResults = await shopStorage.searchShopProducts(query as string, filters);
       
+      // Batch fetch vendor names for vendor products
+      const vendorIds = [...new Set(searchResults.products.filter(p => p.vendorId).map(p => p.vendorId!))];
+      let vendorMap: Record<number, string> = {};
+      if (vendorIds.length > 0) {
+        const { pool } = await import('./db');
+        const vendorResult = await pool.query(
+          `SELECT id, vendor_name FROM vendors WHERE id = ANY($1)`,
+          [vendorIds]
+        );
+        vendorMap = Object.fromEntries(vendorResult.rows.map((v: any) => [v.id, v.vendor_name]));
+      }
+
       // Map database fields to frontend expected format
       const mappedProducts = searchResults.products.map(product => ({
         ...product,
         imageUrl: product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls[0] : null,
-        imageUrls: product.imageUrls || [], // Include the full array of images
+        imageUrls: product.imageUrls || [],
         unitPrice: product.price,
         currency: (product.priceUnit === 'IQD' || !product.priceUnit || product.priceUnit === 'unit') ? 'IQD' : product.priceUnit,
         weight: product.weight,
-        weightUnit: product.weightUnit
+        weightUnit: product.weightUnit,
+        vendorName: product.vendorId ? (vendorMap[product.vendorId] || null) : null
       }));
       
       res.json({

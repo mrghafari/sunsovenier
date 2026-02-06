@@ -1256,6 +1256,16 @@ const Shop = () => {
                                 <ZoomIn className="w-4 h-4" />
                                 <span className="text-sm">{direction === 'rtl' ? 'تكبير 3D' : 'Zoom 3D'}</span>
                               </div>
+                              {product.vendorName && (
+                                <div className="absolute top-2 left-2 z-10 group/vendor">
+                                  <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center shadow-md cursor-pointer border-2 border-white">
+                                    <span className="text-white text-xs font-bold">V</span>
+                                  </div>
+                                  <div className="absolute top-full left-0 mt-1 bg-gray-900 text-white text-xs px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap opacity-0 group-hover/vendor:opacity-100 transition-opacity duration-200 pointer-events-none">
+                                    فروشنده: {product.vendorName}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           ) : (
                             (() => {
@@ -1290,6 +1300,16 @@ const Shop = () => {
                                         e.currentTarget.classList.remove('object-cover');
                                       }}
                                     />
+                                    {product.vendorName && (
+                                      <div className="absolute top-2 left-2 z-10 group/vendor">
+                                        <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center shadow-md cursor-pointer border-2 border-white">
+                                          <span className="text-white text-xs font-bold">V</span>
+                                        </div>
+                                        <div className="absolute top-full left-0 mt-1 bg-gray-900 text-white text-xs px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap opacity-0 group-hover/vendor:opacity-100 transition-opacity duration-200 pointer-events-none">
+                                          فروشنده: {product.vendorName}
+                                        </div>
+                                      </div>
+                                    )}
                                     {/* Multiple images carousel controls */}
                                     {images.length > 1 && (
                                       <>
@@ -1953,6 +1973,18 @@ const Shop = () => {
                               <Flame className="w-3 h-3" />
                               آتش‌زا
                             </Badge>
+                          )}
+
+                          {/* Vendor Indicator - List View */}
+                          {product.vendorName && (
+                            <div className={`absolute ${product.isFlammable ? 'top-10' : 'top-2'} left-2 z-10 group/vendor`}>
+                              <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center shadow-md cursor-pointer border-2 border-white">
+                                <span className="text-white text-xs font-bold">V</span>
+                              </div>
+                              <div className="absolute top-full left-0 mt-1 bg-gray-900 text-white text-xs px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap opacity-0 group-hover/vendor:opacity-100 transition-opacity duration-200 pointer-events-none">
+                                فروشنده: {product.vendorName}
+                              </div>
+                            </div>
                           )}
 
                           {/* Reviews and Specs - Right side - List View */}
