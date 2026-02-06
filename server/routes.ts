@@ -18565,20 +18565,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
         activeDeliveryInfo: orderData.activeDeliveryInfo
       });
 
+      // Server-side discount calculation matching frontend logic
+      const getServerDiscountedPrice = (product: any, qty: number): number => {
+        const basePrice = Math.round(parseFloat(product.price || '0'));
+        if (basePrice <= 0) return 0;
+
+        let discounts: any[] = [];
+        if (product.bulkPurchaseEnabled || product.bulk_purchase_enabled) {
+          let bulk = product.bulkPurchaseDiscounts || product.bulk_purchase_discounts;
+          if (typeof bulk === 'string') { try { bulk = JSON.parse(bulk); } catch { bulk = []; } }
+          discounts = Array.isArray(bulk) ? bulk : [];
+        } else {
+          let general = product.quantityDiscounts || product.quantity_discounts;
+          if (typeof general === 'string') { try { general = JSON.parse(general); } catch { general = []; } }
+          discounts = Array.isArray(general) ? general : [];
+        }
+
+        if (discounts.length > 0) {
+          const applicable = discounts
+            .filter((d: any) => qty >= parseInt(d.minQty || d.min_qty || '0'))
+            .sort((a: any, b: any) => parseInt(b.minQty || b.min_qty || '0') - parseInt(a.minQty || a.min_qty || '0'));
+
+          if (applicable.length > 0) {
+            const d = applicable[0];
+            const discountValue = d.discount || (parseFloat(d.discountPercent || d.discount_percent || '0') / 100);
+            return Math.round(basePrice * (1 - discountValue));
+          }
+        }
+        return basePrice;
+      };
+
       // Create order items from cart
       if (orderData.cart) {
         for (const [productId, quantity] of Object.entries(orderData.cart)) {
           try {
             const product = await shopStorage.getShopProductById(parseInt(productId as string));
             if (product) {
+              const qty = quantity as number;
+              const discountedUnitPrice = getServerDiscountedPrice(product, qty);
+              console.log(`💰 [DISCOUNT CALC] Product ${product.name}: base=${product.price}, discounted=${discountedUnitPrice}, qty=${qty}`);
+
               await customerStorage.createOrderItem({
                 orderId: order.id,
                 productId: parseInt(productId as string),
                 productName: product.name,
                 productSku: product.sku || `SKU-${productId}`,
-                quantity: (quantity as number).toString(),
-                unitPrice: product.price || "0",
-                totalPrice: (parseFloat(product.price || "0") * (quantity as number)).toString(),
+                quantity: qty.toString(),
+                unitPrice: discountedUnitPrice.toString(),
+                totalPrice: (discountedUnitPrice * qty).toString(),
               });
 
               // Create vendor transaction if product belongs to a vendor
@@ -18595,7 +18629,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     .where(eq(vendors.id, product.vendorId));
                   
                   if (vendor) {
-                    const saleAmount = parseFloat(product.price || "0") * (quantity as number);
+                    const saleAmount = discountedUnitPrice * qty;
                     const commissionRate = parseFloat(vendor.commissionRate || "10");
                     const commissionAmount = (saleAmount * commissionRate) / 100;
                     const netAmount = saleAmount - commissionAmount;

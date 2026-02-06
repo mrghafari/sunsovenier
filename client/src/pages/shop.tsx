@@ -1456,9 +1456,34 @@ const Shop = () => {
                           
                           <div className="flex items-center justify-between mb-2 sm:mb-3">
                             <div>
-                              <span className="text-xl sm:text-2xl font-bold text-green-600">
-                                {product.price && !isNaN(parseFloat(product.price)) ? formatIQDAmount(parseFloat(product.price)) : '0 IQD'}
-                              </span>
+                              {(() => {
+                                const currentQty = getProductQuantity(product.id);
+                                const totalQty = (cart[product.id] || 0) + currentQty;
+                                const basePrice = parseFloat(product.price || '0');
+                                const effectivePrice = totalQty > 0 ? getDiscountedPrice(product, totalQty) : basePrice;
+                                const hasActiveDiscount = basePrice > 0 && effectivePrice < basePrice;
+                                return (
+                                  <>
+                                    {hasActiveDiscount ? (
+                                      <>
+                                        <span className="text-sm line-through text-gray-400 block">
+                                          {formatIQDAmount(basePrice)}
+                                        </span>
+                                        <span className="text-xl sm:text-2xl font-bold text-green-600">
+                                          {formatIQDAmount(effectivePrice)}
+                                        </span>
+                                        <span className="text-xs text-green-600 font-semibold ml-1">
+                                          ({Math.round((1 - effectivePrice / basePrice) * 100)}% {t.shop?.off || 'OFF'})
+                                        </span>
+                                      </>
+                                    ) : (
+                                      <span className="text-xl sm:text-2xl font-bold text-green-600">
+                                        {product.price && !isNaN(basePrice) ? formatIQDAmount(basePrice) : '0 IQD'}
+                                      </span>
+                                    )}
+                                  </>
+                                );
+                              })()}
                               <span className="text-sm text-gray-500 ml-1">
                                 / {product.priceUnit || 'unit'}
                               </span>
@@ -1969,9 +1994,34 @@ const Shop = () => {
                               
                               <div className="flex items-center gap-4 mb-4">
                                 <div>
-                                  <span className="text-2xl font-bold text-green-600">
-                                    {product.price && !isNaN(parseFloat(product.price)) ? formatIQDAmount(parseFloat(product.price)) : '0 IQD'}
-                                  </span>
+                                  {(() => {
+                                    const currentQty = getProductQuantity(product.id);
+                                    const totalQty = (cart[product.id] || 0) + currentQty;
+                                    const basePrice = parseFloat(product.price || '0');
+                                    const effectivePrice = totalQty > 0 ? getDiscountedPrice(product, totalQty) : basePrice;
+                                    const hasActiveDiscount = basePrice > 0 && effectivePrice < basePrice;
+                                    return (
+                                      <>
+                                        {hasActiveDiscount ? (
+                                          <>
+                                            <span className="text-sm line-through text-gray-400 block">
+                                              {formatIQDAmount(basePrice)}
+                                            </span>
+                                            <span className="text-2xl font-bold text-green-600">
+                                              {formatIQDAmount(effectivePrice)}
+                                            </span>
+                                            <span className="text-xs text-green-600 font-semibold ml-1">
+                                              ({Math.round((1 - effectivePrice / basePrice) * 100)}% {t.shop?.off || 'OFF'})
+                                            </span>
+                                          </>
+                                        ) : (
+                                          <span className="text-2xl font-bold text-green-600">
+                                            {product.price && !isNaN(basePrice) ? formatIQDAmount(basePrice) : '0 IQD'}
+                                          </span>
+                                        )}
+                                      </>
+                                    );
+                                  })()}
                                   <span className="text-sm text-gray-500 ml-1">
                                     / {product.priceUnit || 'unit'}
                                   </span>

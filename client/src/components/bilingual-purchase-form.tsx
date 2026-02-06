@@ -904,35 +904,34 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
 
 
 
-  // Calculate discounted price based on quantity - IQD whole numbers only
+  const getEffectiveDiscounts = (product: any) => {
+    if (product.bulk_purchase_enabled || product.bulkPurchaseEnabled) {
+      let bulkDiscounts = product.bulk_purchase_discounts || product.bulkPurchaseDiscounts;
+      if (typeof bulkDiscounts === 'string') {
+        try { bulkDiscounts = JSON.parse(bulkDiscounts); } catch { bulkDiscounts = []; }
+      }
+      return Array.isArray(bulkDiscounts) ? bulkDiscounts : [];
+    }
+    let discounts = product.quantityDiscounts;
+    if (typeof discounts === 'string') {
+      try { discounts = JSON.parse(discounts); } catch { discounts = []; }
+    }
+    return Array.isArray(discounts) ? discounts : [];
+  };
+
   const getDiscountedPrice = (product: any, quantity: number) => {
     const basePrice = Math.round(parseFloat(product.price || '0'));
+    const discounts = getEffectiveDiscounts(product);
     
-    // Check if product has quantity discounts
-    let discounts = product.quantityDiscounts;
-    
-    // If quantityDiscounts is a string, try to parse it
-    if (typeof discounts === 'string') {
-      try {
-        discounts = JSON.parse(discounts);
-      } catch (e) {
-        console.log('Failed to parse quantityDiscounts:', discounts);
-        return basePrice;
-      }
-    }
-    
-    if (discounts && Array.isArray(discounts) && discounts.length > 0) {
-      // Sort discounts by minimum quantity (descending) to get highest applicable discount
+    if (discounts.length > 0) {
       const sortedDiscounts = discounts
         .filter((d: any) => quantity >= parseInt(d.minQty || d.min_qty || 0))
         .sort((a: any, b: any) => parseInt(b.minQty || b.min_qty || 0) - parseInt(a.minQty || a.min_qty || 0));
       
       if (sortedDiscounts.length > 0) {
         const discount = sortedDiscounts[0];
-        // Handle both discount formats: decimal (0.1) and percentage (10)
         const discountValue = discount.discount || (parseFloat(discount.discountPercent || discount.discount_percent || 0) / 100);
         const discountedPrice = Math.round(basePrice * (1 - discountValue));
-        console.log(`BilingualForm Product ${product.name}: quantity=${quantity}, basePrice=${basePrice}, discount=${discountValue}, discountedPrice=${discountedPrice}`);
         return discountedPrice;
       }
     }
@@ -1901,6 +1900,11 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                             <span className="line-through text-gray-400 mr-2">{formatCurrency(basePrice)}</span>
                           )}
                           {formatCurrency(discountedPrice)} {t.each}
+                          {discountedPrice < basePrice && basePrice > 0 && (
+                            <span className="text-[10px] text-green-600 font-semibold ml-1">
+                              {(product.bulk_purchase_enabled || product.bulkPurchaseEnabled) ? '📦' : '🏷️'} {Math.round((1 - discountedPrice / basePrice) * 100)}%
+                            </span>
+                          )}
                         </p>
                       </div>
                       
