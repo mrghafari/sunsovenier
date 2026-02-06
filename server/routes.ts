@@ -24039,85 +24039,139 @@ Momtaz Chemical Technical Team`,
         });
       }
 
-      // Get all orders within date range
+      const { db } = await import('./db');
+      const { vendors, vendorTransactions } = await import('@shared/schema');
+      const { shopProducts } = await import('@shared/shop-schema');
+      const { eq, and, gte, lte } = await import('drizzle-orm');
+
       const orders = await customerStorage.getAllOrders();
+      const start = new Date(startDate as string);
+      const end = new Date(endDate as string);
+      end.setHours(23, 59, 59, 999);
+      
       const filteredOrders = orders.filter(order => {
         const orderDate = new Date(order.createdAt);
-        const start = new Date(startDate as string);
-        const end = new Date(endDate as string);
-        end.setHours(23, 59, 59, 999); // Include full end date
-        
         return orderDate >= start && orderDate <= end;
       });
 
-      // Calculate total sales metrics
-      const totalSales = filteredOrders.reduce((sum, order) => 
-        sum + parseFloat(order.totalAmount), 0
-      );
-      const totalOrders = filteredOrders.length;
+      const vendorProductIds = new Set<number>();
+      const allProducts = await db.select({ id: shopProducts.id, vendorId: shopProducts.vendorId }).from(shopProducts);
+      for (const p of allProducts) {
+        if (p.vendorId) vendorProductIds.add(p.id);
+      }
 
-      // Get detailed order items for product analysis
-      const productSalesMap = new Map<string, { productName: string; quantity: number; totalAmount: number; orders: Set<number> }>();
-      let totalQuantity: number = 0;
+      const companyProductSalesMap = new Map<string, { productName: string; quantity: number; totalAmount: number; orders: Set<number> }>();
+      let companyTotalSales = 0;
+      let companyTotalQuantity = 0;
+      const companyOrderIds = new Set<number>();
+      const companyDailyMap = new Map<string, { date: string; sales: number; orders: Set<number> }>();
 
       for (const order of filteredOrders) {
         const items = await customerStorage.getOrderItems(order.id);
         
         for (const item of items) {
-          const key = item.productName;
-          const existing = productSalesMap.get(key) || {
-            productName: item.productName,
-            quantity: 0,
-            totalAmount: 0,
-            orders: new Set()
-          };
-          
-          existing.quantity += Number(item.quantity);
-          existing.totalAmount += parseFloat(String(item.unitPrice)) * Number(item.quantity);
-          existing.orders.add(order.id);
-          totalQuantity += Number(item.quantity);
-          
-          productSalesMap.set(key, existing);
+          const isVendorProduct = vendorProductIds.has(Number(item.productId));
+          const itemTotal = parseFloat(String(item.unitPrice)) * Number(item.quantity);
+          const qty = Number(item.quantity);
+
+          if (!isVendorProduct) {
+            const key = item.productName;
+            const existing = companyProductSalesMap.get(key) || {
+              productName: item.productName, quantity: 0, totalAmount: 0, orders: new Set()
+            };
+            existing.quantity += qty;
+            existing.totalAmount += itemTotal;
+            existing.orders.add(order.id);
+            companyTotalSales += itemTotal;
+            companyTotalQuantity += qty;
+            companyOrderIds.add(order.id);
+            companyProductSalesMap.set(key, existing);
+
+            const date = new Date(order.createdAt).toISOString().split('T')[0];
+            const dailyEntry = companyDailyMap.get(date) || { date, sales: 0, orders: new Set() };
+            dailyEntry.sales += itemTotal;
+            dailyEntry.orders.add(order.id);
+            companyDailyMap.set(date, dailyEntry);
+          }
         }
       }
 
-      // Convert to array and add order count
-      const productSales = Array.from(productSalesMap.values()).map(product => ({
-        ...product,
-        orders: product.orders.size
+      const companyProductSales = Array.from(companyProductSalesMap.values()).map(p => ({
+        ...p, orders: p.orders.size
       })).sort((a, b) => b.totalAmount - a.totalAmount);
 
-      // Create top products for pie chart (top 8 products)
-      const topProducts = productSales.slice(0, 8).map(product => {
-        const percentage = totalSales > 0 ? ((product.totalAmount / totalSales) * 100) : 0;
-        return {
-          name: product.productName,
-          value: product.totalAmount,
-          percentage: Math.round(percentage * 10) / 10
-        };
+      const companyTopProducts = companyProductSales.slice(0, 8).map(product => {
+        const percentage = companyTotalSales > 0 ? ((product.totalAmount / companyTotalSales) * 100) : 0;
+        return { name: product.productName, value: product.totalAmount, percentage: Math.round(percentage * 10) / 10 };
       });
 
-      // Create daily breakdown
-      const dailyMap = new Map();
-      filteredOrders.forEach(order => {
-        const date = new Date(order.createdAt).toISOString().split('T')[0];
-        const existing = dailyMap.get(date) || { date, sales: 0, orders: 0 };
-        existing.sales += parseFloat(order.totalAmount);
-        existing.orders += 1;
-        dailyMap.set(date, existing);
-      });
+      const dailyBreakdown = Array.from(companyDailyMap.values()).map(d => ({
+        date: d.date, sales: d.sales, orders: d.orders.size
+      })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-      const dailyBreakdown = Array.from(dailyMap.values()).sort((a, b) => 
-        new Date(a.date).getTime() - new Date(b.date).getTime()
-      );
+      let vendorCommissionRevenue = 0;
+      const vendorCommissionDetails: Array<{ vendorName: string; totalSales: number; commissionRate: number; commissionAmount: number }> = [];
+
+      try {
+        const vendorTxRows = await db
+          .select({
+            vendorId: vendorTransactions.vendorId,
+            saleAmount: vendorTransactions.saleAmount,
+            commissionAmount: vendorTransactions.commissionAmount,
+          })
+          .from(vendorTransactions)
+          .where(
+            and(
+              eq(vendorTransactions.transactionType, 'sale'),
+              eq(vendorTransactions.status, 'completed'),
+              gte(vendorTransactions.createdAt, start),
+              lte(vendorTransactions.createdAt, end)
+            )
+          );
+
+        const vendorCommMap = new Map<number, { totalSales: number; totalCommission: number }>();
+        for (const tx of vendorTxRows) {
+          const existing = vendorCommMap.get(tx.vendorId) || { totalSales: 0, totalCommission: 0 };
+          existing.totalSales += parseFloat(tx.saleAmount || '0');
+          existing.totalCommission += parseFloat(tx.commissionAmount || '0');
+          vendorCommMap.set(tx.vendorId, existing);
+        }
+
+        if (vendorCommMap.size > 0) {
+          const vendorRows = await db.select({ id: vendors.id, vendorName: vendors.vendorName, commissionRate: vendors.commissionRate }).from(vendors);
+          const vendorNameMap = new Map(vendorRows.map(v => [v.id, { name: v.vendorName, rate: parseFloat(v.commissionRate || '10') }]));
+
+          for (const [vid, data] of vendorCommMap.entries()) {
+            const vendorInfo = vendorNameMap.get(vid);
+            vendorCommissionRevenue += data.totalCommission;
+            vendorCommissionDetails.push({
+              vendorName: vendorInfo?.name || `Vendor ${vid}`,
+              totalSales: data.totalSales,
+              commissionRate: vendorInfo?.rate || 10,
+              commissionAmount: data.totalCommission
+            });
+          }
+        }
+      } catch (vendorErr) {
+        console.error("Error fetching vendor commission data:", vendorErr);
+      }
+
+      vendorCommissionDetails.sort((a, b) => b.commissionAmount - a.commissionAmount);
 
       const reportData = {
-        totalSales,
-        totalOrders,
-        totalQuantity,
-        productSales,
+        totalSales: companyTotalSales,
+        totalOrders: companyOrderIds.size,
+        totalQuantity: companyTotalQuantity,
+        productSales: companyProductSales,
         dailyBreakdown,
-        topProducts
+        topProducts: companyTopProducts,
+        vendorCommission: {
+          totalCommissionRevenue: vendorCommissionRevenue,
+          totalVendorSales: vendorCommissionDetails.reduce((s, d) => s + d.totalSales, 0),
+          vendorCount: vendorCommissionDetails.length,
+          details: vendorCommissionDetails
+        },
+        grandTotalRevenue: companyTotalSales + vendorCommissionRevenue
       };
 
       res.json(reportData);
