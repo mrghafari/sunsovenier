@@ -7,9 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Save, Edit3, Package, DollarSign } from "lucide-react";
+import { Save, Edit3, Package, DollarSign, Plus, Trash2, Percent } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+
+interface DiscountTier {
+  minQty: number;
+  discount: number;
+}
 
 interface BulkPurchaseProductCardProps {
   product: any;
@@ -23,12 +28,43 @@ export default function BulkPurchaseProductCard({ product, onUpdate }: BulkPurch
   const [description, setDescription] = useState(product.bulk_purchase_description || "");
   const { toast } = useToast();
 
+  const parseBulkDiscounts = (): DiscountTier[] => {
+    let discounts = product.bulk_purchase_discounts;
+    if (typeof discounts === 'string') {
+      try { discounts = JSON.parse(discounts); } catch { discounts = []; }
+    }
+    if (Array.isArray(discounts) && discounts.length > 0) return discounts;
+    return [{ minQty: 10, discount: 0.05 }];
+  };
+
+  const [discountTiers, setDiscountTiers] = useState<DiscountTier[]>(parseBulkDiscounts());
+
+  const addDiscountTier = () => {
+    const lastTier = discountTiers[discountTiers.length - 1];
+    setDiscountTiers([...discountTiers, { 
+      minQty: lastTier ? lastTier.minQty + 10 : 10, 
+      discount: lastTier ? Math.min(lastTier.discount + 0.05, 0.5) : 0.05 
+    }]);
+  };
+
+  const removeDiscountTier = (index: number) => {
+    if (discountTiers.length <= 1) return;
+    setDiscountTiers(discountTiers.filter((_, i) => i !== index));
+  };
+
+  const updateDiscountTier = (index: number, field: keyof DiscountTier, value: number) => {
+    const updated = [...discountTiers];
+    updated[index] = { ...updated[index], [field]: value };
+    setDiscountTiers(updated);
+  };
+
   const updateBulkPurchaseMutation = useMutation({
     mutationFn: async (data: {
       productId: number;
       bulk_purchase_enabled: boolean;
       bulk_purchase_minimum_quantity: number | null;
       bulk_purchase_description: string;
+      bulk_purchase_discounts: DiscountTier[] | null;
     }) => {
       return await apiRequest(`/api/shop/products/${data.productId}/bulk-purchase`, {
         method: 'PUT',
@@ -36,6 +72,7 @@ export default function BulkPurchaseProductCard({ product, onUpdate }: BulkPurch
           bulk_purchase_enabled: data.bulk_purchase_enabled,
           bulk_purchase_minimum_quantity: data.bulk_purchase_minimum_quantity,
           bulk_purchase_description: data.bulk_purchase_description,
+          bulk_purchase_discounts: data.bulk_purchase_discounts,
         },
       });
     },
@@ -68,11 +105,25 @@ export default function BulkPurchaseProductCard({ product, onUpdate }: BulkPurch
       return;
     }
 
+    for (const tier of discountTiers) {
+      if (tier.minQty < 1 || tier.discount <= 0 || tier.discount > 1) {
+        toast({
+          title: "Validation Error",
+          description: "Discount tiers must have valid quantity (>0) and discount (1-100%)",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    const sortedTiers = [...discountTiers].sort((a, b) => a.minQty - b.minQty);
+
     updateBulkPurchaseMutation.mutate({
       productId: product.id,
       bulk_purchase_enabled: bulkEnabled,
       bulk_purchase_minimum_quantity: quantity,
       bulk_purchase_description: description,
+      bulk_purchase_discounts: bulkEnabled ? sortedTiers : null,
     });
   };
 
@@ -80,6 +131,7 @@ export default function BulkPurchaseProductCard({ product, onUpdate }: BulkPurch
     setBulkEnabled(product.bulk_purchase_enabled || false);
     setMinimumQuantity(product.bulk_purchase_minimum_quantity || "");
     setDescription(product.bulk_purchase_description || "");
+    setDiscountTiers(parseBulkDiscounts());
     setIsEditing(false);
   };
 
@@ -109,7 +161,6 @@ export default function BulkPurchaseProductCard({ product, onUpdate }: BulkPurch
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Product Info */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-3 bg-gray-50 rounded-lg">
           <div>
             <Label className="text-xs text-gray-500">SKU</Label>
@@ -119,12 +170,12 @@ export default function BulkPurchaseProductCard({ product, onUpdate }: BulkPurch
             <Label className="text-xs text-gray-500">Unit Price</Label>
             <p className="text-sm font-medium flex items-center">
               <DollarSign className="w-3 h-3 mr-1" />
-              {product.unitPrice}
+              {product.unitPrice || product.price}
             </p>
           </div>
           <div>
             <Label className="text-xs text-gray-500">Stock</Label>
-            <p className="text-sm font-medium">{product.stockQuantity}</p>
+            <p className="text-sm font-medium">{product.stockQuantity || product.stock_quantity}</p>
           </div>
           <div>
             <Label className="text-xs text-gray-500">Category</Label>
@@ -132,14 +183,15 @@ export default function BulkPurchaseProductCard({ product, onUpdate }: BulkPurch
           </div>
         </div>
 
-        {/* Bulk Purchase Settings */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <Label htmlFor={`bulk-enabled-${product.id}`} className="text-sm font-medium">
                 Enable Bulk Purchases
               </Label>
-
+              <p className="text-xs text-gray-500 mt-0.5">
+                When enabled, general discounts will NOT apply. Only bulk-specific discounts below will be used.
+              </p>
             </div>
             <Switch
               id={`bulk-enabled-${product.id}`}
@@ -166,9 +218,73 @@ export default function BulkPurchaseProductCard({ product, onUpdate }: BulkPurch
                     disabled={!isEditing}
                     className="mt-1"
                   />
-
                 </div>
+              </div>
 
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium flex items-center gap-1">
+                    <Percent className="w-4 h-4 text-purple-600" />
+                    Bulk Discount Tiers
+                  </Label>
+                  {isEditing && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={addDiscountTier}
+                      className="text-xs"
+                    >
+                      <Plus className="w-3 h-3 mr-1" />
+                      Add Tier
+                    </Button>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500">
+                  These discounts replace the general discount system for this product.
+                </p>
+
+                <div className="space-y-2">
+                  {discountTiers.map((tier, index) => (
+                    <div key={index} className="flex items-center gap-2 p-2 bg-purple-50 border border-purple-200 rounded-lg">
+                      <div className="flex-1">
+                        <Label className="text-xs text-gray-500">Min Qty</Label>
+                        <Input
+                          type="number"
+                          min="1"
+                          value={tier.minQty}
+                          onChange={(e) => updateDiscountTier(index, 'minQty', parseInt(e.target.value) || 0)}
+                          disabled={!isEditing}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <Label className="text-xs text-gray-500">Discount %</Label>
+                        <Input
+                          type="number"
+                          min="1"
+                          max="100"
+                          step="1"
+                          value={Math.round(tier.discount * 100)}
+                          onChange={(e) => updateDiscountTier(index, 'discount', (parseFloat(e.target.value) || 0) / 100)}
+                          disabled={!isEditing}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      <div className="flex-shrink-0 pt-4">
+                        {isEditing && discountTiers.length > 1 && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => removeDiscountTier(index)}
+                            className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <div>
@@ -184,13 +300,11 @@ export default function BulkPurchaseProductCard({ product, onUpdate }: BulkPurch
                   className="mt-1"
                   rows={3}
                 />
-
               </div>
             </>
           )}
         </div>
 
-        {/* Action Buttons */}
         {isEditing && (
           <div className="flex items-center gap-2 pt-4 border-t">
             <Button
@@ -211,12 +325,21 @@ export default function BulkPurchaseProductCard({ product, onUpdate }: BulkPurch
           </div>
         )}
 
-        {/* Current Status Display */}
         {!isEditing && product.bulk_purchase_enabled && (
-          <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+          <div className="p-3 bg-green-50 border border-green-200 rounded-lg space-y-2">
             <p className="text-sm font-medium text-green-800">
-              Bulk purchases enabled with minimum quantity: {product.bulk_purchase_minimum_quantity}
+              Bulk purchases enabled with minimum quantity: {product.bulk_purchase_minimum_quantity || product.bulk_purchase_min_quantity}
             </p>
+            {discountTiers.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-green-700">Bulk Discount Tiers:</p>
+                {discountTiers.map((tier, i) => (
+                  <p key={i} className="text-xs text-green-600">
+                    {tier.minQty}+ units: {Math.round(tier.discount * 100)}% off
+                  </p>
+                ))}
+              </div>
+            )}
             {product.bulk_purchase_description && (
               <p className="text-xs text-green-600 mt-1">
                 {product.bulk_purchase_description}

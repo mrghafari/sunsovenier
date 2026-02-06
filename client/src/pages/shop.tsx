@@ -679,35 +679,39 @@ const Shop = () => {
     }, 0);
   };
 
+  // Get effective discounts for a product (bulk-specific or general)
+  const getEffectiveDiscounts = (product: any) => {
+    // If bulk purchase is enabled, use bulk-specific discounts instead of general
+    if (product.bulk_purchase_enabled || product.bulkPurchaseEnabled) {
+      let bulkDiscounts = product.bulk_purchase_discounts || product.bulkPurchaseDiscounts;
+      if (typeof bulkDiscounts === 'string') {
+        try { bulkDiscounts = JSON.parse(bulkDiscounts); } catch { bulkDiscounts = []; }
+      }
+      return Array.isArray(bulkDiscounts) ? bulkDiscounts : [];
+    }
+    // Otherwise use general quantity discounts
+    let discounts = product.quantityDiscounts;
+    if (typeof discounts === 'string') {
+      try { discounts = JSON.parse(discounts); } catch { discounts = []; }
+    }
+    return Array.isArray(discounts) ? discounts : [];
+  };
+
   // Calculate discounted price based on quantity
   const getDiscountedPrice = (product: any, quantity: number) => {
     const basePrice = parseFloat(product.price || '0');
     
-    // Check if product has quantity discounts
-    let discounts = product.quantityDiscounts;
+    const discounts = getEffectiveDiscounts(product);
     
-    // If quantityDiscounts is a string, try to parse it
-    if (typeof discounts === 'string') {
-      try {
-        discounts = JSON.parse(discounts);
-      } catch (e) {
-        console.log('Failed to parse quantityDiscounts:', discounts);
-        return basePrice;
-      }
-    }
-    
-    if (discounts && Array.isArray(discounts) && discounts.length > 0) {
-      // Sort discounts by minimum quantity (descending) to get highest applicable discount
+    if (discounts.length > 0) {
       const sortedDiscounts = discounts
         .filter((d: any) => quantity >= parseInt(d.minQty || d.min_qty || 0))
         .sort((a: any, b: any) => parseInt(b.minQty || b.min_qty || 0) - parseInt(a.minQty || a.min_qty || 0));
       
       if (sortedDiscounts.length > 0) {
         const discount = sortedDiscounts[0];
-        // Handle both discount formats: decimal (0.1) and percentage (10)
         const discountValue = discount.discount || (parseFloat(discount.discountPercent || discount.discount_percent || 0) / 100);
         const discountedPrice = basePrice * (1 - discountValue);
-        console.log(`Shop Product ${product.name}: quantity=${quantity}, basePrice=${basePrice}, discount=${discountValue}, discountedPrice=${discountedPrice}`);
         return discountedPrice;
       }
     }
@@ -717,14 +721,11 @@ const Shop = () => {
 
   // Helper function to get next discount info
   const getNextDiscountInfo = (product: any, currentQuantity: number = 0) => {
-    if (!product.quantityDiscounts || !Array.isArray(product.quantityDiscounts)) {
-      return null;
-    }
+    const discounts = getEffectiveDiscounts(product);
+    if (!discounts || discounts.length === 0) return null;
 
-    // Sort discounts by minQty
-    const sortedDiscounts = [...product.quantityDiscounts].sort((a, b) => a.minQty - b.minQty);
+    const sortedDiscounts = [...discounts].sort((a, b) => a.minQty - b.minQty);
     
-    // Find the next applicable discount
     for (const discount of sortedDiscounts) {
       if (currentQuantity < discount.minQty) {
         const remaining = discount.minQty - currentQuantity;
@@ -741,13 +742,11 @@ const Shop = () => {
 
   // Helper function to get current discount info
   const getCurrentDiscountInfo = (product: any, quantity: number = 1) => {
-    if (!product.quantityDiscounts || !Array.isArray(product.quantityDiscounts)) {
-      return null;
-    }
+    const discounts = getEffectiveDiscounts(product);
+    if (!discounts || discounts.length === 0) return null;
 
-    // Find the highest applicable discount
     let applicableDiscount = null;
-    for (const discount of product.quantityDiscounts) {
+    for (const discount of discounts) {
       if (quantity >= discount.minQty) {
         if (!applicableDiscount || discount.discount > applicableDiscount.discount) {
           applicableDiscount = discount;
@@ -1493,7 +1492,27 @@ const Shop = () => {
 
                           {/* Modern Discount Card */}
                           <div className="mb-3 min-h-[80px] sm:min-h-[96px] overflow-hidden">
-                            {product.quantityDiscounts && Array.isArray(product.quantityDiscounts) && product.quantityDiscounts.length > 0 ? (
+                            {(product.bulk_purchase_enabled || product.bulkPurchaseEnabled) ? (
+                              <div className="relative w-full h-full bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 rounded-2xl overflow-hidden shadow-md border border-orange-200">
+                                <div className="absolute inset-0 bg-white/40 backdrop-blur-sm"></div>
+                                <div className="relative z-20 p-3 sm:p-4 h-full flex flex-col items-center justify-center text-center gap-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-lg sm:text-xl">📦</span>
+                                    <span className="text-xs sm:text-sm font-bold text-orange-800 uppercase tracking-wide">Bulk Purchase</span>
+                                  </div>
+                                  <p className="text-[10px] sm:text-xs text-orange-700 font-medium">This product has bulk purchase discount</p>
+                                  {getEffectiveDiscounts(product).length > 0 && (
+                                    <div className="flex gap-1 flex-wrap justify-center">
+                                      {getEffectiveDiscounts(product).map((d: any, i: number) => (
+                                        <span key={i} className="text-[9px] sm:text-[10px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full font-semibold">
+                                          {d.minQty}+: {Math.round(d.discount * 100)}% OFF
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ) : getEffectiveDiscounts(product).length > 0 ? (
                               <div className="relative w-full h-full bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 rounded-2xl overflow-hidden shadow-md border border-purple-200">
                                 {/* Animated Background */}
                                 <div className="absolute inset-0">
@@ -1522,7 +1541,7 @@ const Shop = () => {
                                       <div className="space-y-1">
                                         {/* Discount Levels Bar */}
                                         <div className="flex gap-1 mb-2">
-                                          {product.quantityDiscounts.map((d: any, i: number) => {
+                                          {getEffectiveDiscounts(product).map((d: any, i: number) => {
                                             const isActive = currentDiscount && currentDiscount.discount === d.discount;
                                             return (
                                               <div
@@ -1541,8 +1560,7 @@ const Shop = () => {
                                         
                                         {/* Smart Promotional Banner for Maximum Discount */}
                                         {(() => {
-                                          const highestDiscount = product.quantityDiscounts.reduce((max: any, discount: any) => 
-                                            discount.discount > max.discount ? discount : max, product.quantityDiscounts[0]);
+                                          const highestDiscount = getEffectiveDiscounts(product).reduce((max: any, discount: any) => discount.discount > max.discount ? discount : max, getEffectiveDiscounts(product)[0]);
                                           
                                           // Show maximum discount incentive if no current discount
                                           if (!currentDiscount && nextDiscount) {
@@ -1588,7 +1606,7 @@ const Shop = () => {
                                               <div className="flex items-center justify-center gap-1 text-[10px] sm:text-xs text-center">
                                                 <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white/70 rounded-full"></div>
                                                 <span className="font-bold text-white/90">
-                                                  {product.quantityDiscounts[0].minQty}+ {t.shop.items}: {(product.quantityDiscounts[0].discount * 100).toFixed(0)}% {t.shop.off}
+                                                  {getEffectiveDiscounts(product)[0]?.minQty}+ {t.shop.items}: {((getEffectiveDiscounts(product)[0]?.discount || 0) * 100).toFixed(0)}% {t.shop.off}
                                                 </span>
                                               </div>
                                             </div>
@@ -1927,7 +1945,29 @@ const Shop = () => {
                               
                               {/* Modern Discount Card - List View */}
                               <div className="mb-4 h-20">
-                                {product.quantityDiscounts && Array.isArray(product.quantityDiscounts) && product.quantityDiscounts.length > 0 ? (
+                                {(product.bulk_purchase_enabled || product.bulkPurchaseEnabled) ? (
+                                  <div className="relative h-full bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 rounded-2xl overflow-hidden shadow-md border border-orange-200">
+                                    <div className="absolute inset-0 bg-white/40 backdrop-blur-sm"></div>
+                                    <div className="relative z-20 p-3 h-full flex items-center justify-between gap-3">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-xl">📦</span>
+                                        <div>
+                                          <span className="text-sm font-bold text-orange-800 uppercase tracking-wide">Bulk Purchase</span>
+                                          <p className="text-xs text-orange-700 font-medium">This product has bulk purchase discount</p>
+                                        </div>
+                                      </div>
+                                      {getEffectiveDiscounts(product).length > 0 && (
+                                        <div className="flex gap-1 flex-wrap">
+                                          {getEffectiveDiscounts(product).map((d: any, i: number) => (
+                                            <span key={i} className="text-[10px] bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-semibold">
+                                              {d.minQty}+: {Math.round(d.discount * 100)}% OFF
+                                            </span>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                ) : getEffectiveDiscounts(product).length > 0 ? (
                                   <div className="relative h-full bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 rounded-2xl overflow-hidden shadow-md border border-purple-200">
                                     {/* Animated Background */}
                                     <div className="absolute inset-0">
@@ -1949,7 +1989,7 @@ const Shop = () => {
                                           
                                           {/* Progress Bar */}
                                           <div className="flex gap-1">
-                                            {product.quantityDiscounts.map((d: any, i: number) => {
+                                            {getEffectiveDiscounts(product).map((d: any, i: number) => {
                                               const currentQty = getProductQuantity(product.id);
                                               const currentDiscount = getCurrentDiscountInfo(product, currentQty);
                                               const isActive = currentDiscount && currentDiscount.discount === d.discount;
@@ -1975,8 +2015,7 @@ const Shop = () => {
                                             const currentQty = getProductQuantity(product.id);
                                             const currentDiscount = getCurrentDiscountInfo(product, currentQty);
                                             const nextDiscount = getNextDiscountInfo(product, currentQty);
-                                            const highestDiscount = product.quantityDiscounts.reduce((max: any, discount: any) => 
-                                              discount.discount > max.discount ? discount : max, product.quantityDiscounts[0]);
+                                            const highestDiscount = getEffectiveDiscounts(product).reduce((max: any, discount: any) => discount.discount > max.discount ? discount : max, getEffectiveDiscounts(product)[0]);
                                             
                                             // Show maximum discount incentive if no current discount
                                             if (!currentDiscount && nextDiscount) {
@@ -2024,7 +2063,7 @@ const Shop = () => {
                                                     <div className="flex items-center gap-1 text-sm">
                                                       <div className="w-2 h-2 bg-white/70 rounded-full"></div>
                                                       <span className="font-bold text-white/90">
-                                                        {product.quantityDiscounts[0].minQty}+ items: {(product.quantityDiscounts[0].discount * 100).toFixed(0)}% OFF
+                                                        {getEffectiveDiscounts(product)[0]?.minQty}+ items: {((getEffectiveDiscounts(product)[0]?.discount || 0) * 100).toFixed(0)}% OFF
                                                       </span>
                                                     </div>
                                                   </div>

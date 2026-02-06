@@ -9513,26 +9513,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/shop/products/:productId/bulk-purchase", requireAuth, async (req, res) => {
     try {
       const { productId } = req.params;
-      const { bulk_purchase_enabled, bulk_purchase_minimum_quantity, bulk_purchase_description } = req.body;
+      const { bulk_purchase_enabled, bulk_purchase_minimum_quantity, bulk_purchase_description, bulk_purchase_discounts } = req.body;
       
       const { pool } = await import('./db');
       
-      console.log(`🏪 [BULK PURCHASE] Updating product ${productId}...`);
+      console.log(`🏪 [BULK PURCHASE] Updating product ${productId}...`, { bulk_purchase_enabled, bulk_purchase_discounts });
 
-      // Update the product's bulk purchase settings
+      // Update the product's bulk purchase settings including separate discounts
       await pool.query(`
         UPDATE shop_products 
         SET 
           bulk_purchase_enabled = $2,
           bulk_purchase_min_quantity = $3,
-          bulk_purchase_notes = $4
+          bulk_purchase_notes = $4,
+          bulk_purchase_discounts = $5
         WHERE id = $1
       `, [
         productId,
         bulk_purchase_enabled,
         bulk_purchase_minimum_quantity,
-        bulk_purchase_description
+        bulk_purchase_description,
+        bulk_purchase_discounts ? JSON.stringify(bulk_purchase_discounts) : null
       ]);
+
+      // If bulk purchase is enabled with separate discounts, clear global quantity_discounts
+      if (bulk_purchase_enabled && bulk_purchase_discounts && bulk_purchase_discounts.length > 0) {
+        await pool.query(`UPDATE shop_products SET quantity_discounts = NULL WHERE id = $1`, [productId]);
+        console.log(`🔄 [BULK PURCHASE] Cleared general discounts for bulk-enabled product ${productId}`);
+      }
 
       console.log(`✅ [BULK PURCHASE] Successfully updated product ${productId}`);
 
@@ -24134,13 +24142,18 @@ Momtaz Chemical Technical Team`,
         discount: parseFloat(discount.discountPercentage) / 100
       })).sort((a: any, b: any) => a.minQty - b.minQty);
 
-      // Get all products without quantity discounts
+      // Get all products - skip bulk-purchase-enabled products
       const products = await shopStorage.getShopProducts();
-      const productsToUpdate = products.filter((product: any) => 
-        !product.quantityDiscounts || product.quantityDiscounts === null
-      );
+      const productsToUpdate = products.filter((product: any) => {
+        if (product.bulkPurchaseEnabled || product.bulk_purchase_enabled) {
+          return false;
+        }
+        return !product.quantityDiscounts || product.quantityDiscounts === null;
+      });
 
-      // Update each product with the centralized discounts
+      const bulkSkippedCount = products.filter((p: any) => p.bulkPurchaseEnabled || p.bulk_purchase_enabled).length;
+
+      // Update each product with the centralized discounts (skip bulk-enabled products)
       let updatedCount = 0;
       for (const product of productsToUpdate) {
         await shopStorage.updateShopProduct(product.id, {
@@ -24149,11 +24162,14 @@ Momtaz Chemical Technical Team`,
         updatedCount++;
       }
 
+      console.log(`🎯 [DISCOUNT SYNC] Applied to ${updatedCount} products, skipped ${bulkSkippedCount} bulk-purchase products`);
+
       res.json({
         success: true,
-        message: `Applied centralized discounts to ${updatedCount} products`,
+        message: `Applied centralized discounts to ${updatedCount} products (${bulkSkippedCount} bulk-purchase products skipped)`,
         discountsApplied: quantityDiscounts,
         productsUpdated: updatedCount,
+        bulkSkipped: bulkSkippedCount,
         totalProducts: products.length
       });
     } catch (error) {
