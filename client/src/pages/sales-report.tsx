@@ -15,6 +15,8 @@ interface VendorCommissionDetail {
   totalSales: number;
   commissionRate: number;
   commissionAmount: number;
+  totalPaid: number;
+  currentBalance: number;
 }
 
 interface SalesReportData {
@@ -385,7 +387,9 @@ export default function SalesReport() {
                             <th className="text-right p-3 font-semibold text-gray-900 print:text-sm">نام وندور</th>
                             <th className="text-left p-3 font-semibold text-gray-900 print:text-sm">کل فروش وندور</th>
                             <th className="text-left p-3 font-semibold text-gray-900 print:text-sm">نرخ کمیسیون</th>
-                            <th className="text-left p-3 font-semibold text-gray-900 print:text-sm">مبلغ کمیسیون</th>
+                            <th className="text-left p-3 font-semibold text-gray-900 print:text-sm">کمیسیون دریافتی</th>
+                            <th className="text-left p-3 font-semibold text-gray-900 print:text-sm">پرداخت شده</th>
+                            <th className="text-left p-3 font-semibold text-gray-900 print:text-sm">مانده بدهی</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -400,21 +404,33 @@ export default function SalesReport() {
                               <td className="p-3 text-left print:text-sm">
                                 <Badge variant="outline" className="text-amber-700 border-amber-300">{detail.commissionRate}%</Badge>
                               </td>
-                              <td className="p-3 text-left font-semibold text-green-600 print:text-sm">
+                              <td className="p-3 text-left font-semibold text-orange-600 print:text-sm">
                                 {formatCurrency(detail.commissionAmount)}
+                              </td>
+                              <td className="p-3 text-left text-blue-600 print:text-sm">
+                                {formatCurrency(detail.totalPaid)}
+                              </td>
+                              <td className={`p-3 text-left font-semibold print:text-sm ${detail.currentBalance > 0 ? 'text-red-600' : 'text-gray-600'}`}>
+                                {formatCurrency(detail.currentBalance)}
                               </td>
                             </tr>
                           ))}
                         </tbody>
                         <tfoot>
                           <tr className="border-t-2 bg-amber-50">
-                            <td className="p-3 font-bold text-gray-900 print:text-sm">جمع کل کمیسیون</td>
+                            <td className="p-3 font-bold text-gray-900 print:text-sm">جمع کل</td>
                             <td className="p-3 text-left font-bold print:text-sm">
                               {formatCurrency(reportData.vendorCommission.totalVendorSales)}
                             </td>
                             <td className="p-3 text-left font-bold print:text-sm">-</td>
-                            <td className="p-3 text-left font-bold text-green-600 print:text-sm">
+                            <td className="p-3 text-left font-bold text-orange-600 print:text-sm">
                               {formatCurrency(reportData.vendorCommission.totalCommissionRevenue)}
+                            </td>
+                            <td className="p-3 text-left font-bold text-blue-600 print:text-sm">
+                              {formatCurrency(reportData.vendorCommission.details.reduce((s, d) => s + d.totalPaid, 0))}
+                            </td>
+                            <td className="p-3 text-left font-bold text-red-600 print:text-sm">
+                              {formatCurrency(reportData.vendorCommission.details.reduce((s, d) => s + d.currentBalance, 0))}
                             </td>
                           </tr>
                         </tfoot>
@@ -423,7 +439,7 @@ export default function SalesReport() {
                   ) : (
                     <div className="text-center py-6 text-gray-500">
                       <Store className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-                      <p>در این بازه زمانی فروش وندوری ثبت نشده است</p>
+                      <p>اطلاعات کمیسیون وندور یافت نشد</p>
                     </div>
                   )}
                 </CardContent>

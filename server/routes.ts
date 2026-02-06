@@ -24114,46 +24114,51 @@ Momtaz Chemical Technical Team`,
       })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
       let vendorCommissionRevenue = 0;
-      const vendorCommissionDetails: Array<{ vendorName: string; totalSales: number; commissionRate: number; commissionAmount: number }> = [];
+      const vendorCommissionDetails: Array<{ vendorName: string; totalSales: number; commissionRate: number; commissionAmount: number; totalPaid: number; currentBalance: number }> = [];
 
       try {
-        const vendorTxRows = await db
+        const { sql: sqlFn } = await import('drizzle-orm');
+        const transactionTotals = await db
           .select({
             vendorId: vendorTransactions.vendorId,
-            saleAmount: vendorTransactions.saleAmount,
-            commissionAmount: vendorTransactions.commissionAmount,
+            transactionType: vendorTransactions.transactionType,
+            totalAmount: sqlFn<string>`COALESCE(SUM(CAST(${vendorTransactions.amount} AS DECIMAL)), 0)::text`,
+            totalCommission: sqlFn<string>`COALESCE(SUM(CAST(${vendorTransactions.commissionAmount} AS DECIMAL)), 0)::text`
           })
           .from(vendorTransactions)
-          .where(
-            and(
-              eq(vendorTransactions.transactionType, 'sale'),
-              eq(vendorTransactions.status, 'completed'),
-              gte(vendorTransactions.createdAt, start),
-              lte(vendorTransactions.createdAt, end)
-            )
-          );
+          .groupBy(vendorTransactions.vendorId, vendorTransactions.transactionType);
 
-        const vendorCommMap = new Map<number, { totalSales: number; totalCommission: number }>();
-        for (const tx of vendorTxRows) {
-          const existing = vendorCommMap.get(tx.vendorId) || { totalSales: 0, totalCommission: 0 };
-          existing.totalSales += parseFloat(tx.saleAmount || '0');
-          existing.totalCommission += parseFloat(tx.commissionAmount || '0');
-          vendorCommMap.set(tx.vendorId, existing);
+        const vendorSalesMap = new Map<number, string>();
+        const vendorCommissionMap = new Map<number, string>();
+        const vendorPaymentsMap = new Map<number, string>();
+
+        for (const row of transactionTotals) {
+          if (row.transactionType === 'sale') {
+            vendorSalesMap.set(row.vendorId, row.totalAmount);
+            vendorCommissionMap.set(row.vendorId, row.totalCommission);
+          } else if (row.transactionType === 'payment') {
+            vendorPaymentsMap.set(row.vendorId, row.totalAmount);
+          }
         }
 
-        if (vendorCommMap.size > 0) {
+        if (vendorSalesMap.size > 0) {
           const vendorRows = await db.select({ id: vendors.id, vendorName: vendors.vendorName, commissionRate: vendors.commissionRate }).from(vendors);
-          const vendorNameMap = new Map(vendorRows.map(v => [v.id, { name: v.vendorName, rate: parseFloat(v.commissionRate || '10') }]));
 
-          for (const [vid, data] of vendorCommMap.entries()) {
-            const vendorInfo = vendorNameMap.get(vid);
-            vendorCommissionRevenue += data.totalCommission;
-            const effectiveRate = data.totalSales > 0 ? Math.round((data.totalCommission / data.totalSales) * 1000) / 10 : (vendorInfo?.rate || 10);
+          for (const v of vendorRows) {
+            const totalSales = parseFloat(vendorSalesMap.get(v.id) || '0');
+            const totalCommission = parseFloat(vendorCommissionMap.get(v.id) || '0');
+            const totalPaid = parseFloat(vendorPaymentsMap.get(v.id) || '0');
+            if (totalSales === 0 && totalCommission === 0) continue;
+            const currentBalance = totalSales - totalCommission - totalPaid;
+            vendorCommissionRevenue += totalCommission;
+            const effectiveRate = totalSales > 0 ? Math.round((totalCommission / totalSales) * 1000) / 10 : parseFloat(v.commissionRate || '10');
             vendorCommissionDetails.push({
-              vendorName: vendorInfo?.name || `Vendor ${vid}`,
-              totalSales: data.totalSales,
+              vendorName: v.vendorName || `Vendor ${v.id}`,
+              totalSales: totalSales,
               commissionRate: effectiveRate,
-              commissionAmount: data.totalCommission
+              commissionAmount: totalCommission,
+              totalPaid: totalPaid,
+              currentBalance: currentBalance
             });
           }
         }
