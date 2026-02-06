@@ -23653,6 +23653,7 @@ Momtaz Chemical Technical Team`,
       const query = `
         SELECT co.id, co.order_number, co.customer_id, co.total_amount, co.status, 
                co.payment_method, co.created_at, co.updated_at,
+               co.shipping_cost, co.vat_amount, co.surcharge_amount, co.vat_rate,
                c.first_name as customer_first_name, c.last_name as customer_last_name, 
                c.email as customer_email, c.phone as customer_phone,
                c.address as customer_address, c.city as customer_city, 
@@ -23727,6 +23728,10 @@ Momtaz Chemical Technical Team`,
           notes: order.notes,
           customerNotes: order.notes,
             status: order.status,
+            shippingCost: order.shipping_cost || '0',
+            vatAmount: order.vat_amount || '0',
+            surchargeAmount: order.surcharge_amount || '0',
+            vatRate: order.vat_rate || '0',
             items: items
           });
         } catch (itemError) {
@@ -23750,6 +23755,10 @@ Momtaz Chemical Technical Team`,
           notes: order.notes,
           customerNotes: order.notes,
             status: order.status,
+            shippingCost: order.shipping_cost || '0',
+            vatAmount: order.vat_amount || '0',
+            surchargeAmount: order.surcharge_amount || '0',
+            vatRate: order.vat_rate || '0',
             items: []
           });
         }
@@ -23772,6 +23781,7 @@ Momtaz Chemical Technical Team`,
       const query = `
         SELECT co.id, co.order_number, co.customer_id, co.total_amount, co.status, 
                co.payment_method, co.created_at, co.updated_at, co.carrier,
+               co.shipping_cost, co.vat_amount, co.surcharge_amount, co.vat_rate,
                c.first_name as customer_first_name, c.last_name as customer_last_name, 
                c.email as customer_email, c.phone as customer_phone, c.company as customer_company,
                c.address as customer_address

@@ -18,6 +18,10 @@ interface PaidOrder {
   customerEmail: string;
   customerPhone: string;
   totalAmount: string;
+  shippingCost: string;
+  vatAmount: string;
+  surchargeAmount: string;
+  vatRate: string;
   currency: string;
   paymentMethod: string;
   paymentDate: string;
@@ -354,18 +358,40 @@ export default function ShopInvoiceManagement() {
             background: white;
             color: #000;
             padding: 18px;
-            text-align: center;
             border: 2px solid #000;
             margin-top: 10px;
           }
-          .total-amount { 
-            font-size: 20px; 
+          .totals-table {
+            width: 50%;
+            margin-right: auto;
+            border-collapse: collapse;
+            margin-bottom: 12px;
+          }
+          .totals-table td {
+            padding: 6px 12px;
+            font-size: 14px;
+          }
+          .totals-table .label-col {
+            text-align: right;
+            font-weight: 600;
+            color: #374151;
+          }
+          .totals-table .value-col {
+            text-align: left;
+            color: #1f2937;
+          }
+          .totals-table .grand-total td {
+            font-size: 18px;
             font-weight: bold;
-            margin-bottom: 8px;
+            border-top: 2px solid #000;
+            padding-top: 10px;
+            color: #000;
           }
           .payment-info { 
             font-size: 14px;
             opacity: 0.9;
+            text-align: center;
+            margin-top: 8px;
           }
           .footer { 
             background: white;
@@ -480,9 +506,35 @@ export default function ShopInvoiceManagement() {
           </div>
 
           <div class="total-section">
-            <div class="total-amount">
-              💰 مبلغ کل: ${formatCurrency(order.totalAmount)}
-            </div>
+            <table class="totals-table">
+              <tbody>
+                <tr>
+                  <td class="label-col">جمع اقلام:</td>
+                  <td class="value-col">${formatCurrency(
+                    Math.round(parseFloat(order.totalAmount || '0') - parseFloat(order.shippingCost || '0') - parseFloat(order.vatAmount || '0') - parseFloat(order.surchargeAmount || '0'))
+                  )}</td>
+                </tr>
+                ${parseFloat(order.vatAmount || '0') > 0 ? `
+                <tr>
+                  <td class="label-col">مالیات بر ارزش افزوده (${order.vatRate || '0'}%):</td>
+                  <td class="value-col">${formatCurrency(order.vatAmount)}</td>
+                </tr>` : ''}
+                ${parseFloat(order.surchargeAmount || '0') > 0 ? `
+                <tr>
+                  <td class="label-col">عوارض:</td>
+                  <td class="value-col">${formatCurrency(order.surchargeAmount)}</td>
+                </tr>` : ''}
+                ${parseFloat(order.shippingCost || '0') > 0 ? `
+                <tr>
+                  <td class="label-col">هزینه ارسال:</td>
+                  <td class="value-col">${formatCurrency(order.shippingCost)}</td>
+                </tr>` : ''}
+                <tr class="grand-total">
+                  <td class="label-col">💰 مبلغ کل:</td>
+                  <td class="value-col">${formatCurrency(order.totalAmount)}</td>
+                </tr>
+              </tbody>
+            </table>
             <div class="payment-info">
               ✅ پرداخت تکمیل شده در تاریخ ${paymentDate}
             </div>
