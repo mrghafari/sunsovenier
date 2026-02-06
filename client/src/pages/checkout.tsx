@@ -410,6 +410,18 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
     return basePrice;
   };
 
+  const getActualDiscountPercent = (product: any, quantity: number): number => {
+    const discounts = getEffectiveDiscounts(product);
+    if (discounts.length === 0) return 0;
+    const sorted = discounts
+      .filter((d: any) => quantity >= parseInt(d.minQty || d.min_qty || 0))
+      .sort((a: any, b: any) => parseInt(b.minQty || b.min_qty || 0) - parseInt(a.minQty || a.min_qty || 0));
+    if (sorted.length === 0) return 0;
+    const d = sorted[0];
+    const val = d.discount || (parseFloat(d.discountPercent || d.discount_percent || 0) / 100);
+    return Math.round(val * 100);
+  };
+
   // Calculate order totals
   const cartItems = Object.entries(cart).map(([productId, quantity]) => {
     const product = products.find(p => p.id === parseInt(productId));
@@ -974,7 +986,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
         // Redirect to payment page for processing
         setLocation(`/payment/${orderId}`);
       } else {
-        // For wallet payments and other completed methods, go directly to success
+        // For wallet payments and other completed methods, show success with finance notice
         setOrderNumber(orderId);
         setIsOrderComplete(true);
         onOrderComplete();
@@ -3043,7 +3055,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                             </div>
                             {item.hasDiscount && (
                               <div className="text-[10px] text-green-600 font-medium">
-                                {(item.bulk_purchase_enabled || item.bulkPurchaseEnabled) ? '📦' : '🏷️'} {Math.round((1 - item.discountedUnitPrice / item.originalUnitPrice) * 100)}% {t.shop?.off || 'OFF'}
+                                {(item.bulk_purchase_enabled || item.bulkPurchaseEnabled) ? '📦' : '🏷️'} {getActualDiscountPercent(item, item.quantity)}% {t.shop?.off || 'OFF'}
                               </div>
                             )}
                           </div>

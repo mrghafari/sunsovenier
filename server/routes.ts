@@ -18070,9 +18070,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         frontendSentZeroRemaining: remainingAmount === 0 || remainingAmount === '0'
       });
       
-      // If wallet covers full amount, mark as paid and don't require bank payment
-      if (isFullWalletPayment || walletCoversFullAmount) { // FIXED: Removed unsafe remainingAmountToPay <= 1 condition
-        console.log('✅ [FULL WALLET] Payment covers full amount - order complete without bank gateway', {
+      // If wallet covers full amount, mark as paid and route to finance department
+      if (isFullWalletPayment || walletCoversFullAmount) {
+        console.log('✅ [FULL WALLET] Payment covers full amount - routing to finance department', {
           isFullWalletPayment,
           walletCoversFullAmount,
           actualWalletUsed,
@@ -18081,16 +18081,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         finalPaymentStatus = "paid";
         
-        // Return success response immediately for full wallet payments
+        try {
+          await customerStorage.updateOrderStatus(order.id, 'finance_pending');
+          await db
+            .update(customerOrders)
+            .set({
+              paymentStatus: 'paid',
+              paymentMethod: 'wallet_full',
+              updatedAt: new Date()
+            })
+            .where(eq(customerOrders.id, order.id));
+          
+          const { OrderManagementStorage } = await import('./order-management-storage');
+          const omStorage = new OrderManagementStorage();
+          await omStorage.createOrderManagement({
+            customerOrderId: order.id,
+            customerId: finalCrmCustomerId || customerId,
+            currentStatus: 'finance_pending' as const,
+            currentDepartment: 'financial',
+            totalAmount: formattedTotalAmount.toString(),
+            currency: "IQD",
+            notes: notes || "",
+            totalWeight: totalWeight ? parseFloat(totalWeight).toFixed(3) : null,
+            weightUnit: 'kg',
+            vehicleType: vehicleType || null,
+            paymentMethod: 'wallet_full' as const,
+            deliveryMethod: shippingMethod || 'courier',
+          });
+          console.log(`📦 [WALLET→FINANCE] Order ${order.orderNumber} routed to finance department for approval`);
+        } catch (walletMgmtError) {
+          console.error(`❌ [WALLET→FINANCE] Error creating order management for wallet order:`, walletMgmtError);
+        }
+        
         return res.json({
           success: true,
-          message: "سفارش با کیف پول به طور کامل پرداخت شد",
+          message: "سفارش با کیف پول پرداخت شد - در انتظار تایید واحد مالی",
           paymentMethod: 'wallet_full',
           order: {
             id: order.id,
             orderNumber: order.orderNumber,
             totalAmount: order.totalAmount,
-            status: order.status,
+            status: 'finance_pending',
             paymentStatus: "paid",
             paymentMethod: 'wallet_full',
             walletAmountUsed: actualWalletUsed,
@@ -33068,6 +33099,7 @@ ${message ? `Additional Requirements:\n${message}` : ''}
           'payment_uploaded', 
           'financial_reviewing',
           'financial_rejected',
+          'finance_pending',
           'warehouse_pending',
           'warehouse_processing',
           'warehouse_approved'

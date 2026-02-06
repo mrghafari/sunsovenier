@@ -719,6 +719,18 @@ const Shop = () => {
     return basePrice;
   };
 
+  const getActualDiscountPercent = (product: any, quantity: number): number => {
+    const discounts = getEffectiveDiscounts(product);
+    if (discounts.length === 0) return 0;
+    const sorted = discounts
+      .filter((d: any) => quantity >= parseInt(d.minQty || d.min_qty || 0))
+      .sort((a: any, b: any) => parseInt(b.minQty || b.min_qty || 0) - parseInt(a.minQty || a.min_qty || 0));
+    if (sorted.length === 0) return 0;
+    const d = sorted[0];
+    const val = d.discount || (parseFloat(d.discountPercent || d.discount_percent || 0) / 100);
+    return Math.round(val * 100);
+  };
+
   // Helper function to get next discount info
   const getNextDiscountInfo = (product: any, currentQuantity: number = 0) => {
     const discounts = getEffectiveDiscounts(product);
@@ -1473,7 +1485,7 @@ const Shop = () => {
                                           {formatIQDAmount(effectivePrice)}
                                         </span>
                                         <span className="text-xs text-green-600 font-semibold ml-1">
-                                          ({Math.round((1 - effectivePrice / basePrice) * 100)}% {t.shop?.off || 'OFF'})
+                                          ({getActualDiscountPercent(product, totalQty)}% {t.shop?.off || 'OFF'})
                                         </span>
                                       </>
                                     ) : (
@@ -2011,7 +2023,7 @@ const Shop = () => {
                                               {formatIQDAmount(effectivePrice)}
                                             </span>
                                             <span className="text-xs text-green-600 font-semibold ml-1">
-                                              ({Math.round((1 - effectivePrice / basePrice) * 100)}% {t.shop?.off || 'OFF'})
+                                              ({getActualDiscountPercent(product, totalQty)}% {t.shop?.off || 'OFF'})
                                             </span>
                                           </>
                                         ) : (

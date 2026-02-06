@@ -938,8 +938,18 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     
     return basePrice;
   };
-  
 
+  const getActualDiscountPercent = (product: any, quantity: number): number => {
+    const discounts = getEffectiveDiscounts(product);
+    if (discounts.length === 0) return 0;
+    const sorted = discounts
+      .filter((d: any) => quantity >= parseInt(d.minQty || d.min_qty || 0))
+      .sort((a: any, b: any) => parseInt(b.minQty || b.min_qty || 0) - parseInt(a.minQty || a.min_qty || 0));
+    if (sorted.length === 0) return 0;
+    const d = sorted[0];
+    const val = d.discount || (parseFloat(d.discountPercent || d.discount_percent || 0) / 100);
+    return Math.round(val * 100);
+  };
 
 
 
@@ -1902,7 +1912,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                           {formatCurrency(discountedPrice)} {t.each}
                           {discountedPrice < basePrice && basePrice > 0 && (
                             <span className="text-[10px] text-green-600 font-semibold ml-1">
-                              {(product.bulk_purchase_enabled || product.bulkPurchaseEnabled) ? '📦' : '🏷️'} {Math.round((1 - discountedPrice / basePrice) * 100)}%
+                              {(product.bulk_purchase_enabled || product.bulkPurchaseEnabled) ? '📦' : '🏷️'} {getActualDiscountPercent(product, quantity)}%
                             </span>
                           )}
                         </p>
