@@ -1575,8 +1575,8 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       // Handle bank transfer with grace period
       else if (paymentMethod === 'bank_transfer_grace') {
         toast({
-          title: "✅ سفارش با مهلت 3 روزه ثبت شد",
-          description: "سفارش شما قفل شد. تا 3 روز آینده فیش واریزی خود را آپلود کنید"
+          title: `✅ سفارش با مهلت ${proformaDeadlineDays} روزه ثبت شد`,
+          description: `سفارش شما قفل شد. تا ${proformaDeadlineDays} روز آینده فیش واریزی خود را آپلود کنید`
         });
         onOrderComplete();
       }
