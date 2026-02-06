@@ -23,13 +23,13 @@ interface BulkPurchaseProductCardProps {
 
 export default function BulkPurchaseProductCard({ product, onUpdate }: BulkPurchaseProductCardProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [bulkEnabled, setBulkEnabled] = useState(product.bulk_purchase_enabled || false);
-  const [minimumQuantity, setMinimumQuantity] = useState(product.bulk_purchase_minimum_quantity || "");
-  const [description, setDescription] = useState(product.bulk_purchase_description || "");
+  const [bulkEnabled, setBulkEnabled] = useState(product.bulkPurchaseEnabled || product.bulk_purchase_enabled || false);
+  const [minimumQuantity, setMinimumQuantity] = useState(product.bulkPurchaseMinQuantity || product.bulk_purchase_minimum_quantity || product.bulk_purchase_min_quantity || "");
+  const [description, setDescription] = useState(product.bulkPurchaseNotes || product.bulk_purchase_description || product.bulk_purchase_notes || "");
   const { toast } = useToast();
 
   const parseBulkDiscounts = (): DiscountTier[] => {
-    let discounts = product.bulk_purchase_discounts;
+    let discounts = product.bulkPurchaseDiscounts || product.bulk_purchase_discounts;
     if (typeof discounts === 'string') {
       try { discounts = JSON.parse(discounts); } catch { discounts = []; }
     }
@@ -128,12 +128,14 @@ export default function BulkPurchaseProductCard({ product, onUpdate }: BulkPurch
   };
 
   const handleCancel = () => {
-    setBulkEnabled(product.bulk_purchase_enabled || false);
-    setMinimumQuantity(product.bulk_purchase_minimum_quantity || "");
-    setDescription(product.bulk_purchase_description || "");
+    setBulkEnabled(product.bulkPurchaseEnabled || product.bulk_purchase_enabled || false);
+    setMinimumQuantity(product.bulkPurchaseMinQuantity || product.bulk_purchase_minimum_quantity || product.bulk_purchase_min_quantity || "");
+    setDescription(product.bulkPurchaseNotes || product.bulk_purchase_description || product.bulk_purchase_notes || "");
     setDiscountTiers(parseBulkDiscounts());
     setIsEditing(false);
   };
+
+  const isBulkActive = product.bulkPurchaseEnabled || product.bulk_purchase_enabled;
 
   return (
     <Card className="w-full">
@@ -325,10 +327,10 @@ export default function BulkPurchaseProductCard({ product, onUpdate }: BulkPurch
           </div>
         )}
 
-        {!isEditing && product.bulk_purchase_enabled && (
+        {!isEditing && isBulkActive && (
           <div className="p-3 bg-green-50 border border-green-200 rounded-lg space-y-2">
             <p className="text-sm font-medium text-green-800">
-              Bulk purchases enabled with minimum quantity: {product.bulk_purchase_minimum_quantity || product.bulk_purchase_min_quantity}
+              Bulk purchases enabled with minimum quantity: {product.bulkPurchaseMinQuantity || product.bulk_purchase_min_quantity}
             </p>
             {discountTiers.length > 0 && (
               <div className="space-y-1">
@@ -340,9 +342,9 @@ export default function BulkPurchaseProductCard({ product, onUpdate }: BulkPurch
                 ))}
               </div>
             )}
-            {product.bulk_purchase_description && (
+            {(product.bulkPurchaseNotes || product.bulk_purchase_description) && (
               <p className="text-xs text-green-600 mt-1">
-                {product.bulk_purchase_description}
+                {product.bulkPurchaseNotes || product.bulk_purchase_description}
               </p>
             )}
           </div>
