@@ -535,20 +535,10 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     staleTime: 5 * 60 * 1000,
   });
 
-  // Fetch shop settings for proforma deadline
-  const { data: shopSettings } = useQuery({
-    queryKey: ['/api/shop/settings'],
-    queryFn: async () => {
-      try {
-        const response = await apiRequest('/api/shop/settings', { method: 'GET' });
-        return response.data || [];
-      } catch (error) {
-        console.log('Error fetching shop settings:', error);
-        return [];
-      }
-    },
-    retry: false,
-    staleTime: 5 * 60 * 1000, // 5 minutes cache
+  // Fetch shop settings for proforma deadline (public endpoint - no auth required)
+  const { data: publicShopSettings } = useQuery<{ success: boolean; data: Record<string, string> }>({
+    queryKey: ['/api/public/shop/settings'],
+    staleTime: 5 * 60 * 1000,
   });
 
   // Fetch proforma reminder schedules
@@ -567,14 +557,13 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     staleTime: 5 * 60 * 1000, // 5 minutes cache
   });
 
-  // Get dynamic proforma deadline from shop settings
+  // Get dynamic proforma deadline from public shop settings
   const proformaDeadlineDays = useMemo(() => {
-    if (shopSettings && Array.isArray(shopSettings)) {
-      const deadlineSetting = shopSettings.find(setting => setting.setting_key === 'proforma_deadline_days');
-      return deadlineSetting ? parseInt(deadlineSetting.setting_value) : 3;
+    if (publicShopSettings?.data?.proforma_deadline_days) {
+      return parseInt(publicShopSettings.data.proforma_deadline_days) || 3;
     }
-    return 3; // fallback to 3 days
-  }, [shopSettings]);
+    return 3;
+  }, [publicShopSettings]);
 
   // Get reminder schedule info for display
   const reminderInfo = useMemo(() => {
