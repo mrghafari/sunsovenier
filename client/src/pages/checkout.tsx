@@ -379,14 +379,52 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
     }
   }, [customerData]);
 
+  const getEffectiveDiscounts = (product: any) => {
+    if (product.bulk_purchase_enabled || product.bulkPurchaseEnabled) {
+      let bulkDiscounts = product.bulk_purchase_discounts || product.bulkPurchaseDiscounts;
+      if (typeof bulkDiscounts === 'string') {
+        try { bulkDiscounts = JSON.parse(bulkDiscounts); } catch { bulkDiscounts = []; }
+      }
+      return Array.isArray(bulkDiscounts) ? bulkDiscounts : [];
+    }
+    let discounts = product.quantityDiscounts;
+    if (typeof discounts === 'string') {
+      try { discounts = JSON.parse(discounts); } catch { discounts = []; }
+    }
+    return Array.isArray(discounts) ? discounts : [];
+  };
+
+  const getDiscountedPrice = (product: any, quantity: number) => {
+    const basePrice = parseFloat(product.price || '0');
+    const discounts = getEffectiveDiscounts(product);
+    if (discounts.length > 0) {
+      const sortedDiscounts = discounts
+        .filter((d: any) => quantity >= parseInt(d.minQty || d.min_qty || 0))
+        .sort((a: any, b: any) => parseInt(b.minQty || b.min_qty || 0) - parseInt(a.minQty || a.min_qty || 0));
+      if (sortedDiscounts.length > 0) {
+        const discount = sortedDiscounts[0];
+        const discountValue = discount.discount || (parseFloat(discount.discountPercent || discount.discount_percent || 0) / 100);
+        return basePrice * (1 - discountValue);
+      }
+    }
+    return basePrice;
+  };
+
   // Calculate order totals
   const cartItems = Object.entries(cart).map(([productId, quantity]) => {
     const product = products.find(p => p.id === parseInt(productId));
-    return product ? {
+    if (!product) return null;
+    const discountedUnitPrice = getDiscountedPrice(product, quantity);
+    const basePrice = parseFloat(product.price || '0');
+    const hasDiscount = discountedUnitPrice < basePrice;
+    return {
       ...product,
       quantity,
-      totalPrice: parseFloat(product.price) * quantity
-    } : null;
+      discountedUnitPrice,
+      hasDiscount,
+      originalUnitPrice: basePrice,
+      totalPrice: discountedUnitPrice * quantity
+    };
   }).filter(Boolean);
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.totalPrice, 0);
@@ -1191,7 +1229,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
         productName: item.name,
         productSku: item.sku || '',
         quantity: item.quantity,
-        unitPrice: parseFloat(item.price),
+        unitPrice: item.discountedUnitPrice ?? parseFloat(item.price),
       })),
       totalAmount: beforeWalletTotal,
       shippingCost: shippingCost,
@@ -2991,11 +3029,23 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                           </div>
                           <div className="text-right">
                             <div className="text-xs text-gray-500">
-                              {item.quantity} × {parseFloat(item.price).toLocaleString()} IQD
+                              {item.quantity} × {item.hasDiscount ? (
+                                <span>
+                                  <span className="line-through text-gray-400 mr-1">{item.originalUnitPrice.toLocaleString()}</span>
+                                  <span className="text-green-600 font-semibold">{Math.round(item.discountedUnitPrice).toLocaleString()}</span>
+                                </span>
+                              ) : (
+                                <span>{parseFloat(item.price).toLocaleString()}</span>
+                              )} IQD
                             </div>
                             <div className="font-medium">
-                              {item.totalPrice.toLocaleString()} IQD
+                              {Math.round(item.totalPrice).toLocaleString()} IQD
                             </div>
+                            {item.hasDiscount && (
+                              <div className="text-[10px] text-green-600 font-medium">
+                                {(item.bulk_purchase_enabled || item.bulkPurchaseEnabled) ? '📦' : '🏷️'} {Math.round((1 - item.discountedUnitPrice / item.originalUnitPrice) * 100)}% {t.shop?.off || 'OFF'}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
