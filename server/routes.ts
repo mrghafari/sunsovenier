@@ -24059,6 +24059,10 @@ Momtaz Chemical Technical Team`,
       for (const p of allProducts) {
         if (p.vendorId) vendorProductIds.add(p.id);
       }
+      const vendorTxProducts = await db.select({ productId: vendorTransactions.productId }).from(vendorTransactions).where(eq(vendorTransactions.transactionType, 'sale'));
+      for (const vtp of vendorTxProducts) {
+        if (vtp.productId) vendorProductIds.add(vtp.productId);
+      }
 
       const companyProductSalesMap = new Map<string, { productName: string; quantity: number; totalAmount: number; orders: Set<number> }>();
       let companyTotalSales = 0;
@@ -24144,10 +24148,11 @@ Momtaz Chemical Technical Team`,
           for (const [vid, data] of vendorCommMap.entries()) {
             const vendorInfo = vendorNameMap.get(vid);
             vendorCommissionRevenue += data.totalCommission;
+            const effectiveRate = data.totalSales > 0 ? Math.round((data.totalCommission / data.totalSales) * 1000) / 10 : (vendorInfo?.rate || 10);
             vendorCommissionDetails.push({
               vendorName: vendorInfo?.name || `Vendor ${vid}`,
               totalSales: data.totalSales,
-              commissionRate: vendorInfo?.rate || 10,
+              commissionRate: effectiveRate,
               commissionAmount: data.totalCommission
             });
           }
