@@ -143,6 +143,10 @@ export const shopProducts = pgTable("shop_products", {
   variantType: text("variant_type"), // size, concentration, packaging, etc.
   variantValue: text("variant_value"), // 1kg, 5kg, 25kg, 50%, 80%, etc.
   sortOrder: integer("sort_order").default(0), // Display order for variants
+  bulkPurchaseEnabled: boolean("bulk_purchase_enabled").default(false),
+  bulkPurchaseMinQuantity: integer("bulk_purchase_min_quantity"),
+  bulkPurchaseNotes: text("bulk_purchase_notes"),
+  bulkPurchaseDiscounts: json("bulk_purchase_discounts"),
 });
 
 // Product variants relationship table
