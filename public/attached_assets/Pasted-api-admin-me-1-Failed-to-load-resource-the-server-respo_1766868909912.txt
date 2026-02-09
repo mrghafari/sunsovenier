@@ -1,0 +1,1270 @@
+api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+128x128?text=WeChat+QR:1  Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+about:blank:1 [Intervention] Slow network is detected. See https://www.chromestatus.com/feature/5636954674692096 for more details. Fallback font will be used while loading: https://embed.tawk.to/_s/v4/assets/fonts/tawk-font-icon-3.woff?55755728=
+api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+api/shop/settings:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+api/shop/proforma-reminders:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: Object
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: Object
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: Object
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: Object
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: Object
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: Object
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: Object
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: Object
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: Object
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:614 🛒 [ADD TO CART] Before add - Product 508, Stock: 1300, Cart: 0, DisplayStock: undefined
+usePersistentCart.ts:132 🛒 Saving product 508 to database for customer 8
+shop.tsx:623 🛒 [DISPLAY STOCK UPDATE] Product 508: 1300 -> 0
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: Object
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+usePersistentCart.ts:137 ✅ Product 508 saved to database
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: Object
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: Object
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: Object
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: Object
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: Object
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: Object
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: Object
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: Object
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: Object
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: Object
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:614 🛒 [ADD TO CART] Before add - Product 510, Stock: 8044, Cart: 0, DisplayStock: undefined
+usePersistentCart.ts:132 🛒 Saving product 510 to database for customer 8
+shop.tsx:623 🛒 [DISPLAY STOCK UPDATE] Product 510: 8044 -> 0
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: Object
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+usePersistentCart.ts:137 ✅ Product 510 saved to database
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: Object
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: Object
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:775 Cart clicked, total items: 9466
+shop.tsx:776 Customer: Object
+shop.tsx:783 User is logged in, showing checkout
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: Object
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+bilingual-purchase-form.tsx:490 💳 [WALLET QUERY] Enabled check: Object
+bilingual-purchase-form.tsx:677 🔥 [BILINGUAL FORM] Cart flammable check result: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: Object
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: Object
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:690 🚚 [BILINGUAL FORM] ===== SHIPPING RATES QUERY STARTED =====
+bilingual-purchase-form.tsx:692 🚚 [BILINGUAL FORM] Fetching shipping rates with flammable filtering... Object
+bilingual-purchase-form.tsx:782 === BilingualPurchaseForm Address Debug ===
+bilingual-purchase-form.tsx:783 existingCustomer from parent: Object
+bilingual-purchase-form.tsx:784 customerData from API: Object
+bilingual-purchase-form.tsx:785 crmCustomerData from API: undefined
+bilingual-purchase-form.tsx:786 isLoadingCustomer: false
+bilingual-purchase-form.tsx:797 Using existingCustomer from parent
+bilingual-purchase-form.tsx:804 Customer object found: Object
+bilingual-purchase-form.tsx:805 Customer firstName: ABAS
+bilingual-purchase-form.tsx:806 Customer lastName: ABASI
+bilingual-purchase-form.tsx:807 Customer phone: 09124955173
+bilingual-purchase-form.tsx:808 Customer address: NAGwer Road, Qaryataq Village
+bilingual-purchase-form.tsx:809 Customer secondaryAddress: NAGwer Road, Qaryataq Village, Erbil, Iraq
+bilingual-purchase-form.tsx:810 Customer city: 
+bilingual-purchase-form.tsx:811 Customer country: Iraq
+bilingual-purchase-form.tsx:812 Customer postalCode: 196891375
+bilingual-purchase-form.tsx:815 Full name constructed: ABAS ABASI
+bilingual-purchase-form.tsx:839 🏠 [ADDRESS DEBUG] Enhanced address mapping result: Object
+bilingual-purchase-form.tsx:880 Form data to reset: Object
+bilingual-purchase-form.tsx:882 Form reset completed
+bilingual-purchase-form.tsx:886 === End BilingualPurchaseForm Debug ===
+bilingual-purchase-form.tsx:959 🚚 [AUTO-SELECT DEBUG] useEffect triggered: Object
+bilingual-purchase-form.tsx:974 🚚 Shipping cost calculation: Object
+bilingual-purchase-form.tsx:1017 🔄 No shipping method selected or no data, resetting cost
+bilingual-purchase-form.tsx:1024 Shipping rates state: Object
+bilingual-purchase-form.tsx:1354 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: Object
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: Object
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1354 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+api/shop/proforma-reminders:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+queryClient.ts:70 Failed to parse JSON response: TypeError: Failed to execute 'json' on 'Response': body stream already read
+    at apiRequest (queryClient.ts:68:22)
+    at async queryFn (bilingual-purchase-form.tsx:559:26)
+apiRequest @ queryClient.ts:70
+bilingual-purchase-form.tsx:562 Error fetching reminder schedules: Error: Invalid JSON response from server
+    at apiRequest (queryClient.ts:71:11)
+    at async queryFn (bilingual-purchase-form.tsx:559:26)
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: Object
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: Object
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+api/shop/settings:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+queryClient.ts:70 Failed to parse JSON response: TypeError: Failed to execute 'json' on 'Response': body stream already read
+    at apiRequest (queryClient.ts:68:22)
+    at async queryFn (bilingual-purchase-form.tsx:543:26)
+apiRequest @ queryClient.ts:70
+bilingual-purchase-form.tsx:546 Error fetching shop settings: Error: Invalid JSON response from server
+    at apiRequest (queryClient.ts:71:11)
+    at async queryFn (bilingual-purchase-form.tsx:543:26)
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: Object
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: Object
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: Object
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: Object
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: Object
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:472 CRM Customer API response: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: Object
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: Object
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:782 === BilingualPurchaseForm Address Debug ===
+bilingual-purchase-form.tsx:783 existingCustomer from parent: Object
+bilingual-purchase-form.tsx:784 customerData from API: Object
+bilingual-purchase-form.tsx:785 crmCustomerData from API: Object
+bilingual-purchase-form.tsx:786 isLoadingCustomer: false
+bilingual-purchase-form.tsx:794 Using CRM customer data (most complete)
+bilingual-purchase-form.tsx:804 Customer object found: Object
+bilingual-purchase-form.tsx:805 Customer firstName: ABAS
+bilingual-purchase-form.tsx:806 Customer lastName: ABASI
+bilingual-purchase-form.tsx:807 Customer phone: 09124955173
+bilingual-purchase-form.tsx:808 Customer address: NAGwer Road, Qaryataq Village
+bilingual-purchase-form.tsx:809 Customer secondaryAddress: NAGwer Road, Qaryataq Village, Erbil, Iraq
+bilingual-purchase-form.tsx:810 Customer city: undefined
+bilingual-purchase-form.tsx:811 Customer country: Iraq
+bilingual-purchase-form.tsx:812 Customer postalCode: 196891375
+bilingual-purchase-form.tsx:815 Full name constructed: ABAS ABASI
+bilingual-purchase-form.tsx:839 🏠 [ADDRESS DEBUG] Enhanced address mapping result: Object
+bilingual-purchase-form.tsx:880 Form data to reset: Object
+bilingual-purchase-form.tsx:882 Form reset completed
+bilingual-purchase-form.tsx:886 === End BilingualPurchaseForm Debug ===
+bilingual-purchase-form.tsx:1354 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: Object
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: Object
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: Object
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: Object
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: Object
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: Object
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:621 💰 [VAT] Tax settings API response: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: Object
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: Object
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:708 📦 [BILINGUAL FORM] Raw shipping rates API response: Object
+bilingual-purchase-form.tsx:743 ✅ [BILINGUAL FORM] Successfully loaded shipping rates: 4 methods
+bilingual-purchase-form.tsx:744 🚚 [BILINGUAL FORM] Shipping rates details: Array(4)
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: Object
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: Object
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:959 🚚 [AUTO-SELECT DEBUG] useEffect triggered: Object
+bilingual-purchase-form.tsx:967 🚚 [AUTO-SELECT] Auto-selecting first shipping method: 34 undefined
+bilingual-purchase-form.tsx:974 🚚 Shipping cost calculation: Object
+bilingual-purchase-form.tsx:1017 🔄 No shipping method selected or no data, resetting cost
+bilingual-purchase-form.tsx:1024 Shipping rates state: Object
+bilingual-purchase-form.tsx:1056 🚚 [AUTO SELECT] Auto-selecting smart vehicle method: 32
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: Object
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: Object
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:959 🚚 [AUTO-SELECT DEBUG] useEffect triggered: Object
+bilingual-purchase-form.tsx:974 🚚 Shipping cost calculation: Object
+bilingual-purchase-form.tsx:982 📦 Selected shipping rate: Object
+bilingual-purchase-form.tsx:989 ✅ SPECIAL DELIVERY METHOD: Zero cost for smart_vehicle
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: Object
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: Object
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: Object
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: Object
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: Object
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: Object
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1241 🚚 [SMART DELIVERY] Calculating cost for: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: Object
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: Object
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1269 🚚 [SMART DELIVERY] API response: Object
+bilingual-purchase-form.tsx:1300 ✅ [SMART DELIVERY] Multi-vehicle cost calculated: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: Object
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: Object
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: Object
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: Object
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: Object
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: Object
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: Object
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: Object
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: Object
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: Object
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: Object
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: Object
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: Object
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: Object
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1121 🔄 [AUTO WALLET] wallet_combined selected - setting walletAmount: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: Object
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: Object
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: Object
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: Object
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: Object
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: Object
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:2835 🔘 [BUTTON DEBUG] Submit button clicked - drag protection active
+bilingual-purchase-form.tsx:2836 🔘 [BUTTON DEBUG] Mutation pending: false
+bilingual-purchase-form.tsx:2837 🔘 [BUTTON DEBUG] Form valid: false
+bilingual-purchase-form.tsx:2838 🔘 [BUTTON DEBUG] Form errors: Object
+bilingual-purchase-form.tsx:2839 🔘 [BUTTON DEBUG] Selected shipping method: 32
+bilingual-purchase-form.tsx:2840 🔘 [BUTTON DEBUG] Payment method: wallet_combined
+bilingual-purchase-form.tsx:2844 🔘 [BUTTON DEBUG] Forcing form submission via handleSubmit
+bilingual-purchase-form.tsx:1646 🚀 [SUBMIT DEBUG] onSubmit function called
+bilingual-purchase-form.tsx:1647 🚀 [SUBMIT DEBUG] Form data received: Object
+bilingual-purchase-form.tsx:1648 🚀 [SUBMIT DEBUG] Selected shipping method: 32
+bilingual-purchase-form.tsx:1649 🚀 [SUBMIT DEBUG] Payment method: wallet_combined
+bilingual-purchase-form.tsx:1650 🚀 [SUBMIT DEBUG] Form validation state: Object
+bilingual-purchase-form.tsx:1651 🚀 [SUBMIT DEBUG] Form errors: Object
+bilingual-purchase-form.tsx:1652 🚀 [SUBMIT DEBUG] Mutation pending before submit: false
+bilingual-purchase-form.tsx:1728 🚚 [DELIVERY LOGIC] Active delivery information: Object
+bilingual-purchase-form.tsx:1731 🚗 [VEHICLE DEBUG] Delivery method and vehicle at order submission: Object
+bilingual-purchase-form.tsx:1747 🔍 [PAYMENT ANALYSIS] Before conversion: Object
+bilingual-purchase-form.tsx:1765 🔄 [PAYMENT CONVERSION] wallet_combined → wallet_partial (hybrid payment - needs bank gateway for remaining: 83213342 IQD)
+bilingual-purchase-form.tsx:1793 🚀 [ORDER SUBMIT] Submitting order with complete data: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: Object
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: Object
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: Object
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: Object
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1398 🚀 [ORDER CREATION] Creating order with payment method: wallet_partial
+api/customers/orders?t=1766868860390:1  Failed to load resource: the server responded with a status of 400 (Bad Request)
+bilingual-purchase-form.tsx:1632 ❌ [ORDER ERROR] Order submission failed: Error: 400: {"success":false,"message":"موجودی کیف پول کافی نیست یا خطا در پردازش"}
+    at throwIfResNotOk (queryClient.ts:41:13)
+    at async apiRequest (queryClient.ts:63:5)
+    at async Object.mutationFn (bilingual-purchase-form.tsx:1439:26)
+onError @ bilingual-purchase-form.tsx:1632
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: Object
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: Object
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: Object
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: Object
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: Object
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: Object
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(1)
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: Object
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: Object
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: Object
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: Object
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+useCustomerAuth.ts:26 Customer auth check result: Object
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: {vatData: {…}, vatRate: 0, dutiesRate: 0, subtotalAmount: 181431610, vatAmount: 0, …}
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 181431610, totalTaxAmount: 0, finalShippingCost: 8530000, regularShippingCost: 0, smartDeliveryCost: 8530000, …}
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: {…}, walletBalance: 106748268, canUseWallet: true, totalAmount: 189961610, existingCustomer: true, …}
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: {vatData: {…}, vatRate: 0, dutiesRate: 0, subtotalAmount: 181431610, vatAmount: 0, …}
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 181431610, totalTaxAmount: 0, finalShippingCost: 8530000, regularShippingCost: 0, smartDeliveryCost: 8530000, …}
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: {…}, walletBalance: 106748268, canUseWallet: true, totalAmount: 189961610, existingCustomer: true, …}
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: {vatData: {…}, vatRate: 0, dutiesRate: 0, subtotalAmount: 181431610, vatAmount: 0, …}
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 181431610, totalTaxAmount: 0, finalShippingCost: 8530000, regularShippingCost: 0, smartDeliveryCost: 8530000, …}
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: {…}, walletBalance: 106748268, canUseWallet: true, totalAmount: 189961610, existingCustomer: true, …}
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: {vatData: {…}, vatRate: 0, dutiesRate: 0, subtotalAmount: 181431610, vatAmount: 0, …}
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 181431610, totalTaxAmount: 0, finalShippingCost: 8530000, regularShippingCost: 0, smartDeliveryCost: 8530000, …}
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: {…}, walletBalance: 106748268, canUseWallet: true, totalAmount: 189961610, existingCustomer: true, …}
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:2835 🔘 [BUTTON DEBUG] Submit button clicked - drag protection active
+bilingual-purchase-form.tsx:2836 🔘 [BUTTON DEBUG] Mutation pending: false
+bilingual-purchase-form.tsx:2837 🔘 [BUTTON DEBUG] Form valid: false
+bilingual-purchase-form.tsx:2838 🔘 [BUTTON DEBUG] Form errors: {}
+bilingual-purchase-form.tsx:2839 🔘 [BUTTON DEBUG] Selected shipping method: 32
+bilingual-purchase-form.tsx:2840 🔘 [BUTTON DEBUG] Payment method: wallet_combined
+bilingual-purchase-form.tsx:2844 🔘 [BUTTON DEBUG] Forcing form submission via handleSubmit
+bilingual-purchase-form.tsx:1646 🚀 [SUBMIT DEBUG] onSubmit function called
+bilingual-purchase-form.tsx:1647 🚀 [SUBMIT DEBUG] Form data received: {customerName: 'ABAS ABASI', phone: '09124955173', address: 'NAGwer Road, Qaryataq Village', city: 'Karbala', country: 'Iraq', …}
+bilingual-purchase-form.tsx:1648 🚀 [SUBMIT DEBUG] Selected shipping method: 32
+bilingual-purchase-form.tsx:1649 🚀 [SUBMIT DEBUG] Payment method: wallet_combined
+bilingual-purchase-form.tsx:1650 🚀 [SUBMIT DEBUG] Form validation state: {defaultValues: {…}, …}
+bilingual-purchase-form.tsx:1651 🚀 [SUBMIT DEBUG] Form errors: {}
+bilingual-purchase-form.tsx:1652 🚀 [SUBMIT DEBUG] Mutation pending before submit: false
+bilingual-purchase-form.tsx:1728 🚚 [DELIVERY LOGIC] Active delivery information: {activeAddress: 'NAGwer Road, Qaryataq Village', activeCity: 'Karbala', activeProvince: 'Karbala', activePostalCode: '196891375', activePhone: '09124955173', …}
+bilingual-purchase-form.tsx:1731 🚗 [VEHICLE DEBUG] Delivery method and vehicle at order submission: {selectedShippingMethod: 32, selectedDeliveryMethod: 'smart_vehicle', selectedRateName: 'انتخاب خودکار بهترین خودرو بر اساس وزن، مقصد و کمترین هزینه', optimalVehicle: {…}, vehicleNameProperty: '19 خودرو', …}
+bilingual-purchase-form.tsx:1747 🔍 [PAYMENT ANALYSIS] Before conversion: {paymentMethod: 'wallet_combined', walletAmount: 106748268, totalAmount: 189961610, walletBalance: 106748268, canUseWallet: true, …}
+bilingual-purchase-form.tsx:1765 🔄 [PAYMENT CONVERSION] wallet_combined → wallet_partial (hybrid payment - needs bank gateway for remaining: 83213342 IQD)
+bilingual-purchase-form.tsx:1793 🚀 [ORDER SUBMIT] Submitting order with complete data: {endpoint: '/api/customers/orders', originalPaymentMethod: 'wallet_combined', finalPaymentMethod: 'wallet_partial', totalAmount: 189961610, walletBalance: 106748268, …}
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: {vatData: {…}, vatRate: 0, dutiesRate: 0, subtotalAmount: 181431610, vatAmount: 0, …}
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 181431610, totalTaxAmount: 0, finalShippingCost: 8530000, regularShippingCost: 0, smartDeliveryCost: 8530000, …}
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: {…}, walletBalance: 106748268, canUseWallet: true, totalAmount: 189961610, existingCustomer: true, …}
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: {vatData: {…}, vatRate: 0, dutiesRate: 0, subtotalAmount: 181431610, vatAmount: 0, …}
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 181431610, totalTaxAmount: 0, finalShippingCost: 8530000, regularShippingCost: 0, smartDeliveryCost: 8530000, …}
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: {…}, walletBalance: 106748268, canUseWallet: true, totalAmount: 189961610, existingCustomer: true, …}
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1398 🚀 [ORDER CREATION] Creating order with payment method: wallet_partial
+queryClient.ts:54  POST https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/orders?t=1766868882139 400 (Bad Request)
+apiRequest @ queryClient.ts:54
+mutationFn @ bilingual-purchase-form.tsx:1439
+fn @ @tanstack_react-query.js?v=5e0d855b:1189
+run @ @tanstack_react-query.js?v=5e0d855b:494
+start @ @tanstack_react-query.js?v=5e0d855b:536
+execute @ @tanstack_react-query.js?v=5e0d855b:1225
+await in execute
+mutate @ @tanstack_react-query.js?v=5e0d855b:2630
+(anonymous) @ @tanstack_react-query.js?v=5e0d855b:3295
+onSubmit @ bilingual-purchase-form.tsx:1813
+(anonymous) @ chunk-4BFJKWC4.js?v=5e0d855b:1465
+await in (anonymous)
+onClick @ bilingual-purchase-form.tsx:2845
+callCallback2 @ chunk-RPCDYKBN.js?v=5e0d855b:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=5e0d855b:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=5e0d855b:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=5e0d855b:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=5e0d855b:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=5e0d855b:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=5e0d855b:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=5e0d855b:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=5e0d855b:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=5e0d855b:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=5e0d855b:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=5e0d855b:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=5e0d855b:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=5e0d855b:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=5e0d855b:5449
+bilingual-purchase-form.tsx:1632 ❌ [ORDER ERROR] Order submission failed: Error: 400: {"success":false,"message":"موجودی کیف پول کافی نیست یا خطا در پردازش"}
+    at throwIfResNotOk (queryClient.ts:41:13)
+    at async apiRequest (queryClient.ts:63:5)
+    at async Object.mutationFn (bilingual-purchase-form.tsx:1439:26)
+onError @ bilingual-purchase-form.tsx:1632
+execute @ @tanstack_react-query.js?v=5e0d855b:1254
+await in execute
+mutate @ @tanstack_react-query.js?v=5e0d855b:2630
+(anonymous) @ @tanstack_react-query.js?v=5e0d855b:3295
+onSubmit @ bilingual-purchase-form.tsx:1813
+(anonymous) @ chunk-4BFJKWC4.js?v=5e0d855b:1465
+await in (anonymous)
+onClick @ bilingual-purchase-form.tsx:2845
+callCallback2 @ chunk-RPCDYKBN.js?v=5e0d855b:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=5e0d855b:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=5e0d855b:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=5e0d855b:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=5e0d855b:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=5e0d855b:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=5e0d855b:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=5e0d855b:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=5e0d855b:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=5e0d855b:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=5e0d855b:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=5e0d855b:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=5e0d855b:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=5e0d855b:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=5e0d855b:5449
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}, 513: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (9) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: [{…}]
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: {vatData: {…}, vatRate: 0, dutiesRate: 0, subtotalAmount: 181431610, vatAmount: 0, …}
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 181431610, totalTaxAmount: 0, finalShippingCost: 8530000, regularShippingCost: 0, smartDeliveryCost: 8530000, …}
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: {…}, walletBalance: 106748268, canUseWallet: true, totalAmount: 189961610, existingCustomer: true, …}
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}, 513: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (9) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: [{…}]
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+shop.tsx:710 Shop Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+shop.tsx:710 Shop Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22.25
+shop.tsx:710 Shop Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+shop.tsx:710 Shop Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+shop.tsx:710 Shop Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=9.5
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: {vatData: {…}, vatRate: 0, dutiesRate: 0, subtotalAmount: 181431610, vatAmount: 0, …}
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 181431610, totalTaxAmount: 0, finalShippingCost: 8530000, regularShippingCost: 0, smartDeliveryCost: 8530000, …}
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: {…}, walletBalance: 106748268, canUseWallet: true, totalAmount: 189961610, existingCustomer: true, …}
+bilingual-purchase-form.tsx:935 BilingualForm Product Water Treatment package: quantity=11, basePrice=2000, discount=0.05, discountedPrice=1900
+bilingual-purchase-form.tsx:935 BilingualForm Product Solvant 402: quantity=1300, basePrice=25, discount=0.11, discountedPrice=22
+bilingual-purchase-form.tsx:935 BilingualForm Product تینر فوری 10000: quantity=8044, basePrice=25000, discount=0.11, discountedPrice=22250
+bilingual-purchase-form.tsx:935 BilingualForm Product Paint Thinner PT-300: quantity=100, basePrice=27000, discount=0.11, discountedPrice=24030
+bilingual-purchase-form.tsx:935 BilingualForm Product Pen: quantity=11, basePrice=10, discount=0.05, discountedPrice=10
+useAuth.ts:30  GET https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me 401 (Unauthorized)
+queryFn @ useAuth.ts:30
+fetchFn @ @tanstack_react-query.js?v=5e0d855b:840
+run @ @tanstack_react-query.js?v=5e0d855b:494
+start @ @tanstack_react-query.js?v=5e0d855b:536
+fetch @ @tanstack_react-query.js?v=5e0d855b:926
+executeFetch_fn @ @tanstack_react-query.js?v=5e0d855b:2211
+fetch @ @tanstack_react-query.js?v=5e0d855b:2011
+refetch @ @tanstack_react-query.js?v=5e0d855b:2001
+onFocus @ @tanstack_react-query.js?v=5e0d855b:749
+(anonymous) @ @tanstack_react-query.js?v=5e0d855b:1112
+(anonymous) @ @tanstack_react-query.js?v=5e0d855b:1111
+batch @ @tanstack_react-query.js?v=5e0d855b:583
+onFocus @ @tanstack_react-query.js?v=5e0d855b:1110
+(anonymous) @ @tanstack_react-query.js?v=5e0d855b:1601
+await in (anonymous)
+(anonymous) @ @tanstack_react-query.js?v=5e0d855b:313
+onFocus @ @tanstack_react-query.js?v=5e0d855b:312
+(anonymous) @ @tanstack_react-query.js?v=5e0d855b:299
+listener @ @tanstack_react-query.js?v=5e0d855b:270

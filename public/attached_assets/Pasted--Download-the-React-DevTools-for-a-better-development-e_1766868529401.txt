@@ -1,0 +1,479 @@
+ Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🔐 [AUTH] Guest user confirmed
+api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+api/tawk-support:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(9)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 📦 [INIT DISPLAY STOCK] Product 512: Stock=16, Cart=0, Display=16
+ 📦 [INIT DISPLAY STOCK] Product 513: Stock=0, Cart=0, Display=0
+ 📦 [INIT DISPLAY STOCK] Product 506: Stock=21204, Cart=0, Display=21204
+ 📦 [INIT DISPLAY STOCK] Product 509: Stock=1015, Cart=0, Display=1015
+ 📦 [INIT DISPLAY STOCK] Product 511: Stock=100, Cart=0, Display=100
+ 📦 [INIT DISPLAY STOCK] Product 514: Stock=11, Cart=0, Display=11
+ 📦 [INIT DISPLAY STOCK] Product 508: Stock=1300, Cart=0, Display=1300
+ 📦 [INIT DISPLAY STOCK] Product 507: Stock=11, Cart=0, Display=11
+ 📦 [INIT DISPLAY STOCK] Product 510: Stock=8044, Cart=0, Display=8044
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(9)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+api/shop/product-stats:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(9)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(9)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+api/frontend-controls:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+api/footer-settings?language=en:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+api/public/content-settings?language=en&section=social_media:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(9)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 📦 [INIT DISPLAY STOCK] Product 512: Stock=16, Cart=0, Display=16
+ 📦 [INIT DISPLAY STOCK] Product 513: Stock=0, Cart=0, Display=0
+ 📦 [INIT DISPLAY STOCK] Product 506: Stock=21204, Cart=0, Display=21204
+ 📦 [INIT DISPLAY STOCK] Product 509: Stock=1015, Cart=0, Display=1015
+ 📦 [INIT DISPLAY STOCK] Product 511: Stock=100, Cart=0, Display=100
+ 📦 [INIT DISPLAY STOCK] Product 514: Stock=11, Cart=0, Display=11
+ 📦 [INIT DISPLAY STOCK] Product 508: Stock=1300, Cart=0, Display=1300
+ 📦 [INIT DISPLAY STOCK] Product 507: Stock=11, Cart=0, Display=11
+ 📦 [INIT DISPLAY STOCK] Product 510: Stock=8044, Cart=0, Display=8044
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(9)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+api/logistics/provinces:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(9)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+api/customers/login:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(9)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+api/customers/login:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(9)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+api/tawk-support:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(9)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(9)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(9)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(9)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 🔐 User just logged in, resetting cart loaded flag
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(9)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 🔐 [AUTH] Customer authenticated, cart will be synced automatically
+ 🛒 Loading persistent cart for customer: 8
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(9)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+api/tawk-support:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+api/customers/wallet/balance:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+api/frontend-controls:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+api/shop/product-stats:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(9)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+api/customers/wallet/balance:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(9)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+api/logistics/provinces:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(9)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 🔐 [AUTH] Guest user confirmed
+api/customers/persistent-cart:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+ ❌ Error loading persistent cart: 
+loadPersistentCart @ usePersistentCart.ts:68
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(9)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 🗑️ Clearing cart..., authenticated: true
+ 🛒 Clearing cart in database for customer 8
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🔐 User logged out, clearing cart
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+api/customers/persistent-cart/clear:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+ ❌ Error clearing cart from database (user may already be logged out): 
+clearCart @ usePersistentCart.ts:161
+ ✅ Local cart cleared
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+api/frontend-controls:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ Customer auth check result: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🔐 User just logged in, resetting cart loaded flag
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🔐 [AUTH] Customer authenticated, cart will be synced automatically
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(9)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 📦 [INIT DISPLAY STOCK] Product 512: Stock=16, Cart=0, Display=16
+ 📦 [INIT DISPLAY STOCK] Product 513: Stock=0, Cart=0, Display=0
+ 📦 [INIT DISPLAY STOCK] Product 506: Stock=21204, Cart=0, Display=21204
+ 📦 [INIT DISPLAY STOCK] Product 509: Stock=1015, Cart=0, Display=1015
+ 📦 [INIT DISPLAY STOCK] Product 511: Stock=100, Cart=0, Display=100
+ 📦 [INIT DISPLAY STOCK] Product 514: Stock=11, Cart=0, Display=11
+ 📦 [INIT DISPLAY STOCK] Product 508: Stock=1300, Cart=0, Display=1300
+ 📦 [INIT DISPLAY STOCK] Product 507: Stock=11, Cart=0, Display=11
+ 📦 [INIT DISPLAY STOCK] Product 510: Stock=8044, Cart=0, Display=8044
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(9)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 🛒 Loading persistent cart for customer: 8
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(9)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+api/shop/product-stats:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(9)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+api/customers/persistent-cart:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ Failed to parse JSON response: 
+apiRequest @ queryClient.ts:51
+ ❌ Error loading persistent cart: 
+loadPersistentCart @ usePersistentCart.ts:68
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(9)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+api/customers/wallet/balance:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(9)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 📦 [INIT DISPLAY STOCK] Product 512: Stock=16, Cart=0, Display=16
+ 📦 [INIT DISPLAY STOCK] Product 513: Stock=0, Cart=0, Display=0
+ 📦 [INIT DISPLAY STOCK] Product 506: Stock=21204, Cart=0, Display=21204
+ 📦 [INIT DISPLAY STOCK] Product 509: Stock=1015, Cart=0, Display=1015
+ 📦 [INIT DISPLAY STOCK] Product 511: Stock=100, Cart=0, Display=100
+ 📦 [INIT DISPLAY STOCK] Product 514: Stock=11, Cart=0, Display=11
+ 📦 [INIT DISPLAY STOCK] Product 508: Stock=1300, Cart=0, Display=1300
+ 📦 [INIT DISPLAY STOCK] Product 507: Stock=11, Cart=0, Display=11
+ 📦 [INIT DISPLAY STOCK] Product 510: Stock=8044, Cart=0, Display=8044
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(9)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+api/logistics/provinces:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(9)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(9)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 🔐 [AUTH] Guest user confirmed
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🔐 User logged out, clearing cart
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🗑️ Clearing cart..., authenticated: true
+ 🛒 Clearing cart in database for customer 8
+api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+api/shop/product-stats:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+api/customers/persistent-cart/clear:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ Failed to parse JSON response: 
+apiRequest @ queryClient.ts:51
+ ❌ Error clearing cart from database (user may already be logged out): 
+clearCart @ usePersistentCart.ts:161
+ ✅ Local cart cleared
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(9)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 📦 [INIT DISPLAY STOCK] Product 512: Stock=16, Cart=0, Display=16
+ 📦 [INIT DISPLAY STOCK] Product 513: Stock=0, Cart=0, Display=0
+ 📦 [INIT DISPLAY STOCK] Product 506: Stock=21204, Cart=0, Display=21204
+ 📦 [INIT DISPLAY STOCK] Product 509: Stock=1015, Cart=0, Display=1015
+ 📦 [INIT DISPLAY STOCK] Product 511: Stock=100, Cart=0, Display=100
+ 📦 [INIT DISPLAY STOCK] Product 514: Stock=11, Cart=0, Display=11
+ 📦 [INIT DISPLAY STOCK] Product 508: Stock=1300, Cart=0, Display=1300
+ 📦 [INIT DISPLAY STOCK] Product 507: Stock=11, Cart=0, Display=11
+ 📦 [INIT DISPLAY STOCK] Product 510: Stock=8044, Cart=0, Display=8044
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(9)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+api/frontend-controls:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(9)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 📦 [INIT DISPLAY STOCK] Product 512: Stock=16, Cart=0, Display=16
+ 📦 [INIT DISPLAY STOCK] Product 513: Stock=0, Cart=0, Display=0
+ 📦 [INIT DISPLAY STOCK] Product 506: Stock=21204, Cart=0, Display=21204
+ 📦 [INIT DISPLAY STOCK] Product 509: Stock=1015, Cart=0, Display=1015
+ 📦 [INIT DISPLAY STOCK] Product 511: Stock=100, Cart=0, Display=100
+ 📦 [INIT DISPLAY STOCK] Product 514: Stock=11, Cart=0, Display=11
+ 📦 [INIT DISPLAY STOCK] Product 508: Stock=1300, Cart=0, Display=1300
+ 📦 [INIT DISPLAY STOCK] Product 507: Stock=11, Cart=0, Display=11
+ 📦 [INIT DISPLAY STOCK] Product 510: Stock=8044, Cart=0, Display=8044
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(9)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(9)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+api/logistics/provinces:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+api/tawk-support:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+api/shop/product-stats:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: false
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: false
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: false
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 512: Stock=16, Cart=0, Display=16
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 513: Stock=0, Cart=0, Display=0
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 506: Stock=21204, Cart=0, Display=21204
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 509: Stock=1015, Cart=0, Display=1015
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 511: Stock=100, Cart=0, Display=100
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 514: Stock=11, Cart=0, Display=11
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 508: Stock=1300, Cart=0, Display=1300
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 507: Stock=11, Cart=0, Display=11
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 510: Stock=8044, Cart=0, Display=8044
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: false
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+api/frontend-controls:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: false
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 512: Stock=16, Cart=0, Display=16
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 513: Stock=0, Cart=0, Display=0
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 506: Stock=21204, Cart=0, Display=21204
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 509: Stock=1015, Cart=0, Display=1015
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 511: Stock=100, Cart=0, Display=100
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 514: Stock=11, Cart=0, Display=11
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 508: Stock=1300, Cart=0, Display=1300
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 507: Stock=11, Cart=0, Display=11
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 510: Stock=8044, Cart=0, Display=8044
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: false
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+api/logistics/provinces:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+api/customers/login:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: false
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: false
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+api/tawk-support:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+api/customers/login:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: false
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: Object
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: Array(9)
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: Array(0)

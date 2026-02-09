@@ -1,0 +1,672 @@
+chunk-RPCDYKBN.js?v=402f8972:21551 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: false
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {}
+shop.tsx:433 🔐 [AUTH] Guest user confirmed
+useAuth.ts:30  GET https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me 401 (Unauthorized)
+queryFn @ useAuth.ts:30
+fetchFn @ @tanstack_react-query.js?v=402f8972:840
+run @ @tanstack_react-query.js?v=402f8972:494
+start @ @tanstack_react-query.js?v=402f8972:536
+fetch @ @tanstack_react-query.js?v=402f8972:926
+executeFetch_fn @ @tanstack_react-query.js?v=402f8972:2211
+onSubscribe @ @tanstack_react-query.js?v=402f8972:1898
+subscribe @ @tanstack_react-query.js?v=402f8972:24
+(anonymous) @ @tanstack_react-query.js?v=402f8972:3022
+subscribeToStore @ chunk-RPCDYKBN.js?v=402f8972:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=402f8972:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=402f8972:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=402f8972:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=402f8972:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=402f8972:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=402f8972:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=402f8972:19447
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=402f8972:18868
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=402f8972:9119
+commitRootImpl @ chunk-RPCDYKBN.js?v=402f8972:19432
+commitRoot @ chunk-RPCDYKBN.js?v=402f8972:19277
+finishConcurrentRender @ chunk-RPCDYKBN.js?v=402f8972:18805
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=402f8972:18718
+workLoop @ chunk-RPCDYKBN.js?v=402f8972:197
+flushWork @ chunk-RPCDYKBN.js?v=402f8972:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=402f8972:384
+queryClient.ts:81  GET https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me 401 (Unauthorized)
+(anonymous) @ queryClient.ts:81
+fetchFn @ @tanstack_react-query.js?v=402f8972:840
+run @ @tanstack_react-query.js?v=402f8972:494
+start @ @tanstack_react-query.js?v=402f8972:536
+fetch @ @tanstack_react-query.js?v=402f8972:926
+executeFetch_fn @ @tanstack_react-query.js?v=402f8972:2211
+onSubscribe @ @tanstack_react-query.js?v=402f8972:1898
+subscribe @ @tanstack_react-query.js?v=402f8972:24
+(anonymous) @ @tanstack_react-query.js?v=402f8972:3022
+subscribeToStore @ chunk-RPCDYKBN.js?v=402f8972:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=402f8972:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=402f8972:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=402f8972:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=402f8972:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=402f8972:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=402f8972:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=402f8972:19447
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=402f8972:18868
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=402f8972:9119
+commitRootImpl @ chunk-RPCDYKBN.js?v=402f8972:19432
+commitRoot @ chunk-RPCDYKBN.js?v=402f8972:19277
+finishConcurrentRender @ chunk-RPCDYKBN.js?v=402f8972:18805
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=402f8972:18718
+workLoop @ chunk-RPCDYKBN.js?v=402f8972:197
+flushWork @ chunk-RPCDYKBN.js?v=402f8972:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=402f8972:384
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: false
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {}
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: false
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {}
+TawkToChat.tsx:134 📥 Loading Tawk.to widget at bottom-left position...
+TawkToChat.tsx:149 ✅ Tawk.to Live Chat loaded successfully at bottom-left
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: false
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (5) [{…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: []
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 513: Stock=5711, Cart=0, Display=5711
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 506: Stock=44326, Cart=0, Display=44326
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 509: Stock=909, Cart=0, Display=909
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 507: Stock=11, Cart=0, Display=11
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 510: Stock=7265, Cart=0, Display=7265
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (5) [{…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: []
+twk-chunk-common.js:2 Error: Unable to store cookie
+    at e.value (twk-chunk-common.js:2:118313)
+    at t.value (twk-chunk-common.js:2:151397)
+    at p.updateUUID (twk-chunk-common.js:2:203049)
+    at Array.<anonymous> (twk-vendor.js:2:76358)
+    at p.dispatch (twk-vendor.js:2:78106)
+    at p.dispatch (twk-vendor.js:2:73855)
+    at t.value (twk-chunk-common.js:2:125328)
+    at twk-chunk-common.js:2:124639
+value @ twk-chunk-common.js:2
+updateUUID @ twk-chunk-common.js:2
+(anonymous) @ twk-vendor.js:2
+p.dispatch @ twk-vendor.js:2
+dispatch @ twk-vendor.js:2
+value @ twk-chunk-common.js:2
+(anonymous) @ twk-chunk-common.js:2
+Promise.then
+value @ twk-chunk-common.js:2
+value @ twk-chunk-common.js:2
+(anonymous) @ twk-chunk-common.js:2
+(anonymous) @ twk-chunk-common.js:2
+56d7 @ twk-chunk-common.js:2
+a @ twk-runtime.js:1
+r @ twk-runtime.js:1
+t @ twk-runtime.js:1
+(anonymous) @ twk-runtime.js:1
+(anonymous) @ twk-runtime.js:1
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (5) [{…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: []
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 513: Stock=5711, Cart=0, Display=5711
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 506: Stock=44326, Cart=0, Display=44326
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 509: Stock=909, Cart=0, Display=909
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 507: Stock=11, Cart=0, Display=11
+shop.tsx:396 📦 [INIT DISPLAY STOCK] Product 510: Stock=7265, Cart=0, Display=7265
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (5) [{…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: []
+via.placeholder.com/128x128?text=WeChat+QR:1  GET https://via.placeholder.com/128x128?text=WeChat+QR net::ERR_NAME_NOT_RESOLVED
+Image
+commitMount @ chunk-RPCDYKBN.js?v=402f8972:8412
+commitLayoutEffectOnFiber @ chunk-RPCDYKBN.js?v=402f8972:17102
+commitLayoutMountEffects_complete @ chunk-RPCDYKBN.js?v=402f8972:17980
+commitLayoutEffects_begin @ chunk-RPCDYKBN.js?v=402f8972:17969
+commitLayoutEffects @ chunk-RPCDYKBN.js?v=402f8972:17920
+commitRootImpl @ chunk-RPCDYKBN.js?v=402f8972:19353
+commitRoot @ chunk-RPCDYKBN.js?v=402f8972:19277
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=402f8972:18895
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=402f8972:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=402f8972:18627
+setTimeout
+scheduleFn @ @tanstack_react-query.js?v=402f8972:555
+flush @ @tanstack_react-query.js?v=402f8972:569
+batch @ @tanstack_react-query.js?v=402f8972:587
+dispatch_fn @ @tanstack_react-query.js?v=402f8972:996
+setData @ @tanstack_react-query.js?v=402f8972:696
+onSuccess @ @tanstack_react-query.js?v=402f8972:897
+resolve @ @tanstack_react-query.js?v=402f8972:456
+Promise.then
+run @ @tanstack_react-query.js?v=402f8972:498
+start @ @tanstack_react-query.js?v=402f8972:536
+fetch @ @tanstack_react-query.js?v=402f8972:926
+executeFetch_fn @ @tanstack_react-query.js?v=402f8972:2211
+onSubscribe @ @tanstack_react-query.js?v=402f8972:1898
+subscribe @ @tanstack_react-query.js?v=402f8972:24
+(anonymous) @ @tanstack_react-query.js?v=402f8972:3022
+subscribeToStore @ chunk-RPCDYKBN.js?v=402f8972:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=402f8972:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=402f8972:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=402f8972:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=402f8972:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=402f8972:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=402f8972:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=402f8972:19447
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=402f8972:18868
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=402f8972:9119
+commitRootImpl @ chunk-RPCDYKBN.js?v=402f8972:19432
+commitRoot @ chunk-RPCDYKBN.js?v=402f8972:19277
+finishConcurrentRender @ chunk-RPCDYKBN.js?v=402f8972:18805
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=402f8972:18718
+workLoop @ chunk-RPCDYKBN.js?v=402f8972:197
+flushWork @ chunk-RPCDYKBN.js?v=402f8972:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=402f8972:384
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (5) [{…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: []
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (5) [{…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: []
+shop.tsx:430 🔐 [AUTH] Customer authenticated, cart will be synced automatically
+useCustomerAuth.ts:26 Customer auth check result: {success: true, customer: {…}}
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (5) [{…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: []
+usePersistentCart.ts:54 🔐 User just logged in, resetting cart loaded flag
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (5) [{…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: []
+shop.tsx:430 🔐 [AUTH] Customer authenticated, cart will be synced automatically
+shop.tsx:474 🔄 Triggering cart reload after login
+usePersistentCart.ts:68 🛒 Loading persistent cart for customer: 94
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (5) [{…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: []
+usePersistentCart.ts:87 🛒 Loaded cart from database: {506: 30}
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (5) [{…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: []
+shop.tsx:710 Shop Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+shop.tsx:710 Shop Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+shop.tsx:710 Shop Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+shop.tsx:416 🔄 [CART SYNC] Product 506: Display stock 44326 -> 44296
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (5) [{…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: []
+shop.tsx:710 Shop Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+shop.tsx:710 Shop Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+shop.tsx:710 Shop Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+shop.tsx:775 Cart clicked, total items: 30
+shop.tsx:776 Customer: {id: 94, firstName: 'Omid', lastName: 'Mohammad', email: 'water@momtazchem.com', company: 'Momtazchem Chemical Solutions', …}
+shop.tsx:783 User is logged in, showing checkout
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (5) [{…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: []
+shop.tsx:710 Shop Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+shop.tsx:710 Shop Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+shop.tsx:710 Shop Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:490 💳 [WALLET QUERY] Enabled check: {existingCustomer: true, customerDataSuccess: true, enabled: true}
+bilingual-purchase-form.tsx:677 🔥 [BILINGUAL FORM] Cart flammable check result: {containsFlammableProducts: false, cartItems: 1, totalQuantity: 30}
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: {vatData: undefined, vatRate: 0, dutiesRate: 0, subtotalAmount: 35490, vatAmount: 0, …}
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 35490, totalTaxAmount: 0, finalShippingCost: 0, regularShippingCost: 0, smartDeliveryCost: 0, …}
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: undefined, walletBalance: 0, canUseWallet: false, totalAmount: 35490, existingCustomer: true, …}
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+ 🚚 [BILINGUAL FORM] ===== SHIPPING RATES QUERY STARTED =====
+bilingual-purchase-form.tsx:692 🚚 [BILINGUAL FORM] Fetching shipping rates with flammable filtering... {containsFlammableProducts: false, cartProducts: Array(1)}
+bilingual-purchase-form.tsx:782 === BilingualPurchaseForm Address Debug ===
+bilingual-purchase-form.tsx:783 existingCustomer from parent: {id: 94, firstName: 'Omid', lastName: 'Mohammad', email: 'water@momtazchem.com', company: 'Momtazchem Chemical Solutions', …}
+bilingual-purchase-form.tsx:784 customerData from API: {success: true, customer: {…}}
+bilingual-purchase-form.tsx:785 crmCustomerData from API: undefined
+bilingual-purchase-form.tsx:786 isLoadingCustomer: false
+bilingual-purchase-form.tsx:797 Using existingCustomer from parent
+bilingual-purchase-form.tsx:804 Customer object found: {id: 94, firstName: 'Omid', lastName: 'Mohammad', email: 'water@momtazchem.com', company: 'Momtazchem Chemical Solutions', …}
+bilingual-purchase-form.tsx:805 Customer firstName: Omid
+bilingual-purchase-form.tsx:806 Customer lastName: Mohammad
+bilingual-purchase-form.tsx:807 Customer phone: +9647503533769
+bilingual-purchase-form.tsx:808 Customer address: NAGwer Road, Qaryataq Village, Erbil, Iraq
+bilingual-purchase-form.tsx:809 Customer secondaryAddress: NAGwer Road, Qaryataq Village, Erbil, Iraq
+bilingual-purchase-form.tsx:810 Customer city: 
+bilingual-purchase-form.tsx:811 Customer country: Iraq
+bilingual-purchase-form.tsx:812 Customer postalCode: 44001
+bilingual-purchase-form.tsx:815 Full name constructed: Omid Mohammad
+bilingual-purchase-form.tsx:839 🏠 [ADDRESS DEBUG] Enhanced address mapping result: {originalCustomer: {…}, mappedAddress: 'NAGwer Road, Qaryataq Village, Erbil, Iraq', mappedCity: 'Erbil', mappedProvince: 'Erbil', addressSources: {…}, …}
+bilingual-purchase-form.tsx:880 Form data to reset: {customerName: 'Omid Mohammad', phone: '+9647503533769', address: 'NAGwer Road, Qaryataq Village, Erbil, Iraq', city: 'Erbil', country: 'Iraq', …}
+bilingual-purchase-form.tsx:882 Form reset completed
+bilingual-purchase-form.tsx:886 === End BilingualPurchaseForm Debug ===
+bilingual-purchase-form.tsx:959 🚚 [AUTO-SELECT DEBUG] useEffect triggered: {shippingRatesLength: undefined, selectedShippingMethod: null, hasShippingData: false}
+bilingual-purchase-form.tsx:974 🚚 Shipping cost calculation: {selectedShippingMethod: null, hasShippingData: false, subtotalAmount: 35490}
+bilingual-purchase-form.tsx:1017 🔄 No shipping method selected or no data, resetting cost
+bilingual-purchase-form.tsx:1024 Shipping rates state: {isLoadingShippingRates: true, shippingRatesError: null, dataLength: 0, data: undefined}
+bilingual-purchase-form.tsx:1354 🚚 [DELIVERY CALCULATION] Final destination determined: {showSecondAddress: false, secondCity: '', secondProvince: '', crmCityRegion: undefined, crmCity: undefined, …}
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (5) [{…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: []
+shop.tsx:710 Shop Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+shop.tsx:710 Shop Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+shop.tsx:710 Shop Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: {vatData: undefined, vatRate: 0, dutiesRate: 0, subtotalAmount: 35490, vatAmount: 0, …}
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 35490, totalTaxAmount: 0, finalShippingCost: 0, regularShippingCost: 0, smartDeliveryCost: 0, …}
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: undefined, walletBalance: 0, canUseWallet: false, totalAmount: 35490, existingCustomer: true, …}
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:1354 🚚 [DELIVERY CALCULATION] Final destination determined: {showSecondAddress: false, secondCity: '', secondProvince: '', crmCityRegion: undefined, crmCity: undefined, …}
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: {vatData: undefined, vatRate: 0, dutiesRate: 0, subtotalAmount: 35490, vatAmount: 0, …}
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 35490, totalTaxAmount: 0, finalShippingCost: 0, regularShippingCost: 0, smartDeliveryCost: 0, …}
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: undefined, walletBalance: 0, canUseWallet: false, totalAmount: 35490, existingCustomer: true, …}
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:472 CRM Customer API response: {success: true, data: {…}}
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: {vatData: undefined, vatRate: 0, dutiesRate: 0, subtotalAmount: 35490, vatAmount: 0, …}
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 35490, totalTaxAmount: 0, finalShippingCost: 0, regularShippingCost: 0, smartDeliveryCost: 0, …}
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: undefined, walletBalance: 0, canUseWallet: false, totalAmount: 35490, existingCustomer: true, …}
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:782 === BilingualPurchaseForm Address Debug ===
+bilingual-purchase-form.tsx:783 existingCustomer from parent: {id: 94, firstName: 'Omid', lastName: 'Mohammad', email: 'water@momtazchem.com', company: 'Momtazchem Chemical Solutions', …}
+bilingual-purchase-form.tsx:784 customerData from API: {success: true, customer: {…}}
+bilingual-purchase-form.tsx:785 crmCustomerData from API: {id: 94, email: 'water@momtazchem.com', passwordHash: '$2b$10$FcMjfQMzXbFiUzB/dhYUfOfvR2mnNTjPFxIIt/S1qGD.6xkBmsNOW', firstName: 'Omid', lastName: 'Mohammad', …}
+bilingual-purchase-form.tsx:786 isLoadingCustomer: false
+bilingual-purchase-form.tsx:794 Using CRM customer data (most complete)
+bilingual-purchase-form.tsx:804 Customer object found: {id: 94, email: 'water@momtazchem.com', passwordHash: '$2b$10$FcMjfQMzXbFiUzB/dhYUfOfvR2mnNTjPFxIIt/S1qGD.6xkBmsNOW', firstName: 'Omid', lastName: 'Mohammad', …}
+bilingual-purchase-form.tsx:805 Customer firstName: Omid
+bilingual-purchase-form.tsx:806 Customer lastName: Mohammad
+bilingual-purchase-form.tsx:807 Customer phone: +9647503533769
+bilingual-purchase-form.tsx:808 Customer address: NAGwer Road, Qaryataq Village, Erbil, Iraq
+bilingual-purchase-form.tsx:809 Customer secondaryAddress: NAGwer Road, Qaryataq Village, Erbil, Iraq
+bilingual-purchase-form.tsx:810 Customer city: undefined
+bilingual-purchase-form.tsx:811 Customer country: Iraq
+bilingual-purchase-form.tsx:812 Customer postalCode: 44001
+bilingual-purchase-form.tsx:815 Full name constructed: Omid Mohammad
+bilingual-purchase-form.tsx:839 🏠 [ADDRESS DEBUG] Enhanced address mapping result: {originalCustomer: {…}, mappedAddress: 'NAGwer Road, Qaryataq Village, Erbil, Iraq', mappedCity: 'Erbil', mappedProvince: 'Erbil', addressSources: {…}, …}
+bilingual-purchase-form.tsx:880 Form data to reset: {customerName: 'Omid Mohammad', phone: '+9647503533769', address: 'NAGwer Road, Qaryataq Village, Erbil, Iraq', city: 'Erbil', country: 'Iraq', …}
+bilingual-purchase-form.tsx:882 Form reset completed
+bilingual-purchase-form.tsx:886 === End BilingualPurchaseForm Debug ===
+bilingual-purchase-form.tsx:1354 🚚 [DELIVERY CALCULATION] Final destination determined: {showSecondAddress: false, secondCity: '', secondProvince: '', crmCityRegion: 'Erbil', crmCity: undefined, …}
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: {vatData: undefined, vatRate: 0, dutiesRate: 0, subtotalAmount: 35490, vatAmount: 0, …}
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 35490, totalTaxAmount: 0, finalShippingCost: 0, regularShippingCost: 0, smartDeliveryCost: 0, …}
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: undefined, walletBalance: 0, canUseWallet: false, totalAmount: 35490, existingCustomer: true, …}
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+queryClient.ts:54  GET https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/shop/settings 401 (Unauthorized)
+apiRequest @ queryClient.ts:54
+queryFn @ bilingual-purchase-form.tsx:543
+fetchFn @ @tanstack_react-query.js?v=402f8972:840
+run @ @tanstack_react-query.js?v=402f8972:494
+start @ @tanstack_react-query.js?v=402f8972:536
+fetch @ @tanstack_react-query.js?v=402f8972:926
+executeFetch_fn @ @tanstack_react-query.js?v=402f8972:2211
+onSubscribe @ @tanstack_react-query.js?v=402f8972:1898
+subscribe @ @tanstack_react-query.js?v=402f8972:24
+(anonymous) @ @tanstack_react-query.js?v=402f8972:3022
+subscribeToStore @ chunk-RPCDYKBN.js?v=402f8972:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=402f8972:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=402f8972:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=402f8972:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=402f8972:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=402f8972:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=402f8972:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=402f8972:19447
+commitRootImpl @ chunk-RPCDYKBN.js?v=402f8972:19416
+commitRoot @ chunk-RPCDYKBN.js?v=402f8972:19277
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=402f8972:18895
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=402f8972:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=402f8972:18627
+queryClient.ts:54  GET https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/shop/proforma-reminders 401 (Unauthorized)
+apiRequest @ queryClient.ts:54
+queryFn @ bilingual-purchase-form.tsx:559
+fetchFn @ @tanstack_react-query.js?v=402f8972:840
+run @ @tanstack_react-query.js?v=402f8972:494
+start @ @tanstack_react-query.js?v=402f8972:536
+fetch @ @tanstack_react-query.js?v=402f8972:926
+executeFetch_fn @ @tanstack_react-query.js?v=402f8972:2211
+onSubscribe @ @tanstack_react-query.js?v=402f8972:1898
+subscribe @ @tanstack_react-query.js?v=402f8972:24
+(anonymous) @ @tanstack_react-query.js?v=402f8972:3022
+subscribeToStore @ chunk-RPCDYKBN.js?v=402f8972:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=402f8972:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=402f8972:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=402f8972:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=402f8972:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=402f8972:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=402f8972:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=402f8972:19447
+commitRootImpl @ chunk-RPCDYKBN.js?v=402f8972:19416
+commitRoot @ chunk-RPCDYKBN.js?v=402f8972:19277
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=402f8972:18895
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=402f8972:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=402f8972:18627
+queryClient.ts:70 Failed to parse JSON response: TypeError: Failed to execute 'json' on 'Response': body stream already read
+    at apiRequest (queryClient.ts:68:22)
+    at async queryFn (bilingual-purchase-form.tsx:543:26)
+apiRequest @ queryClient.ts:70
+await in apiRequest
+queryFn @ bilingual-purchase-form.tsx:543
+fetchFn @ @tanstack_react-query.js?v=402f8972:840
+run @ @tanstack_react-query.js?v=402f8972:494
+start @ @tanstack_react-query.js?v=402f8972:536
+fetch @ @tanstack_react-query.js?v=402f8972:926
+executeFetch_fn @ @tanstack_react-query.js?v=402f8972:2211
+onSubscribe @ @tanstack_react-query.js?v=402f8972:1898
+subscribe @ @tanstack_react-query.js?v=402f8972:24
+(anonymous) @ @tanstack_react-query.js?v=402f8972:3022
+subscribeToStore @ chunk-RPCDYKBN.js?v=402f8972:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=402f8972:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=402f8972:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=402f8972:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=402f8972:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=402f8972:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=402f8972:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=402f8972:19447
+commitRootImpl @ chunk-RPCDYKBN.js?v=402f8972:19416
+commitRoot @ chunk-RPCDYKBN.js?v=402f8972:19277
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=402f8972:18895
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=402f8972:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=402f8972:18627
+bilingual-purchase-form.tsx:546 Error fetching shop settings: Error: Invalid JSON response from server
+    at apiRequest (queryClient.ts:71:11)
+    at async queryFn (bilingual-purchase-form.tsx:543:26)
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: {vatData: undefined, vatRate: 0, dutiesRate: 0, subtotalAmount: 35490, vatAmount: 0, …}
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 35490, totalTaxAmount: 0, finalShippingCost: 0, regularShippingCost: 0, smartDeliveryCost: 0, …}
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: undefined, walletBalance: 0, canUseWallet: false, totalAmount: 35490, existingCustomer: true, …}
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+queryClient.ts:70 Failed to parse JSON response: TypeError: Failed to execute 'json' on 'Response': body stream already read
+    at apiRequest (queryClient.ts:68:22)
+    at async queryFn (bilingual-purchase-form.tsx:559:26)
+apiRequest @ queryClient.ts:70
+await in apiRequest
+queryFn @ bilingual-purchase-form.tsx:559
+fetchFn @ @tanstack_react-query.js?v=402f8972:840
+run @ @tanstack_react-query.js?v=402f8972:494
+start @ @tanstack_react-query.js?v=402f8972:536
+fetch @ @tanstack_react-query.js?v=402f8972:926
+executeFetch_fn @ @tanstack_react-query.js?v=402f8972:2211
+onSubscribe @ @tanstack_react-query.js?v=402f8972:1898
+subscribe @ @tanstack_react-query.js?v=402f8972:24
+(anonymous) @ @tanstack_react-query.js?v=402f8972:3022
+subscribeToStore @ chunk-RPCDYKBN.js?v=402f8972:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=402f8972:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=402f8972:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=402f8972:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=402f8972:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=402f8972:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=402f8972:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=402f8972:19447
+commitRootImpl @ chunk-RPCDYKBN.js?v=402f8972:19416
+commitRoot @ chunk-RPCDYKBN.js?v=402f8972:19277
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=402f8972:18895
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=402f8972:9119
+(anonymous) @ chunk-RPCDYKBN.js?v=402f8972:18627
+bilingual-purchase-form.tsx:562 Error fetching reminder schedules: Error: Invalid JSON response from server
+    at apiRequest (queryClient.ts:71:11)
+    at async queryFn (bilingual-purchase-form.tsx:559:26)
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: {vatData: undefined, vatRate: 0, dutiesRate: 0, subtotalAmount: 35490, vatAmount: 0, …}
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 35490, totalTaxAmount: 0, finalShippingCost: 0, regularShippingCost: 0, smartDeliveryCost: 0, …}
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: {…}, walletBalance: 15077487, canUseWallet: true, totalAmount: 35490, existingCustomer: true, …}
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: {vatData: undefined, vatRate: 0, dutiesRate: 0, subtotalAmount: 35490, vatAmount: 0, …}
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 35490, totalTaxAmount: 0, finalShippingCost: 0, regularShippingCost: 0, smartDeliveryCost: 0, …}
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: {…}, walletBalance: 15077487, canUseWallet: true, totalAmount: 35490, existingCustomer: true, …}
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: {vatData: undefined, vatRate: 0, dutiesRate: 0, subtotalAmount: 35490, vatAmount: 0, …}
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 35490, totalTaxAmount: 0, finalShippingCost: 0, regularShippingCost: 0, smartDeliveryCost: 0, …}
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: {…}, walletBalance: 15077487, canUseWallet: true, totalAmount: 35490, existingCustomer: true, …}
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:621 💰 [VAT] Tax settings API response: {success: true, data: Array(1)}
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: {vatData: {…}, vatRate: 0, dutiesRate: 0, subtotalAmount: 35490, vatAmount: 0, …}
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 35490, totalTaxAmount: 0, finalShippingCost: 0, regularShippingCost: 0, smartDeliveryCost: 0, …}
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: {…}, walletBalance: 15077487, canUseWallet: true, totalAmount: 35490, existingCustomer: true, …}
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:708 📦 [BILINGUAL FORM] Raw shipping rates API response: {success: true, data: Array(4)}
+bilingual-purchase-form.tsx:743 ✅ [BILINGUAL FORM] Successfully loaded shipping rates: 4 methods
+bilingual-purchase-form.tsx:744 🚚 [BILINGUAL FORM] Shipping rates details: (4) [{…}, {…}, {…}, {…}]
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: {vatData: {…}, vatRate: 0, dutiesRate: 0, subtotalAmount: 35490, vatAmount: 0, …}
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 35490, totalTaxAmount: 0, finalShippingCost: 0, regularShippingCost: 0, smartDeliveryCost: 0, …}
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: {…}, walletBalance: 15077487, canUseWallet: true, totalAmount: 35490, existingCustomer: true, …}
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:959 🚚 [AUTO-SELECT DEBUG] useEffect triggered: {shippingRatesLength: 4, selectedShippingMethod: null, hasShippingData: true}
+bilingual-purchase-form.tsx:967 🚚 [AUTO-SELECT] Auto-selecting first shipping method: 34 undefined
+bilingual-purchase-form.tsx:974 🚚 Shipping cost calculation: {selectedShippingMethod: null, hasShippingData: true, subtotalAmount: 35490}
+bilingual-purchase-form.tsx:1017 🔄 No shipping method selected or no data, resetting cost
+bilingual-purchase-form.tsx:1024 Shipping rates state: {isLoadingShippingRates: false, shippingRatesError: null, dataLength: 4, data: Array(4)}
+bilingual-purchase-form.tsx:1056 🚚 [AUTO SELECT] Auto-selecting smart vehicle method: 32
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: {vatData: {…}, vatRate: 0, dutiesRate: 0, subtotalAmount: 35490, vatAmount: 0, …}
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 35490, totalTaxAmount: 0, finalShippingCost: 0, regularShippingCost: 0, smartDeliveryCost: 0, …}
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: {…}, walletBalance: 15077487, canUseWallet: true, totalAmount: 35490, existingCustomer: true, …}
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:959 🚚 [AUTO-SELECT DEBUG] useEffect triggered: {shippingRatesLength: 4, selectedShippingMethod: 32, hasShippingData: true}
+bilingual-purchase-form.tsx:974 🚚 Shipping cost calculation: {selectedShippingMethod: 32, hasShippingData: true, subtotalAmount: 35490}
+bilingual-purchase-form.tsx:982 📦 Selected shipping rate: {id: 32, deliveryMethod: 'smart_vehicle', transportationType: 'smart', cityName: null, provinceName: null, …}
+bilingual-purchase-form.tsx:989 ✅ SPECIAL DELIVERY METHOD: Zero cost for smart_vehicle
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: {vatData: {…}, vatRate: 0, dutiesRate: 0, subtotalAmount: 35490, vatAmount: 0, …}
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 35490, totalTaxAmount: 0, finalShippingCost: 0, regularShippingCost: 0, smartDeliveryCost: 0, …}
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: {…}, walletBalance: 15077487, canUseWallet: true, totalAmount: 35490, existingCustomer: true, …}
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:1241 🚚 [SMART DELIVERY] Calculating cost for: {weight: 450, city: 'Erbil', province: 'Erbil', estimatedDistance: 200, cartItems: 1}
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: {vatData: {…}, vatRate: 0, dutiesRate: 0, subtotalAmount: 35490, vatAmount: 0, …}
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 35490, totalTaxAmount: 0, finalShippingCost: 0, regularShippingCost: 0, smartDeliveryCost: 0, …}
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: {…}, walletBalance: 15077487, canUseWallet: true, totalAmount: 35490, existingCustomer: true, …}
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:1269 🚚 [SMART DELIVERY] API response: {success: true, selectedVehicle: {…}, alternatives: Array(2), selectionCriteria: {…}, data: {…}}
+bilingual-purchase-form.tsx:1319 ✅ [SMART DELIVERY] Single vehicle cost calculated: {vehicle: 'پیکاپ', cost: 250000, basePrice: 150000, distanceCost: 100000}
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: {vatData: {…}, vatRate: 0, dutiesRate: 0, subtotalAmount: 35490, vatAmount: 0, …}
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 35490, totalTaxAmount: 0, finalShippingCost: 250000, regularShippingCost: 0, smartDeliveryCost: 250000, …}
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: {…}, walletBalance: 15077487, canUseWallet: true, totalAmount: 285490, existingCustomer: true, …}
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: {vatData: {…}, vatRate: 0, dutiesRate: 0, subtotalAmount: 35490, vatAmount: 0, …}
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 35490, totalTaxAmount: 0, finalShippingCost: 250000, regularShippingCost: 0, smartDeliveryCost: 250000, …}
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: {…}, walletBalance: 15077487, canUseWallet: true, totalAmount: 285490, existingCustomer: true, …}
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (5) [{…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: []
+shop.tsx:710 Shop Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+shop.tsx:710 Shop Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+shop.tsx:710 Shop Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: {vatData: {…}, vatRate: 0, dutiesRate: 0, subtotalAmount: 35490, vatAmount: 0, …}
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 35490, totalTaxAmount: 0, finalShippingCost: 250000, regularShippingCost: 0, smartDeliveryCost: 250000, …}
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: {…}, walletBalance: 15077487, canUseWallet: true, totalAmount: 285490, existingCustomer: true, …}
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: {vatData: {…}, vatRate: 0, dutiesRate: 0, subtotalAmount: 35490, vatAmount: 0, …}
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 35490, totalTaxAmount: 0, finalShippingCost: 250000, regularShippingCost: 0, smartDeliveryCost: 250000, …}
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: {…}, walletBalance: 15077487, canUseWallet: true, totalAmount: 285490, existingCustomer: true, …}
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: {vatData: {…}, vatRate: 0, dutiesRate: 0, subtotalAmount: 35490, vatAmount: 0, …}
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 35490, totalTaxAmount: 0, finalShippingCost: 250000, regularShippingCost: 0, smartDeliveryCost: 250000, …}
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: {…}, walletBalance: 15077487, canUseWallet: true, totalAmount: 285490, existingCustomer: true, …}
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: {vatData: {…}, vatRate: 0, dutiesRate: 0, subtotalAmount: 35490, vatAmount: 0, …}
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 35490, totalTaxAmount: 0, finalShippingCost: 250000, regularShippingCost: 0, smartDeliveryCost: 250000, …}
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: {…}, walletBalance: 15077487, canUseWallet: true, totalAmount: 285490, existingCustomer: true, …}
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:1121 🔄 [AUTO WALLET] wallet_combined selected - setting walletAmount: {paymentMethod: 'wallet_combined', walletBalance: 15077487, totalAmount: 285490, maxUsage: 285490, autoSetValue: 285490}
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: {vatData: {…}, vatRate: 0, dutiesRate: 0, subtotalAmount: 35490, vatAmount: 0, …}
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 35490, totalTaxAmount: 0, finalShippingCost: 250000, regularShippingCost: 0, smartDeliveryCost: 250000, …}
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: {…}, walletBalance: 15077487, canUseWallet: true, totalAmount: 285490, existingCustomer: true, …}
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:2826 🔘 [BUTTON DEBUG] Submit button clicked - drag protection active
+bilingual-purchase-form.tsx:2827 🔘 [BUTTON DEBUG] Mutation pending: false
+bilingual-purchase-form.tsx:2828 🔘 [BUTTON DEBUG] Form valid: false
+bilingual-purchase-form.tsx:2829 🔘 [BUTTON DEBUG] Form errors: {}
+bilingual-purchase-form.tsx:2830 🔘 [BUTTON DEBUG] Selected shipping method: 32
+bilingual-purchase-form.tsx:2831 🔘 [BUTTON DEBUG] Payment method: wallet_combined
+bilingual-purchase-form.tsx:2835 🔘 [BUTTON DEBUG] Forcing form submission via handleSubmit
+bilingual-purchase-form.tsx:1646 🚀 [SUBMIT DEBUG] onSubmit function called
+bilingual-purchase-form.tsx:1647 🚀 [SUBMIT DEBUG] Form data received: {customerName: 'Omid Mohammad', phone: '+9647503533769', address: 'NAGwer Road, Qaryataq Village, Erbil, Iraq', city: 'Erbil', country: 'Iraq', …}
+bilingual-purchase-form.tsx:1648 🚀 [SUBMIT DEBUG] Selected shipping method: 32
+bilingual-purchase-form.tsx:1649 🚀 [SUBMIT DEBUG] Payment method: wallet_combined
+bilingual-purchase-form.tsx:1650 🚀 [SUBMIT DEBUG] Form validation state: {defaultValues: {…}, …}
+bilingual-purchase-form.tsx:1651 🚀 [SUBMIT DEBUG] Form errors: {}
+bilingual-purchase-form.tsx:1652 🚀 [SUBMIT DEBUG] Mutation pending before submit: false
+bilingual-purchase-form.tsx:1722 🚚 [DELIVERY LOGIC] Active delivery information: {activeAddress: 'NAGwer Road, Qaryataq Village, Erbil, Iraq', activeCity: 'Erbil', activeProvince: 'Erbil', activePostalCode: '44001', activePhone: '+9647503533769', …}
+bilingual-purchase-form.tsx:1725 🚗 [VEHICLE DEBUG] optimalVehicle state at order submission: {optimalVehicle: {…}, vehicleNameProperty: 'پیکاپ', nameProperty: undefined, vehicleTypeProperty: undefined, finalVehicleType: 'پیکاپ', …}
+bilingual-purchase-form.tsx:1738 🔍 [PAYMENT ANALYSIS] Before conversion: {paymentMethod: 'wallet_combined', walletAmount: 285490, totalAmount: 285490, walletBalance: 15077487, canUseWallet: true, …}
+bilingual-purchase-form.tsx:1752 🔄 [PAYMENT CONVERSION] wallet_combined → wallet_full (user entered sufficient amount)
+bilingual-purchase-form.tsx:1784 🚀 [ORDER SUBMIT] Submitting order with complete data: {endpoint: '/api/customers/orders', originalPaymentMethod: 'wallet_combined', finalPaymentMethod: 'wallet_full', totalAmount: 285490, walletBalance: 15077487, …}
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: {vatData: {…}, vatRate: 0, dutiesRate: 0, subtotalAmount: 35490, vatAmount: 0, …}
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 35490, totalTaxAmount: 0, finalShippingCost: 250000, regularShippingCost: 0, smartDeliveryCost: 250000, …}
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: {…}, walletBalance: 15077487, canUseWallet: true, totalAmount: 285490, existingCustomer: true, …}
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:1062 💰 [PURCHASE FORM] Tax calculation: {vatData: {…}, vatRate: 0, dutiesRate: 0, subtotalAmount: 35490, vatAmount: 0, …}
+bilingual-purchase-form.tsx:1095 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 35490, totalTaxAmount: 0, finalShippingCost: 250000, regularShippingCost: 0, smartDeliveryCost: 250000, …}
+bilingual-purchase-form.tsx:1133 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: {…}, walletBalance: 15077487, canUseWallet: true, totalAmount: 285490, existingCustomer: true, …}
+bilingual-purchase-form.tsx:935 BilingualForm Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+bilingual-purchase-form.tsx:1398 🚀 [ORDER CREATION] Creating order with payment method: wallet_full
+bilingual-purchase-form.tsx:1447 🎯 [ORDER SUCCESS] Order response received: {success: true, message: 'سفارش با موفقیت ثبت شد - در انتظار تایید واحد مالی', orderId: 139, orderNumber: 'M2511637', totalAmount: 285490, …}
+bilingual-purchase-form.tsx:1448 🎯 [ORDER SUCCESS] Response type: object
+bilingual-purchase-form.tsx:1449 🎯 [ORDER SUCCESS] Response keys: (10) ['success', 'message', 'orderId', 'orderNumber', 'totalAmount', 'walletAmountUsed', 'remainingAmount', 'paymentStatus', 'requiresBankPayment', 'directToWarehouse']
+bilingual-purchase-form.tsx:1457 💳 [PAYMENT DECISION] RESPECTING CUSTOMER CHOICE: {paymentMethod: 'wallet_combined', customerChoseWallet: false, remainingAmount: 0, isFullyPaidByWallet: false, requiresBankPayment: false, …}
+usePersistentCart.ts:201 🗑️ Clearing cart..., authenticated: true
+usePersistentCart.ts:206 🛒 Clearing cart in database for customer 94
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (5) [{…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: []
+shop.tsx:710 Shop Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+shop.tsx:710 Shop Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+shop.tsx:710 Shop Product NPK Fertilizer 20-20-20: quantity=30, basePrice=1300, discount=0.09, discountedPrice=1183
+useAuth.ts:30  GET https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me 401 (Unauthorized)
+queryFn @ useAuth.ts:30
+fetchFn @ @tanstack_react-query.js?v=402f8972:840
+run @ @tanstack_react-query.js?v=402f8972:494
+start @ @tanstack_react-query.js?v=402f8972:536
+fetch @ @tanstack_react-query.js?v=402f8972:926
+executeFetch_fn @ @tanstack_react-query.js?v=402f8972:2211
+(anonymous) @ @tanstack_react-query.js?v=402f8972:2245
+setInterval
+updateRefetchInterval_fn @ @tanstack_react-query.js?v=402f8972:2243
+updateTimers_fn @ @tanstack_react-query.js?v=402f8972:2250
+onQueryUpdate @ @tanstack_react-query.js?v=402f8972:2206
+(anonymous) @ @tanstack_react-query.js?v=402f8972:998
+(anonymous) @ @tanstack_react-query.js?v=402f8972:997
+batch @ @tanstack_react-query.js?v=402f8972:583
+dispatch_fn @ @tanstack_react-query.js?v=402f8972:996
+setData @ @tanstack_react-query.js?v=402f8972:696
+onSuccess @ @tanstack_react-query.js?v=402f8972:897
+resolve @ @tanstack_react-query.js?v=402f8972:456
+Promise.then
+run @ @tanstack_react-query.js?v=402f8972:498
+start @ @tanstack_react-query.js?v=402f8972:536
+fetch @ @tanstack_react-query.js?v=402f8972:926
+executeFetch_fn @ @tanstack_react-query.js?v=402f8972:2211
+onSubscribe @ @tanstack_react-query.js?v=402f8972:1898
+subscribe @ @tanstack_react-query.js?v=402f8972:24
+(anonymous) @ @tanstack_react-query.js?v=402f8972:3022
+subscribeToStore @ chunk-RPCDYKBN.js?v=402f8972:11984
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=402f8972:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=402f8972:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=402f8972:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=402f8972:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=402f8972:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=402f8972:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=402f8972:19447
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=402f8972:18868
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=402f8972:9119
+commitRootImpl @ chunk-RPCDYKBN.js?v=402f8972:19432
+commitRoot @ chunk-RPCDYKBN.js?v=402f8972:19277
+finishConcurrentRender @ chunk-RPCDYKBN.js?v=402f8972:18805
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=402f8972:18718
+workLoop @ chunk-RPCDYKBN.js?v=402f8972:197
+flushWork @ chunk-RPCDYKBN.js?v=402f8972:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=402f8972:384
+usePersistentCart.ts:210 ✅ Cart cleared from database
+usePersistentCart.ts:222 ✅ Local cart cleared
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (5) [{…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: []
+usePersistentCart.ts:68 🛒 Loading persistent cart for customer: 94
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (5) [{…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: []
+usePersistentCart.ts:87 🛒 Loaded cart from database: {}
+shop.tsx:228 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+shop.tsx:229 🎛️ [VISIBILITY] Discount Banner: true
+shop.tsx:253 🌟 [RATINGS DEBUG] Product stats loaded: 9 products with ratings
+shop.tsx:254 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}}
+shop.tsx:258 🌟 [RATINGS DEBUG] Current products: (5) [{…}, {…}, {…}, {…}, {…}]
+shop.tsx:259 🌟 [RATINGS DEBUG] Products with ratings: []

@@ -1,0 +1,169 @@
+ Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ Auth check result: Object
+ 📥 Loading Tawk.to widget at bottom-left position...
+ ✅ Tawk.to Live Chat loaded successfully at bottom-left
+ 
+value @ twk-chunk-common.js:2
+about:blank:1 [Intervention] Slow network is detected. See https://www.chromestatus.com/feature/5636954674692096 for more details. Fallback font will be used while loading: https://embed.tawk.to/_s/v4/assets/fonts/tawk-font-icon-3.woff?55755728=
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+128x128?text=WeChat+QR:1  Failed to load resource: net::ERR_NAME_NOT_RESOLVED
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] useEffect triggered, userPermissions: undefined
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] useEffect triggered, userPermissions: Object
+ 🔍 [DEBUG] userPermissions modules: Array(36)
+ 🔍 [DEBUG] Full userPermissions response: Object
+ 🔍 [DEBUG] userPermissions.modules: Array(36)
+ 🔍 [DEBUG] userPermissions.permissions: Array(36)
+ 🔍 [DEBUG] Total allButtons count: 40
+ 🔍 [DEBUG] AI Settings exists in allButtons: true
+ 🔍 [DEBUG] Content Management exists in allButtons: true
+ 🔍 [DEBUG] allowedModules: Array(36)
+ 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+ 🔍 [DEBUG] management_dashboard in allowedModules? true
+ 🔍 [DEBUG] finance in allowedModules? true
+ 🔍 [DEBUG] geography_analytics in allowedModules? true
+ 🔍 [DEBUG] ai_settings in allowedModules? true
+ 🔍 [DEBUG] content_management in allowedModules? true
+ 🔍 [CRITICAL] Missing button detection:
+ 🔍 [MISSING] marketplace-management Marketplace Management moduleId: marketplace_management
+ 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+ 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+ 🔍 [CRITICAL] Missing buttons count: 3
+ 🔍 [DEBUG] finance button found in allButtons? Object
+ 🔍 [DEBUG] geography_analytics button found in allButtons? Object
+ 🔍 [DEBUG] ai_settings button found in allButtons? Object
+ 🔍 [DEBUG] content_management button found in allButtons? Object
+ 🔍 [DEBUG] finance button in filtered? Object
+ 🔍 [DEBUG] geography_analytics button in filtered? Object
+ 🔍 [DEBUG] ai_settings button in filtered? Object
+ 🔍 [DEBUG] content_management button in filtered? Object
+ 🔍 [DEBUG] filtered buttons count: 37
+ 🔍 [DEBUG] First 5 filtered buttons: Array(5)
+ 🔍 [DEBUG] AI Control button in filtered: Object
+ 🔍 [DEBUG] Content Management button in filtered: Object
+ 🔍 [DEBUG] Site Management component initialized
+ 🔄 [FINAL ORDER] Orders after sorting: Array(0)
+ 🔍 [DEBUG] Full userPermissions response: Object
+ 🔍 [DEBUG] userPermissions.modules: Array(36)
+ 🔍 [DEBUG] userPermissions.permissions: Array(36)
+ 🔍 [DEBUG] Total allButtons count: 40
+ 🔍 [DEBUG] AI Settings exists in allButtons: true
+ 🔍 [DEBUG] Content Management exists in allButtons: true
+ 🔍 [DEBUG] allowedModules: Array(36)
+ 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+ 🔍 [DEBUG] management_dashboard in allowedModules? true
+ 🔍 [DEBUG] finance in allowedModules? true
+ 🔍 [DEBUG] geography_analytics in allowedModules? true
+ 🔍 [DEBUG] ai_settings in allowedModules? true
+ 🔍 [DEBUG] content_management in allowedModules? true
+ 🔍 [CRITICAL] Missing button detection:
+ 🔍 [MISSING] marketplace-management Marketplace Management moduleId: marketplace_management
+ 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+ 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+ 🔍 [CRITICAL] Missing buttons count: 3
+ 🔍 [DEBUG] finance button found in allButtons? Object
+ 🔍 [DEBUG] geography_analytics button found in allButtons? Object
+ 🔍 [DEBUG] ai_settings button found in allButtons? Object
+ 🔍 [DEBUG] content_management button found in allButtons? Object
+ 🔍 [DEBUG] finance button in filtered? Object
+ 🔍 [DEBUG] geography_analytics button in filtered? Object
+ 🔍 [DEBUG] ai_settings button in filtered? Object
+ 🔍 [DEBUG] content_management button in filtered? Object
+ Auth check result: Object
+ 🔄 [FINAL ORDER] Orders after sorting: Array(1)
+ 🔄 [FINAL ORDER] Orders after sorting: Array(1)
+ 🔄 [FINAL ORDER] Orders after sorting: Array(1)
+ Object
+ 🔄 [FINAL ORDER] Orders after sorting: Array(1)
+ 🔄 [FINAL ORDER] Orders after sorting: Array(1)
+ 🔄 [FINAL ORDER] Orders after sorting: Array(1)
+ 🔄 [FINAL ORDER] Orders after sorting: Array(1)
+ 🔄 [FINAL ORDER] Orders after sorting: Array(1)
+ Object
+ 🔄 [FINAL ORDER] Orders after sorting: Array(1)
+ 🔄 [FINAL ORDER] Orders after sorting: Array(1)
+ 🔄 [FINAL ORDER] Orders after sorting: Array(1)
+ 🔄 [FINAL ORDER] Orders after sorting: Array(1)
+ 🔄 [FINAL ORDER] Orders after sorting: Array(1)
+ Object
+ 🔄 [FINAL ORDER] Orders after sorting: Array(1)
+ 🔄 [FINAL ORDER] Orders after sorting: Array(1)
+ 🔄 [FINAL ORDER] Orders after sorting: Array(1)
+ 🔄 [FINAL ORDER] Orders after sorting: Array(1)
+ 🔄 [FINAL ORDER] Orders after sorting: Array(1)
+ Object
+ 🔄 [FINAL ORDER] Orders after sorting: Array(1)
+ 🔄 [FINAL ORDER] Orders after sorting: Array(0)
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ Auth check result: Object
+ 🔄 [FINAL ORDER] Orders after sorting: Array(0)
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] useEffect triggered, userPermissions: undefined
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] useEffect triggered, userPermissions: Object
+ 🔍 [DEBUG] userPermissions modules: Array(36)
+ 🔍 [DEBUG] Full userPermissions response: Object
+ 🔍 [DEBUG] userPermissions.modules: Array(36)
+ 🔍 [DEBUG] userPermissions.permissions: Array(36)
+ 🔍 [DEBUG] Total allButtons count: 40
+ 🔍 [DEBUG] AI Settings exists in allButtons: true
+ 🔍 [DEBUG] Content Management exists in allButtons: true
+ 🔍 [DEBUG] allowedModules: Array(36)
+ 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+ 🔍 [DEBUG] management_dashboard in allowedModules? true
+ 🔍 [DEBUG] finance in allowedModules? true
+ 🔍 [DEBUG] geography_analytics in allowedModules? true
+ 🔍 [DEBUG] ai_settings in allowedModules? true
+ 🔍 [DEBUG] content_management in allowedModules? true
+ 🔍 [CRITICAL] Missing button detection:
+ 🔍 [MISSING] marketplace-management Marketplace Management moduleId: marketplace_management
+ 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+ 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+ 🔍 [CRITICAL] Missing buttons count: 3
+ 🔍 [DEBUG] finance button found in allButtons? Object
+ 🔍 [DEBUG] geography_analytics button found in allButtons? Object
+ 🔍 [DEBUG] ai_settings button found in allButtons? Object
+site-management-fixed.tsx:476 🔍 [DEBUG] content_management button found in allButtons? Object
+site-management-fixed.tsx:477 🔍 [DEBUG] finance button in filtered? Object
+site-management-fixed.tsx:478 🔍 [DEBUG] geography_analytics button in filtered? Object
+site-management-fixed.tsx:479 🔍 [DEBUG] ai_settings button in filtered? Object
+site-management-fixed.tsx:480 🔍 [DEBUG] content_management button in filtered? Object
+site-management-fixed.tsx:75 🔍 [DEBUG] filtered buttons count: 37
+site-management-fixed.tsx:76 🔍 [DEBUG] First 5 filtered buttons: Array(5)
+site-management-fixed.tsx:77 🔍 [DEBUG] AI Control button in filtered: Object
+site-management-fixed.tsx:78 🔍 [DEBUG] Content Management button in filtered: Object
+site-management-fixed.tsx:24 🔍 [DEBUG] Site Management component initialized
+logistics-management.tsx:838 Company Info: undefined
+site-management-fixed.tsx:440 🔍 [DEBUG] Full userPermissions response: Object
+site-management-fixed.tsx:441 🔍 [DEBUG] userPermissions.modules: Array(36)
+site-management-fixed.tsx:442 🔍 [DEBUG] userPermissions.permissions: Array(36)
+site-management-fixed.tsx:447 🔍 [DEBUG] Total allButtons count: 40
+site-management-fixed.tsx:448 🔍 [DEBUG] AI Settings exists in allButtons: true
+site-management-fixed.tsx:449 🔍 [DEBUG] Content Management exists in allButtons: true
+site-management-fixed.tsx:451 🔍 [DEBUG] allowedModules: Array(36)
+site-management-fixed.tsx:452 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+site-management-fixed.tsx:453 🔍 [DEBUG] management_dashboard in allowedModules? true
+site-management-fixed.tsx:454 🔍 [DEBUG] finance in allowedModules? true
+site-management-fixed.tsx:455 🔍 [DEBUG] geography_analytics in allowedModules? true
+site-management-fixed.tsx:456 🔍 [DEBUG] ai_settings in allowedModules? true
+site-management-fixed.tsx:457 🔍 [DEBUG] content_management in allowedModules? true
+site-management-fixed.tsx:463 🔍 [CRITICAL] Missing button detection:
+site-management-fixed.tsx:467 🔍 [MISSING] marketplace-management Marketplace Management moduleId: marketplace_management
+site-management-fixed.tsx:467 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+site-management-fixed.tsx:467 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+site-management-fixed.tsx:471 🔍 [CRITICAL] Missing buttons count: 3
+site-management-fixed.tsx:473 🔍 [DEBUG] finance button found in allButtons? Object
+site-management-fixed.tsx:474 🔍 [DEBUG] geography_analytics button found in allButtons? Object
+site-management-fixed.tsx:475 🔍 [DEBUG] ai_settings button found in allButtons? Object
+site-management-fixed.tsx:476 🔍 [DEBUG] content_management button found in allButtons? Object
+site-management-fixed.tsx:477 🔍 [DEBUG] finance button in filtered? Object
+site-management-fixed.tsx:478 🔍 [DEBUG] geography_analytics button in filtered? Object
+site-management-fixed.tsx:479 🔍 [DEBUG] ai_settings button in filtered? Object
+site-management-fixed.tsx:480 🔍 [DEBUG] content_management button in filtered? Object
+logistics-management.tsx:838 Company Info: Object
+logistics-management.tsx:838 Company Info: Object
+logistics-management.tsx:878 🔍 [LOGISTICS MGMT] Frontend query recipient data: Object
+useOrderNotifications.ts:108 🔔 [LOGISTICS] نوتیفیکیشن: 11 سفارش جدید دریافت شد
+useAuth.ts:43 Auth check result: {success: true, user: {…}}

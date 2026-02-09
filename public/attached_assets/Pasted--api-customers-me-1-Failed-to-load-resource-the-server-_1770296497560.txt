@@ -1,0 +1,150 @@
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 ()
+ Auth check result: Object
+ 📥 Loading Tawk.to widget at bottom-left position...
+ ✅ Tawk.to Live Chat loaded successfully at bottom-left
+ 
+value @ twk-chunk-common.js:2
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] useEffect triggered, userPermissions: undefined
+128x128?text=WeChat+QR:1  Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] useEffect triggered, userPermissions: Object
+ 🔍 [DEBUG] userPermissions modules: Array(38)
+ 🔍 [DEBUG] Full userPermissions response: Object
+ 🔍 [DEBUG] userPermissions.modules: Array(38)
+ 🔍 [DEBUG] userPermissions.permissions: Array(38)
+ 🔍 [DEBUG] Total allButtons count: 40
+ 🔍 [DEBUG] AI Settings exists in allButtons: true
+ 🔍 [DEBUG] Content Management exists in allButtons: true
+ 🔍 [DEBUG] allowedModules: Array(38)
+index-47MnPl5N.js:1914 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+index-47MnPl5N.js:1914 🔍 [DEBUG] management_dashboard in allowedModules? true
+index-47MnPl5N.js:1914 🔍 [DEBUG] finance in allowedModules? true
+index-47MnPl5N.js:1914 🔍 [DEBUG] geography_analytics in allowedModules? true
+index-47MnPl5N.js:1914 🔍 [DEBUG] ai_settings in allowedModules? true
+index-47MnPl5N.js:1914 🔍 [DEBUG] content_management in allowedModules? true
+index-47MnPl5N.js:1914 🔍 [CRITICAL] Missing button detection:
+index-47MnPl5N.js:1914 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+index-47MnPl5N.js:1914 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+index-47MnPl5N.js:1914 🔍 [CRITICAL] Missing buttons count: 2
+index-47MnPl5N.js:1914 🔍 [DEBUG] finance button found in allButtons? Object
+index-47MnPl5N.js:1914 🔍 [DEBUG] geography_analytics button found in allButtons? Object
+index-47MnPl5N.js:1914 🔍 [DEBUG] ai_settings button found in allButtons? Object
+index-47MnPl5N.js:1914 🔍 [DEBUG] content_management button found in allButtons? Object
+index-47MnPl5N.js:1914 🔍 [DEBUG] finance button in filtered? Object
+index-47MnPl5N.js:1914 🔍 [DEBUG] geography_analytics button in filtered? Object
+index-47MnPl5N.js:1914 🔍 [DEBUG] ai_settings button in filtered? Object
+index-47MnPl5N.js:1914 🔍 [DEBUG] content_management button in filtered? Object
+index-47MnPl5N.js:1914 🔍 [DEBUG] filtered buttons count: 38
+index-47MnPl5N.js:1914 🔍 [DEBUG] First 5 filtered buttons: Array(5)
+index-47MnPl5N.js:1914 🔍 [DEBUG] AI Control button in filtered: Object
+index-47MnPl5N.js:1914 🔍 [DEBUG] Content Management button in filtered: Object
+index-47MnPl5N.js:1914 🔍 [DEBUG] Site Management component initialized
+index-47MnPl5N.js:1853 Barcode effect triggered:  Canvas ref: null
+index-47MnPl5N.js:1914 🔍 [DEBUG] Full userPermissions response: Object
+index-47MnPl5N.js:1914 🔍 [DEBUG] userPermissions.modules: Array(38)
+index-47MnPl5N.js:1914 🔍 [DEBUG] userPermissions.permissions: Array(38)
+index-47MnPl5N.js:1914 🔍 [DEBUG] Total allButtons count: 40
+index-47MnPl5N.js:1914 🔍 [DEBUG] AI Settings exists in allButtons: true
+index-47MnPl5N.js:1914 🔍 [DEBUG] Content Management exists in allButtons: true
+index-47MnPl5N.js:1914 🔍 [DEBUG] allowedModules: Array(38)
+index-47MnPl5N.js:1914 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+index-47MnPl5N.js:1914 🔍 [DEBUG] management_dashboard in allowedModules? true
+index-47MnPl5N.js:1914 🔍 [DEBUG] finance in allowedModules? true
+index-47MnPl5N.js:1914 🔍 [DEBUG] geography_analytics in allowedModules? true
+index-47MnPl5N.js:1914 🔍 [DEBUG] ai_settings in allowedModules? true
+index-47MnPl5N.js:1914 🔍 [DEBUG] content_management in allowedModules? true
+index-47MnPl5N.js:1914 🔍 [CRITICAL] Missing button detection:
+index-47MnPl5N.js:1914 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+index-47MnPl5N.js:1914 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+index-47MnPl5N.js:1914 🔍 [CRITICAL] Missing buttons count: 2
+index-47MnPl5N.js:1914 🔍 [DEBUG] finance button found in allButtons? Object
+index-47MnPl5N.js:1914 🔍 [DEBUG] geography_analytics button found in allButtons? Object
+index-47MnPl5N.js:1914 🔍 [DEBUG] ai_settings button found in allButtons? Object
+index-47MnPl5N.js:1914 🔍 [DEBUG] content_management button found in allButtons? Object
+index-47MnPl5N.js:1914 🔍 [DEBUG] finance button in filtered? Object
+index-47MnPl5N.js:1914 🔍 [DEBUG] geography_analytics button in filtered? Object
+index-47MnPl5N.js:1914 🔍 [DEBUG] ai_settings button in filtered? Object
+index-47MnPl5N.js:1914 🔍 [DEBUG] content_management button in filtered? Object
+index-47MnPl5N.js:1086 Auth check result: Object
+/api/products/%D8%AD%D9%84%D8%A7%D9%84%20%D8%AA%D9%88%D9%84%D9%88%D8%A6%D9%86%20%D8%B5%D9%86%D8%B9%D8%AA%DB%8C%20%DB%B9%DB%B9.5%25/batches/display:1  Failed to load resource: the server responded with a status of 400 ()
+index-47MnPl5N.js:1851 📦 Found 1 batches for barcode 8649677177800
+index-47MnPl5N.js:1853 Barcode effect triggered: 8649677177800 Canvas ref: null
+/api/products/27:1  Failed to load resource: the server responded with a status of 500 ()
+index-47MnPl5N.js:1855 ❌ [CATALOG DELETE] Failed to remove catalog: Error: 500: {"success":false,"message":"Internal server error","error":"Cannot access 'productData' before initialization"}
+    at Nae (index-47MnPl5N.js:48:45078)
+    at async bt (index-47MnPl5N.js:48:45336)
+    at async onClick (index-47MnPl5N.js:1855:28845)
+onClick @ index-47MnPl5N.js:1855
+index-47MnPl5N.js:1849 🔍 [DEBUG] Form submission - Raw form data: Object
+index-47MnPl5N.js:1849 🔍 [DEBUG] Tags in form data: شیمیایی Type: string
+index-47MnPl5N.js:1849 🔍 [DEBUG] Description in form data: This is a high-quality chemical product...
+index-47MnPl5N.js:1849 🔍 [DEBUG] editingProduct state: 27
+index-47MnPl5N.js:1851 🚀 [DEBUG] Final processed data being sent to API: {
+  "name": "Solvant 402",
+  "category": "Paint & Solvents",
+  "description": "This is a high-quality chemical product...",
+  "shortDescription": "This is a high-quality chemical product...",
+  "priceRange": "",
+  "imageUrl": "/uploads/images/product-1761669666979-990578505.png",
+  "imageUrls": [
+    "/objects/images/product-1757069444147-990661282.png",
+    "/uploads/images/product-1761669666979-990578505.png",
+    "https://momtazchem.s3.eu-central-1.amazonaws.com/general-files/1762315385052-6a2ae644da319e70.png"
+  ],
+  "pdfCatalogUrl": "",
+  "catalogFileName": "",
+  "specifications": "This is a high-quality chemical product...",
+  "features": [
+    "[object Object]This is a high-quality chemical product..."
+  ],
+  "applications": [
+    "[object Object]This is a high-quality chemical product..."
+  ],
+  "showCatalogToCustomers": true,
+  "msdsUrl": "",
+  "showMsdsToCustomers": false,
+  "msdsFileName": "",
+  "stockQuantity": 1300,
+  "minStockLevel": 5,
+  "maxStockLevel": 1000,
+  "unitPrice": "25",
+  "currency": "IQD",
+  "batchNumber": null,
+  "netWeight": "5",
+  "grossWeight": "5.5",
+  "weightUnit": "kg",
+  "weight": "11",
+  "barcode": "8649677177800",
+  "sku": "SKU-1752680044975-k1rq8-2255555",
+  "tags": [
+    "شیمیایی"
+  ],
+  "isActive": true,
+  "syncWithShop": true,
+  "showWhenOutOfStock": false,
+  "isNonChemical": false,
+  "isFlammable": true,
+  "isVariant": false,
+  "displayMode": "images",
+  "model3dKey": "",
+  "model3dFileName": "",
+  "transportationTemperature": "",
+  "inventoryAddition": 0,
+  "newBatchNumber": null
+}
+index-47MnPl5N.js:1851 📝 [DEBUG] Calling updateProduct with ID: 27
+index-47MnPl5N.js:1851 📝 [DEBUG] updateProduct function exists: function
+index-47MnPl5N.js:1849 ✅ [DEBUG] Update mutation successful, result: Object
+index-47MnPl5N.js:1849 🔄 [INSTANT-SYNC] Triggering immediate kardex synchronization...
+index-47MnPl5N.js:1853 Barcode effect triggered: 8649677177800 Canvas ref: null
+index-47MnPl5N.js:1851 📦 Found 1 batches for barcode 8649677177800
+index-47MnPl5N.js:1853 Barcode effect triggered: 8649677177800 Canvas ref: null
+index-47MnPl5N.js:1086 Auth check result: Object
+/api/products/27:1  Failed to load resource: the server responded with a status of 500 ()
+index-47MnPl5N.js:1855 ❌ [CATALOG DELETE] Failed to remove catalog: Error: 500: {"success":false,"message":"Internal server error","error":"Cannot access 'productData' before initialization"}
+    at Nae (index-47MnPl5N.js:48:45078)
+    at async bt (index-47MnPl5N.js:48:45336)
+    at async onClick (index-47MnPl5N.js:1855:28845)
+onClick @ index-47MnPl5N.js:1855
+index-47MnPl5N.js:1849 ✅ [INSTANT-SYNC] Kardex synchronization completed

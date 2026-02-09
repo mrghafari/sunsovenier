@@ -1,0 +1,99 @@
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🔐 [AUTH] Guest user confirmed
+api/admin/me:1  Failed to load resource: the server responded with a status of 401 ()
+api/customers/me:1  Failed to load resource: the server responded with a status of 401 ()
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+index-D4-2-i9z.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+index-D4-2-i9z.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+index-D4-2-i9z.js:1090 🌟 [RATINGS DEBUG] Current products: Array(9)
+index-D4-2-i9z.js:1090 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+index-D4-2-i9z.js:1090 📦 [INIT DISPLAY STOCK] Product 529: Stock=17, Cart=0, Display=17
+index-D4-2-i9z.js:1090 📦 [INIT DISPLAY STOCK] Product 510: Stock=8055, Cart=0, Display=8055
+index-D4-2-i9z.js:1090 📦 [INIT DISPLAY STOCK] Product 532: Stock=21410, Cart=0, Display=21410
+index-D4-2-i9z.js:1090 📦 [INIT DISPLAY STOCK] Product 525: Stock=1015, Cart=0, Display=1015
+index-D4-2-i9z.js:1090 📦 [INIT DISPLAY STOCK] Product 528: Stock=100, Cart=0, Display=100
+index-D4-2-i9z.js:1090 📦 [INIT DISPLAY STOCK] Product 524: Stock=1300, Cart=0, Display=1300
+index-D4-2-i9z.js:1090 📦 [INIT DISPLAY STOCK] Product 526: Stock=11, Cart=0, Display=11
+index-D4-2-i9z.js:1090 📦 [INIT DISPLAY STOCK] Product 531: Stock=205, Cart=0, Display=205
+index-D4-2-i9z.js:1090 📦 [INIT DISPLAY STOCK] Product 530: Stock=20021, Cart=0, Display=20021
+index-D4-2-i9z.js:2830 📥 Loading Tawk.to widget at bottom-left position...
+index-D4-2-i9z.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+index-D4-2-i9z.js:1090 🎛️ [VISIBILITY] Discount Banner: false
+index-D4-2-i9z.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+index-D4-2-i9z.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+index-D4-2-i9z.js:1090 🌟 [RATINGS DEBUG] Current products: Array(9)
+index-D4-2-i9z.js:1090 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+index-D4-2-i9z.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: Object
+index-D4-2-i9z.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-D4-2-i9z.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+index-D4-2-i9z.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+index-D4-2-i9z.js:1090 🌟 [RATINGS DEBUG] Current products: Array(9)
+index-D4-2-i9z.js:1090 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+index-D4-2-i9z.js:1090 📦 [INIT DISPLAY STOCK] Product 529: Stock=17, Cart=0, Display=17
+index-D4-2-i9z.js:1090 📦 [INIT DISPLAY STOCK] Product 510: Stock=8055, Cart=0, Display=8055
+index-D4-2-i9z.js:1090 📦 [INIT DISPLAY STOCK] Product 532: Stock=21410, Cart=0, Display=21410
+index-D4-2-i9z.js:1090 📦 [INIT DISPLAY STOCK] Product 525: Stock=1015, Cart=0, Display=1015
+index-D4-2-i9z.js:1090 📦 [INIT DISPLAY STOCK] Product 528: Stock=100, Cart=0, Display=100
+index-D4-2-i9z.js:1090 📦 [INIT DISPLAY STOCK] Product 524: Stock=1300, Cart=0, Display=1300
+index-D4-2-i9z.js:1090 📦 [INIT DISPLAY STOCK] Product 526: Stock=11, Cart=0, Display=11
+index-D4-2-i9z.js:1090 📦 [INIT DISPLAY STOCK] Product 531: Stock=205, Cart=0, Display=205
+index-D4-2-i9z.js:1090 📦 [INIT DISPLAY STOCK] Product 530: Stock=20021, Cart=0, Display=20021
+index-D4-2-i9z.js:2830 ✅ Tawk.to Live Chat loaded successfully at bottom-left
+index-D4-2-i9z.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: Object
+index-D4-2-i9z.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-D4-2-i9z.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+index-D4-2-i9z.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+index-D4-2-i9z.js:1090 🌟 [RATINGS DEBUG] Current products: Array(9)
+index-D4-2-i9z.js:1090 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+128x128?text=WeChat+QR:1  Failed to load resource: net::ERR_EMPTY_RESPONSE
+twk-chunk-common.js:2 Error: Unable to store cookie
+    at e.value (twk-chunk-common.js:2:118472)
+    at t.value (twk-chunk-common.js:2:151556)
+    at p.updateUUID (twk-chunk-common.js:2:203208)
+    at Array.<anonymous> (twk-vendor.js:2:76358)
+    at p.dispatch (twk-vendor.js:2:78106)
+    at p.dispatch (twk-vendor.js:2:73855)
+    at t.value (twk-chunk-common.js:2:125487)
+    at twk-chunk-common.js:2:124798
+value @ twk-chunk-common.js:2
+about:blank:1 [Intervention] Slow network is detected. See https://www.chromestatus.com/feature/5636954674692096 for more details. Fallback font will be used while loading: https://embed.tawk.to/_s/v4/assets/fonts/tawk-font-icon-3.woff?55755728=
+index-D4-2-i9z.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: Object
+index-D4-2-i9z.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-D4-2-i9z.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+index-D4-2-i9z.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+index-D4-2-i9z.js:1090 🌟 [RATINGS DEBUG] Current products: Array(9)
+index-D4-2-i9z.js:1090 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+api/customers/me:1  Failed to load resource: the server responded with a status of 401 ()
+api/admin/me:1  Failed to load resource: the server responded with a status of 401 ()
+api/customers/me:1  Failed to load resource: the server responded with a status of 401 ()
+index-D4-2-i9z.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: Object
+index-D4-2-i9z.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-D4-2-i9z.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+index-D4-2-i9z.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+index-D4-2-i9z.js:1090 🌟 [RATINGS DEBUG] Current products: Array(9)
+index-D4-2-i9z.js:1090 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+index-D4-2-i9z.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: Object
+index-D4-2-i9z.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-D4-2-i9z.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+index-D4-2-i9z.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+index-D4-2-i9z.js:1090 🌟 [RATINGS DEBUG] Current products: Array(9)
+index-D4-2-i9z.js:1090 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+api/admin/me:1  Failed to load resource: the server responded with a status of 401 ()
+index-D4-2-i9z.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: Object
+index-D4-2-i9z.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-D4-2-i9z.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 10 products with ratings
+index-D4-2-i9z.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+index-D4-2-i9z.js:1090 🌟 [RATINGS DEBUG] Current products: Array(9)
+index-D4-2-i9z.js:1090 🌟 [RATINGS DEBUG] Products with ratings: Array(0)

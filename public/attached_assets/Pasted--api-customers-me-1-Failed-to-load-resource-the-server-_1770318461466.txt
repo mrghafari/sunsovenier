@@ -1,0 +1,197 @@
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 ()
+ 📥 Loading Tawk.to widget at bottom-left position...
+ Auth check result: Object
+ ✅ Tawk.to Live Chat loaded successfully at bottom-left
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] useEffect triggered, userPermissions: undefined
+128x128?text=WeChat+QR:1  Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] useEffect triggered, userPermissions: Object
+ 🔍 [DEBUG] userPermissions modules: Array(38)
+ 🔍 [DEBUG] Full userPermissions response: Object
+ 🔍 [DEBUG] userPermissions.modules: Array(38)
+ 🔍 [DEBUG] userPermissions.permissions: Array(38)
+ 🔍 [DEBUG] Total allButtons count: 40
+ 🔍 [DEBUG] AI Settings exists in allButtons: true
+ 🔍 [DEBUG] Content Management exists in allButtons: true
+ 🔍 [DEBUG] allowedModules: Array(38)
+ 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+ 🔍 [DEBUG] management_dashboard in allowedModules? true
+ 🔍 [DEBUG] finance in allowedModules? true
+ 🔍 [DEBUG] geography_analytics in allowedModules? true
+ 🔍 [DEBUG] ai_settings in allowedModules? true
+ 🔍 [DEBUG] content_management in allowedModules? true
+ 🔍 [CRITICAL] Missing button detection:
+ 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+ 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+ 🔍 [CRITICAL] Missing buttons count: 2
+ 🔍 [DEBUG] finance button found in allButtons? Object
+ 🔍 [DEBUG] geography_analytics button found in allButtons? Object
+ 🔍 [DEBUG] ai_settings button found in allButtons? Object
+ 🔍 [DEBUG] content_management button found in allButtons? Object
+ 🔍 [DEBUG] finance button in filtered? Object
+ 🔍 [DEBUG] geography_analytics button in filtered? Object
+ 🔍 [DEBUG] ai_settings button in filtered? Object
+ 🔍 [DEBUG] content_management button in filtered? Object
+ 🔍 [DEBUG] filtered buttons count: 38
+ 🔍 [DEBUG] First 5 filtered buttons: Array(5)
+ 🔍 [DEBUG] AI Control button in filtered: Object
+ 🔍 [DEBUG] Content Management button in filtered: Object
+ 🔍 [DEBUG] Site Management component initialized
+ 
+value @ twk-chunk-common.js:2
+about:blank:1 [Intervention] Slow network is detected. See https://www.chromestatus.com/feature/5636954674692096 for more details. Fallback font will be used while loading: https://embed.tawk.to/_s/v4/assets/fonts/tawk-font-icon-3.woff?55755728=
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 ()
+ Auth check result: Object
+ 🔍 [DEBUG] Full userPermissions response: Object
+ 🔍 [DEBUG] userPermissions.modules: Array(38)
+ 🔍 [DEBUG] userPermissions.permissions: Array(38)
+ 🔍 [DEBUG] Total allButtons count: 40
+ 🔍 [DEBUG] AI Settings exists in allButtons: true
+ 🔍 [DEBUG] Content Management exists in allButtons: true
+ 🔍 [DEBUG] allowedModules: Array(38)
+ 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+ 🔍 [DEBUG] management_dashboard in allowedModules? true
+ 🔍 [DEBUG] finance in allowedModules? true
+ 🔍 [DEBUG] geography_analytics in allowedModules? true
+ 🔍 [DEBUG] ai_settings in allowedModules? true
+ 🔍 [DEBUG] content_management in allowedModules? true
+ 🔍 [CRITICAL] Missing button detection:
+ 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+ 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+ 🔍 [CRITICAL] Missing buttons count: 2
+ 🔍 [DEBUG] finance button found in allButtons? Object
+ 🔍 [DEBUG] geography_analytics button found in allButtons? Object
+ 🔍 [DEBUG] ai_settings button found in allButtons? Object
+ 🔍 [DEBUG] content_management button found in allButtons? Object
+ 🔍 [DEBUG] finance button in filtered? Object
+ 🔍 [DEBUG] geography_analytics button in filtered? Object
+ 🔍 [DEBUG] ai_settings button in filtered? Object
+ 🔍 [DEBUG] content_management button in filtered? Object
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] useEffect triggered, userPermissions: undefined
+ Auth check result: Object
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] useEffect triggered, userPermissions: Object
+ 🔍 [DEBUG] userPermissions modules: Array(38)
+ 🔍 [DEBUG] Full userPermissions response: Object
+ 🔍 [DEBUG] userPermissions.modules: Array(38)
+ 🔍 [DEBUG] userPermissions.permissions: Array(38)
+ 🔍 [DEBUG] Total allButtons count: 40
+ 🔍 [DEBUG] AI Settings exists in allButtons: true
+ 🔍 [DEBUG] Content Management exists in allButtons: true
+ 🔍 [DEBUG] allowedModules: Array(38)
+ 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+ 🔍 [DEBUG] management_dashboard in allowedModules? true
+ 🔍 [DEBUG] finance in allowedModules? true
+ 🔍 [DEBUG] geography_analytics in allowedModules? true
+ 🔍 [DEBUG] ai_settings in allowedModules? true
+ 🔍 [DEBUG] content_management in allowedModules? true
+ 🔍 [CRITICAL] Missing button detection:
+ 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+ 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+ 🔍 [CRITICAL] Missing buttons count: 2
+ 🔍 [DEBUG] finance button found in allButtons? Object
+ 🔍 [DEBUG] geography_analytics button found in allButtons? Object
+ 🔍 [DEBUG] ai_settings button found in allButtons? Object
+ 🔍 [DEBUG] content_management button found in allButtons? Object
+ 🔍 [DEBUG] finance button in filtered? Object
+ 🔍 [DEBUG] geography_analytics button in filtered? Object
+ 🔍 [DEBUG] ai_settings button in filtered? Object
+ 🔍 [DEBUG] content_management button in filtered? Object
+ 🔍 [DEBUG] filtered buttons count: 38
+ 🔍 [DEBUG] First 5 filtered buttons: Array(5)
+ 🔍 [DEBUG] AI Control button in filtered: Object
+ 🔍 [DEBUG] Content Management button in filtered: Object
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] Full userPermissions response: Object
+ 🔍 [DEBUG] userPermissions.modules: Array(38)
+ 🔍 [DEBUG] userPermissions.permissions: Array(38)
+ 🔍 [DEBUG] Total allButtons count: 40
+ 🔍 [DEBUG] AI Settings exists in allButtons: true
+ 🔍 [DEBUG] Content Management exists in allButtons: true
+ 🔍 [DEBUG] allowedModules: Array(38)
+ 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+ 🔍 [DEBUG] management_dashboard in allowedModules? true
+ 🔍 [DEBUG] finance in allowedModules? true
+ 🔍 [DEBUG] geography_analytics in allowedModules? true
+ 🔍 [DEBUG] ai_settings in allowedModules? true
+ 🔍 [DEBUG] content_management in allowedModules? true
+ 🔍 [CRITICAL] Missing button detection:
+ 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+ 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+ 🔍 [CRITICAL] Missing buttons count: 2
+ 🔍 [DEBUG] finance button found in allButtons? Object
+ 🔍 [DEBUG] geography_analytics button found in allButtons? Object
+ 🔍 [DEBUG] ai_settings button found in allButtons? Object
+ 🔍 [DEBUG] content_management button found in allButtons? Object
+ 🔍 [DEBUG] finance button in filtered? Object
+index-CQRKikjV.js:1914 🔍 [DEBUG] geography_analytics button in filtered? Object
+index-CQRKikjV.js:1914 🔍 [DEBUG] ai_settings button in filtered? Object
+index-CQRKikjV.js:1914 🔍 [DEBUG] content_management button in filtered? Object
+index-CQRKikjV.js:1914 🗺️ [GPS-HEATMAP] Data received: Object
+index-CQRKikjV.js:1914 🔍 [GPS-ANALYTICS] Data received: Object
+index-CQRKikjV.js:1914 🔍 [DEBUG] Site Management component initialized
+index-CQRKikjV.js:1914 🔍 [DEBUG] useEffect triggered, userPermissions: undefined
+index-CQRKikjV.js:1086 Auth check result: Object
+index-CQRKikjV.js:1914 🔍 [DEBUG] Site Management component initialized
+index-CQRKikjV.js:1914 🔍 [DEBUG] useEffect triggered, userPermissions: Object
+index-CQRKikjV.js:1914 🔍 [DEBUG] userPermissions modules: Array(38)
+index-CQRKikjV.js:1914 🔍 [DEBUG] Full userPermissions response: Object
+index-CQRKikjV.js:1914 🔍 [DEBUG] userPermissions.modules: Array(38)
+index-CQRKikjV.js:1914 🔍 [DEBUG] userPermissions.permissions: Array(38)
+index-CQRKikjV.js:1914 🔍 [DEBUG] Total allButtons count: 40
+index-CQRKikjV.js:1914 🔍 [DEBUG] AI Settings exists in allButtons: true
+index-CQRKikjV.js:1914 🔍 [DEBUG] Content Management exists in allButtons: true
+index-CQRKikjV.js:1914 🔍 [DEBUG] allowedModules: Array(38)
+index-CQRKikjV.js:1914 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+index-CQRKikjV.js:1914 🔍 [DEBUG] management_dashboard in allowedModules? true
+index-CQRKikjV.js:1914 🔍 [DEBUG] finance in allowedModules? true
+index-CQRKikjV.js:1914 🔍 [DEBUG] geography_analytics in allowedModules? true
+index-CQRKikjV.js:1914 🔍 [DEBUG] ai_settings in allowedModules? true
+index-CQRKikjV.js:1914 🔍 [DEBUG] content_management in allowedModules? true
+index-CQRKikjV.js:1914 🔍 [CRITICAL] Missing button detection:
+index-CQRKikjV.js:1914 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+index-CQRKikjV.js:1914 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+index-CQRKikjV.js:1914 🔍 [CRITICAL] Missing buttons count: 2
+index-CQRKikjV.js:1914 🔍 [DEBUG] finance button found in allButtons? Object
+index-CQRKikjV.js:1914 🔍 [DEBUG] geography_analytics button found in allButtons? Object
+index-CQRKikjV.js:1914 🔍 [DEBUG] ai_settings button found in allButtons? Object
+index-CQRKikjV.js:1914 🔍 [DEBUG] content_management button found in allButtons? Object
+index-CQRKikjV.js:1914 🔍 [DEBUG] finance button in filtered? Object
+index-CQRKikjV.js:1914 🔍 [DEBUG] geography_analytics button in filtered? Object
+index-CQRKikjV.js:1914 🔍 [DEBUG] ai_settings button in filtered? Object
+index-CQRKikjV.js:1914 🔍 [DEBUG] content_management button in filtered? Object
+index-CQRKikjV.js:1914 🔍 [DEBUG] filtered buttons count: 38
+index-CQRKikjV.js:1914 🔍 [DEBUG] First 5 filtered buttons: Array(5)
+index-CQRKikjV.js:1914 🔍 [DEBUG] AI Control button in filtered: Object
+index-CQRKikjV.js:1914 🔍 [DEBUG] Content Management button in filtered: Object
+index-CQRKikjV.js:1914 🔍 [DEBUG] Site Management component initialized
+index-CQRKikjV.js:1914 🔍 [DEBUG] Full userPermissions response: Object
+index-CQRKikjV.js:1914 🔍 [DEBUG] userPermissions.modules: Array(38)
+index-CQRKikjV.js:1914 🔍 [DEBUG] userPermissions.permissions: Array(38)
+index-CQRKikjV.js:1914 🔍 [DEBUG] Total allButtons count: 40
+index-CQRKikjV.js:1914 🔍 [DEBUG] AI Settings exists in allButtons: true
+index-CQRKikjV.js:1914 🔍 [DEBUG] Content Management exists in allButtons: true
+index-CQRKikjV.js:1914 🔍 [DEBUG] allowedModules: Array(38)
+index-CQRKikjV.js:1914 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+index-CQRKikjV.js:1914 🔍 [DEBUG] management_dashboard in allowedModules? true
+index-CQRKikjV.js:1914 🔍 [DEBUG] finance in allowedModules? true
+index-CQRKikjV.js:1914 🔍 [DEBUG] geography_analytics in allowedModules? true
+index-CQRKikjV.js:1914 🔍 [DEBUG] ai_settings in allowedModules? true
+index-CQRKikjV.js:1914 🔍 [DEBUG] content_management in allowedModules? true
+index-CQRKikjV.js:1914 🔍 [CRITICAL] Missing button detection:
+index-CQRKikjV.js:1914 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+index-CQRKikjV.js:1914 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+index-CQRKikjV.js:1914 🔍 [CRITICAL] Missing buttons count: 2
+index-CQRKikjV.js:1914 🔍 [DEBUG] finance button found in allButtons? Object
+index-CQRKikjV.js:1914 🔍 [DEBUG] geography_analytics button found in allButtons? Object
+index-CQRKikjV.js:1914 🔍 [DEBUG] ai_settings button found in allButtons? Object
+index-CQRKikjV.js:1914 🔍 [DEBUG] content_management button found in allButtons? Object
+index-CQRKikjV.js:1914 🔍 [DEBUG] finance button in filtered? Object
+index-CQRKikjV.js:1914 🔍 [DEBUG] geography_analytics button in filtered? Object
+index-CQRKikjV.js:1914 🔍 [DEBUG] ai_settings button in filtered? Object
+index-CQRKikjV.js:1914 🔍 [DEBUG] content_management button in filtered? Object
+index-CQRKikjV.js:1086 Auth check result: Object
+/api/admin/backup/create:1  Failed to load resource: the server responded with a status of 500 ()
+/api/admin/backups/create:1  Failed to load resource: the server responded with a status of 500 ()
