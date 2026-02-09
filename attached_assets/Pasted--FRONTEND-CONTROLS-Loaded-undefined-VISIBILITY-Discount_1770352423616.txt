@@ -1,0 +1,940 @@
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🔐 [AUTH] Guest user confirmed
+api/admin/me:1  Failed to load resource: the server responded with a status of 401 ()
+api/customers/me:1  Failed to load resource: the server responded with a status of 401 ()
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 📥 Loading Tawk.to widget at bottom-left position...
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 📦 [INIT DISPLAY STOCK] Product 529: Stock=17, Cart=0, Display=17
+ 📦 [INIT DISPLAY STOCK] Product 539: Stock=9036, Cart=0, Display=9036
+ 📦 [INIT DISPLAY STOCK] Product 610: Stock=21410, Cart=0, Display=21410
+ 📦 [INIT DISPLAY STOCK] Product 543: Stock=1015, Cart=0, Display=1015
+ 📦 [INIT DISPLAY STOCK] Product 528: Stock=100, Cart=0, Display=100
+ 📦 [INIT DISPLAY STOCK] Product 537: Stock=1500, Cart=0, Display=1500
+ 📦 [INIT DISPLAY STOCK] Product 541: Stock=11, Cart=0, Display=11
+ 📦 [INIT DISPLAY STOCK] Product 566: Stock=255, Cart=0, Display=255
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+128x128?text=WeChat+QR:1  Failed to load resource: net::ERR_EMPTY_RESPONSE
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 📦 [INIT DISPLAY STOCK] Product 529: Stock=17, Cart=0, Display=17
+ 📦 [INIT DISPLAY STOCK] Product 539: Stock=9036, Cart=0, Display=9036
+ 📦 [INIT DISPLAY STOCK] Product 610: Stock=21410, Cart=0, Display=21410
+ 📦 [INIT DISPLAY STOCK] Product 543: Stock=1015, Cart=0, Display=1015
+ 📦 [INIT DISPLAY STOCK] Product 528: Stock=100, Cart=0, Display=100
+ 📦 [INIT DISPLAY STOCK] Product 537: Stock=1500, Cart=0, Display=1500
+ 📦 [INIT DISPLAY STOCK] Product 541: Stock=11, Cart=0, Display=11
+ 📦 [INIT DISPLAY STOCK] Product 566: Stock=255, Cart=0, Display=255
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+shop:1 Access to script at 'https://embed.tawk.to/692013a38c9683195b70e4b3/1jaikpe3n' from origin 'https://momtaz-chem-website-admin3119.replit.app' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+embed.tawk.to/692013a38c9683195b70e4b3/1jaikpe3n:1  Failed to load resource: net::ERR_FAILED
+ ❌ Failed to load Tawk.to script
+v.parentNode.f.onerror @ index-BhpFYf0T.js:2830
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 🛒 [ADD TO CART] Before add - Product 539, Stock: 9036, Cart: 0, DisplayStock: 9036
+ 🛒 [DISPLAY STOCK UPDATE] Product 539: 9036 -> 9033
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ Cart clicked, total items: 3
+ Customer: null
+ User not logged in, showing pre-checkout modal
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 🔐 [LOGIN] Login choice selected
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 🔐 [AUTH] Customer authenticated, cart will be synced automatically
+ 🔄 Triggering cart reload after login
+ Cart clicked, total items: 3
+ Customer: Object
+ User is logged in, showing checkout
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 💳 [WALLET QUERY] Enabled check: Object
+ 🔥 [BILINGUAL FORM] Cart flammable check result: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🚚 [BILINGUAL FORM] ===== SHIPPING RATES QUERY STARTED =====
+ 🚚 [BILINGUAL FORM] Fetching shipping rates with flammable filtering... Object
+ === BilingualPurchaseForm Address Debug ===
+ existingCustomer from parent: Object
+ customerData from API: null
+ crmCustomerData from API: undefined
+ isLoadingCustomer: false
+ Using existingCustomer from parent
+ Customer object found: Object
+ Customer firstName: ABAS
+ Customer lastName: ABASI
+ Customer phone: 09124955173
+ Customer address: NAGwer Road, Qaryataq Village
+ Customer secondaryAddress: undefined
+ Customer city: undefined
+ Customer country: Iraq
+ Customer postalCode: undefined
+ Full name constructed: ABAS ABASI
+ 🏠 [ADDRESS DEBUG] Enhanced address mapping result: Object
+ Form data to reset: Object
+ Form reset completed
+ === End BilingualPurchaseForm Debug ===
+ 🚚 [AUTO-SELECT DEBUG] useEffect triggered: Object
+ 🚚 Shipping cost calculation: Object
+ 🔄 No shipping method selected or no data, resetting cost
+ Shipping rates state: Object
+ 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+ 🚚 [SMART DELIVERY] Calculating cost for: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+api/shop/settings:1  Failed to load resource: the server responded with a status of 401 ()
+api/shop/proforma-reminders:1  Failed to load resource: the server responded with a status of 401 ()
+ Failed to parse JSON response: 
+bt @ index-BhpFYf0T.js:48
+ Error fetching shop settings: 
+ Failed to parse JSON response: 
+bt @ index-BhpFYf0T.js:48
+ Error fetching reminder schedules: 
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ Customer auth check result: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 💳 [WALLET QUERY] Enabled check: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ === BilingualPurchaseForm Address Debug ===
+ existingCustomer from parent: Object
+ customerData from API: Object
+ crmCustomerData from API: undefined
+ isLoadingCustomer: false
+ Using existingCustomer from parent
+ Customer object found: Object
+ Customer firstName: ABAS
+ Customer lastName: ABASI
+ Customer phone: 09124955173
+ Customer address: NAGwer Road, Qaryataq Village
+ Customer secondaryAddress: undefined
+ Customer city: undefined
+ Customer country: Iraq
+ Customer postalCode: undefined
+ Full name constructed: ABAS ABASI
+ 🏠 [ADDRESS DEBUG] Enhanced address mapping result: Object
+ Form data to reset: Object
+ Form reset completed
+ === End BilingualPurchaseForm Debug ===
+ 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+ 🔐 User just logged in, resetting cart loaded flag
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 💳 [WALLET QUERY] Enabled check: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ === BilingualPurchaseForm Address Debug ===
+ existingCustomer from parent: Object
+ customerData from API: Object
+ crmCustomerData from API: undefined
+ isLoadingCustomer: false
+ Using existingCustomer from parent
+ Customer object found: Object
+ Customer firstName: ABAS
+ Customer lastName: ABASI
+ Customer phone: 09124955173
+ Customer address: NAGwer Road, Qaryataq Village
+ Customer secondaryAddress: NAGwer Road, Qaryataq Village, Erbil, Iraq
+ Customer city: 
+ Customer country: Iraq
+ Customer postalCode: 196891375
+ Full name constructed: ABAS ABASI
+ 🏠 [ADDRESS DEBUG] Enhanced address mapping result: Object
+ Form data to reset: Object
+ Form reset completed
+ === End BilingualPurchaseForm Debug ===
+ 🔐 [AUTH] Customer authenticated, cart will be synced automatically
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+ 🛒 Loading persistent cart for customer: 8
+ 🔄 Syncing local cart to database: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 💰 [VAT] Tax settings API response: Object
+ 📦 [BILINGUAL FORM] Raw shipping rates API response: Object
+ ✅ [BILINGUAL FORM] Successfully loaded shipping rates: 4 methods
+ 🚚 [BILINGUAL FORM] Shipping rates details: Array(4)
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🚚 [AUTO-SELECT DEBUG] useEffect triggered: Object
+ 🚚 [AUTO-SELECT] Auto-selecting first shipping method: 34 undefined
+ 🚚 Shipping cost calculation: Object
+ 🔄 No shipping method selected or no data, resetting cost
+ Shipping rates state: Object
+ 🚚 [AUTO SELECT] Auto-selecting smart vehicle method: 32
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🚚 [AUTO-SELECT DEBUG] useEffect triggered: Object
+ 🚚 Shipping cost calculation: Object
+ 📦 Selected shipping rate: Object
+ ✅ SPECIAL DELIVERY METHOD: Zero cost for smart_vehicle
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🚚 [SMART DELIVERY] Calculating cost for: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🛒 Updating quantity for product 539 to 2 for customer 8
+ CRM Customer API response: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ === BilingualPurchaseForm Address Debug ===
+ existingCustomer from parent: Object
+ customerData from API: Object
+ crmCustomerData from API: Object
+ isLoadingCustomer: false
+ Using CRM customer data (most complete)
+ Customer object found: Object
+ Customer firstName: ABAS
+ Customer lastName: ABASI
+ Customer phone: 09124955173
+ Customer address: NAGwer Road, Qaryataq Village
+ Customer secondaryAddress: NAGwer Road, Qaryataq Village, Erbil, Iraq
+ Customer city: undefined
+ Customer country: Iraq
+ Customer postalCode: 196891375
+ Full name constructed: ABAS ABASI
+ 🏠 [ADDRESS DEBUG] Enhanced address mapping result: Object
+ Form data to reset: Object
+ Form reset completed
+ === End BilingualPurchaseForm Debug ===
+ 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🚚 [SMART DELIVERY] API response: Object
+ ✅ [SMART DELIVERY] Single vehicle cost calculated: Object
+ 🚚 [SMART DELIVERY] API response: Object
+ ✅ [SMART DELIVERY] Single vehicle cost calculated: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🛒 Updating quantity for product 539 to 2 for customer 8
+ ✅ Product 539 quantity updated
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 🔥 [BILINGUAL FORM] Cart flammable check result: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🚚 Shipping cost calculation: Object
+ 📦 Selected shipping rate: Object
+ ✅ SPECIAL DELIVERY METHOD: Zero cost for smart_vehicle
+ 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+ 🛒 Updating quantity for product 539 to 1 for customer 8
+ 🚚 [SMART DELIVERY] Calculating cost for: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🛒 Updating quantity for product 539 to 1 for customer 8
+ 🛒 Loaded cart from database: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 🔥 [BILINGUAL FORM] Cart flammable check result: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+ 🔄 [CART SYNC] Product 539: Display stock 9033 -> 9034
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ ✅ Product 539 quantity updated
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 🔥 [BILINGUAL FORM] Cart flammable check result: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+ 🚚 [SMART DELIVERY] API response: Object
+ ✅ [SMART DELIVERY] Single vehicle cost calculated: Object
+ ✅ Product 539 quantity updated
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 🔥 [BILINGUAL FORM] Cart flammable check result: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🚚 Shipping cost calculation: Object
+ 📦 Selected shipping rate: Object
+ ✅ SPECIAL DELIVERY METHOD: Zero cost for smart_vehicle
+ 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🚚 [SMART DELIVERY] Calculating cost for: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ ✅ Product 539 quantity updated
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 🔥 [BILINGUAL FORM] Cart flammable check result: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+ 🚚 [SMART DELIVERY] Calculating cost for: Object
+ 🚚 [SMART DELIVERY] API response: Object
+ ✅ [SMART DELIVERY] Single vehicle cost calculated: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🛒 Updating quantity for product 539 to 2 for customer 8
+ 🛒 Updating quantity for product 539 to 2 for customer 8
+ 🚚 [SMART DELIVERY] API response: Object
+ ✅ [SMART DELIVERY] Single vehicle cost calculated: Object
+ ✅ Product 539 quantity updated
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 🔥 [BILINGUAL FORM] Cart flammable check result: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🚚 Shipping cost calculation: Object
+ 📦 Selected shipping rate: Object
+ ✅ SPECIAL DELIVERY METHOD: Zero cost for smart_vehicle
+ 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🛒 Updating quantity for product 539 to 3 for customer 8
+ ✅ Product 539 quantity updated
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 🔥 [BILINGUAL FORM] Cart flammable check result: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+ 🛒 Updating quantity for product 539 to 3 for customer 8
+ 🚚 [SMART DELIVERY] Calculating cost for: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+api/admin/me:1  Failed to load resource: the server responded with a status of 401 ()
+ ✅ Product 539 quantity updated
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 🔥 [BILINGUAL FORM] Cart flammable check result: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🚚 Shipping cost calculation: Object
+ 📦 Selected shipping rate: Object
+ ✅ SPECIAL DELIVERY METHOD: Zero cost for smart_vehicle
+ 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+ 🛒 Updating quantity for product 539 to 4 for customer 8
+ 🚚 [SMART DELIVERY] API response: Object
+ ✅ [SMART DELIVERY] Single vehicle cost calculated: Object
+ ✅ Product 539 quantity updated
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 🔥 [BILINGUAL FORM] Cart flammable check result: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🛒 Updating quantity for product 539 to 4 for customer 8
+ ✅ Product 539 quantity updated
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 🔥 [BILINGUAL FORM] Cart flammable check result: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🚚 Shipping cost calculation: Object
+ 📦 Selected shipping rate: Object
+ ✅ SPECIAL DELIVERY METHOD: Zero cost for smart_vehicle
+ 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+ ✅ Product 539 quantity updated
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 🔥 [BILINGUAL FORM] Cart flammable check result: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+ 🛒 Updating quantity for product 539 to 5 for customer 8
+ 🚚 [SMART DELIVERY] Calculating cost for: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ ✅ Product 539 quantity updated
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 🔥 [BILINGUAL FORM] Cart flammable check result: Object
+ BilingualForm Product Microphone: quantity=5, basePrice=25000, discount=0.02, discountedPrice=24500
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ BilingualForm Product Microphone: quantity=5, basePrice=25000, discount=0.02, discountedPrice=24500
+ 🚚 Shipping cost calculation: Object
+ 📦 Selected shipping rate: Object
+ ✅ SPECIAL DELIVERY METHOD: Zero cost for smart_vehicle
+ 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+ 🚚 [SMART DELIVERY] Calculating cost for: Object
+ 🚚 [SMART DELIVERY] API response: Object
+ ✅ [SMART DELIVERY] Single vehicle cost calculated: Object
+ BilingualForm Product Microphone: quantity=5, basePrice=25000, discount=0.02, discountedPrice=24500
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ BilingualForm Product Microphone: quantity=5, basePrice=25000, discount=0.02, discountedPrice=24500
+ 🛒 Updating quantity for product 539 to 6 for customer 8
+ 🚚 [SMART DELIVERY] API response: Object
+ ✅ [SMART DELIVERY] Single vehicle cost calculated: Object
+ BilingualForm Product Microphone: quantity=5, basePrice=25000, discount=0.02, discountedPrice=24500
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ BilingualForm Product Microphone: quantity=5, basePrice=25000, discount=0.02, discountedPrice=24500
+ ✅ Product 539 quantity updated
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 🔥 [BILINGUAL FORM] Cart flammable check result: Object
+ BilingualForm Product Microphone: quantity=6, basePrice=25000, discount=0.02, discountedPrice=24500
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ BilingualForm Product Microphone: quantity=6, basePrice=25000, discount=0.02, discountedPrice=24500
+ 🚚 Shipping cost calculation: Object
+ 📦 Selected shipping rate: Object
+ ✅ SPECIAL DELIVERY METHOD: Zero cost for smart_vehicle
+ 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+ 🛒 Updating quantity for product 539 to 7 for customer 8
+ 🚚 [SMART DELIVERY] Calculating cost for: Object
+ BilingualForm Product Microphone: quantity=6, basePrice=25000, discount=0.02, discountedPrice=24500
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ BilingualForm Product Microphone: quantity=6, basePrice=25000, discount=0.02, discountedPrice=24500
+ 🛒 Updating quantity for product 539 to 7 for customer 8
+ 🛒 Updating quantity for product 539 to 7 for customer 8
+ ✅ Product 539 quantity updated
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 🔥 [BILINGUAL FORM] Cart flammable check result: Object
+ BilingualForm Product Microphone: quantity=7, basePrice=25000, discount=0.02, discountedPrice=24500
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ BilingualForm Product Microphone: quantity=7, basePrice=25000, discount=0.02, discountedPrice=24500
+ 🚚 Shipping cost calculation: Object
+ 📦 Selected shipping rate: Object
+ ✅ SPECIAL DELIVERY METHOD: Zero cost for smart_vehicle
+ 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+ 🛒 Updating quantity for product 539 to 8 for customer 8
+ 🚚 [SMART DELIVERY] Calculating cost for: Object
+ 🛒 Updating quantity for product 539 to 8 for customer 8
+ ✅ Product 539 quantity updated
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 🔥 [BILINGUAL FORM] Cart flammable check result: Object
+ BilingualForm Product Microphone: quantity=7, basePrice=25000, discount=0.02, discountedPrice=24500
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ BilingualForm Product Microphone: quantity=7, basePrice=25000, discount=0.02, discountedPrice=24500
+ 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+ 🚚 [SMART DELIVERY] API response: Object
+ ✅ [SMART DELIVERY] Single vehicle cost calculated: Object
+ BilingualForm Product Microphone: quantity=7, basePrice=25000, discount=0.02, discountedPrice=24500
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ BilingualForm Product Microphone: quantity=7, basePrice=25000, discount=0.02, discountedPrice=24500
+ ✅ Product 539 quantity updated
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 🔥 [BILINGUAL FORM] Cart flammable check result: Object
+ BilingualForm Product Microphone: quantity=7, basePrice=25000, discount=0.02, discountedPrice=24500
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ BilingualForm Product Microphone: quantity=7, basePrice=25000, discount=0.02, discountedPrice=24500
+ 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+ 🚚 [SMART DELIVERY] API response: Object
+ ✅ [SMART DELIVERY] Single vehicle cost calculated: Object
+ ✅ Product 539 quantity updated
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 🔥 [BILINGUAL FORM] Cart flammable check result: Object
+ BilingualForm Product Microphone: quantity=8, basePrice=25000, discount=0.02, discountedPrice=24500
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ BilingualForm Product Microphone: quantity=8, basePrice=25000, discount=0.02, discountedPrice=24500
+ 🚚 Shipping cost calculation: Object
+ 📦 Selected shipping rate: Object
+ ✅ SPECIAL DELIVERY METHOD: Zero cost for smart_vehicle
+ 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+ BilingualForm Product Microphone: quantity=8, basePrice=25000, discount=0.02, discountedPrice=24500
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ BilingualForm Product Microphone: quantity=8, basePrice=25000, discount=0.02, discountedPrice=24500
+ 🛒 Updating quantity for product 539 to 9 for customer 8
+ 🚚 [SMART DELIVERY] Calculating cost for: Object
+ BilingualForm Product Microphone: quantity=8, basePrice=25000, discount=0.02, discountedPrice=24500
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ BilingualForm Product Microphone: quantity=8, basePrice=25000, discount=0.02, discountedPrice=24500
+ 🛒 Updating quantity for product 539 to 9 for customer 8
+ ✅ Product 539 quantity updated
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 🔥 [BILINGUAL FORM] Cart flammable check result: Object
+ BilingualForm Product Microphone: quantity=8, basePrice=25000, discount=0.02, discountedPrice=24500
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ BilingualForm Product Microphone: quantity=8, basePrice=25000, discount=0.02, discountedPrice=24500
+ 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+ ✅ Product 539 quantity updated
+ 🚚 [SMART DELIVERY] API response: Object
+ ✅ [SMART DELIVERY] Single vehicle cost calculated: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 🔥 [BILINGUAL FORM] Cart flammable check result: Object
+ BilingualForm Product Microphone: quantity=9, basePrice=25000, discount=0.02, discountedPrice=24500
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ BilingualForm Product Microphone: quantity=9, basePrice=25000, discount=0.02, discountedPrice=24500
+ 🚚 Shipping cost calculation: Object
+ 📦 Selected shipping rate: Object
+ ✅ SPECIAL DELIVERY METHOD: Zero cost for smart_vehicle
+ 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+ BilingualForm Product Microphone: quantity=9, basePrice=25000, discount=0.02, discountedPrice=24500
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ BilingualForm Product Microphone: quantity=9, basePrice=25000, discount=0.02, discountedPrice=24500
+ ✅ Product 539 quantity updated
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 🔥 [BILINGUAL FORM] Cart flammable check result: Object
+ BilingualForm Product Microphone: quantity=9, basePrice=25000, discount=0.02, discountedPrice=24500
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ BilingualForm Product Microphone: quantity=9, basePrice=25000, discount=0.02, discountedPrice=24500
+ 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+ 🛒 Updating quantity for product 539 to 10 for customer 8
+ 🚚 [SMART DELIVERY] Calculating cost for: Object
+ BilingualForm Product Microphone: quantity=9, basePrice=25000, discount=0.02, discountedPrice=24500
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ BilingualForm Product Microphone: quantity=9, basePrice=25000, discount=0.02, discountedPrice=24500
+ ✅ Product 539 quantity updated
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 🔥 [BILINGUAL FORM] Cart flammable check result: Object
+ BilingualForm Product Microphone: quantity=10, basePrice=25000, discount=0.05, discountedPrice=23750
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ BilingualForm Product Microphone: quantity=10, basePrice=25000, discount=0.05, discountedPrice=23750
+ 🚚 Shipping cost calculation: Object
+ 📦 Selected shipping rate: Object
+ ✅ SPECIAL DELIVERY METHOD: Zero cost for smart_vehicle
+ 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+ 🛒 Updating quantity for product 539 to 11 for customer 8
+ 🚚 [SMART DELIVERY] Calculating cost for: Object
+ 🚚 [SMART DELIVERY] API response: Object
+ ✅ [SMART DELIVERY] Single vehicle cost calculated: Object
+ BilingualForm Product Microphone: quantity=10, basePrice=25000, discount=0.05, discountedPrice=23750
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ BilingualForm Product Microphone: quantity=10, basePrice=25000, discount=0.05, discountedPrice=23750
+ 🛒 Updating quantity for product 539 to 11 for customer 8
+ 🛒 Updating quantity for product 539 to 11 for customer 8
+ Customer auth check result: Object
+ 🛒 Updating quantity for product 539 to 11 for customer 8
+ ✅ Product 539 quantity updated
+ 🚚 [SMART DELIVERY] API response: Object
+ ✅ [SMART DELIVERY] Single vehicle cost calculated: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(8)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+ 🔥 [BILINGUAL FORM] Cart flammable check result: Object
+ BilingualForm Product Microphone: quantity=11, basePrice=25000, discount=0.05, discountedPrice=23750
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ BilingualForm Product Microphone: quantity=11, basePrice=25000, discount=0.05, discountedPrice=23750
+ 🚚 Shipping cost calculation: Object
+ 📦 Selected shipping rate: Object
+ ✅ SPECIAL DELIVERY METHOD: Zero cost for smart_vehicle
+ 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+index-BhpFYf0T.js:1090 BilingualForm Product Microphone: quantity=11, basePrice=25000, discount=0.05, discountedPrice=23750
+index-BhpFYf0T.js:1090 💰 [PURCHASE FORM] Tax calculation: Object
+index-BhpFYf0T.js:1090 💰 [TOTAL CALCULATION] Breakdown: Object
+index-BhpFYf0T.js:1090 💳 [WALLET DEBUG] Complete wallet analysis: Object
+index-BhpFYf0T.js:1090 BilingualForm Product Microphone: quantity=11, basePrice=25000, discount=0.05, discountedPrice=23750
+index-BhpFYf0T.js:1090 ✅ Product 539 quantity updated
+index-BhpFYf0T.js:1090 ✅ Product 539 quantity updated
+index-BhpFYf0T.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: Object
+index-BhpFYf0T.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-BhpFYf0T.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+index-BhpFYf0T.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+index-BhpFYf0T.js:1090 🌟 [RATINGS DEBUG] Current products: Array(8)
+index-BhpFYf0T.js:1090 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+index-BhpFYf0T.js:1090 🔥 [BILINGUAL FORM] Cart flammable check result: Object
+index-BhpFYf0T.js:1090 BilingualForm Product Microphone: quantity=11, basePrice=25000, discount=0.05, discountedPrice=23750
+index-BhpFYf0T.js:1090 💰 [PURCHASE FORM] Tax calculation: Object
+index-BhpFYf0T.js:1090 💰 [TOTAL CALCULATION] Breakdown: Object
+index-BhpFYf0T.js:1090 💳 [WALLET DEBUG] Complete wallet analysis: Object
+index-BhpFYf0T.js:1090 BilingualForm Product Microphone: quantity=11, basePrice=25000, discount=0.05, discountedPrice=23750
+index-BhpFYf0T.js:1090 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+index-BhpFYf0T.js:1090 🛒 Updating quantity for product 539 to 12 for customer 8
+index-BhpFYf0T.js:1090 ✅ Product 539 quantity updated
+index-BhpFYf0T.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: Object
+index-BhpFYf0T.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-BhpFYf0T.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+index-BhpFYf0T.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+index-BhpFYf0T.js:1090 🌟 [RATINGS DEBUG] Current products: Array(8)
+index-BhpFYf0T.js:1090 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+index-BhpFYf0T.js:1090 🔥 [BILINGUAL FORM] Cart flammable check result: Object
+index-BhpFYf0T.js:1090 BilingualForm Product Microphone: quantity=11, basePrice=25000, discount=0.05, discountedPrice=23750
+index-BhpFYf0T.js:1090 💰 [PURCHASE FORM] Tax calculation: Object
+index-BhpFYf0T.js:1090 💰 [TOTAL CALCULATION] Breakdown: Object
+index-BhpFYf0T.js:1090 💳 [WALLET DEBUG] Complete wallet analysis: Object
+index-BhpFYf0T.js:1090 BilingualForm Product Microphone: quantity=11, basePrice=25000, discount=0.05, discountedPrice=23750
+index-BhpFYf0T.js:1090 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+index-BhpFYf0T.js:1090 🛒 Updating quantity for product 539 to 12 for customer 8
+index-BhpFYf0T.js:1090 🛒 Updating quantity for product 539 to 12 for customer 8
+index-BhpFYf0T.js:1090 ✅ Product 539 quantity updated
+index-BhpFYf0T.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: Object
+index-BhpFYf0T.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-BhpFYf0T.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+index-BhpFYf0T.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+index-BhpFYf0T.js:1090 🌟 [RATINGS DEBUG] Current products: Array(8)
+index-BhpFYf0T.js:1090 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+index-BhpFYf0T.js:1090 🔥 [BILINGUAL FORM] Cart flammable check result: Object
+index-BhpFYf0T.js:1090 BilingualForm Product Microphone: quantity=12, basePrice=25000, discount=0.05, discountedPrice=23750
+index-BhpFYf0T.js:1090 💰 [PURCHASE FORM] Tax calculation: Object
+index-BhpFYf0T.js:1090 💰 [TOTAL CALCULATION] Breakdown: Object
+index-BhpFYf0T.js:1090 💳 [WALLET DEBUG] Complete wallet analysis: Object
+index-BhpFYf0T.js:1090 BilingualForm Product Microphone: quantity=12, basePrice=25000, discount=0.05, discountedPrice=23750
+index-BhpFYf0T.js:1090 🚚 Shipping cost calculation: Object
+index-BhpFYf0T.js:1090 📦 Selected shipping rate: Object
+index-BhpFYf0T.js:1090 ✅ SPECIAL DELIVERY METHOD: Zero cost for smart_vehicle
+index-BhpFYf0T.js:1090 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+index-BhpFYf0T.js:1090 🛒 Updating quantity for product 539 to 13 for customer 8
+index-BhpFYf0T.js:1090 ✅ Product 539 quantity updated
+index-BhpFYf0T.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: Object
+index-BhpFYf0T.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-BhpFYf0T.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+index-BhpFYf0T.js:1090 🌟 [RATINGS DEBUG] Product stats data: Object
+index-BhpFYf0T.js:1090 🌟 [RATINGS DEBUG] Current products: Array(8)
+index-BhpFYf0T.js:1090 🌟 [RATINGS DEBUG] Products with ratings: Array(0)
+index-BhpFYf0T.js:1090 🔥 [BILINGUAL FORM] Cart flammable check result: Object
+index-BhpFYf0T.js:1090 BilingualForm Product Microphone: quantity=12, basePrice=25000, discount=0.05, discountedPrice=23750
+index-BhpFYf0T.js:1090 💰 [PURCHASE FORM] Tax calculation: Object
+index-BhpFYf0T.js:1090 💰 [TOTAL CALCULATION] Breakdown: Object
+index-BhpFYf0T.js:1090 💳 [WALLET DEBUG] Complete wallet analysis: Object
+index-BhpFYf0T.js:1090 BilingualForm Product Microphone: quantity=12, basePrice=25000, discount=0.05, discountedPrice=23750
+index-BhpFYf0T.js:1090 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+index-BhpFYf0T.js:1090 ✅ Product 539 quantity updated
+index-BhpFYf0T.js:1090 ✅ Product 539 quantity updated
+index-BhpFYf0T.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+index-BhpFYf0T.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-BhpFYf0T.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+index-BhpFYf0T.js:1090 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}, 513: {…}, 524: {…}, 532: {…}}
+index-BhpFYf0T.js:1090 🌟 [RATINGS DEBUG] Current products: (8) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+index-BhpFYf0T.js:1090 🌟 [RATINGS DEBUG] Products with ratings: []
+index-BhpFYf0T.js:1090 🔥 [BILINGUAL FORM] Cart flammable check result: {containsFlammableProducts: false, cartItems: 1, totalQuantity: 13}
+index-BhpFYf0T.js:1090 BilingualForm Product Microphone: quantity=13, basePrice=25000, discount=0.05, discountedPrice=23750
+index-BhpFYf0T.js:1090 💰 [PURCHASE FORM] Tax calculation: {vatData: {…}, vatRate: 0.1, dutiesRate: 0, subtotalAmount: 308750, vatAmount: 30875, …}
+index-BhpFYf0T.js:1090 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 308750, totalTaxAmount: 30875, finalShippingCost: 250000, regularShippingCost: 0, smartDeliveryCost: 250000, …}
+index-BhpFYf0T.js:1090 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: {…}, walletBalance: 43194694848, canUseWallet: true, totalAmount: 589625, existingCustomer: true, …}
+index-BhpFYf0T.js:1090 BilingualForm Product Microphone: quantity=13, basePrice=25000, discount=0.05, discountedPrice=23750
+index-BhpFYf0T.js:1090 🚚 Shipping cost calculation: {selectedShippingMethod: 32, hasShippingData: true, subtotalAmount: 308750}
+index-BhpFYf0T.js:1090 📦 Selected shipping rate: {id: 32, deliveryMethod: 'smart_vehicle', transportationType: 'smart', cityName: null, provinceName: null, …}
+index-BhpFYf0T.js:1090 ✅ SPECIAL DELIVERY METHOD: Zero cost for smart_vehicle
+index-BhpFYf0T.js:1090 🚚 [DELIVERY CALCULATION] Final destination determined: {showSecondAddress: false, secondCity: '', secondProvince: '', crmCityRegion: 'سرسنک', crmCity: undefined, …}
+index-BhpFYf0T.js:1090 🚚 [SMART DELIVERY] Calculating cost for: {weight: 650, city: 'سرسنک', province: 'Dohuk', estimatedDistance: 200, cartItems: 1}
+index-BhpFYf0T.js:1090 BilingualForm Product Microphone: quantity=13, basePrice=25000, discount=0.05, discountedPrice=23750
+index-BhpFYf0T.js:1090 💰 [PURCHASE FORM] Tax calculation: {vatData: {…}, vatRate: 0.1, dutiesRate: 0, subtotalAmount: 308750, vatAmount: 30875, …}
+index-BhpFYf0T.js:1090 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 308750, totalTaxAmount: 30875, finalShippingCost: 250000, regularShippingCost: 0, smartDeliveryCost: 250000, …}
+index-BhpFYf0T.js:1090 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: {…}, walletBalance: 43194694848, canUseWallet: true, totalAmount: 589625, existingCustomer: true, …}
+index-BhpFYf0T.js:1090 BilingualForm Product Microphone: quantity=13, basePrice=25000, discount=0.05, discountedPrice=23750
+index-BhpFYf0T.js:1090 🛒 Updating quantity for product 539 to 14 for customer 8
+index-BhpFYf0T.js:1090 🚚 [SMART DELIVERY] API response: {success: true, selectedVehicle: {…}, alternatives: Array(2), selectionCriteria: {…}, data: {…}}
+index-BhpFYf0T.js:1090 ✅ [SMART DELIVERY] Single vehicle cost calculated: {vehicle: 'پیکاپ', cost: 250000, basePrice: 150000, distanceCost: 100000}
+index-BhpFYf0T.js:1090 BilingualForm Product Microphone: quantity=13, basePrice=25000, discount=0.05, discountedPrice=23750
+index-BhpFYf0T.js:1090 💰 [PURCHASE FORM] Tax calculation: {vatData: {…}, vatRate: 0.1, dutiesRate: 0, subtotalAmount: 308750, vatAmount: 30875, …}
+index-BhpFYf0T.js:1090 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 308750, totalTaxAmount: 30875, finalShippingCost: 250000, regularShippingCost: 0, smartDeliveryCost: 250000, …}
+index-BhpFYf0T.js:1090 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: {…}, walletBalance: 43194694848, canUseWallet: true, totalAmount: 589625, existingCustomer: true, …}
+index-BhpFYf0T.js:1090 BilingualForm Product Microphone: quantity=13, basePrice=25000, discount=0.05, discountedPrice=23750
+index-BhpFYf0T.js:1090 🛒 Updating quantity for product 539 to 14 for customer 8
+index-BhpFYf0T.js:1090 ✅ Product 539 quantity updated
+index-BhpFYf0T.js:1090 ✅ Product 539 quantity updated
+index-BhpFYf0T.js:1090 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+index-BhpFYf0T.js:1090 🎛️ [VISIBILITY] Discount Banner: true
+index-BhpFYf0T.js:1090 🌟 [RATINGS DEBUG] Product stats loaded: 12 products with ratings
+index-BhpFYf0T.js:1090 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}, 513: {…}, 524: {…}, 532: {…}}
+index-BhpFYf0T.js:1090 🌟 [RATINGS DEBUG] Current products: (8) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+index-BhpFYf0T.js:1090 🌟 [RATINGS DEBUG] Products with ratings: []
+index-BhpFYf0T.js:1090 🔥 [BILINGUAL FORM] Cart flammable check result: {containsFlammableProducts: false, cartItems: 1, totalQuantity: 14}
+index-BhpFYf0T.js:1090 BilingualForm Product Microphone: quantity=14, basePrice=25000, discount=0.05, discountedPrice=23750
+index-BhpFYf0T.js:1090 💰 [PURCHASE FORM] Tax calculation: {vatData: {…}, vatRate: 0.1, dutiesRate: 0, subtotalAmount: 332500, vatAmount: 33250, …}
+index-BhpFYf0T.js:1090 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 332500, totalTaxAmount: 33250, finalShippingCost: 250000, regularShippingCost: 0, smartDeliveryCost: 250000, …}
+index-BhpFYf0T.js:1090 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: {…}, walletBalance: 43194694848, canUseWallet: true, totalAmount: 615750, existingCustomer: true, …}
+index-BhpFYf0T.js:1090 BilingualForm Product Microphone: quantity=14, basePrice=25000, discount=0.05, discountedPrice=23750
+index-BhpFYf0T.js:1090 🚚 Shipping cost calculation: {selectedShippingMethod: 32, hasShippingData: true, subtotalAmount: 332500}
+index-BhpFYf0T.js:1090 📦 Selected shipping rate: {id: 32, deliveryMethod: 'smart_vehicle', transportationType: 'smart', cityName: null, provinceName: null, …}
+index-BhpFYf0T.js:1090 ✅ SPECIAL DELIVERY METHOD: Zero cost for smart_vehicle
+index-BhpFYf0T.js:1090 🚚 [DELIVERY CALCULATION] Final destination determined: {showSecondAddress: false, secondCity: '', secondProvince: '', crmCityRegion: 'سرسنک', crmCity: undefined, …}
+index-BhpFYf0T.js:1090 🚚 [SMART DELIVERY] Calculating cost for: {weight: 700, city: 'سرسنک', province: 'Dohuk', estimatedDistance: 200, cartItems: 1}
+index-BhpFYf0T.js:1090 BilingualForm Product Microphone: quantity=14, basePrice=25000, discount=0.05, discountedPrice=23750
+index-BhpFYf0T.js:1090 💰 [PURCHASE FORM] Tax calculation: {vatData: {…}, vatRate: 0.1, dutiesRate: 0, subtotalAmount: 332500, vatAmount: 33250, …}
+index-BhpFYf0T.js:1090 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 332500, totalTaxAmount: 33250, finalShippingCost: 250000, regularShippingCost: 0, smartDeliveryCost: 250000, …}
+index-BhpFYf0T.js:1090 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: {…}, walletBalance: 43194694848, canUseWallet: true, totalAmount: 615750, existingCustomer: true, …}
+index-BhpFYf0T.js:1090 BilingualForm Product Microphone: quantity=14, basePrice=25000, discount=0.05, discountedPrice=23750
+index-BhpFYf0T.js:1090 🚚 [SMART DELIVERY] API response: {success: true, selectedVehicle: {…}, alternatives: Array(2), selectionCriteria: {…}, data: {…}}
+index-BhpFYf0T.js:1090 ✅ [SMART DELIVERY] Single vehicle cost calculated: {vehicle: 'پیکاپ', cost: 250000, basePrice: 150000, distanceCost: 100000}
+index-BhpFYf0T.js:1090 BilingualForm Product Microphone: quantity=14, basePrice=25000, discount=0.05, discountedPrice=23750
+index-BhpFYf0T.js:1090 💰 [PURCHASE FORM] Tax calculation: {vatData: {…}, vatRate: 0.1, dutiesRate: 0, subtotalAmount: 332500, vatAmount: 33250, …}
+index-BhpFYf0T.js:1090 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 332500, totalTaxAmount: 33250, finalShippingCost: 250000, regularShippingCost: 0, smartDeliveryCost: 250000, …}
+index-BhpFYf0T.js:1090 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: {…}, walletBalance: 43194694848, canUseWallet: true, totalAmount: 615750, existingCustomer: true, …}
+index-BhpFYf0T.js:1090 BilingualForm Product Microphone: quantity=14, basePrice=25000, discount=0.05, discountedPrice=23750

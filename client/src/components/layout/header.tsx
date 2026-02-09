@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Menu, X, ChevronDown, Beaker, Droplet, Package, Wheat, Wallet, User, LogOut, ShoppingBag, Shield } from 'lucide-react';
+import { Menu, X, ChevronDown, Beaker, Droplet, Package, Wheat, Wallet, User, LogOut, ShoppingBag, Shield, Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
@@ -33,7 +33,7 @@ export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { t, direction } = useLanguage();
   const { customer, isAuthenticated, logout } = useCustomer();
-  
+    
   // Only check admin auth when in admin routes
   const isInAdminRoute = location.startsWith('/admin');
   const { isAuthenticated: isAdminAuthenticated, logout: adminLogout, user: adminUser } = useAuth();
@@ -322,7 +322,7 @@ export default function Header() {
                   </Button>
                 </Link>
                 <div className="h-4 w-px bg-gray-300 dark:bg-gray-600" />
-                <Link href="/customer/wallet">
+                                <Link href="/customer/wallet">
                   <Button variant="ghost" className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-800">
                     <Wallet className="h-4 w-4 text-green-600 dark:text-green-400" />
                     <div className="flex flex-col items-start">
@@ -485,7 +485,7 @@ export default function Header() {
                     className="px-4 py-2 border-t border-gray-200 dark:border-gray-700 mt-4 pt-4"
                   >
                     <div className="space-y-2">
-                      <Link href="/customer/wallet">
+                                            <Link href="/customer/wallet">
                         <motion.div
                           className="flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
                           whileTap={{ scale: 0.98 }}

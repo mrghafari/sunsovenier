@@ -535,20 +535,10 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     staleTime: 5 * 60 * 1000,
   });
 
-  // Fetch shop settings for proforma deadline
-  const { data: shopSettings } = useQuery({
-    queryKey: ['/api/shop/settings'],
-    queryFn: async () => {
-      try {
-        const response = await apiRequest('/api/shop/settings', { method: 'GET' });
-        return response.data || [];
-      } catch (error) {
-        console.log('Error fetching shop settings:', error);
-        return [];
-      }
-    },
-    retry: false,
-    staleTime: 5 * 60 * 1000, // 5 minutes cache
+  // Fetch shop settings for proforma deadline (public endpoint - no auth required)
+  const { data: publicShopSettings } = useQuery<{ success: boolean; data: Record<string, string> }>({
+    queryKey: ['/api/public/shop/settings'],
+    staleTime: 5 * 60 * 1000,
   });
 
   // Fetch proforma reminder schedules
@@ -567,14 +557,13 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     staleTime: 5 * 60 * 1000, // 5 minutes cache
   });
 
-  // Get dynamic proforma deadline from shop settings
+  // Get dynamic proforma deadline from public shop settings
   const proformaDeadlineDays = useMemo(() => {
-    if (shopSettings && Array.isArray(shopSettings)) {
-      const deadlineSetting = shopSettings.find(setting => setting.setting_key === 'proforma_deadline_days');
-      return deadlineSetting ? parseInt(deadlineSetting.setting_value) : 3;
+    if (publicShopSettings?.data?.proforma_deadline_days) {
+      return parseInt(publicShopSettings.data.proforma_deadline_days) || 3;
     }
-    return 3; // fallback to 3 days
-  }, [shopSettings]);
+    return 3;
+  }, [publicShopSettings]);
 
   // Get reminder schedule info for display
   const reminderInfo = useMemo(() => {
@@ -904,43 +893,52 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
 
 
 
-  // Calculate discounted price based on quantity - IQD whole numbers only
+  const getEffectiveDiscounts = (product: any) => {
+    if (product.bulk_purchase_enabled || product.bulkPurchaseEnabled) {
+      let bulkDiscounts = product.bulk_purchase_discounts || product.bulkPurchaseDiscounts;
+      if (typeof bulkDiscounts === 'string') {
+        try { bulkDiscounts = JSON.parse(bulkDiscounts); } catch { bulkDiscounts = []; }
+      }
+      return Array.isArray(bulkDiscounts) ? bulkDiscounts : [];
+    }
+    let discounts = product.quantityDiscounts;
+    if (typeof discounts === 'string') {
+      try { discounts = JSON.parse(discounts); } catch { discounts = []; }
+    }
+    return Array.isArray(discounts) ? discounts : [];
+  };
+
   const getDiscountedPrice = (product: any, quantity: number) => {
     const basePrice = Math.round(parseFloat(product.price || '0'));
+    const discounts = getEffectiveDiscounts(product);
     
-    // Check if product has quantity discounts
-    let discounts = product.quantityDiscounts;
-    
-    // If quantityDiscounts is a string, try to parse it
-    if (typeof discounts === 'string') {
-      try {
-        discounts = JSON.parse(discounts);
-      } catch (e) {
-        console.log('Failed to parse quantityDiscounts:', discounts);
-        return basePrice;
-      }
-    }
-    
-    if (discounts && Array.isArray(discounts) && discounts.length > 0) {
-      // Sort discounts by minimum quantity (descending) to get highest applicable discount
+    if (discounts.length > 0) {
       const sortedDiscounts = discounts
         .filter((d: any) => quantity >= parseInt(d.minQty || d.min_qty || 0))
         .sort((a: any, b: any) => parseInt(b.minQty || b.min_qty || 0) - parseInt(a.minQty || a.min_qty || 0));
       
       if (sortedDiscounts.length > 0) {
         const discount = sortedDiscounts[0];
-        // Handle both discount formats: decimal (0.1) and percentage (10)
         const discountValue = discount.discount || (parseFloat(discount.discountPercent || discount.discount_percent || 0) / 100);
         const discountedPrice = Math.round(basePrice * (1 - discountValue));
-        console.log(`BilingualForm Product ${product.name}: quantity=${quantity}, basePrice=${basePrice}, discount=${discountValue}, discountedPrice=${discountedPrice}`);
         return discountedPrice;
       }
     }
     
     return basePrice;
   };
-  
 
+  const getActualDiscountPercent = (product: any, quantity: number): number => {
+    const discounts = getEffectiveDiscounts(product);
+    if (discounts.length === 0) return 0;
+    const sorted = discounts
+      .filter((d: any) => quantity >= parseInt(d.minQty || d.min_qty || 0))
+      .sort((a: any, b: any) => parseInt(b.minQty || b.min_qty || 0) - parseInt(a.minQty || a.min_qty || 0));
+    if (sorted.length === 0) return 0;
+    const d = sorted[0];
+    const val = d.discount || (parseFloat(d.discountPercent || d.discount_percent || 0) / 100);
+    return Math.round(val * 100);
+  };
 
 
 
@@ -1566,8 +1564,8 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       // Handle bank transfer with grace period
       else if (paymentMethod === 'bank_transfer_grace') {
         toast({
-          title: "✅ سفارش با مهلت 3 روزه ثبت شد",
-          description: "سفارش شما قفل شد. تا 3 روز آینده فیش واریزی خود را آپلود کنید"
+          title: `✅ سفارش با مهلت ${proformaDeadlineDays} روزه ثبت شد`,
+          description: `سفارش شما قفل شد. تا ${proformaDeadlineDays} روز آینده فیش واریزی خود را آپلود کنید`
         });
         onOrderComplete();
       }
@@ -1901,6 +1899,11 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                             <span className="line-through text-gray-400 mr-2">{formatCurrency(basePrice)}</span>
                           )}
                           {formatCurrency(discountedPrice)} {t.each}
+                          {discountedPrice < basePrice && basePrice > 0 && (
+                            <span className="text-[10px] text-green-600 font-semibold ml-1">
+                              {(product.bulk_purchase_enabled || product.bulkPurchaseEnabled) ? '📦' : '🏷️'} {getActualDiscountPercent(product, quantity)}%
+                            </span>
+                          )}
                         </p>
                       </div>
                       

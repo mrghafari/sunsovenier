@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -116,6 +116,22 @@ const CustomerProfile = () => {
     retry: 1,
     enabled: !!customerData?.success,
   });
+
+  const { data: publicShopSettings } = useQuery<any>({
+    queryKey: ["/api/public/shop/settings"],
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const gracePeriodDays = useMemo(() => {
+    if (publicShopSettings?.data?.proforma_deadline_days) {
+      return parseInt(publicShopSettings.data.proforma_deadline_days) || 3;
+    }
+    if (publicShopSettings && Array.isArray(publicShopSettings)) {
+      const setting = publicShopSettings.find((s: any) => s.setting_key === 'proforma_deadline_days');
+      return setting ? parseInt(setting.setting_value) : 3;
+    }
+    return 3;
+  }, [publicShopSettings]);
 
   // Get order status category
   const getOrderCategory = (order: any) => {
@@ -805,7 +821,7 @@ const CustomerProfile = () => {
                                 <div className="flex items-center justify-between mb-2">
                                   <p className="text-sm text-orange-900 font-bold flex items-center gap-1">
                                     <AlertCircle className="w-4 h-4" />
-                                    سفارش با مهلت 3 روزه پرداخت
+                                    سفارش با مهلت {gracePeriodDays} روزه پرداخت
                                   </p>
                                   <Badge className="bg-orange-200 text-orange-800 text-xs">
                                     مهلت ویژه
@@ -827,7 +843,7 @@ const CustomerProfile = () => {
                                         آپلود حواله بانکی
                                       </Button>
                                       <span className="text-xs text-orange-700">
-                                        مهلت پرداخت: 72 ساعت از زمان سفارش
+                                        مهلت پرداخت: {gracePeriodDays * 24} ساعت از زمان سفارش
                                       </span>
                                     </div>
                                   </>
@@ -846,7 +862,7 @@ const CustomerProfile = () => {
                                 <div className="mt-2">
                                   <BankTransferCountdown 
                                     orderDate={order.createdAt}
-                                    gracePeriodHours={72}
+                                    gracePeriodHours={gracePeriodDays * 24}
                                   />
                                 </div>
                               </div>

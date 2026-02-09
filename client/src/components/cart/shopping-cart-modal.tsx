@@ -95,17 +95,30 @@ export default function ShoppingCartModal({
               const basePrice = parseFloat(product.price);
               const itemTotal = basePrice * quantity;
               
-              // Calculate bulk discount if applicable
+              const getEffectiveDiscountsLocal = (p: any) => {
+                if (p.bulk_purchase_enabled || p.bulkPurchaseEnabled) {
+                  let bulk = p.bulk_purchase_discounts || p.bulkPurchaseDiscounts;
+                  if (typeof bulk === 'string') { try { bulk = JSON.parse(bulk); } catch { bulk = []; } }
+                  return Array.isArray(bulk) ? bulk : [];
+                }
+                let disc = p.quantityDiscounts;
+                if (typeof disc === 'string') { try { disc = JSON.parse(disc); } catch { disc = []; } }
+                return Array.isArray(disc) ? disc : [];
+              };
+              const effectiveDiscounts = getEffectiveDiscountsLocal(product);
               let discountedPrice = basePrice;
               let applicableDiscount = null;
+              let actualDiscountPercent = 0;
               
-              if (product.quantityDiscounts && Array.isArray(product.quantityDiscounts) && product.quantityDiscounts.length > 0) {
-                applicableDiscount = product.quantityDiscounts
-                  .filter((d: any) => quantity >= d.minQty)
-                  .sort((a: any, b: any) => b.minQty - a.minQty)[0];
+              if (effectiveDiscounts.length > 0) {
+                applicableDiscount = effectiveDiscounts
+                  .filter((d: any) => quantity >= (d.minQty || d.min_qty || 0))
+                  .sort((a: any, b: any) => (b.minQty || b.min_qty || 0) - (a.minQty || a.min_qty || 0))[0];
                 
                 if (applicableDiscount) {
-                  discountedPrice = basePrice * (1 - applicableDiscount.discount);
+                  const discountFraction = applicableDiscount.discount || (parseFloat(applicableDiscount.discountPercent || applicableDiscount.discount_percent || '0') / 100);
+                  discountedPrice = basePrice * (1 - discountFraction);
+                  actualDiscountPercent = Math.round(discountFraction * 100);
                 }
               }
               
@@ -140,9 +153,9 @@ export default function ShoppingCartModal({
                             <span className="text-sm font-medium">
                               ${discountedPrice.toFixed(2)} each
                             </span>
-                            {applicableDiscount && (
+                            {applicableDiscount && actualDiscountPercent > 0 && (
                               <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300 text-xs">
-                                {(applicableDiscount.discount * 100).toFixed(0)}% OFF
+                                {actualDiscountPercent}% OFF
                               </Badge>
                             )}
                           </div>

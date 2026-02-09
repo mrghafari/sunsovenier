@@ -543,16 +543,16 @@ export default function ShopAdmin() {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="orders" className="space-y-6">
-          <TabsList className="flex flex-wrap gap-1 h-auto p-2 bg-gray-100 rounded-lg">
-            <TabsTrigger value="orders" className="flex-1 min-w-[120px] text-sm">Orders</TabsTrigger>
-            <TabsTrigger value="discounts" className="flex-1 min-w-[120px] text-sm">Discount Settings</TabsTrigger>
-            <TabsTrigger value="bulk-purchases" className="flex-1 min-w-[120px] text-sm">Bulk Purchases</TabsTrigger>
-            <TabsTrigger value="proforma-deadline" className="flex-1 min-w-[150px] text-sm">Purchase Proforma Deadline</TabsTrigger>
-            <TabsTrigger value="inventory" className="flex-1 min-w-[120px] text-sm">Inventory</TabsTrigger>
-            <TabsTrigger value="invoices" className="flex-1 min-w-[140px] text-sm">Invoice Management</TabsTrigger>
-            <TabsTrigger value="returns" className="flex-1 min-w-[120px] text-sm">Returned Items</TabsTrigger>
-            <TabsTrigger value="abandoned-cart" className="flex-1 min-w-[130px] text-sm">Abandoned Cart</TabsTrigger>
-            <TabsTrigger value="reports" className="flex-1 min-w-[120px] text-sm">Sales Reports</TabsTrigger>
+          <TabsList className="grid grid-cols-5 gap-1 h-auto p-2 bg-gray-100 rounded-lg">
+            <TabsTrigger value="orders" className="text-sm px-3 py-2">Orders</TabsTrigger>
+            <TabsTrigger value="discounts" className="text-sm px-3 py-2">Discount Settings</TabsTrigger>
+            <TabsTrigger value="bulk-purchases" className="text-sm px-3 py-2">Bulk Purchases</TabsTrigger>
+            <TabsTrigger value="proforma-deadline" className="text-sm px-3 py-2">Purchase Proforma Deadline</TabsTrigger>
+            <TabsTrigger value="inventory" className="text-sm px-3 py-2">Inventory</TabsTrigger>
+            <TabsTrigger value="invoices" className="text-sm px-3 py-2">Invoice Management</TabsTrigger>
+            <TabsTrigger value="returns" className="text-sm px-3 py-2">Returned Items</TabsTrigger>
+            <TabsTrigger value="abandoned-cart" className="text-sm px-3 py-2">Abandoned Cart</TabsTrigger>
+            <TabsTrigger value="reports" className="text-sm px-3 py-2">Sales Reports</TabsTrigger>
           </TabsList>
 
           {/* Orders Tab */}

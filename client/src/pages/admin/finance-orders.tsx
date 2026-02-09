@@ -1310,13 +1310,14 @@ function FinanceOrders() {
                 if (!selectedOrder) return true;
                 const isBankTransfer = selectedOrder.paymentMethod === 'bank_transfer_grace' || selectedOrder.paymentMethod === 'واریز بانکی با مهلت 3 روزه';
                 
-                // For bank transfer: require receiptAmount
-                if (isBankTransfer && !receiptAmount) return true;
-                
-                // Check wallet coverage for bank transfers with receipt
-                if (isBankTransfer && receiptAmount) {
-                  const orderTotal = parseFloat(selectedOrder.totalAmount || '0');
+                // For bank transfer: require receiptAmount (check for actual numeric value)
+                if (isBankTransfer) {
                   const receiptAmountNum = parseFloat(receiptAmount) || 0;
+                  // Must have a positive receipt amount
+                  if (receiptAmountNum <= 0) return true;
+                  
+                  // Check wallet coverage for shortfall
+                  const orderTotal = parseFloat(selectedOrder.totalAmount || '0');
                   const shortfall = orderTotal - receiptAmountNum;
                   return shortfall > 0 && shortfall > walletBalance;
                 }
@@ -1328,10 +1329,11 @@ function FinanceOrders() {
                 const isBankTransfer = selectedOrder.paymentMethod === 'bank_transfer_grace' || selectedOrder.paymentMethod === 'واریز بانکی با مهلت 3 روزه';
                 
                 if (!isBankTransfer) return "bg-green-600 hover:bg-green-700";
-                if (!receiptAmount) return "";
+                
+                const receiptAmountNum = parseFloat(receiptAmount) || 0;
+                if (receiptAmountNum <= 0) return "";
                 
                 const orderTotal = parseFloat(selectedOrder.totalAmount || '0');
-                const receiptAmountNum = parseFloat(receiptAmount) || 0;
                 const shortfall = orderTotal - receiptAmountNum;
                 const canApprove = shortfall <= 0 || shortfall <= walletBalance;
                 return canApprove ? "bg-green-600 hover:bg-green-700" : "";
@@ -1648,8 +1650,14 @@ function FinanceOrders() {
                         </div>
                         {orderDetails.shippingCost && parseFloat(orderDetails.shippingCost) > 0 && (
                           <div className="flex justify-between">
-                            <span>هزینه ارسال:</span>
+                            <span>کرایه حمل:</span>
                             <span className="font-medium">{parseFloat(orderDetails.shippingCost).toLocaleString()} IQD</span>
+                          </div>
+                        )}
+                        {orderDetails.vatAmount && parseFloat(orderDetails.vatAmount) > 0 && (
+                          <div className="flex justify-between">
+                            <span>مالیات بر ارزش افزوده ({orderDetails.vatRate || 0}%):</span>
+                            <span className="font-medium">{parseFloat(orderDetails.vatAmount).toLocaleString()} IQD</span>
                           </div>
                         )}
                         <div className="flex justify-between text-lg font-bold text-blue-700 border-t pt-2">

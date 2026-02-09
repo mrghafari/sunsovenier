@@ -296,6 +296,13 @@ export class ShopStorage implements IShopStorage {
         }))
         .sort((a, b) => a.minQty - b.minQty);
 
+      if (product.bulkPurchaseEnabled) {
+        return {
+          ...product,
+          quantityDiscounts: []
+        };
+      }
+
       return {
         ...product,
         quantityDiscounts

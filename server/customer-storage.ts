@@ -7,6 +7,7 @@ import {
   customerVerificationCodes,
   customerEmailVerificationCodes,
   customerVerificationSettings,
+  customerWishlists,
   type Customer,
   type InsertCustomer,
   type CustomerOrder,
@@ -23,6 +24,8 @@ import {
   type InsertCustomerEmailVerificationCode,
   type CustomerVerificationSettings,
   type InsertCustomerVerificationSettings,
+  type CustomerWishlist,
+  type InsertCustomerWishlist,
   emailTemplates,
   type EmailTemplate,
   type InsertEmailTemplate,
@@ -98,6 +101,13 @@ export interface ICustomerStorage {
   deleteEmailTemplate(id: number): Promise<void>;
   setDefaultTemplate(id: number, category: string): Promise<void>;
   incrementTemplateUsage(id: number): Promise<void>;
+  
+  // Wishlist management
+  addToWishlist(customerId: number, productId: number): Promise<CustomerWishlist>;
+  removeFromWishlist(customerId: number, productId: number): Promise<void>;
+  getWishlist(customerId: number): Promise<CustomerWishlist[]>;
+  isInWishlist(customerId: number, productId: number): Promise<boolean>;
+  clearWishlist(customerId: number): Promise<void>;
 }
 
 export class CustomerStorage implements ICustomerStorage {
@@ -1090,6 +1100,66 @@ export class CustomerStorage implements ICustomerStorage {
       
       return newSettings;
     }
+  }
+
+  // Wishlist management methods
+  async addToWishlist(customerId: number, productId: number): Promise<CustomerWishlist> {
+    // Check if already in wishlist
+    const existing = await this.isInWishlist(customerId, productId);
+    if (existing) {
+      // Return existing entry
+      const [item] = await customerDb
+        .select()
+        .from(customerWishlists)
+        .where(and(
+          eq(customerWishlists.customerId, customerId),
+          eq(customerWishlists.productId, productId)
+        ));
+      return item;
+    }
+    
+    const [wishlistItem] = await customerDb
+      .insert(customerWishlists)
+      .values({ customerId, productId })
+      .returning();
+    
+    return wishlistItem;
+  }
+
+  async removeFromWishlist(customerId: number, productId: number): Promise<void> {
+    await customerDb
+      .delete(customerWishlists)
+      .where(and(
+        eq(customerWishlists.customerId, customerId),
+        eq(customerWishlists.productId, productId)
+      ));
+  }
+
+  async getWishlist(customerId: number): Promise<CustomerWishlist[]> {
+    return await customerDb
+      .select()
+      .from(customerWishlists)
+      .where(eq(customerWishlists.customerId, customerId))
+      .orderBy(desc(customerWishlists.addedAt));
+  }
+
+  async isInWishlist(customerId: number, productId: number): Promise<boolean> {
+    const [item] = await customerDb
+      .select()
+      .from(customerWishlists)
+      .where(and(
+        eq(customerWishlists.customerId, customerId),
+        eq(customerWishlists.productId, productId)
+      ))
+      .limit(1);
+    
+    return !!item;
+  }
+
+  async clearWishlist(customerId: number): Promise<void> {
+    await customerDb
+      .delete(customerWishlists)
+      .where(eq(customerWishlists.customerId, customerId));
   }
 }
 

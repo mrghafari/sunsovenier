@@ -1,0 +1,370 @@
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 ()
+ Auth check result: Object
+ 📥 Loading Tawk.to widget at bottom-left position...
+ ✅ Tawk.to Live Chat loaded successfully at bottom-left
+ 
+value @ twk-chunk-common.js:2
+about:blank:1 [Intervention] Slow network is detected. See https://www.chromestatus.com/feature/5636954674692096 for more details. Fallback font will be used while loading: https://embed.tawk.to/_s/v4/assets/fonts/tawk-font-icon-3.woff?55755728=
+128x128?text=WeChat+QR:1  Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] useEffect triggered, userPermissions: undefined
+about:blank:1 [Intervention] Slow network is detected. See https://www.chromestatus.com/feature/5636954674692096 for more details. Fallback font will be used while loading: https://embed.tawk.to/_s/v4/assets/fonts/tawk-font-icon-3.woff?55755728=
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] useEffect triggered, userPermissions: Object
+ 🔍 [DEBUG] userPermissions modules: Array(38)
+ 🔍 [DEBUG] Full userPermissions response: Object
+ 🔍 [DEBUG] userPermissions.modules: Array(38)
+ 🔍 [DEBUG] userPermissions.permissions: Array(38)
+ 🔍 [DEBUG] Total allButtons count: 40
+ 🔍 [DEBUG] AI Settings exists in allButtons: true
+ 🔍 [DEBUG] Content Management exists in allButtons: true
+ 🔍 [DEBUG] allowedModules: Array(38)
+ 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+ 🔍 [DEBUG] management_dashboard in allowedModules? true
+ 🔍 [DEBUG] finance in allowedModules? true
+ 🔍 [DEBUG] geography_analytics in allowedModules? true
+ 🔍 [DEBUG] ai_settings in allowedModules? true
+ 🔍 [DEBUG] content_management in allowedModules? true
+ 🔍 [CRITICAL] Missing button detection:
+ 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+ 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+ 🔍 [CRITICAL] Missing buttons count: 2
+ 🔍 [DEBUG] finance button found in allButtons? Object
+ 🔍 [DEBUG] geography_analytics button found in allButtons? Object
+ 🔍 [DEBUG] ai_settings button found in allButtons? Object
+ 🔍 [DEBUG] content_management button found in allButtons? Object
+ 🔍 [DEBUG] finance button in filtered? Object
+ 🔍 [DEBUG] geography_analytics button in filtered? Object
+ 🔍 [DEBUG] ai_settings button in filtered? Object
+ 🔍 [DEBUG] content_management button in filtered? Object
+ 🔍 [DEBUG] filtered buttons count: 38
+ 🔍 [DEBUG] First 5 filtered buttons: Array(5)
+ 🔍 [DEBUG] AI Control button in filtered: Object
+ 🔍 [DEBUG] Content Management button in filtered: Object
+ 🔍 [DEBUG] Site Management component initialized
+ Barcode effect triggered:  Canvas ref: null
+ 🔍 [DEBUG] Full userPermissions response: Object
+ 🔍 [DEBUG] userPermissions.modules: Array(38)
+ 🔍 [DEBUG] userPermissions.permissions: Array(38)
+ 🔍 [DEBUG] Total allButtons count: 40
+ 🔍 [DEBUG] AI Settings exists in allButtons: true
+ 🔍 [DEBUG] Content Management exists in allButtons: true
+ 🔍 [DEBUG] allowedModules: Array(38)
+ 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+ 🔍 [DEBUG] management_dashboard in allowedModules? true
+ 🔍 [DEBUG] finance in allowedModules? true
+ 🔍 [DEBUG] geography_analytics in allowedModules? true
+ 🔍 [DEBUG] ai_settings in allowedModules? true
+ 🔍 [DEBUG] content_management in allowedModules? true
+ 🔍 [CRITICAL] Missing button detection:
+ 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+ 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+ 🔍 [CRITICAL] Missing buttons count: 2
+ 🔍 [DEBUG] finance button found in allButtons? Object
+ 🔍 [DEBUG] geography_analytics button found in allButtons? Object
+ 🔍 [DEBUG] ai_settings button found in allButtons? Object
+ 🔍 [DEBUG] content_management button found in allButtons? Object
+ 🔍 [DEBUG] finance button in filtered? Object
+ 🔍 [DEBUG] geography_analytics button in filtered? Object
+ 🔍 [DEBUG] ai_settings button in filtered? Object
+ 🔍 [DEBUG] content_management button in filtered? Object
+ Auth check result: Object
+/api/products/%D8%AD%D9%84%D8%A7%D9%84%20%D8%AA%D9%88%D9%84%D9%88%D8%A6%D9%86%20%D8%B5%D9%86%D8%B9%D8%AA%DB%8C%20%DB%B9%DB%B9.5%25/batches/display:1  Failed to load resource: the server responded with a status of 400 ()
+ 📦 Found 1 batches for barcode 8649677177800
+ Barcode effect triggered: 8649677177800 Canvas ref: null
+ ✅ [CATALOG DELETE] Catalog removed from database
+ 🔍 [DEBUG] Form submission - Raw form data: Object
+ 🔍 [DEBUG] Tags in form data: شیمیایی Type: string
+ 🔍 [DEBUG] Description in form data: This is a high-quality chemical product...
+ 🔍 [DEBUG] editingProduct state: 27
+ 🚀 [DEBUG] Final processed data being sent to API: {
+  "name": "Solvant 402",
+  "category": "Paint & Solvents",
+  "description": "This is a high-quality chemical product...",
+  "shortDescription": "This is a high-quality chemical product...",
+  "priceRange": "",
+  "imageUrl": "/uploads/images/product-1761669666979-990578505.png",
+  "imageUrls": [
+    "/objects/images/product-1757069444147-990661282.png",
+    "/uploads/images/product-1761669666979-990578505.png",
+    "https://momtazchem.s3.eu-central-1.amazonaws.com/general-files/1762315385052-6a2ae644da319e70.png"
+  ],
+  "pdfCatalogUrl": "",
+  "catalogFileName": "",
+  "specifications": "This is a high-quality chemical product...",
+  "features": [
+    "[object Object]This is a high-quality chemical product..."
+  ],
+  "applications": [
+    "[object Object]This is a high-quality chemical product..."
+  ],
+  "showCatalogToCustomers": true,
+  "msdsUrl": "",
+  "showMsdsToCustomers": true,
+  "msdsFileName": "",
+  "stockQuantity": 1300,
+  "minStockLevel": 5,
+  "maxStockLevel": 1000,
+  "unitPrice": "25",
+  "currency": "IQD",
+  "batchNumber": null,
+  "netWeight": "5",
+  "grossWeight": "5.5",
+  "weightUnit": "kg",
+  "weight": "11",
+  "barcode": "8649677177800",
+  "sku": "SKU-1752680044975-k1rq8-2255555",
+  "tags": [
+    "شیمیایی"
+  ],
+  "isActive": true,
+  "syncWithShop": true,
+  "showWhenOutOfStock": false,
+  "isNonChemical": false,
+  "isFlammable": true,
+  "isVariant": false,
+  "displayMode": "images",
+  "model3dKey": "",
+  "model3dFileName": "",
+  "transportationTemperature": "",
+  "inventoryAddition": 0,
+  "newBatchNumber": null
+}
+ 📝 [DEBUG] Calling updateProduct with ID: 27
+ 📝 [DEBUG] updateProduct function exists: function
+ ✅ [MSDS DELETE] MSDS removed from database
+ ✅ [DEBUG] Update mutation successful, result: Object
+ 🔄 [INSTANT-SYNC] Triggering immediate kardex synchronization...
+ Barcode effect triggered: 8649677177800 Canvas ref: null
+ 📦 Found 1 batches for barcode 8649677177800
+ Barcode effect triggered: 8649677177800 Canvas ref: null
+ ✅ [INSTANT-SYNC] Kardex synchronization completed
+ Auth check result: Object
+ Auth check result: Object
+ 🔍 [DEBUG] Form submission - Raw form data: Object
+ 🔍 [DEBUG] Tags in form data: شیمیایی Type: string
+ 🔍 [DEBUG] Description in form data: This is a high-quality chemical product...
+ 🔍 [DEBUG] editingProduct state: 27
+ 🚀 [DEBUG] Final processed data being sent to API: {
+  "name": "Solvant 402",
+  "category": "Paint & Solvents",
+  "description": "This is a high-quality chemical product...",
+  "shortDescription": "This is a high-quality chemical product...",
+  "priceRange": "",
+  "imageUrl": "/uploads/images/product-1761669666979-990578505.png",
+  "imageUrls": [
+    "/objects/images/product-1757069444147-990661282.png",
+    "/uploads/images/product-1761669666979-990578505.png",
+    "https://momtazchem.s3.eu-central-1.amazonaws.com/general-files/1762315385052-6a2ae644da319e70.png"
+  ],
+  "pdfCatalogUrl": "/uploads/product-catalogs/1770297071533-2bf30da8d64882e8.pdf",
+  "catalogFileName": "Direttiva_MinInterno_1-3-2000.pdf",
+  "specifications": "This is a high-quality chemical product...",
+  "features": [
+    "[object Object]This is a high-quality chemical product..."
+  ],
+  "applications": [
+    "[object Object]This is a high-quality chemical product..."
+  ],
+  "showCatalogToCustomers": true,
+  "msdsUrl": "/uploads/product-msds/1770297078602-d98f6844eb4958e2.pdf",
+  "showMsdsToCustomers": true,
+  "msdsFileName": "Direttiva_MinInterno_1-3-2000.pdf",
+  "stockQuantity": 1300,
+  "minStockLevel": 5,
+  "maxStockLevel": 1000,
+  "unitPrice": "25",
+  "currency": "IQD",
+  "batchNumber": null,
+  "netWeight": "5",
+  "grossWeight": "5.5",
+  "weightUnit": "kg",
+  "weight": "11",
+  "barcode": "8649677177800",
+  "sku": "SKU-1752680044975-k1rq8-2255555",
+  "tags": [
+    "شیمیایی"
+  ],
+  "isActive": true,
+  "syncWithShop": true,
+  "showWhenOutOfStock": false,
+  "isNonChemical": false,
+  "isFlammable": true,
+  "isVariant": false,
+  "displayMode": "images",
+  "model3dKey": "",
+  "model3dFileName": "",
+  "transportationTemperature": "",
+  "inventoryAddition": 200,
+  "newBatchNumber": null
+}
+ 📝 [DEBUG] Calling updateProduct with ID: 27
+ 📝 [DEBUG] updateProduct function exists: function
+ ✅ [DEBUG] Update mutation successful, result: Object
+ 🔄 [INSTANT-SYNC] Triggering immediate kardex synchronization...
+ Barcode effect triggered: 8649677177800 Canvas ref: null
+ ✅ [INSTANT-SYNC] Kardex synchronization completed
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 ()
+/api/products/%D8%AD%D9%84%D8%A7%D9%84%20%D8%AA%D9%88%D9%84%D9%88%D8%A6%D9%86%20%D8%B5%D9%86%D8%B9%D8%AA%DB%8C%20%DB%B9%DB%B9.5%25/batches/display:1  Failed to load resource: the server responded with a status of 400 ()
+ Auth check result: Object
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 ()
+/api/products/%D8%AD%D9%84%D8%A7%D9%84%20%D8%AA%D9%88%D9%84%D9%88%D8%A6%D9%86%20%D8%B5%D9%86%D8%B9%D8%AA%DB%8C%20%DB%B9%DB%B9.5%25/batches/display:1  Failed to load resource: the server responded with a status of 400 ()
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] useEffect triggered, userPermissions: undefined
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] useEffect triggered, userPermissions: Object
+ 🔍 [DEBUG] userPermissions modules: Array(38)
+ 🔍 [DEBUG] Full userPermissions response: Object
+ 🔍 [DEBUG] userPermissions.modules: Array(38)
+ 🔍 [DEBUG] userPermissions.permissions: Array(38)
+ 🔍 [DEBUG] Total allButtons count: 40
+ 🔍 [DEBUG] AI Settings exists in allButtons: true
+ 🔍 [DEBUG] Content Management exists in allButtons: true
+ 🔍 [DEBUG] allowedModules: Array(38)
+ 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+ 🔍 [DEBUG] management_dashboard in allowedModules? true
+ 🔍 [DEBUG] finance in allowedModules? true
+ 🔍 [DEBUG] geography_analytics in allowedModules? true
+ 🔍 [DEBUG] ai_settings in allowedModules? true
+ 🔍 [DEBUG] content_management in allowedModules? true
+ 🔍 [CRITICAL] Missing button detection:
+ 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+ 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+ 🔍 [CRITICAL] Missing buttons count: 2
+ 🔍 [DEBUG] finance button found in allButtons? Object
+ 🔍 [DEBUG] geography_analytics button found in allButtons? Object
+ 🔍 [DEBUG] ai_settings button found in allButtons? Object
+ 🔍 [DEBUG] content_management button found in allButtons? Object
+ 🔍 [DEBUG] finance button in filtered? Object
+ 🔍 [DEBUG] geography_analytics button in filtered? Object
+ 🔍 [DEBUG] ai_settings button in filtered? Object
+ 🔍 [DEBUG] content_management button in filtered? Object
+ 🔍 [DEBUG] filtered buttons count: 38
+ 🔍 [DEBUG] First 5 filtered buttons: Array(5)
+ 🔍 [DEBUG] AI Control button in filtered: Object
+ 🔍 [DEBUG] Content Management button in filtered: Object
+ 🔍 [DEBUG] Site Management component initialized
+ 🔄 [FINAL ORDER] Orders after sorting: Array(0)
+ 🔍 [DEBUG] Full userPermissions response: Object
+ 🔍 [DEBUG] userPermissions.modules: Array(38)
+ 🔍 [DEBUG] userPermissions.permissions: Array(38)
+ 🔍 [DEBUG] Total allButtons count: 40
+ 🔍 [DEBUG] AI Settings exists in allButtons: true
+ 🔍 [DEBUG] Content Management exists in allButtons: true
+ 🔍 [DEBUG] allowedModules: Array(38)
+ 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+ 🔍 [DEBUG] management_dashboard in allowedModules? true
+ 🔍 [DEBUG] finance in allowedModules? true
+ 🔍 [DEBUG] geography_analytics in allowedModules? true
+ 🔍 [DEBUG] ai_settings in allowedModules? true
+ 🔍 [DEBUG] content_management in allowedModules? true
+ 🔍 [CRITICAL] Missing button detection:
+ 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+ 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+ 🔍 [CRITICAL] Missing buttons count: 2
+ 🔍 [DEBUG] finance button found in allButtons? Object
+ 🔍 [DEBUG] geography_analytics button found in allButtons? Object
+ 🔍 [DEBUG] ai_settings button found in allButtons? Object
+index-Cc0y6itd.js:1914 🔍 [DEBUG] content_management button found in allButtons? Object
+index-Cc0y6itd.js:1914 🔍 [DEBUG] finance button in filtered? Object
+index-Cc0y6itd.js:1914 🔍 [DEBUG] geography_analytics button in filtered? Object
+index-Cc0y6itd.js:1914 🔍 [DEBUG] ai_settings button in filtered? Object
+index-Cc0y6itd.js:1914 🔍 [DEBUG] content_management button in filtered? Object
+/api/warehouse/inventory-products:1  Failed to load resource: the server responded with a status of 500 ()
+index-Cc0y6itd.js:2604 🔄 [FINAL ORDER] Orders after sorting: Array(0)
+index-Cc0y6itd.js:2604 🔄 [FINAL ORDER] Orders after sorting: Array(0)
+index-Cc0y6itd.js:2604 🔄 [FINAL ORDER] Orders after sorting: Array(0)
+index-Cc0y6itd.js:2604 🔄 [FINAL ORDER] Orders after sorting: Array(0)
+index-Cc0y6itd.js:1086 Auth check result: Object
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Order A: M2601155 ( 2601155 ) Order B: M2601154 ( 2601154 )
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Sort result: 1 - older order first
+index-Cc0y6itd.js:2604 🔄 [FINAL ORDER] Orders after sorting: Array(2)
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Order A: M2601155 ( 2601155 ) Order B: M2601154 ( 2601154 )
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Sort result: 1 - older order first
+index-Cc0y6itd.js:2604 🔄 [FINAL ORDER] Orders after sorting: Array(2)
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 ()
+index-Cc0y6itd.js:1086 Auth check result: Object
+/api/warehouse/inventory-products:1  Failed to load resource: the server responded with a status of 500 ()
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Order A: M2601155 ( 2601155 ) Order B: M2601154 ( 2601154 )
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Sort result: 1 - older order first
+index-Cc0y6itd.js:2604 🔄 [FINAL ORDER] Orders after sorting: Array(2)
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Order A: M2601155 ( 2601155 ) Order B: M2601154 ( 2601154 )
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Sort result: 1 - older order first
+index-Cc0y6itd.js:2604 🔄 [FINAL ORDER] Orders after sorting: Array(2)
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 ()
+index-Cc0y6itd.js:1086 Auth check result: Object
+/api/warehouse/inventory-products:1  Failed to load resource: the server responded with a status of 500 ()
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Order A: M2601155 ( 2601155 ) Order B: M2601154 ( 2601154 )
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Sort result: 1 - older order first
+index-Cc0y6itd.js:2604 🔄 [FINAL ORDER] Orders after sorting: Array(2)
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Order A: M2601155 ( 2601155 ) Order B: M2601154 ( 2601154 )
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Sort result: 1 - older order first
+index-Cc0y6itd.js:2604 🔄 [FINAL ORDER] Orders after sorting: Array(2)
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Order A: M2601155 ( 2601155 ) Order B: M2601154 ( 2601154 )
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Sort result: 1 - older order first
+index-Cc0y6itd.js:2604 🔄 [FINAL ORDER] Orders after sorting: Array(2)
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Order A: M2601155 ( 2601155 ) Order B: M2601154 ( 2601154 )
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Sort result: 1 - older order first
+index-Cc0y6itd.js:2604 🔄 [FINAL ORDER] Orders after sorting: Array(2)
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Order A: M2601155 ( 2601155 ) Order B: M2601154 ( 2601154 )
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Sort result: 1 - older order first
+index-Cc0y6itd.js:2604 🔄 [FINAL ORDER] Orders after sorting: Array(2)
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 ()
+index-Cc0y6itd.js:1086 Auth check result: Object
+/api/warehouse/inventory-products:1  Failed to load resource: the server responded with a status of 500 ()
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Order A: M2601155 ( 2601155 ) Order B: M2601154 ( 2601154 )
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Sort result: 1 - older order first
+index-Cc0y6itd.js:2604 🔄 [FINAL ORDER] Orders after sorting: Array(2)
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Order A: M2601155 ( 2601155 ) Order B: M2601154 ( 2601154 )
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Sort result: 1 - older order first
+index-Cc0y6itd.js:2604 🔄 [FINAL ORDER] Orders after sorting: Array(2)
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Order A: M2601155 ( 2601155 ) Order B: M2601154 ( 2601154 )
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Sort result: 1 - older order first
+index-Cc0y6itd.js:2604 🔄 [FINAL ORDER] Orders after sorting: Array(2)
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Order A: M2601155 ( 2601155 ) Order B: M2601154 ( 2601154 )
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Sort result: 1 - older order first
+index-Cc0y6itd.js:2604 🔄 [FINAL ORDER] Orders after sorting: Array(2)
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Order A: M2601155 ( 2601155 ) Order B: M2601154 ( 2601154 )
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Sort result: 1 - older order first
+index-Cc0y6itd.js:2604 🔄 [FINAL ORDER] Orders after sorting: Array(2)
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Order A: M2601155 ( 2601155 ) Order B: M2601154 ( 2601154 )
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Sort result: 1 - older order first
+index-Cc0y6itd.js:2604 🔄 [FINAL ORDER] Orders after sorting: Array(2)
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Order A: M2601155 ( 2601155 ) Order B: M2601154 ( 2601154 )
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Sort result: 1 - older order first
+index-Cc0y6itd.js:2604 🔄 [FINAL ORDER] Orders after sorting: Array(2)
+/api/warehouse/inventory-notification-settings:1  Failed to load resource: the server responded with a status of 500 ()
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Order A: M2601155 ( 2601155 ) Order B: M2601154 ( 2601154 )
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Sort result: 1 - older order first
+index-Cc0y6itd.js:2604 🔄 [FINAL ORDER] Orders after sorting: Array(2)
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Order A: M2601155 ( 2601155 ) Order B: M2601154 ( 2601154 )
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Sort result: 1 - older order first
+index-Cc0y6itd.js:2604 🔄 [FINAL ORDER] Orders after sorting: Array(2)
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Order A: M2601155 ( 2601155 ) Order B: M2601154 ( 2601154 )
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Sort result: 1 - older order first
+index-Cc0y6itd.js:2604 🔄 [FINAL ORDER] Orders after sorting: (2) [{…}, {…}]
+index-Cc0y6itd.js:48  POST https://momtaz-chem-website-admin3119.replit.app/api/warehouse/inventory-notification-settings 500 (Internal Server Error)
+bt @ index-Cc0y6itd.js:48
+mutationFn @ index-Cc0y6itd.js:2604
+fn @ index-Cc0y6itd.js:48
+v @ index-Cc0y6itd.js:48
+start @ index-Cc0y6itd.js:48
+execute @ index-Cc0y6itd.js:48
+await in execute
+mutate @ index-Cc0y6itd.js:48
+(anonymous) @ index-Cc0y6itd.js:48
+onClick @ index-Cc0y6itd.js:2604
+Twe @ index-Cc0y6itd.js:37
+Iwe @ index-Cc0y6itd.js:37
+Owe @ index-Cc0y6itd.js:37
+EU @ index-Cc0y6itd.js:37
+zre @ index-Cc0y6itd.js:37
+(anonymous) @ index-Cc0y6itd.js:37
+sL @ index-Cc0y6itd.js:40
+hre @ index-Cc0y6itd.js:37
+x6 @ index-Cc0y6itd.js:37
+TR @ index-Cc0y6itd.js:37
+Qwe @ index-Cc0y6itd.js:37
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Order A: M2601155 ( 2601155 ) Order B: M2601154 ( 2601154 )
+index-Cc0y6itd.js:2604 🔄 [SORTING DEBUG] Sort result: 1 - older order first
+index-Cc0y6itd.js:2604 🔄 [FINAL ORDER] Orders after sorting: (2) [{…}, {…}]

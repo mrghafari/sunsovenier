@@ -13,6 +13,7 @@ import About from "@/pages/about";
 import Services from "@/pages/services";
 import Contact from "@/pages/contact";
 import Shop from "@/pages/shop";
+import WishlistPage from "@/pages/wishlist";
 import Checkout from "@/pages/checkout";
 import Payment from "@/pages/payment";
 import CheckoutSuccess from "@/pages/checkout-success";
@@ -113,6 +114,7 @@ import GlobalRefreshSettings from "@/pages/admin/global-refresh-settings";
 import InventoryNotificationSettings from "@/pages/admin/inventory-notification-settings";
 import WarehouseManagement from "@/pages/admin/warehouse-management";
 import WarehouseManagementFixed from "@/pages/admin/warehouse-management-fixed";
+import WarehouseInventoryManagement from "@/pages/admin/warehouse-inventory-management";
 import ContentManagement from "@/pages/content-management";
 
 import SecurityManagement from "@/pages/security-management-new";
@@ -172,6 +174,7 @@ function Router() {
           <Route path="/user-guide" component={UserGuide} />
           <Route path="/help" component={UserGuide} />
           <Route path="/shop" component={Shop} />
+          <Route path="/wishlist" component={WishlistPage} />
           <Route path="/vendor" component={VendorPortal} />
           <Route path="/vendor-registration" component={VendorRegistration} />
           <Route path="/become-vendor" component={VendorRegistration} />
@@ -281,6 +284,7 @@ function Router() {
 
           <Route path="/admin/inventory-notification-settings" component={() => <AdminRoute><InventoryNotificationSettings /></AdminRoute>} />
           <Route path="/admin/warehouse-management" component={() => <AdminRoute><WarehouseManagementFixed /></AdminRoute>} />
+          <Route path="/admin/warehouse-inventory-management" component={() => <AdminRoute><WarehouseInventoryManagement /></AdminRoute>} />
 
           <Route path="/admin/content-management" component={() => <AdminRoute><ContentManagement /></AdminRoute>} />
           <Route path="/content-management" component={() => <AdminRoute><ContentManagement /></AdminRoute>} />

@@ -264,9 +264,17 @@ export class KardexSyncMaster {
       
       let added = 0, updated = 0, removed = 0, unchanged = 0;
       
-      // فیلتر کردن محصولات کاردکس که بارکد دارند و تجمیع بر اساس barcode (برای batch ها)
+      // فیلتر کردن محصولات کاردکس که بارکد دارند و syncWithShop فعال است
+      // 🔒 CRITICAL: محصولاتی که syncWithShop = false هستند نباید در فروشگاه نمایش داده شوند
       const kardexWithBarcode = kardexProducts.filter(p => 
-        p.barcode && p.barcode.trim() !== ''
+        p.barcode && p.barcode.trim() !== '' && p.syncWithShop !== false
+      );
+      
+      // لیست بارکدهای محصولات مخفی شده
+      const hiddenBarcodes = new Set(
+        kardexProducts
+          .filter(p => p.barcode && p.barcode.trim() !== '' && p.syncWithShop === false)
+          .map(p => p.barcode.trim())
       );
       
       // تجمیع محصولات بر اساس بارکد (برای batch های مختلف) - محاسبه مجموع موجودی همه batches
@@ -297,12 +305,22 @@ export class KardexSyncMaster {
       // محصولاتی که در کاردکس هستند و باید در فروشگاه باشند (بر اساس بارکد EAN-13)
       const kardexBarcodes = new Set(syncEnabledKardex.map(p => p.barcode.trim()));
       
-      // حذف محصولاتی که بارکدشان در کاردکس نیست
+      // حذف محصولاتی که بارکدشان در کاردکس نیست یا مخفی شده‌اند
       for (const shopProduct of shopProducts) {
-        if (shopProduct.barcode && shopProduct.barcode.trim() !== '' && !kardexBarcodes.has(shopProduct.barcode.trim())) {
-          await shopStorage.deleteShopProduct(shopProduct.id);
-          removed++;
-          console.log(`🗑️ [KARDEX-SYNC] حذف شد (بارکد غیرمجاز): ${shopProduct.name} - ${shopProduct.barcode}`);
+        const shopBarcode = shopProduct.barcode?.trim();
+        if (shopBarcode) {
+          // حذف اگر بارکد در کاردکس نیست
+          if (!kardexBarcodes.has(shopBarcode)) {
+            await shopStorage.deleteShopProduct(shopProduct.id);
+            removed++;
+            console.log(`🗑️ [KARDEX-SYNC] حذف شد (بارکد غیرمجاز): ${shopProduct.name} - ${shopBarcode}`);
+          }
+          // 🔒 CRITICAL: حذف محصولاتی که در کاردکس مخفی شده‌اند
+          else if (hiddenBarcodes.has(shopBarcode)) {
+            await shopStorage.deleteShopProduct(shopProduct.id);
+            removed++;
+            console.log(`🔒 [KARDEX-SYNC] حذف شد (مخفی شده): ${shopProduct.name} - ${shopBarcode}`);
+          }
         }
       }
       

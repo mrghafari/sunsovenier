@@ -50,6 +50,18 @@ const CustomerRegister = () => {
     email: false,
   });
 
+  // Fetch verification settings to check if skip verification is enabled
+  const { data: verificationSettings, isLoading: isLoadingSettings } = useQuery<any>({
+    queryKey: ["/api/customer/verification-settings"],
+    queryFn: async () => {
+      const response = await fetch("/api/customer/verification-settings");
+      const data = await response.json();
+      console.log("🔐 [SETTINGS LOADED] Verification settings:", data);
+      return data;
+    },
+    staleTime: 60000,
+  });
+
   // Fetch provinces data
   const { data: provinces = [] } = useQuery({
     queryKey: ["/api/logistics/provinces"],
@@ -113,13 +125,25 @@ const CustomerRegister = () => {
     },
     onSuccess: (response, variables) => {
       const { confirmPassword, ...registerData } = variables;
-      setPendingRegistrationData({
+      const registrationPayload = {
         ...registerData,
         passwordHash: registerData.password,
         customerSource: "website",
         customerType: "retail",
         whatsappNumber: registerData.phone,
-      });
+      };
+      
+      // Check if verification is skipped - register directly without OTP
+      if (response.skipVerification === true) {
+        console.log("🔐 [REGISTRATION] Skip verification enabled - registering directly");
+        registerMutation.mutate({
+          ...registrationPayload,
+          skipOtpVerification: true,
+        });
+        return;
+      }
+      
+      setPendingRegistrationData(registrationPayload);
       
       // Store sentVia info from response
       if (response.sentVia) {
@@ -163,6 +187,7 @@ const CustomerRegister = () => {
         description: "Your account has been created. You can now log in.",
       });
       setShowOtpModal(false);
+      setIsSubmitting(false);
       setLocation("/customer/login");
     },
     onError: (error: any) => {
@@ -172,6 +197,7 @@ const CustomerRegister = () => {
         variant: "destructive",
       });
       setShowOtpModal(false);
+      setIsSubmitting(false);
     },
   });
 
@@ -182,9 +208,22 @@ const CustomerRegister = () => {
     }
   };
 
-  const onSubmit = (data: CustomerRegistrationData) => {
+  const onSubmit = async (data: CustomerRegistrationData) => {
     setIsSubmitting(true);
-    sendOtpMutation.mutate(data);
+    
+    // Always try direct registration - backend will check if OTP is needed
+    const { confirmPassword, ...registerData } = data;
+    const registrationPayload = {
+      ...registerData,
+      passwordHash: registerData.password,
+      customerSource: "website",
+      customerType: "retail",
+      whatsappNumber: registerData.phone,
+      skipOtpVerification: true,
+    };
+    
+    console.log("🔐 [REGISTRATION] Attempting direct registration...");
+    registerMutation.mutate(registrationPayload);
   };
 
   return (

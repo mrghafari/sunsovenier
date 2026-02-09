@@ -441,11 +441,8 @@ export function createVendorRouter() {
         .where(eq(products.vendorId, req.vendorUser.vendorId))
         .orderBy(products.createdAt);
 
-      res.json({
-        success: true,
-        products: vendorProducts,
-        totalCount: vendorProducts.length
-      });
+      // Return array directly for consistency with admin products endpoint
+      res.json(vendorProducts);
     } catch (error: any) {
       console.error("Error getting vendor products:", error);
       res.status(500).json({
@@ -623,7 +620,14 @@ export function createVendorRouter() {
       }
 
       // Extract product data from body and IGNORE any vendorId sent by client
-      const { vendorId: _ignored, id: _id, createdAt: _createdAt, ...bodyData } = req.body;
+      const { vendorId: _ignored, id: _id, createdAt: _createdAt, inventoryAddition, newBatchNumber, ...bodyData } = req.body;
+      
+      // Handle inventory addition without batch (add to existing stock)
+      if (inventoryAddition && Number(inventoryAddition) > 0 && !newBatchNumber?.trim()) {
+        const currentStock = existingProduct.stockQuantity || 0;
+        bodyData.stockQuantity = currentStock + Number(inventoryAddition);
+        console.log(`📦 [VENDOR INVENTORY] Adding ${inventoryAddition} to product ${productId}. New total: ${bodyData.stockQuantity}`);
+      }
       
       // Update the product
       const updateData = {
@@ -695,7 +699,14 @@ export function createVendorRouter() {
       }
 
       // Don't allow changing vendorId
-      const { vendorId, ...updateData } = validationResult.data;
+      const { vendorId, inventoryAddition, newBatchNumber, ...updateData } = validationResult.data as any;
+
+      // Handle inventory addition without batch (add to existing stock)
+      if (inventoryAddition && Number(inventoryAddition) > 0 && !newBatchNumber?.trim()) {
+        const currentStock = existingProduct.stockQuantity || 0;
+        (updateData as any).stockQuantity = currentStock + Number(inventoryAddition);
+        console.log(`📦 [VENDOR SHOP INVENTORY] Adding ${inventoryAddition} to product ${productId}. New total: ${(updateData as any).stockQuantity}`);
+      }
 
       const product = await shopStorage.updateShopProduct(productId, updateData);
 

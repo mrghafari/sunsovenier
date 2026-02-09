@@ -89,6 +89,11 @@ export class WalletStorage implements IWalletStorage {
   }
 
   async updateWalletBalance(walletId: number, newBalance: number): Promise<CustomerWallet> {
+    // 🚫 CRITICAL: هیچگاه اجازه موجودی منفی را نده
+    if (newBalance < 0) {
+      throw new Error(`Cannot update wallet to negative balance: ${newBalance}`);
+    }
+    
     const [wallet] = await customerDb
       .update(customerWallets)
       .set({ 
@@ -230,6 +235,11 @@ export class WalletStorage implements IWalletStorage {
     }
 
     const newBalance = currentBalance - amount;
+    
+    // 🚫 CRITICAL: هیچگاه اجازه موجودی منفی را نده
+    if (newBalance < 0) {
+      throw new Error(`Operation would result in negative balance. Current: ${currentBalance}, Debit: ${amount}, Result: ${newBalance}`);
+    }
 
     // Create transaction record
     const transaction = await this.createTransaction({

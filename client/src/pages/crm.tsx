@@ -21,6 +21,160 @@ import { PasswordManagement } from "@/components/PasswordManagement";
 import { apiRequest } from "@/lib/queryClient";
 
 // Province and City components for Iraq geographical data
+
+// Verification Settings Panel Component
+function VerificationSettingsPanel() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Fetch current verification settings
+  const { data: settingsData, isLoading: settingsLoading } = useQuery({
+    queryKey: ["/api/customer/verification-settings"],
+  });
+
+  const settings = (settingsData as any)?.settings || {
+    smsVerificationEnabled: false,
+    emailVerificationEnabled: true,
+    whatsappVerificationEnabled: false,
+    requireBothVerifications: false,
+    allowSkipVerification: false,
+  };
+
+  // Update verification settings mutation
+  const updateSettingsMutation = useMutation({
+    mutationFn: async (newSettings: any) => {
+      return await apiRequest("/api/customer/verification-settings", { method: "PUT", body: newSettings });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/customer/verification-settings"] });
+      toast({
+        title: "Success",
+        description: "Verification settings updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to update settings",
+      });
+    },
+  });
+
+  const handleToggle = (field: string, value: boolean) => {
+    let newSettings = { ...settings, [field]: value };
+    
+    // Mutual exclusivity logic:
+    // If Allow Skip Verification is enabled -> disable all channels
+    // If any channel is enabled -> disable Allow Skip Verification
+    if (field === "allowSkipVerification" && value === true) {
+      newSettings = {
+        ...newSettings,
+        smsVerificationEnabled: false,
+        emailVerificationEnabled: false,
+        whatsappVerificationEnabled: false,
+        requireBothVerifications: false,
+      };
+    } else if (
+      (field === "smsVerificationEnabled" || 
+       field === "emailVerificationEnabled" || 
+       field === "whatsappVerificationEnabled") && 
+      value === true
+    ) {
+      newSettings = {
+        ...newSettings,
+        allowSkipVerification: false,
+      };
+    }
+    
+    updateSettingsMutation.mutate(newSettings);
+  };
+
+  if (settingsLoading) {
+    return <div className="text-center py-4">Loading settings...</div>;
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between p-4 border rounded-lg">
+        <div>
+          <Label htmlFor="email-verification" className="font-medium flex items-center gap-2">
+            <Mail className="w-4 h-4" />
+            Email Verification
+          </Label>
+          <p className="text-sm text-muted-foreground">
+            Send verification code via email during registration
+          </p>
+        </div>
+        <Switch
+          id="email-verification"
+          checked={settings.emailVerificationEnabled}
+          onCheckedChange={(checked) => handleToggle("emailVerificationEnabled", checked)}
+          disabled={updateSettingsMutation.isPending}
+        />
+      </div>
+
+      <div className="flex items-center justify-between p-4 border rounded-lg">
+        <div>
+          <Label htmlFor="sms-verification" className="font-medium flex items-center gap-2">
+            <MessageCircle className="w-4 h-4" />
+            SMS Verification
+          </Label>
+          <p className="text-sm text-muted-foreground">
+            Send verification code via SMS during registration
+          </p>
+        </div>
+        <Switch
+          id="sms-verification"
+          checked={settings.smsVerificationEnabled}
+          onCheckedChange={(checked) => handleToggle("smsVerificationEnabled", checked)}
+          disabled={updateSettingsMutation.isPending}
+        />
+      </div>
+
+      <div className="flex items-center justify-between p-4 border rounded-lg">
+        <div>
+          <Label htmlFor="whatsapp-verification" className="font-medium flex items-center gap-2">
+            <MessageCircle className="w-4 h-4" />
+            WhatsApp Verification
+          </Label>
+          <p className="text-sm text-muted-foreground">
+            Send verification code via WhatsApp during registration
+          </p>
+        </div>
+        <Switch
+          id="whatsapp-verification"
+          checked={settings.whatsappVerificationEnabled}
+          onCheckedChange={(checked) => handleToggle("whatsappVerificationEnabled", checked)}
+          disabled={updateSettingsMutation.isPending}
+        />
+      </div>
+
+      <div className="flex items-center justify-between p-4 border rounded-lg bg-yellow-50 dark:bg-yellow-900/20">
+        <div>
+          <Label htmlFor="skip-verification" className="font-medium flex items-center gap-2">
+            <Shield className="w-4 h-4" />
+            Allow Skip Verification
+          </Label>
+          <p className="text-sm text-muted-foreground">
+            Allow customers to skip verification if no channels are enabled (not recommended)
+          </p>
+        </div>
+        <Switch
+          id="skip-verification"
+          checked={settings.allowSkipVerification}
+          onCheckedChange={(checked) => handleToggle("allowSkipVerification", checked)}
+          disabled={updateSettingsMutation.isPending}
+        />
+      </div>
+
+      {updateSettingsMutation.isPending && (
+        <p className="text-sm text-muted-foreground text-center">Saving changes...</p>
+      )}
+    </div>
+  );
+}
+
 function ProvinceSelect({ editingCustomer, setEditingCustomer }: {
   editingCustomer: CrmCustomer | null;
   setEditingCustomer: (customer: CrmCustomer | null) => void;
@@ -837,6 +991,7 @@ export default function CRM() {
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="customers">Customers</TabsTrigger>
           <TabsTrigger value="activities">Activities</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard" className="space-y-4">
@@ -1181,6 +1336,23 @@ export default function CRM() {
                   </div>
                 ))}
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="settings" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="w-5 h-5" />
+                Customer Verification Settings
+              </CardTitle>
+              <CardDescription>
+                Configure which verification methods are enabled for customer registration
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <VerificationSettingsPanel />
             </CardContent>
           </Card>
         </TabsContent>

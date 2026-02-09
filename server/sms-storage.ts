@@ -20,7 +20,8 @@ import {
   type SmsTemplate
 } from "../shared/schema";
 
-export const smsPool = new Pool({ connectionString: process.env.DATABASE_URL });
+const databaseUrl = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
+export const smsPool = new Pool({ connectionString: databaseUrl });
 export const smsDb = drizzle({ client: smsPool, schema: { smsVerifications, smsSettings, customerSmsSettings, smsTemplateCategories, smsTemplates } });
 
 export interface ISmsStorage {

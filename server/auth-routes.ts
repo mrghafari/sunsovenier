@@ -40,7 +40,7 @@ router.get('/google/callback',
 
     // User has completed profile, redirect to dashboard
     console.log('✅ [GOOGLE CALLBACK] Profile complete, redirecting to dashboard');
-    res.redirect('/customer-dashboard');
+    res.redirect('/customer/profile');
   }
 );
 
@@ -78,7 +78,7 @@ router.get('/facebook/callback',
 
     // User has completed profile, redirect to dashboard
     console.log('✅ [FACEBOOK CALLBACK] Profile complete, redirecting to dashboard');
-    res.redirect('/customer-dashboard');
+    res.redirect('/customer/profile');
   }
 );
 

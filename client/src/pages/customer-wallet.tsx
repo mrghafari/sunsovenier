@@ -212,7 +212,15 @@ export default function CustomerWallet() {
       
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      if (result.paymentUrl) {
+        toast({
+          title: "در حال انتقال به درگاه پرداخت...",
+          description: "لطفاً صبر کنید",
+        });
+        window.location.href = result.paymentUrl;
+        return;
+      }
       toast({
         title: t.rechargeSuccess,
         description: t.requestSubmitted,
@@ -511,27 +519,6 @@ export default function CustomerWallet() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-4">
-                {/* Sync & Cache Clear Buttons */}
-                <Button 
-                  variant="outline"
-                  onClick={() => syncWalletMutation.mutate()}
-                  disabled={syncWalletMutation.isPending}
-                  className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
-                >
-                  <RefreshCw className={`h-4 w-4 ${syncWalletMutation.isPending ? 'animate-spin' : ''}`} />
-                  {syncWalletMutation.isPending ? 'در حال همگام‌سازی...' : 'همگام‌سازی کیف پول'}
-                </Button>
-                
-                <Button 
-                  variant="outline"
-                  onClick={() => clearCacheMutation.mutate()}
-                  disabled={clearCacheMutation.isPending}
-                  className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
-                >
-                  <Trash2 className="h-4 w-4" />
-                  {clearCacheMutation.isPending ? 'در حال پاکسازی...' : 'پاکسازی حافظه موقت'}
-                </Button>
-
                 <Dialog open={isRechargeDialogOpen} onOpenChange={setIsRechargeDialogOpen}>
                   <DialogTrigger asChild>
                     <Button className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>

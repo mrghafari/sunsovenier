@@ -89,14 +89,7 @@ export default function ProductRating({
       return;
     }
     
-    if (!newComment.trim()) {
-      toast({
-        title: t.error, 
-        description: t.comment,
-        variant: "destructive"
-      });
-      return;
-    }
+    // کامنت اختیاری است - کاربر می‌تواند فقط ستاره بدهد
     
     setIsSubmitting(true);
     

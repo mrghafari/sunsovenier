@@ -1871,7 +1871,14 @@ const WarehouseManagement: React.FC = () => {
                     {selectedOrder.items.map((item, index) => (
                       <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
                         <div>
-                          <p className="font-medium">{item.name}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{item.name}</p>
+                            {item.vendor_name && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800 border border-orange-300">
+                                🏪 فروشنده: {item.vendor_name}
+                              </span>
+                            )}
+                          </div>
                           <p className="text-sm text-gray-500">تعداد: {item.quantity}</p>
                         </div>
                         <p className="font-medium">{formatCurrency(item.price * item.quantity)}</p>
@@ -1971,8 +1978,8 @@ const WarehouseManagement: React.FC = () => {
                           <div className="flex items-center gap-2">
                             <h4 className="font-semibold text-gray-900">{item.product_name}</h4>
                             {item.vendor_name && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
-                                🏪 {item.vendor_name}
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800 border border-orange-300">
+                                🏪 فروشنده: {item.vendor_name}
                               </span>
                             )}
                           </div>

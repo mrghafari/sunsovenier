@@ -27,7 +27,7 @@ import { widgetRecommendationStorage } from "./widget-recommendation-storage";
 import { orderManagementStorage } from "./order-management-storage";
 import { walletStorage } from "./wallet-storage";
 import { requireDepartment, attachUserDepartments } from "./department-auth";
-import { insertCustomerInquirySchema, insertEmailTemplateSchema, insertCustomerSchema, insertCustomerAddressSchema, walletRechargeRequests, customerOrders, orderItems, walletTransactions, customerWallets } from "@shared/customer-schema";
+import { insertCustomerInquirySchema, insertEmailTemplateSchema, insertCustomerSchema, insertCustomerAddressSchema, walletRechargeRequests, customerOrders, orderItems, walletTransactions, customerWallets, customerVerificationSettings } from "@shared/customer-schema";
 import { customerDb, customerPool } from "./customer-db";
 import { insertEmailCategorySchema, insertSmtpSettingSchema, insertEmailRecipientSchema, smtpConfigSchema, emailLogs, emailCategories, smtpSettings, emailRecipients, categoryEmailAssignments, insertCategoryEmailAssignmentSchema } from "@shared/email-schema";
 import { insertShopProductSchema, insertShopCategorySchema, paymentGateways, shopProducts } from "@shared/shop-schema";
@@ -5083,8 +5083,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       
       // Handle batch addition requests (skip all validations except batch-specific ones)
-      const isBatchAddition = productData.inventoryAddition && productData.newBatchNumber;
       const productData = req.body;
+      const isBatchAddition = productData.inventoryAddition && productData.newBatchNumber;
       if (isBatchAddition) {
         // Get old product data for batch creation
         const oldProduct = await storage.getProductById(id);
@@ -5123,6 +5123,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
       }
+      
+      // Handle inventory addition without batch (add to existing stock)
+      if (productData.inventoryAddition && Number(productData.inventoryAddition) > 0 && !productData.newBatchNumber?.trim()) {
+        const oldProduct = await storage.getProductById(id);
+        if (oldProduct) {
+          const currentStock = oldProduct.stockQuantity || 0;
+          productData.stockQuantity = currentStock + Number(productData.inventoryAddition);
+          console.log(`📦 [INVENTORY] Adding ${productData.inventoryAddition} to product ${id}. New total: ${productData.stockQuantity}`);
+        }
+      }
+      
+      // Remove fields that shouldn't be in database update
+      delete productData.inventoryAddition;
+      delete productData.newBatchNumber;
       
       // Map frontend fields to backend fields for update
       const mappedData = {
@@ -5734,6 +5748,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      // *** ACTUALLY DELETE THE PRODUCT FROM SHOWCASE_PRODUCTS (KARDEX) ***
+      await storage.deleteProduct(id);
+      console.log(`🗑️ [DELETE] Product ID ${id} deleted from showcase_products (kardex)`);
+      
       // Trigger automatic synchronization after deletion
       try {
         const { KardexSyncMaster } = await import('./kardex-sync-master');
@@ -5743,7 +5761,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("Auto-sync failed after deletion:", syncError);
       }
       
-      console.log(`Product ${id} deleted successfully from both showcase and shop with auto-sync`);
+      console.log(`✅ Product ${id} deleted successfully from both showcase and shop with auto-sync`);
       res.json({ success: true, message: "Product deleted successfully" });
     } catch (error) {
       console.error("Delete product error:", error);
@@ -6957,6 +6975,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Create database backup
   app.post("/api/admin/backup/create", requireAuth, async (req, res) => {
+    console.log('💾 [BACKUP] Starting database backup creation...');
     try {
       const { spawn } = await import('child_process');
       const fsModule = await import('fs');
@@ -6967,20 +6986,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const backupFile = `database_backup_${timestamp}.sql`;
       const backupPath = path.join(backupDir, backupFile);
       
+      console.log('💾 [BACKUP] Backup file:', backupPath);
+      
       // Create backup directory if it doesn't exist
       if (!fs.existsSync(backupDir)) {
         fs.mkdirSync(backupDir, { recursive: true });
+        console.log('💾 [BACKUP] Created backup directory:', backupDir);
       }
       
       // Create backup using pg_dump
       const databaseUrl = process.env.DATABASE_URL;
       if (!databaseUrl) {
+        console.error('❌ [BACKUP] DATABASE_URL not configured');
         return res.status(500).json({
           success: false,
           message: "Database URL not configured"
         });
       }
 
+      console.log('💾 [BACKUP] Starting pg_dump...');
       const pgDump = spawn('pg_dump', [databaseUrl, '--no-owner', '--no-privileges']);
       
       const writeStream = fs.createWriteStream(backupPath);
@@ -7024,6 +7048,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Create S3 database backup
   app.post("/api/admin/backups/create", requireAuth, async (req, res) => {
+    console.log('💾 [S3 BACKUP] Starting S3 database backup creation...');
     try {
       const { spawn } = await import('child_process');
       const fsModule = await import('fs');
@@ -7035,20 +7060,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const backupFile = `database_backup_${timestamp}.sql`;
       const backupPath = path.join(backupDir, backupFile);
       
+      console.log('💾 [S3 BACKUP] Backup file:', backupPath);
+      
       // Create backup directory if it doesn't exist
       if (!fs.existsSync(backupDir)) {
         fs.mkdirSync(backupDir, { recursive: true });
+        console.log('💾 [S3 BACKUP] Created backup directory:', backupDir);
       }
       
       // Create backup using pg_dump
       const databaseUrl = process.env.DATABASE_URL;
       if (!databaseUrl) {
+        console.error('❌ [S3 BACKUP] DATABASE_URL not configured');
         return res.status(500).json({
           success: false,
           message: "Database URL not configured"
         });
       }
 
+      console.log('💾 [S3 BACKUP] Starting pg_dump...');
       const pgDump = spawn('pg_dump', [databaseUrl, '--no-owner', '--no-privileges']);
       
       const writeStream = fs.createWriteStream(backupPath);
@@ -9483,26 +9513,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/shop/products/:productId/bulk-purchase", requireAuth, async (req, res) => {
     try {
       const { productId } = req.params;
-      const { bulk_purchase_enabled, bulk_purchase_minimum_quantity, bulk_purchase_description } = req.body;
+      const { bulk_purchase_enabled, bulk_purchase_minimum_quantity, bulk_purchase_description, bulk_purchase_discounts } = req.body;
       
       const { pool } = await import('./db');
       
-      console.log(`🏪 [BULK PURCHASE] Updating product ${productId}...`);
+      console.log(`🏪 [BULK PURCHASE] Updating product ${productId}...`, { bulk_purchase_enabled, bulk_purchase_discounts });
 
-      // Update the product's bulk purchase settings
+      // Update the product's bulk purchase settings including separate discounts
       await pool.query(`
         UPDATE shop_products 
         SET 
           bulk_purchase_enabled = $2,
           bulk_purchase_min_quantity = $3,
-          bulk_purchase_notes = $4
+          bulk_purchase_notes = $4,
+          bulk_purchase_discounts = $5
         WHERE id = $1
       `, [
         productId,
         bulk_purchase_enabled,
         bulk_purchase_minimum_quantity,
-        bulk_purchase_description
+        bulk_purchase_description,
+        bulk_purchase_discounts ? JSON.stringify(bulk_purchase_discounts) : null
       ]);
+
+      // If bulk purchase is enabled with separate discounts, clear global quantity_discounts
+      if (bulk_purchase_enabled && bulk_purchase_discounts && bulk_purchase_discounts.length > 0) {
+        await pool.query(`UPDATE shop_products SET quantity_discounts = NULL WHERE id = $1`, [productId]);
+        console.log(`🔄 [BULK PURCHASE] Cleared general discounts for bulk-enabled product ${productId}`);
+      }
 
       console.log(`✅ [BULK PURCHASE] Successfully updated product ${productId}`);
 
@@ -10966,6 +11004,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           createdAt: order.created_at,
           notes: order.notes,
           customerNotes: order.notes,
+          vatRate: order.vat_rate,
           vatAmount: order.vat_amount,
           surchargeAmount: order.surcharge_amount,
           customer,
@@ -12562,10 +12601,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const enabledMethods = await db.select().from(paymentMethodSettings)
         .where(eq(paymentMethodSettings.enabled, true))
         .orderBy(desc(paymentMethodSettings.priority), paymentMethodSettings.methodKey);
+
+      const gateways = await db.select().from(paymentGateways);
+
+      const gatewayMethodMap: Record<string, string[]> = {
+        'fib_online': ['fib'],
+        'online_payment': ['sep', 'zarinpal'],
+      };
+
+      const filteredMethods = enabledMethods.filter(method => {
+        const requiredGatewayTypes = gatewayMethodMap[method.methodKey];
+        if (!requiredGatewayTypes) return true;
+        return gateways.some(gw => requiredGatewayTypes.includes(gw.type) && gw.enabled);
+      });
       
       res.json({
         success: true,
-        data: enabledMethods
+        data: filteredMethods
       });
     } catch (error) {
       console.error("❌ [PUBLIC PAYMENT METHODS] Error:", error);
@@ -13318,6 +13370,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             weight: orderWeight,
             weightUnit: 'kg',
           vehicleType: checkoutVehicleType,
+          // 🔥 CRITICAL: Include payment method for finance department filtering
+          paymentMethod: finalPaymentMethod,
             weightSource: weightSource, // NEW: Shows where weight came from
             containsFlammableProducts: containsFlammableProducts,
             flammableProducts: flammableProducts.filter(p => p.isFlammable),
@@ -15819,8 +15873,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         preferredPaymentMethod,
         assignedSalesRep,
         tags,
-        publicNotes
+        publicNotes,
+        skipOtpVerification, // Flag to skip OTP when allow_skip_verification is enabled
+        cityRegion, // Support cityRegion from frontend
       } = req.body;
+      
+      // If skipOtpVerification is requested, verify that backend settings allow it
+      if (skipOtpVerification) {
+        const verificationSettings = await customerStorage.getVerificationSettings();
+        if (!verificationSettings?.allowSkipVerification) {
+          return res.status(400).json({
+            success: false,
+            message: "OTP verification is required for registration"
+          });
+        }
+        console.log("🔐 [REGISTRATION] Skipping OTP verification - admin setting enabled");
+      }
       
       // Check if customer already exists in CRM (primary check)
       const existingCrmCustomer = await crmStorage.getCrmCustomerByEmail(email);
@@ -15867,7 +15935,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         alternatePhone: alternatePhone || null,
         country,
         province: province || null,
-        cityRegion: city, // Support both city and cityRegion for Excel format
+        cityRegion: city || cityRegion, // Support both city and cityRegion from frontend
         address,
         secondaryAddress: secondaryAddress || null,
         postalCode: postalCode || null,
@@ -16544,9 +16612,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.json({
           success: true,
           settings: {
-            smsVerificationEnabled: true,
+            smsVerificationEnabled: false,
             emailVerificationEnabled: true,
-            requireBothVerifications: true,
+            whatsappVerificationEnabled: false,
+            requireBothVerifications: false,
             allowSkipVerification: false
           }
         });
@@ -16556,6 +16625,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           settings: {
             smsVerificationEnabled: settings.smsVerificationEnabled,
             emailVerificationEnabled: settings.emailVerificationEnabled,
+            whatsappVerificationEnabled: settings.whatsappVerificationEnabled ?? false,
             requireBothVerifications: settings.requireBothVerifications,
             allowSkipVerification: settings.allowSkipVerification
           }
@@ -16567,6 +16637,156 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: false, 
         message: "خطا در دریافت تنظیمات احراز هویت" 
       });
+    }
+  });
+
+  // Update verification settings (admin only)
+  app.put("/api/customer/verification-settings", async (req, res) => {
+    try {
+      // Check admin authentication
+      const adminId = (req.session as any).adminId;
+      if (!adminId) {
+        return res.status(401).json({ success: false, message: "Unauthorized - Admin login required" });
+      }
+
+      const { smsVerificationEnabled, emailVerificationEnabled, whatsappVerificationEnabled, requireBothVerifications, allowSkipVerification } = req.body;
+
+      // Update settings in database
+      await customerDb.update(customerVerificationSettings)
+        .set({
+          smsVerificationEnabled: smsVerificationEnabled ?? false,
+          emailVerificationEnabled: emailVerificationEnabled ?? true,
+          whatsappVerificationEnabled: whatsappVerificationEnabled ?? false,
+          requireBothVerifications: requireBothVerifications ?? false,
+          allowSkipVerification: allowSkipVerification ?? false,
+          updatedBy: adminId,
+          updatedAt: new Date(),
+        })
+        .where(eq(customerVerificationSettings.id, 1));
+
+      console.log("[Verification Settings] Updated by admin " + adminId + ":", {
+        sms: smsVerificationEnabled,
+        email: emailVerificationEnabled,
+        whatsapp: whatsappVerificationEnabled,
+      });
+
+      res.json({ 
+        success: true, 
+        message: "تنظیمات احراز هویت با موفقیت بروزرسانی شد"
+      });
+    } catch (error) {
+      console.error("Error updating verification settings:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "خطا در بروزرسانی تنظیمات احراز هویت"
+      });
+    }
+  });
+
+  // Customer Wishlist Routes
+  app.get("/api/customer/wishlist", async (req, res) => {
+    try {
+      const customerId = (req.session as any).customerId;
+      if (!customerId) {
+        return res.status(401).json({ success: false, message: "لطفا وارد شوید" });
+      }
+
+      const wishlist = await customerStorage.getWishlist(customerId);
+      
+      // Get product details for each wishlist item
+      const productIds = wishlist.map(item => item.productId);
+      let products: any[] = [];
+      
+      if (productIds.length > 0) {
+        products = await db.query.shopProducts.findMany({
+          where: sql`id = ANY(${productIds})`,
+        });
+      }
+      
+      const wishlistWithProducts = wishlist.map(item => ({
+        ...item,
+        product: products.find(p => p.id === item.productId) || null
+      }));
+
+      res.json({ success: true, wishlist: wishlistWithProducts });
+    } catch (error) {
+      console.error("Error fetching wishlist:", error);
+      res.status(500).json({ success: false, message: "خطا در دریافت لیست علاقه‌مندی‌ها" });
+    }
+  });
+
+  app.post("/api/customer/wishlist", async (req, res) => {
+    try {
+      const customerId = (req.session as any).customerId;
+      if (!customerId) {
+        return res.status(401).json({ success: false, message: "لطفا وارد شوید" });
+      }
+
+      const { productId } = req.body;
+      if (!productId) {
+        return res.status(400).json({ success: false, message: "شناسه محصول الزامی است" });
+      }
+
+      const wishlistItem = await customerStorage.addToWishlist(customerId, productId);
+      res.json({ success: true, message: "محصول به لیست علاقه‌مندی‌ها اضافه شد", wishlistItem });
+    } catch (error) {
+      console.error("Error adding to wishlist:", error);
+      res.status(500).json({ success: false, message: "خطا در افزودن به لیست علاقه‌مندی‌ها" });
+    }
+  });
+
+  app.delete("/api/customer/wishlist/:productId", async (req, res) => {
+    try {
+      const customerId = (req.session as any).customerId;
+      if (!customerId) {
+        return res.status(401).json({ success: false, message: "لطفا وارد شوید" });
+      }
+
+      const productId = parseInt(req.params.productId);
+      if (isNaN(productId)) {
+        return res.status(400).json({ success: false, message: "شناسه محصول نامعتبر است" });
+      }
+
+      await customerStorage.removeFromWishlist(customerId, productId);
+      res.json({ success: true, message: "محصول از لیست علاقه‌مندی‌ها حذف شد" });
+    } catch (error) {
+      console.error("Error removing from wishlist:", error);
+      res.status(500).json({ success: false, message: "خطا در حذف از لیست علاقه‌مندی‌ها" });
+    }
+  });
+
+  app.get("/api/customer/wishlist/check/:productId", async (req, res) => {
+    try {
+      const customerId = (req.session as any).customerId;
+      if (!customerId) {
+        return res.json({ success: true, isInWishlist: false });
+      }
+
+      const productId = parseInt(req.params.productId);
+      if (isNaN(productId)) {
+        return res.status(400).json({ success: false, message: "شناسه محصول نامعتبر است" });
+      }
+
+      const isInWishlist = await customerStorage.isInWishlist(customerId, productId);
+      res.json({ success: true, isInWishlist });
+    } catch (error) {
+      console.error("Error checking wishlist:", error);
+      res.status(500).json({ success: false, message: "خطا در بررسی لیست علاقه‌مندی‌ها" });
+    }
+  });
+
+  app.delete("/api/customer/wishlist", async (req, res) => {
+    try {
+      const customerId = (req.session as any).customerId;
+      if (!customerId) {
+        return res.status(401).json({ success: false, message: "لطفا وارد شوید" });
+      }
+
+      await customerStorage.clearWishlist(customerId);
+      res.json({ success: true, message: "لیست علاقه‌مندی‌ها پاک شد" });
+    } catch (error) {
+      console.error("Error clearing wishlist:", error);
+      res.status(500).json({ success: false, message: "خطا در پاک کردن لیست علاقه‌مندی‌ها" });
     }
   });
 
@@ -17851,9 +18071,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         frontendSentZeroRemaining: remainingAmount === 0 || remainingAmount === '0'
       });
       
-      // If wallet covers full amount, mark as paid and don't require bank payment
-      if (isFullWalletPayment || walletCoversFullAmount) { // FIXED: Removed unsafe remainingAmountToPay <= 1 condition
-        console.log('✅ [FULL WALLET] Payment covers full amount - order complete without bank gateway', {
+      // If wallet covers full amount, mark as paid and route to finance department
+      if (isFullWalletPayment || walletCoversFullAmount) {
+        console.log('✅ [FULL WALLET] Payment covers full amount - routing to finance department', {
           isFullWalletPayment,
           walletCoversFullAmount,
           actualWalletUsed,
@@ -17862,16 +18082,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         finalPaymentStatus = "paid";
         
-        // Return success response immediately for full wallet payments
+        try {
+          await customerStorage.updateOrderStatus(order.id, 'finance_pending');
+          await db
+            .update(customerOrders)
+            .set({
+              paymentStatus: 'paid',
+              paymentMethod: 'wallet_full',
+              updatedAt: new Date()
+            })
+            .where(eq(customerOrders.id, order.id));
+          
+          const { OrderManagementStorage } = await import('./order-management-storage');
+          const omStorage = new OrderManagementStorage();
+          const existingMgmt = await omStorage.getOrderManagementByCustomerOrderId(order.id);
+          if (existingMgmt) {
+            await omStorage.updateOrderManagement(existingMgmt.id, {
+              currentStatus: 'finance_pending' as any,
+              paymentMethod: 'wallet_full',
+              deliveryMethod: shippingMethod || 'courier',
+              vehicleType: vehicleType || null,
+              totalWeight: totalWeight ? parseFloat(totalWeight).toFixed(3) : null,
+              weightUnit: 'kg',
+            });
+            console.log(`📦 [WALLET→FINANCE] Updated existing order_management ${existingMgmt.id} to finance_pending for order ${order.orderNumber}`);
+          } else {
+            await omStorage.createOrderManagement({
+              customerOrderId: order.id,
+              customerId: finalCrmCustomerId || customerId,
+              currentStatus: 'finance_pending' as const,
+              totalAmount: formattedTotalAmount.toString(),
+              currency: "IQD",
+              notes: notes || "",
+              totalWeight: totalWeight ? parseFloat(totalWeight).toFixed(3) : null,
+              weightUnit: 'kg',
+              vehicleType: vehicleType || null,
+              paymentMethod: 'wallet_full' as const,
+              deliveryMethod: shippingMethod || 'courier',
+            });
+            console.log(`📦 [WALLET→FINANCE] Created order_management with finance_pending for order ${order.orderNumber}`);
+          };
+        } catch (walletMgmtError) {
+          console.error(`❌ [WALLET→FINANCE] Error creating order management for wallet order:`, walletMgmtError);
+        }
+        
         return res.json({
           success: true,
-          message: "سفارش با کیف پول به طور کامل پرداخت شد",
+          message: "سفارش با کیف پول پرداخت شد - در انتظار تایید واحد مالی",
           paymentMethod: 'wallet_full',
           order: {
             id: order.id,
             orderNumber: order.orderNumber,
             totalAmount: order.totalAmount,
-            status: order.status,
+            status: 'finance_pending',
             paymentStatus: "paid",
             paymentMethod: 'wallet_full',
             walletAmountUsed: actualWalletUsed,
@@ -18286,6 +18549,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           totalWeight: calculatedTotalWeight > 0 ? calculatedTotalWeight.toFixed(3) : null,
           weightUnit: 'kg',
           vehicleType: checkoutVehicleType,
+          // 🔥 CRITICAL: Include payment method for finance department filtering
+          paymentMethod: finalPaymentMethod,
         
         // Store frozen tax rates at order creation time
         vatRate: taxCalculation.vatRate.toString(),
@@ -18344,20 +18609,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
         activeDeliveryInfo: orderData.activeDeliveryInfo
       });
 
+      // Save secondary address and alternate phone to CRM customer profile if provided
+      if (finalCustomerId && (orderData.activeDeliveryInfo?.isSecondAddressUsed || orderData.recipientInfo?.recipientPhone)) {
+        try {
+          const { pool } = await import('./db');
+          const updateFields: string[] = [];
+          const updateValues: any[] = [];
+          let paramIndex = 1;
+          
+          // Save second address if used
+          if (orderData.activeDeliveryInfo?.isSecondAddressUsed && orderData.recipientInfo?.recipientAddress) {
+            updateFields.push(`secondary_address = $${paramIndex++}`);
+            updateValues.push(orderData.recipientInfo.recipientAddress);
+          }
+          
+          // Save alternate phone if different from primary
+          if (orderData.activeDeliveryInfo?.isDifferentPhoneUsed && orderData.recipientInfo?.recipientPhone) {
+            updateFields.push(`alternate_phone = $${paramIndex++}`);
+            updateValues.push(orderData.recipientInfo.recipientPhone);
+          }
+          
+          if (updateFields.length > 0) {
+            updateValues.push(finalCustomerId);
+            await pool.query(
+              `UPDATE crm_customers SET ${updateFields.join(', ')} WHERE id = $${paramIndex}`,
+              updateValues
+            );
+            console.log(`📋 [CRM UPDATE] Saved secondary address/phone for customer ${finalCustomerId}`);
+          }
+        } catch (crmUpdateError) {
+          console.error('⚠️ [CRM UPDATE] Failed to save secondary address/phone:', crmUpdateError);
+        }
+      }
+
+      // Server-side discount calculation matching frontend logic
+      const getServerDiscountedPrice = (product: any, qty: number): number => {
+        const basePrice = Math.round(parseFloat(product.price || '0'));
+        if (basePrice <= 0) return 0;
+
+        let discounts: any[] = [];
+        if (product.bulkPurchaseEnabled || product.bulk_purchase_enabled) {
+          let bulk = product.bulkPurchaseDiscounts || product.bulk_purchase_discounts;
+          if (typeof bulk === 'string') { try { bulk = JSON.parse(bulk); } catch { bulk = []; } }
+          discounts = Array.isArray(bulk) ? bulk : [];
+        } else {
+          let general = product.quantityDiscounts || product.quantity_discounts;
+          if (typeof general === 'string') { try { general = JSON.parse(general); } catch { general = []; } }
+          discounts = Array.isArray(general) ? general : [];
+        }
+
+        if (discounts.length > 0) {
+          const applicable = discounts
+            .filter((d: any) => qty >= parseInt(d.minQty || d.min_qty || '0'))
+            .sort((a: any, b: any) => parseInt(b.minQty || b.min_qty || '0') - parseInt(a.minQty || a.min_qty || '0'));
+
+          if (applicable.length > 0) {
+            const d = applicable[0];
+            const discountValue = d.discount || (parseFloat(d.discountPercent || d.discount_percent || '0') / 100);
+            return Math.round(basePrice * (1 - discountValue));
+          }
+        }
+        return basePrice;
+      };
+
       // Create order items from cart
       if (orderData.cart) {
         for (const [productId, quantity] of Object.entries(orderData.cart)) {
           try {
             const product = await shopStorage.getShopProductById(parseInt(productId as string));
             if (product) {
+              const qty = quantity as number;
+              const discountedUnitPrice = getServerDiscountedPrice(product, qty);
+              console.log(`💰 [DISCOUNT CALC] Product ${product.name}: base=${product.price}, discounted=${discountedUnitPrice}, qty=${qty}`);
+
               await customerStorage.createOrderItem({
                 orderId: order.id,
                 productId: parseInt(productId as string),
                 productName: product.name,
                 productSku: product.sku || `SKU-${productId}`,
-                quantity: (quantity as number).toString(),
-                unitPrice: product.price || "0",
-                totalPrice: (parseFloat(product.price || "0") * (quantity as number)).toString(),
+                quantity: qty.toString(),
+                unitPrice: discountedUnitPrice.toString(),
+                totalPrice: (discountedUnitPrice * qty).toString(),
               });
 
               // Create vendor transaction if product belongs to a vendor
@@ -18365,19 +18697,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 try {
                   const { db } = await import('./db');
                   const { vendors, vendorTransactions } = await import('@shared/schema');
+                  const { showcaseProducts } = await import('@shared/showcase-schema');
                   const { eq } = await import('drizzle-orm');
                   
-                  // Get vendor's commission rate
+                  // Get vendor's default commission rate (fallback)
                   const [vendor] = await db
                     .select({ commissionRate: vendors.commissionRate })
                     .from(vendors)
                     .where(eq(vendors.id, product.vendorId));
                   
                   if (vendor) {
-                    const saleAmount = parseFloat(product.price || "0") * (quantity as number);
-                    const commissionRate = parseFloat(vendor.commissionRate || "10");
+                    const saleAmount = discountedUnitPrice * qty;
+                    // Priority: 1) shop_products.commission_rate, 2) showcase_products.commission_override (by SKU), 3) vendor default
+                    let commissionRate: number;
+                    let rateSource = 'vendor-default';
+                    if (product.commissionRate) {
+                      commissionRate = parseFloat(product.commissionRate);
+                      rateSource = 'product-level (shop)';
+                    } else if (product.sku) {
+                      const [showcase] = await db.select({ commissionOverride: showcaseProducts.commissionOverride }).from(showcaseProducts).where(eq(showcaseProducts.sku, product.sku));
+                      if (showcase?.commissionOverride) {
+                        commissionRate = parseFloat(showcase.commissionOverride);
+                        rateSource = 'product-level (kardex)';
+                      } else {
+                        commissionRate = parseFloat(vendor.commissionRate || "10");
+                      }
+                    } else {
+                      commissionRate = parseFloat(vendor.commissionRate || "10");
+                    }
                     const commissionAmount = (saleAmount * commissionRate) / 100;
                     const netAmount = saleAmount - commissionAmount;
+                    console.log(`💰 [COMMISSION] Product ${product.name}: using ${rateSource} rate=${commissionRate}%`);
                     
                     // Create vendor sale transaction
                     await db.insert(vendorTransactions).values({
@@ -18616,6 +18966,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           totalWeight: calculatedTotalWeight > 0 ? calculatedTotalWeight.toFixed(3) : null,
           weightUnit: 'kg',
           vehicleType: checkoutVehicleType,
+          // 🔥 CRITICAL: Include payment method for finance department filtering
+          paymentMethod: finalPaymentMethod,
         };
 
         // Add vehicle type from checkout payload if customer selected one
@@ -18719,8 +19071,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`🕒 Grace period activated for order ${orderNumber} - ${gracePeriodDays} days period expires: ${gracePeriodEnd.toISOString()}`);
         }
 
-        await orderManagementStorage.createOrderManagement(orderMgmtData);
-        console.log(`✅ Order management record created for order ${orderNumber}`);
+        const existingMgmtRecord = await orderManagementStorage.getOrderManagementByCustomerOrderId(order.id);
+        if (existingMgmtRecord) {
+          await orderManagementStorage.updateOrderManagement(existingMgmtRecord.id, {
+            currentStatus: orderMgmtData.currentStatus as any,
+            paymentMethod: orderMgmtData.paymentMethod,
+            deliveryMethod: orderMgmtData.deliveryMethod,
+            vehicleType: orderMgmtData.vehicleType,
+            totalWeight: orderMgmtData.totalWeight,
+            weightUnit: orderMgmtData.weightUnit || 'kg',
+          });
+          console.log(`📦 [ORDER MGMT] Updated existing record ${existingMgmtRecord.id} for order ${orderNumber} with status ${orderMgmtData.currentStatus}`);
+        } else {
+          await orderManagementStorage.createOrderManagement(orderMgmtData);
+          console.log(`✅ [ORDER MGMT] Created new record for order ${orderNumber} with status ${orderMgmtData.currentStatus}`);
+        }
         
         // Trigger automatic synchronization after order creation
         try {
@@ -18896,7 +19261,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             notes: orderData.notes || "",
             totalWeight: calculatedTotalWeight > 0 ? calculatedTotalWeight.toFixed(3) : null,
             weightUnit: 'kg',
-          vehicleType: checkoutVehicleType,
             paymentMethod: 'wallet_full' as const,
           };
           
@@ -18918,7 +19282,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             id: order.id,
             orderNumber: order.orderNumber,
             totalAmount: order.totalAmount,
-            status: 'warehouse_pending',
+            status: 'finance_pending',
             paymentStatus: "paid",
             paymentMethod: 'wallet_full',
             walletAmountUsed: Math.round(walletAmountUsed),
@@ -18980,7 +19344,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
               notes: orderData.notes || "",
               totalWeight: calculatedTotalWeight > 0 ? calculatedTotalWeight.toFixed(3) : null,
               weightUnit: 'kg',
-          vehicleType: checkoutVehicleType,
               paymentMethod: 'wallet_full' as const,
             };
             
@@ -19001,7 +19364,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               id: order.id,
               orderNumber: order.orderNumber,
               totalAmount: order.totalAmount,
-              status: 'warehouse_pending',
+              status: 'finance_pending',
               paymentStatus: "paid",
               paymentMethod: 'wallet_full',
               walletAmountUsed: Math.round(walletAmountUsed),
@@ -19192,7 +19555,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: 'UNSUPPORTED_PAYMENT_METHOD'
       });
     } catch (error) {
-      console.error("Error creating customer order:", error);
+      console.error("❌ [ORDER CREATION ERROR] Full error details:"); console.error("Error message:", error instanceof Error ? error.message : String(error)); console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace");
       res.status(500).json({
         success: false,
         message: "Failed to create order"
@@ -19615,65 +19978,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`📊 [CSV EXPORT] After date filtering: ${filteredOrders.length} orders`);
       
-      // Generate CSV headers in Persian
+      // Generate CSV headers in Persian - one row per item
       const headers = [
         'شماره سفارش',
         'تاریخ سفارش', 
         'وضعیت',
         'وضعیت پرداخت',
         'روش پرداخت',
-        'مبلغ کل (دینار)',
-        'محصولات',
-        'تعداد اقلام',
+        'مبلغ کل سفارش (دینار)',
+        'نام محصول',
+        'تعداد',
+        'قیمت واحد (دینار)',
+        'جمع ردیف (دینار)',
         'آدرس تحویل'
       ];
       
-      // Generate CSV rows
+      // Generate CSV rows - one row per item
       const csvRows = [headers.join(',')];
       
+      const statusMap: Record<string, string> = {
+        'pending': 'در انتظار',
+        'confirmed': 'تایید شده',
+        'processing': 'در حال پردازش',
+        'shipped': 'ارسال شده',
+        'delivered': 'تحویل داده شده',
+        'cancelled': 'لغو شده'
+      };
+      
+      const paymentStatusMap: Record<string, string> = {
+        'pending': 'در انتظار پرداخت',
+        'paid': 'پرداخت شده',
+        'failed': 'ناموفق',
+        'refunded': 'برگشت داده شده'
+      };
+      
+      const paymentMethodMap: Record<string, string> = {
+        'online': 'آنلاین پرداخت',
+        'cash': 'نقدی',
+        'bank_transfer': 'واریز بانکی',
+        'wallet': 'والت',
+        'wallet_full': 'والت کامل',
+        'partial_wallet': 'پرداخت ترکیبی',
+        'bank_transfer_grace': 'واریز بانکی با مهلت 3 روزه'
+      };
+      
       for (const order of filteredOrders) {
-        const orderDate = new Date(order.createdAt).toLocaleDateString('fa-IR');
-        const statusMap = {
-          'pending': 'در انتظار',
-          'confirmed': 'تایید شده',
-          'processing': 'در حال پردازش',
-          'shipped': 'ارسال شده',
-          'delivered': 'تحویل داده شده',
-          'cancelled': 'لغو شده'
-        };
+        const orderDate = new Date(order.createdAt).toLocaleDateString('en-GB', { year: 'numeric', month: '2-digit', day: '2-digit' });
+        const orderStatus = statusMap[order.status] || order.status;
+        const paymentStatus = paymentStatusMap[order.paymentStatus] || order.paymentStatus;
+        const paymentMethod = paymentMethodMap[order.paymentMethod] || order.paymentMethod;
+        const totalAmount = order.totalAmount ? order.totalAmount.toLocaleString('fa-IR') : '0';
+        const address = order.address || 'نامشخص';
         
-        const paymentStatusMap = {
-          'pending': 'در انتظار پرداخت',
-          'paid': 'پرداخت شده',
-          'failed': 'ناموفق',
-          'refunded': 'برگشت داده شده'
-        };
-        
-        const paymentMethodMap = {
-          'online': 'آنلاین پرداخت',
-          'cash': 'نقدی',
-          'bank_transfer': 'واریز بانکی',
-          'wallet': 'والت',
-          'partial_wallet': 'پرداخت ترکیبی',
-          'bank_transfer_grace': 'واریز بانکی با مهلت 3 روزه'
-        };
-        
-        const products = order.items ? order.items.map(item => `${item.productName} (${item.quantity})`).join('; ') : 'نامشخص';
-        const totalItems = order.items ? order.items.reduce((sum, item) => sum + item.quantity, 0) : 0;
-        
-        const row = [
-          order.orderNumber || 'نامشخص',
-          orderDate,
-          statusMap[order.status] || order.status,
-          paymentStatusMap[order.paymentStatus] || order.paymentStatus,
-          paymentMethodMap[order.paymentMethod] || order.paymentMethod,
-          order.totalAmount ? order.totalAmount.toLocaleString('fa-IR') : '0',
-          `"${products}"`, // Wrap in quotes to handle commas
-          totalItems,
-          `"${order.address || 'نامشخص'}"` // Wrap in quotes to handle commas
-        ];
-        
-        csvRows.push(row.join(','));
+        // Create one row per item in the order
+        if (order.items && order.items.length > 0) {
+          for (const item of order.items) {
+            const unitPrice = item.price ? Number(item.price).toLocaleString('fa-IR') : '0';
+            const lineTotal = item.price && item.quantity ? (Number(item.price) * item.quantity).toLocaleString('fa-IR') : '0';
+            
+            const row = [
+              order.orderNumber || 'نامشخص',
+              orderDate,
+              orderStatus,
+              paymentStatus,
+              paymentMethod,
+              totalAmount,
+              `"${item.productName || 'نامشخص'}"`,
+              item.quantity || 0,
+              unitPrice,
+              lineTotal,
+              `"${address}"`
+            ];
+            
+            csvRows.push(row.join(','));
+          }
+        } else {
+          // Order with no items - still add a row
+          const row = [
+            order.orderNumber || 'نامشخص',
+            orderDate,
+            orderStatus,
+            paymentStatus,
+            paymentMethod,
+            totalAmount,
+            '"بدون محصول"',
+            0,
+            '0',
+            '0',
+            `"${address}"`
+          ];
+          
+          csvRows.push(row.join(','));
+        }
       }
       
       const csvContent = csvRows.join('\n');
@@ -22738,15 +23134,28 @@ Momtaz Chemical Technical Team`,
 
       const searchResults = await shopStorage.searchShopProducts(query as string, filters);
       
+      // Batch fetch vendor names for vendor products
+      const vendorIds = [...new Set(searchResults.products.filter(p => p.vendorId).map(p => p.vendorId!))];
+      let vendorMap: Record<number, string> = {};
+      if (vendorIds.length > 0) {
+        const { pool } = await import('./db');
+        const vendorResult = await pool.query(
+          `SELECT id, vendor_name FROM vendors WHERE id = ANY($1)`,
+          [vendorIds]
+        );
+        vendorMap = Object.fromEntries(vendorResult.rows.map((v: any) => [v.id, v.vendor_name]));
+      }
+
       // Map database fields to frontend expected format
       const mappedProducts = searchResults.products.map(product => ({
         ...product,
         imageUrl: product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls[0] : null,
-        imageUrls: product.imageUrls || [], // Include the full array of images
+        imageUrls: product.imageUrls || [],
         unitPrice: product.price,
         currency: (product.priceUnit === 'IQD' || !product.priceUnit || product.priceUnit === 'unit') ? 'IQD' : product.priceUnit,
         weight: product.weight,
-        weightUnit: product.weightUnit
+        weightUnit: product.weightUnit,
+        vendorName: product.vendorId ? (vendorMap[product.vendorId] || null) : null
       }));
       
       res.json({
@@ -23308,6 +23717,7 @@ Momtaz Chemical Technical Team`,
       const query = `
         SELECT co.id, co.order_number, co.customer_id, co.total_amount, co.status, 
                co.payment_method, co.created_at, co.updated_at,
+               co.shipping_cost, co.vat_amount, co.surcharge_amount, co.vat_rate,
                c.first_name as customer_first_name, c.last_name as customer_last_name, 
                c.email as customer_email, c.phone as customer_phone,
                c.address as customer_address, c.city as customer_city, 
@@ -23382,6 +23792,10 @@ Momtaz Chemical Technical Team`,
           notes: order.notes,
           customerNotes: order.notes,
             status: order.status,
+            shippingCost: order.shipping_cost || '0',
+            vatAmount: order.vat_amount || '0',
+            surchargeAmount: order.surcharge_amount || '0',
+            vatRate: order.vat_rate || '0',
             items: items
           });
         } catch (itemError) {
@@ -23405,6 +23819,10 @@ Momtaz Chemical Technical Team`,
           notes: order.notes,
           customerNotes: order.notes,
             status: order.status,
+            shippingCost: order.shipping_cost || '0',
+            vatAmount: order.vat_amount || '0',
+            surchargeAmount: order.surcharge_amount || '0',
+            vatRate: order.vat_rate || '0',
             items: []
           });
         }
@@ -23427,6 +23845,7 @@ Momtaz Chemical Technical Team`,
       const query = `
         SELECT co.id, co.order_number, co.customer_id, co.total_amount, co.status, 
                co.payment_method, co.created_at, co.updated_at, co.carrier,
+               co.shipping_cost, co.vat_amount, co.surcharge_amount, co.vat_rate,
                c.first_name as customer_first_name, c.last_name as customer_last_name, 
                c.email as customer_email, c.phone as customer_phone, c.company as customer_company,
                c.address as customer_address
@@ -23684,85 +24103,149 @@ Momtaz Chemical Technical Team`,
         });
       }
 
-      // Get all orders within date range
+      const { db } = await import('./db');
+      const { vendors, vendorTransactions } = await import('@shared/schema');
+      const { shopProducts } = await import('@shared/shop-schema');
+      const { eq, and, gte, lte } = await import('drizzle-orm');
+
       const orders = await customerStorage.getAllOrders();
+      const start = new Date(startDate as string);
+      const end = new Date(endDate as string);
+      end.setHours(23, 59, 59, 999);
+      
       const filteredOrders = orders.filter(order => {
         const orderDate = new Date(order.createdAt);
-        const start = new Date(startDate as string);
-        const end = new Date(endDate as string);
-        end.setHours(23, 59, 59, 999); // Include full end date
-        
         return orderDate >= start && orderDate <= end;
       });
 
-      // Calculate total sales metrics
-      const totalSales = filteredOrders.reduce((sum, order) => 
-        sum + parseFloat(order.totalAmount), 0
-      );
-      const totalOrders = filteredOrders.length;
+      const vendorProductIds = new Set<number>();
+      const allProducts = await db.select({ id: shopProducts.id, vendorId: shopProducts.vendorId }).from(shopProducts);
+      for (const p of allProducts) {
+        if (p.vendorId) vendorProductIds.add(p.id);
+      }
+      const vendorTxProducts = await db.select({ productId: vendorTransactions.productId }).from(vendorTransactions).where(eq(vendorTransactions.transactionType, 'sale'));
+      for (const vtp of vendorTxProducts) {
+        if (vtp.productId) vendorProductIds.add(vtp.productId);
+      }
 
-      // Get detailed order items for product analysis
-      const productSalesMap = new Map<string, { productName: string; quantity: number; totalAmount: number; orders: Set<number> }>();
-      let totalQuantity: number = 0;
+      const companyProductSalesMap = new Map<string, { productName: string; quantity: number; totalAmount: number; orders: Set<number> }>();
+      let companyTotalSales = 0;
+      let companyTotalQuantity = 0;
+      const companyOrderIds = new Set<number>();
+      const companyDailyMap = new Map<string, { date: string; sales: number; orders: Set<number> }>();
 
       for (const order of filteredOrders) {
         const items = await customerStorage.getOrderItems(order.id);
         
         for (const item of items) {
-          const key = item.productName;
-          const existing = productSalesMap.get(key) || {
-            productName: item.productName,
-            quantity: 0,
-            totalAmount: 0,
-            orders: new Set()
-          };
-          
-          existing.quantity += Number(item.quantity);
-          existing.totalAmount += parseFloat(String(item.unitPrice)) * Number(item.quantity);
-          existing.orders.add(order.id);
-          totalQuantity += Number(item.quantity);
-          
-          productSalesMap.set(key, existing);
+          const isVendorProduct = vendorProductIds.has(Number(item.productId));
+          const itemTotal = parseFloat(String(item.unitPrice)) * Number(item.quantity);
+          const qty = Number(item.quantity);
+
+          if (!isVendorProduct) {
+            const key = item.productName;
+            const existing = companyProductSalesMap.get(key) || {
+              productName: item.productName, quantity: 0, totalAmount: 0, orders: new Set()
+            };
+            existing.quantity += qty;
+            existing.totalAmount += itemTotal;
+            existing.orders.add(order.id);
+            companyTotalSales += itemTotal;
+            companyTotalQuantity += qty;
+            companyOrderIds.add(order.id);
+            companyProductSalesMap.set(key, existing);
+
+            const date = new Date(order.createdAt).toISOString().split('T')[0];
+            const dailyEntry = companyDailyMap.get(date) || { date, sales: 0, orders: new Set() };
+            dailyEntry.sales += itemTotal;
+            dailyEntry.orders.add(order.id);
+            companyDailyMap.set(date, dailyEntry);
+          }
         }
       }
 
-      // Convert to array and add order count
-      const productSales = Array.from(productSalesMap.values()).map(product => ({
-        ...product,
-        orders: product.orders.size
+      const companyProductSales = Array.from(companyProductSalesMap.values()).map(p => ({
+        ...p, orders: p.orders.size
       })).sort((a, b) => b.totalAmount - a.totalAmount);
 
-      // Create top products for pie chart (top 8 products)
-      const topProducts = productSales.slice(0, 8).map(product => {
-        const percentage = totalSales > 0 ? ((product.totalAmount / totalSales) * 100) : 0;
-        return {
-          name: product.productName,
-          value: product.totalAmount,
-          percentage: Math.round(percentage * 10) / 10
-        };
+      const companyTopProducts = companyProductSales.slice(0, 8).map(product => {
+        const percentage = companyTotalSales > 0 ? ((product.totalAmount / companyTotalSales) * 100) : 0;
+        return { name: product.productName, value: product.totalAmount, percentage: Math.round(percentage * 10) / 10 };
       });
 
-      // Create daily breakdown
-      const dailyMap = new Map();
-      filteredOrders.forEach(order => {
-        const date = new Date(order.createdAt).toISOString().split('T')[0];
-        const existing = dailyMap.get(date) || { date, sales: 0, orders: 0 };
-        existing.sales += parseFloat(order.totalAmount);
-        existing.orders += 1;
-        dailyMap.set(date, existing);
-      });
+      const dailyBreakdown = Array.from(companyDailyMap.values()).map(d => ({
+        date: d.date, sales: d.sales, orders: d.orders.size
+      })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-      const dailyBreakdown = Array.from(dailyMap.values()).sort((a, b) => 
-        new Date(a.date).getTime() - new Date(b.date).getTime()
-      );
+      let vendorCommissionRevenue = 0;
+      const vendorCommissionDetails: Array<{ vendorName: string; totalSales: number; commissionRate: number; commissionAmount: number; totalPaid: number; currentBalance: number }> = [];
+
+      try {
+        const { sql: sqlFn } = await import('drizzle-orm');
+        const transactionTotals = await db
+          .select({
+            vendorId: vendorTransactions.vendorId,
+            transactionType: vendorTransactions.transactionType,
+            totalAmount: sqlFn<string>`COALESCE(SUM(CAST(${vendorTransactions.amount} AS DECIMAL)), 0)::text`,
+            totalCommission: sqlFn<string>`COALESCE(SUM(CAST(${vendorTransactions.commissionAmount} AS DECIMAL)), 0)::text`
+          })
+          .from(vendorTransactions)
+          .groupBy(vendorTransactions.vendorId, vendorTransactions.transactionType);
+
+        const vendorSalesMap = new Map<number, string>();
+        const vendorCommissionMap = new Map<number, string>();
+        const vendorPaymentsMap = new Map<number, string>();
+
+        for (const row of transactionTotals) {
+          if (row.transactionType === 'sale') {
+            vendorSalesMap.set(row.vendorId, row.totalAmount);
+            vendorCommissionMap.set(row.vendorId, row.totalCommission);
+          } else if (row.transactionType === 'payment') {
+            vendorPaymentsMap.set(row.vendorId, row.totalAmount);
+          }
+        }
+
+        if (vendorSalesMap.size > 0) {
+          const vendorRows = await db.select({ id: vendors.id, vendorName: vendors.vendorName, commissionRate: vendors.commissionRate }).from(vendors);
+
+          for (const v of vendorRows) {
+            const totalSales = parseFloat(vendorSalesMap.get(v.id) || '0');
+            const totalCommission = parseFloat(vendorCommissionMap.get(v.id) || '0');
+            const totalPaid = parseFloat(vendorPaymentsMap.get(v.id) || '0');
+            if (totalSales === 0 && totalCommission === 0) continue;
+            const currentBalance = totalSales - totalCommission - totalPaid;
+            vendorCommissionRevenue += totalCommission;
+            const effectiveRate = totalSales > 0 ? Math.round((totalCommission / totalSales) * 1000) / 10 : parseFloat(v.commissionRate || '10');
+            vendorCommissionDetails.push({
+              vendorName: v.vendorName || `Vendor ${v.id}`,
+              totalSales: totalSales,
+              commissionRate: effectiveRate,
+              commissionAmount: totalCommission,
+              totalPaid: totalPaid,
+              currentBalance: currentBalance
+            });
+          }
+        }
+      } catch (vendorErr) {
+        console.error("Error fetching vendor commission data:", vendorErr);
+      }
+
+      vendorCommissionDetails.sort((a, b) => b.commissionAmount - a.commissionAmount);
 
       const reportData = {
-        totalSales,
-        totalOrders,
-        totalQuantity,
-        productSales,
+        totalSales: companyTotalSales,
+        totalOrders: companyOrderIds.size,
+        totalQuantity: companyTotalQuantity,
+        productSales: companyProductSales,
         dailyBreakdown,
-        topProducts
+        topProducts: companyTopProducts,
+        vendorCommission: {
+          totalCommissionRevenue: vendorCommissionRevenue,
+          totalVendorSales: vendorCommissionDetails.reduce((s, d) => s + d.totalSales, 0),
+          vendorCount: vendorCommissionDetails.length,
+          details: vendorCommissionDetails
+        },
+        grandTotalRevenue: companyTotalSales + vendorCommissionRevenue
       };
 
       res.json(reportData);
@@ -23901,13 +24384,18 @@ Momtaz Chemical Technical Team`,
         discount: parseFloat(discount.discountPercentage) / 100
       })).sort((a: any, b: any) => a.minQty - b.minQty);
 
-      // Get all products without quantity discounts
+      // Get all products - skip bulk-purchase-enabled products
       const products = await shopStorage.getShopProducts();
-      const productsToUpdate = products.filter((product: any) => 
-        !product.quantityDiscounts || product.quantityDiscounts === null
-      );
+      const productsToUpdate = products.filter((product: any) => {
+        if (product.bulkPurchaseEnabled || product.bulk_purchase_enabled) {
+          return false;
+        }
+        return !product.quantityDiscounts || product.quantityDiscounts === null;
+      });
 
-      // Update each product with the centralized discounts
+      const bulkSkippedCount = products.filter((p: any) => p.bulkPurchaseEnabled || p.bulk_purchase_enabled).length;
+
+      // Update each product with the centralized discounts (skip bulk-enabled products)
       let updatedCount = 0;
       for (const product of productsToUpdate) {
         await shopStorage.updateShopProduct(product.id, {
@@ -23916,11 +24404,14 @@ Momtaz Chemical Technical Team`,
         updatedCount++;
       }
 
+      console.log(`🎯 [DISCOUNT SYNC] Applied to ${updatedCount} products, skipped ${bulkSkippedCount} bulk-purchase products`);
+
       res.json({
         success: true,
-        message: `Applied centralized discounts to ${updatedCount} products`,
+        message: `Applied centralized discounts to ${updatedCount} products (${bulkSkippedCount} bulk-purchase products skipped)`,
         discountsApplied: quantityDiscounts,
         productsUpdated: updatedCount,
+        bulkSkipped: bulkSkippedCount,
         totalProducts: products.length
       });
     } catch (error) {
@@ -29282,13 +29773,17 @@ ${message ? `Additional Requirements:\n${message}` : ''}
                 'quantity', oi.quantity,
                 'price', oi.price,
                 'sku', oi.sku,
-                'barcode', oi.barcode
+                'barcode', oi.barcode,
+                'vendor_id', sp.vendor_id,
+                'vendor_name', v.vendor_name
               )
             ) FILTER (WHERE oi.id IS NOT NULL),
             '[]'::json
           ) as items
         FROM orders o
         LEFT JOIN order_items oi ON o.id = oi.order_id
+        LEFT JOIN shop_products sp ON oi.product_id = sp.id
+        LEFT JOIN vendors v ON sp.vendor_id = v.id
         LEFT JOIN order_management om ON o.id = om.customer_order_id
         WHERE o.status IN ('financial_approved', 'warehouse_pending', 'warehouse_processing', 'warehouse_verified', 'warehouse_approved')
         GROUP BY o.id, o.customer_name, o.customer_email, o.total_amount, o.status, 
@@ -32772,6 +33267,7 @@ ${message ? `Additional Requirements:\n${message}` : ''}
           'payment_uploaded', 
           'financial_reviewing',
           'financial_rejected',
+          'finance_pending',
           'warehouse_pending',
           'warehouse_processing',
           'warehouse_approved'
@@ -35850,6 +36346,7 @@ momtazchem.com
             subtotal: 'المجموع الفرعي',
             discount: 'الخصم',
             tax: 'الضريبة',
+            shipping: 'أجور الشحن',
             finalTotal: 'المجموع النهائي',
             paid: 'مدفوعة',
             due: 'مستحقة',
@@ -35878,6 +36375,7 @@ momtazchem.com
             subtotal: 'کۆی لاوەکی',
             discount: 'داشکاندن',
             tax: 'باج',
+            shipping: 'کرێی گواستنەوە',
             finalTotal: 'کۆی کۆتایی',
             paid: 'پێدراو',
             due: 'بەدوایە',
@@ -35906,6 +36404,7 @@ momtazchem.com
             subtotal: 'Ara Toplam',
             discount: 'İndirim',
             tax: 'Vergi',
+            shipping: 'Kargo Ücreti',
             finalTotal: 'Genel Toplam',
             paid: 'Ödendi',
             due: 'Ödenmedi',
@@ -35934,6 +36433,7 @@ momtazchem.com
             subtotal: 'Subtotal',
             discount: 'Discount',
             tax: 'Tax',
+            shipping: 'Shipping',
             finalTotal: 'Final Total',
             paid: 'Paid',
             due: 'Due',
@@ -36175,6 +36675,12 @@ momtazchem.com
                     <tr>
                         <td class="multilingual-text"><strong>${t.discount}:</strong></td>
                         <td class="multilingual-text"><strong>-${invoice.discountAmount} ${invoice.currency}</strong></td>
+                    </tr>
+                    ` : ''}
+                    ${invoice.shippingAmount && parseFloat(invoice.shippingAmount) > 0 ? `
+                    <tr>
+                        <td class="multilingual-text"><strong>${t.shipping}:</strong></td>
+                        <td class="multilingual-text"><strong>${invoice.shippingAmount} ${invoice.currency}</strong></td>
                     </tr>
                     ` : ''}
                     ${invoice.taxAmount && parseFloat(invoice.taxAmount) > 0 ? `
@@ -37627,6 +38133,88 @@ momtazchem.com
         console.log('💰 [WALLET-RECHARGE] New wallet created:', wallet);
       }
 
+      // Handle online payment - redirect to active payment gateway
+      if (paymentMethod === 'online_payment') {
+        console.log('💰 [WALLET-RECHARGE] Online payment selected, checking active gateway...');
+        
+        const { pool } = await import('./db');
+        const gatewayResult = await pool.query(`
+          SELECT id, name, type, enabled, config 
+          FROM payment_gateways 
+          WHERE enabled = true 
+          ORDER BY updated_at DESC 
+          LIMIT 1
+        `);
+
+        if (gatewayResult.rows.length === 0) {
+          return res.status(400).json({ 
+            success: false, 
+            message: "هیچ درگاه پرداخت فعالی یافت نشد" 
+          });
+        }
+
+        const activeGateway = gatewayResult.rows[0];
+        console.log('💰 [WALLET-RECHARGE] Active gateway:', activeGateway.type);
+
+        // Create recharge request first with pending status
+        const rechargeRequest = await walletStorage.createRechargeRequest({
+          customerId: req.session.customerId,
+          walletId: wallet.id,
+          amount: amount.toString(),
+          currency: currency || "IQD",
+          paymentMethod: 'online_payment',
+          paymentReference: '',
+          customerNotes,
+          status: 'pending_payment'
+        });
+
+        // Handle FIB gateway
+        if (activeGateway.type === 'fib') {
+          try {
+            const { fibService } = await import('./fib-service');
+            const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+              ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+              : process.env.BASE_URL || 'https://momtazchem.com';
+            
+            const payment = await fibService.createPayment({
+              amount: amount.toString(),
+              currency: currency || 'IQD',
+              description: `شارژ کیف پول - درخواست #${rechargeRequest.id}`,
+              customerId: req.session.customerId,
+              callbackUrl: `${baseUrl}/api/wallet/fib-callback?rechargeId=${rechargeRequest.id}`
+            });
+
+            console.log('💰 [WALLET-RECHARGE] FIB payment created:', payment);
+
+            // Update recharge request with payment ID
+            await pool.query(`
+              UPDATE wallet_recharge_requests 
+              SET payment_reference = $1, status = 'pending_payment'
+              WHERE id = $2
+            `, [payment.paymentId, rechargeRequest.id]);
+
+            return res.json({ 
+              success: true, 
+              paymentUrl: payment.paymentUrl,
+              paymentId: payment.paymentId,
+              rechargeId: rechargeRequest.id
+            });
+          } catch (fibError) {
+            console.error('💰 [WALLET-RECHARGE] FIB payment error:', fibError);
+            return res.status(500).json({ 
+              success: false, 
+              message: fibError.message || 'خطا در ایجاد پرداخت FIB' 
+            });
+          }
+        }
+
+        // Other gateway types can be added here
+        return res.status(400).json({ 
+          success: false, 
+          message: `نوع درگاه ${activeGateway.type} پشتیبانی نمی‌شود` 
+        });
+      }
+
       console.log('💰 [WALLET-RECHARGE] Creating recharge request...');
       const rechargeRequest = await walletStorage.createRechargeRequest({
         customerId: req.session.customerId,
@@ -37643,6 +38231,75 @@ momtazchem.com
     } catch (error) {
       console.error('💰 [WALLET-RECHARGE] ERROR:', error);
       res.status(500).json({ success: false, message: 'Failed to create recharge request' });
+    }
+  });
+
+  // FIB callback for wallet recharge
+  app.get('/api/wallet/fib-callback', async (req, res) => {
+    try {
+      const { rechargeId, status } = req.query;
+      console.log('💰 [WALLET-FIB-CALLBACK] Received callback:', { rechargeId, status });
+
+      if (!rechargeId) {
+        return res.redirect('/customer-wallet?error=invalid_request');
+      }
+
+      const { pool } = await import('./db');
+      
+      // Get the recharge request
+      const requestResult = await pool.query(`
+        SELECT * FROM wallet_recharge_requests WHERE id = $1
+      `, [rechargeId]);
+
+      if (requestResult.rows.length === 0) {
+        return res.redirect('/customer-wallet?error=request_not_found');
+      }
+
+      const rechargeRequest = requestResult.rows[0];
+      const paymentId = rechargeRequest.payment_reference;
+
+      if (!paymentId) {
+        return res.redirect('/customer-wallet?error=payment_not_found');
+      }
+
+      // Check payment status with FIB
+      const { fibService } = await import('./fib-service');
+      const paymentStatus = await fibService.checkPaymentStatus(paymentId);
+      console.log('💰 [WALLET-FIB-CALLBACK] Payment status:', paymentStatus);
+
+      if (paymentStatus.status === 'PAID') {
+        // Update recharge request status
+        await pool.query(`
+          UPDATE wallet_recharge_requests 
+          SET status = 'approved', approved_at = NOW()
+          WHERE id = $1
+        `, [rechargeId]);
+
+        // Credit the wallet
+        const amount = parseFloat(rechargeRequest.amount);
+        await walletStorage.creditWallet(
+          rechargeRequest.customer_id,
+          amount,
+          `شارژ کیف پول از طریق درگاه FIB - درخواست #${rechargeId}`,
+          'wallet_recharge',
+          parseInt(rechargeId as string)
+        );
+
+        console.log('💰 [WALLET-FIB-CALLBACK] Wallet credited successfully');
+        return res.redirect('/customer-wallet?success=payment_completed');
+      } else if (paymentStatus.status === 'CANCELLED' || paymentStatus.status === 'FAILED') {
+        await pool.query(`
+          UPDATE wallet_recharge_requests 
+          SET status = 'failed'
+          WHERE id = $1
+        `, [rechargeId]);
+        return res.redirect('/customer-wallet?error=payment_failed');
+      } else {
+        return res.redirect('/customer-wallet?status=pending');
+      }
+    } catch (error) {
+      console.error('💰 [WALLET-FIB-CALLBACK] Error:', error);
+      return res.redirect('/customer-wallet?error=callback_error');
     }
   });
 
@@ -44822,7 +45479,7 @@ momtazchem.com
         return res.status(400).json({ success: false, message: "امتیاز باید بین 1 تا 5 ستاره باشد" });
       }
 
-      if (!comment || comment.trim().length === 0) {
+      if (false && comment && comment ? comment.trim() : null.length === 0) { // کامنت اختیاری است
         return res.status(400).json({ success: false, message: "متن نظر الزامی است" });
       }
 
@@ -44858,7 +45515,7 @@ momtazchem.com
           SET rating = $1, title = $2, comment = $3, updated_at = NOW()
           WHERE product_id = $4 AND customer_id = $5
           RETURNING id
-        `, [rating, title || null, comment.trim(), productId, customerId]);
+        `, [rating, title || null, comment ? comment.trim() : null, productId, customerId]);
         isUpdate = true;
       } else {
         // Create new review
@@ -44870,7 +45527,7 @@ momtazchem.com
           RETURNING id
         `, [
           productId, customerId, customer.customer_name, customer.email,
-          rating, title || null, comment.trim(), false // TODO: Check if verified purchase
+          rating, title || null, comment ? comment.trim() : null, false // TODO: Check if verified purchase
         ]);
       }
 
@@ -50885,7 +51542,7 @@ momtazchem.com
       const csvRows = [];
       
       for (const order of filteredOrders) {
-        const orderDate = new Date(order.createdAt).toLocaleDateString('fa-IR');
+        const orderDate = new Date(order.createdAt).toLocaleDateString('en-GB', { year: 'numeric', month: '2-digit', day: '2-digit' });
         const deliveryDate = order.deliveredAt 
           ? new Date(order.deliveredAt).toLocaleDateString('fa-IR') 
           : 'تحویل نشده';
@@ -52476,19 +53133,19 @@ momtazchem.com
     
     // Status determination logic based on payment and order status
     if (paymentStatus === 'paid') {
-      if (customerStatus === 'pending') return 'warehouse_ready';
-      if (customerStatus === 'confirmed') return 'warehouse_ready';
-      if (customerStatus === 'warehouse_ready') return 'warehouse_ready';
-      return 'warehouse_ready';
+      if (customerStatus === 'pending') return 'finance_pending';
+      if (customerStatus === 'confirmed') return 'warehouse_pending';
+      if (customerStatus === 'warehouse_ready') return 'warehouse_pending';
+      return 'finance_pending';
     }
     
-    // CRITICAL FIX: receipt_uploaded should go to financial_review, not warehouse_ready
+    // CRITICAL FIX: receipt_uploaded should go to finance_pending for review
     if (paymentStatus === 'receipt_uploaded') {
-      return 'financial_review';
+      return 'finance_pending';
     }
     
     if (paymentStatus === 'pending') {
-      return 'payment_uploaded';
+      return 'pending';
     }
     
     if (paymentStatus === 'grace_period') {
@@ -56353,6 +57010,7 @@ momtazchem.com
 
       const { db } = await import('./db');
       const { showcaseProducts } = await import('@shared/showcase-schema');
+      const { shopProducts } = await import('@shared/shop-schema');
       const { eq } = await import('drizzle-orm');
 
       const [updatedProduct] = await db
@@ -56368,6 +57026,23 @@ momtazchem.com
         return res.status(404).json({ success: false, message: 'محصول یافت نشد' });
       }
 
+      // Also sync commission rate to shop_products for order processing
+      try {
+        const sku = updatedProduct.sku;
+        if (sku) {
+          await db
+            .update(shopProducts)
+            .set({
+              commissionRate: commissionOverride !== null ? commissionOverride.toString() : null,
+              updatedAt: new Date(),
+            })
+            .where(eq(shopProducts.sku, sku));
+          console.log(`📦 [PRODUCT COMMISSION] Synced commission rate to shop_products for SKU ${sku}`);
+        }
+      } catch (syncError) {
+        console.error(`⚠️ [PRODUCT COMMISSION] Failed to sync to shop_products:`, syncError);
+      }
+
       console.log(`📦 [PRODUCT COMMISSION] Updated product ${productId} commission override to ${commissionOverride === null ? 'default' : commissionOverride + '%'}`);
       res.json({ success: true, product: updatedProduct, message: 'درصد کمیسیون محصول با موفقیت بروزرسانی شد' });
     } catch (error) {
@@ -56377,6 +57052,283 @@ momtazchem.com
   });
 
   console.log('✅ [VENDOR ACCOUNTING] Vendor accounting routes registered');
+  // ==================== WAREHOUSE INVENTORY MANAGEMENT API ====================
+  
+  // Get all products with inventory data from shop_products (Kardex)
+  // Fetch inventory from kardex (showcase_products)
+  app.get("/api/warehouse/inventory-products", requireAuth, async (req, res) => {
+    try {
+      const { pool } = await import('./db');
+      
+      // Using showcase_products (kardex) as the source of inventory data
+      const result = await pool.query(`
+        SELECT 
+          sp.id,
+          sp.name,
+          sp.sku,
+          sp.barcode,
+          sp.stock_quantity as "stockQuantity",
+          sp.min_stock_level as "minStockLevel",
+          sp.max_stock_level as "maxStockLevel",
+          COALESCE(sp.low_stock_threshold, sp.min_stock_level, 0) as "lowStockThreshold",
+          sp.is_active as "isActive",
+          sp.vendor_id as "vendorId",
+          COALESCE(v.vendor_name, 'ممتاز کم') as "vendorName"
+        FROM showcase_products sp
+        LEFT JOIN vendors v ON sp.vendor_id = v.id
+        WHERE sp.is_active = true
+        ORDER BY sp.name ASC
+      `);
+      
+      res.json({
+        success: true,
+        products: result.rows
+      });
+    } catch (error) {
+      console.error('❌ [WAREHOUSE INVENTORY] Error fetching products:', error);
+      res.status(500).json({
+        success: false,
+        message: "خطا در دریافت اطلاعات موجودی"
+      });
+    }
+  });
+
+  // Update product inventory settings
+  // Update inventory settings in kardex (showcase_products)
+  app.patch("/api/warehouse/inventory-products/:id", requireAuth, async (req, res) => {
+    try {
+      const productId = parseInt(req.params.id);
+      const { minStockLevel, maxStockLevel, lowStockThreshold } = req.body;
+      
+      const { pool } = await import('./db');
+      
+      // Update in showcase_products (kardex)
+      await pool.query(`
+        UPDATE showcase_products SET
+          min_stock_level = $1,
+          max_stock_level = $2,
+          low_stock_threshold = $3,
+          updated_at = NOW()
+        WHERE id = $4
+      `, [minStockLevel || 0, maxStockLevel || 0, lowStockThreshold || 0, productId]);
+      
+      console.log(`✅ [WAREHOUSE INVENTORY] Updated inventory settings for product ${productId}`);
+      
+      res.json({
+        success: true,
+        message: "تنظیمات موجودی محصول با موفقیت ذخیره شد"
+      });
+    } catch (error) {
+      console.error('❌ [WAREHOUSE INVENTORY] Error updating product:', error);
+      res.status(500).json({
+        success: false,
+        message: "خطا در ذخیره تنظیمات"
+      });
+    }
+  });
+
+  // Get warehouse inventory notification settings
+  app.get("/api/warehouse/inventory-notification-settings", requireAuth, async (req, res) => {
+    try {
+      const { pool } = await import('./db');
+      
+      const settingsResult = await pool.query(`
+        SELECT setting_key, setting_value, setting_type
+        FROM shop_settings 
+        WHERE category = 'warehouse_inventory_notifications'
+      `);
+      
+      const settingsMap = {};
+      for (const row of settingsResult.rows) {
+        if (row.setting_type === 'boolean') {
+          settingsMap[row.setting_key] = row.setting_value === 'true';
+        } else if (row.setting_type === 'number') {
+          settingsMap[row.setting_key] = parseInt(row.setting_value) || 0;
+        } else if (row.setting_type === 'json') {
+          try {
+            settingsMap[row.setting_key] = JSON.parse(row.setting_value);
+          } catch {
+            settingsMap[row.setting_key] = row.setting_value;
+          }
+        } else {
+          settingsMap[row.setting_key] = row.setting_value;
+        }
+      }
+      
+      res.json({
+        success: true,
+        settings: {
+          emailEnabled: settingsMap.email_enabled ?? true,
+          smsEnabled: settingsMap.sms_enabled ?? false,
+          whatsappEnabled: settingsMap.whatsapp_enabled ?? false,
+          maxNotifications: settingsMap.max_notifications ?? 1,
+          notificationIntervalHours: settingsMap.notification_interval_hours ?? 24,
+          recipients: settingsMap.recipients ?? []
+        }
+      });
+    } catch (error) {
+      console.error('❌ [WAREHOUSE INVENTORY] Error fetching notification settings:', error);
+      res.status(500).json({
+        success: false,
+        message: "خطا در دریافت تنظیمات"
+      });
+    }
+  });
+
+  // Save warehouse inventory notification settings
+  app.post("/api/warehouse/inventory-notification-settings", requireAuth, async (req, res) => {
+    try {
+      const { emailEnabled, smsEnabled, whatsappEnabled, maxNotifications, notificationIntervalHours, recipients } = req.body;
+      
+      const { pool } = await import('./db');
+      
+      const settings = [
+        { key: 'email_enabled', value: String(emailEnabled), type: 'boolean' },
+        { key: 'sms_enabled', value: String(smsEnabled), type: 'boolean' },
+        { key: 'whatsapp_enabled', value: String(whatsappEnabled), type: 'boolean' },
+        { key: 'max_notifications', value: String(maxNotifications || 1), type: 'number' },
+        { key: 'notification_interval_hours', value: String(notificationIntervalHours || 24), type: 'number' },
+        { key: 'recipients', value: JSON.stringify(recipients || []), type: 'json' }
+      ];
+      
+      for (const setting of settings) {
+        await pool.query(`
+          INSERT INTO shop_settings (setting_key, setting_value, setting_type, category, display_name, display_name_en, is_public)
+          VALUES ($1, $2, $3, 'warehouse_inventory_notifications', $1, $1, false)
+          ON CONFLICT (setting_key) 
+          DO UPDATE SET setting_value = $2, updated_at = NOW()
+        `, [setting.key, setting.value, setting.type]);
+      }
+      
+      console.log(`✅ [WAREHOUSE INVENTORY] Notification settings saved`);
+      
+      res.json({
+        success: true,
+        message: "تنظیمات اطلاع‌رسانی با موفقیت ذخیره شد"
+      });
+    } catch (error) {
+      console.error('❌ [WAREHOUSE INVENTORY] Error saving notification settings:', error);
+      res.status(500).json({
+        success: false,
+        message: "خطا در ذخیره تنظیمات"
+      });
+    }
+  });
+
+  // Test notification
+  app.post("/api/warehouse/test-notification/:type", requireAuth, async (req, res) => {
+    try {
+      const type = req.params.type;
+      
+      console.log(`📧 [WAREHOUSE INVENTORY] Test notification requested: ${type}`);
+      
+      const { pool } = await import('./db');
+      const recipientsResult = await pool.query(`
+        SELECT setting_value FROM shop_settings 
+        WHERE setting_key = 'recipients' AND category = 'warehouse_inventory_notifications'
+      `);
+      
+      let recipients = [];
+      if (recipientsResult.rows.length > 0) {
+        try {
+          recipients = JSON.parse(recipientsResult.rows[0].setting_value);
+        } catch {}
+      }
+      
+      if (recipients.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "هیچ گیرنده‌ای تعریف نشده است"
+        });
+      }
+      
+      const activeRecipients = recipients.filter((r) => {
+        if (!r.isActive) return false;
+        if (type === 'email') return r.receiveEmail && r.email;
+        if (type === 'sms') return r.receiveSms && r.phone;
+        if (type === 'whatsapp') return r.receiveWhatsapp && r.whatsappNumber;
+        return false;
+      });
+      
+      if (activeRecipients.length === 0) {
+        const typeNames = { email: 'ایمیل', sms: 'پیامک', whatsapp: 'واتساپ' };
+        return res.status(400).json({
+          success: false,
+          message: `هیچ گیرنده فعالی برای ${typeNames[type] || type} یافت نشد`
+        });
+      }
+      
+      if (type === 'email') {
+        const { emailService } = await import('./email-service');
+        for (const recipient of activeRecipients) {
+          await emailService.sendCustomEmail(
+            recipient.email,
+            'تست سیستم هشدار موجودی - ممتاز شیمی',
+            `<div style="direction: rtl; font-family: Tahoma, Arial;">
+              <h2>تست سیستم هشدار موجودی</h2>
+              <p>سلام ${recipient.name}،</p>
+              <p>این یک پیام تست از سیستم هشدار موجودی انبار است.</p>
+              <p>اگر این پیام را دریافت کرده‌اید، سیستم اطلاع‌رسانی ایمیل به درستی کار می‌کند.</p>
+              <p>با احترام،<br/>سیستم انبار ممتاز شیمی</p>
+            </div>`
+          );
+        }
+      }
+      
+      console.log(`✅ [WAREHOUSE INVENTORY] Test ${type} sent to ${activeRecipients.length} recipients`);
+      
+      const typeNames = { email: 'ایمیل', sms: 'پیامک', whatsapp: 'واتساپ' };
+      res.json({
+        success: true,
+        message: `تست ${typeNames[type] || type} با موفقیت ارسال شد`,
+        recipientCount: activeRecipients.length
+      });
+    } catch (error) {
+      console.error('❌ [WAREHOUSE INVENTORY] Error sending test notification:', error);
+      res.status(500).json({
+        success: false,
+        message: "خطا در ارسال تست"
+      });
+    }
+  });
+
+
+  // Get admin users from custom_users table for notification recipients
+  app.get("/api/warehouse/admin-users", requireAuth, async (req, res) => {
+    try {
+      const { pool } = await import('./db');
+      
+      const result = await pool.query(`
+        SELECT 
+          id,
+          full_name as "fullName",
+          email,
+          phone,
+          role_id as "roleId",
+          is_active as "isActive"
+        FROM custom_users
+        WHERE is_active = true
+        ORDER BY full_name ASC
+      `);
+      
+      console.log(`📋 [WAREHOUSE ADMIN USERS] Found ${result.rows.length} active admin users`);
+      
+      res.json({
+        success: true,
+        users: result.rows
+      });
+    } catch (error) {
+      console.error('❌ [WAREHOUSE ADMIN USERS] Error fetching admin users:', error);
+      res.status(500).json({
+        success: false,
+        message: "خطا در دریافت لیست کاربران"
+      });
+    }
+  });
+
+  console.log('✅ [WAREHOUSE INVENTORY] Warehouse inventory management routes registered');
+
+
 
 
   return httpServer;

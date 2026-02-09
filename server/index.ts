@@ -32,6 +32,10 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 const app = express();
+
+// Trust first proxy (Replit's reverse proxy) for secure cookies - always enable for Replit
+app.set('trust proxy', 1);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -141,11 +145,14 @@ const vendorSessionMiddleware = session({
     httpOnly: false,
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     sameSite: 'lax',
-    path: '/api/vendor',
+    path: '/api/vendors',
     domain: undefined
   },
   name: 'momtazchem.vendor.sid'
 });
+
+// Detect if running in production (HTTPS)
+const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1';
 
 // Use single unified session middleware for all routes
 const unifiedSessionMiddleware = session({
@@ -154,11 +161,12 @@ const unifiedSessionMiddleware = session({
   resave: true, // Force save sessions to prevent loss
   saveUninitialized: true, // Save new sessions to ensure they persist
   rolling: true,
+  proxy: isProduction, // Trust reverse proxy in production
   cookie: {
-    secure: false,
-    httpOnly: false,
+    secure: isProduction, // true for HTTPS in production
+    httpOnly: true, // Protect against XSS
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: 'lax',
+    sameSite: isProduction ? 'none' : 'lax', // 'none' for cross-origin HTTPS
     path: '/',
     domain: undefined
   },

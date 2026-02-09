@@ -148,10 +148,9 @@ export class TransactionSync {
       return 'in_transit';
     }
     
-    // اولویت سوم: وضعیت‌های پرداخت
     if (customerStatus === 'pending') {
       if (paymentStatus === 'paid') {
-        return 'warehouse_pending';
+        return 'finance_pending';
       } else if (paymentStatus === 'receipt_uploaded') {
         return 'finance_pending';
       } else if (paymentStatus === 'rejected') {

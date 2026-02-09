@@ -125,7 +125,7 @@ export default function CompleteProfile() {
 
         if (data.profileCompleted) {
           // Profile already completed, redirect to dashboard
-          navigate('/customer-dashboard');
+          navigate('/customer/profile');
           return;
         }
 
@@ -156,7 +156,7 @@ export default function CompleteProfile() {
 
         // Redirect to dashboard after 1.5 seconds
         setTimeout(() => {
-          navigate('/customer-dashboard');
+          navigate('/customer/profile');
         }, 1500);
       } else {
         throw new Error(response.message || 'Failed to complete profile');

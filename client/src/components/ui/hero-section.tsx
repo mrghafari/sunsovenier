@@ -4,6 +4,7 @@ import { FlaskRound, Phone, ChevronDown } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 import company_logo_png from "@assets/company-logo.png.jpg";
+import heroBackground from "@assets/hero_background_1770191229724.png";
 
 const HeroSection = () => {
   const { t } = useLanguage();
@@ -14,7 +15,7 @@ const HeroSection = () => {
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{
-          backgroundImage: `linear-gradient(rgba(21, 101, 192, 0.7), rgba(46, 125, 50, 0.5)), url('/attached_assets/hero_background_1749877550777.png')`,
+          backgroundImage: `linear-gradient(rgba(21, 101, 192, 0.7), rgba(46, 125, 50, 0.5)), url(${heroBackground})`,
         }}
       />
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-white">

@@ -525,6 +525,7 @@ export const customerVerificationSettings = pgTable("customer_verification_setti
   id: serial("id").primaryKey(),
   smsVerificationEnabled: boolean("sms_verification_enabled").default(true),
   emailVerificationEnabled: boolean("email_verification_enabled").default(true),
+  whatsappVerificationEnabled: boolean("whatsapp_verification_enabled").default(false),
   requireBothVerifications: boolean("require_both_verifications").default(true), // Dual authentication requirement
   allowSkipVerification: boolean("allow_skip_verification").default(false), // Allow skip during registration
   updatedBy: integer("updated_by"), // Admin who updated settings
@@ -556,3 +557,21 @@ export type CustomerEmailVerificationCode = typeof customerEmailVerificationCode
 
 export type InsertCustomerVerificationSettings = z.infer<typeof insertCustomerVerificationSettingsSchema>;
 export type CustomerVerificationSettings = typeof customerVerificationSettings.$inferSelect;
+
+// Customer wishlist - stores products that customers want to save for later
+export const customerWishlists = pgTable("customer_wishlists", {
+  id: serial("id").primaryKey(),
+  customerId: integer("customer_id").notNull(),
+  productId: integer("product_id").notNull(),
+  addedAt: timestamp("added_at").notNull().defaultNow(),
+});
+
+// Create insert schema for wishlist
+export const insertCustomerWishlistSchema = createInsertSchema(customerWishlists).omit({
+  id: true,
+  addedAt: true,
+});
+
+// Wishlist types
+export type InsertCustomerWishlist = z.infer<typeof insertCustomerWishlistSchema>;
+export type CustomerWishlist = typeof customerWishlists.$inferSelect;

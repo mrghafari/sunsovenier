@@ -461,7 +461,7 @@ export default function MarketplaceManagement() {
           </p>
         </div>
 
-        <Tabs defaultValue="pending" className="space-y-6">
+        <Tabs defaultValue="accounting" className="space-y-6">
           <TabsList className="grid w-full grid-cols-6 max-w-3xl" data-testid="vendor-tabs">
             <TabsTrigger value="pending" data-testid="tab-pending">
               در انتظار ({pendingVendors?.vendors?.length || 0})

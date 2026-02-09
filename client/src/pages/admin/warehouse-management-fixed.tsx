@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Package, Search, Filter, ArrowLeft, FileText, Clock, CheckCircle, XCircle, Plus, Edit3, Trash2, Download, Upload, RefreshCw, AlertTriangle, Calendar, Users, TrendingUp, TrendingDown, Eye, BarChart3, Package2, Truck, Weight, Calculator, FileSpreadsheet, ChevronRight, ChevronLeft, Printer } from 'lucide-react';
-// CRITICAL: Removed ALL Dialog imports and toast to eliminate React Portal removeChild errors
-// Using SafeModal instead - NO PORTALS, NO REMOVECHILD ERRORS
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Separator } from '@/components/ui/separator';
+import { Package, Search, Filter, ArrowLeft, FileText, Clock, CheckCircle, XCircle, Plus, Edit3, Trash2, Download, Upload, RefreshCw, AlertTriangle, Calendar, Users, TrendingUp, TrendingDown, Eye, BarChart3, Package2, Truck, Weight, Calculator, FileSpreadsheet, ChevronRight, ChevronLeft, Printer, Bell, Mail, MessageSquare, Phone, Save, Edit } from 'lucide-react';
 import SafeModal from '@/components/SafeModal';
 import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/useAuth';
@@ -16,6 +16,50 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import PaymentMethodBadge from '@/components/PaymentMethodBadge';
+import { useToast } from '@/hooks/use-toast';
+
+interface InventoryProduct {
+  id: number;
+  name: string;
+  sku: string;
+  barcode: string;
+  stockQuantity: number;
+  availableQuantity: number;
+  reservedQuantity: number;
+  minStockLevel: number;
+  maxStockLevel: number;
+  lowStockThreshold: number;
+  isActive: boolean;
+  vendorId: number | null;
+  vendorName: string;
+}
+
+interface NotificationRecipient {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  whatsappNumber: string;
+  receiveEmail: boolean;
+  receiveSms: boolean;
+  receiveWhatsapp: boolean;
+  isActive: boolean;
+}
+
+interface InventoryNotificationSettings {
+  notificationIntervalHours: number;
+  maxNotifications: number;
+  recipients: NotificationRecipient[];
+}
+
+interface AdminUser {
+  id: number;
+  fullName: string;
+  email: string;
+  phone: string | null;
+  roleId: number;
+  isActive: boolean;
+}
 
 interface Order {
   id: number;
@@ -74,6 +118,18 @@ const WarehouseManagementFixed: React.FC = () => {
   const [activeTab, setActiveTab] = useState("orders");
   const [orderDetails, setOrderDetails] = useState<any>(null);
   const [loadingOrderDetails, setLoadingOrderDetails] = useState(false);
+
+  // Inventory management states
+  const [inventorySearchTerm, setInventorySearchTerm] = useState("");
+  const [adminSearchTerm, setAdminSearchTerm] = useState("");
+  const [showAddRecipient, setShowAddRecipient] = useState(false);
+  const [inventorySettings, setInventorySettings] = useState<InventoryNotificationSettings>({
+    notificationIntervalHours: 24,
+    maxNotifications: 1,
+    recipients: []
+  });
+
+  const { toast } = useToast();
 
   // Print function for order details
   const handlePrintOrder = () => {
@@ -367,6 +423,117 @@ const WarehouseManagementFixed: React.FC = () => {
 
   const orders = (ordersResponse as any)?.orders || [];
 
+  // Inventory Products Query
+  const { data: inventoryProductsData, isLoading: inventoryProductsLoading, refetch: refetchInventoryProducts } = useQuery<{ products: InventoryProduct[] }>({
+    queryKey: ["/api/warehouse/inventory-products"],
+    queryFn: async () => {
+      const response = await apiRequest('/api/warehouse/inventory-products', { method: 'GET' });
+      return response as { products: InventoryProduct[] };
+    },
+  });
+
+  // Inventory Settings Query
+  const { data: inventorySettingsData } = useQuery<{ success: boolean; settings: InventoryNotificationSettings }>({
+    queryKey: ["/api/warehouse/inventory-notification-settings"],
+    queryFn: async () => {
+      const response = await apiRequest('/api/warehouse/inventory-notification-settings', { method: 'GET' });
+      return response as { success: boolean; settings: InventoryNotificationSettings };
+    },
+  });
+
+  // Admin Users Query for notification recipients
+  const { data: adminUsersData } = useQuery<{ success: boolean; users: AdminUser[] }>({
+    queryKey: ["/api/warehouse/admin-users"],
+    queryFn: async () => {
+      const response = await apiRequest('/api/warehouse/admin-users', { method: 'GET' });
+      return response as { success: boolean; users: AdminUser[] };
+    },
+  });
+
+  // Filter admin users based on search
+  const filteredAdminUsers: AdminUser[] = (adminUsersData?.users || []).filter(user => {
+    if (adminSearchTerm.length < 2) return false;
+    const searchLower = adminSearchTerm.toLowerCase();
+    return (
+      user.fullName?.toLowerCase().includes(searchLower) ||
+      (user.email && user.email.toLowerCase().includes(searchLower))
+    );
+  });
+  const inventoryProducts: InventoryProduct[] = inventoryProductsData?.products || [];
+
+  // Load inventory settings when data arrives
+  useEffect(() => {
+    if (inventorySettingsData?.success && inventorySettingsData?.settings) {
+      setInventorySettings(inventorySettingsData.settings);
+    }
+  }, [inventorySettingsData]);
+
+  // Filter inventory products
+  const filteredInventoryProducts = inventoryProducts.filter(p =>
+    p.name?.toLowerCase().includes(inventorySearchTerm.toLowerCase()) ||
+    p.sku?.toLowerCase().includes(inventorySearchTerm.toLowerCase()) ||
+    p.barcode?.toLowerCase().includes(inventorySearchTerm.toLowerCase())
+  );
+
+  // Get stock status
+  const getStockStatus = (product: InventoryProduct) => {
+    const { stockQuantity, lowStockThreshold, minStockLevel } = product;
+    if (stockQuantity <= 0) return { label: "ناموجود", color: "bg-red-500 text-white" };
+    if (stockQuantity <= (lowStockThreshold || 5)) return { label: "بحرانی", color: "bg-red-400 text-white" };
+    if (stockQuantity <= (minStockLevel || 10)) return { label: "کم", color: "bg-yellow-500 text-white" };
+    return { label: "موجود", color: "bg-green-500 text-white" };
+  };
+
+  // Add recipient from Admin Users
+  const addRecipientFromAdmin = (user: AdminUser) => {
+    // Check if user already exists in recipients
+    if (inventorySettings.recipients.some(r => r.email === user.email)) {
+      toast({
+        title: "خطا",
+        description: "این کاربر قبلاً به لیست گیرندگان اضافه شده است",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const newRecipient: NotificationRecipient = {
+      id: Date.now(),
+      name: user.fullName,
+      email: user.email || '',
+      phone: user.phone || '',
+      whatsappNumber: '',
+      receiveEmail: !!user.email,
+      receiveSms: false,
+      receiveWhatsapp: false,
+      isActive: true
+    };
+    setInventorySettings(prev => ({
+      ...prev,
+      recipients: [...prev.recipients, newRecipient]
+    }));
+    setAdminSearchTerm("");
+    toast({
+      title: "گیرنده اضافه شد",
+      description: `${user.fullName} به لیست گیرندگان اضافه شد`,
+    });
+  };
+
+  // Remove recipient
+  const removeRecipient = (id: number) => {
+    setInventorySettings(prev => ({
+      ...prev,
+      recipients: prev.recipients.filter(r => r.id !== id)
+    }));
+  };
+
+  // Update recipient
+  const updateRecipient = (id: number, updates: Partial<NotificationRecipient>) => {
+    setInventorySettings(prev => ({
+      ...prev,
+      recipients: prev.recipients.map(r => r.id === id ? { ...r, ...updates } : r)
+    }));
+  };
+
   // Mutations
   const updateOrderMutation = useMutation({
     mutationFn: async ({ orderId, status, notes }: { orderId: number; status: string; notes?: string }) => {
@@ -415,6 +582,30 @@ const WarehouseManagementFixed: React.FC = () => {
       console.log({
         title: "خطا در ذخیره",
         description: error.message || "خطایی در ذخیره یادداشت رخ داد",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Save Inventory Settings Mutation
+  const saveInventorySettingsMutation = useMutation({
+    mutationFn: async (settings: InventoryNotificationSettings) => {
+      return await apiRequest('/api/warehouse/inventory-notification-settings', {
+        method: 'POST',
+        body: settings
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/warehouse/inventory-notification-settings'] });
+      toast({
+        title: "تنظیمات ذخیره شد",
+        description: "تنظیمات اعلان موجودی با موفقیت ذخیره شد",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "خطا در ذخیره",
+        description: error.message || "خطایی در ذخیره تنظیمات رخ داد",
         variant: "destructive",
       });
     },
@@ -507,7 +698,7 @@ const WarehouseManagementFixed: React.FC = () => {
   }) || [];
 
   // Debug log the final sorted order
-  console.log('🔄 [FINAL ORDER] Orders after sorting:', filteredOrders?.map(o => ({ 
+  console.log('🔄 [FINAL ORDER] Orders after sorting:', filteredOrders?.map((o: Order) => ({ 
     id: o.id, 
     customerOrderId: o.customerOrderId, 
     orderNumber: o.orderNumber 
@@ -636,10 +827,14 @@ const WarehouseManagementFixed: React.FC = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="orders" className="w-full">
-          <TabsList className="grid w-full grid-cols-1 mb-6">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
             <TabsTrigger value="orders" className="flex items-center gap-2">
               <Package className="w-4 h-4" />
               سفارشات
+            </TabsTrigger>
+            <TabsTrigger value="inventory" className="flex items-center gap-2">
+              <Package2 className="w-4 h-4" />
+              موجودی انبار
             </TabsTrigger>
           </TabsList>
 
@@ -772,7 +967,7 @@ const WarehouseManagementFixed: React.FC = () => {
                             </td>
                             <td className="p-4 text-center" style={{ width: '12%' }}>{getStatusBadge(order.currentStatus || order.status)}</td>
                             <td className="p-4 text-center" style={{ width: '14%' }}>
-                              {order.customerNotes && order.customerNotes.trim().length > 0 ? (
+                              {(order as any).customerNotes && (order as any).customerNotes.trim().length > 0 ? (
                                 <div className="bg-amber-100 text-amber-700 px-2 py-1 rounded text-xs font-medium inline-flex items-center gap-1">
                                   <Edit3 className="w-3 h-3" />
                                   دارای یادداشت مشتری
@@ -854,6 +1049,268 @@ const WarehouseManagementFixed: React.FC = () => {
                     </table>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Inventory Tab - Direct Content */}
+          <TabsContent value="inventory" className="space-y-6">
+            {/* Products Table */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Package2 className="w-5 h-5" />
+                    محصولات انبار
+                  </CardTitle>
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                      <Input
+                        placeholder="جستجو محصول..."
+                        value={inventorySearchTerm}
+                        onChange={(e) => setInventorySearchTerm(e.target.value)}
+                        className="pr-10 w-64"
+                      />
+                    </div>
+                    <Button variant="outline" onClick={() => refetchInventoryProducts()}>
+                      <RefreshCw className="w-4 h-4 ml-2" />
+                      بروزرسانی
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {inventoryProductsLoading ? (
+                  <div className="text-center py-8">در حال بارگذاری...</div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-right whitespace-nowrap">نام محصول</TableHead>
+                        <TableHead className="text-right whitespace-nowrap">فروشنده</TableHead>
+                        <TableHead className="text-right whitespace-nowrap">کد کالا</TableHead>
+                        <TableHead className="text-center whitespace-nowrap">موجودی</TableHead>
+                        <TableHead className="text-center whitespace-nowrap">حداقل</TableHead>
+                        <TableHead className="text-center whitespace-nowrap">آستانه هشدار</TableHead>
+                        <TableHead className="text-center whitespace-nowrap">وضعیت</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredInventoryProducts.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                            محصولی یافت نشد
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filteredInventoryProducts.slice(0, 50).map((product) => {
+                          const stockStatus = getStockStatus(product);
+                          return (
+                            <TableRow key={product.id}>
+                              <TableCell className="font-medium text-right">{product.name}</TableCell>
+                              <TableCell className="text-right">
+                                <Badge variant={product.vendorId ? "secondary" : "outline"}>
+                                  {product.vendorName || 'ممتاز کم'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right">{product.sku || '-'}</TableCell>
+                              <TableCell className="text-center font-bold">{product.stockQuantity || 0}</TableCell>
+                              <TableCell className="text-center">{product.minStockLevel || 0}</TableCell>
+                              <TableCell className="text-center">{product.lowStockThreshold || 0}</TableCell>
+                              <TableCell className="text-center">
+                                <Badge className={stockStatus.color}>
+                                  {stockStatus.label}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      )}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Notification Settings Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Bell className="w-5 h-5" />
+                  تنظیمات اعلان کمبود موجودی
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Notification Timing Settings */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-lg bg-gray-50">
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <Clock className="w-4 h-4" />
+                      فاصله زمانی ارسال اعلان (ساعت)
+                    </Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={168}
+                      value={inventorySettings.notificationIntervalHours}
+                      onChange={(e) => setInventorySettings(prev => ({ ...prev, notificationIntervalHours: parseInt(e.target.value) || 24 }))}
+                      className="w-full"
+                    />
+                    <p className="text-xs text-gray-500">حداقل فاصله بین دو اعلان برای یک محصول (1 تا 168 ساعت)</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4" />
+                      حداکثر تعداد اعلان
+                    </Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={inventorySettings.maxNotifications}
+                      onChange={(e) => setInventorySettings(prev => ({ ...prev, maxNotifications: parseInt(e.target.value) || 1 }))}
+                      className="w-full"
+                    />
+                    <p className="text-xs text-gray-500">حداکثر تعداد اعلان برای هر محصول (تا زمان اصلاح موجودی)</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Recipients Management with CRM Search */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="w-5 h-5" />
+                    گیرندگان اعلان
+                  </CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Admin Users Search Dropdown */}
+                <div className="flex items-center gap-4 p-4 border rounded-lg bg-gray-50">
+                  <div className="flex-1">
+                    <Label className="mb-2 block">جستجو و انتخاب از کاربران مدیریتی (حداقل 2 حرف)</Label>
+                    <Input
+                      placeholder="نام کاربری یا ایمیل..."
+                      value={adminSearchTerm}
+                      onChange={(e) => setAdminSearchTerm(e.target.value)}
+                      className="w-full"
+                    />
+                    {adminSearchTerm.length >= 2 && filteredAdminUsers.length > 0 && (
+                      <div className="mt-2 border rounded-lg max-h-48 overflow-y-auto bg-white shadow-lg">
+                        {filteredAdminUsers.map((user) => (
+                          <div
+                            key={user.id}
+                            className="p-3 hover:bg-blue-50 cursor-pointer border-b last:border-b-0 flex items-center justify-between"
+                            onClick={() => addRecipientFromAdmin(user)}
+                          >
+                            <div>
+                              <div className="font-medium">{user.fullName}</div>
+                              <div className="text-sm text-gray-500">{user.email}</div>
+                            </div>
+                            <Button size="sm" variant="outline">
+                              <Plus className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {adminSearchTerm.length >= 2 && filteredAdminUsers.length === 0 && (
+                      <div className="mt-2 text-sm text-gray-500">کاربری یافت نشد</div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Recipients List */}
+                {inventorySettings.recipients.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                    <p>هیچ گیرنده‌ای تعریف نشده است</p>
+                    <p className="text-sm">از بخش جستجوی بالا، گیرندگان را انتخاب کنید</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-right">نام</TableHead>
+                        <TableHead className="text-right">ایمیل</TableHead>
+                        <TableHead className="text-right">تلفن</TableHead>
+                        <TableHead className="text-center">ایمیل</TableHead>
+                        <TableHead className="text-center">پیامک</TableHead>
+                        <TableHead className="text-center">واتساپ</TableHead>
+                        <TableHead className="text-center">فعال</TableHead>
+                        <TableHead className="text-center">حذف</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {inventorySettings.recipients.map((recipient) => (
+                        <TableRow key={recipient.id}>
+                          <TableCell className="font-medium">{recipient.name}</TableCell>
+                          <TableCell>{recipient.email || '-'}</TableCell>
+                          <TableCell dir="ltr">{recipient.phone || '-'}</TableCell>
+                          <TableCell className="text-center">
+                            <Switch
+                              checked={recipient.receiveEmail}
+                              onCheckedChange={(checked) => updateRecipient(recipient.id, { receiveEmail: checked })}
+                            />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Switch
+                              checked={recipient.receiveSms}
+                              onCheckedChange={(checked) => updateRecipient(recipient.id, { receiveSms: checked })}
+                            />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Switch
+                              checked={recipient.receiveWhatsapp}
+                              onCheckedChange={(checked) => updateRecipient(recipient.id, { receiveWhatsapp: checked })}
+                            />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Switch
+                              checked={recipient.isActive}
+                              onCheckedChange={(checked) => updateRecipient(recipient.id, { isActive: checked })}
+                            />
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="text-red-500 hover:text-red-700"
+                              onClick={() => removeRecipient(recipient.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+
+                {/* Save Button */}
+                <div className="flex justify-end pt-4">
+                  <Button 
+                    onClick={() => saveInventorySettingsMutation.mutate(inventorySettings)}
+                    disabled={saveInventorySettingsMutation.isPending}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    {saveInventorySettingsMutation.isPending ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 ml-2 animate-spin" />
+                        در حال ذخیره...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4 ml-2" />
+                        ذخیره تنظیمات
+                      </>
+                    )}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

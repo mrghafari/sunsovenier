@@ -263,8 +263,11 @@ export default function ProductsPage() {
         { value: "Commercial goods", label: "Commercial goods", icon: <Package className="w-4 h-4" /> },
       ];
 
+  // Use vendor API endpoint when in vendor mode to get only vendor's products
+  const productsEndpoint = isVendorMode ? "/api/vendors/products" : "/api/products";
+  
   const { data: products, isLoading, refetch } = useQuery<ShowcaseProduct[]>({
-    queryKey: ["/api/products"],
+    queryKey: [productsEndpoint],
     staleTime: 0, // Always refetch for real-time updates
     gcTime: 0, // Don't cache data
     refetchOnMount: true,
@@ -273,9 +276,9 @@ export default function ProductsPage() {
 
   // Force refresh every time component mounts
   useEffect(() => {
-    queryClient.removeQueries({ queryKey: ["/api/products"] });
+    queryClient.removeQueries({ queryKey: [productsEndpoint] });
     refetch();
-  }, [refetch]);
+  }, [refetch, productsEndpoint]);
 
   // Consolidate products by barcode for batch management
   const consolidateProductsByBarcode = (products: ShowcaseProduct[]) => {
@@ -378,7 +381,7 @@ export default function ProductsPage() {
       });
 
       // Refresh products list
-      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      queryClient.invalidateQueries({ queryKey: [productsEndpoint] });
       
     } catch (error: any) {
       console.error("❌ [DELETE-BATCH] Error deleting batch:", error);
@@ -393,11 +396,13 @@ export default function ProductsPage() {
   const { mutate: createProduct } = useMutation({
     mutationFn: (data: any) => {
       setIsSubmitting(true);
-      return apiRequest("/api/products", { method: "POST", body: data });
+      // Use vendor API endpoint when in vendor mode
+      const endpoint = isVendorMode ? "/api/vendors/products" : "/api/products";
+      return apiRequest(endpoint, { method: "POST", body: data });
     },
     onSuccess: async () => {
       setIsSubmitting(false);
-      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      queryClient.invalidateQueries({ queryKey: [productsEndpoint] });
       setDialogOpen(false);
       setImagePreview(null);
       setImagePreviews([null, null, null]); // Reset multiple image previews
@@ -424,7 +429,10 @@ export default function ProductsPage() {
   const { mutate: updateProduct } = useMutation({
     mutationFn: ({ id, data }: { id: number; data: any }) => {
       setIsSubmitting(true);
-      return apiRequest(`/api/products/${id}`, { method: "PUT", body: data });
+      // Use vendor API endpoint when in vendor mode
+      const endpoint = isVendorMode ? `/api/vendors/products/${id}` : `/api/products/${id}`;
+      const method = isVendorMode ? "PATCH" : "PUT";
+      return apiRequest(endpoint, { method, body: data });
     },
     onSuccess: async (result) => {
       console.log('✅ [DEBUG] Update mutation successful, result:', result);
@@ -445,7 +453,7 @@ export default function ProductsPage() {
       }
       
       // Refresh products list to ensure UI is in sync
-      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      queryClient.invalidateQueries({ queryKey: [productsEndpoint] });
       
       toast({
         title: t.productManagement.productUpdated,
@@ -481,7 +489,7 @@ export default function ProductsPage() {
     },
     onSuccess: async () => {
       console.log(`✅ [DELETE] Product deleted successfully`);
-      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      queryClient.invalidateQueries({ queryKey: [productsEndpoint] });
       setDeletingProduct(null); // Close the confirmation dialog
       toast({
         title: t.productManagement.productDeleted,
@@ -525,7 +533,7 @@ export default function ProductsPage() {
     },
     onSuccess: (result) => {
       console.log('✅ [DEBUG] Toggle sync successful:', result);
-      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      queryClient.invalidateQueries({ queryKey: [productsEndpoint] });
       toast({
         title: t.productManagement.productUpdated,
         description: t.productManagement.productUpdated,
@@ -1481,7 +1489,7 @@ export default function ProductsPage() {
           <Button 
             onClick={() => {
               queryClient.clear();
-              queryClient.removeQueries({ queryKey: ["/api/products"] });
+              queryClient.removeQueries({ queryKey: [productsEndpoint] });
               refetch();
               toast({
                 title: t.productManagement.cacheCleared,
@@ -1666,12 +1674,6 @@ export default function ProductsPage() {
                             {product.technicalName}
                           </div>
                         )}
-                        {(product as any).vendorName && (
-                          <div className="text-sm text-purple-600 dark:text-purple-400 font-medium mb-1 flex items-center gap-1">
-                            <span className="text-xs">🏪</span>
-                            {(product as any).vendorName}
-                          </div>
-                        )}
                         <div className="flex items-center gap-2 mb-2">
                           {categories.find((c: CategoryOption) => c.value === product.category)?.icon}
                           <span className="text-sm text-gray-600 dark:text-gray-400">
@@ -1834,6 +1836,15 @@ export default function ProductsPage() {
                               </span>
                             </div>
                           )}
+                          {/* Vendor Company Tag */}
+                          {(product as any).vendorName && (
+                            <div className="flex items-center gap-1">
+                              <Badge className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white border-0 shadow-md px-3 py-1 text-xs font-semibold">
+                                <span className="mr-1">🏢</span>
+                                {(product as any).vendorName}
+                              </Badge>
+                            </div>
+                          )}
                         </div>
                       )}
 
@@ -1954,6 +1965,15 @@ export default function ProductsPage() {
             <DialogDescription className="text-center text-gray-600">
               {editingProduct ? t.productManagement.editProduct : t.productManagement.addNewProduct}
             </DialogDescription>
+            {/* Vendor Company Tag in Edit Dialog */}
+            {editingProduct && (editingProduct as any).vendorName && (
+              <div className="flex justify-center mt-3">
+                <Badge className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white border-0 shadow-lg px-4 py-2 text-sm font-semibold">
+                  <span className="mr-2">🏢</span>
+                  شرکت: {(editingProduct as any).vendorName}
+                </Badge>
+              </div>
+            )}
           </DialogHeader>
           
           <TooltipProvider>
@@ -3471,8 +3491,10 @@ export default function ProductsPage() {
                                   type="button"
                                   variant="outline"
                                   size="sm"
-                                  className="absolute top-2 right-2 h-6 w-6 p-0"
-                                  onClick={async () => {
+                                  className="absolute top-2 right-2 h-6 w-6 p-0 z-10"
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
                                     // Optimistic update: Remove from UI immediately
                                     setCatalogPreview(null);
                                     form.setValue('pdfCatalogUrl', '');
@@ -3655,8 +3677,10 @@ export default function ProductsPage() {
                                   type="button"
                                   variant="outline"
                                   size="sm"
-                                  className="absolute top-2 right-2 h-6 w-6 p-0"
-                                  onClick={async () => {
+                                  className="absolute top-2 right-2 h-6 w-6 p-0 z-10"
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
                                     // Optimistic update: Remove from UI immediately
                                     setMsdsPreview(null);
                                     form.setValue('msdsUrl', '');

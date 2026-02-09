@@ -113,6 +113,7 @@ export const shopProducts = pgTable("shop_products", {
   isFeatured: boolean("is_featured").default(false),
   // Marketplace vendor field
   vendorId: integer("vendor_id"), // Reference to vendor (null = owned by Momtazchem)
+  commissionRate: decimal("commission_rate", { precision: 5, scale: 2 }), // نرخ کمیسیون اختصاصی کالا (اگر خالی باشد از درصد پیش‌فرض وندور استفاده می‌شود)
   visibleInShop: boolean("visible_in_shop").default(true), // کنترل نمایش در فروشگاه
   showWhenOutOfStock: boolean("show_when_out_of_stock").default(false), // نمایش در فروشگاه حتی با موجودی صفر
   metaTitle: text("meta_title"),
@@ -143,6 +144,10 @@ export const shopProducts = pgTable("shop_products", {
   variantType: text("variant_type"), // size, concentration, packaging, etc.
   variantValue: text("variant_value"), // 1kg, 5kg, 25kg, 50%, 80%, etc.
   sortOrder: integer("sort_order").default(0), // Display order for variants
+  bulkPurchaseEnabled: boolean("bulk_purchase_enabled").default(false),
+  bulkPurchaseMinQuantity: integer("bulk_purchase_min_quantity"),
+  bulkPurchaseNotes: text("bulk_purchase_notes"),
+  bulkPurchaseDiscounts: json("bulk_purchase_discounts"),
 });
 
 // Product variants relationship table
@@ -487,6 +492,7 @@ export const invoices = pgTable("invoices", {
   dueDate: timestamp("due_date"),
   paymentDate: timestamp("payment_date"),
   subtotal: decimal("subtotal", { precision: 12, scale: 2 }).notNull(),
+  shippingAmount: decimal("shipping_amount", { precision: 12, scale: 2 }).default("0"),
   taxAmount: decimal("tax_amount", { precision: 12, scale: 2 }).default("0"),
   discountAmount: decimal("discount_amount", { precision: 12, scale: 2 }).default("0"),
   totalAmount: decimal("total_amount", { precision: 12, scale: 2 }).notNull(),
