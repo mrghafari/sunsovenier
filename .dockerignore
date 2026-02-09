@@ -21,7 +21,7 @@ replit.nix
 .cache
 .npm
 *.tsbuildinfo
-attached_assets
+# attached_assets
 tmp
 /tmp
 .upm
