@@ -10,7 +10,7 @@ This guide covers deployment on both **Windows Docker Desktop** and **Ubuntu Ser
 git clone https://github.com/mrghafari/MomtazChem.git
 cd MomtazChem
 cp .env.example .env
-# Edit .env with your values
+#  Edit .env with your values
 ```
 
 ### 2. Run Application
