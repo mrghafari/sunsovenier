@@ -1,4 +1,4 @@
-# Docker Deployment Guide - Momtaz Chem Platform Ghafari
+# Docker Deployment Guide - Momtaz Chem Platform 
 
 ## Quick Start-
 
