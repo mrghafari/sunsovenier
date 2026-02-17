@@ -78,7 +78,7 @@ export function KardexSyncPanel() {
     },
     onError: () => {
       toast({
-        title: "خطا در همگام‌سازی",
+        title: "خطا در همگام‌ سازی",
         description: "لطفاً مجدداً تلاش کنید",
         variant: "destructive",
       });
