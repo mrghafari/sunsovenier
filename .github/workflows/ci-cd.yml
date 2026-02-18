@@ -50,7 +50,7 @@ jobs:
 
       - name: Deploy to Server
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "bash -s" << 'EOF'
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "bash -s" <<'EOF'
 export DEPLOY_DIR=/root/MomtazChem
 export IMAGE_NAME=mrghafari/momtazchem-api
 
@@ -95,4 +95,4 @@ EOF
         with:
           channel-id: ${{ secrets.SLACK_CHANNEL_ID }}
           slack-token: ${{ secrets.SLACK_BOT_TOKEN }}
-          text: "✅ Dep
+          text: "✅ Deployment of MomtazChem succeeded on commit ${{ github.sha }}!"
