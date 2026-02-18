@@ -48,8 +48,7 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-            - name: Deploy to Server
-        id: deploy
+      - name: Deploy to Server
         run: |
           set -e
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << EOF
@@ -60,8 +59,8 @@ jobs:
             docker compose pull || true
 
             echo "Backing up current image for rollback..."
-            CURRENT_IMAGE=$(docker compose images -q app)
-            docker tag $CURRENT_IMAGE mrghafari/momtazchem-api:backup || true
+            CURRENT_IMAGE=\$(docker compose images -q app)
+            docker tag \$CURRENT_IMAGE ${{ env.IMAGE_NAME }}:backup || true
 
             echo "Recreating containers..."
             if docker compose up -d --remove-orphans; then
@@ -69,21 +68,21 @@ jobs:
             else
               echo "Deployment failed! Rolling back..."
               docker compose down
-              docker tag mrghafari/momtazchem-api:backup $CURRENT_IMAGE
+              docker tag ${{ env.IMAGE_NAME }}:backup \$CURRENT_IMAGE
               docker compose up -d
               exit 1
             fi
 EOF
 
-
-      - name: Notify Slack
+      - name: Notify Slack on Failure
         if: failure()
         uses: slackapi/slack-github-action@v1.25.0
         with:
           channel-id: ${{ secrets.SLACK_CHANNEL_ID }}
           slack-token: ${{ secrets.SLACK_BOT_TOKEN }}
           text: "❌ Deployment of MomtazChem failed on commit ${{ github.sha }}!"
-      - name: Notify Slack Success
+
+      - name: Notify Slack on Success
         if: success()
         uses: slackapi/slack-github-action@v1.25.0
         with:
