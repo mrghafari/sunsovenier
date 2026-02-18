@@ -50,35 +50,35 @@ jobs:
 
       - name: Deploy to Server
         run: |
-          set -e
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} bash << 'EOF'
-            set -e
-            DEPLOY_DIR="${DEPLOY_DIR:-/root/MomtazChem}"
-            IMAGE_NAME="${IMAGE_NAME:-mrghafari/momtazchem-api}"
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "bash -s" <<'EOF'
+export DEPLOY_DIR=/root/MomtazChem
+export IMAGE_NAME=mrghafari/momtazchem-api
 
-            cd "$DEPLOY_DIR"
+set -e
 
-            echo "Pulling latest image..."
-            docker compose pull || true
+cd "$DEPLOY_DIR"
 
-            echo "Backing up current image for rollback..."
-            CURRENT_IMAGE=$(docker compose images -q app || true)
-            if [ -n "$CURRENT_IMAGE" ]; then
-              docker tag "$CURRENT_IMAGE" "$IMAGE_NAME:backup" || true
-            fi
+echo "Pulling latest image..."
+docker compose pull || true
 
-            echo "Recreating containers..."
-            if docker compose up -d --remove-orphans; then
-              echo "Deployment successful!"
-            else
-              echo "Deployment failed! Rolling back..."
-              docker compose down
-              if [ -n "$CURRENT_IMAGE" ]; then
-                docker tag "$IMAGE_NAME:backup" "$CURRENT_IMAGE"
-                docker compose up -d
-              fi
-              exit 1
-            fi
+echo "Backing up current image for rollback..."
+CURRENT_IMAGE=$(docker compose images -q app || true)
+if [ -n "$CURRENT_IMAGE" ]; then
+  docker tag "$CURRENT_IMAGE" "$IMAGE_NAME:backup" || true
+fi
+
+echo "Recreating containers..."
+if docker compose up -d --remove-orphans; then
+  echo "Deployment successful!"
+else
+  echo "Deployment failed! Rolling back..."
+  docker compose down
+  if [ -n "$CURRENT_IMAGE" ]; then
+    docker tag "$IMAGE_NAME:backup" "$CURRENT_IMAGE"
+    docker compose up -d
+  fi
+  exit 1
+fi
 EOF
 
       - name: Notify Slack on Failure
