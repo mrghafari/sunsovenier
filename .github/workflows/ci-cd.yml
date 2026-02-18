@@ -48,11 +48,11 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: Deploy to Server
+            - name: Deploy to Server
         id: deploy
         run: |
           set -e
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << EOF
             set -e
             cd $DEPLOY_DIR
 
@@ -74,6 +74,7 @@ jobs:
               exit 1
             fi
 EOF
+
 
       - name: Notify Slack
         if: failure()
