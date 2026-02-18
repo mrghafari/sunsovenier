@@ -65,6 +65,10 @@ var init_showcase_schema = __esm({
       imageUrls: json("image_urls"),
       // Array of multiple product images (up to 3) - supports JPG, PNG, GIF
       pdfCatalogUrl: text("pdf_catalog_url"),
+      catalogFileName: text("catalog_file_name"),
+      // Original filename for display
+      catalogUploadDate: timestamp("catalog_upload_date"),
+      // When catalog was uploaded
       specifications: json("specifications"),
       // Technical specifications for display
       features: json("features"),
@@ -405,6 +409,8 @@ var init_shop_schema = __esm({
       // Marketplace vendor field
       vendorId: integer2("vendor_id"),
       // Reference to vendor (null = owned by Momtazchem)
+      commissionRate: decimal2("commission_rate", { precision: 5, scale: 2 }),
+      // نرخ کمیسیون اختصاصی کالا (اگر خالی باشد از درصد پیش‌فرض وندور استفاده می‌شود)
       visibleInShop: boolean2("visible_in_shop").default(true),
       // کنترل نمایش در فروشگاه
       showWhenOutOfStock: boolean2("show_when_out_of_stock").default(false),
@@ -450,8 +456,12 @@ var init_shop_schema = __esm({
       // size, concentration, packaging, etc.
       variantValue: text2("variant_value"),
       // 1kg, 5kg, 25kg, 50%, 80%, etc.
-      sortOrder: integer2("sort_order").default(0)
+      sortOrder: integer2("sort_order").default(0),
       // Display order for variants
+      bulkPurchaseEnabled: boolean2("bulk_purchase_enabled").default(false),
+      bulkPurchaseMinQuantity: integer2("bulk_purchase_min_quantity"),
+      bulkPurchaseNotes: text2("bulk_purchase_notes"),
+      bulkPurchaseDiscounts: json2("bulk_purchase_discounts")
     });
     productVariants = pgTable2("product_variants", {
       id: serial2("id").primaryKey(),
@@ -758,6 +768,7 @@ var init_shop_schema = __esm({
       dueDate: timestamp2("due_date"),
       paymentDate: timestamp2("payment_date"),
       subtotal: decimal2("subtotal", { precision: 12, scale: 2 }).notNull(),
+      shippingAmount: decimal2("shipping_amount", { precision: 12, scale: 2 }).default("0"),
       taxAmount: decimal2("tax_amount", { precision: 12, scale: 2 }).default("0"),
       discountAmount: decimal2("discount_amount", { precision: 12, scale: 2 }).default("0"),
       totalAmount: decimal2("total_amount", { precision: 12, scale: 2 }).notNull(),
@@ -5919,6 +5930,12 @@ var init_shop_storage = __esm({
             minQty: discount.minQuantity,
             discount: parseFloat(discount.discountPercentage) / 100
           })).sort((a, b) => a.minQty - b.minQty);
+          if (product.bulkPurchaseEnabled) {
+            return {
+              ...product,
+              quantityDiscounts: []
+            };
+          }
           return {
             ...product,
             quantityDiscounts
@@ -11692,6 +11709,38 @@ __export(order_management_storage_exports, {
   orderManagementStorage: () => orderManagementStorage
 });
 import { eq as eq11, and as and10, desc as desc8, asc as asc3, inArray as inArray2, sql as sql8 } from "drizzle-orm";
+async function getLogisticsNotificationSettings() {
+  try {
+    const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+    const result = await pool3.query(`
+      SELECT setting_key, setting_value 
+      FROM shop_settings 
+      WHERE category = 'logistics_notifications'
+    `);
+    const settings = {
+      email: true,
+      // Default: email enabled
+      sms: false,
+      // Default: SMS disabled
+      whatsapp: false
+      // Default: WhatsApp disabled
+    };
+    for (const row of result.rows) {
+      if (row.setting_key === "logistics_notification_email") {
+        settings.email = row.setting_value === "true";
+      } else if (row.setting_key === "logistics_notification_sms") {
+        settings.sms = row.setting_value === "true";
+      } else if (row.setting_key === "logistics_notification_whatsapp") {
+        settings.whatsapp = row.setting_value === "true";
+      }
+    }
+    console.log("\u{1F4CB} [NOTIFICATION SETTINGS] Loaded:", settings);
+    return settings;
+  } catch (error) {
+    console.error("\u274C [NOTIFICATION SETTINGS] Error loading settings, using defaults:", error);
+    return { email: true, sms: false, whatsapp: false };
+  }
+}
 var OrderManagementStorage, orderManagementStorage;
 var init_order_management_storage = __esm({
   "server/order-management-storage.ts"() {
@@ -11813,36 +11862,42 @@ var init_order_management_storage = __esm({
               const deliveryCode = await this.generateDeliveryCode(currentOrder.id, targetPhone);
               const sendNotifications = async () => {
                 const notificationPromises = [];
-                notificationPromises.push(
-                  this.sendDeliveryCodeSms(
-                    targetPhone,
-                    deliveryCode,
-                    customerData.customerOrderId,
-                    customerName || "\u0645\u0634\u062A\u0631\u06CC \u0639\u0632\u06CC\u0632",
-                    orderNumber2
-                  ).then((result) => {
-                    console.log(`\u2705 [SMS] Delivery code sent: ${result}`);
-                    return { channel: "SMS", success: result };
-                  }).catch((err) => {
-                    console.error(`\u274C [SMS] Error:`, err);
-                    return { channel: "SMS", success: false };
-                  })
-                );
-                notificationPromises.push(
-                  this.sendDeliveryCodeWhatsApp(
-                    targetPhone,
-                    deliveryCode,
-                    customerName || "\u0645\u0634\u062A\u0631\u06CC \u0639\u0632\u06CC\u0632",
-                    orderNumber2
-                  ).then((result) => {
-                    console.log(`\u2705 [WHATSAPP] Delivery code sent: ${result}`);
-                    return { channel: "WhatsApp", success: result };
-                  }).catch((err) => {
-                    console.error(`\u274C [WHATSAPP] Error:`, err);
-                    return { channel: "WhatsApp", success: false };
-                  })
-                );
-                if (customerData.customerEmail) {
+                const settings = await getLogisticsNotificationSettings();
+                console.log(`\u{1F4CB} [DELIVERY CODE] Notification settings: Email=${settings.email}, SMS=${settings.sms}, WhatsApp=${settings.whatsapp}`);
+                if (settings.sms) {
+                  notificationPromises.push(
+                    this.sendDeliveryCodeSms(
+                      targetPhone,
+                      deliveryCode,
+                      customerData.customerOrderId,
+                      customerName || "\u0645\u0634\u062A\u0631\u06CC \u0639\u0632\u06CC\u0632",
+                      orderNumber2
+                    ).then((result) => {
+                      console.log(`\u2705 [SMS] Delivery code sent: ${result}`);
+                      return { channel: "SMS", success: result };
+                    }).catch((err) => {
+                      console.error(`\u274C [SMS] Error:`, err);
+                      return { channel: "SMS", success: false };
+                    })
+                  );
+                }
+                if (settings.whatsapp) {
+                  notificationPromises.push(
+                    this.sendDeliveryCodeWhatsApp(
+                      targetPhone,
+                      deliveryCode,
+                      customerName || "\u0645\u0634\u062A\u0631\u06CC \u0639\u0632\u06CC\u0632",
+                      orderNumber2
+                    ).then((result) => {
+                      console.log(`\u2705 [WHATSAPP] Delivery code sent: ${result}`);
+                      return { channel: "WhatsApp", success: result };
+                    }).catch((err) => {
+                      console.error(`\u274C [WHATSAPP] Error:`, err);
+                      return { channel: "WhatsApp", success: false };
+                    })
+                  );
+                }
+                if (settings.email && customerData.customerEmail) {
                   notificationPromises.push(
                     this.sendDeliveryCodeEmail(
                       customerData.customerEmail,
@@ -11857,6 +11912,10 @@ var init_order_management_storage = __esm({
                       return { channel: "Email", success: false };
                     })
                   );
+                }
+                if (notificationPromises.length === 0) {
+                  console.log(`\u26A0\uFE0F [DELIVERY CODE] No notification channels enabled!`);
+                  return;
                 }
                 const results = await Promise.all(notificationPromises);
                 const successfulChannels = results.filter((r) => r.success).map((r) => r.channel);
@@ -12286,8 +12345,11 @@ var init_order_management_storage = __esm({
         console.log(`\u{1F4E6} [ORDER MANAGEMENT] Customer order delivery: ${customerOrder.deliveryMethod}, vehicle: ${customerOrder.vehicleType}`);
         let initialStatus = "pending";
         if ((customerOrder.paymentMethod === "wallet_full" || customerOrder.paymentMethod === "wallet_partial") && customerOrder.paymentStatus === "paid") {
-          initialStatus = "payment_uploaded";
-          console.log(`\u{1F4B0} [WALLET ORDER] Setting wallet order ${customerOrder.orderNumber} to payment_uploaded status for financial review`);
+          initialStatus = "finance_pending";
+          console.log(`\u{1F4B0} [WALLET ORDER] Setting wallet order ${customerOrder.orderNumber} to finance_pending for financial review`);
+        } else if (customerOrder.paymentStatus === "receipt_uploaded") {
+          initialStatus = "finance_pending";
+          console.log(`\u{1F4C4} [RECEIPT ORDER] Setting order ${customerOrder.orderNumber} to finance_pending for financial review`);
         }
         const orderData = {
           customerOrderId,
@@ -12628,15 +12690,15 @@ var init_order_management_storage = __esm({
       async sendDeliveryCodeEmail(customerEmail, deliveryCode, customerName, orderNumber2) {
         try {
           const { emailService: emailService2 } = await Promise.resolve().then(() => (init_email_service(), email_service_exports));
-          const result = await emailService2.sendEmailWithTemplate("#03", {
+          const result = await emailService2.sendEmailWithTemplate("#20", {
             customer_name: customerName,
             order_number: orderNumber2,
             delivery_code: deliveryCode
           }, customerEmail, "orders");
-          console.log(`\u{1F4E7} [EMAIL TEMPLATE #03] Delivery code ${deliveryCode} sent to ${customerEmail} for order ${orderNumber2}:`, result);
+          console.log(`\u{1F4E7} [EMAIL TEMPLATE #20] Delivery code ${deliveryCode} sent to ${customerEmail} for order ${orderNumber2}:`, result);
           return result;
         } catch (error) {
-          console.error("\u274C [EMAIL] Error sending delivery code using template #03:", error);
+          console.error("\u274C [EMAIL] Error sending delivery code using template #20:", error);
           return false;
         }
       }
@@ -12666,7 +12728,8 @@ var init_order_management_storage = __esm({
           co.recipient_mobile as recipientMobile,
           c.first_name as firstName,
           c.last_name as lastName,
-          c.phone as phone
+          c.phone as phone,
+          c.email as email
         FROM customer_orders co
         LEFT JOIN crm_customers c ON co.customer_id = c.id
         WHERE co.id = $1
@@ -12676,7 +12739,8 @@ var init_order_management_storage = __esm({
             return { success: false, error: "\u0627\u0637\u0644\u0627\u0639\u0627\u062A \u0645\u0634\u062A\u0631\u06CC \u06CC\u0627\u0641\u062A \u0646\u0634\u062F" };
           }
           const customer = customerResult.rows[0];
-          const customerName = `${customer.firstName || ""} ${customer.lastName || ""}`.trim();
+          const customerName = `${customer.firstname || ""} ${customer.lastname || ""}`.trim();
+          const customerEmail = customer.email;
           const targetPhone = customer.recipientmobile || customer.phone;
           const phoneSource = customer.recipientmobile ? "recipient mobile" : "customer phone";
           console.log("\u{1F4F1} [DELIVERY CODE] Customer info:", {
@@ -12685,7 +12749,8 @@ var init_order_management_storage = __esm({
             recipientMobile: customer.recipientmobile,
             targetPhone,
             phoneSource,
-            orderNumber: customer.orderNumber
+            orderNumber: customer.ordernumber,
+            email: customerEmail
           });
           let deliveryCode = orderData.deliveryCode;
           if (!deliveryCode) {
@@ -12694,19 +12759,48 @@ var init_order_management_storage = __esm({
           } else {
             console.log("\u{1F4F1} [DELIVERY CODE] Using existing code:", deliveryCode);
           }
-          const smsSuccess = await this.sendDeliveryCodeSms(
-            targetPhone,
-            deliveryCode,
-            orderData.customerOrderId,
-            customerName,
-            customer.orderNumber
-          );
-          console.log(`\u{1F4F1} [SMS ROUTING] Delivery code sent to ${phoneSource}: ${targetPhone}`);
-          if (smsSuccess) {
-            console.log("\u2705 [DELIVERY CODE] Manual SMS sent successfully");
+          const settings = await getLogisticsNotificationSettings();
+          console.log(`\u{1F4CB} [DELIVERY CODE] Manual send - Notification settings: Email=${settings.email}, SMS=${settings.sms}, WhatsApp=${settings.whatsapp}`);
+          const results = [];
+          if (settings.sms && targetPhone) {
+            const smsSuccess = await this.sendDeliveryCodeSms(
+              targetPhone,
+              deliveryCode,
+              orderData.customerOrderId,
+              customerName,
+              customer.ordernumber
+            );
+            results.push({ channel: "SMS", success: smsSuccess });
+            console.log(`\u{1F4F1} [SMS] Delivery code sent to ${phoneSource}: ${targetPhone} - Success: ${smsSuccess}`);
+          }
+          if (settings.whatsapp && targetPhone) {
+            const whatsappSuccess = await this.sendDeliveryCodeWhatsApp(
+              targetPhone,
+              deliveryCode,
+              customerName || "\u0645\u0634\u062A\u0631\u06CC \u0639\u0632\u06CC\u0632",
+              customer.ordernumber
+            );
+            results.push({ channel: "WhatsApp", success: whatsappSuccess });
+            console.log(`\u{1F4AC} [WHATSAPP] Delivery code sent - Success: ${whatsappSuccess}`);
+          }
+          if (settings.email && customerEmail) {
+            const emailSuccess = await this.sendDeliveryCodeEmail(
+              customerEmail,
+              deliveryCode,
+              customerName || "\u0645\u0634\u062A\u0631\u06CC \u0639\u0632\u06CC\u0632",
+              customer.ordernumber
+            );
+            results.push({ channel: "Email", success: emailSuccess });
+            console.log(`\u{1F4E7} [EMAIL] Delivery code sent to ${customerEmail} - Success: ${emailSuccess}`);
+          }
+          const successfulChannels = results.filter((r) => r.success).map((r) => r.channel);
+          if (successfulChannels.length > 0) {
+            console.log(`\u2705 [DELIVERY CODE] Manual send successful via: ${successfulChannels.join(", ")}`);
             return { success: true, deliveryCode };
+          } else if (results.length === 0) {
+            return { success: false, error: "\u0647\u06CC\u0686 \u06A9\u0627\u0646\u0627\u0644 \u0627\u0637\u0644\u0627\u0639\u200C\u0631\u0633\u0627\u0646\u06CC \u0641\u0639\u0627\u0644 \u0646\u06CC\u0633\u062A \u06CC\u0627 \u0627\u0637\u0644\u0627\u0639\u0627\u062A \u062A\u0645\u0627\u0633 \u0645\u0634\u062A\u0631\u06CC \u0645\u0648\u062C\u0648\u062F \u0646\u06CC\u0633\u062A" };
           } else {
-            return { success: false, error: "\u062E\u0637\u0627 \u062F\u0631 \u0627\u0631\u0633\u0627\u0644 \u067E\u06CC\u0627\u0645\u06A9" };
+            return { success: false, error: "\u062E\u0637\u0627 \u062F\u0631 \u0627\u0631\u0633\u0627\u0644 \u0627\u0637\u0644\u0627\u0639\u200C\u0631\u0633\u0627\u0646\u06CC" };
           }
         } catch (error) {
           console.error("\u274C [DELIVERY CODE] Manual send error:", error);
@@ -14558,6 +14652,9 @@ var init_wallet_storage = __esm({
         return wallet;
       }
       async updateWalletBalance(walletId, newBalance) {
+        if (newBalance < 0) {
+          throw new Error(`Cannot update wallet to negative balance: ${newBalance}`);
+        }
         const [wallet] = await customerDb.update(customerWallets).set({
           balance: newBalance.toString(),
           lastActivityDate: /* @__PURE__ */ new Date(),
@@ -14639,6 +14736,9 @@ var init_wallet_storage = __esm({
           throw new Error(`Insufficient funds. Available: ${availableAmount}, Required: ${amount}. Reserved: ${reservedBalance}`);
         }
         const newBalance = currentBalance - amount;
+        if (newBalance < 0) {
+          throw new Error(`Operation would result in negative balance. Current: ${currentBalance}, Debit: ${amount}, Result: ${newBalance}`);
+        }
         const transaction = await this.createTransaction({
           walletId: wallet.id,
           customerId,
@@ -18174,7 +18274,7 @@ var init_auth_routes = __esm({
           return res.redirect("/complete-profile");
         }
         console.log("\u2705 [GOOGLE CALLBACK] Profile complete, redirecting to dashboard");
-        res.redirect("/customer-dashboard");
+        res.redirect("/customer/profile");
       }
     );
     router.get(
@@ -18201,7 +18301,7 @@ var init_auth_routes = __esm({
           return res.redirect("/complete-profile");
         }
         console.log("\u2705 [FACEBOOK CALLBACK] Profile complete, redirecting to dashboard");
-        res.redirect("/customer-dashboard");
+        res.redirect("/customer/profile");
       }
     );
     router.post("/complete-profile", async (req, res) => {
@@ -20149,7 +20249,10 @@ var init_kardex_sync_master = __esm({
           const shopProducts2 = await shopStorage.getAllShopProducts();
           let added = 0, updated = 0, removed = 0, unchanged = 0;
           const kardexWithBarcode = kardexProducts.filter(
-            (p) => p.barcode && p.barcode.trim() !== ""
+            (p) => p.barcode && p.barcode.trim() !== "" && p.syncWithShop !== false
+          );
+          const hiddenBarcodes = new Set(
+            kardexProducts.filter((p) => p.barcode && p.barcode.trim() !== "" && p.syncWithShop === false).map((p) => p.barcode.trim())
           );
           const uniqueKardexBarcodes = /* @__PURE__ */ new Map();
           const barcodeStockTotals = /* @__PURE__ */ new Map();
@@ -20170,10 +20273,17 @@ var init_kardex_sync_master = __esm({
           }));
           const kardexBarcodes = new Set(syncEnabledKardex.map((p) => p.barcode.trim()));
           for (const shopProduct of shopProducts2) {
-            if (shopProduct.barcode && shopProduct.barcode.trim() !== "" && !kardexBarcodes.has(shopProduct.barcode.trim())) {
-              await shopStorage.deleteShopProduct(shopProduct.id);
-              removed++;
-              console.log(`\u{1F5D1}\uFE0F [KARDEX-SYNC] \u062D\u0630\u0641 \u0634\u062F (\u0628\u0627\u0631\u06A9\u062F \u063A\u06CC\u0631\u0645\u062C\u0627\u0632): ${shopProduct.name} - ${shopProduct.barcode}`);
+            const shopBarcode = shopProduct.barcode?.trim();
+            if (shopBarcode) {
+              if (!kardexBarcodes.has(shopBarcode)) {
+                await shopStorage.deleteShopProduct(shopProduct.id);
+                removed++;
+                console.log(`\u{1F5D1}\uFE0F [KARDEX-SYNC] \u062D\u0630\u0641 \u0634\u062F (\u0628\u0627\u0631\u06A9\u062F \u063A\u06CC\u0631\u0645\u062C\u0627\u0632): ${shopProduct.name} - ${shopBarcode}`);
+              } else if (hiddenBarcodes.has(shopBarcode)) {
+                await shopStorage.deleteShopProduct(shopProduct.id);
+                removed++;
+                console.log(`\u{1F512} [KARDEX-SYNC] \u062D\u0630\u0641 \u0634\u062F (\u0645\u062E\u0641\u06CC \u0634\u062F\u0647): ${shopProduct.name} - ${shopBarcode}`);
+              }
             }
           }
           for (const kardexProduct of syncEnabledKardex) {
@@ -23371,14 +23481,19 @@ var init_invoice_storage = __esm({
           }
           console.log(`\u{1F4C4} [INVOICE GEN] Generating invoice for order ${customerOrder.orderNumber} with payment status: ${customerOrder.paymentStatus}`);
           const invoiceNumber = await this.generateInvoiceNumber();
+          const totalAmount = parseFloat(customerOrder.totalAmount?.toString() || "0");
+          const shippingCost = parseFloat(customerOrder.shippingCost?.toString() || "0");
+          const vatAmount = parseFloat(customerOrder.vatAmount?.toString() || "0");
+          const subtotal = totalAmount - shippingCost - vatAmount;
           const invoiceData = {
             invoiceNumber,
             orderId: customerOrder.id,
             customerId: customerOrder.customerId,
             status: "paid",
-            subtotal: customerOrder.totalAmount,
-            taxAmount: 0,
-            discountAmount: 0,
+            subtotal: subtotal.toFixed(2),
+            shippingAmount: shippingCost.toFixed(2),
+            taxAmount: vatAmount.toFixed(2),
+            discountAmount: "0",
             totalAmount: customerOrder.totalAmount,
             currency: customerOrder.currency || "IQD",
             billingAddress: customerOrder.billingAddress,
@@ -25141,7 +25256,7 @@ var init_transaction_sync = __esm({
         }
         if (customerStatus === "pending") {
           if (paymentStatus === "paid") {
-            return "warehouse_pending";
+            return "finance_pending";
           } else if (paymentStatus === "receipt_uploaded") {
             return "finance_pending";
           } else if (paymentStatus === "rejected") {
@@ -28329,65 +28444,161 @@ var template_processor_default = TemplateProcessor;
 init_shop_storage();
 init_universal_email_service();
 var InventoryAlertService = class {
-  // Configuration for notifications
+  // Default configuration for notifications (fallback)
   static notificationConfig = {
     emailEnabled: true,
     categoryKey: "inventory-alerts",
-    // Use universal email service  
     emergencyContacts: [
       { name: "Manager", email: "inventory@momtazchem.com" }
-      // می‌توانید اعضای دیگر تیم مدیریت را اضافه کنید
     ]
   };
+  /**
+   * Get notification settings from database
+   */
+  static async getNotificationSettings() {
+    try {
+      const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const settingsResult = await pool3.query(`
+        SELECT setting_key, setting_value, setting_type
+        FROM shop_settings 
+        WHERE category = 'warehouse_inventory_notifications'
+      `);
+      const settingsMap = {};
+      for (const row of settingsResult.rows) {
+        if (row.setting_type === "boolean") {
+          settingsMap[row.setting_key] = row.setting_value === "true";
+        } else if (row.setting_type === "number") {
+          settingsMap[row.setting_key] = parseInt(row.setting_value) || 0;
+        } else if (row.setting_type === "json") {
+          try {
+            settingsMap[row.setting_key] = JSON.parse(row.setting_value);
+          } catch {
+            settingsMap[row.setting_key] = row.setting_value;
+          }
+        } else {
+          settingsMap[row.setting_key] = row.setting_value;
+        }
+      }
+      return {
+        emailEnabled: settingsMap.email_enabled ?? true,
+        smsEnabled: settingsMap.sms_enabled ?? false,
+        whatsappEnabled: settingsMap.whatsapp_enabled ?? false,
+        maxNotifications: settingsMap.max_notifications ?? 1,
+        notificationIntervalHours: settingsMap.notification_interval_hours ?? 24,
+        recipients: settingsMap.recipients ?? []
+      };
+    } catch (error) {
+      console.error("Error fetching notification settings:", error);
+      return {
+        emailEnabled: true,
+        smsEnabled: false,
+        whatsappEnabled: false,
+        maxNotifications: 1,
+        notificationIntervalHours: 24,
+        recipients: []
+      };
+    }
+  }
   /**
    * Check all products and send alerts for low stock items
    */
   static async checkInventoryLevels() {
     try {
+      console.log("\u{1F50D} [INVENTORY ALERT] Starting inventory level check...");
+      const settings = await this.getNotificationSettings();
+      if (settings.recipients.length === 0) {
+        console.log("\u26A0\uFE0F [INVENTORY ALERT] No recipients configured - skipping notifications");
+        return;
+      }
       const products = await shopStorage.getShopProducts();
       const alertProducts = [];
       for (const product of products) {
         const currentStock = product.stockQuantity || 0;
-        const minimumThreshold = product.minStockLevel || 5;
+        const threshold = product.minStockLevel || 5;
         if (currentStock <= 0) {
           alertProducts.push({
             productId: product.id,
             productName: product.name,
             currentStock,
-            minimumThreshold,
-            category: product.category,
-            sku: product.sku,
+            minimumThreshold: threshold,
+            category: product.category || "\u0628\u062F\u0648\u0646 \u062F\u0633\u062A\u0647\u200C\u0628\u0646\u062F\u06CC",
+            sku: product.sku || "-",
             alertLevel: "out_of_stock"
           });
-        } else if (currentStock <= minimumThreshold) {
+        } else if (currentStock <= threshold) {
           alertProducts.push({
             productId: product.id,
             productName: product.name,
             currentStock,
-            minimumThreshold,
-            category: product.category,
-            sku: product.sku,
+            minimumThreshold: threshold,
+            category: product.category || "\u0628\u062F\u0648\u0646 \u062F\u0633\u062A\u0647\u200C\u0628\u0646\u062F\u06CC",
+            sku: product.sku || "-",
             alertLevel: "low_stock"
           });
         }
       }
       if (alertProducts.length > 0) {
-        await this.sendInventoryAlert(alertProducts);
+        console.log(`\u26A0\uFE0F [INVENTORY ALERT] Found ${alertProducts.length} products with low/no stock`);
+        await this.sendInventoryAlert(alertProducts, settings);
+      } else {
+        console.log("\u2705 [INVENTORY ALERT] All products have adequate stock levels");
       }
     } catch (error) {
-      console.error("Error checking inventory levels:", error);
+      console.error("\u274C [INVENTORY ALERT] Error checking inventory levels:", error);
     }
   }
   /**
-   * Send inventory alert via email only
+   * Send inventory alert to configured recipients
    */
-  static async sendInventoryAlert(alerts) {
+  static async sendInventoryAlert(alerts, settings) {
     try {
-      if (this.notificationConfig.emailEnabled) {
-        await this.sendEmailAlert(alerts);
+      console.log(`\u{1F4E7} [INVENTORY ALERT] Sending alerts for ${alerts.length} products`);
+      if (settings.emailEnabled) {
+        const emailRecipients2 = settings.recipients.filter((r) => r.notifyByEmail && r.email);
+        if (emailRecipients2.length > 0) {
+          await this.sendEmailAlertToRecipients(alerts, emailRecipients2);
+        } else {
+          console.log("\u26A0\uFE0F [INVENTORY ALERT] No email recipients configured");
+        }
+      }
+      if (settings.smsEnabled) {
+        const smsRecipients = settings.recipients.filter((r) => r.notifyBySms && r.phone);
+        if (smsRecipients.length > 0) {
+          console.log(`\u{1F4F1} [INVENTORY ALERT] SMS notifications would be sent to ${smsRecipients.length} recipients`);
+        }
+      }
+      if (settings.whatsappEnabled) {
+        const whatsappRecipients = settings.recipients.filter((r) => r.notifyByWhatsapp && r.phone);
+        if (whatsappRecipients.length > 0) {
+          console.log(`\u{1F4F1} [INVENTORY ALERT] WhatsApp notifications would be sent to ${whatsappRecipients.length} recipients`);
+        }
       }
     } catch (error) {
-      console.error("Error sending inventory alerts:", error);
+      console.error("\u274C [INVENTORY ALERT] Error sending inventory alerts:", error);
+    }
+  }
+  /**
+   * Send email alerts to configured recipients
+   */
+  static async sendEmailAlertToRecipients(alerts, recipients) {
+    try {
+      const htmlContent = this.generateAlertEmailHtml(alerts);
+      const subject = `\u{1F6A8} \u0647\u0634\u062F\u0627\u0631 \u0645\u0648\u062C\u0648\u062F\u06CC - ${alerts.length} \u0645\u062D\u0635\u0648\u0644 \u0646\u06CC\u0627\u0632 \u0628\u0647 \u062A\u0648\u062C\u0647 \u062F\u0627\u0631\u0646\u062F`;
+      for (const recipient of recipients) {
+        try {
+          await UniversalEmailService2.sendEmail({
+            to: [recipient.email],
+            subject,
+            html: htmlContent,
+            categoryKey: "inventory-alerts"
+          });
+          console.log(`\u2705 [INVENTORY ALERT] Email sent to ${recipient.name} (${recipient.email})`);
+        } catch (emailError) {
+          console.error(`\u274C [INVENTORY ALERT] Failed to send email to ${recipient.email}:`, emailError);
+        }
+      }
+    } catch (error) {
+      console.error("\u274C [INVENTORY ALERT] Error sending email alerts:", error);
     }
   }
   /**
@@ -28400,7 +28611,7 @@ var InventoryAlertService = class {
       const templateNumber = criticalAlerts.length > 0 ? "#17" : "#13";
       const alertTemplate = await emailStorage3.getTemplateByNumber(templateNumber);
       if (alertTemplate) {
-        console.log(`\u{1F4E7} Using Template ${templateNumber} - ${alertTemplate.templateName} for inventory alerts`);
+        console.log(`\u{1F4E7} Using Template ${templateNumber} - ${alertTemplate.name} for inventory alerts`);
         const templateVariables = {
           alert_count: alerts.length.toString(),
           product_count: alerts.length.toString(),
@@ -28449,62 +28660,87 @@ var InventoryAlertService = class {
   }
   // SMS notification functionality removed per requirements
   /**
-   * Generate HTML email content for inventory alerts
+   * Generate HTML email content for inventory alerts (Persian/Farsi)
    */
   static generateAlertEmailHtml(alerts) {
     const outOfStock = alerts.filter((a) => a.alertLevel === "out_of_stock");
     const lowStock = alerts.filter((a) => a.alertLevel === "low_stock");
+    const now = /* @__PURE__ */ new Date();
+    const dateStr = now.toLocaleDateString("fa-IR");
+    const timeStr = now.toLocaleTimeString("fa-IR");
     return `
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inventory Alert</title>
+    <title>\u0647\u0634\u062F\u0627\u0631 \u0645\u0648\u062C\u0648\u062F\u06CC \u0627\u0646\u0628\u0627\u0631</title>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px; }
+        body { font-family: 'Tahoma', Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 20px; direction: rtl; }
         .container { max-width: 800px; margin: 0 auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .header { background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%); color: white; padding: 25px; text-align: center; }
-        .header h1 { margin: 0; font-size: 28px; }
+        .header h1 { margin: 0; font-size: 24px; }
+        .header p { margin: 5px 0; font-size: 14px; }
         .content { padding: 30px; }
+        .summary { background: #fef2f2; border-radius: 8px; padding: 15px; margin-bottom: 20px; border-right: 4px solid #dc2626; }
+        .summary-item { display: inline-block; margin: 0 20px; text-align: center; }
+        .summary-number { font-size: 28px; font-weight: bold; color: #dc2626; }
+        .summary-label { font-size: 12px; color: #6b7280; }
         .alert-section { margin-bottom: 30px; }
-        .alert-title { color: #dc2626; font-size: 20px; font-weight: bold; margin-bottom: 15px; border-bottom: 2px solid #dc2626; padding-bottom: 5px; }
+        .alert-title { color: #dc2626; font-size: 18px; font-weight: bold; margin-bottom: 15px; border-bottom: 2px solid #dc2626; padding-bottom: 8px; }
         .product-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        .product-table th { background: #fee2e2; color: #dc2626; padding: 12px; text-align: left; font-weight: bold; }
-        .product-table td { padding: 12px; border-bottom: 1px solid #e5e7eb; }
+        .product-table th { background: #fee2e2; color: #dc2626; padding: 12px; text-align: right; font-weight: bold; font-size: 13px; }
+        .product-table td { padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: right; font-size: 13px; }
         .out-of-stock { background-color: #fef2f2; }
         .low-stock { background-color: #fffbeb; }
-        .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        .status-badge { padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; }
         .status-out { background: #dc2626; color: white; }
         .status-low { background: #f59e0b; color: white; }
-        .footer { background: #f9fafb; padding: 20px; text-align: center; color: #6b7280; }
-        .urgent { color: #dc2626; font-weight: bold; }
+        .footer { background: #f9fafb; padding: 20px; text-align: center; color: #6b7280; font-size: 12px; }
+        .urgent { color: #dc2626; font-weight: bold; font-size: 16px; }
+        .action-needed { background: #fef3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 15px; margin-top: 20px; }
+        .action-title { color: #856404; font-weight: bold; margin-bottom: 10px; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>\u{1F6A8} Inventory Alert</h1>
-            <p>Automated Report from Momtazchem Inventory Management System</p>
-            <p>${(/* @__PURE__ */ new Date()).toLocaleDateString("en-US")} - ${(/* @__PURE__ */ new Date()).toLocaleTimeString("en-US")}</p>
+            <h1>\u{1F6A8} \u0647\u0634\u062F\u0627\u0631 \u06A9\u0645\u0628\u0648\u062F \u0645\u0648\u062C\u0648\u062F\u06CC \u0627\u0646\u0628\u0627\u0631</h1>
+            <p>\u0633\u06CC\u0633\u062A\u0645 \u0645\u062F\u06CC\u0631\u06CC\u062A \u0645\u0648\u062C\u0648\u062F\u06CC \u0645\u0645\u062A\u0627\u0632 \u0634\u06CC\u0645\u06CC</p>
+            <p>\u062A\u0627\u0631\u06CC\u062E: ${dateStr} - \u0633\u0627\u0639\u062A: ${timeStr}</p>
         </div>
         
         <div class="content">
-            <p>Dear Management,</p>
-            <p>The inventory management system has identified <strong>${alerts.length}</strong> product${alerts.length > 1 ? "s" : ""} that require immediate attention:</p>
+            <div class="summary">
+                <div class="summary-item">
+                    <div class="summary-number">${alerts.length}</div>
+                    <div class="summary-label">\u06A9\u0644 \u0645\u062D\u0635\u0648\u0644\u0627\u062A \u0647\u0634\u062F\u0627\u0631</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-number" style="color: #dc2626;">${outOfStock.length}</div>
+                    <div class="summary-label">\u0627\u062A\u0645\u0627\u0645 \u0645\u0648\u062C\u0648\u062F\u06CC</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-number" style="color: #f59e0b;">${lowStock.length}</div>
+                    <div class="summary-label">\u0645\u0648\u062C\u0648\u062F\u06CC \u06A9\u0645</div>
+                </div>
+            </div>
+
+            <p>\u0645\u062F\u06CC\u0631 \u0645\u062D\u062A\u0631\u0645\u060C</p>
+            <p>\u0633\u06CC\u0633\u062A\u0645 \u0645\u062F\u06CC\u0631\u06CC\u062A \u0645\u0648\u062C\u0648\u062F\u06CC <strong>${alerts.length}</strong> \u0645\u062D\u0635\u0648\u0644 \u0631\u0627 \u0634\u0646\u0627\u0633\u0627\u06CC\u06CC \u06A9\u0631\u062F\u0647 \u06A9\u0647 \u0646\u06CC\u0627\u0632 \u0628\u0647 \u062A\u0648\u062C\u0647 \u0641\u0648\u0631\u06CC \u062F\u0627\u0631\u0646\u062F:</p>
             
             ${outOfStock.length > 0 ? `
             <div class="alert-section">
-                <div class="alert-title">\u{1F4F5} Out of Stock Products (${outOfStock.length} items)</div>
+                <div class="alert-title">\u{1F4F5} \u0645\u062D\u0635\u0648\u0644\u0627\u062A \u0627\u062A\u0645\u0627\u0645 \u0645\u0648\u062C\u0648\u062F\u06CC (${outOfStock.length} \u0645\u0648\u0631\u062F)</div>
                 <table class="product-table">
                     <thead>
                         <tr>
-                            <th>Product Name</th>
-                            <th>Category</th>
-                            <th>SKU</th>
-                            <th>Current Stock</th>
-                            <th>Minimum Required</th>
-                            <th>Status</th>
+                            <th>\u0646\u0627\u0645 \u0645\u062D\u0635\u0648\u0644</th>
+                            <th>\u062F\u0633\u062A\u0647\u200C\u0628\u0646\u062F\u06CC</th>
+                            <th>\u06A9\u062F \u06A9\u0627\u0644\u0627 (SKU)</th>
+                            <th>\u0645\u0648\u062C\u0648\u062F\u06CC \u0641\u0639\u0644\u06CC</th>
+                            <th>\u062D\u062F\u0627\u0642\u0644 \u0645\u0648\u0631\u062F \u0646\u06CC\u0627\u0632</th>
+                            <th>\u0648\u0636\u0639\u06CC\u062A</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -28515,7 +28751,7 @@ var InventoryAlertService = class {
                             <td>${product.sku}</td>
                             <td class="urgent">${product.currentStock}</td>
                             <td>${product.minimumThreshold}</td>
-                            <td><span class="status-badge status-out">Out of Stock</span></td>
+                            <td><span class="status-badge status-out">\u0627\u062A\u0645\u0627\u0645 \u0645\u0648\u062C\u0648\u062F\u06CC</span></td>
                         </tr>
                         `).join("")}
                     </tbody>
@@ -28525,16 +28761,16 @@ var InventoryAlertService = class {
             
             ${lowStock.length > 0 ? `
             <div class="alert-section">
-                <div class="alert-title">\u26A0\uFE0F Low Stock Products (${lowStock.length} items)</div>
+                <div class="alert-title">\u26A0\uFE0F \u0645\u062D\u0635\u0648\u0644\u0627\u062A \u0628\u0627 \u0645\u0648\u062C\u0648\u062F\u06CC \u06A9\u0645 (${lowStock.length} \u0645\u0648\u0631\u062F)</div>
                 <table class="product-table">
                     <thead>
                         <tr>
-                            <th>Product Name</th>
-                            <th>Category</th>
-                            <th>SKU</th>
-                            <th>Current Stock</th>
-                            <th>Minimum Required</th>
-                            <th>Status</th>
+                            <th>\u0646\u0627\u0645 \u0645\u062D\u0635\u0648\u0644</th>
+                            <th>\u062F\u0633\u062A\u0647\u200C\u0628\u0646\u062F\u06CC</th>
+                            <th>\u06A9\u062F \u06A9\u0627\u0644\u0627 (SKU)</th>
+                            <th>\u0645\u0648\u062C\u0648\u062F\u06CC \u0641\u0639\u0644\u06CC</th>
+                            <th>\u062D\u062F\u0627\u0642\u0644 \u0645\u0648\u0631\u062F \u0646\u06CC\u0627\u0632</th>
+                            <th>\u0648\u0636\u0639\u06CC\u062A</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -28545,7 +28781,7 @@ var InventoryAlertService = class {
                             <td>${product.sku}</td>
                             <td class="urgent">${product.currentStock}</td>
                             <td>${product.minimumThreshold}</td>
-                            <td><span class="status-badge status-low">Low Stock</span></td>
+                            <td><span class="status-badge status-low">\u0645\u0648\u062C\u0648\u062F\u06CC \u06A9\u0645</span></td>
                         </tr>
                         `).join("")}
                     </tbody>
@@ -28553,21 +28789,22 @@ var InventoryAlertService = class {
             </div>
             ` : ""}
             
-            <div style="background: #eff6ff; padding: 20px; border-radius: 8px; margin-top: 20px;">
-                <h3 style="color: #1e40af; margin-top: 0;">Recommended Actions:</h3>
-                <ul style="color: #374151;">
-                    <li>Immediately review inventory for out-of-stock products</li>
-                    <li>Place purchase orders for low stock items</li>
-                    <li>Contact suppliers to expedite delivery</li>
-                    <li>Review minimum stock threshold settings</li>
-                    <li>Consider emergency procurement procedures</li>
+            <div class="action-needed">
+                <div class="action-title">\u{1F4CB} \u0627\u0642\u062F\u0627\u0645\u0627\u062A \u067E\u06CC\u0634\u0646\u0647\u0627\u062F\u06CC:</div>
+                <ul style="color: #374151; margin: 0; padding-right: 20px;">
+                    <li>\u0628\u0631\u0631\u0633\u06CC \u0641\u0648\u0631\u06CC \u0645\u062D\u0635\u0648\u0644\u0627\u062A \u0628\u0627 \u0627\u062A\u0645\u0627\u0645 \u0645\u0648\u062C\u0648\u062F\u06CC</li>
+                    <li>\u062B\u0628\u062A \u0633\u0641\u0627\u0631\u0634 \u062E\u0631\u06CC\u062F \u0628\u0631\u0627\u06CC \u0645\u062D\u0635\u0648\u0644\u0627\u062A \u0628\u0627 \u0645\u0648\u062C\u0648\u062F\u06CC \u06A9\u0645</li>
+                    <li>\u062A\u0645\u0627\u0633 \u0628\u0627 \u062A\u0623\u0645\u06CC\u0646\u200C\u06A9\u0646\u0646\u062F\u06AF\u0627\u0646 \u0628\u0631\u0627\u06CC \u062A\u0633\u0631\u06CC\u0639 \u062F\u0631 \u062A\u062D\u0648\u06CC\u0644</li>
+                    <li>\u0628\u0631\u0631\u0633\u06CC \u0648 \u0628\u0647\u200C\u0631\u0648\u0632\u0631\u0633\u0627\u0646\u06CC \u0622\u0633\u062A\u0627\u0646\u0647 \u062D\u062F\u0627\u0642\u0644 \u0645\u0648\u062C\u0648\u062F\u06CC</li>
+                    <li>\u0641\u0639\u0627\u0644\u200C\u0633\u0627\u0632\u06CC \u0641\u0631\u0622\u06CC\u0646\u062F \u062A\u0623\u0645\u06CC\u0646 \u0627\u0636\u0637\u0631\u0627\u0631\u06CC \u062F\u0631 \u0635\u0648\u0631\u062A \u0646\u06CC\u0627\u0632</li>
                 </ul>
             </div>
         </div>
         
         <div class="footer">
-            <p>This email was automatically sent from the Momtazchem Inventory Management System.</p>
-            <p>For more information, please contact the IT department.</p>
+            <p>\u0627\u06CC\u0646 \u0627\u06CC\u0645\u06CC\u0644 \u0628\u0647 \u0635\u0648\u0631\u062A \u062E\u0648\u062F\u06A9\u0627\u0631 \u0627\u0632 \u0633\u06CC\u0633\u062A\u0645 \u0645\u062F\u06CC\u0631\u06CC\u062A \u0645\u0648\u062C\u0648\u062F\u06CC \u0645\u0645\u062A\u0627\u0632 \u0634\u06CC\u0645\u06CC \u0627\u0631\u0633\u0627\u0644 \u0634\u062F\u0647 \u0627\u0633\u062A.</p>
+            <p>\u0628\u0631\u0627\u06CC \u0627\u0637\u0644\u0627\u0639\u0627\u062A \u0628\u06CC\u0634\u062A\u0631 \u0628\u0627 \u0628\u062E\u0634 \u0641\u0646\u0627\u0648\u0631\u06CC \u0627\u0637\u0644\u0627\u0639\u0627\u062A \u062A\u0645\u0627\u0633 \u0628\u06AF\u06CC\u0631\u06CC\u062F.</p>
+            <p style="margin-top: 15px; font-size: 11px; color: #9ca3af;">Momtaz Chemical Solutions - Inventory Management System</p>
         </div>
     </div>
 </body>
@@ -28652,18 +28889,19 @@ var InventoryAlertService = class {
       const product = await shopStorage.getShopProductById(productId);
       if (!product) return false;
       const currentStock = product.stockQuantity || 0;
-      const minimumThreshold = product.minStockLevel || 5;
-      if (currentStock <= minimumThreshold) {
+      const threshold = product.minStockLevel || 5;
+      if (currentStock <= threshold) {
         const alert = {
           productId: product.id,
           productName: product.name,
           currentStock,
-          minimumThreshold,
-          category: product.category,
-          sku: product.sku,
+          minimumThreshold: threshold,
+          category: product.category || "\u0628\u062F\u0648\u0646 \u062F\u0633\u062A\u0647\u200C\u0628\u0646\u062F\u06CC",
+          sku: product.sku || "-",
           alertLevel: currentStock <= 0 ? "out_of_stock" : "low_stock"
         };
-        await this.sendInventoryAlert([alert]);
+        const settings = await this.getNotificationSettings();
+        await this.sendInventoryAlert([alert], settings);
         return true;
       }
       return false;
@@ -34057,8 +34295,8 @@ async function registerRoutes(app2) {
           message: "\u0634\u0645\u0627 \u0645\u062C\u0627\u0632 \u0628\u0647 \u0648\u06CC\u0631\u0627\u06CC\u0634 \u0627\u06CC\u0646 \u0645\u062D\u0635\u0648\u0644 \u0646\u06CC\u0633\u062A\u06CC\u062F"
         });
       }
-      const isBatchAddition = productData.inventoryAddition && productData.newBatchNumber;
       const productData = req.body;
+      const isBatchAddition = productData.inventoryAddition && productData.newBatchNumber;
       if (isBatchAddition) {
         const oldProduct = await storage.getProductById(id2);
         if (oldProduct?.barcode && productData.newBatchNumber.trim()) {
@@ -34089,6 +34327,16 @@ async function registerRoutes(app2) {
           }
         }
       }
+      if (productData.inventoryAddition && Number(productData.inventoryAddition) > 0 && !productData.newBatchNumber?.trim()) {
+        const oldProduct = await storage.getProductById(id2);
+        if (oldProduct) {
+          const currentStock = oldProduct.stockQuantity || 0;
+          productData.stockQuantity = currentStock + Number(productData.inventoryAddition);
+          console.log(`\u{1F4E6} [INVENTORY] Adding ${productData.inventoryAddition} to product ${id2}. New total: ${productData.stockQuantity}`);
+        }
+      }
+      delete productData.inventoryAddition;
+      delete productData.newBatchNumber;
       const mappedData = {
         ...productData,
         price: productData.unitPrice || productData.price,
@@ -34562,6 +34810,8 @@ async function registerRoutes(app2) {
           console.log("\u274C [DELETE-SYNC] Error removing from shop:", error);
         }
       }
+      await storage.deleteProduct(id2);
+      console.log(`\u{1F5D1}\uFE0F [DELETE] Product ID ${id2} deleted from showcase_products (kardex)`);
       try {
         const { KardexSyncMaster: KardexSyncMaster2 } = await Promise.resolve().then(() => (init_kardex_sync_master(), kardex_sync_master_exports));
         const result = await KardexSyncMaster2.smartSyncShopFromKardex();
@@ -34569,7 +34819,7 @@ async function registerRoutes(app2) {
       } catch (syncError) {
         console.log("Auto-sync failed after deletion:", syncError);
       }
-      console.log(`Product ${id2} deleted successfully from both showcase and shop with auto-sync`);
+      console.log(`\u2705 Product ${id2} deleted successfully from both showcase and shop with auto-sync`);
       res.json({ success: true, message: "Product deleted successfully" });
     } catch (error) {
       console.error("Delete product error:", error);
@@ -35610,6 +35860,7 @@ async function registerRoutes(app2) {
     }
   });
   app2.post("/api/admin/backup/create", requireAuth, async (req, res) => {
+    console.log("\u{1F4BE} [BACKUP] Starting database backup creation...");
     try {
       const { spawn } = await import("child_process");
       const fsModule = await import("fs");
@@ -35618,16 +35869,20 @@ async function registerRoutes(app2) {
       const backupDir = "./backups";
       const backupFile = `database_backup_${timestamp19}.sql`;
       const backupPath = path2.join(backupDir, backupFile);
+      console.log("\u{1F4BE} [BACKUP] Backup file:", backupPath);
       if (!fs3.existsSync(backupDir)) {
         fs3.mkdirSync(backupDir, { recursive: true });
+        console.log("\u{1F4BE} [BACKUP] Created backup directory:", backupDir);
       }
       const databaseUrl10 = process.env.DATABASE_URL;
       if (!databaseUrl10) {
+        console.error("\u274C [BACKUP] DATABASE_URL not configured");
         return res.status(500).json({
           success: false,
           message: "Database URL not configured"
         });
       }
+      console.log("\u{1F4BE} [BACKUP] Starting pg_dump...");
       const pgDump = spawn("pg_dump", [databaseUrl10, "--no-owner", "--no-privileges"]);
       const writeStream = fs3.createWriteStream(backupPath);
       pgDump.stdout?.pipe(writeStream);
@@ -35663,6 +35918,7 @@ async function registerRoutes(app2) {
     }
   });
   app2.post("/api/admin/backups/create", requireAuth, async (req, res) => {
+    console.log("\u{1F4BE} [S3 BACKUP] Starting S3 database backup creation...");
     try {
       const { spawn } = await import("child_process");
       const fsModule = await import("fs");
@@ -35672,16 +35928,20 @@ async function registerRoutes(app2) {
       const backupDir = "./backups";
       const backupFile = `database_backup_${timestamp19}.sql`;
       const backupPath = path2.join(backupDir, backupFile);
+      console.log("\u{1F4BE} [S3 BACKUP] Backup file:", backupPath);
       if (!fs3.existsSync(backupDir)) {
         fs3.mkdirSync(backupDir, { recursive: true });
+        console.log("\u{1F4BE} [S3 BACKUP] Created backup directory:", backupDir);
       }
       const databaseUrl10 = process.env.DATABASE_URL;
       if (!databaseUrl10) {
+        console.error("\u274C [S3 BACKUP] DATABASE_URL not configured");
         return res.status(500).json({
           success: false,
           message: "Database URL not configured"
         });
       }
+      console.log("\u{1F4BE} [S3 BACKUP] Starting pg_dump...");
       const pgDump = spawn("pg_dump", [databaseUrl10, "--no-owner", "--no-privileges"]);
       const writeStream = fs3.createWriteStream(backupPath);
       pgDump.stdout?.pipe(writeStream);
@@ -37635,22 +37895,28 @@ async function registerRoutes(app2) {
   app2.put("/api/shop/products/:productId/bulk-purchase", requireAuth, async (req, res) => {
     try {
       const { productId } = req.params;
-      const { bulk_purchase_enabled, bulk_purchase_minimum_quantity, bulk_purchase_description } = req.body;
+      const { bulk_purchase_enabled, bulk_purchase_minimum_quantity, bulk_purchase_description, bulk_purchase_discounts } = req.body;
       const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
-      console.log(`\u{1F3EA} [BULK PURCHASE] Updating product ${productId}...`);
+      console.log(`\u{1F3EA} [BULK PURCHASE] Updating product ${productId}...`, { bulk_purchase_enabled, bulk_purchase_discounts });
       await pool3.query(`
         UPDATE shop_products 
         SET 
           bulk_purchase_enabled = $2,
           bulk_purchase_min_quantity = $3,
-          bulk_purchase_notes = $4
+          bulk_purchase_notes = $4,
+          bulk_purchase_discounts = $5
         WHERE id = $1
       `, [
         productId,
         bulk_purchase_enabled,
         bulk_purchase_minimum_quantity,
-        bulk_purchase_description
+        bulk_purchase_description,
+        bulk_purchase_discounts ? JSON.stringify(bulk_purchase_discounts) : null
       ]);
+      if (bulk_purchase_enabled && bulk_purchase_discounts && bulk_purchase_discounts.length > 0) {
+        await pool3.query(`UPDATE shop_products SET quantity_discounts = NULL WHERE id = $1`, [productId]);
+        console.log(`\u{1F504} [BULK PURCHASE] Cleared general discounts for bulk-enabled product ${productId}`);
+      }
       console.log(`\u2705 [BULK PURCHASE] Successfully updated product ${productId}`);
       res.json({
         success: true,
@@ -38835,6 +39101,7 @@ async function registerRoutes(app2) {
           createdAt: order.created_at,
           notes: order.notes,
           customerNotes: order.notes,
+          vatRate: order.vat_rate,
           vatAmount: order.vat_amount,
           surchargeAmount: order.surcharge_amount,
           customer,
@@ -40105,9 +40372,19 @@ async function registerRoutes(app2) {
   app2.get("/api/public/payment-methods", async (req, res) => {
     try {
       const enabledMethods = await db.select().from(paymentMethodSettings2).where(eq44(paymentMethodSettings2.enabled, true)).orderBy(desc25(paymentMethodSettings2.priority), paymentMethodSettings2.methodKey);
+      const gateways = await db.select().from(paymentGateways);
+      const gatewayMethodMap = {
+        "fib_online": ["fib"],
+        "online_payment": ["sep", "zarinpal"]
+      };
+      const filteredMethods = enabledMethods.filter((method) => {
+        const requiredGatewayTypes = gatewayMethodMap[method.methodKey];
+        if (!requiredGatewayTypes) return true;
+        return gateways.some((gw) => requiredGatewayTypes.includes(gw.type) && gw.enabled);
+      });
       res.json({
         success: true,
-        data: enabledMethods
+        data: filteredMethods
       });
     } catch (error) {
       console.error("\u274C [PUBLIC PAYMENT METHODS] Error:", error);
@@ -40670,6 +40947,8 @@ async function registerRoutes(app2) {
             weight: orderWeight,
             weightUnit: "kg",
             vehicleType: checkoutVehicleType,
+            // 🔥 CRITICAL: Include payment method for finance department filtering
+            paymentMethod: finalPaymentMethod,
             weightSource,
             // NEW: Shows where weight came from
             containsFlammableProducts,
@@ -44296,14 +44575,14 @@ ${resetLink}
       let orderNumber2 = null;
       let finalPaymentStatus = "pending";
       let actualWalletUsed = 0;
-      let finalPaymentMethod = paymentMethod || "bank_transfer";
+      let finalPaymentMethod2 = paymentMethod || "bank_transfer";
       const { formatIQDAmount: formatIQDAmount2, currencyAmountsEqual: currencyAmountsEqual2 } = await Promise.resolve().then(() => (init_currency_utils(), currency_utils_exports));
       const walletUsage = formatIQDAmount2(walletAmountUsed || 0);
       const remaining = formatIQDAmount2(remainingAmount || totalAmount);
       const formattedTotalAmount = formatIQDAmount2(totalAmount);
       if (paymentMethod === "wallet_combined") {
         if (walletUsage >= formattedTotalAmount) {
-          finalPaymentMethod = "wallet_full";
+          finalPaymentMethod2 = "wallet_full";
           console.log("\u{1F504} [BACKEND CONVERSION] wallet_combined \u2192 wallet_full (sufficient balance)", {
             walletUsage,
             formattedTotalAmount,
@@ -44318,21 +44597,21 @@ ${resetLink}
             const activeGateway = await db3.default.query.paymentGateways.findFirst({
               where: eq51(paymentGateways2.enabled, true)
             });
-            finalPaymentMethod = activeGateway?.type || "sep";
+            finalPaymentMethod2 = activeGateway?.type || "sep";
             console.log("\u{1F504} [GATEWAY MAPPING] Found active gateway:", {
               gatewayName: activeGateway?.name,
               gatewayType: activeGateway?.type,
-              finalPaymentMethod
+              finalPaymentMethod: finalPaymentMethod2
             });
           } else {
-            finalPaymentMethod = secondaryPaymentMethod || "sep";
+            finalPaymentMethod2 = secondaryPaymentMethod || "sep";
           }
           console.log("\u{1F504} [BACKEND CONVERSION] wallet_combined \u2192 user selected secondary method", {
             walletUsage,
             formattedTotalAmount,
             remaining,
             secondaryPaymentMethod,
-            finalPaymentMethod
+            finalPaymentMethod: finalPaymentMethod2
           });
         } else {
           const { secondaryPaymentMethod } = req.body;
@@ -44343,34 +44622,34 @@ ${resetLink}
             const activeGateway = await db3.default.query.paymentGateways.findFirst({
               where: eq51(paymentGateways2.enabled, true)
             });
-            finalPaymentMethod = activeGateway?.type || "sep";
+            finalPaymentMethod2 = activeGateway?.type || "sep";
             console.log("\u{1F504} [GATEWAY MAPPING] Found active gateway for no-wallet payment:", {
               gatewayName: activeGateway?.name,
               gatewayType: activeGateway?.type,
-              finalPaymentMethod
+              finalPaymentMethod: finalPaymentMethod2
             });
           } else {
-            finalPaymentMethod = secondaryPaymentMethod || "sep";
+            finalPaymentMethod2 = secondaryPaymentMethod || "sep";
           }
           console.log("\u{1F504} [BACKEND CONVERSION] wallet_combined \u2192 user selected method (no wallet usage)", {
             secondaryPaymentMethod,
-            finalPaymentMethod
+            finalPaymentMethod: finalPaymentMethod2
           });
         }
       }
-      console.log(`\u{1F50D} [PAYMENT METHOD DEBUG] Original: ${paymentMethod}, Final: ${finalPaymentMethod}`);
+      console.log(`\u{1F50D} [PAYMENT METHOD DEBUG] Original: ${paymentMethod}, Final: ${finalPaymentMethod2}`);
       const bankPaymentMethods = ["bank_transfer", "bank_gateway", "bank", "online_bank", "gateway", "online_payment", "bank_receipt"];
-      const isBankPayment = bankPaymentMethods.includes(finalPaymentMethod);
-      console.log(`\u{1F50D} [BANK PAYMENT DEBUG] finalPaymentMethod: "${finalPaymentMethod}", bankMethods: [${bankPaymentMethods.join(", ")}], isBankPayment: ${isBankPayment}`);
+      const isBankPayment = bankPaymentMethods.includes(finalPaymentMethod2);
+      console.log(`\u{1F50D} [BANK PAYMENT DEBUG] finalPaymentMethod: "${finalPaymentMethod2}", bankMethods: [${bankPaymentMethods.join(", ")}], isBankPayment: ${isBankPayment}`);
       if (!isBankPayment) {
         orderNumber2 = await orderManagementStorage2.generateOrderNumberInTransaction();
-        console.log(`\u2705 [NON-BANK ORDER] Generated order number ${orderNumber2} for ${finalPaymentMethod}`);
+        console.log(`\u2705 [NON-BANK ORDER] Generated order number ${orderNumber2} for ${finalPaymentMethod2}`);
       } else {
-        console.log(`\u{1F3E6} [BANK ORDER] No order number assigned - waiting for payment verification (${finalPaymentMethod})`);
+        console.log(`\u{1F3E6} [BANK ORDER] No order number assigned - waiting for payment verification (${finalPaymentMethod2})`);
       }
       console.log("\u{1F4B0} [WALLET DEBUG] Processing wallet payment:", {
         originalPaymentMethod: paymentMethod,
-        finalPaymentMethod,
+        finalPaymentMethod: finalPaymentMethod2,
         walletUsage,
         remaining,
         totalAmount: formattedTotalAmount,
@@ -44381,7 +44660,7 @@ ${resetLink}
       if (walletUsage > 0 && (finalCrmCustomerId || customerId)) {
         try {
           const customerIdToUse = finalCrmCustomerId || customerId;
-          if (finalPaymentMethod === "wallet_partial") {
+          if (finalPaymentMethod2 === "wallet_partial") {
             const reservation = await walletStorage.reserveWallet(
               customerIdToUse,
               walletUsage,
@@ -44395,7 +44674,7 @@ ${resetLink}
             actualWalletUsed = walletUsage;
             finalPaymentStatus = "pending";
             console.log("\u{1F4B0} [PAYMENT STATUS] Set to PENDING - wallet_partial awaiting bank payment");
-          } else if (finalPaymentMethod === "wallet_full") {
+          } else if (finalPaymentMethod2 === "wallet_full") {
             const transaction = await walletStorage.debitWallet(
               customerIdToUse,
               walletUsage,
@@ -44414,14 +44693,14 @@ ${resetLink}
         } catch (error) {
           console.error("\u274C [WALLET ERROR] Failed to process wallet payment:", error);
           finalPaymentStatus = "pending";
-          finalPaymentMethod = "bank_transfer";
+          finalPaymentMethod2 = "bank_transfer";
           actualWalletUsed = 0;
         }
       }
       console.log("\u{1F4B0} [WALLET DEBUG] Final wallet processing result:", {
         actualWalletUsed,
         finalPaymentStatus,
-        finalPaymentMethod
+        finalPaymentMethod: finalPaymentMethod2
       });
       const orderData = {
         orderNumber: orderNumber2,
@@ -44435,7 +44714,7 @@ ${resetLink}
         // Store frozen duties amount from frontend calculation
         status: "pending",
         paymentStatus: finalPaymentStatus,
-        paymentMethod: finalPaymentMethod,
+        paymentMethod: finalPaymentMethod2,
         walletAmountUsed: Math.round(actualWalletUsed).toString(),
         shippingAddress: {
           address: finalCustomerInfo.address,
@@ -44522,8 +44801,8 @@ ${resetLink}
           calculatedRemaining: remainingAmountToPay
         });
       }
-      const isFullWalletPayment = finalPaymentMethod === "wallet_full";
-      const isPartialWalletPayment = finalPaymentMethod === "wallet_partial";
+      const isFullWalletPayment = finalPaymentMethod2 === "wallet_full";
+      const isPartialWalletPayment = finalPaymentMethod2 === "wallet_partial";
       const walletCoversFullAmount = actualWalletUsed >= formattedTotalAmount;
       const hasSignificantRemainingAmount = remainingAmountToPay > 1;
       const requiresBankPayment = !isFullWalletPayment && !walletCoversFullAmount && hasSignificantRemainingAmount && remainingAmountToPay > 0;
@@ -44533,7 +44812,7 @@ ${resetLink}
         originalRemainingAmount: remainingAmount,
         totalAmount: formattedTotalAmount,
         requiresBankPayment,
-        paymentMethod: finalPaymentMethod,
+        paymentMethod: finalPaymentMethod2,
         walletUsedString: walletAmountUsed,
         remainingAmountString: remainingAmount,
         paymentMethodFromRequest: paymentMethod,
@@ -44547,7 +44826,7 @@ ${resetLink}
         frontendSentZeroRemaining: remainingAmount === 0 || remainingAmount === "0"
       });
       if (isFullWalletPayment || walletCoversFullAmount) {
-        console.log("\u2705 [FULL WALLET] Payment covers full amount - order complete without bank gateway", {
+        console.log("\u2705 [FULL WALLET] Payment covers full amount - routing to finance department", {
           isFullWalletPayment,
           walletCoversFullAmount,
           actualWalletUsed,
@@ -44555,15 +44834,55 @@ ${resetLink}
           remainingAmountToPay
         });
         finalPaymentStatus = "paid";
+        try {
+          await customerStorage.updateOrderStatus(order.id, "finance_pending");
+          await db.update(customerOrders).set({
+            paymentStatus: "paid",
+            paymentMethod: "wallet_full",
+            updatedAt: /* @__PURE__ */ new Date()
+          }).where(eq44(customerOrders.id, order.id));
+          const { OrderManagementStorage: OrderManagementStorage3 } = await Promise.resolve().then(() => (init_order_management_storage(), order_management_storage_exports));
+          const omStorage = new OrderManagementStorage3();
+          const existingMgmt = await omStorage.getOrderManagementByCustomerOrderId(order.id);
+          if (existingMgmt) {
+            await omStorage.updateOrderManagement(existingMgmt.id, {
+              currentStatus: "finance_pending",
+              paymentMethod: "wallet_full",
+              deliveryMethod: shippingMethod || "courier",
+              vehicleType: vehicleType || null,
+              totalWeight: totalWeight ? parseFloat(totalWeight).toFixed(3) : null,
+              weightUnit: "kg"
+            });
+            console.log(`\u{1F4E6} [WALLET\u2192FINANCE] Updated existing order_management ${existingMgmt.id} to finance_pending for order ${order.orderNumber}`);
+          } else {
+            await omStorage.createOrderManagement({
+              customerOrderId: order.id,
+              customerId: finalCrmCustomerId || customerId,
+              currentStatus: "finance_pending",
+              totalAmount: formattedTotalAmount.toString(),
+              currency: "IQD",
+              notes: notes || "",
+              totalWeight: totalWeight ? parseFloat(totalWeight).toFixed(3) : null,
+              weightUnit: "kg",
+              vehicleType: vehicleType || null,
+              paymentMethod: "wallet_full",
+              deliveryMethod: shippingMethod || "courier"
+            });
+            console.log(`\u{1F4E6} [WALLET\u2192FINANCE] Created order_management with finance_pending for order ${order.orderNumber}`);
+          }
+          ;
+        } catch (walletMgmtError) {
+          console.error(`\u274C [WALLET\u2192FINANCE] Error creating order management for wallet order:`, walletMgmtError);
+        }
         return res.json({
           success: true,
-          message: "\u0633\u0641\u0627\u0631\u0634 \u0628\u0627 \u06A9\u06CC\u0641 \u067E\u0648\u0644 \u0628\u0647 \u0637\u0648\u0631 \u06A9\u0627\u0645\u0644 \u067E\u0631\u062F\u0627\u062E\u062A \u0634\u062F",
+          message: "\u0633\u0641\u0627\u0631\u0634 \u0628\u0627 \u06A9\u06CC\u0641 \u067E\u0648\u0644 \u067E\u0631\u062F\u0627\u062E\u062A \u0634\u062F - \u062F\u0631 \u0627\u0646\u062A\u0638\u0627\u0631 \u062A\u0627\u06CC\u06CC\u062F \u0648\u0627\u062D\u062F \u0645\u0627\u0644\u06CC",
           paymentMethod: "wallet_full",
           order: {
             id: order.id,
             orderNumber: order.orderNumber,
             totalAmount: order.totalAmount,
-            status: order.status,
+            status: "finance_pending",
             paymentStatus: "paid",
             paymentMethod: "wallet_full",
             walletAmountUsed: actualWalletUsed,
@@ -44622,7 +44941,7 @@ ${resetLink}
               totalAmount: order.totalAmount,
               status: order.status,
               paymentStatus: finalPaymentStatus,
-              paymentMethod: finalPaymentMethod,
+              paymentMethod: finalPaymentMethod2,
               walletAmountUsed: actualWalletUsed,
               crmCustomerId: finalCrmCustomerId
             }
@@ -44643,7 +44962,7 @@ ${resetLink}
               totalAmount: order.totalAmount,
               status: order.status,
               paymentStatus: finalPaymentStatus,
-              paymentMethod: finalPaymentMethod,
+              paymentMethod: finalPaymentMethod2,
               walletAmountUsed: actualWalletUsed,
               crmCustomerId: finalCrmCustomerId
             }
@@ -44658,7 +44977,7 @@ ${resetLink}
             totalAmount: order.totalAmount,
             status: order.status,
             paymentStatus: finalPaymentStatus,
-            paymentMethod: finalPaymentMethod,
+            paymentMethod: finalPaymentMethod2,
             walletAmountUsed: actualWalletUsed,
             crmCustomerId: finalCrmCustomerId
           }
@@ -44793,17 +45112,17 @@ ${resetLink}
       let finalPaymentStatus = "pending";
       let walletAmountUsed = 0;
       let remainingAmount = totalAmount;
-      let finalPaymentMethod = orderData.paymentMethod || "traditional";
+      let finalPaymentMethod2 = orderData.paymentMethod || "traditional";
       if (orderData.paymentMethod === "online_payment" || orderData.paymentMethod === "fib_online") {
         finalPaymentStatus = "pending";
-        finalPaymentMethod = "online_payment";
+        finalPaymentMethod2 = "online_payment";
         walletAmountUsed = 0;
         remainingAmount = totalAmount;
         orderNumber2 = await orderManagementStorage2.generateOrderNumberInTransaction();
         console.log(`\u2705 [PERMANENT ORDER] Online payment order ${orderNumber2} created`);
       } else if (orderData.paymentMethod === "bank_transfer") {
         finalPaymentStatus = "pending";
-        finalPaymentMethod = "bank_transfer";
+        finalPaymentMethod2 = "bank_transfer";
         walletAmountUsed = 0;
         remainingAmount = totalAmount;
         orderNumber2 = await orderManagementStorage2.generateOrderNumberInTransaction();
@@ -44835,7 +45154,7 @@ ${resetLink}
               );
               console.log(`\u2705 [PERMANENT ORDER] Wallet payment processed: ${walletAmountUsed} IQD deducted for order ${orderNumber2}`);
               finalPaymentStatus = "paid";
-              finalPaymentMethod = "wallet_full";
+              finalPaymentMethod2 = "wallet_full";
               console.log(`\u{1F3EA} [WAREHOUSE DIRECT] Order ${orderNumber2} fully paid by wallet - direct to warehouse`);
             } else {
               const reservation = await walletStorage.reserveWallet(
@@ -44849,7 +45168,7 @@ ${resetLink}
               );
               console.log(`\u{1F512} [PERMANENT ORDER] Wallet funds RESERVED: ${walletAmountUsed} IQD for order ${orderNumber2}, reservation ID: ${reservation.id}`);
               finalPaymentStatus = "pending";
-              finalPaymentMethod = "wallet_partial";
+              finalPaymentMethod2 = "wallet_partial";
               console.log(`\u{1F3E6} [BANK REQUIRED] Order ${orderNumber2} - wallet reserved, remaining ${remainingAmount} needs bank payment`);
             }
           } catch (walletError) {
@@ -44862,23 +45181,23 @@ ${resetLink}
         }
       } else if (orderData.paymentMethod === "bank_receipt") {
         finalPaymentStatus = "pending";
-        finalPaymentMethod = "bank_receipt";
+        finalPaymentMethod2 = "bank_receipt";
         orderNumber2 = await orderManagementStorage2.generateOrderNumberInTransaction();
         console.log(`\u2705 [PERMANENT ORDER] Bank receipt order ${orderNumber2} created - customer will upload receipt`);
       } else if (orderData.paymentMethod === "bank_transfer_grace") {
         finalPaymentStatus = "grace_period";
-        finalPaymentMethod = "bank_transfer_grace";
+        finalPaymentMethod2 = "bank_transfer_grace";
         orderNumber2 = await orderManagementStorage2.generateOrderNumberInTransaction();
         console.log(`\u2705 [PERMANENT ORDER] Grace period order ${orderNumber2} created - 3-day grace period activated`);
       }
-      console.log(`\u2705 [PERMANENT ORDER STRATEGY] All orders get immediate order numbers: ${orderNumber2} (${finalPaymentMethod})`);
+      console.log(`\u2705 [PERMANENT ORDER STRATEGY] All orders get immediate order numbers: ${orderNumber2} (${finalPaymentMethod2})`);
       console.log(`\u{1F4DD} [CLEANUP POLICY] Failed payments will trigger order deletion to free up numbers`);
       const order = await customerStorage.createOrder({
         customerId: finalCustomerId,
         orderNumber: orderNumber2,
         status: "pending",
         paymentStatus: finalPaymentStatus,
-        paymentMethod: finalPaymentMethod,
+        paymentMethod: finalPaymentMethod2,
         totalAmount: Math.round(totalAmount).toString(),
         shippingCost: Math.round(shippingAmount).toString(),
         currency: orderData.currency || "IQD",
@@ -44887,6 +45206,8 @@ ${resetLink}
         totalWeight: calculatedTotalWeight > 0 ? calculatedTotalWeight.toFixed(3) : null,
         weightUnit: "kg",
         vehicleType: checkoutVehicleType2,
+        // 🔥 CRITICAL: Include payment method for finance department filtering
+        paymentMethod: finalPaymentMethod2,
         // Store frozen tax rates at order creation time
         vatRate: taxCalculation.vatRate.toString(),
         vatAmount: taxCalculation.vatAmount.toString(),
@@ -44934,31 +45255,112 @@ ${resetLink}
         hasRecipientMobile: !!orderData.recipientMobile,
         activeDeliveryInfo: orderData.activeDeliveryInfo
       });
+      if (finalCustomerId && (orderData.activeDeliveryInfo?.isSecondAddressUsed || orderData.recipientInfo?.recipientPhone)) {
+        try {
+          const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+          const updateFields = [];
+          const updateValues = [];
+          let paramIndex = 1;
+          if (orderData.activeDeliveryInfo?.isSecondAddressUsed && orderData.recipientInfo?.recipientAddress) {
+            updateFields.push(`secondary_address = $${paramIndex++}`);
+            updateValues.push(orderData.recipientInfo.recipientAddress);
+          }
+          if (orderData.activeDeliveryInfo?.isDifferentPhoneUsed && orderData.recipientInfo?.recipientPhone) {
+            updateFields.push(`alternate_phone = $${paramIndex++}`);
+            updateValues.push(orderData.recipientInfo.recipientPhone);
+          }
+          if (updateFields.length > 0) {
+            updateValues.push(finalCustomerId);
+            await pool3.query(
+              `UPDATE crm_customers SET ${updateFields.join(", ")} WHERE id = $${paramIndex}`,
+              updateValues
+            );
+            console.log(`\u{1F4CB} [CRM UPDATE] Saved secondary address/phone for customer ${finalCustomerId}`);
+          }
+        } catch (crmUpdateError) {
+          console.error("\u26A0\uFE0F [CRM UPDATE] Failed to save secondary address/phone:", crmUpdateError);
+        }
+      }
+      const getServerDiscountedPrice = (product, qty) => {
+        const basePrice = Math.round(parseFloat(product.price || "0"));
+        if (basePrice <= 0) return 0;
+        let discounts = [];
+        if (product.bulkPurchaseEnabled || product.bulk_purchase_enabled) {
+          let bulk = product.bulkPurchaseDiscounts || product.bulk_purchase_discounts;
+          if (typeof bulk === "string") {
+            try {
+              bulk = JSON.parse(bulk);
+            } catch {
+              bulk = [];
+            }
+          }
+          discounts = Array.isArray(bulk) ? bulk : [];
+        } else {
+          let general = product.quantityDiscounts || product.quantity_discounts;
+          if (typeof general === "string") {
+            try {
+              general = JSON.parse(general);
+            } catch {
+              general = [];
+            }
+          }
+          discounts = Array.isArray(general) ? general : [];
+        }
+        if (discounts.length > 0) {
+          const applicable = discounts.filter((d) => qty >= parseInt(d.minQty || d.min_qty || "0")).sort((a, b) => parseInt(b.minQty || b.min_qty || "0") - parseInt(a.minQty || a.min_qty || "0"));
+          if (applicable.length > 0) {
+            const d = applicable[0];
+            const discountValue = d.discount || parseFloat(d.discountPercent || d.discount_percent || "0") / 100;
+            return Math.round(basePrice * (1 - discountValue));
+          }
+        }
+        return basePrice;
+      };
       if (orderData.cart) {
         for (const [productId, quantity] of Object.entries(orderData.cart)) {
           try {
             const product = await shopStorage.getShopProductById(parseInt(productId));
             if (product) {
+              const qty = quantity;
+              const discountedUnitPrice = getServerDiscountedPrice(product, qty);
+              console.log(`\u{1F4B0} [DISCOUNT CALC] Product ${product.name}: base=${product.price}, discounted=${discountedUnitPrice}, qty=${qty}`);
               await customerStorage.createOrderItem({
                 orderId: order.id,
                 productId: parseInt(productId),
                 productName: product.name,
                 productSku: product.sku || `SKU-${productId}`,
-                quantity: quantity.toString(),
-                unitPrice: product.price || "0",
-                totalPrice: (parseFloat(product.price || "0") * quantity).toString()
+                quantity: qty.toString(),
+                unitPrice: discountedUnitPrice.toString(),
+                totalPrice: (discountedUnitPrice * qty).toString()
               });
               if (product.vendorId) {
                 try {
                   const { db: db3 } = await Promise.resolve().then(() => (init_db(), db_exports));
                   const { vendors: vendors3, vendorTransactions: vendorTransactions2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
+                  const { showcaseProducts: showcaseProducts2 } = await Promise.resolve().then(() => (init_showcase_schema(), showcase_schema_exports));
                   const { eq: eq51 } = await import("drizzle-orm");
                   const [vendor] = await db3.select({ commissionRate: vendors3.commissionRate }).from(vendors3).where(eq51(vendors3.id, product.vendorId));
                   if (vendor) {
-                    const saleAmount = parseFloat(product.price || "0") * quantity;
-                    const commissionRate = parseFloat(vendor.commissionRate || "10");
+                    const saleAmount = discountedUnitPrice * qty;
+                    let commissionRate;
+                    let rateSource = "vendor-default";
+                    if (product.commissionRate) {
+                      commissionRate = parseFloat(product.commissionRate);
+                      rateSource = "product-level (shop)";
+                    } else if (product.sku) {
+                      const [showcase] = await db3.select({ commissionOverride: showcaseProducts2.commissionOverride }).from(showcaseProducts2).where(eq51(showcaseProducts2.sku, product.sku));
+                      if (showcase?.commissionOverride) {
+                        commissionRate = parseFloat(showcase.commissionOverride);
+                        rateSource = "product-level (kardex)";
+                      } else {
+                        commissionRate = parseFloat(vendor.commissionRate || "10");
+                      }
+                    } else {
+                      commissionRate = parseFloat(vendor.commissionRate || "10");
+                    }
                     const commissionAmount = saleAmount * commissionRate / 100;
                     const netAmount = saleAmount - commissionAmount;
+                    console.log(`\u{1F4B0} [COMMISSION] Product ${product.name}: using ${rateSource} rate=${commissionRate}%`);
                     await db3.insert(vendorTransactions2).values({
                       vendorId: product.vendorId,
                       transactionType: "sale",
@@ -45106,7 +45508,7 @@ ${resetLink}
               day: "numeric"
             }),
             totalAmount: parseFloat(order.totalAmount),
-            paymentMethod: finalPaymentMethod,
+            paymentMethod: finalPaymentMethod2,
             paymentStatus: finalPaymentStatus,
             orderItems: orderItems5.map((item) => ({
               productName: item.productName,
@@ -45144,7 +45546,9 @@ ${resetLink}
           // Add calculated weight
           totalWeight: calculatedTotalWeight > 0 ? calculatedTotalWeight.toFixed(3) : null,
           weightUnit: "kg",
-          vehicleType: checkoutVehicleType2
+          vehicleType: checkoutVehicleType2,
+          // 🔥 CRITICAL: Include payment method for finance department filtering
+          paymentMethod: finalPaymentMethod2
         };
         if (orderData.vehicleType) {
           orderMgmtData = {
@@ -45217,8 +45621,21 @@ ${resetLink}
           };
           console.log(`\u{1F552} Grace period activated for order ${orderNumber2} - ${gracePeriodDays} days period expires: ${gracePeriodEnd.toISOString()}`);
         }
-        await orderManagementStorage2.createOrderManagement(orderMgmtData);
-        console.log(`\u2705 Order management record created for order ${orderNumber2}`);
+        const existingMgmtRecord = await orderManagementStorage2.getOrderManagementByCustomerOrderId(order.id);
+        if (existingMgmtRecord) {
+          await orderManagementStorage2.updateOrderManagement(existingMgmtRecord.id, {
+            currentStatus: orderMgmtData.currentStatus,
+            paymentMethod: orderMgmtData.paymentMethod,
+            deliveryMethod: orderMgmtData.deliveryMethod,
+            vehicleType: orderMgmtData.vehicleType,
+            totalWeight: orderMgmtData.totalWeight,
+            weightUnit: orderMgmtData.weightUnit || "kg"
+          });
+          console.log(`\u{1F4E6} [ORDER MGMT] Updated existing record ${existingMgmtRecord.id} for order ${orderNumber2} with status ${orderMgmtData.currentStatus}`);
+        } else {
+          await orderManagementStorage2.createOrderManagement(orderMgmtData);
+          console.log(`\u2705 [ORDER MGMT] Created new record for order ${orderNumber2} with status ${orderMgmtData.currentStatus}`);
+        }
         try {
           await globalSyncService.triggerOrderSync(order.id, "order_created");
           console.log(`\u{1F504} [SYNC] Triggered automatic sync for order ${orderNumber2}`);
@@ -45233,7 +45650,7 @@ ${resetLink}
         message: "Order created successfully",
         orderId: order.id,
         orderNumber: order.orderNumber,
-        paymentMethod: finalPaymentMethod,
+        paymentMethod: finalPaymentMethod2,
         totalAmount: Math.round(remainingAmount) > 0 ? Math.round(remainingAmount) : Math.round(totalAmount),
         walletAmountUsed: Math.round(walletAmountUsed)
       };
@@ -45314,7 +45731,7 @@ ${resetLink}
           });
         }
       }
-      if (finalPaymentMethod === "wallet" || finalPaymentMethod === "wallet_full") {
+      if (finalPaymentMethod2 === "wallet" || finalPaymentMethod2 === "wallet_full") {
         console.log(`\u{1F4B0} [PURE_WALLET] Processing pure wallet payment for ${totalAmount} IQD`);
         if (!order.orderNumber) {
           try {
@@ -45350,7 +45767,6 @@ ${resetLink}
             notes: orderData.notes || "",
             totalWeight: calculatedTotalWeight > 0 ? calculatedTotalWeight.toFixed(3) : null,
             weightUnit: "kg",
-            vehicleType: checkoutVehicleType2,
             paymentMethod: "wallet_full"
           };
           console.log(`\u{1F4E6} [WALLET_FULL ORDER MGMT] Creating order_management with delivery: ${checkoutDeliveryMethod}, vehicle: ${checkoutVehicleType2}, weight: ${calculatedTotalWeight}kg`);
@@ -45368,7 +45784,7 @@ ${resetLink}
             id: order.id,
             orderNumber: order.orderNumber,
             totalAmount: order.totalAmount,
-            status: "warehouse_pending",
+            status: "finance_pending",
             paymentStatus: "paid",
             paymentMethod: "wallet_full",
             walletAmountUsed: Math.round(walletAmountUsed),
@@ -45376,7 +45792,7 @@ ${resetLink}
           }
         });
       }
-      if (finalPaymentMethod === "wallet_partial") {
+      if (finalPaymentMethod2 === "wallet_partial") {
         console.log(`\u{1F504} [WALLET_PARTIAL] Processing hybrid wallet payment - Wallet: ${walletAmountUsed} IQD, Bank: ${remainingAmount} IQD`);
         if (remainingAmount <= 0) {
           console.log(`\u{1F4B0} [WALLET_PARTIAL \u2192 WALLET_FULL] Wallet covers full amount, no bank payment needed`);
@@ -45414,7 +45830,6 @@ ${resetLink}
               notes: orderData.notes || "",
               totalWeight: calculatedTotalWeight > 0 ? calculatedTotalWeight.toFixed(3) : null,
               weightUnit: "kg",
-              vehicleType: checkoutVehicleType2,
               paymentMethod: "wallet_full"
             };
             console.log(`\u{1F4E6} [WALLET_PARTIAL\u2192FULL] Creating order_management with delivery: ${checkoutDeliveryMethod}, vehicle: ${checkoutVehicleType2}, weight: ${calculatedTotalWeight}kg`);
@@ -45432,7 +45847,7 @@ ${resetLink}
               id: order.id,
               orderNumber: order.orderNumber,
               totalAmount: order.totalAmount,
-              status: "warehouse_pending",
+              status: "finance_pending",
               paymentStatus: "paid",
               paymentMethod: "wallet_full",
               walletAmountUsed: Math.round(walletAmountUsed),
@@ -45473,7 +45888,7 @@ ${resetLink}
           });
         }
       }
-      if (finalPaymentMethod === "online_payment" || finalPaymentMethod === "bank" || finalPaymentMethod === "bank_transfer" || finalPaymentMethod === "bank_transfer_grace") {
+      if (finalPaymentMethod2 === "online_payment" || finalPaymentMethod2 === "bank" || finalPaymentMethod2 === "bank_transfer" || finalPaymentMethod2 === "bank_transfer_grace") {
         if (remainingAmount > 0 && walletAmountUsed > 0) {
           console.log(`\u{1F504} [HYBRID PAYMENT] Routing remaining ${remainingAmount} IQD to bank gateway...`);
           const { bankGatewayRouter: bankGatewayRouter2 } = await Promise.resolve().then(() => (init_bank_gateway_router(), bank_gateway_router_exports));
@@ -45515,13 +45930,13 @@ ${resetLink}
               requiresBankPayment: true,
               redirectToPayment: true,
               paymentError: routingResult.message,
-              redirectUrl: `/payment/${orderNumber2}?amount=${remainingAmount}&wallet=${walletAmountUsed}&method=${finalPaymentMethod}`
+              redirectUrl: `/payment/${orderNumber2}?amount=${remainingAmount}&wallet=${walletAmountUsed}&method=${finalPaymentMethod2}`
             });
           }
         }
-        if (finalPaymentMethod === "online_payment" || finalPaymentMethod === "fib_online" || finalPaymentMethod === "bank") {
+        if (finalPaymentMethod2 === "online_payment" || finalPaymentMethod2 === "fib_online" || finalPaymentMethod2 === "bank") {
           const fullAmount = Math.round(remainingAmount) > 0 ? Math.round(remainingAmount) : Math.round(totalAmount);
-          console.log(`\u{1F3E6} [BANK_PAYMENT] Routing ${fullAmount} IQD to bank gateway (method: ${finalPaymentMethod})...`);
+          console.log(`\u{1F3E6} [BANK_PAYMENT] Routing ${fullAmount} IQD to bank gateway (method: ${finalPaymentMethod2})...`);
           const { bankGatewayRouter: bankGatewayRouter2 } = await Promise.resolve().then(() => (init_bank_gateway_router(), bank_gateway_router_exports));
           const routingResult = await bankGatewayRouter2.routePayment({
             orderId: order.id,
@@ -45554,13 +45969,13 @@ ${resetLink}
             });
           }
         }
-        if (finalPaymentMethod === "bank_transfer") {
+        if (finalPaymentMethod2 === "bank_transfer") {
           responseData.redirectToPayment = true;
-          responseData.paymentGatewayUrl = `/payment?orderId=${order.id}&amount=${Math.round(remainingAmount) > 0 ? Math.round(remainingAmount) : Math.round(totalAmount)}&method=${finalPaymentMethod}`;
-          console.log(`\u2705 Order ${orderNumber2} created - redirecting to payment gateway for ${Math.round(remainingAmount) > 0 ? Math.round(remainingAmount) : Math.round(totalAmount)} IQD (method: ${finalPaymentMethod})`);
+          responseData.paymentGatewayUrl = `/payment?orderId=${order.id}&amount=${Math.round(remainingAmount) > 0 ? Math.round(remainingAmount) : Math.round(totalAmount)}&method=${finalPaymentMethod2}`;
+          console.log(`\u2705 Order ${orderNumber2} created - redirecting to payment gateway for ${Math.round(remainingAmount) > 0 ? Math.round(remainingAmount) : Math.round(totalAmount)} IQD (method: ${finalPaymentMethod2})`);
           return res.json(responseData);
         }
-        if (finalPaymentMethod === "bank_transfer_grace") {
+        if (finalPaymentMethod2 === "bank_transfer_grace") {
           let gracePeriodDays = 3;
           try {
             const gracePeriodDaysResult = await db.select().from(shopSettings2).where(eq44(shopSettings2.settingKey, "proforma_deadline_days")).limit(1);
@@ -45585,10 +46000,10 @@ ${resetLink}
           return res.json(responseData);
         }
       }
-      console.error(`\u274C [PAYMENT ERROR] Unhandled payment method: ${finalPaymentMethod}, falling back to error response`);
+      console.error(`\u274C [PAYMENT ERROR] Unhandled payment method: ${finalPaymentMethod2}, falling back to error response`);
       return res.status(400).json({
         success: false,
-        message: `\u0631\u0648\u0634 \u067E\u0631\u062F\u0627\u062E\u062A ${finalPaymentMethod} \u067E\u0634\u062A\u06CC\u0628\u0627\u0646\u06CC \u0646\u0645\u06CC\u200C\u0634\u0648\u062F`,
+        message: `\u0631\u0648\u0634 \u067E\u0631\u062F\u0627\u062E\u062A ${finalPaymentMethod2} \u067E\u0634\u062A\u06CC\u0628\u0627\u0646\u06CC \u0646\u0645\u06CC\u200C\u0634\u0648\u062F`,
         error: "UNSUPPORTED_PAYMENT_METHOD"
       });
     } catch (error) {
@@ -45945,52 +46360,79 @@ ${resetLink}
         "\u0648\u0636\u0639\u06CC\u062A",
         "\u0648\u0636\u0639\u06CC\u062A \u067E\u0631\u062F\u0627\u062E\u062A",
         "\u0631\u0648\u0634 \u067E\u0631\u062F\u0627\u062E\u062A",
-        "\u0645\u0628\u0644\u063A \u06A9\u0644 (\u062F\u06CC\u0646\u0627\u0631)",
-        "\u0645\u062D\u0635\u0648\u0644\u0627\u062A",
-        "\u062A\u0639\u062F\u0627\u062F \u0627\u0642\u0644\u0627\u0645",
+        "\u0645\u0628\u0644\u063A \u06A9\u0644 \u0633\u0641\u0627\u0631\u0634 (\u062F\u06CC\u0646\u0627\u0631)",
+        "\u0646\u0627\u0645 \u0645\u062D\u0635\u0648\u0644",
+        "\u062A\u0639\u062F\u0627\u062F",
+        "\u0642\u06CC\u0645\u062A \u0648\u0627\u062D\u062F (\u062F\u06CC\u0646\u0627\u0631)",
+        "\u062C\u0645\u0639 \u0631\u062F\u06CC\u0641 (\u062F\u06CC\u0646\u0627\u0631)",
         "\u0622\u062F\u0631\u0633 \u062A\u062D\u0648\u06CC\u0644"
       ];
       const csvRows = [headers.join(",")];
+      const statusMap = {
+        "pending": "\u062F\u0631 \u0627\u0646\u062A\u0638\u0627\u0631",
+        "confirmed": "\u062A\u0627\u06CC\u06CC\u062F \u0634\u062F\u0647",
+        "processing": "\u062F\u0631 \u062D\u0627\u0644 \u067E\u0631\u062F\u0627\u0632\u0634",
+        "shipped": "\u0627\u0631\u0633\u0627\u0644 \u0634\u062F\u0647",
+        "delivered": "\u062A\u062D\u0648\u06CC\u0644 \u062F\u0627\u062F\u0647 \u0634\u062F\u0647",
+        "cancelled": "\u0644\u063A\u0648 \u0634\u062F\u0647"
+      };
+      const paymentStatusMap = {
+        "pending": "\u062F\u0631 \u0627\u0646\u062A\u0638\u0627\u0631 \u067E\u0631\u062F\u0627\u062E\u062A",
+        "paid": "\u067E\u0631\u062F\u0627\u062E\u062A \u0634\u062F\u0647",
+        "failed": "\u0646\u0627\u0645\u0648\u0641\u0642",
+        "refunded": "\u0628\u0631\u06AF\u0634\u062A \u062F\u0627\u062F\u0647 \u0634\u062F\u0647"
+      };
+      const paymentMethodMap = {
+        "online": "\u0622\u0646\u0644\u0627\u06CC\u0646 \u067E\u0631\u062F\u0627\u062E\u062A",
+        "cash": "\u0646\u0642\u062F\u06CC",
+        "bank_transfer": "\u0648\u0627\u0631\u06CC\u0632 \u0628\u0627\u0646\u06A9\u06CC",
+        "wallet": "\u0648\u0627\u0644\u062A",
+        "wallet_full": "\u0648\u0627\u0644\u062A \u06A9\u0627\u0645\u0644",
+        "partial_wallet": "\u067E\u0631\u062F\u0627\u062E\u062A \u062A\u0631\u06A9\u06CC\u0628\u06CC",
+        "bank_transfer_grace": "\u0648\u0627\u0631\u06CC\u0632 \u0628\u0627\u0646\u06A9\u06CC \u0628\u0627 \u0645\u0647\u0644\u062A 3 \u0631\u0648\u0632\u0647"
+      };
       for (const order of filteredOrders) {
-        const orderDate = new Date(order.createdAt).toLocaleDateString("fa-IR");
-        const statusMap = {
-          "pending": "\u062F\u0631 \u0627\u0646\u062A\u0638\u0627\u0631",
-          "confirmed": "\u062A\u0627\u06CC\u06CC\u062F \u0634\u062F\u0647",
-          "processing": "\u062F\u0631 \u062D\u0627\u0644 \u067E\u0631\u062F\u0627\u0632\u0634",
-          "shipped": "\u0627\u0631\u0633\u0627\u0644 \u0634\u062F\u0647",
-          "delivered": "\u062A\u062D\u0648\u06CC\u0644 \u062F\u0627\u062F\u0647 \u0634\u062F\u0647",
-          "cancelled": "\u0644\u063A\u0648 \u0634\u062F\u0647"
-        };
-        const paymentStatusMap = {
-          "pending": "\u062F\u0631 \u0627\u0646\u062A\u0638\u0627\u0631 \u067E\u0631\u062F\u0627\u062E\u062A",
-          "paid": "\u067E\u0631\u062F\u0627\u062E\u062A \u0634\u062F\u0647",
-          "failed": "\u0646\u0627\u0645\u0648\u0641\u0642",
-          "refunded": "\u0628\u0631\u06AF\u0634\u062A \u062F\u0627\u062F\u0647 \u0634\u062F\u0647"
-        };
-        const paymentMethodMap = {
-          "online": "\u0622\u0646\u0644\u0627\u06CC\u0646 \u067E\u0631\u062F\u0627\u062E\u062A",
-          "cash": "\u0646\u0642\u062F\u06CC",
-          "bank_transfer": "\u0648\u0627\u0631\u06CC\u0632 \u0628\u0627\u0646\u06A9\u06CC",
-          "wallet": "\u0648\u0627\u0644\u062A",
-          "partial_wallet": "\u067E\u0631\u062F\u0627\u062E\u062A \u062A\u0631\u06A9\u06CC\u0628\u06CC",
-          "bank_transfer_grace": "\u0648\u0627\u0631\u06CC\u0632 \u0628\u0627\u0646\u06A9\u06CC \u0628\u0627 \u0645\u0647\u0644\u062A 3 \u0631\u0648\u0632\u0647"
-        };
-        const products = order.items ? order.items.map((item) => `${item.productName} (${item.quantity})`).join("; ") : "\u0646\u0627\u0645\u0634\u062E\u0635";
-        const totalItems = order.items ? order.items.reduce((sum4, item) => sum4 + item.quantity, 0) : 0;
-        const row = [
-          order.orderNumber || "\u0646\u0627\u0645\u0634\u062E\u0635",
-          orderDate,
-          statusMap[order.status] || order.status,
-          paymentStatusMap[order.paymentStatus] || order.paymentStatus,
-          paymentMethodMap[order.paymentMethod] || order.paymentMethod,
-          order.totalAmount ? order.totalAmount.toLocaleString("fa-IR") : "0",
-          `"${products}"`,
-          // Wrap in quotes to handle commas
-          totalItems,
-          `"${order.address || "\u0646\u0627\u0645\u0634\u062E\u0635"}"`
-          // Wrap in quotes to handle commas
-        ];
-        csvRows.push(row.join(","));
+        const orderDate = new Date(order.createdAt).toLocaleDateString("en-GB", { year: "numeric", month: "2-digit", day: "2-digit" });
+        const orderStatus = statusMap[order.status] || order.status;
+        const paymentStatus = paymentStatusMap[order.paymentStatus] || order.paymentStatus;
+        const paymentMethod = paymentMethodMap[order.paymentMethod] || order.paymentMethod;
+        const totalAmount = order.totalAmount ? order.totalAmount.toLocaleString("fa-IR") : "0";
+        const address = order.address || "\u0646\u0627\u0645\u0634\u062E\u0635";
+        if (order.items && order.items.length > 0) {
+          for (const item of order.items) {
+            const unitPrice = item.price ? Number(item.price).toLocaleString("fa-IR") : "0";
+            const lineTotal = item.price && item.quantity ? (Number(item.price) * item.quantity).toLocaleString("fa-IR") : "0";
+            const row = [
+              order.orderNumber || "\u0646\u0627\u0645\u0634\u062E\u0635",
+              orderDate,
+              orderStatus,
+              paymentStatus,
+              paymentMethod,
+              totalAmount,
+              `"${item.productName || "\u0646\u0627\u0645\u0634\u062E\u0635"}"`,
+              item.quantity || 0,
+              unitPrice,
+              lineTotal,
+              `"${address}"`
+            ];
+            csvRows.push(row.join(","));
+          }
+        } else {
+          const row = [
+            order.orderNumber || "\u0646\u0627\u0645\u0634\u062E\u0635",
+            orderDate,
+            orderStatus,
+            paymentStatus,
+            paymentMethod,
+            totalAmount,
+            '"\u0628\u062F\u0648\u0646 \u0645\u062D\u0635\u0648\u0644"',
+            0,
+            "0",
+            "0",
+            `"${address}"`
+          ];
+          csvRows.push(row.join(","));
+        }
       }
       const csvContent = csvRows.join("\n");
       res.setHeader("Content-Type", "text/csv; charset=utf-8");
@@ -48540,15 +48982,25 @@ Momtaz Chemical Technical Team`,
         offset: parseInt(offset) || 0
       };
       const searchResults = await shopStorage.searchShopProducts(query, filters);
+      const vendorIds = [...new Set(searchResults.products.filter((p) => p.vendorId).map((p) => p.vendorId))];
+      let vendorMap = {};
+      if (vendorIds.length > 0) {
+        const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+        const vendorResult = await pool3.query(
+          `SELECT id, vendor_name FROM vendors WHERE id = ANY($1)`,
+          [vendorIds]
+        );
+        vendorMap = Object.fromEntries(vendorResult.rows.map((v) => [v.id, v.vendor_name]));
+      }
       const mappedProducts = searchResults.products.map((product) => ({
         ...product,
         imageUrl: product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls[0] : null,
         imageUrls: product.imageUrls || [],
-        // Include the full array of images
         unitPrice: product.price,
         currency: product.priceUnit === "IQD" || !product.priceUnit || product.priceUnit === "unit" ? "IQD" : product.priceUnit,
         weight: product.weight,
-        weightUnit: product.weightUnit
+        weightUnit: product.weightUnit,
+        vendorName: product.vendorId ? vendorMap[product.vendorId] || null : null
       }));
       res.json({
         success: true,
@@ -49012,6 +49464,7 @@ Momtaz Chemical Technical Team`,
       const query = `
         SELECT co.id, co.order_number, co.customer_id, co.total_amount, co.status, 
                co.payment_method, co.created_at, co.updated_at,
+               co.shipping_cost, co.vat_amount, co.surcharge_amount, co.vat_rate,
                c.first_name as customer_first_name, c.last_name as customer_last_name, 
                c.email as customer_email, c.phone as customer_phone,
                c.address as customer_address, c.city as customer_city, 
@@ -49076,6 +49529,10 @@ Momtaz Chemical Technical Team`,
             notes: order.notes,
             customerNotes: order.notes,
             status: order.status,
+            shippingCost: order.shipping_cost || "0",
+            vatAmount: order.vat_amount || "0",
+            surchargeAmount: order.surcharge_amount || "0",
+            vatRate: order.vat_rate || "0",
             items
           });
         } catch (itemError) {
@@ -49098,6 +49555,10 @@ Momtaz Chemical Technical Team`,
             notes: order.notes,
             customerNotes: order.notes,
             status: order.status,
+            shippingCost: order.shipping_cost || "0",
+            vatAmount: order.vat_amount || "0",
+            surchargeAmount: order.surcharge_amount || "0",
+            vatRate: order.vat_rate || "0",
             items: []
           });
         }
@@ -49115,6 +49576,7 @@ Momtaz Chemical Technical Team`,
       const query = `
         SELECT co.id, co.order_number, co.customer_id, co.total_amount, co.status, 
                co.payment_method, co.created_at, co.updated_at, co.carrier,
+               co.shipping_cost, co.vat_amount, co.surcharge_amount, co.vat_rate,
                c.first_name as customer_first_name, c.last_name as customer_last_name, 
                c.email as customer_email, c.phone as customer_phone, c.company as customer_company,
                c.address as customer_address
@@ -49325,68 +49787,133 @@ Payment processed: ${paymentMethod}${transactionId ? ` (ID: ${transactionId})` :
           message: "Start date and end date are required"
         });
       }
+      const { db: db3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const { vendors: vendors3, vendorTransactions: vendorTransactions2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
+      const { shopProducts: shopProducts2 } = await Promise.resolve().then(() => (init_shop_schema(), shop_schema_exports));
+      const { eq: eq51, and: and37, gte: gte11, lte: lte10 } = await import("drizzle-orm");
       const orders3 = await customerStorage.getAllOrders();
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
       const filteredOrders = orders3.filter((order) => {
         const orderDate = new Date(order.createdAt);
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
         return orderDate >= start && orderDate <= end;
       });
-      const totalSales = filteredOrders.reduce(
-        (sum4, order) => sum4 + parseFloat(order.totalAmount),
-        0
-      );
-      const totalOrders = filteredOrders.length;
-      const productSalesMap = /* @__PURE__ */ new Map();
-      let totalQuantity = 0;
+      const vendorProductIds = /* @__PURE__ */ new Set();
+      const allProducts = await db3.select({ id: shopProducts2.id, vendorId: shopProducts2.vendorId }).from(shopProducts2);
+      for (const p of allProducts) {
+        if (p.vendorId) vendorProductIds.add(p.id);
+      }
+      const vendorTxProducts = await db3.select({ productId: vendorTransactions2.productId }).from(vendorTransactions2).where(eq51(vendorTransactions2.transactionType, "sale"));
+      for (const vtp of vendorTxProducts) {
+        if (vtp.productId) vendorProductIds.add(vtp.productId);
+      }
+      const companyProductSalesMap = /* @__PURE__ */ new Map();
+      let companyTotalSales = 0;
+      let companyTotalQuantity = 0;
+      const companyOrderIds = /* @__PURE__ */ new Set();
+      const companyDailyMap = /* @__PURE__ */ new Map();
       for (const order of filteredOrders) {
         const items = await customerStorage.getOrderItems(order.id);
         for (const item of items) {
-          const key = item.productName;
-          const existing = productSalesMap.get(key) || {
-            productName: item.productName,
-            quantity: 0,
-            totalAmount: 0,
-            orders: /* @__PURE__ */ new Set()
-          };
-          existing.quantity += Number(item.quantity);
-          existing.totalAmount += parseFloat(String(item.unitPrice)) * Number(item.quantity);
-          existing.orders.add(order.id);
-          totalQuantity += Number(item.quantity);
-          productSalesMap.set(key, existing);
+          const isVendorProduct = vendorProductIds.has(Number(item.productId));
+          const itemTotal = parseFloat(String(item.unitPrice)) * Number(item.quantity);
+          const qty = Number(item.quantity);
+          if (!isVendorProduct) {
+            const key = item.productName;
+            const existing = companyProductSalesMap.get(key) || {
+              productName: item.productName,
+              quantity: 0,
+              totalAmount: 0,
+              orders: /* @__PURE__ */ new Set()
+            };
+            existing.quantity += qty;
+            existing.totalAmount += itemTotal;
+            existing.orders.add(order.id);
+            companyTotalSales += itemTotal;
+            companyTotalQuantity += qty;
+            companyOrderIds.add(order.id);
+            companyProductSalesMap.set(key, existing);
+            const date3 = new Date(order.createdAt).toISOString().split("T")[0];
+            const dailyEntry = companyDailyMap.get(date3) || { date: date3, sales: 0, orders: /* @__PURE__ */ new Set() };
+            dailyEntry.sales += itemTotal;
+            dailyEntry.orders.add(order.id);
+            companyDailyMap.set(date3, dailyEntry);
+          }
         }
       }
-      const productSales = Array.from(productSalesMap.values()).map((product) => ({
-        ...product,
-        orders: product.orders.size
+      const companyProductSales = Array.from(companyProductSalesMap.values()).map((p) => ({
+        ...p,
+        orders: p.orders.size
       })).sort((a, b) => b.totalAmount - a.totalAmount);
-      const topProducts = productSales.slice(0, 8).map((product) => {
-        const percentage = totalSales > 0 ? product.totalAmount / totalSales * 100 : 0;
-        return {
-          name: product.productName,
-          value: product.totalAmount,
-          percentage: Math.round(percentage * 10) / 10
-        };
+      const companyTopProducts = companyProductSales.slice(0, 8).map((product) => {
+        const percentage = companyTotalSales > 0 ? product.totalAmount / companyTotalSales * 100 : 0;
+        return { name: product.productName, value: product.totalAmount, percentage: Math.round(percentage * 10) / 10 };
       });
-      const dailyMap = /* @__PURE__ */ new Map();
-      filteredOrders.forEach((order) => {
-        const date3 = new Date(order.createdAt).toISOString().split("T")[0];
-        const existing = dailyMap.get(date3) || { date: date3, sales: 0, orders: 0 };
-        existing.sales += parseFloat(order.totalAmount);
-        existing.orders += 1;
-        dailyMap.set(date3, existing);
-      });
-      const dailyBreakdown = Array.from(dailyMap.values()).sort(
-        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-      );
+      const dailyBreakdown = Array.from(companyDailyMap.values()).map((d) => ({
+        date: d.date,
+        sales: d.sales,
+        orders: d.orders.size
+      })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      let vendorCommissionRevenue = 0;
+      const vendorCommissionDetails = [];
+      try {
+        const { sql: sqlFn } = await import("drizzle-orm");
+        const transactionTotals = await db3.select({
+          vendorId: vendorTransactions2.vendorId,
+          transactionType: vendorTransactions2.transactionType,
+          totalAmount: sqlFn`COALESCE(SUM(CAST(${vendorTransactions2.amount} AS DECIMAL)), 0)::text`,
+          totalCommission: sqlFn`COALESCE(SUM(CAST(${vendorTransactions2.commissionAmount} AS DECIMAL)), 0)::text`
+        }).from(vendorTransactions2).groupBy(vendorTransactions2.vendorId, vendorTransactions2.transactionType);
+        const vendorSalesMap = /* @__PURE__ */ new Map();
+        const vendorCommissionMap = /* @__PURE__ */ new Map();
+        const vendorPaymentsMap = /* @__PURE__ */ new Map();
+        for (const row of transactionTotals) {
+          if (row.transactionType === "sale") {
+            vendorSalesMap.set(row.vendorId, row.totalAmount);
+            vendorCommissionMap.set(row.vendorId, row.totalCommission);
+          } else if (row.transactionType === "payment") {
+            vendorPaymentsMap.set(row.vendorId, row.totalAmount);
+          }
+        }
+        if (vendorSalesMap.size > 0) {
+          const vendorRows = await db3.select({ id: vendors3.id, vendorName: vendors3.vendorName, commissionRate: vendors3.commissionRate }).from(vendors3);
+          for (const v of vendorRows) {
+            const totalSales = parseFloat(vendorSalesMap.get(v.id) || "0");
+            const totalCommission = parseFloat(vendorCommissionMap.get(v.id) || "0");
+            const totalPaid = parseFloat(vendorPaymentsMap.get(v.id) || "0");
+            if (totalSales === 0 && totalCommission === 0) continue;
+            const currentBalance = totalSales - totalCommission - totalPaid;
+            vendorCommissionRevenue += totalCommission;
+            const effectiveRate = totalSales > 0 ? Math.round(totalCommission / totalSales * 1e3) / 10 : parseFloat(v.commissionRate || "10");
+            vendorCommissionDetails.push({
+              vendorName: v.vendorName || `Vendor ${v.id}`,
+              totalSales,
+              commissionRate: effectiveRate,
+              commissionAmount: totalCommission,
+              totalPaid,
+              currentBalance
+            });
+          }
+        }
+      } catch (vendorErr) {
+        console.error("Error fetching vendor commission data:", vendorErr);
+      }
+      vendorCommissionDetails.sort((a, b) => b.commissionAmount - a.commissionAmount);
       const reportData = {
-        totalSales,
-        totalOrders,
-        totalQuantity,
-        productSales,
+        totalSales: companyTotalSales,
+        totalOrders: companyOrderIds.size,
+        totalQuantity: companyTotalQuantity,
+        productSales: companyProductSales,
         dailyBreakdown,
-        topProducts
+        topProducts: companyTopProducts,
+        vendorCommission: {
+          totalCommissionRevenue: vendorCommissionRevenue,
+          totalVendorSales: vendorCommissionDetails.reduce((s, d) => s + d.totalSales, 0),
+          vendorCount: vendorCommissionDetails.length,
+          details: vendorCommissionDetails
+        },
+        grandTotalRevenue: companyTotalSales + vendorCommissionRevenue
       };
       res.json(reportData);
     } catch (error) {
@@ -49501,9 +50028,13 @@ Payment processed: ${paymentMethod}${transactionId ? ` (ID: ${transactionId})` :
         discount: parseFloat(discount.discountPercentage) / 100
       })).sort((a, b) => a.minQty - b.minQty);
       const products = await shopStorage.getShopProducts();
-      const productsToUpdate = products.filter(
-        (product) => !product.quantityDiscounts || product.quantityDiscounts === null
-      );
+      const productsToUpdate = products.filter((product) => {
+        if (product.bulkPurchaseEnabled || product.bulk_purchase_enabled) {
+          return false;
+        }
+        return !product.quantityDiscounts || product.quantityDiscounts === null;
+      });
+      const bulkSkippedCount = products.filter((p) => p.bulkPurchaseEnabled || p.bulk_purchase_enabled).length;
       let updatedCount = 0;
       for (const product of productsToUpdate) {
         await shopStorage.updateShopProduct(product.id, {
@@ -49511,11 +50042,13 @@ Payment processed: ${paymentMethod}${transactionId ? ` (ID: ${transactionId})` :
         });
         updatedCount++;
       }
+      console.log(`\u{1F3AF} [DISCOUNT SYNC] Applied to ${updatedCount} products, skipped ${bulkSkippedCount} bulk-purchase products`);
       res.json({
         success: true,
-        message: `Applied centralized discounts to ${updatedCount} products`,
+        message: `Applied centralized discounts to ${updatedCount} products (${bulkSkippedCount} bulk-purchase products skipped)`,
         discountsApplied: quantityDiscounts,
         productsUpdated: updatedCount,
+        bulkSkipped: bulkSkippedCount,
         totalProducts: products.length
       });
     } catch (error) {
@@ -53880,13 +54413,17 @@ ${message}` : ""}
                 'quantity', oi.quantity,
                 'price', oi.price,
                 'sku', oi.sku,
-                'barcode', oi.barcode
+                'barcode', oi.barcode,
+                'vendor_id', sp.vendor_id,
+                'vendor_name', v.vendor_name
               )
             ) FILTER (WHERE oi.id IS NOT NULL),
             '[]'::json
           ) as items
         FROM orders o
         LEFT JOIN order_items oi ON o.id = oi.order_id
+        LEFT JOIN shop_products sp ON oi.product_id = sp.id
+        LEFT JOIN vendors v ON sp.vendor_id = v.id
         LEFT JOIN order_management om ON o.id = om.customer_order_id
         WHERE o.status IN ('financial_approved', 'warehouse_pending', 'warehouse_processing', 'warehouse_verified', 'warehouse_approved')
         GROUP BY o.id, o.customer_name, o.customer_email, o.total_amount, o.status, 
@@ -56609,6 +57146,7 @@ ${message}` : ""}
           'payment_uploaded', 
           'financial_reviewing',
           'financial_rejected',
+          'finance_pending',
           'warehouse_pending',
           'warehouse_processing',
           'warehouse_approved'
@@ -59045,6 +59583,7 @@ momtazchem.com
             subtotal: "\u0627\u0644\u0645\u062C\u0645\u0648\u0639 \u0627\u0644\u0641\u0631\u0639\u064A",
             discount: "\u0627\u0644\u062E\u0635\u0645",
             tax: "\u0627\u0644\u0636\u0631\u064A\u0628\u0629",
+            shipping: "\u0623\u062C\u0648\u0631 \u0627\u0644\u0634\u062D\u0646",
             finalTotal: "\u0627\u0644\u0645\u062C\u0645\u0648\u0639 \u0627\u0644\u0646\u0647\u0627\u0626\u064A",
             paid: "\u0645\u062F\u0641\u0648\u0639\u0629",
             due: "\u0645\u0633\u062A\u062D\u0642\u0629",
@@ -59073,6 +59612,7 @@ momtazchem.com
             subtotal: "\u06A9\u06C6\u06CC \u0644\u0627\u0648\u06D5\u06A9\u06CC",
             discount: "\u062F\u0627\u0634\u06A9\u0627\u0646\u062F\u0646",
             tax: "\u0628\u0627\u062C",
+            shipping: "\u06A9\u0631\u06CE\u06CC \u06AF\u0648\u0627\u0633\u062A\u0646\u06D5\u0648\u06D5",
             finalTotal: "\u06A9\u06C6\u06CC \u06A9\u06C6\u062A\u0627\u06CC\u06CC",
             paid: "\u067E\u06CE\u062F\u0631\u0627\u0648",
             due: "\u0628\u06D5\u062F\u0648\u0627\u06CC\u06D5",
@@ -59101,6 +59641,7 @@ momtazchem.com
             subtotal: "Ara Toplam",
             discount: "\u0130ndirim",
             tax: "Vergi",
+            shipping: "Kargo \xDCcreti",
             finalTotal: "Genel Toplam",
             paid: "\xD6dendi",
             due: "\xD6denmedi",
@@ -59129,6 +59670,7 @@ momtazchem.com
             subtotal: "Subtotal",
             discount: "Discount",
             tax: "Tax",
+            shipping: "Shipping",
             finalTotal: "Final Total",
             paid: "Paid",
             due: "Due",
@@ -59368,6 +59910,12 @@ momtazchem.com
                     <tr>
                         <td class="multilingual-text"><strong>${t.discount}:</strong></td>
                         <td class="multilingual-text"><strong>-${invoice.discountAmount} ${invoice.currency}</strong></td>
+                    </tr>
+                    ` : ""}
+                    ${invoice.shippingAmount && parseFloat(invoice.shippingAmount) > 0 ? `
+                    <tr>
+                        <td class="multilingual-text"><strong>${t.shipping}:</strong></td>
+                        <td class="multilingual-text"><strong>${invoice.shippingAmount} ${invoice.currency}</strong></td>
                     </tr>
                     ` : ""}
                     ${invoice.taxAmount && parseFloat(invoice.taxAmount) > 0 ? `
@@ -60444,6 +60992,70 @@ momtazchem.com
         });
         console.log("\u{1F4B0} [WALLET-RECHARGE] New wallet created:", wallet);
       }
+      if (paymentMethod === "online_payment") {
+        console.log("\u{1F4B0} [WALLET-RECHARGE] Online payment selected, checking active gateway...");
+        const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+        const gatewayResult = await pool3.query(`
+          SELECT id, name, type, enabled, config 
+          FROM payment_gateways 
+          WHERE enabled = true 
+          ORDER BY updated_at DESC 
+          LIMIT 1
+        `);
+        if (gatewayResult.rows.length === 0) {
+          return res.status(400).json({
+            success: false,
+            message: "\u0647\u06CC\u0686 \u062F\u0631\u06AF\u0627\u0647 \u067E\u0631\u062F\u0627\u062E\u062A \u0641\u0639\u0627\u0644\u06CC \u06CC\u0627\u0641\u062A \u0646\u0634\u062F"
+          });
+        }
+        const activeGateway = gatewayResult.rows[0];
+        console.log("\u{1F4B0} [WALLET-RECHARGE] Active gateway:", activeGateway.type);
+        const rechargeRequest2 = await walletStorage.createRechargeRequest({
+          customerId: req.session.customerId,
+          walletId: wallet.id,
+          amount: amount.toString(),
+          currency: currency || "IQD",
+          paymentMethod: "online_payment",
+          paymentReference: "",
+          customerNotes,
+          status: "pending_payment"
+        });
+        if (activeGateway.type === "fib") {
+          try {
+            const { fibService: fibService2 } = await Promise.resolve().then(() => (init_fib_service(), fib_service_exports));
+            const baseUrl = process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : process.env.BASE_URL || "https://momtazchem.com";
+            const payment = await fibService2.createPayment({
+              amount: amount.toString(),
+              currency: currency || "IQD",
+              description: `\u0634\u0627\u0631\u0698 \u06A9\u06CC\u0641 \u067E\u0648\u0644 - \u062F\u0631\u062E\u0648\u0627\u0633\u062A #${rechargeRequest2.id}`,
+              customerId: req.session.customerId,
+              callbackUrl: `${baseUrl}/api/wallet/fib-callback?rechargeId=${rechargeRequest2.id}`
+            });
+            console.log("\u{1F4B0} [WALLET-RECHARGE] FIB payment created:", payment);
+            await pool3.query(`
+              UPDATE wallet_recharge_requests 
+              SET payment_reference = $1, status = 'pending_payment'
+              WHERE id = $2
+            `, [payment.paymentId, rechargeRequest2.id]);
+            return res.json({
+              success: true,
+              paymentUrl: payment.paymentUrl,
+              paymentId: payment.paymentId,
+              rechargeId: rechargeRequest2.id
+            });
+          } catch (fibError) {
+            console.error("\u{1F4B0} [WALLET-RECHARGE] FIB payment error:", fibError);
+            return res.status(500).json({
+              success: false,
+              message: fibError.message || "\u062E\u0637\u0627 \u062F\u0631 \u0627\u06CC\u062C\u0627\u062F \u067E\u0631\u062F\u0627\u062E\u062A FIB"
+            });
+          }
+        }
+        return res.status(400).json({
+          success: false,
+          message: `\u0646\u0648\u0639 \u062F\u0631\u06AF\u0627\u0647 ${activeGateway.type} \u067E\u0634\u062A\u06CC\u0628\u0627\u0646\u06CC \u0646\u0645\u06CC\u200C\u0634\u0648\u062F`
+        });
+      }
       console.log("\u{1F4B0} [WALLET-RECHARGE] Creating recharge request...");
       const rechargeRequest = await walletStorage.createRechargeRequest({
         customerId: req.session.customerId,
@@ -60459,6 +61071,59 @@ momtazchem.com
     } catch (error) {
       console.error("\u{1F4B0} [WALLET-RECHARGE] ERROR:", error);
       res.status(500).json({ success: false, message: "Failed to create recharge request" });
+    }
+  });
+  app2.get("/api/wallet/fib-callback", async (req, res) => {
+    try {
+      const { rechargeId, status } = req.query;
+      console.log("\u{1F4B0} [WALLET-FIB-CALLBACK] Received callback:", { rechargeId, status });
+      if (!rechargeId) {
+        return res.redirect("/customer-wallet?error=invalid_request");
+      }
+      const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const requestResult = await pool3.query(`
+        SELECT * FROM wallet_recharge_requests WHERE id = $1
+      `, [rechargeId]);
+      if (requestResult.rows.length === 0) {
+        return res.redirect("/customer-wallet?error=request_not_found");
+      }
+      const rechargeRequest = requestResult.rows[0];
+      const paymentId = rechargeRequest.payment_reference;
+      if (!paymentId) {
+        return res.redirect("/customer-wallet?error=payment_not_found");
+      }
+      const { fibService: fibService2 } = await Promise.resolve().then(() => (init_fib_service(), fib_service_exports));
+      const paymentStatus = await fibService2.checkPaymentStatus(paymentId);
+      console.log("\u{1F4B0} [WALLET-FIB-CALLBACK] Payment status:", paymentStatus);
+      if (paymentStatus.status === "PAID") {
+        await pool3.query(`
+          UPDATE wallet_recharge_requests 
+          SET status = 'approved', approved_at = NOW()
+          WHERE id = $1
+        `, [rechargeId]);
+        const amount = parseFloat(rechargeRequest.amount);
+        await walletStorage.creditWallet(
+          rechargeRequest.customer_id,
+          amount,
+          `\u0634\u0627\u0631\u0698 \u06A9\u06CC\u0641 \u067E\u0648\u0644 \u0627\u0632 \u0637\u0631\u06CC\u0642 \u062F\u0631\u06AF\u0627\u0647 FIB - \u062F\u0631\u062E\u0648\u0627\u0633\u062A #${rechargeId}`,
+          "wallet_recharge",
+          parseInt(rechargeId)
+        );
+        console.log("\u{1F4B0} [WALLET-FIB-CALLBACK] Wallet credited successfully");
+        return res.redirect("/customer-wallet?success=payment_completed");
+      } else if (paymentStatus.status === "CANCELLED" || paymentStatus.status === "FAILED") {
+        await pool3.query(`
+          UPDATE wallet_recharge_requests 
+          SET status = 'failed'
+          WHERE id = $1
+        `, [rechargeId]);
+        return res.redirect("/customer-wallet?error=payment_failed");
+      } else {
+        return res.redirect("/customer-wallet?status=pending");
+      }
+    } catch (error) {
+      console.error("\u{1F4B0} [WALLET-FIB-CALLBACK] Error:", error);
+      return res.redirect("/customer-wallet?error=callback_error");
     }
   });
   app2.get("/api/customer/wallet/recharge-requests", async (req, res) => {
@@ -63664,7 +64329,7 @@ ${notes ? "\u06CC\u0627\u062F\u062F\u0627\u0634\u062A: " + notes : ""}
     try {
       const { db: db3 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { orderManagement: orderManagement2, orderStatusHistory: orderStatusHistory3 } = await Promise.resolve().then(() => (init_order_management_schema(), order_management_schema_exports));
-      const { eq: eq51, and: and37, or: or15 } = await import("drizzle-orm");
+      const { eq: eq51, and: and37, or: or16 } = await import("drizzle-orm");
       const orderId = parseInt(req.params.orderId);
       const { notes } = req.body;
       const adminId2 = req.session.adminId;
@@ -63709,7 +64374,7 @@ ${notes ? "\u06CC\u0627\u062F\u062F\u0627\u0634\u062A: " + notes : ""}
         warehouseNotes: notes
       }).where(and37(
         eq51(orderManagement2.id, orderId),
-        or15(
+        or16(
           eq51(orderManagement2.currentStatus, "warehouse_pending"),
           eq51(orderManagement2.currentStatus, "warehouse_processing"),
           eq51(orderManagement2.currentStatus, "financial_approved")
@@ -63788,7 +64453,7 @@ ${notes ? "\u06CC\u0627\u062F\u062F\u0627\u0634\u062A: " + notes : ""}
     try {
       const { db: db3 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { orderManagement: orderManagement2, orderStatusHistory: orderStatusHistory3 } = await Promise.resolve().then(() => (init_order_management_schema(), order_management_schema_exports));
-      const { eq: eq51, and: and37, or: or15 } = await import("drizzle-orm");
+      const { eq: eq51, and: and37, or: or16 } = await import("drizzle-orm");
       const orderId = parseInt(req.params.orderId);
       const { notes } = req.body;
       const adminId2 = req.session.adminId;
@@ -63814,7 +64479,7 @@ ${notes ? "\u06CC\u0627\u062F\u062F\u0627\u0634\u062A: " + notes : ""}
         warehouseNotes: notes
       }).where(and37(
         eq51(orderManagement2.id, orderId),
-        or15(
+        or16(
           eq51(orderManagement2.currentStatus, "warehouse_pending"),
           eq51(orderManagement2.currentStatus, "warehouse_processing"),
           eq51(orderManagement2.currentStatus, "financial_approved")
@@ -64408,7 +65073,7 @@ ${notes ? "\u06CC\u0627\u062F\u062F\u0627\u0634\u062A: " + notes : ""}
     try {
       const { db: db3 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { contentItems: contentItems3 } = await Promise.resolve().then(() => (init_content_schema(), content_schema_exports));
-      const { eq: eq51, or: or15 } = await import("drizzle-orm");
+      const { eq: eq51, or: or16 } = await import("drizzle-orm");
       const toggleItems = await db3.select().from(contentItems3).where(eq51(contentItems3.key, "discount_banner_enabled"));
       const controls = {
         discountBannerEnabled: false,
@@ -66074,7 +66739,7 @@ ${notes ? "\u06CC\u0627\u062F\u062F\u0627\u0634\u062A: " + notes : ""}
       if (!rating || rating < 1 || rating > 5) {
         return res.status(400).json({ success: false, message: "\u0627\u0645\u062A\u06CC\u0627\u0632 \u0628\u0627\u06CC\u062F \u0628\u06CC\u0646 1 \u062A\u0627 5 \u0633\u062A\u0627\u0631\u0647 \u0628\u0627\u0634\u062F" });
       }
-      if (!comment || comment.trim().length === 0) {
+      if (false ? comment.trim() : null.length === 0) {
         return res.status(400).json({ success: false, message: "\u0645\u062A\u0646 \u0646\u0638\u0631 \u0627\u0644\u0632\u0627\u0645\u06CC \u0627\u0633\u062A" });
       }
       const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
@@ -66100,7 +66765,7 @@ ${notes ? "\u06CC\u0627\u062F\u062F\u0627\u0634\u062A: " + notes : ""}
           SET rating = $1, title = $2, comment = $3, updated_at = NOW()
           WHERE product_id = $4 AND customer_id = $5
           RETURNING id
-        `, [rating, title || null, comment.trim(), productId, customerId]);
+        `, [rating, title || null, comment ? comment.trim() : null, productId, customerId]);
         isUpdate = true;
       } else {
         reviewResult = await pool3.query(`
@@ -66116,7 +66781,7 @@ ${notes ? "\u06CC\u0627\u062F\u062F\u0627\u0634\u062A: " + notes : ""}
           customer.email,
           rating,
           title || null,
-          comment.trim(),
+          comment ? comment.trim() : null,
           false
           // TODO: Check if verified purchase
         ]);
@@ -70756,7 +71421,7 @@ ${notes ? "\u06CC\u0627\u062F\u062F\u0627\u0634\u062A: " + notes : ""}
       ];
       const csvRows = [];
       for (const order of filteredOrders) {
-        const orderDate = new Date(order.createdAt).toLocaleDateString("fa-IR");
+        const orderDate = new Date(order.createdAt).toLocaleDateString("en-GB", { year: "numeric", month: "2-digit", day: "2-digit" });
         const deliveryDate = order.deliveredAt ? new Date(order.deliveredAt).toLocaleDateString("fa-IR") : "\u062A\u062D\u0648\u06CC\u0644 \u0646\u0634\u062F\u0647";
         if (order.items && order.items.length > 0) {
           for (const item of order.items) {
@@ -72035,16 +72700,16 @@ ${notes ? "\u06CC\u0627\u062F\u062F\u0627\u0634\u062A: " + notes : ""}
     if (customerStatus === "deleted") return "cancelled";
     if (customerStatus === "delivered") return "delivered";
     if (paymentStatus === "paid") {
-      if (customerStatus === "pending") return "warehouse_ready";
-      if (customerStatus === "confirmed") return "warehouse_ready";
-      if (customerStatus === "warehouse_ready") return "warehouse_ready";
-      return "warehouse_ready";
+      if (customerStatus === "pending") return "finance_pending";
+      if (customerStatus === "confirmed") return "warehouse_pending";
+      if (customerStatus === "warehouse_ready") return "warehouse_pending";
+      return "finance_pending";
     }
     if (paymentStatus === "receipt_uploaded") {
-      return "financial_review";
+      return "finance_pending";
     }
     if (paymentStatus === "pending") {
-      return "payment_uploaded";
+      return "pending";
     }
     if (paymentStatus === "grace_period") {
       return "payment_grace_period";
@@ -74720,6 +75385,7 @@ ${notes ? "\u06CC\u0627\u062F\u062F\u0627\u0634\u062A: " + notes : ""}
       }
       const { db: db3 } = await Promise.resolve().then(() => (init_db(), db_exports));
       const { showcaseProducts: showcaseProducts2 } = await Promise.resolve().then(() => (init_showcase_schema(), showcase_schema_exports));
+      const { shopProducts: shopProducts2 } = await Promise.resolve().then(() => (init_shop_schema(), shop_schema_exports));
       const { eq: eq51 } = await import("drizzle-orm");
       const [updatedProduct] = await db3.update(showcaseProducts2).set({
         commissionOverride: commissionOverride !== null ? commissionOverride.toString() : null,
@@ -74727,6 +75393,18 @@ ${notes ? "\u06CC\u0627\u062F\u062F\u0627\u0634\u062A: " + notes : ""}
       }).where(eq51(showcaseProducts2.id, productId)).returning();
       if (!updatedProduct) {
         return res.status(404).json({ success: false, message: "\u0645\u062D\u0635\u0648\u0644 \u06CC\u0627\u0641\u062A \u0646\u0634\u062F" });
+      }
+      try {
+        const sku = updatedProduct.sku;
+        if (sku) {
+          await db3.update(shopProducts2).set({
+            commissionRate: commissionOverride !== null ? commissionOverride.toString() : null,
+            updatedAt: /* @__PURE__ */ new Date()
+          }).where(eq51(shopProducts2.sku, sku));
+          console.log(`\u{1F4E6} [PRODUCT COMMISSION] Synced commission rate to shop_products for SKU ${sku}`);
+        }
+      } catch (syncError) {
+        console.error(`\u26A0\uFE0F [PRODUCT COMMISSION] Failed to sync to shop_products:`, syncError);
       }
       console.log(`\u{1F4E6} [PRODUCT COMMISSION] Updated product ${productId} commission override to ${commissionOverride === null ? "default" : commissionOverride + "%"}`);
       res.json({ success: true, product: updatedProduct, message: "\u062F\u0631\u0635\u062F \u06A9\u0645\u06CC\u0633\u06CC\u0648\u0646 \u0645\u062D\u0635\u0648\u0644 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u0628\u0631\u0648\u0632\u0631\u0633\u0627\u0646\u06CC \u0634\u062F" });
@@ -74736,6 +75414,237 @@ ${notes ? "\u06CC\u0627\u062F\u062F\u0627\u0634\u062A: " + notes : ""}
     }
   });
   console.log("\u2705 [VENDOR ACCOUNTING] Vendor accounting routes registered");
+  app2.get("/api/warehouse/inventory-products", requireAuth, async (req, res) => {
+    try {
+      const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const result = await pool3.query(`
+        SELECT 
+          sp.id,
+          sp.name,
+          sp.sku,
+          sp.barcode,
+          sp.stock_quantity as "stockQuantity",
+          sp.min_stock_level as "minStockLevel",
+          sp.max_stock_level as "maxStockLevel",
+          COALESCE(sp.low_stock_threshold, sp.min_stock_level, 0) as "lowStockThreshold",
+          sp.is_active as "isActive",
+          sp.vendor_id as "vendorId",
+          COALESCE(v.vendor_name, '\u0645\u0645\u062A\u0627\u0632 \u06A9\u0645') as "vendorName"
+        FROM showcase_products sp
+        LEFT JOIN vendors v ON sp.vendor_id = v.id
+        WHERE sp.is_active = true
+        ORDER BY sp.name ASC
+      `);
+      res.json({
+        success: true,
+        products: result.rows
+      });
+    } catch (error) {
+      console.error("\u274C [WAREHOUSE INVENTORY] Error fetching products:", error);
+      res.status(500).json({
+        success: false,
+        message: "\u062E\u0637\u0627 \u062F\u0631 \u062F\u0631\u06CC\u0627\u0641\u062A \u0627\u0637\u0644\u0627\u0639\u0627\u062A \u0645\u0648\u062C\u0648\u062F\u06CC"
+      });
+    }
+  });
+  app2.patch("/api/warehouse/inventory-products/:id", requireAuth, async (req, res) => {
+    try {
+      const productId = parseInt(req.params.id);
+      const { minStockLevel, maxStockLevel, lowStockThreshold } = req.body;
+      const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      await pool3.query(`
+        UPDATE showcase_products SET
+          min_stock_level = $1,
+          max_stock_level = $2,
+          low_stock_threshold = $3,
+          updated_at = NOW()
+        WHERE id = $4
+      `, [minStockLevel || 0, maxStockLevel || 0, lowStockThreshold || 0, productId]);
+      console.log(`\u2705 [WAREHOUSE INVENTORY] Updated inventory settings for product ${productId}`);
+      res.json({
+        success: true,
+        message: "\u062A\u0646\u0638\u06CC\u0645\u0627\u062A \u0645\u0648\u062C\u0648\u062F\u06CC \u0645\u062D\u0635\u0648\u0644 \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u0630\u062E\u06CC\u0631\u0647 \u0634\u062F"
+      });
+    } catch (error) {
+      console.error("\u274C [WAREHOUSE INVENTORY] Error updating product:", error);
+      res.status(500).json({
+        success: false,
+        message: "\u062E\u0637\u0627 \u062F\u0631 \u0630\u062E\u06CC\u0631\u0647 \u062A\u0646\u0638\u06CC\u0645\u0627\u062A"
+      });
+    }
+  });
+  app2.get("/api/warehouse/inventory-notification-settings", requireAuth, async (req, res) => {
+    try {
+      const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const settingsResult = await pool3.query(`
+        SELECT setting_key, setting_value, setting_type
+        FROM shop_settings 
+        WHERE category = 'warehouse_inventory_notifications'
+      `);
+      const settingsMap = {};
+      for (const row of settingsResult.rows) {
+        if (row.setting_type === "boolean") {
+          settingsMap[row.setting_key] = row.setting_value === "true";
+        } else if (row.setting_type === "number") {
+          settingsMap[row.setting_key] = parseInt(row.setting_value) || 0;
+        } else if (row.setting_type === "json") {
+          try {
+            settingsMap[row.setting_key] = JSON.parse(row.setting_value);
+          } catch {
+            settingsMap[row.setting_key] = row.setting_value;
+          }
+        } else {
+          settingsMap[row.setting_key] = row.setting_value;
+        }
+      }
+      res.json({
+        success: true,
+        settings: {
+          emailEnabled: settingsMap.email_enabled ?? true,
+          smsEnabled: settingsMap.sms_enabled ?? false,
+          whatsappEnabled: settingsMap.whatsapp_enabled ?? false,
+          maxNotifications: settingsMap.max_notifications ?? 1,
+          notificationIntervalHours: settingsMap.notification_interval_hours ?? 24,
+          recipients: settingsMap.recipients ?? []
+        }
+      });
+    } catch (error) {
+      console.error("\u274C [WAREHOUSE INVENTORY] Error fetching notification settings:", error);
+      res.status(500).json({
+        success: false,
+        message: "\u062E\u0637\u0627 \u062F\u0631 \u062F\u0631\u06CC\u0627\u0641\u062A \u062A\u0646\u0638\u06CC\u0645\u0627\u062A"
+      });
+    }
+  });
+  app2.post("/api/warehouse/inventory-notification-settings", requireAuth, async (req, res) => {
+    try {
+      const { emailEnabled, smsEnabled, whatsappEnabled, maxNotifications, notificationIntervalHours, recipients } = req.body;
+      const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const settings = [
+        { key: "email_enabled", value: String(emailEnabled), type: "boolean" },
+        { key: "sms_enabled", value: String(smsEnabled), type: "boolean" },
+        { key: "whatsapp_enabled", value: String(whatsappEnabled), type: "boolean" },
+        { key: "max_notifications", value: String(maxNotifications || 1), type: "number" },
+        { key: "notification_interval_hours", value: String(notificationIntervalHours || 24), type: "number" },
+        { key: "recipients", value: JSON.stringify(recipients || []), type: "json" }
+      ];
+      for (const setting of settings) {
+        await pool3.query(`
+          INSERT INTO shop_settings (setting_key, setting_value, setting_type, category, display_name, display_name_en, is_public)
+          VALUES ($1, $2, $3, 'warehouse_inventory_notifications', $1, $1, false)
+          ON CONFLICT (setting_key) 
+          DO UPDATE SET setting_value = $2, updated_at = NOW()
+        `, [setting.key, setting.value, setting.type]);
+      }
+      console.log(`\u2705 [WAREHOUSE INVENTORY] Notification settings saved`);
+      res.json({
+        success: true,
+        message: "\u062A\u0646\u0638\u06CC\u0645\u0627\u062A \u0627\u0637\u0644\u0627\u0639\u200C\u0631\u0633\u0627\u0646\u06CC \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u0630\u062E\u06CC\u0631\u0647 \u0634\u062F"
+      });
+    } catch (error) {
+      console.error("\u274C [WAREHOUSE INVENTORY] Error saving notification settings:", error);
+      res.status(500).json({
+        success: false,
+        message: "\u062E\u0637\u0627 \u062F\u0631 \u0630\u062E\u06CC\u0631\u0647 \u062A\u0646\u0638\u06CC\u0645\u0627\u062A"
+      });
+    }
+  });
+  app2.post("/api/warehouse/test-notification/:type", requireAuth, async (req, res) => {
+    try {
+      const type = req.params.type;
+      console.log(`\u{1F4E7} [WAREHOUSE INVENTORY] Test notification requested: ${type}`);
+      const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const recipientsResult = await pool3.query(`
+        SELECT setting_value FROM shop_settings 
+        WHERE setting_key = 'recipients' AND category = 'warehouse_inventory_notifications'
+      `);
+      let recipients = [];
+      if (recipientsResult.rows.length > 0) {
+        try {
+          recipients = JSON.parse(recipientsResult.rows[0].setting_value);
+        } catch {
+        }
+      }
+      if (recipients.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "\u0647\u06CC\u0686 \u06AF\u06CC\u0631\u0646\u062F\u0647\u200C\u0627\u06CC \u062A\u0639\u0631\u06CC\u0641 \u0646\u0634\u062F\u0647 \u0627\u0633\u062A"
+        });
+      }
+      const activeRecipients = recipients.filter((r) => {
+        if (!r.isActive) return false;
+        if (type === "email") return r.receiveEmail && r.email;
+        if (type === "sms") return r.receiveSms && r.phone;
+        if (type === "whatsapp") return r.receiveWhatsapp && r.whatsappNumber;
+        return false;
+      });
+      if (activeRecipients.length === 0) {
+        const typeNames2 = { email: "\u0627\u06CC\u0645\u06CC\u0644", sms: "\u067E\u06CC\u0627\u0645\u06A9", whatsapp: "\u0648\u0627\u062A\u0633\u0627\u067E" };
+        return res.status(400).json({
+          success: false,
+          message: `\u0647\u06CC\u0686 \u06AF\u06CC\u0631\u0646\u062F\u0647 \u0641\u0639\u0627\u0644\u06CC \u0628\u0631\u0627\u06CC ${typeNames2[type] || type} \u06CC\u0627\u0641\u062A \u0646\u0634\u062F`
+        });
+      }
+      if (type === "email") {
+        const { emailService: emailService2 } = await Promise.resolve().then(() => (init_email_service(), email_service_exports));
+        for (const recipient of activeRecipients) {
+          await emailService2.sendCustomEmail(
+            recipient.email,
+            "\u062A\u0633\u062A \u0633\u06CC\u0633\u062A\u0645 \u0647\u0634\u062F\u0627\u0631 \u0645\u0648\u062C\u0648\u062F\u06CC - \u0645\u0645\u062A\u0627\u0632 \u0634\u06CC\u0645\u06CC",
+            `<div style="direction: rtl; font-family: Tahoma, Arial;">
+              <h2>\u062A\u0633\u062A \u0633\u06CC\u0633\u062A\u0645 \u0647\u0634\u062F\u0627\u0631 \u0645\u0648\u062C\u0648\u062F\u06CC</h2>
+              <p>\u0633\u0644\u0627\u0645 ${recipient.name}\u060C</p>
+              <p>\u0627\u06CC\u0646 \u06CC\u06A9 \u067E\u06CC\u0627\u0645 \u062A\u0633\u062A \u0627\u0632 \u0633\u06CC\u0633\u062A\u0645 \u0647\u0634\u062F\u0627\u0631 \u0645\u0648\u062C\u0648\u062F\u06CC \u0627\u0646\u0628\u0627\u0631 \u0627\u0633\u062A.</p>
+              <p>\u0627\u06AF\u0631 \u0627\u06CC\u0646 \u067E\u06CC\u0627\u0645 \u0631\u0627 \u062F\u0631\u06CC\u0627\u0641\u062A \u06A9\u0631\u062F\u0647\u200C\u0627\u06CC\u062F\u060C \u0633\u06CC\u0633\u062A\u0645 \u0627\u0637\u0644\u0627\u0639\u200C\u0631\u0633\u0627\u0646\u06CC \u0627\u06CC\u0645\u06CC\u0644 \u0628\u0647 \u062F\u0631\u0633\u062A\u06CC \u06A9\u0627\u0631 \u0645\u06CC\u200C\u06A9\u0646\u062F.</p>
+              <p>\u0628\u0627 \u0627\u062D\u062A\u0631\u0627\u0645\u060C<br/>\u0633\u06CC\u0633\u062A\u0645 \u0627\u0646\u0628\u0627\u0631 \u0645\u0645\u062A\u0627\u0632 \u0634\u06CC\u0645\u06CC</p>
+            </div>`
+          );
+        }
+      }
+      console.log(`\u2705 [WAREHOUSE INVENTORY] Test ${type} sent to ${activeRecipients.length} recipients`);
+      const typeNames = { email: "\u0627\u06CC\u0645\u06CC\u0644", sms: "\u067E\u06CC\u0627\u0645\u06A9", whatsapp: "\u0648\u0627\u062A\u0633\u0627\u067E" };
+      res.json({
+        success: true,
+        message: `\u062A\u0633\u062A ${typeNames[type] || type} \u0628\u0627 \u0645\u0648\u0641\u0642\u06CC\u062A \u0627\u0631\u0633\u0627\u0644 \u0634\u062F`,
+        recipientCount: activeRecipients.length
+      });
+    } catch (error) {
+      console.error("\u274C [WAREHOUSE INVENTORY] Error sending test notification:", error);
+      res.status(500).json({
+        success: false,
+        message: "\u062E\u0637\u0627 \u062F\u0631 \u0627\u0631\u0633\u0627\u0644 \u062A\u0633\u062A"
+      });
+    }
+  });
+  app2.get("/api/warehouse/admin-users", requireAuth, async (req, res) => {
+    try {
+      const { pool: pool3 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const result = await pool3.query(`
+        SELECT 
+          id,
+          full_name as "fullName",
+          email,
+          phone,
+          role_id as "roleId",
+          is_active as "isActive"
+        FROM custom_users
+        WHERE is_active = true
+        ORDER BY full_name ASC
+      `);
+      console.log(`\u{1F4CB} [WAREHOUSE ADMIN USERS] Found ${result.rows.length} active admin users`);
+      res.json({
+        success: true,
+        users: result.rows
+      });
+    } catch (error) {
+      console.error("\u274C [WAREHOUSE ADMIN USERS] Error fetching admin users:", error);
+      res.status(500).json({
+        success: false,
+        message: "\u062E\u0637\u0627 \u062F\u0631 \u062F\u0631\u06CC\u0627\u0641\u062A \u0644\u06CC\u0633\u062A \u06A9\u0627\u0631\u0628\u0631\u0627\u0646"
+      });
+    }
+  });
+  console.log("\u2705 [WAREHOUSE INVENTORY] Warehouse inventory management routes registered");
   return httpServer;
 }
 
@@ -75220,7 +76129,7 @@ init_sms_service();
 init_whatsapp_service();
 init_email_storage();
 import { Router as Router4 } from "express";
-import { eq as eq48, and as and34, gt as gt4 } from "drizzle-orm";
+import { eq as eq48, and as and34, gt as gt4, or as or14 } from "drizzle-orm";
 import nodemailer7 from "nodemailer";
 import bcrypt5 from "bcryptjs";
 var router4 = Router4();
@@ -75351,6 +76260,23 @@ router4.post("/api/customers/send-otp", async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Phone and email are required"
+      });
+    }
+    const existingCustomer = await db.query.crmCustomers.findFirst({
+      where: or14(
+        eq48(crmCustomers.email, email),
+        eq48(crmCustomers.phone, phone)
+      )
+    });
+    if (existingCustomer) {
+      const duplicateField = existingCustomer.email === email ? "email" : "phone";
+      const duplicateValue = duplicateField === "email" ? email : phone;
+      console.log(`\u26A0\uFE0F [OTP] Registration blocked - ${duplicateField} already exists: ${duplicateValue}`);
+      return res.status(409).json({
+        success: false,
+        message: duplicateField === "email" ? "\u0627\u06CC\u0646 \u0627\u06CC\u0645\u06CC\u0644 \u0642\u0628\u0644\u0627\u064B \u062B\u0628\u062A \u0634\u062F\u0647 \u0627\u0633\u062A. \u0627\u06AF\u0631 \u0631\u0645\u0632 \u0639\u0628\u0648\u0631 \u062E\u0648\u062F \u0631\u0627 \u0641\u0631\u0627\u0645\u0648\u0634 \u06A9\u0631\u062F\u0647\u200C\u0627\u06CC\u062F\u060C \u0627\u0632 \u06AF\u0632\u06CC\u0646\u0647 \xAB\u0641\u0631\u0627\u0645\u0648\u0634\u06CC \u0631\u0645\u0632 \u0639\u0628\u0648\u0631\xBB \u0627\u0633\u062A\u0641\u0627\u062F\u0647 \u06A9\u0646\u06CC\u062F." : "\u0627\u06CC\u0646 \u0634\u0645\u0627\u0631\u0647 \u062A\u0644\u0641\u0646 \u0642\u0628\u0644\u0627\u064B \u062B\u0628\u062A \u0634\u062F\u0647 \u0627\u0633\u062A. \u0627\u06AF\u0631 \u0631\u0645\u0632 \u0639\u0628\u0648\u0631 \u062E\u0648\u062F \u0631\u0627 \u0641\u0631\u0627\u0645\u0648\u0634 \u06A9\u0631\u062F\u0647\u200C\u0627\u06CC\u062F\u060C \u0627\u0632 \u06AF\u0632\u06CC\u0646\u0647 \xAB\u0641\u0631\u0627\u0645\u0648\u0634\u06CC \u0631\u0645\u0632 \u0639\u0628\u0648\u0631\xBB \u0627\u0633\u062A\u0641\u0627\u062F\u0647 \u06A9\u0646\u06CC\u062F.",
+        duplicateField,
+        duplicateValue
       });
     }
     const recentOtp = await db.query.customersOtp.findFirst({
@@ -75983,7 +76909,7 @@ init_schema();
 init_customer_schema();
 init_order_management_schema();
 init_db();
-import { eq as eq49, desc as desc27, and as and35, or as or14, like as like6, sql as sql30, count as count8, inArray as inArray5 } from "drizzle-orm";
+import { eq as eq49, desc as desc27, and as and35, or as or15, like as like6, sql as sql30, count as count8, inArray as inArray5 } from "drizzle-orm";
 import bcrypt6 from "bcryptjs";
 var VendorStorage = class {
   // ============================================================================
@@ -76232,7 +77158,7 @@ var VendorStorage = class {
     const searchPattern = `%${query}%`;
     const showcaseResults = await db.select().from(showcaseProducts).where(and35(
       eq49(showcaseProducts.vendorId, vendorId),
-      or14(
+      or15(
         like6(showcaseProducts.name, searchPattern),
         like6(showcaseProducts.sku, searchPattern),
         like6(showcaseProducts.barcode, searchPattern)
@@ -76240,7 +77166,7 @@ var VendorStorage = class {
     )).orderBy(desc27(showcaseProducts.createdAt));
     const shopResults = await db.select().from(shopProducts).where(and35(
       eq49(shopProducts.vendorId, vendorId),
-      or14(
+      or15(
         like6(shopProducts.name, searchPattern),
         like6(shopProducts.sku, searchPattern),
         like6(shopProducts.barcode, searchPattern)
@@ -76933,11 +77859,7 @@ function createVendorRouter() {
       const { showcaseProducts: products } = await Promise.resolve().then(() => (init_showcase_schema(), showcase_schema_exports));
       const { eq: eq51 } = await import("drizzle-orm");
       const vendorProducts = await db3.select().from(products).where(eq51(products.vendorId, req.vendorUser.vendorId)).orderBy(products.createdAt);
-      res.json({
-        success: true,
-        products: vendorProducts,
-        totalCount: vendorProducts.length
-      });
+      res.json(vendorProducts);
     } catch (error) {
       console.error("Error getting vendor products:", error);
       res.status(500).json({
@@ -77073,7 +77995,12 @@ function createVendorRouter() {
           message: "Product not found or you don't have permission to edit it"
         });
       }
-      const { vendorId: _ignored, id: _id, createdAt: _createdAt, ...bodyData } = req.body;
+      const { vendorId: _ignored, id: _id, createdAt: _createdAt, inventoryAddition, newBatchNumber, ...bodyData } = req.body;
+      if (inventoryAddition && Number(inventoryAddition) > 0 && !newBatchNumber?.trim()) {
+        const currentStock = existingProduct.stockQuantity || 0;
+        bodyData.stockQuantity = currentStock + Number(inventoryAddition);
+        console.log(`\u{1F4E6} [VENDOR INVENTORY] Adding ${inventoryAddition} to product ${productId}. New total: ${bodyData.stockQuantity}`);
+      }
       const updateData = {
         ...bodyData,
         updatedAt: /* @__PURE__ */ new Date()
@@ -77124,7 +78051,12 @@ function createVendorRouter() {
           errors: validationResult.error.errors
         });
       }
-      const { vendorId, ...updateData } = validationResult.data;
+      const { vendorId, inventoryAddition, newBatchNumber, ...updateData } = validationResult.data;
+      if (inventoryAddition && Number(inventoryAddition) > 0 && !newBatchNumber?.trim()) {
+        const currentStock = existingProduct.stockQuantity || 0;
+        updateData.stockQuantity = currentStock + Number(inventoryAddition);
+        console.log(`\u{1F4E6} [VENDOR SHOP INVENTORY] Adding ${inventoryAddition} to product ${productId}. New total: ${updateData.stockQuantity}`);
+      }
       const product = await shopStorage2.updateShopProduct(productId, updateData);
       res.json({
         success: true,
@@ -78845,6 +79777,7 @@ process.on("unhandledRejection", (reason, promise) => {
   console.error("Unhandled Rejection at:", promise, "reason:", reason);
 });
 var app = express3();
+app.set("trust proxy", 1);
 app.use(express3.json());
 app.use(express3.urlencoded({ extended: false }));
 var MemoryStoreSession = MemoryStore(session);
@@ -78943,11 +79876,12 @@ var vendorSessionMiddleware = session({
     maxAge: 24 * 60 * 60 * 1e3,
     // 24 hours
     sameSite: "lax",
-    path: "/api/vendor",
+    path: "/api/vendors",
     domain: void 0
   },
   name: "momtazchem.vendor.sid"
 });
+var isProduction = process.env.NODE_ENV === "production" || process.env.REPLIT_DEPLOYMENT === "1";
 var unifiedSessionMiddleware = session({
   secret: process.env.SESSION_SECRET || "momtazchem-unified-secret-key",
   store: adminSessionStore,
@@ -78957,12 +79891,17 @@ var unifiedSessionMiddleware = session({
   saveUninitialized: true,
   // Save new sessions to ensure they persist
   rolling: true,
+  proxy: isProduction,
+  // Trust reverse proxy in production
   cookie: {
-    secure: false,
-    httpOnly: false,
+    secure: isProduction,
+    // true for HTTPS in production
+    httpOnly: true,
+    // Protect against XSS
     maxAge: 24 * 60 * 60 * 1e3,
     // 24 hours
-    sameSite: "lax",
+    sameSite: isProduction ? "none" : "lax",
+    // 'none' for cross-origin HTTPS
     path: "/",
     domain: void 0
   },
