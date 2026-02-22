@@ -124,7 +124,7 @@ jobs:
           set -euo pipefail
           
           # متغیرهای محلی
-          DEPLOY_DIR="/opt/MomtazChem"
+          DEPLOY_DIR="/opt/momtazchem"
           IMAGE_NAME="mrghafari/momtazchem-api"
           IMAGE_TAG="${{ github.sha }}"
           CONTAINER_NAME="momtaz-app"
