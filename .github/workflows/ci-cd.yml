@@ -8,7 +8,7 @@ on:
 
 env:
   IMAGE_NAME: mrghafari/momtazchem-api
-  DEPLOY_DIR: /root/opt/MomtazChem
+  DEPLOY_DIR: /opt/momtazchem
   REGISTRY: docker.io
 
 jobs:
