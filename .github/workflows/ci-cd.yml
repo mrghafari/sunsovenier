@@ -106,16 +106,22 @@ jobs:
           ssh-known-hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
 
       - name: Deploy to production server
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          AWS_CREDENTIALS_ENCRYPTION_KEY: ${{ secrets.AWS_CREDENTIALS_ENCRYPTION_KEY }}
-          PRIVATE_OBJECT_DIR: ${{ secrets.PRIVATE_OBJECT_DIR }}
         run: |
+          # ذخیره متغیرهای environment در فایل موقت
+          cat > /tmp/deploy_env.sh << 'ENV_VARS'
+          export DATABASE_URL="${{ secrets.DATABASE_URL }}"
+          export SESSION_SECRET="${{ secrets.SESSION_SECRET }}"
+          export OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}"
+          export AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}"
+          export AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+          export AWS_REGION="${{ secrets.AWS_REGION }}"
+          export AWS_CREDENTIALS_ENCRYPTION_KEY="${{ secrets.AWS_CREDENTIALS_ENCRYPTION_KEY }}"
+          export PRIVATE_OBJECT_DIR="${{ secrets.PRIVATE_OBJECT_DIR }}"
+          ENV_VARS
+          
+          chmod +x /tmp/deploy_env.sh
+          source /tmp/deploy_env.sh
+          
           ssh -o StrictHostKeyChecking=no \
               -o ConnectTimeout=10 \
               -o BatchMode=yes \
@@ -188,22 +194,28 @@ jobs:
           
           # Update docker-compose.yml
           log "📝 به‌روزرسانی docker-compose.yml..."
-          sed -i "s|image: .*|image: $IMAGE_NAME:$IMAGE_TAG|g" docker-compose.yml
+          sed -i "s|image: .*momtazchem.*|image: $IMAGE_NAME:$IMAGE_TAG|g" docker-compose.yml
           log "✓ docker-compose.yml به‌روزرسانی شد"
           
-          # Create/Update .env file
+          # Create/Update .env file with proper escaping
           log "📝 به‌روزرسانی متغیرهای محیطی..."
-          cat > "$DEPLOY_DIR/.env" << 'ENV_EOF'
+          cat > "$DEPLOY_DIR/.env" << 'ENV_END'
           NODE_ENV=production
-          DATABASE_URL=${{ secrets.DATABASE_URL }}
-          SESSION_SECRET=${{ secrets.SESSION_SECRET }}
-          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
-          AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION=${{ secrets.AWS_REGION }}
-          AWS_CREDENTIALS_ENCRYPTION_KEY=${{ secrets.AWS_CREDENTIALS_ENCRYPTION_KEY }}
-          PRIVATE_OBJECT_DIR=${{ secrets.PRIVATE_OBJECT_DIR }}
-          ENV_EOF
+          DATABASE_URL=$DATABASE_URL
+          SESSION_SECRET=$SESSION_SECRET
+          OPENAI_API_KEY=$OPENAI_API_KEY
+          AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+          AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+          AWS_REGION=$AWS_REGION
+          AWS_CREDENTIALS_ENCRYPTION_KEY=$AWS_CREDENTIALS_ENCRYPTION_KEY
+          PRIVATE_OBJECT_DIR=$PRIVATE_OBJECT_DIR
+          ENV_END
+          
+          # Load environment variables for this session
+          set -a
+          source .env
+          set +a
+          
           log "✓ فایل .env به‌روزرسانی شد"
           
           # Ensure uploads directory exists
@@ -252,6 +264,8 @@ jobs:
           fi
           
           DEPLOY_EOF
+          
+          rm -f /tmp/deploy_env.sh
 
       - name: Notify deployment status
         if: always()
