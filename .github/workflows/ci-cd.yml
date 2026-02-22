@@ -1,4 +1,4 @@
-name: MomtazChem Production Pipeline
+name: momtazchem Production Pipeline
 
 on:
   push:
