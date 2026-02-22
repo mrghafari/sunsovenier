@@ -62,6 +62,13 @@ jobs:
             -e PORT=5000 \
             -e HOST=0.0.0.0 \
             -e DATABASE_URL=dummy \
+            -e SESSION_SECRET=test-secret \
+            -e OPENAI_API_KEY=dummy \
+            -e AWS_ACCESS_KEY_ID=dummy \
+            -e AWS_SECRET_ACCESS_KEY=dummy \
+            -e AWS_REGION=us-east-1 \
+            -e AWS_CREDENTIALS_ENCRYPTION_KEY=dummy \
+            -e PRIVATE_OBJECT_DIR=/app/uploads \
             --health-cmd='curl -f http://localhost:5000/api/health || exit 1' \
             --health-interval=10s \
             --health-timeout=5s \
@@ -89,6 +96,9 @@ jobs:
       contents: read
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Setup SSH Agent
         uses: webfactory/ssh-agent@v0.9.0
         with:
@@ -96,6 +106,15 @@ jobs:
           ssh-known-hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
 
       - name: Deploy to production server
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          AWS_CREDENTIALS_ENCRYPTION_KEY: ${{ secrets.AWS_CREDENTIALS_ENCRYPTION_KEY }}
+          PRIVATE_OBJECT_DIR: ${{ secrets.PRIVATE_OBJECT_DIR }}
         run: |
           ssh -o StrictHostKeyChecking=no \
               -o ConnectTimeout=10 \
@@ -169,13 +188,38 @@ jobs:
           
           # Update docker-compose.yml
           log "📝 به‌روزرسانی docker-compose.yml..."
-          sed -i "s|image: .*momtazchem.*|image: $IMAGE_NAME:$IMAGE_TAG|g" docker-compose.yml
+          sed -i "s|image: .*|image: $IMAGE_NAME:$IMAGE_TAG|g" docker-compose.yml
           log "✓ docker-compose.yml به‌روزرسانی شد"
+          
+          # Create/Update .env file
+          log "📝 به‌روزرسانی متغیرهای محیطی..."
+          cat > "$DEPLOY_DIR/.env" << 'ENV_EOF'
+          NODE_ENV=production
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+          SESSION_SECRET=${{ secrets.SESSION_SECRET }}
+          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION=${{ secrets.AWS_REGION }}
+          AWS_CREDENTIALS_ENCRYPTION_KEY=${{ secrets.AWS_CREDENTIALS_ENCRYPTION_KEY }}
+          PRIVATE_OBJECT_DIR=${{ secrets.PRIVATE_OBJECT_DIR }}
+          ENV_EOF
+          log "✓ فایل .env به‌روزرسانی شد"
+          
+          # Ensure uploads directory exists
+          log "📁 بررسی و ایجاد دایرکتوری uploads..."
+          mkdir -p "$DEPLOY_DIR/uploads"
+          chmod 755 "$DEPLOY_DIR/uploads"
+          log "✓ دایرکتوری uploads آماده است"
           
           # Restart service
           log "🚀 راه‌اندازی مجدد سرویس..."
           docker compose up -d --remove-orphans --no-build
           log "✓ سرویس راه‌اندازی شد"
+          
+          # Wait for container to be ready
+          log "⏳ منتظر آماده‌سازی کانتینر..."
+          sleep 5
           
           # Health check
           log "🔍 بررسی سلامت سرویس (حداکثر $((MAX_RETRIES * RETRY_DELAY)) ثانیه)..."
@@ -184,6 +228,11 @@ jobs:
             if curl -sf "$HEALTH_CHECK_URL" >/dev/null 2>&1; then
               log "✓ سرویس سالم است و پاسخ می‌دهد"
               log "✅ Deployment موفقیت‌آمیز بود"
+              
+              # Show deployment info
+              log "📊 اطلاعات Deployment:"
+              docker ps --filter "name=$CONTAINER_NAME" --format "table {{.Image}}\t{{.Status}}"
+              
               exit 0
             fi
             RETRY_COUNT=$((RETRY_COUNT + 1))
