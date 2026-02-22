@@ -1,4 +1,4 @@
-# CI/CD Pipeline Documentation - MomtazChem -mrg
+# CI/CD Pipeline Documentation - MomtazChem
 
 ## Overview*
 
