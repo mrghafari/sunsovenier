@@ -4,30 +4,40 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 env:
   IMAGE_NAME: mrghafari/momtazchem-api
   DEPLOY_DIR: /opt/MomtazChem
+  REGISTRY: docker.io
 
 jobs:
-
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Docker Buildx
+      - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login DockerHub
+      - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build & Push Image
+      - name: Extract metadata
+        id: meta
+        run: |
+          echo "image_tag=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "timestamp=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
+
+      - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -35,11 +45,15 @@ jobs:
           tags: |
             ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
-          cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:latest
-          cache-to: type=inline
+            ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.image_tag }}
+          cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache,mode=max
+          labels: |
+            org.opencontainers.image.created=${{ steps.meta.outputs.timestamp }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ github.ref_name }}
 
-      # فقط بررسی می‌کنیم کانتینر crash نکند
-      - name: Basic Container Start Test
+      - name: Test container startup
         run: |
           docker run -d \
             --name test_container \
@@ -48,55 +62,153 @@ jobs:
             -e PORT=5000 \
             -e HOST=0.0.0.0 \
             -e DATABASE_URL=dummy \
+            --health-cmd='curl -f http://localhost:5000/api/health || exit 1' \
+            --health-interval=10s \
+            --health-timeout=5s \
+            --health-retries=3 \
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
-
-          sleep 10
-          docker ps
-          docker logs test_container
-
+          
+          echo "Waiting for container health check..."
+          sleep 15
+          
+          if docker inspect --format='{{.State.Health.Status}}' test_container | grep -q "healthy"; then
+            echo "✓ Container health check passed"
+          else
+            echo "✗ Container failed health check"
+            docker logs test_container
+            exit 1
+          fi
+          
           docker stop test_container || true
           docker rm test_container || true
 
   deploy:
     runs-on: ubuntu-latest
     needs: build
+    permissions:
+      contents: read
 
     steps:
       - name: Setup SSH Agent
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          ssh-known-hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
 
-      - name: Deploy to Server (Neon env based)
+      - name: Deploy to production server
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << EOF
-          set -e
-          cd $DEPLOY_DIR
-
-          echo "Pulling new image..."
-          docker pull $IMAGE_NAME:${{ github.sha }}
-
-          echo "Backup current image..."
-          CURRENT_IMAGE=\$(docker inspect --format='{{.Config.Image}}' momtaz-app || true)
-          if [ ! -z "\$CURRENT_IMAGE" ]; then
-            docker tag \$CURRENT_IMAGE $IMAGE_NAME:rollback || true
-          fi
-
-          echo "Update compose image..."
-          sed -i "s|image: .*|image: $IMAGE_NAME:${{ github.sha }}|" docker-compose.yml
-
-          echo "Restarting service..."
-          docker compose up -d --remove-orphans
-
-          echo "Waiting for app..."
-          sleep 20
-
-          if ! curl -f http://localhost:5000/api/health; then
-            echo "Healthcheck failed. Rolling back..."
-            sed -i "s|image: .*|image: $IMAGE_NAME:rollback|" docker-compose.yml
-            docker compose up -d
+          ssh -o StrictHostKeyChecking=no \
+              -o ConnectTimeout=10 \
+              -o BatchMode=yes \
+              ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'DEPLOY_EOF'
+          
+          set -euo pipefail
+          
+          # متغیرهای محلی
+          DEPLOY_DIR="/opt/MomtazChem"
+          IMAGE_NAME="mrghafari/momtazchem-api"
+          IMAGE_TAG="${{ github.sha }}"
+          CONTAINER_NAME="momtaz-app"
+          HEALTH_CHECK_URL="http://localhost:5000/api/health"
+          MAX_RETRIES=30
+          RETRY_DELAY=2
+          
+          # تابع برای logging
+          log() {
+            echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*"
+          }
+          
+          # تابع برای rollback
+          rollback() {
+            log "⚠️  Rollback شروع شد..."
+            if docker inspect $CONTAINER_NAME >/dev/null 2>&1; then
+              sed -i "s|image: .*|image: $IMAGE_NAME:rollback|" "$DEPLOY_DIR/docker-compose.yml"
+              docker compose -f "$DEPLOY_DIR/docker-compose.yml" up -d --no-build
+              sleep 10
+              if curl -sf "$HEALTH_CHECK_URL" >/dev/null; then
+                log "✓ Rollback موفقیت‌آمیز بود"
+                return 0
+              else
+                log "✗ Rollback ناموفق - سرویس پاسخ نمی‌دهد"
+                return 1
+              fi
+            fi
+          }
+          
+          # بررسی وجود دایرکتوری
+          if [ ! -d "$DEPLOY_DIR" ]; then
+            log "✗ دایرکتوری $DEPLOY_DIR وجود ندارد"
             exit 1
           fi
+          
+          cd "$DEPLOY_DIR"
+          log "✓ وارد دایرکتوری $DEPLOY_DIR شد"
+          
+          # بررسی وجود docker-compose.yml
+          if [ ! -f "docker-compose.yml" ]; then
+            log "✗ فایل docker-compose.yml در $DEPLOY_DIR وجود ندارد"
+            exit 1
+          fi
+          
+          # Pull image جدید
+          log "🔄 Pull کردن image جدید..."
+          if ! docker pull "$IMAGE_NAME:$IMAGE_TAG"; then
+            log "✗ خطا در pull کردن image"
+            exit 1
+          fi
+          log "✓ Image به‌موفقیت pull شد"
+          
+          # Backup image فعلی
+          log "💾 Backup کردن image فعلی..."
+          CURRENT_IMAGE=$(docker inspect --format='{{.Config.Image}}' $CONTAINER_NAME 2>/dev/null || echo "")
+          if [ ! -z "$CURRENT_IMAGE" ]; then
+            if docker tag "$CURRENT_IMAGE" "$IMAGE_NAME:rollback" >/dev/null 2>&1; then
+              log "✓ Image فعلی backup شد: $CURRENT_IMAGE"
+            fi
+          fi
+          
+          # Update docker-compose.yml
+          log "📝 به‌روزرسانی docker-compose.yml..."
+          sed -i "s|image: .*momtazchem.*|image: $IMAGE_NAME:$IMAGE_TAG|g" docker-compose.yml
+          log "✓ docker-compose.yml به‌روزرسانی شد"
+          
+          # Restart service
+          log "🚀 راه‌اندازی مجدد سرویس..."
+          docker compose up -d --remove-orphans --no-build
+          log "✓ سرویس راه‌اندازی شد"
+          
+          # Health check
+          log "🔍 بررسی سلامت سرویس (حداکثر $((MAX_RETRIES * RETRY_DELAY)) ثانیه)..."
+          RETRY_COUNT=0
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            if curl -sf "$HEALTH_CHECK_URL" >/dev/null 2>&1; then
+              log "✓ سرویس سالم است و پاسخ می‌دهد"
+              log "✅ Deployment موفقیت‌آمیز بود"
+              exit 0
+            fi
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            log "⏳ تلاش $RETRY_COUNT/$MAX_RETRIES - منتظر نتیجه..."
+            sleep $RETRY_DELAY
+          done
+          
+          log "✗ Health check ناموفق بود - شروع Rollback..."
+          docker logs $CONTAINER_NAME || true
+          
+          if rollback; then
+            log "❌ Deployment ناموفق - Rollback انجام شد"
+            exit 1
+          else
+            log "❌ Deployment و Rollback هر دو ناموفق - تدخل دستی لازم است"
+            exit 1
+          fi
+          
+          DEPLOY_EOF
 
-          echo "Deployment successful."
-          EOF
+      - name: Notify deployment status
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "✅ Deployment موفقیت‌آمیز"
+          else
+            echo "❌ Deployment ناموفق"
+          fi
