@@ -61,7 +61,7 @@ jobs:
             -e NODE_ENV=production \
             -e PORT=5000 \
             -e HOST=0.0.0.0 \
-            -e DATABASE_URL=dummy \
+            -e DATABASE_URL="postgresql://user:password@localhost/test" \
             -e SESSION_SECRET=test-secret \
             -e OPENAI_API_KEY=dummy \
             -e AWS_ACCESS_KEY_ID=dummy \
@@ -107,21 +107,6 @@ jobs:
 
       - name: Deploy to production server
         run: |
-          # ذخیره متغیرهای environment در فایل موقت
-          cat > /tmp/deploy_env.sh << 'ENV_VARS'
-          export DATABASE_URL="${{ secrets.DATABASE_URL }}"
-          export SESSION_SECRET="${{ secrets.SESSION_SECRET }}"
-          export OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}"
-          export AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}"
-          export AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
-          export AWS_REGION="${{ secrets.AWS_REGION }}"
-          export AWS_CREDENTIALS_ENCRYPTION_KEY="${{ secrets.AWS_CREDENTIALS_ENCRYPTION_KEY }}"
-          export PRIVATE_OBJECT_DIR="${{ secrets.PRIVATE_OBJECT_DIR }}"
-          ENV_VARS
-          
-          chmod +x /tmp/deploy_env.sh
-          source /tmp/deploy_env.sh
-          
           ssh -o StrictHostKeyChecking=no \
               -o ConnectTimeout=10 \
               -o BatchMode=yes \
@@ -150,7 +135,7 @@ jobs:
               sed -i "s|image: .*|image: $IMAGE_NAME:rollback|" "$DEPLOY_DIR/docker-compose.yml"
               docker compose -f "$DEPLOY_DIR/docker-compose.yml" up -d --no-build
               sleep 10
-              if curl -sf "$HEALTH_CHECK_URL" >/dev/null; then
+              if curl -sf "$HEALTH_CHECK_URL" >/dev/null 2>&1; then
                 log "✓ Rollback موفقیت‌آمیز بود"
                 return 0
               else
@@ -197,25 +182,19 @@ jobs:
           sed -i "s|image: .*momtazchem.*|image: $IMAGE_NAME:$IMAGE_TAG|g" docker-compose.yml
           log "✓ docker-compose.yml به‌روزرسانی شد"
           
-          # Create/Update .env file with proper escaping
-          log "📝 به‌روزرسانی متغیرهای محیطی..."
+          # Create/Update .env file from secrets
+          log "📝 به‌روزرسانی متغیرهای محیطی (Neon Database)..."
           cat > "$DEPLOY_DIR/.env" << 'ENV_END'
           NODE_ENV=production
-          DATABASE_URL=$DATABASE_URL
-          SESSION_SECRET=$SESSION_SECRET
-          OPENAI_API_KEY=$OPENAI_API_KEY
-          AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
-          AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
-          AWS_REGION=$AWS_REGION
-          AWS_CREDENTIALS_ENCRYPTION_KEY=$AWS_CREDENTIALS_ENCRYPTION_KEY
-          PRIVATE_OBJECT_DIR=$PRIVATE_OBJECT_DIR
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+          SESSION_SECRET=${{ secrets.SESSION_SECRET }}
+          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION=${{ secrets.AWS_REGION }}
+          AWS_CREDENTIALS_ENCRYPTION_KEY=${{ secrets.AWS_CREDENTIALS_ENCRYPTION_KEY }}
+          PRIVATE_OBJECT_DIR=${{ secrets.PRIVATE_OBJECT_DIR }}
           ENV_END
-          
-          # Load environment variables for this session
-          set -a
-          source .env
-          set +a
-          
           log "✓ فایل .env به‌روزرسانی شد"
           
           # Ensure uploads directory exists
@@ -230,8 +209,8 @@ jobs:
           log "✓ سرویس راه‌اندازی شد"
           
           # Wait for container to be ready
-          log "⏳ منتظر آماده‌سازی کانتینر..."
-          sleep 5
+          log "⏳ منتظر آماده‌سازی کانتینر (حتی برای اتصال Neon)..."
+          sleep 8
           
           # Health check
           log "🔍 بررسی سلامت سرویس (حداکثر $((MAX_RETRIES * RETRY_DELAY)) ثانیه)..."
@@ -245,15 +224,20 @@ jobs:
               log "📊 اطلاعات Deployment:"
               docker ps --filter "name=$CONTAINER_NAME" --format "table {{.Image}}\t{{.Status}}"
               
+              # Show connection info
+              log "🗄️  Database: Neon (Connection established)"
+              
               exit 0
             fi
             RETRY_COUNT=$((RETRY_COUNT + 1))
-            log "⏳ تلاش $RETRY_COUNT/$MAX_RETRIES - منتظر نتیجه..."
+            log "⏳ تلاش $RETRY_COUNT/$MAX_RETRIES - منتظر پاسخ سرویس..."
             sleep $RETRY_DELAY
           done
           
-          log "✗ Health check ناموفق بود - شروع Rollback..."
+          log "✗ Health check ناموفق بود"
+          log "📋 Logs کانتینر:"
           docker logs $CONTAINER_NAME || true
+          log "🔄 شروع Rollback..."
           
           if rollback; then
             log "❌ Deployment ناموفق - Rollback انجام شد"
@@ -264,14 +248,16 @@ jobs:
           fi
           
           DEPLOY_EOF
-          
-          rm -f /tmp/deploy_env.sh
 
       - name: Notify deployment status
         if: always()
         run: |
           if [ "${{ job.status }}" = "success" ]; then
-            echo "✅ Deployment موفقیت‌آمیز"
+            echo "✅ Deployment موفقیت‌آمیز (Neon DB فعال)"
           else
             echo "❌ Deployment ناموفق"
+            echo "❗ بررسی کنید:"
+            echo "  • DATABASE_URL درست است"
+            echo "  • Neon صرفی‌ه فعال است"
+            echo "  • Health check endpoint کار می‌کند"
           fi
