@@ -1,263 +1,60 @@
-name: momtazchem Production Pipeline
+name: CI/CD Pipeline
 
 on:
   push:
     branches:
       - main
-  workflow_dispatch:
 
 env:
-  IMAGE_NAME: mrghafari/momtazchem-api
-  DEPLOY_DIR: /opt/momtazchem
-  REGISTRY: docker.io
+  IMAGE_NAME: momtazchem-app
+  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
 
     steps:
-      - name: Checkout repository
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Project
+        run: npm run build
+
+      # --- Docker Login ---
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Extract metadata
-        id: meta
-        run: |
-          echo "image_tag=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-          echo "timestamp=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
-
-      - name: Build and push Docker image
+      # --- Build & Push ---
+      - name: Build and Push Docker Image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
           tags: |
-            ${{ env.IMAGE_NAME }}:latest
-            ${{ env.IMAGE_NAME }}:${{ github.sha }}
-            ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.image_tag }}
-          cache-from: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache
-          cache-to: type=registry,ref=${{ env.IMAGE_NAME }}:buildcache,mode=max
-          labels: |
-            org.opencontainers.image.created=${{ steps.meta.outputs.timestamp }}
-            org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.version=${{ github.ref_name }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/momtazchem-app:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/momtazchem-app:${{ github.sha }}
 
-      - name: Test container startup
-        run: |
-          docker run -d \
-            --name test_container \
-            -p 5001:5000 \
-            -e NODE_ENV=production \
-            -e PORT=5000 \
-            -e HOST=0.0.0.0 \
-            -e DATABASE_URL="postgresql://user:password@localhost/test" \
-            -e SESSION_SECRET=test-secret \
-            -e OPENAI_API_KEY=dummy \
-            -e AWS_ACCESS_KEY_ID=dummy \
-            -e AWS_SECRET_ACCESS_KEY=dummy \
-            -e AWS_REGION=us-east-1 \
-            -e AWS_CREDENTIALS_ENCRYPTION_KEY=dummy \
-            -e PRIVATE_OBJECT_DIR=/app/uploads \
-            --health-cmd='curl -f http://localhost:5000/api/health || exit 1' \
-            --health-interval=10s \
-            --health-timeout=5s \
-            --health-retries=3 \
-            ${{ env.IMAGE_NAME }}:${{ github.sha }}
-          
-          echo "Waiting for container health check..."
-          sleep 15
-          
-          if docker inspect --format='{{.State.Health.Status}}' test_container | grep -q "healthy"; then
-            echo "✓ Container health check passed"
-          else
-            echo "✗ Container failed health check"
-            docker logs test_container
-            exit 1
-          fi
-          
-          docker stop test_container || true
-          docker rm test_container || true
-
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build
-    permissions:
-      contents: read
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup SSH Agent
-        uses: webfactory/ssh-agent@v0.9.0
+      # --- Deploy to VPS ---
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
         with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-          ssh-known-hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
-
-      - name: Deploy to production server
-        run: |
-          ssh -o StrictHostKeyChecking=no \
-              -o ConnectTimeout=10 \
-              -o BatchMode=yes \
-              ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'DEPLOY_EOF'
-          
-          set -euo pipefail
-          
-          # متغیرهای محلی
-          DEPLOY_DIR="/opt/momtazchem"
-          IMAGE_NAME="mrghafari/momtazchem-api"
-          IMAGE_TAG="${{ github.sha }}"
-          CONTAINER_NAME="momtaz-app"
-          HEALTH_CHECK_URL="http://localhost:5000/api/health"
-          MAX_RETRIES=30
-          RETRY_DELAY=2
-          
-          # تابع برای logging
-          log() {
-            echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*"
-          }
-          
-          # تابع برای rollback
-          rollback() {
-            log "⚠️  Rollback شروع شد..."
-            if docker inspect $CONTAINER_NAME >/dev/null 2>&1; then
-              sed -i "s|image: .*|image: $IMAGE_NAME:rollback|" "$DEPLOY_DIR/docker-compose.yml"
-              docker compose -f "$DEPLOY_DIR/docker-compose.yml" up -d --no-build
-              sleep 10
-              if curl -sf "$HEALTH_CHECK_URL" >/dev/null 2>&1; then
-                log "✓ Rollback موفقیت‌آمیز بود"
-                return 0
-              else
-                log "✗ Rollback ناموفق - سرویس پاسخ نمی‌دهد"
-                return 1
-              fi
-            fi
-          }
-          
-          # بررسی وجود دایرکتوری
-          if [ ! -d "$DEPLOY_DIR" ]; then
-            log "✗ دایرکتوری $DEPLOY_DIR وجود ندارد"
-            exit 1
-          fi
-          
-          cd "$DEPLOY_DIR"
-          log "✓ وارد دایرکتوری $DEPLOY_DIR شد"
-          
-          # بررسی وجود docker-compose.yml
-          if [ ! -f "docker-compose.yml" ]; then
-            log "✗ فایل docker-compose.yml در $DEPLOY_DIR وجود ندارد"
-            exit 1
-          fi
-          
-          # Pull image جدید
-          log "🔄 Pull کردن image جدید..."
-          if ! docker pull "$IMAGE_NAME:$IMAGE_TAG"; then
-            log "✗ خطا در pull کردن image"
-            exit 1
-          fi
-          log "✓ Image به‌موفقیت pull شد"
-          
-          # Backup image فعلی
-          log "💾 Backup کردن image فعلی..."
-          CURRENT_IMAGE=$(docker inspect --format='{{.Config.Image}}' $CONTAINER_NAME 2>/dev/null || echo "")
-          if [ ! -z "$CURRENT_IMAGE" ]; then
-            if docker tag "$CURRENT_IMAGE" "$IMAGE_NAME:rollback" >/dev/null 2>&1; then
-              log "✓ Image فعلی backup شد: $CURRENT_IMAGE"
-            fi
-          fi
-          
-          # Update docker-compose.yml
-          log "📝 به‌روزرسانی docker-compose.yml..."
-          sed -i "s|image: .*momtazchem.*|image: $IMAGE_NAME:$IMAGE_TAG|g" docker-compose.yml
-          log "✓ docker-compose.yml به‌روزرسانی شد"
-          
-          # Create/Update .env file from secrets
-          log "📝 به‌روزرسانی متغیرهای محیطی (Neon Database)..."
-          cat > "$DEPLOY_DIR/.env" << 'ENV_END'
-          NODE_ENV=production
-          DATABASE_URL=${{ secrets.DATABASE_URL }}
-          SESSION_SECRET=${{ secrets.SESSION_SECRET }}
-          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
-          AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION=${{ secrets.AWS_REGION }}
-          AWS_CREDENTIALS_ENCRYPTION_KEY=${{ secrets.AWS_CREDENTIALS_ENCRYPTION_KEY }}
-          PRIVATE_OBJECT_DIR=${{ secrets.PRIVATE_OBJECT_DIR }}
-          ENV_END
-          log "✓ فایل .env به‌روزرسانی شد"
-          
-          # Ensure uploads directory exists
-          log "📁 بررسی و ایجاد دایرکتوری uploads..."
-          mkdir -p "$DEPLOY_DIR/uploads"
-          chmod 755 "$DEPLOY_DIR/uploads"
-          log "✓ دایرکتوری uploads آماده است"
-          
-          # Restart service
-          log "🚀 راه‌اندازی مجدد سرویس..."
-          docker compose up -d --remove-orphans --no-build
-          log "✓ سرویس راه‌اندازی شد"
-          
-          # Wait for container to be ready
-          log "⏳ منتظر آماده‌سازی کانتینر (حتی برای اتصال Neon)..."
-          sleep 8
-          
-          # Health check
-          log "🔍 بررسی سلامت سرویس (حداکثر $((MAX_RETRIES * RETRY_DELAY)) ثانیه)..."
-          RETRY_COUNT=0
-          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-            if curl -sf "$HEALTH_CHECK_URL" >/dev/null 2>&1; then
-              log "✓ سرویس سالم است و پاسخ می‌دهد"
-              log "✅ Deployment موفقیت‌آمیز بود"
-              
-              # Show deployment info
-              log "📊 اطلاعات Deployment:"
-              docker ps --filter "name=$CONTAINER_NAME" --format "table {{.Image}}\t{{.Status}}"
-              
-              # Show connection info
-              log "🗄️  Database: Neon (Connection established)"
-              
-              exit 0
-            fi
-            RETRY_COUNT=$((RETRY_COUNT + 1))
-            log "⏳ تلاش $RETRY_COUNT/$MAX_RETRIES - منتظر پاسخ سرویس..."
-            sleep $RETRY_DELAY
-          done
-          
-          log "✗ Health check ناموفق بود"
-          log "📋 Logs کانتینر:"
-          docker logs $CONTAINER_NAME || true
-          log "🔄 شروع Rollback..."
-          
-          if rollback; then
-            log "❌ Deployment ناموفق - Rollback انجام شد"
-            exit 1
-          else
-            log "❌ Deployment و Rollback هر دو ناموفق - تدخل دستی لازم است"
-            exit 1
-          fi
-          
-          DEPLOY_EOF
-
-      - name: Notify deployment status
-        if: always()
-        run: |
-          if [ "${{ job.status }}" = "success" ]; then
-            echo "✅ Deployment موفقیت‌آمیز (Neon DB فعال)"
-          else
-            echo "❌ Deployment ناموفق"
-            echo "❗ بررسی کنید:"
-            echo "  • DATABASE_URL درست است"
-            echo "  • Neon صرفی‌ه فعال است"
-            echo "  • Health check endpoint کار می‌کند"
-          fi
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd /root/MomtazChem
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/momtazchem-app:latest
+            docker compose down
+            docker compose up -d
+            docker image prune -f
