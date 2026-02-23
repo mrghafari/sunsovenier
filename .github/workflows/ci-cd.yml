@@ -14,11 +14,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout
-      - name: Checkout repository
+      # 1️⃣ Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2️⃣ Enable Docker Buildx
+      # 2️⃣ Set up Docker Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -36,14 +36,14 @@ jobs:
           context: .
           push: true
           tags: |
-            mrghafari/momtazchem-app:${{ github.sha }}
             mrghafari/momtazchem-app:latest
+            mrghafari/momtazchem-app:${{ github.sha }}
           cache-from: type=registry,ref=mrghafari/momtazchem-app:latest
           cache-to: type=inline
           build-args: |
             NODE_ENV=production
 
-      # 5️⃣ Deploy to VPS with Healthcheck & Rollback
+      # 5️⃣ Deploy to VPS via SSH with Healthcheck & Rollback
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -51,25 +51,23 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-
             set -e
 
             cd /opt/momtazchem
 
-            echo "🔹 Saving previous running image..."
+            # Save previous image
             PREVIOUS_IMAGE=$(docker inspect --format='{{.Config.Image}}' momtaz-app 2>/dev/null || echo "")
 
             echo "🔹 Pulling new image..."
-            docker pull mrghafari/momtazchem-app:${{ github.sha }}
+            docker pull mrghafari/momtazchem-app:latest
 
             echo "🔹 Updating container..."
             docker compose up -d --pull always
 
-            echo "🔹 Waiting for container healthcheck..."
+            echo "🔹 Waiting for container to be healthy..."
             sleep 25
 
             STATUS=$(docker inspect --format='{{.State.Health.Status}}' momtaz-app 2>/dev/null || echo "no-health")
-
             echo "Health status: $STATUS"
 
             if [ "$STATUS" = "unhealthy" ]; then
