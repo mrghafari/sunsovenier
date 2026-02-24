@@ -65,7 +65,10 @@ jobs:
 
             OLD_CONTAINER=$(docker ps -qf "name=app")
             if [ -n "$OLD_CONTAINER" ]; then
+              echo "Renaming old container..."
               docker rename app app_old_$(date +%s)
+            else
+              echo "No old container found, skipping rename."
             fi
 
             echo "Starting new container..."
@@ -75,7 +78,7 @@ jobs:
             sleep 15
             NEW_CONTAINER=$(docker ps -qf "name=app")
             HEALTH_STATUS=$(docker inspect --format='{{.State.Health.Status}}' $NEW_CONTAINER || echo "unknown")
-            
+
             if [ "$HEALTH_STATUS" != "healthy" ]; then
               echo "❌ New container failed health check! Rolling back..."
               docker rm -f $NEW_CONTAINER
@@ -99,7 +102,7 @@ jobs:
         if: always()
         uses: slackapi/slack-github-action@v1.27.0
         with:
-          slack-message: |
+          text: |
             Deployment of `${{ env.IMAGE_NAME }}` to `${{ secrets.SERVER_HOST }}` finished with status: ${{ job.status }}
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
