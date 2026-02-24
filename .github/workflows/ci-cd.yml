@@ -21,7 +21,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Check DockerHub secrets
+      # Validate DockerHub secrets
       - name: Validate DockerHub secrets
         run: |
           if [ -z "${{ secrets.DOCKERHUB_USERNAME }}" ] || [ -z "${{ secrets.DOCKERHUB_TOKEN }}" ]; then
@@ -102,6 +102,5 @@ jobs:
         if: always()
         uses: rtCamp/action-slack-notify@v2
         with:
-          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
-          message: |
-            Deployment of `${{ env.IMAGE_NAME }}` to `${{ secrets.SERVER_HOST }}` finished with status: ${{ job.status }}
+          webhook: ${{ secrets.SLACK_WEBHOOK }}
+          status: ${{ job.status }}
