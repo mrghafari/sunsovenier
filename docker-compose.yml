@@ -2,13 +2,9 @@ version: "3.9"
 
 services:
   app:
-    # ?? ????? CI/CD ????? ??????? ??? ?? build ????
-    # image: mrghafari/momtazchem-api:latest
-    build:
-      context: .
-      dockerfile: Dockerfile
-
+    image: mrghafari/momtazchem-app:latest
     container_name: momtaz-app
+
     ports:
       - "5000:5000"
 
@@ -19,15 +15,13 @@ services:
       DATABASE_URL: ${DATABASE_URL}
       SESSION_SECRET: ${SESSION_SECRET}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
-
-      # AWS / Object Storage ???? secure upload
       PRIVATE_OBJECT_DIR: ${PRIVATE_OBJECT_DIR}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
       AWS_REGION: ${AWS_REGION}
 
     volumes:
-      - ./uploads:/app/uploads  # ???? ??????? ??? host
+      - ./uploads:/app/uploads
 
     restart: unless-stopped
     networks:
