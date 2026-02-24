@@ -1,92 +1,59 @@
-name: CI/CD Deploy
+name: CI/CD Pipeline
 
 on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  DOCKER_IMAGE_NAME: mrghafari/momtazchem-api
+  DOCKER_TAG: latest
+  NODE_VERSION: 20
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Checkout source code
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+      # 2. Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
 
+      # 3. Install dependencies
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      # 4. Run build
+      - name: Build project
+        run: npm run build
+
+      # 5. Login to Docker Hub
       - name: Log in to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
-          username: mrghafari
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
 
-      - name: Deploy to server via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          port: 22
-          timeout: 900s
-          script: |
-            set -euxo pipefail
-            cd /opt/momtazchem
+      # 6. Build Docker image
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ env.DOCKER_IMAGE_NAME }}:${{ env.DOCKER_TAG }} .
 
-            echo "Pulling latest Docker image..."
-            docker pull mrghafari/momtazchem-app:latest
+      # 7. Push Docker image
+      - name: Push Docker image
+        run: |
+          docker push ${{ env.DOCKER_IMAGE_NAME }}:${{ env.DOCKER_TAG }}
 
-            OLD_CONTAINER=$(docker ps -qf "name=app")
-            if [ -n "$OLD_CONTAINER" ]; then
-              docker rename app app_old_$(date +%s)
-            fi
-
-            echo "Pulling Compose service..."
-            docker compose pull app
-
-            echo "Starting new container..."
-            docker compose up -d --no-deps app
-
-            sleep 15
-            NEW_CONTAINER=$(docker ps -qf "name=app")
-            HEALTH_STATUS=$(docker inspect --format='{{.State.Health.Status}}' $NEW_CONTAINER || echo "unknown")
-
-            if [ "$HEALTH_STATUS" != "healthy" ]; then
-              echo "❌ New container failed health check! Rolling back..."
-              docker rm -f $NEW_CONTAINER || true
-
-              # Rollback امن‌تر
-              OLD=$(docker ps -a -q --filter "name=app_old_*" | head -n1)
-              [ -n "$OLD" ] && docker rename $OLD app && docker start app
-
-              exit 1
-            fi
-
-            if [ -n "$OLD_CONTAINER" ]; then
-              docker rm -f $OLD_CONTAINER || true
-            fi
-
-            docker image prune -f
-            docker compose logs -f --tail 50
-            echo "Deployment successful ✅"
-
-      - name: Notify Slack on success
-        if: success()
-        uses: slackapi/slack-github-action@v1.27.0
-        with:
-          webhook-url: ${{ secrets.SLACK_WEBHOOK }}
-          payload: |
-            {
-              "text": ":white_check_mark: Deployment completed successfully for branch *${{ github.ref_name }}*."
-            }
-
-      - name: Notify Slack on failure
-        if: failure()
-        uses: slackapi/slack-github-action@v1.27.0
-        with:
-          webhook-url: ${{ secrets.SLACK_WEBHOOK }}
-          payload: |
-            {
-              "text": ":x: Deployment failed for branch *${{ github.ref_name }}*. Check logs!"
-            }
+      # 8. Optional: Clean up local Docker images
+      - name: Clean up Docker images
+        run: |
+          docker rmi ${{ env.DOCKER_IMAGE_NAME }}:${{ env.DOCKER_TAG }} || true
