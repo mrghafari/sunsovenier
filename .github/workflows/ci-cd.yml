@@ -1,52 +1,42 @@
-name: CI/CD Deploy Final
+name: CI/CD Pipeline
 
 on:
   push:
     branches:
       - main
 
-env:
-  IMAGE_NAME: mrghafari/momtazchem-app
-  DEFAULT_USERNAME: mrghafari
-
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
+      # Checkout repository
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
-      - name: Login DockerHub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME || env.DEFAULT_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build & Push Docker image
-        uses: docker/build-push-action@v5
+      # Build & push Docker image
+      - name: Build & Push Docker Image
+        uses: docker/build-push-action@v4
         with:
           context: .
           push: true
-          tags: |
-            ${{ env.IMAGE_NAME }}:latest
-            ${{ env.IMAGE_NAME }}:${{ github.sha }}
-          platform: linux/amd64
+          tags: mrghafari/momtazchem-app:latest
 
-      - name: Deploy via SSH
+      # Deploy via SSH
+      - name: Deploy to Server
+        id: deploy
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: 22
-          timeout: 900
-          command_timeout: 600
+          timeout: 15m
           script: |
             set -e
             cd /opt/momtazchem
-
             echo "Pulling latest image..."
-            docker pull ${{ env.IMAGE_NAME }}:latest
+            docker pull mrghafari/momtazchem-app:latest
 
             OLD_CONTAINER=$(docker ps -qf "name=app")
             if [ -n "$OLD_CONTAINER" ]; then
@@ -59,6 +49,12 @@ jobs:
             sleep 15
             NEW_CONTAINER=$(docker ps -qf "name=app")
             HEALTH_STATUS=$(docker inspect --format='{{.State.Health.Status}}' $NEW_CONTAINER || echo "unknown")
+            CONTAINER_LOGS=$(docker compose logs --tail 50 app || echo "No logs available")
+
+            echo "HEALTH_STATUS=$HEALTH_STATUS" >> $GITHUB_ENV
+            echo "CONTAINER_LOGS<<EOF" >> $GITHUB_ENV
+            echo "$CONTAINER_LOGS" >> $GITHUB_ENV
+            echo "EOF" >> $GITHUB_ENV
 
             if [ "$HEALTH_STATUS" != "healthy" ]; then
               echo "❌ New container failed health check! Rolling back..."
@@ -75,12 +71,20 @@ jobs:
             fi
 
             docker image prune -f
-            docker compose logs -f --tail 50
             echo "Deployment successful ✅"
 
+      # Slack notification with logs and health status
       - name: Notify Slack
         if: always()
         uses: slackapi/slack-github-action@v1.27.0
         with:
-          channel-id: ${{ secrets.SLACK_CHANNEL }}
-          slack-message: "Deployment of `${{ env.IMAGE_NAME }}` to `${{ secrets.SERVER_HOST }}` finished with status: `${{ job.status }}`"
+          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          slack-message: |
+            *Deployment Status:* ${{ job.status }}
+            *Commit:* ${{ github.sha }}
+            *Branch:* ${{ github.ref_name }}
+            *Health:* ${{ env.HEALTH_STATUS }}
+            *Recent Logs:*
+            ```
+            ${{ env.CONTAINER_LOGS }}
+            ```
