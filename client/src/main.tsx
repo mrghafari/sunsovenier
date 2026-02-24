@@ -3,3 +3,4 @@ import App from "./App";
 import "./index.css";
 
 createRoot(document.getElementById("root")!).render(<App />);
+console.log("CI_CD_TEST_2026");
