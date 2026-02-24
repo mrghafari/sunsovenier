@@ -1,4 +1,4 @@
-name: CI/CD Deploy
+name: CI/CD Deploy Advanced
 
 on:
   push:
@@ -8,19 +8,26 @@ on:
 env:
   IMAGE_NAME: mrghafari/momtazchem-app
 
+concurrency:
+  group: "deploy-momtazchem"
+  cancel-in-progress: true
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v4
+      # Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v4
 
+      # Login to Docker Hub
       - name: Login DockerHub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      # Build & Push Docker image
       - name: Build & Push
         uses: docker/build-push-action@v5
         with:
@@ -29,19 +36,66 @@ jobs:
           tags: |
             ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          platform: linux/amd64
 
+      # Deploy via SSH
       - name: Deploy
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
+          timeout: 15m
+          retries: 2
           script: |
             set -e
             cd /opt/momtazchem
 
+            # Pull latest image
             docker pull ${{ env.IMAGE_NAME }}:latest
+
+            # Backup current container
+            OLD_CONTAINER=$(docker ps -qf "name=app")
+            if [ -n "$OLD_CONTAINER" ]; then
+              docker rename app app_old_$(date +%s)
+            fi
+
+            # Start new container
             docker compose up -d --no-deps app
+
+            # Healthcheck: wait 15 seconds for container to become healthy
+            echo "Waiting for container health check..."
+            sleep 15
+            NEW_CONTAINER=$(docker ps -qf "name=app")
+            HEALTH_STATUS=$(docker inspect --format='{{.State.Health.Status}}' $NEW_CONTAINER || echo "unknown")
+            
+            if [ "$HEALTH_STATUS" != "healthy" ]; then
+              echo "❌ New container failed health check! Rolling back..."
+              docker rm -f $NEW_CONTAINER
+              if [ -n "$OLD_CONTAINER" ]; then
+                docker rename $(docker ps -a -qf "name=app_old_*") app
+                docker start app
+              fi
+              exit 1
+            fi
+
+            # Remove old container if new one is healthy
+            if [ -n "$OLD_CONTAINER" ]; then
+              docker rm -f $OLD_CONTAINER || true
+            fi
+
+            # Cleanup dangling images
             docker image prune -f
 
-            echo "Deployment successful"
+            # Show last logs
+            docker compose logs -f --tail 50
+
+      # Slack notification
+      - name: Notify Slack
+        if: always()
+        uses: rtCamp/action-slack-notify@v2
+        with:
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          message: |
+            Deployment of `${{ env.IMAGE_NAME }}` to server `${{ secrets.SERVER_HOST }}` 
+            finished with status: ${{ job.status }}
