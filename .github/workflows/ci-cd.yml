@@ -1,4 +1,4 @@
-name: CI/CD Deploy Final
+name: CI/CD Deploy Advanced with Safe Login
 
 on:
   push:
@@ -16,7 +16,6 @@ concurrency:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-
     steps:
       # Checkout code
       - name: Checkout code
@@ -26,7 +25,7 @@ jobs:
       - name: Validate DockerHub secrets
         run: |
           if [ -z "${{ secrets.DOCKERHUB_USERNAME }}" ] || [ -z "${{ secrets.DOCKERHUB_TOKEN }}" ]; then
-            echo "⚠️ Secrets DOCKERHUB_USERNAME or DOCKERHUB_TOKEN are empty. Using default username."
+            echo "⚠️ DockerHub secrets missing. Using default username."
           else
             echo "✅ DockerHub secrets found."
           fi
@@ -38,7 +37,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME || env.DEFAULT_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Build & Push Docker image with retry
+      # Build & Push Docker image
       - name: Build & Push
         uses: docker/build-push-action@v5
         with:
@@ -48,17 +47,17 @@ jobs:
             ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
           platform: linux/amd64
-          # retry up to 3 times on failure
-          retries: 3
 
-      # Deploy via SSH with rollback and healthcheck
+      # Deploy via SSH
       - name: Deploy
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.6.0
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
-          timeout: 15m
+          timeout: 900               # 15m
+          command_timeout: 600       # 10m
+          port: 22
           script: |
             set -e
             cd /opt/momtazchem
@@ -89,7 +88,6 @@ jobs:
               exit 1
             fi
 
-            # Remove old container if new one is healthy
             if [ -n "$OLD_CONTAINER" ]; then
               docker rm -f $OLD_CONTAINER || true
             fi
@@ -103,6 +101,5 @@ jobs:
         if: always()
         uses: slackapi/slack-github-action@v1.27.0
         with:
-          slack-message: "Deployment of `${{ env.IMAGE_NAME }}` to `${{ secrets.SERVER_HOST }}` finished with status: ${{ job.status }}"
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+          channel-id: ${{ secrets.SLACK_CHANNEL }}
+          slack-message: "Deployment of `${{ env.IMAGE_NAME }}` to `${{ secrets.SERVER_HOST }}` finished with status: `${{ job.status }}`"
