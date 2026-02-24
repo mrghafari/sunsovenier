@@ -1,4 +1,4 @@
-name: CI/CD Deploy Advanced with Safe Login
+name: CI/CD Deploy Final
 
 on:
   push:
@@ -56,7 +56,6 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           timeout: 15m
-          retries: 2
           script: |
             set -e
             cd /opt/momtazchem
@@ -64,7 +63,6 @@ jobs:
             echo "Pulling latest image..."
             docker pull ${{ env.IMAGE_NAME }}:latest
 
-            # Backup current container
             OLD_CONTAINER=$(docker ps -qf "name=app")
             if [ -n "$OLD_CONTAINER" ]; then
               docker rename app app_old_$(date +%s)
@@ -88,7 +86,6 @@ jobs:
               exit 1
             fi
 
-            # Remove old container if new one is healthy
             if [ -n "$OLD_CONTAINER" ]; then
               docker rm -f $OLD_CONTAINER || true
             fi
@@ -97,10 +94,12 @@ jobs:
             docker compose logs -f --tail 50
             echo "Deployment successful ✅"
 
-      # Slack notification
+      # Slack notification using official Slack action
       - name: Notify Slack
         if: always()
-        uses: rtCamp/action-slack-notify@v2
+        uses: slackapi/slack-github-action@v1.27.0
         with:
-          webhook: ${{ secrets.SLACK_WEBHOOK }}
-          status: ${{ job.status }}
+          slack-message: |
+            Deployment of `${{ env.IMAGE_NAME }}` to `${{ secrets.SERVER_HOST }}` finished with status: ${{ job.status }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
