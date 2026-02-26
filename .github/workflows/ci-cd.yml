@@ -1,44 +1,67 @@
-name: CI/CD Pipeline
+# File: .github/workflows/ci-cd.yml
+name: CI/CD Deploy
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    branches:
+      - main
 
 env:
-  DOCKER_IMAGE_NAME: mrghafari/momtazchem-api
+  IMAGE_NAME: mrghafari/momtazchem-app
+  CONTAINER_NAME: momtaz-app
+  DEPLOY_PATH: /opt/momtazchem
+  SSH_USER: root
+  SSH_HOST: ${{ secrets.SERVER_HOST }}   # IP یا hostname سرور
+  SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
 jobs:
-  build:
+  build-and-push:
+    name: Build & Push Docker Image
     runs-on: ubuntu-latest
-
-    outputs:
-      image_tag: ${{ steps.meta.outputs.tag }}
-
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Generate tag
-        id: meta
-        run: echo "tag=${GITHUB_SHA}" >> $GITHUB_OUTPUT
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - uses: docker/setup-buildx-action@v3
-
-      - name: Login DockerHub
-        if: github.event_name == 'push'
+      - name: Log in to DockerHub
         uses: docker/login-action@v3
         with:
-          username: mrghafari
-          password: ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build & Push
+      - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: ${{ github.event_name == 'push' }}
-          tags: |
-            ${{ env.DOCKER_IMAGE_NAME }}:${{ steps.meta.outputs.tag }}
-            ${{ env.DOCKER_IMAGE_NAME }}:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          push: true
+          tags: ${{ env.IMAGE_NAME }}:latest
+
+  deploy:
+    name: Deploy to Server
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    steps:
+      - name: SSH and Deploy
+        uses: appleboy/ssh-action@v0.1.9
+        with:
+          host: ${{ env.SSH_HOST }}
+          username: ${{ env.SSH_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd ${{ env.DEPLOY_PATH }}
+            docker-compose pull
+            docker-compose up -d --remove-orphans
+
+  notify-slack:
+    name: Slack Notification
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - name: Send Slack Notification
+        uses: rtCamp/action-slack@v2
+        with:
+          webhook_url: ${{ env.SLACK_WEBHOOK_URL }}
+          message: "✅ Deployment of MomtazChem App completed successfully on branch main."
+          color: good
