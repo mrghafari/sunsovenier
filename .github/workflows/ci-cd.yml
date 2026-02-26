@@ -1,4 +1,3 @@
-# File: .github/workflows/ci-cd.yml
 name: CI/CD Deploy
 
 on:
@@ -8,60 +7,56 @@ on:
 
 env:
   IMAGE_NAME: mrghafari/momtazchem-app
-  CONTAINER_NAME: momtaz-app
-  DEPLOY_PATH: /opt/momtazchem
-  SSH_USER: root
-  SSH_HOST: ${{ secrets.SERVER_HOST }}   # IP یا hostname سرور
-  SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+  DOCKER_TAG: latest
+  SLACK_CHANNEL: "#ci-cd"
+  SLACK_USERNAME: "CI/CD Bot"
 
 jobs:
-  build-and-push:
-    name: Build & Push Docker Image
+  build-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
+      # 1️⃣ Checkout repository
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
+      # 2️⃣ Setup Docker Buildx
+      - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to DockerHub
+      # 3️⃣ Log in to DockerHub
+      - name: Login to DockerHub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ${{ env.IMAGE_NAME }}:latest
+      # 4️⃣ Build Docker image
+      - name: Build Docker image
+        run: |
+          docker build \
+            --build-arg NODE_ENV=production \
+            -t $IMAGE_NAME:$DOCKER_TAG .
 
-  deploy:
-    name: Deploy to Server
-    runs-on: ubuntu-latest
-    needs: build-and-push
-    steps:
-      - name: SSH and Deploy
-        uses: appleboy/ssh-action@v0.1.9
-        with:
-          host: ${{ env.SSH_HOST }}
-          username: ${{ env.SSH_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          script: |
-            cd ${{ env.DEPLOY_PATH }}
-            docker-compose pull
-            docker-compose up -d --remove-orphans
+      # 5️⃣ Push Docker image to DockerHub
+      - name: Push Docker image
+        run: |
+          docker push $IMAGE_NAME:$DOCKER_TAG
 
-  notify-slack:
-    name: Slack Notification
-    runs-on: ubuntu-latest
-    needs: deploy
-    steps:
-      - name: Send Slack Notification
-        uses: rtCamp/action-slack@v2
+      # 6️⃣ Notify Slack on success
+      - name: Slack Success Notification
+        if: success()
+        uses: slackapi/slack-github-action@v1.24.0
         with:
-          webhook_url: ${{ env.SLACK_WEBHOOK_URL }}
-          message: "✅ Deployment of MomtazChem App completed successfully on branch main."
-          color: good
+          channel-id: ${{ env.SLACK_CHANNEL }}
+          slack-message: ":white_check_mark: CI/CD build and deploy succeeded! Image: $IMAGE_NAME:$DOCKER_TAG"
+          bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
+
+      # 7️⃣ Notify Slack on failure
+      - name: Slack Failure Notification
+        if: failure()
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          channel-id: ${{ env.SLACK_CHANNEL }}
+          slack-message: ":x: CI/CD build or deploy failed!"
+          bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
