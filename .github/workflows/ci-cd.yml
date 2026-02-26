@@ -55,6 +55,7 @@ jobs:
           port: ${{ env.SSH_PORT }}
           script: |
             cd /opt/momtazchem
+            docker-compose down
             docker-compose pull app
             docker-compose up -d --remove-orphans
       
