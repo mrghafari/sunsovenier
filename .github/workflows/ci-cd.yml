@@ -18,11 +18,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout code
+      # 1️⃣ Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 2️⃣ Setup Node.js (for build)
+      # 2️⃣ Setup Node.js for build
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
@@ -45,13 +45,13 @@ jobs:
         run: |
           docker push $IMAGE_NAME:latest
 
-      # 6️⃣ Deploy on server via SSH
+      # 6️⃣ Deploy on server via SSH using new key
       - name: Deploy to server
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ env.SSH_HOST }}
           username: ${{ env.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}  # باید درست باشه و public key روی سرور باشه
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ env.SSH_PORT }}
           script: |
             cd /opt/momtazchem
