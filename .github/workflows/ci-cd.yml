@@ -9,7 +9,7 @@ env:
   IMAGE_NAME: mrghafari/momtazchem-app
   CONTAINER_NAME: momtaz-app
   DOCKER_COMPOSE_PATH: /opt/momtazchem/docker-compose.yml
-  SSH_USER: ubuntu
+  SSH_USER: root
   SSH_HOST: 5.75.170.42
   SSH_PORT: 22
 
