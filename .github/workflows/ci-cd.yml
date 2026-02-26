@@ -57,12 +57,4 @@ jobs:
             cd /opt/momtazchem
             docker-compose pull app
             docker-compose up -d --remove-orphans
-
-      # 7️⃣ Slack notification
-      - name: Notify Slack
-        uses: slackapi/slack-github-action@v1.23.0
-        with:
-          channel-id: ${{ secrets.SLACK_CHANNEL_ID }}
-          slack-message: |
-            ✅ Deployment completed successfully for branch: ${{ github.ref_name }}
-          bot-token: ${{ secrets.SLACK_BOT_TOKEN }}
+      
