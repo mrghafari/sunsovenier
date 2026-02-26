@@ -8,7 +8,6 @@ on:
 env:
   IMAGE_NAME: mrghafari/momtazchem-app
   CONTAINER_NAME: momtaz-app
-  DOCKER_COMPOSE_PATH: /opt/momtazchem/docker-compose.yml
   SSH_USER: root
   SSH_HOST: 5.75.170.42
   SSH_PORT: 22
@@ -18,34 +17,35 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout repository
+      # 1️⃣ Checkout
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 2️⃣ Setup Node.js for build
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 20
-
-      # 3️⃣ Login to DockerHub
+      # 2️⃣ Login to DockerHub
       - name: Login to DockerHub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 4️⃣ Build Docker image
+      # 3️⃣ Generate short SHA tag
+      - name: Set image tag
+        id: vars
+        run: echo "TAG=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_OUTPUT
+
+      # 4️⃣ Build image (version + latest)
       - name: Build Docker image
         run: |
-          docker build -t $IMAGE_NAME:latest .
+          docker build -t $IMAGE_NAME:${{ steps.vars.outputs.TAG }} .
+          docker tag $IMAGE_NAME:${{ steps.vars.outputs.TAG }} $IMAGE_NAME:latest
 
-      # 5️⃣ Push Docker image
-      - name: Push Docker image
+      # 5️⃣ Push images
+      - name: Push Docker images
         run: |
+          docker push $IMAGE_NAME:${{ steps.vars.outputs.TAG }}
           docker push $IMAGE_NAME:latest
 
-      # 6️⃣ Deploy on server via SSH using new key
+      # 6️⃣ Deploy specific version to server
       - name: Deploy to server
         uses: appleboy/ssh-action@v0.1.7
         with:
@@ -55,7 +55,23 @@ jobs:
           port: ${{ env.SSH_PORT }}
           script: |
             cd /opt/momtazchem
-            docker-compose down
-            docker-compose pull app
-            docker-compose up -d --remove-orphans
-      
+
+            echo "Pulling version ${{ steps.vars.outputs.TAG }}"
+            docker pull $IMAGE_NAME:${{ steps.vars.outputs.TAG }}
+
+            echo "Stopping old container"
+            docker stop $CONTAINER_NAME || true
+            docker rm $CONTAINER_NAME || true
+
+            echo "Starting new container"
+            docker run -d \
+              --name $CONTAINER_NAME \
+              -p 5000:5000 \
+              --env-file .env \
+              $IMAGE_NAME:${{ steps.vars.outputs.TAG }}
+
+            echo "Cleaning old images (keep last 5)"
+            docker images $IMAGE_NAME --format "{{.Repository}}:{{.Tag}}" \
+              | grep -v latest \
+              | tail -n +6 \
+              | xargs -r docker rmi || true
