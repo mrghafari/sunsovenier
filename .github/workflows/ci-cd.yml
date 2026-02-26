@@ -10,7 +10,7 @@ env:
   CONTAINER_NAME: momtaz-app
   DOCKER_COMPOSE_PATH: /opt/momtazchem/docker-compose.yml
   SSH_USER: ubuntu
-  SSH_HOST: your.server.ip.or.domain
+  SSH_HOST: 5.75.170.42
   SSH_PORT: 22
 
 jobs:
