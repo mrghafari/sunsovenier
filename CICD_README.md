@@ -144,4 +144,4 @@ The application exposes a health endpoint at `/api/health` that returns:
 - Check app logs: `docker-compose logs app`
 - Verify port 5000 is exposed
 - The End
-- ،ث
+  
