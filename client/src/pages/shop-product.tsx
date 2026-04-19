@@ -7,13 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import StarRating from "@/components/StarRating";
 import type { ShopProduct } from "@shared/shop-schema";
 import {
   ArrowLeft,
   ArrowRight,
   ChevronLeft,
   ChevronRight,
-  Package,
   Tag,
   Weight,
   Info,
@@ -22,7 +22,10 @@ import {
   Download,
   FileText,
   Flame,
-  ShoppingCart,
+  Star,
+  MessageSquare,
+  User,
+  ExternalLink,
 } from "lucide-react";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -60,6 +63,16 @@ export default function ShopProductPage() {
     },
     enabled: !!id,
   });
+
+  const { data: reviewsData } = useQuery({
+    queryKey: [`/api/products/${id}/reviews`],
+    enabled: !!id,
+  });
+
+  const reviews: any[] = (reviewsData as any)?.data?.reviews || [];
+  const avgRating: number = (reviewsData as any)?.data?.stats?.averageRating || 0;
+  const totalReviews: number = (reviewsData as any)?.data?.stats?.totalReviews || 0;
+  const previewReviews = reviews.slice(0, 3);
 
   // ── loading ───────────────────────────────────────────────────────────────
   if (isLoading) {
@@ -326,6 +339,114 @@ export default function ShopProductPage() {
             </div>
           </div>
         )}
+
+        {/* ── Ratings & Reviews ──────────────────────────────────────────── */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border p-6">
+          <div className={`flex items-center justify-between mb-4 ${isRtl ? "flex-row-reverse" : ""}`}>
+            <h2 className={`flex items-center gap-2 font-bold text-gray-800 dark:text-gray-200 text-lg ${isRtl ? "flex-row-reverse" : ""}`}>
+              <Star className="w-5 h-5 text-yellow-500 fill-yellow-400" />
+              نظرات و امتیازات
+            </h2>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-1.5 text-blue-600 border-blue-200 hover:bg-blue-50"
+              onClick={() => navigate(`/product-reviews/${id}`)}
+            >
+              <ExternalLink className="w-4 h-4" />
+              مشاهده همه نظرات
+            </Button>
+          </div>
+
+          {/* Rating summary */}
+          {totalReviews > 0 ? (
+            <div className={`flex items-center gap-5 mb-5 p-4 bg-yellow-50 dark:bg-yellow-900/10 rounded-xl ${isRtl ? "flex-row-reverse" : ""}`}>
+              <div className="text-center">
+                <div className="text-4xl font-bold text-yellow-600">{avgRating.toFixed(1)}</div>
+                <StarRating rating={avgRating} size="md" />
+                <div className="text-xs text-gray-500 mt-1">{totalReviews} نظر</div>
+              </div>
+              <Separator orientation="vertical" className="h-16" />
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                {[5, 4, 3, 2, 1].map(star => {
+                  const count = reviews.filter(r => Math.round(r.rating) === star).length;
+                  const pct = totalReviews > 0 ? Math.round((count / totalReviews) * 100) : 0;
+                  return (
+                    <div key={star} className={`flex items-center gap-2 mb-1 ${isRtl ? "flex-row-reverse" : ""}`}>
+                      <span className="w-5 text-xs font-medium">{star}★</span>
+                      <div className="w-28 h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div className="h-full bg-yellow-400 rounded-full" style={{ width: `${pct}%` }} />
+                      </div>
+                      <span className="text-xs w-8">{pct}%</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-6 text-gray-400">
+              <MessageSquare className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+              <p className="text-sm">هنوز نظری ثبت نشده</p>
+              <Button
+                variant="link"
+                size="sm"
+                className="text-blue-600 mt-1"
+                onClick={() => navigate(`/product-reviews/${id}`)}
+              >
+                اولین نفر باشید که نظر می‌دهد
+              </Button>
+            </div>
+          )}
+
+          {/* Preview comments */}
+          {previewReviews.length > 0 && (
+            <div className="space-y-4">
+              {previewReviews.map((review: any) => (
+                <div key={review.id} className={`flex gap-3 ${isRtl ? "flex-row-reverse" : ""}`}>
+                  <div className="flex-shrink-0 w-9 h-9 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+                    <User className="w-4 h-4 text-gray-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className={`flex items-center gap-2 mb-1 ${isRtl ? "flex-row-reverse" : ""}`}>
+                      <span className="font-semibold text-sm text-gray-800 dark:text-gray-200">{review.customerName}</span>
+                      <StarRating rating={review.rating} size="sm" />
+                      <span className="text-xs text-gray-400">
+                        {new Date(review.createdAt).toLocaleDateString("fa-IR")}
+                      </span>
+                    </div>
+                    {review.comment && (
+                      <p className={`text-sm text-gray-700 dark:text-gray-300 leading-relaxed ${isRtl ? "text-right" : ""}`}>
+                        {review.comment}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {reviews.length > 3 && (
+                <Button
+                  variant="ghost"
+                  className="w-full text-blue-600 hover:text-blue-800 hover:bg-blue-50 flex items-center justify-center gap-2 mt-2"
+                  onClick={() => navigate(`/product-reviews/${id}`)}
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  مشاهده {reviews.length - 3} نظر دیگر
+                </Button>
+              )}
+            </div>
+          )}
+
+          {/* Add review CTA */}
+          <div className="mt-4 pt-4 border-t">
+            <Button
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center gap-2"
+              onClick={() => navigate(`/product-reviews/${id}`)}
+            >
+              <MessageSquare className="w-4 h-4" />
+              ثبت نظر و امتیاز
+            </Button>
+          </div>
+        </div>
 
         {/* ── Documents ──────────────────────────────────────────────────── */}
         {((product.showCatalogToCustomers && product.pdfCatalogUrl) ||
