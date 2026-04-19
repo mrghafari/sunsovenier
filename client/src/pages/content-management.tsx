@@ -169,6 +169,45 @@ export default function ContentManagement() {
     }
   }, [tawkSettings]);
 
+  // Query for homepage categories management
+  interface HomepageCategory {
+    id: number;
+    name: string;
+    slug: string;
+    description: string | null;
+    imageUrl: string | null;
+    isActive: boolean;
+    displayOrder: number;
+  }
+  const { data: homepageCategories, isLoading: loadingHomepageCategories, refetch: refetchHomepageCategories } = useQuery<HomepageCategory[]>({
+    queryKey: ['/api/admin/categories'],
+    queryFn: () =>
+      fetch('/api/admin/categories')
+        .then(res => res.json())
+        .then(data => Array.isArray(data) ? data : []),
+    enabled: activeTab === 'homepage-categories'
+  });
+
+  const [editingCategory, setEditingCategory] = useState<HomepageCategory | null>(null);
+  const [categoryDrafts, setCategoryDrafts] = useState<Record<number, Partial<HomepageCategory>>>({});
+
+  const updateCategoryMutation = useMutation({
+    mutationFn: async ({ id, ...data }: Partial<HomepageCategory> & { id: number }) => {
+      return apiRequest(`/api/admin/categories/${id}`, {
+        method: 'PUT',
+        body: data
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "کتگوری به‌روزرسانی شد", description: "تغییرات با موفقیت ذخیره شد." });
+      refetchHomepageCategories();
+      queryClient.invalidateQueries({ queryKey: ['/api/public/categories'] });
+    },
+    onError: () => {
+      toast({ title: "خطا", description: "ذخیره‌سازی انجام نشد.", variant: "destructive" });
+    }
+  });
+
   // Mutation for updating content
   const updateContentMutation = useMutation({
     mutationFn: async (data: { id: number; content: string; isActive: boolean }) => {
@@ -433,7 +472,7 @@ export default function ContentManagement() {
 
         {/* Content Management Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-8">
+          <TabsList className="flex flex-wrap w-full h-auto gap-1 p-1">
             <TabsTrigger value="content" className="flex items-center gap-2">
               <Type className="w-4 h-4" />
               Text Content
@@ -441,6 +480,10 @@ export default function ContentManagement() {
             <TabsTrigger value="settings-control" className="flex items-center gap-2">
               <Switch className="w-4 h-4" />
               کنترل تنظیمات
+            </TabsTrigger>
+            <TabsTrigger value="homepage-categories" className="flex items-center gap-2">
+              <Edit3 className="w-4 h-4" />
+              کتگوری‌های صفحه اصلی
             </TabsTrigger>
             <TabsTrigger value="products-display" className="flex items-center gap-2">
               <Package className="w-4 h-4" />
@@ -1653,6 +1696,158 @@ s0.parentNode.insertBefore(s1,s0);
                 </CardContent>
               </Card>
             )}
+          </TabsContent>
+
+          {/* Homepage Categories Tab */}
+          <TabsContent value="homepage-categories" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Edit3 className="w-5 h-5" />
+                  ویرایش کتگوری‌های صفحه اصلی
+                </CardTitle>
+                <CardDescription>
+                  نام، توضیحات و تصویر هر کتگوری را که در بخش «پرتفولیوی محصولات» صفحه اصلی نمایش داده می‌شود ویرایش کنید.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loadingHomepageCategories ? (
+                  <div className="flex items-center justify-center p-10">
+                    <RefreshCw className="w-6 h-6 animate-spin text-blue-500" />
+                    <span className="mr-2 text-gray-500">در حال بارگذاری کتگوری‌ها...</span>
+                  </div>
+                ) : !homepageCategories || homepageCategories.length === 0 ? (
+                  <p className="text-center text-gray-400 py-10">هیچ کتگوری‌ای یافت نشد.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {homepageCategories.map((cat) => {
+                      const draft = categoryDrafts[cat.id] ?? {};
+                      const isEditing = editingCategory?.id === cat.id;
+                      const currentName = isEditing ? (draft.name ?? cat.name) : cat.name;
+                      const currentDesc = isEditing ? (draft.description ?? cat.description ?? '') : (cat.description ?? '');
+                      const currentImage = isEditing ? (draft.imageUrl ?? cat.imageUrl ?? '') : (cat.imageUrl ?? '');
+
+                      return (
+                        <Card key={cat.id} className={`border ${isEditing ? 'border-blue-400 shadow-md' : 'border-gray-200'}`}>
+                          <CardContent className="p-4">
+                            <div className="flex items-start gap-4">
+                              {/* Preview image */}
+                              <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                                {currentImage ? (
+                                  <img src={currentImage} alt={currentName} className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                    <Package className="w-8 h-8" />
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="flex-1 min-w-0">
+                                {isEditing ? (
+                                  <div className="space-y-3">
+                                    <div>
+                                      <Label className="text-xs font-medium text-gray-600 mb-1 block">نام کتگوری</Label>
+                                      <Input
+                                        value={currentName}
+                                        onChange={(e) => setCategoryDrafts(prev => ({ ...prev, [cat.id]: { ...prev[cat.id], name: e.target.value } }))}
+                                        className="h-8 text-sm"
+                                        placeholder="نام کتگوری"
+                                      />
+                                    </div>
+                                    <div>
+                                      <Label className="text-xs font-medium text-gray-600 mb-1 block">توضیحات</Label>
+                                      <Textarea
+                                        value={currentDesc}
+                                        onChange={(e) => setCategoryDrafts(prev => ({ ...prev, [cat.id]: { ...prev[cat.id], description: e.target.value } }))}
+                                        className="text-sm min-h-[60px] resize-none"
+                                        placeholder="توضیح کوتاه درباره این کتگوری..."
+                                      />
+                                    </div>
+                                    <div>
+                                      <Label className="text-xs font-medium text-gray-600 mb-1 block">لینک تصویر (URL)</Label>
+                                      <Input
+                                        value={currentImage}
+                                        onChange={(e) => setCategoryDrafts(prev => ({ ...prev, [cat.id]: { ...prev[cat.id], imageUrl: e.target.value } }))}
+                                        className="h-8 text-sm"
+                                        placeholder="https://..."
+                                        dir="ltr"
+                                      />
+                                    </div>
+                                    <div className="flex gap-2 pt-1">
+                                      <Button
+                                        size="sm"
+                                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                                        disabled={updateCategoryMutation.isPending}
+                                        onClick={() => {
+                                          const d = categoryDrafts[cat.id] ?? {};
+                                          updateCategoryMutation.mutate({
+                                            id: cat.id,
+                                            name: d.name ?? cat.name,
+                                            slug: cat.slug,
+                                            description: d.description !== undefined ? d.description : cat.description,
+                                            imageUrl: d.imageUrl !== undefined ? d.imageUrl : cat.imageUrl,
+                                            isActive: cat.isActive,
+                                            displayOrder: cat.displayOrder,
+                                          }, {
+                                            onSuccess: () => {
+                                              setEditingCategory(null);
+                                              setCategoryDrafts(prev => { const n = { ...prev }; delete n[cat.id]; return n; });
+                                            }
+                                          });
+                                        }}
+                                      >
+                                        <Save className="w-3 h-3 ml-1" />
+                                        ذخیره
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => {
+                                          setEditingCategory(null);
+                                          setCategoryDrafts(prev => { const n = { ...prev }; delete n[cat.id]; return n; });
+                                        }}
+                                      >
+                                        انصراف
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div>
+                                    <div className="flex items-center justify-between mb-1">
+                                      <h3 className="font-semibold text-gray-900">{cat.name}</h3>
+                                      <div className="flex items-center gap-2">
+                                        <Badge variant={cat.isActive ? "default" : "secondary"} className="text-xs">
+                                          {cat.isActive ? "فعال" : "غیرفعال"}
+                                        </Badge>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => setEditingCategory(cat)}
+                                          className="h-7 px-2"
+                                        >
+                                          <Edit3 className="w-3 h-3 ml-1" />
+                                          ویرایش
+                                        </Button>
+                                      </div>
+                                    </div>
+                                    <p className="text-sm text-gray-500 line-clamp-2">
+                                      {cat.description || <span className="italic text-gray-400">توضیحاتی ثبت نشده</span>}
+                                    </p>
+                                    {cat.imageUrl && (
+                                      <p className="text-xs text-blue-500 truncate mt-1" dir="ltr">{cat.imageUrl}</p>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

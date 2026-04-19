@@ -6,12 +6,32 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Award, Leaf, FlaskRound, Truck, Headphones, FuelIcon as Fuel, Droplets, PaintBucket, Wheat, Download, FileText, Image } from "lucide-react";
-import type { ShopProduct } from "@shared/shop-schema";
+import { Award, Leaf, FlaskRound, Truck, Headphones, FuelIcon as Fuel, Droplets, PaintBucket, Wheat, Download, FileText, Package, Beaker, Factory } from "lucide-react";
+import type { ShopProduct, ShopCategory } from "@shared/shop-schema";
 import waterTreatmentImg from "@assets/download_1749877891276.jpeg";
 import { useLanguage } from "@/contexts/LanguageContext";
 import OpenGraphTags from "@/components/seo/OpenGraphTags";
 import CanonicalUrl from "@/components/seo/CanonicalUrl";
+
+// Map category name to icon and color
+function getCategoryMeta(name: string): { icon: React.ReactNode; iconBg: string; fallbackImage: string } {
+  const n = name.toLowerCase();
+  if (n.includes('fuel') || n.includes('additive'))
+    return { icon: <Fuel className="text-white text-xl" />, iconBg: "bg-primary-blue", fallbackImage: "https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?auto=format&fit=crop&w=1000&q=80" };
+  if (n.includes('water') || n.includes('treatment'))
+    return { icon: <Droplets className="text-white text-xl" />, iconBg: "bg-primary-green", fallbackImage: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1000&q=80" };
+  if (n.includes('paint') || n.includes('thinner') || n.includes('solvent'))
+    return { icon: <PaintBucket className="text-white text-xl" />, iconBg: "bg-accent-orange", fallbackImage: "https://images.unsplash.com/photo-1581833971358-2c8b550f87b3?auto=format&fit=crop&w=1000&q=80" };
+  if (n.includes('agricultural') || n.includes('fertilizer'))
+    return { icon: <Wheat className="text-white text-xl" />, iconBg: "bg-primary-green", fallbackImage: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?auto=format&fit=crop&w=1000&q=80" };
+  if (n.includes('industrial') || n.includes('chemical'))
+    return { icon: <Beaker className="text-white text-xl" />, iconBg: "bg-primary-blue", fallbackImage: "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?auto=format&fit=crop&w=1000&q=80" };
+  if (n.includes('technical') || n.includes('equipment'))
+    return { icon: <Factory className="text-white text-xl" />, iconBg: "bg-accent-orange", fallbackImage: "https://images.unsplash.com/photo-1565715101917-9474fc0ff03c?auto=format&fit=crop&w=1000&q=80" };
+  if (n.includes('commercial') || n.includes('goods'))
+    return { icon: <Package className="text-white text-xl" />, iconBg: "bg-primary-blue", fallbackImage: "https://images.unsplash.com/photo-1553413077-190dd305871c?auto=format&fit=crop&w=1000&q=80" };
+  return { icon: <Package className="text-white text-xl" />, iconBg: "bg-primary-blue", fallbackImage: "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?auto=format&fit=crop&w=1000&q=80" };
+}
 
 const Home = () => {
   const { t } = useLanguage();
@@ -19,48 +39,16 @@ const Home = () => {
   const { data: productsResponse, isLoading } = useQuery({
     queryKey: ["/api/products"],
   });
-  
-  // Extract array from response
-  const allProducts = Array.isArray(productsResponse) ? productsResponse : [];
 
-  const categoryInfo = [
-    {
-      title: t.fuelAdditivesTitle,
-      description: t.fuelAdditivesDesc,
-      href: "/products/fuel-additives",
-      icon: <Fuel className="text-white text-xl" />,
-      iconBg: "bg-primary-blue",
-      category: "fuel-additives",
-      imageUrl: "https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
-    },
-    {
-      title: t.waterTreatmentTitle,
-      description: t.waterTreatmentDesc,
-      href: "/products/water-treatment",
-      icon: <Droplets className="text-white text-xl" />,
-      iconBg: "bg-primary-green",
-      category: "water-treatment",
-      imageUrl: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
-    },
-    {
-      title: t.paintThinnerTitle,
-      description: t.paintThinnerDesc,
-      href: "/products/paint-thinner",
-      icon: <PaintBucket className="text-white text-xl" />,
-      iconBg: "bg-accent-orange",
-      category: "paint-thinner",
-      imageUrl: "https://images.unsplash.com/photo-1581833971358-2c8b550f87b3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
-    },
-    {
-      title: t.agriculturalFertilizersTitle,
-      description: t.agriculturalFertilizersDesc,
-      href: "/products/agricultural-fertilizers",
-      icon: <Wheat className="text-white text-xl" />,
-      iconBg: "bg-primary-green",
-      category: "agricultural-fertilizers",
-      imageUrl: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
-    },
-  ];
+  // Fetch all active categories from public endpoint
+  const { data: categoriesResponse, isLoading: loadingCategories } = useQuery({
+    queryKey: ["/api/public/categories"],
+    queryFn: () => fetch("/api/public/categories").then(r => r.json()).then(d => d.success ? d.data : []),
+  });
+
+  // Extract arrays from response
+  const allProducts = Array.isArray(productsResponse) ? productsResponse : [];
+  const allCategories: ShopCategory[] = Array.isArray(categoriesResponse) ? categoriesResponse : [];
 
   // Group products by category
   const productsByCategory = allProducts.reduce((acc, product) => {
@@ -122,7 +110,7 @@ const Home = () => {
             </p>
           </div>
 
-          {isLoading ? (
+          {(isLoading || loadingCategories) ? (
             <div className="grid md:grid-cols-2 gap-8">
               {Array.from({ length: 4 }).map((_, i) => (
                 <Card key={i} className="bg-white">
@@ -141,44 +129,42 @@ const Home = () => {
               ))}
             </div>
           ) : (
-            <div className="grid md:grid-cols-2 gap-8">
-              {categoryInfo.map((category) => {
-                const categoryProducts = productsByCategory[category.category] || [];
+            <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-8">
+              {allCategories.map((category) => {
+                const { icon, iconBg, fallbackImage } = getCategoryMeta(category.name);
+                const slug = category.slug || category.name.toLowerCase().replace(/\s+/g, '-');
+                const href = `/products/${slug}`;
+                const categoryProducts = productsByCategory[category.name] || [];
                 const productCount = categoryProducts.length;
-                
+                const displayImage = category.imageUrl || (category.name.toLowerCase().includes('water') ? waterTreatmentImg : fallbackImage);
+
                 return (
-                  <Card key={category.category} className="group bg-white hover:shadow-xl transition-all duration-300 border border-gray-200 hover:border-blue-200">
+                  <Card key={category.id} className="group bg-white hover:shadow-xl transition-all duration-300 border border-gray-200 hover:border-blue-200">
                     <CardContent className="p-0">
                       <div className="relative overflow-hidden rounded-t-lg">
-                        {/* Use first product with image, otherwise fallback to category image */}
                         <img
-                          src={category.category === 'water-treatment' ? 
-                            waterTreatmentImg : 
-                            category.imageUrl}
-                          alt={category.title}
+                          src={displayImage}
+                          alt={category.name}
                           className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                          onError={(e) => {
-                            console.error('Image load error:', e.currentTarget.src);
-                            e.currentTarget.src = category.imageUrl;
-                          }}
+                          onError={(e) => { e.currentTarget.src = fallbackImage; }}
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-                        <div className={`absolute top-4 left-4 w-12 h-12 ${category.iconBg} rounded-lg flex items-center justify-center`}>
-                          {category.icon}
+                        <div className={`absolute top-4 left-4 w-12 h-12 ${iconBg} rounded-lg flex items-center justify-center`}>
+                          {icon}
                         </div>
                         <Badge className="absolute top-4 right-4 bg-white/90 text-gray-800 border-0">
                           {productCount} {t.products_plural}
                         </Badge>
                       </div>
-                      
+
                       <div className="p-6">
                         <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors">
-                          {category.title}
+                          {category.name}
                         </h3>
                         <p className="text-gray-600 mb-4 line-clamp-3">
-                          {category.description}
+                          {category.description || ""}
                         </p>
-                        
+
                         {categoryProducts.length > 0 && (
                           <div className="mb-6">
                             <h4 className="text-sm font-semibold text-gray-900 mb-3">{t.availableProducts}</h4>
@@ -193,8 +179,8 @@ const Home = () => {
                                       </Badge>
                                     )}
                                     {product.pdfCatalogUrl && (
-                                      <a 
-                                        href={product.pdfCatalogUrl} 
+                                      <a
+                                        href={product.pdfCatalogUrl}
                                         download={`${product.name}_catalog.pdf`}
                                         target="_blank"
                                         rel="noopener noreferrer"
@@ -215,10 +201,10 @@ const Home = () => {
                             </div>
                           </div>
                         )}
-                        
-                        <Link href={category.href}>
+
+                        <Link href={href}>
                           <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
-                            {t.viewAll} {category.title}
+                            {t.viewAll} {category.name}
                           </Button>
                         </Link>
                       </div>

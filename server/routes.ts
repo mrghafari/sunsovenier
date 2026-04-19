@@ -27727,6 +27727,19 @@ ${message ? `Additional Requirements:\n${message}` : ''}
   // CATEGORY MANAGEMENT API ROUTES
   // =============================================================================
 
+  // Public endpoint - Get all active categories (no auth required, for homepage)
+  app.get("/api/public/categories", async (req, res) => {
+    try {
+      const { shopStorage } = await import('./shop-storage');
+      const categories = await shopStorage.getCategories();
+      const activeCategories = categories.filter((c: any) => c.isActive !== false);
+      res.json({ success: true, data: activeCategories });
+    } catch (error) {
+      console.error("Error fetching public categories:", error);
+      res.status(500).json({ success: false, message: "Failed to fetch categories" });
+    }
+  });
+
   // Get all categories
   app.get("/api/admin/categories", requireProductManagerAuth, async (req, res) => {
     try {
