@@ -29,7 +29,6 @@ import VisualBarcode from "@/components/ui/visual-barcode";
 import ProductRating from "@/components/ProductRating";
 import StarRating from "@/components/StarRating";
 import { ProductSpecsModal } from "@/components/ProductSpecsModal";
-import { ProductDetailModal } from "@/components/ProductDetailModal";
 import { formatIQDAmount } from "@/lib/currency-utils";
 import OpenGraphTags from "@/components/seo/OpenGraphTags";
 import CanonicalUrl from "@/components/seo/CanonicalUrl";
@@ -65,7 +64,6 @@ const Shop = () => {
   const [showAuth, setShowAuth] = useState(false);
   const [selectedProductForSpecs, setSelectedProductForSpecs] = useState<any>(null);
   const [showSpecsModal, setShowSpecsModal] = useState(false);
-  const [selectedProductForDetail, setSelectedProductForDetail] = useState<ShopProduct | null>(null);
 
   const [productQuantities, setProductQuantities] = useState<{[key: number]: number}>({});
   const [displayStock, setDisplayStock] = useState<{[key: number]: number}>({});
@@ -1483,7 +1481,7 @@ const Shop = () => {
                           <div className="mb-1.5 sm:mb-2">
                             <h3
                               className="font-semibold text-base sm:text-lg cursor-pointer hover:text-blue-600 transition-colors"
-                              onClick={() => setSelectedProductForDetail(product)}
+                              onClick={() => navigate(`/shop/product/${product.id}`)}
                             >
                               {product.name}
                             </h3>
@@ -2039,7 +2037,7 @@ const Shop = () => {
                               <div className="mb-2">
                                 <h3
                                   className="font-semibold text-xl cursor-pointer hover:text-blue-600 transition-colors"
-                                  onClick={() => setSelectedProductForDetail(product)}
+                                  onClick={() => navigate(`/shop/product/${product.id}`)}
                                 >
                                   {product.name}
                                 </h3>
@@ -2489,12 +2487,6 @@ const Shop = () => {
         />
       )}
 
-      {/* Product Detail Modal */}
-      <ProductDetailModal
-        product={selectedProductForDetail}
-        isOpen={!!selectedProductForDetail}
-        onClose={() => setSelectedProductForDetail(null)}
-      />
 
       {/* Image Zoom Modal */}
       {selectedImageForZoom && selectedProductForZoom && (
