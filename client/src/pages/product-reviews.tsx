@@ -43,40 +43,14 @@ export default function ProductReviews() {
   // Check if we have valid data to display
   const hasValidData = (reviewsData as any)?.success && (reviewsData as any)?.data;
 
-  // Debug logging
-  console.log('🔍 DEBUGGING REVIEWS ISSUE:');
-  console.log('Product ID:', id);
-  console.log('Reviews Data Full:', JSON.stringify(reviewsData, null, 2));
-  console.log('Reviews Array Length:', reviews.length);
-  console.log('Reviews Array:', reviews);
-  console.log('Product Stats:', productStats);
-  console.log('Product:', product);
-  
-  // Check if reviewsData structure is correct
-  if (reviewsData) {
-    console.log('ReviewsData type:', typeof reviewsData);
-    console.log('ReviewsData keys:', Object.keys(reviewsData as any));
-    if ((reviewsData as any).data) {
-      console.log('ReviewsData.data keys:', Object.keys((reviewsData as any).data));
-      console.log('ReviewsData.data.reviews:', (reviewsData as any).data.reviews);
-    }
-  }
-
   // Add review mutation
   const addReviewMutation = useMutation({
-    mutationFn: async (reviewData: { rating: number; comment: string; reviewerName?: string; reviewerEmail?: string }) => {
-      const payload: Record<string, any> = {
-        rating: reviewData.rating,
-        comment: reviewData.comment.trim(),
-      };
-      if (reviewData.reviewerName) payload.reviewerName = reviewData.reviewerName;
-      if (reviewData.reviewerEmail) payload.reviewerEmail = reviewData.reviewerEmail;
-
+    mutationFn: async (reviewData: { rating: number; comment: string }) => {
       const response = await fetch(`/api/products/${id}/reviews`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ rating: reviewData.rating, comment: reviewData.comment.trim() })
       });
       const data = await response.json();
       if (!data.success) {
@@ -87,12 +61,9 @@ export default function ProductReviews() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/products/${id}/reviews`] });
     },
-    onError: (error: any) => {
-      console.error('🔥 [REVIEW SUBMIT ERROR]', error);
-    },
   });
 
-  const handleAddReview = async (reviewData: { rating: number; comment: string; reviewerName?: string; reviewerEmail?: string }) => {
+  const handleAddReview = async (reviewData: { rating: number; comment: string }) => {
     await addReviewMutation.mutateAsync(reviewData);
   };
 

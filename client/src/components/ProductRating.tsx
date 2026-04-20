@@ -2,11 +2,10 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import StarRating from './StarRating';
-import { User, MessageSquare } from 'lucide-react';
+import { User, MessageSquare, Lock } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCustomer } from '@/hooks/useCustomer';
 
@@ -25,7 +24,7 @@ interface ProductRatingProps {
   averageRating: number;
   totalReviews: number;
   reviews: Review[];
-  onAddReview?: (review: { rating: number; comment: string; reviewerName?: string; reviewerEmail?: string }) => Promise<void>;
+  onAddReview?: (review: { rating: number; comment: string }) => Promise<void>;
 }
 
 export default function ProductRating({
@@ -40,8 +39,6 @@ export default function ProductRating({
   const { t, direction } = useLanguage();
   const [newRating, setNewRating] = React.useState(0);
   const [newComment, setNewComment] = React.useState('');
-  const [guestName, setGuestName] = React.useState('');
-  const [guestEmail, setGuestEmail] = React.useState('');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isEditing, setIsEditing] = React.useState(false);
 
@@ -70,32 +67,20 @@ export default function ProductRating({
       return;
     }
 
-    if (!customer && guestName.trim().length === 0) {
-      toast({ title: t.error, description: 'لطفاً نام خود را وارد کنید', variant: 'destructive' });
-      return;
-    }
-
     setIsSubmitting(true);
     try {
       if (onAddReview) {
-        await onAddReview({
-          rating: newRating,
-          comment: newComment.trim(),
-          reviewerName: customer ? undefined : guestName.trim(),
-          reviewerEmail: customer ? undefined : (guestEmail.trim() || undefined),
-        });
+        await onAddReview({ rating: newRating, comment: newComment.trim() });
       }
       setNewRating(0);
       setNewComment('');
-      setGuestName('');
-      setGuestEmail('');
       setIsEditing(false);
       toast({
         title: isEditing ? t.reviewUpdated : t.reviewSubmitted,
         description: isEditing ? t.reviewUpdatedDesc : t.reviewSubmittedDesc,
       });
-    } catch (error: any) {
-      const msg = error?.message || t.reviewErrorDesc;
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : t.reviewErrorDesc;
       toast({ title: t.reviewError, description: msg, variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
@@ -140,10 +125,16 @@ export default function ProductRating({
               <div className="h-6 bg-gray-200 rounded w-1/3"></div>
               <div className="h-20 bg-gray-200 rounded"></div>
             </div>
+          ) : !customer ? (
+            <div className="text-center py-8">
+              <Lock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">{t.loginToReview}</h3>
+              <p className="text-gray-600">{t.loginToReviewDesc}</p>
+            </div>
           ) : (
             <>
-              {/* Show existing review info for logged-in customers */}
-              {customer && existingReview && !isEditing && (
+              {/* Show existing review for logged-in customer */}
+              {existingReview && !isEditing && (
                 <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="font-semibold text-blue-800">{t.yourPreviousReview}</h3>
@@ -157,41 +148,9 @@ export default function ProductRating({
                 </div>
               )}
 
-              {/* Form — visible to everyone (logged-in or guest), hidden only when logged-in customer already reviewed and not editing */}
-              {(!customer || !existingReview || isEditing) && (
+              {(!existingReview || isEditing) && (
                 <form onSubmit={handleSubmitReview} className="space-y-4">
-                  {/* Guest fields */}
-                  {!customer && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <Label htmlFor="guestName">نام <span className="text-red-500">*</span></Label>
-                        <Input
-                          id="guestName"
-                          value={guestName}
-                          onChange={(e) => setGuestName(e.target.value)}
-                          placeholder="نام شما"
-                          className="mt-1"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="guestEmail">ایمیل (اختیاری)</Label>
-                        <Input
-                          id="guestEmail"
-                          type="email"
-                          value={guestEmail}
-                          onChange={(e) => setGuestEmail(e.target.value)}
-                          placeholder="email@example.com"
-                          className="mt-1"
-                          dir="ltr"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {customer && (
-                    <p className="text-sm text-gray-600">{t.reviewingAs} {customer.firstName} {customer.lastName}</p>
-                  )}
+                  <p className="text-sm text-gray-600">{t.reviewingAs} {customer.firstName} {customer.lastName}</p>
 
                   <div>
                     <Label>{t.rating} <span className="text-red-500">*</span></Label>
