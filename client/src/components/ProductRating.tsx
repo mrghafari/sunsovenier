@@ -56,7 +56,7 @@ export default function ProductRating({
   React.useEffect(() => {
     if (isEditing && existingReview) {
       setNewRating(existingReview.rating);
-      setNewComment(existingReview.comment);
+      setNewComment(existingReview.comment ?? '');
     } else if (!isEditing) {
       setNewRating(0);
       setNewComment('');
