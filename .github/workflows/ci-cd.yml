@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout
+      # 1️⃣ Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -33,19 +33,19 @@ jobs:
         id: vars
         run: echo "TAG=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_OUTPUT
 
-      # 4️⃣ Build image (version + latest)
+      # 4️⃣ Build Docker image
       - name: Build Docker image
         run: |
           docker build -t $IMAGE_NAME:${{ steps.vars.outputs.TAG }} .
           docker tag $IMAGE_NAME:${{ steps.vars.outputs.TAG }} $IMAGE_NAME:latest
 
-      # 5️⃣ Push images
+      # 5️⃣ Push images to DockerHub
       - name: Push Docker images
         run: |
           docker push $IMAGE_NAME:${{ steps.vars.outputs.TAG }}
           docker push $IMAGE_NAME:latest
 
-      # 6️⃣ Deploy specific version to server
+      # 6️⃣ Deploy to server using docker-compose
       - name: Deploy to server
         uses: appleboy/ssh-action@v0.1.7
         with:
@@ -56,22 +56,16 @@ jobs:
           script: |
             cd /opt/momtazchem
 
-            echo "Pulling version ${{ steps.vars.outputs.TAG }}"
-            docker pull $IMAGE_NAME:${{ steps.vars.outputs.TAG }}
+            echo "Pulling latest images..."
+            docker-compose pull
 
-            echo "Stopping old container"
-            docker stop $CONTAINER_NAME || true
-            docker rm $CONTAINER_NAME || true
+            echo "Restarting containers with docker-compose..."
+            docker-compose up -d --remove-orphans
 
-            echo "Starting new container"
-            docker run -d \
-              --name $CONTAINER_NAME \
-              -p 5000:5000 \
-              --env-file .env \
-              $IMAGE_NAME:${{ steps.vars.outputs.TAG }}
-
-            echo "Cleaning old images (keep last 5)"
+            echo "Cleaning old images (keep last 5, excluding latest)..."
             docker images $IMAGE_NAME --format "{{.Repository}}:{{.Tag}}" \
               | grep -v latest \
               | tail -n +6 \
               | xargs -r docker rmi || true
+
+            echo "✅ Deployment complete!"
