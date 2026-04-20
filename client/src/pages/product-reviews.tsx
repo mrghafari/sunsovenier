@@ -64,41 +64,35 @@ export default function ProductReviews() {
 
   // Add review mutation
   const addReviewMutation = useMutation({
-    mutationFn: async (reviewData: { rating: number; comment: string }) => {
-      const payload = {
+    mutationFn: async (reviewData: { rating: number; comment: string; reviewerName?: string; reviewerEmail?: string }) => {
+      const payload: Record<string, any> = {
         rating: reviewData.rating,
         comment: reviewData.comment.trim(),
-        title: `${t.customerReviewTitle} ${product?.name || t.shop.product}`, // Generate meaningful title
       };
-      console.log('🔥 [REVIEW SUBMIT] Sending payload:', payload);
+      if (reviewData.reviewerName) payload.reviewerName = reviewData.reviewerName;
+      if (reviewData.reviewerEmail) payload.reviewerEmail = reviewData.reviewerEmail;
+
       const response = await fetch(`/api/products/${id}/reviews`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify(payload)
       });
-      return await response.json();
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.message || 'خطا در ثبت نظر');
+      }
+      return data;
     },
     onSuccess: () => {
-      // Invalidate and refetch product reviews (which includes stats)
       queryClient.invalidateQueries({ queryKey: [`/api/products/${id}/reviews`] });
-      toast({
-        title: 'reviewSubmitted',
-        description: 'reviewSubmittedDesc',
-      });
     },
     onError: (error: any) => {
       console.error('🔥 [REVIEW SUBMIT ERROR]', error);
-      const errorMessage = error?.message || error?.toString() || "Unknown error";
-      toast({
-        title: 'reviewError',
-        description: `${t.reviewErrorDesc}: ${errorMessage}`,
-        variant: 'destructive',
-      });
     },
   });
 
-  const handleAddReview = async (reviewData: { rating: number; comment: string }) => {
+  const handleAddReview = async (reviewData: { rating: number; comment: string; reviewerName?: string; reviewerEmail?: string }) => {
     await addReviewMutation.mutateAsync(reviewData);
   };
 

@@ -45479,69 +45479,88 @@ momtazchem.com
         return res.status(400).json({ success: false, message: "شناسه محصول نامعتبر است" });
       }
 
-      // Check customer authentication
-      if (!req.session.customerId) {
-        return res.status(401).json({ success: false, message: "برای ثبت نظر باید وارد حساب کاربری خود شوید" });
-      }
+      const { rating, title, comment, reviewerName, reviewerEmail } = req.body;
 
-      const customerId = req.session.customerId;
-      const { rating, title, comment } = req.body;
-
-      // Validate input
+      // Validate rating
       if (!rating || rating < 1 || rating > 5) {
-        return res.status(400).json({ success: false, message: "امتیاز باید بین 1 تا 5 ستاره باشد" });
-      }
-
-      if (false && comment && comment ? comment.trim() : null.length === 0) { // کامنت اختیاری است
-        return res.status(400).json({ success: false, message: "متن نظر الزامی است" });
+        return res.status(400).json({ success: false, message: "امتیاز باید بین ۱ تا ۵ ستاره باشد" });
       }
 
       const { pool } = await import('./db');
 
-      // Get customer information
-      const customerResult = await pool.query(`
-        SELECT 
-          COALESCE(first_name || ' ' || last_name, company, email) as customer_name,
-          email 
-        FROM crm_customers 
-        WHERE id = $1
-      `, [customerId]);
-
-      if (customerResult.rows.length === 0) {
-        return res.status(404).json({ success: false, message: "اطلاعات مشتری یافت نشد" });
-      }
-
-      const customer = customerResult.rows[0];
-
-      // Check if customer already has a review for this product
-      const existingReview = await pool.query(`
-        SELECT id FROM product_reviews WHERE product_id = $1 AND customer_id = $2
-      `, [productId, customerId]);
-
-      let reviewResult;
+      let customerId: number | null = req.session.customerId || null;
+      let customerName: string;
+      let customerEmail: string | null;
       let isUpdate = false;
+      let reviewResult;
 
-      if (existingReview.rows.length > 0) {
-        // Update existing review
-        reviewResult = await pool.query(`
-          UPDATE product_reviews 
-          SET rating = $1, title = $2, comment = $3, updated_at = NOW()
-          WHERE product_id = $4 AND customer_id = $5
-          RETURNING id
-        `, [rating, title || null, comment ? comment.trim() : null, productId, customerId]);
-        isUpdate = true;
+      if (customerId) {
+        // Logged-in customer: get their info from DB
+        const customerResult = await pool.query(`
+          SELECT COALESCE(first_name || ' ' || last_name, company, email) as customer_name, email
+          FROM crm_customers WHERE id = $1
+        `, [customerId]);
+
+        if (customerResult.rows.length === 0) {
+          return res.status(404).json({ success: false, message: "اطلاعات مشتری یافت نشد" });
+        }
+
+        customerName = customerResult.rows[0].customer_name;
+        customerEmail = customerResult.rows[0].email;
+
+        // Check for existing review by this customer
+        const existingReview = await pool.query(
+          `SELECT id FROM product_reviews WHERE product_id = $1 AND customer_id = $2`,
+          [productId, customerId]
+        );
+
+        if (existingReview.rows.length > 0) {
+          reviewResult = await pool.query(`
+            UPDATE product_reviews SET rating = $1, title = $2, comment = $3, updated_at = NOW()
+            WHERE product_id = $4 AND customer_id = $5 RETURNING id
+          `, [rating, title || null, comment ? comment.trim() : null, productId, customerId]);
+          isUpdate = true;
+        } else {
+          reviewResult = await pool.query(`
+            INSERT INTO product_reviews (product_id, customer_id, customer_name, customer_email, rating, title, comment, is_verified_purchase)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, false) RETURNING id
+          `, [productId, customerId, customerName, customerEmail, rating, title || null, comment ? comment.trim() : null]);
+        }
       } else {
-        // Create new review
-        reviewResult = await pool.query(`
-          INSERT INTO product_reviews (
-            product_id, customer_id, customer_name, customer_email, 
-            rating, title, comment, is_verified_purchase
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-          RETURNING id
-        `, [
-          productId, customerId, customer.customer_name, customer.email,
-          rating, title || null, comment ? comment.trim() : null, false // TODO: Check if verified purchase
-        ]);
+        // Guest review: require a name
+        if (!reviewerName || reviewerName.trim().length === 0) {
+          return res.status(400).json({ success: false, message: "لطفاً نام خود را وارد کنید" });
+        }
+
+        customerName = reviewerName.trim();
+        customerEmail = reviewerEmail ? reviewerEmail.trim() : null;
+
+        // Check for existing guest review by same email (if provided)
+        if (customerEmail) {
+          const existingGuest = await pool.query(
+            `SELECT id FROM product_reviews WHERE product_id = $1 AND customer_email = $2 AND customer_id IS NULL`,
+            [productId, customerEmail]
+          );
+
+          if (existingGuest.rows.length > 0) {
+            reviewResult = await pool.query(`
+              UPDATE product_reviews SET rating = $1, title = $2, comment = $3, customer_name = $4, updated_at = NOW()
+              WHERE product_id = $5 AND customer_email = $6 AND customer_id IS NULL RETURNING id
+            `, [rating, title || null, comment ? comment.trim() : null, customerName, productId, customerEmail]);
+            isUpdate = true;
+          } else {
+            reviewResult = await pool.query(`
+              INSERT INTO product_reviews (product_id, customer_id, customer_name, customer_email, rating, title, comment, is_verified_purchase)
+              VALUES ($1, NULL, $2, $3, $4, $5, $6, false) RETURNING id
+            `, [productId, customerName, customerEmail, rating, title || null, comment ? comment.trim() : null]);
+          }
+        } else {
+          // No email: always insert new review
+          reviewResult = await pool.query(`
+            INSERT INTO product_reviews (product_id, customer_id, customer_name, customer_email, rating, title, comment, is_verified_purchase)
+            VALUES ($1, NULL, $2, NULL, $3, $4, $5, false) RETURNING id
+          `, [productId, customerName, rating, title || null, comment ? comment.trim() : null]);
+        }
       }
 
       // Update product statistics

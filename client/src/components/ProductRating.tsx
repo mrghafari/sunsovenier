@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import StarRating from './StarRating';
-import { User, MessageSquare, Lock } from 'lucide-react';
+import { User, MessageSquare } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCustomer } from '@/hooks/useCustomer';
 
@@ -25,7 +25,7 @@ interface ProductRatingProps {
   averageRating: number;
   totalReviews: number;
   reviews: Review[];
-  onAddReview?: (review: { rating: number; comment: string }) => void;
+  onAddReview?: (review: { rating: number; comment: string; reviewerName?: string; reviewerEmail?: string }) => Promise<void>;
 }
 
 export default function ProductRating({
@@ -40,33 +40,18 @@ export default function ProductRating({
   const { t, direction } = useLanguage();
   const [newRating, setNewRating] = React.useState(0);
   const [newComment, setNewComment] = React.useState('');
+  const [guestName, setGuestName] = React.useState('');
+  const [guestEmail, setGuestEmail] = React.useState('');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isEditing, setIsEditing] = React.useState(false);
 
-  // Check if user is authenticated
   const { customer, isLoading: isLoadingCustomer } = useCustomer();
 
-  // Find existing review by current customer 
   const existingReview = React.useMemo(() => {
     if (!customer) return null;
-    
-    // Debug logging for customer matching
-    console.log('🔍 CUSTOMER MATCHING DEBUG:');
-    console.log('Current customer:', customer);
-    console.log('Customer ID:', customer.id);
-    console.log('Available reviews:', reviews);
-    reviews.forEach((review, index) => {
-      console.log(`Review ${index}: customerID ${review.customerId} === ${customer.id}?`, review.customerId === customer.id);
-    });
-    
-    const found = reviews.find(review => 
-      review.customerId === customer.id
-    );
-    console.log('Found existing review:', found);
-    return found;
+    return reviews.find(review => review.customerId === customer.id) || null;
   }, [reviews, customer]);
 
-  // Initialize form with existing review data if editing
   React.useEffect(() => {
     if (isEditing && existingReview) {
       setNewRating(existingReview.rating);
@@ -79,72 +64,50 @@ export default function ProductRating({
 
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (newRating === 0) {
-      toast({
-        title: t.error,
-        description: t.rating,
-        variant: "destructive"
-      });
+      toast({ title: t.error, description: t.rating, variant: 'destructive' });
       return;
     }
-    
-    // کامنت اختیاری است - کاربر می‌تواند فقط ستاره بدهد
-    
+
+    if (!customer && guestName.trim().length === 0) {
+      toast({ title: t.error, description: 'لطفاً نام خود را وارد کنید', variant: 'destructive' });
+      return;
+    }
+
     setIsSubmitting(true);
-    
     try {
       if (onAddReview) {
         await onAddReview({
           rating: newRating,
-          comment: newComment.trim()
+          comment: newComment.trim(),
+          reviewerName: customer ? undefined : guestName.trim(),
+          reviewerEmail: customer ? undefined : (guestEmail.trim() || undefined),
         });
       }
-      
-      // Reset form after successful submission
       setNewRating(0);
       setNewComment('');
+      setGuestName('');
+      setGuestEmail('');
       setIsEditing(false);
-      
       toast({
         title: isEditing ? t.reviewUpdated : t.reviewSubmitted,
-        description: isEditing ? t.reviewUpdatedDesc : t.reviewSubmittedDesc
+        description: isEditing ? t.reviewUpdatedDesc : t.reviewSubmittedDesc,
       });
-    } catch (error) {
-      toast({
-        title: t.reviewError,
-        description: t.reviewErrorDesc,
-        variant: "destructive"
-      });
+    } catch (error: any) {
+      const msg = error?.message || t.reviewErrorDesc;
+      toast({ title: t.reviewError, description: msg, variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleCancelEdit = () => {
-    setIsEditing(false);
-    setNewRating(0);
-    setNewComment('');
-  };
-
-  const handleStartEdit = () => {
-    setIsEditing(true);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
-  // Debug logging
-  console.log('ProductRating Props:', { productId, productName, averageRating, totalReviews, reviews: reviews });
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString('fa-IR', { year: 'numeric', month: 'short', day: 'numeric' });
 
   return (
     <div className="space-y-6" dir={direction}>
-      {/* Product Rating Summary */}
+      {/* Rating Summary */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -155,9 +118,7 @@ export default function ProductRating({
         <CardContent>
           <div className="flex items-center gap-4 mb-4">
             <div className="text-center">
-              <div className="text-3xl font-bold text-yellow-600">
-                {averageRating.toFixed(1)}
-              </div>
+              <div className="text-3xl font-bold text-yellow-600">{averageRating.toFixed(1)}</div>
               <StarRating rating={averageRating} size="lg" />
             </div>
             <div className="text-gray-600">
@@ -168,69 +129,74 @@ export default function ProductRating({
         </CardContent>
       </Card>
 
-      {/* Add New Review */}
+      {/* Submit Review Form */}
       <Card>
         <CardHeader>
-          <CardTitle>{t.addYourReview}</CardTitle>
+          <CardTitle>{isEditing ? t.editReview : t.addYourReview}</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoadingCustomer ? (
-            <div className="animate-pulse">
-              <div className="h-6 bg-gray-200 rounded w-1/3 mb-4"></div>
+            <div className="animate-pulse space-y-3">
+              <div className="h-6 bg-gray-200 rounded w-1/3"></div>
               <div className="h-20 bg-gray-200 rounded"></div>
-            </div>
-          ) : !customer ? (
-            <div className="text-center py-8">
-              <Lock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                {t.loginToReview}
-              </h3>
-              <p className="text-gray-600">
-                {t.loginToReviewDesc}
-              </p>
             </div>
           ) : (
             <>
-              <p className="text-sm text-gray-600 mb-4">
-                {t.reviewingAs} {customer.firstName} {customer.lastName}
-              </p>
-              
-              {/* Show existing review and edit button if user has already reviewed */}
-              {existingReview && !isEditing && (
-                <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              {/* Show existing review info for logged-in customers */}
+              {customer && existingReview && !isEditing && (
+                <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="font-semibold text-blue-800">{t.yourPreviousReview}</h3>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={handleStartEdit}
-                      className="text-blue-600 border-blue-300 hover:bg-blue-100"
-                    >
+                    <Button variant="outline" size="sm" onClick={() => setIsEditing(true)} className="text-blue-600 border-blue-300 hover:bg-blue-100">
                       {t.editReview}
                     </Button>
                   </div>
-                  <div className="mb-2">
-                    <StarRating rating={existingReview.rating} size="sm" />
-                  </div>
-                  <p className="text-gray-700">{existingReview.comment}</p>
-                  <p className="text-xs text-gray-500 mt-2">
-                    {t.postedOn} {formatDate(existingReview.createdAt)}
-                  </p>
+                  <StarRating rating={existingReview.rating} size="sm" />
+                  <p className="text-gray-700 mt-2">{existingReview.comment}</p>
+                  <p className="text-xs text-gray-500 mt-2">{t.postedOn} {formatDate(existingReview.createdAt)}</p>
                 </div>
               )}
 
-              {/* Show form only when adding new review or editing existing one */}
-              {(!existingReview || isEditing) && (
+              {/* Form — visible to everyone (logged-in or guest), hidden only when logged-in customer already reviewed and not editing */}
+              {(!customer || !existingReview || isEditing) && (
                 <form onSubmit={handleSubmitReview} className="space-y-4">
+                  {/* Guest fields */}
+                  {!customer && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <Label htmlFor="guestName">نام <span className="text-red-500">*</span></Label>
+                        <Input
+                          id="guestName"
+                          value={guestName}
+                          onChange={(e) => setGuestName(e.target.value)}
+                          placeholder="نام شما"
+                          className="mt-1"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="guestEmail">ایمیل (اختیاری)</Label>
+                        <Input
+                          id="guestEmail"
+                          type="email"
+                          value={guestEmail}
+                          onChange={(e) => setGuestEmail(e.target.value)}
+                          placeholder="email@example.com"
+                          className="mt-1"
+                          dir="ltr"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {customer && (
+                    <p className="text-sm text-gray-600">{t.reviewingAs} {customer.firstName} {customer.lastName}</p>
+                  )}
+
                   <div>
-                    <Label>{t.rating}</Label>
+                    <Label>{t.rating} <span className="text-red-500">*</span></Label>
                     <div className="mt-2">
-                      <StarRating
-                        rating={newRating}
-                        size="lg"
-                        interactive={true}
-                        onRatingChange={setNewRating}
-                      />
+                      <StarRating rating={newRating} size="lg" interactive onRatingChange={setNewRating} />
                     </div>
                   </div>
 
@@ -247,21 +213,11 @@ export default function ProductRating({
                   </div>
 
                   <div className="flex gap-2">
-                    <Button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="flex-1"
-                    >
+                    <Button type="submit" disabled={isSubmitting} className="flex-1">
                       {isSubmitting ? t.loading : (isEditing ? t.updateReview : t.submitReview)}
                     </Button>
-                    
                     {isEditing && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={handleCancelEdit}
-                        disabled={isSubmitting}
-                      >
+                      <Button type="button" variant="outline" onClick={() => { setIsEditing(false); setNewRating(0); setNewComment(''); }} disabled={isSubmitting}>
                         {t.cancel}
                       </Button>
                     )}
@@ -288,42 +244,30 @@ export default function ProductRating({
           ) : (
             <div className="space-y-4">
               {reviews.map((review) => {
-                const isOwnReview = customer && review.customerName === `${customer.firstName} ${customer.lastName}`;
-                
+                const isOwnReview = customer && review.customerId === customer.id;
                 return (
                   <div key={review.id} className="border-b pb-4 last:border-b-0">
                     <div className="flex items-start gap-3">
-                      <div className="flex-shrink-0">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                          isOwnReview ? 'bg-blue-100' : 'bg-gray-100'
-                        }`}>
-                          <User className={`w-5 h-5 ${isOwnReview ? 'text-blue-600' : 'text-gray-600'}`} />
-                        </div>
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${isOwnReview ? 'bg-blue-100' : 'bg-gray-100'}`}>
+                        <User className={`w-5 h-5 ${isOwnReview ? 'text-blue-600' : 'text-gray-600'}`} />
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center justify-between mb-1">
                           <div className="flex items-center gap-2">
                             <span className={`font-semibold ${isOwnReview ? 'text-blue-700' : ''}`}>
                               {review.customerName}
-                              {isOwnReview && <span className="text-xs text-blue-600">{t.you}</span>}
+                              {isOwnReview && <span className="text-xs text-blue-600 mr-1">({t.you})</span>}
                             </span>
-                            <span className="text-sm text-gray-500">
-                              {formatDate(review.createdAt)}
-                            </span>
+                            <span className="text-sm text-gray-500">{formatDate(review.createdAt)}</span>
                           </div>
                           {isOwnReview && !isEditing && (
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={handleStartEdit}
-                              className="text-blue-600 border-blue-300 hover:bg-blue-100"
-                            >
+                            <Button variant="outline" size="sm" onClick={() => setIsEditing(true)} className="text-blue-600 border-blue-300 hover:bg-blue-100">
                               {t.edit}
                             </Button>
                           )}
                         </div>
                         <StarRating rating={review.rating} size="sm" />
-                        <p className="mt-2 text-gray-700">{review.comment}</p>
+                        {review.comment && <p className="mt-2 text-gray-700">{review.comment}</p>}
                       </div>
                     </div>
                   </div>
