@@ -5,9 +5,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import StarRating from './StarRating';
-import { User, MessageSquare, Lock } from 'lucide-react';
+import { User, MessageSquare, Lock, LogIn } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useCustomer } from '@/hooks/useCustomer';
+import { useQueryClient } from '@tanstack/react-query';
+import AuthModal from '@/components/checkout/auth-modal';
 
 interface Review {
   id: number;
@@ -37,10 +39,12 @@ export default function ProductRating({
 }: ProductRatingProps) {
   const { toast } = useToast();
   const { t, direction } = useLanguage();
+  const queryClient = useQueryClient();
   const [newRating, setNewRating] = React.useState(0);
   const [newComment, setNewComment] = React.useState('');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isEditing, setIsEditing] = React.useState(false);
+  const [showLoginModal, setShowLoginModal] = React.useState(false);
 
   const { customer, isLoading: isLoadingCustomer } = useCustomer();
 
@@ -91,6 +95,7 @@ export default function ProductRating({
     new Date(dateString).toLocaleDateString('fa-IR', { year: 'numeric', month: 'short', day: 'numeric' });
 
   return (
+    <>
     <div className="space-y-6" dir={direction}>
       {/* Rating Summary */}
       <Card>
@@ -129,7 +134,11 @@ export default function ProductRating({
             <div className="text-center py-8">
               <Lock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-800 mb-2">{t.loginToReview}</h3>
-              <p className="text-gray-600">{t.loginToReviewDesc}</p>
+              <p className="text-gray-600 mb-5">{t.loginToReviewDesc}</p>
+              <Button onClick={() => setShowLoginModal(true)} className="gap-2">
+                <LogIn className="w-4 h-4" />
+                {t.login || 'ورود به حساب کاربری'}
+              </Button>
             </div>
           ) : (
             <>
@@ -237,5 +246,16 @@ export default function ProductRating({
         </CardContent>
       </Card>
     </div>
+
+    <AuthModal
+      isOpen={showLoginModal}
+      onClose={() => setShowLoginModal(false)}
+      onAuthSuccess={() => {
+        setShowLoginModal(false);
+        queryClient.invalidateQueries({ queryKey: ['/api/customers/me'] });
+      }}
+      initialMode="login"
+    />
+    </>
   );
 }
