@@ -27740,6 +27740,45 @@ ${message ? `Additional Requirements:\n${message}` : ''}
     }
   });
 
+  // Language settings - public read
+  app.get("/api/public/language-settings", async (req, res) => {
+    try {
+      const { pool } = await import('./db');
+      const result = await pool.query(
+        `SELECT setting_value FROM shop_settings WHERE setting_key = 'language_settings' LIMIT 1`
+      );
+      if (result.rows.length > 0) {
+        res.json({ success: true, data: JSON.parse(result.rows[0].setting_value) });
+      } else {
+        // Default: all languages enabled
+        res.json({ success: true, data: { en: true, ar: true, ku: true, tr: true } });
+      }
+    } catch (error) {
+      res.json({ success: true, data: { en: true, ar: true, ku: true, tr: true } });
+    }
+  });
+
+  // Language settings - admin update
+  app.put("/api/admin/language-settings", requireAuth, async (req, res) => {
+    try {
+      const { en, ar, ku, tr } = req.body;
+      if (en === false && ar === false && ku === false && tr === false) {
+        return res.status(400).json({ success: false, message: "حداقل یک زبان باید فعال باشد" });
+      }
+      const value = JSON.stringify({ en: !!en, ar: !!ar, ku: !!ku, tr: !!tr });
+      const { pool } = await import('./db');
+      await pool.query(`
+        INSERT INTO shop_settings (setting_key, setting_value, setting_type, display_name, category, is_public)
+        VALUES ('language_settings', $1, 'json', 'تنظیمات زبان‌های سایت', 'appearance', true)
+        ON CONFLICT (setting_key) DO UPDATE SET setting_value = $1, updated_at = NOW()
+      `, [value]);
+      res.json({ success: true, message: "تنظیمات زبان با موفقیت ذخیره شد", data: { en: !!en, ar: !!ar, ku: !!ku, tr: !!tr } });
+    } catch (error) {
+      console.error("Error updating language settings:", error);
+      res.status(500).json({ success: false, message: "خطا در ذخیره تنظیمات زبان" });
+    }
+  });
+
   // Get all categories
   app.get("/api/admin/categories", requireProductManagerAuth, async (req, res) => {
     try {

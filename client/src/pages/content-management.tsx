@@ -509,6 +509,10 @@ export default function ContentManagement() {
               <MessageCircle className="w-4 h-4" />
               Live Chat
             </TabsTrigger>
+            <TabsTrigger value="language-settings" className="flex items-center gap-2">
+              <Globe className="w-4 h-4" />
+              زبان‌های سایت
+            </TabsTrigger>
           </TabsList>
 
           {/* Text Content Tab */}
@@ -1849,8 +1853,121 @@ s0.parentNode.insertBefore(s1,s0);
               </CardContent>
             </Card>
           </TabsContent>
+          <TabsContent value="language-settings" className="space-y-6">
+            <LanguageSettingsTab />
+          </TabsContent>
         </Tabs>
       </div>
     </div>
+  );
+}
+
+function LanguageSettingsTab() {
+  const { data: langData, isLoading } = useQuery({
+    queryKey: ['/api/public/language-settings'],
+    staleTime: 0,
+  });
+
+  const [settings, setSettings] = useState<Record<string, boolean>>({ en: true, ar: true, ku: true, tr: true });
+
+  useEffect(() => {
+    if ((langData as any)?.data) {
+      setSettings((langData as any).data);
+    }
+  }, [langData]);
+
+  const mutation = useMutation({
+    mutationFn: async (data: Record<string, boolean>) => {
+      const res = await fetch('/api/admin/language-settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(data),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.message);
+      return json;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/public/language-settings'] });
+    },
+  });
+
+  const LANGUAGES = [
+    { code: 'en', name: 'English', nativeName: 'انگلیسی', flag: '🇬🇧' },
+    { code: 'ar', name: 'Arabic', nativeName: 'عربی', flag: '🇸🇦' },
+    { code: 'ku', name: 'Kurdish', nativeName: 'کوردی', flag: '🇮🇶' },
+    { code: 'tr', name: 'Turkish', nativeName: 'ترکی', flag: '🇹🇷' },
+  ];
+
+  const enabledCount = Object.values(settings).filter(Boolean).length;
+
+  const handleToggle = (code: string, checked: boolean) => {
+    if (!checked && enabledCount <= 1) return;
+    setSettings(prev => ({ ...prev, [code]: checked }));
+  };
+
+  const handleSave = () => {
+    mutation.mutate(settings);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <RefreshCw className="w-6 h-6 animate-spin text-gray-400" />
+      </div>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Globe className="w-5 h-5" />
+          مدیریت زبان‌های سایت
+        </CardTitle>
+        <CardDescription>
+          زبان‌هایی که می‌خواهید در منوی انتخاب زبان سایت نمایش داده شوند را فعال یا غیرفعال کنید. حداقل یک زبان باید فعال باشد.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {LANGUAGES.map(lang => {
+          const isEnabled = settings[lang.code] !== false;
+          const isLast = enabledCount === 1 && isEnabled;
+          return (
+            <div key={lang.code} className="flex items-center justify-between p-4 border rounded-lg">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{lang.flag}</span>
+                <div>
+                  <p className="font-medium">{lang.nativeName}</p>
+                  <p className="text-sm text-gray-500">{lang.name}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className={`text-sm font-medium ${isEnabled ? 'text-green-600' : 'text-gray-400'}`}>
+                  {isEnabled ? 'فعال' : 'غیرفعال'}
+                </span>
+                <Switch
+                  checked={isEnabled}
+                  onCheckedChange={(checked) => handleToggle(lang.code, checked)}
+                  disabled={isLast}
+                />
+              </div>
+            </div>
+          );
+        })}
+
+        {mutation.isError && (
+          <p className="text-sm text-red-600 text-center">{(mutation.error as Error).message}</p>
+        )}
+        {mutation.isSuccess && (
+          <p className="text-sm text-green-600 text-center">تنظیمات با موفقیت ذخیره شد</p>
+        )}
+
+        <Button onClick={handleSave} disabled={mutation.isPending} className="w-full mt-2">
+          {mutation.isPending ? <><RefreshCw className="w-4 h-4 animate-spin ml-2" />در حال ذخیره...</> : <><Save className="w-4 h-4 ml-2" />ذخیره تنظیمات</>}
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
