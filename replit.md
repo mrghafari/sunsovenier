@@ -28,6 +28,23 @@ Order Management ID Convention:
 - All status change endpoints use atomic UPDATE with status condition for optimistic locking
 - Returns 409 Conflict if order was already processed by another user (concurrency protection)
 
+## Recent Feature Additions (April 2026)
+
+### Product Detail & Review System
+- **Product Detail Page** (`/shop/product/:id`): Full product page with image, description, price, stock status, rating summary (average + star distribution histogram), and a preview of the latest 3 customer reviews. Links to the full review page.
+- **Product Reviews Page** (`/product-reviews/:id`): Dedicated page for all reviews with rating breakdown, review list, and a submit/edit review form. Only authenticated customers can submit reviews.
+- **Review Authentication**: Non-logged-in visitors see a lock icon with a "ورود به حساب کاربری" button. Clicking it opens the same `AuthModal` used in the shop checkout — no page redirect needed. After login, the review form appears instantly.
+- **Review Editing**: Logged-in customers can edit their previously submitted review. Null/empty comments are handled safely (no trim-on-null error).
+- **Review API** (`POST /api/products/:id/reviews`): Requires `req.session.customerId`. Unauthenticated requests receive 401. Updates existing review if customer already reviewed the product.
+
+### Dynamic Homepage Categories
+- **"Our Product Portfolio"** section on the homepage now fetches all active categories from the database via `GET /api/public/categories` instead of showing 4 hardcoded entries.
+- Category icons are auto-assigned via `getCategoryMeta()` helper based on category name keywords.
+
+### Category Admin in Content Management
+- New **"کتگوری‌های صفحه اصلی"** tab added to the Content Management admin panel.
+- Admins can edit category name, description, and image URL for each `shop_categories` record via `PUT /api/admin/categories/:id`.
+
 ## System Architecture
 
 ### UI/UX Decisions
