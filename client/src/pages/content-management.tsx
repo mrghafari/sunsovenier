@@ -190,6 +190,35 @@ export default function ContentManagement() {
 
   const [editingCategory, setEditingCategory] = useState<HomepageCategory | null>(null);
   const [categoryDrafts, setCategoryDrafts] = useState<Record<number, Partial<HomepageCategory>>>({});
+  const [categoryImageUploading, setCategoryImageUploading] = useState<number | null>(null);
+  const categoryImageInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
+
+  const uploadCategoryImageMutation = useMutation({
+    mutationFn: async ({ id, file }: { id: number; file: File }) => {
+      const formData = new FormData();
+      formData.append('image', file);
+      const response = await fetch(`/api/admin/categories/${id}/image`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.message || 'آپلود ناموفق بود');
+      }
+      return response.json();
+    },
+    onSuccess: (data, variables) => {
+      toast({ title: "تصویر آپلود شد", description: "تصویر با موفقیت در S3 ذخیره و لینک آن به‌روز شد." });
+      setCategoryDrafts(prev => ({ ...prev, [variables.id]: { ...prev[variables.id], imageUrl: data.url } }));
+      refetchHomepageCategories();
+      queryClient.invalidateQueries({ queryKey: ['/api/public/categories'] });
+      setCategoryImageUploading(null);
+    },
+    onError: (error: Error) => {
+      toast({ title: "خطا در آپلود", description: error.message, variant: "destructive" });
+      setCategoryImageUploading(null);
+    }
+  });
 
   const updateCategoryMutation = useMutation({
     mutationFn: async ({ id, ...data }: Partial<HomepageCategory> & { id: number }) => {
@@ -1768,14 +1797,42 @@ s0.parentNode.insertBefore(s1,s0);
                                       />
                                     </div>
                                     <div>
-                                      <Label className="text-xs font-medium text-gray-600 mb-1 block">لینک تصویر (URL)</Label>
-                                      <Input
-                                        value={currentImage}
-                                        onChange={(e) => setCategoryDrafts(prev => ({ ...prev, [cat.id]: { ...prev[cat.id], imageUrl: e.target.value } }))}
-                                        className="h-8 text-sm"
-                                        placeholder="https://..."
-                                        dir="ltr"
+                                      <Label className="text-xs font-medium text-gray-600 mb-1 block">تصویر کتگوری</Label>
+                                      {/* Hidden file input */}
+                                      <input
+                                        type="file"
+                                        accept="image/jpeg,image/jpg,image/png,image/webp"
+                                        className="hidden"
+                                        ref={(el) => { categoryImageInputRefs.current[cat.id] = el; }}
+                                        onChange={(e) => {
+                                          const file = e.target.files?.[0];
+                                          if (file) {
+                                            setCategoryImageUploading(cat.id);
+                                            uploadCategoryImageMutation.mutate({ id: cat.id, file });
+                                          }
+                                          e.target.value = '';
+                                        }}
                                       />
+                                      <div className="flex gap-2 items-center">
+                                        <Button
+                                          type="button"
+                                          size="sm"
+                                          variant="outline"
+                                          className="h-8 text-xs border-blue-300 text-blue-700 hover:bg-blue-50"
+                                          disabled={categoryImageUploading === cat.id}
+                                          onClick={() => categoryImageInputRefs.current[cat.id]?.click()}
+                                        >
+                                          {categoryImageUploading === cat.id ? (
+                                            <><RefreshCw className="w-3 h-3 ml-1 animate-spin" />در حال آپلود...</>
+                                          ) : (
+                                            <><Upload className="w-3 h-3 ml-1" />آپلود تصویر</>
+                                          )}
+                                        </Button>
+                                        <span className="text-xs text-gray-400">JPG، PNG یا WebP — حداکثر ۲MB</span>
+                                      </div>
+                                      {currentImage && (
+                                        <p className="text-xs text-blue-500 truncate mt-1" dir="ltr">{currentImage}</p>
+                                      )}
                                     </div>
                                     <div className="flex gap-2 pt-1">
                                       <Button

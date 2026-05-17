@@ -27871,6 +27871,50 @@ ${message ? `Additional Requirements:\n${message}` : ''}
     }
   });
 
+  // Upload category image to S3
+  app.post("/api/admin/categories/:id/image", requireAuth, uploadImage.single('image'), async (req, res) => {
+    try {
+      const { shopStorage } = await import('./shop-storage');
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ success: false, message: "Invalid category ID" });
+      }
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: "No image file uploaded" });
+      }
+
+      const s3Service = getAwsS3Service();
+      const uploadResult = await s3Service.uploadPublicFile(
+        req.file.buffer,
+        req.file.originalname,
+        req.file.mimetype,
+        'category-images'
+      );
+
+      if (!uploadResult.success) {
+        return res.status(500).json({
+          success: false,
+          message: uploadResult.message || "Failed to upload image to S3"
+        });
+      }
+
+      // Update the category imageUrl in the database
+      await shopStorage.updateCategory(id, { imageUrl: uploadResult.url });
+
+      console.log(`✅ [S3 UPLOAD] Category ${id} image uploaded: ${uploadResult.key}`);
+
+      res.json({
+        success: true,
+        url: uploadResult.url,
+        key: uploadResult.key,
+        message: "Category image uploaded successfully"
+      });
+    } catch (error) {
+      console.error('❌ [S3 UPLOAD] Category image upload error:', error);
+      res.status(500).json({ success: false, message: "Failed to upload category image" });
+    }
+  });
+
   // Delete category
   app.delete("/api/admin/categories/:id", requireAuth, async (req, res) => {
     try {
