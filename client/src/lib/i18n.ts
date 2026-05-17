@@ -751,6 +751,7 @@ export interface Translation {
   heroDescription: string;
   exploreProducts: string;
   contactSales: string;
+  callForPrice: string;
   
   // Home Page
   ourProductPortfolio: string;
@@ -2613,6 +2614,7 @@ export const translations: Record<Language, Translation> = {
     heroDescription: 'Leading manufacturer of premium fuel additives, water treatment systems, paint & thinner products, and agricultural fertilizers for global industries.',
     exploreProducts: 'Explore Products',
     contactSales: 'Contact Sales',
+    callForPrice: 'Contact Us',
     
     // Home Page - Products
     ourProductPortfolio: 'Our Product Portfolio',
@@ -4100,6 +4102,7 @@ export const translations: Record<Language, Translation> = {
     heroDescription: 'الشركة الرائدة في تصنيع إضافات الوقود المتميزة، وأنظمة معالجة المياه، ومنتجات الدهانات والمذيبات، والأسمدة الزراعية للصناعات العالمية.',
     exploreProducts: 'استكشف المنتجات',
     contactSales: 'اتصل بالمبيعات',
+    callForPrice: 'تواصل معنا',
     
     // Home Page - Products
     ourProductPortfolio: 'مجموعة منتجاتنا',

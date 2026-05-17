@@ -1497,6 +1497,9 @@ const Shop = () => {
                                 const currentQty = getProductQuantity(product.id);
                                 const totalQty = (cart[product.id] || 0) + currentQty;
                                 const basePrice = parseFloat(product.price || '0');
+                                if (basePrice === 1) {
+                                  return <span className="text-xl font-bold text-blue-600">{t.callForPrice}</span>;
+                                }
                                 const effectivePrice = totalQty > 0 ? getDiscountedPrice(product, totalQty) : basePrice;
                                 const hasActiveDiscount = basePrice > 0 && effectivePrice < basePrice;
                                 return (
@@ -1521,9 +1524,11 @@ const Shop = () => {
                                   </>
                                 );
                               })()}
-                              <span className="text-sm text-gray-500 ml-1">
-                                / {product.priceUnit || 'unit'}
-                              </span>
+                              {parseFloat(product.price || '0') !== 1 && (
+                                <span className="text-sm text-gray-500 ml-1">
+                                  / {product.priceUnit || 'unit'}
+                                </span>
+                              )}
                             </div>
                             <div className="flex flex-col gap-1">
                               <Badge variant={product.inStock ? "secondary" : "destructive"}>
@@ -2052,6 +2057,9 @@ const Shop = () => {
                                     const currentQty = getProductQuantity(product.id);
                                     const totalQty = (cart[product.id] || 0) + currentQty;
                                     const basePrice = parseFloat(product.price || '0');
+                                    if (basePrice === 1) {
+                                      return <span className="text-2xl font-bold text-blue-600">{t.callForPrice}</span>;
+                                    }
                                     const effectivePrice = totalQty > 0 ? getDiscountedPrice(product, totalQty) : basePrice;
                                     const hasActiveDiscount = basePrice > 0 && effectivePrice < basePrice;
                                     return (
@@ -2076,9 +2084,11 @@ const Shop = () => {
                                       </>
                                     );
                                   })()}
-                                  <span className="text-sm text-gray-500 ml-1">
-                                    / {product.priceUnit || 'unit'}
-                                  </span>
+                                  {parseFloat(product.price || '0') !== 1 && (
+                                    <span className="text-sm text-gray-500 ml-1">
+                                      / {product.priceUnit || 'unit'}
+                                    </span>
+                                  )}
                                 </div>
 
                                 <div className="flex flex-col gap-1">

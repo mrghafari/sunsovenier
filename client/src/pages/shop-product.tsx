@@ -49,7 +49,7 @@ function parseObj(field: any): Record<string, string> {
 export default function ShopProductPage() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
-  const { direction } = useLanguage();
+  const { direction, t } = useLanguage();
   const isRtl = direction === "rtl";
 
   const [imgIndex, setImgIndex] = useState(0);
@@ -200,10 +200,16 @@ export default function ShopProductPage() {
 
           <div className="bg-white dark:bg-gray-900 rounded-xl border p-4">
             <p className="text-xs text-gray-400 mb-1">قیمت</p>
-            <p className="font-bold text-green-600 text-lg">
-              {product.price ? formatIQDAmount(parseFloat(product.price)) : "—"}
-            </p>
-            <p className="text-xs text-gray-400">/ {product.priceUnit}</p>
+            {parseFloat(product.price || '0') === 1 ? (
+              <p className="font-bold text-blue-600 text-base">{t.callForPrice}</p>
+            ) : (
+              <>
+                <p className="font-bold text-green-600 text-lg">
+                  {product.price ? formatIQDAmount(parseFloat(product.price)) : "—"}
+                </p>
+                <p className="text-xs text-gray-400">/ {product.priceUnit}</p>
+              </>
+            )}
           </div>
 
           <div className={`bg-white dark:bg-gray-900 rounded-xl border p-4 ${
