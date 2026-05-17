@@ -72,6 +72,23 @@ interface TawkSettings {
   updated_at: string;
 }
 
+function getCategoryFallbackImage(name: string): string {
+  const n = name.toLowerCase();
+  if (n.includes('fuel') || n.includes('additive') || n.includes('سوخت'))
+    return 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?auto=format&fit=crop&w=800&q=80';
+  if (n.includes('water') || n.includes('treatment') || n.includes('آب'))
+    return 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=800&q=80';
+  if (n.includes('paint') || n.includes('thinner') || n.includes('رنگ'))
+    return 'https://images.unsplash.com/photo-1581833971358-2c8b550f87b3?auto=format&fit=crop&w=800&q=80';
+  if (n.includes('agri') || n.includes('fertiliz') || n.includes('کشاورزی') || n.includes('کود'))
+    return 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?auto=format&fit=crop&w=800&q=80';
+  if (n.includes('industrial') || n.includes('chemical') || n.includes('صنعتی') || n.includes('شیمی'))
+    return 'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?auto=format&fit=crop&w=800&q=80';
+  if (n.includes('factory') || n.includes('equipment') || n.includes('تجهیز'))
+    return 'https://images.unsplash.com/photo-1565715101917-9474fc0ff03c?auto=format&fit=crop&w=800&q=80';
+  return 'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?auto=format&fit=crop&w=800&q=80';
+}
+
 export default function ContentManagement() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -1766,13 +1783,12 @@ s0.parentNode.insertBefore(s1,s0);
                             <div className="flex items-start gap-4">
                               {/* Preview image */}
                               <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                                {currentImage ? (
-                                  <img src={currentImage} alt={currentName} className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center text-gray-400">
-                                    <Package className="w-8 h-8" />
-                                  </div>
-                                )}
+                                <img
+                                  src={currentImage || getCategoryFallbackImage(cat.name)}
+                                  alt={currentName}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => { e.currentTarget.src = getCategoryFallbackImage(cat.name); }}
+                                />
                               </div>
 
                               <div className="flex-1 min-w-0">
@@ -1846,29 +1862,30 @@ s0.parentNode.insertBefore(s1,s0);
                                           )}
                                         </div>
                                         {/* Right: current image thumbnail */}
-                                        <div className="flex-shrink-0 w-48">
-                                          <p className="text-xs text-gray-400 mb-1 text-center">تصویر فعلی</p>
-                                          <div className="w-48 h-18 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 shadow-sm" style={{ height: '72px' }}>
-                                            {currentImage ? (
-                                              <img
-                                                src={currentImage}
-                                                alt={currentName}
-                                                className="w-full h-full object-cover"
-                                                onError={(e) => {
-                                                  e.currentTarget.style.display = 'none';
-                                                  (e.currentTarget.nextElementSibling as HTMLElement | null)?.style.setProperty('display', 'flex');
-                                                }}
-                                              />
-                                            ) : null}
-                                            <div
-                                              className="w-full h-full items-center justify-center text-gray-300 flex-col gap-1"
-                                              style={{ display: currentImage ? 'none' : 'flex' }}
-                                            >
-                                              <Package className="w-6 h-6" />
-                                              <span className="text-xs">بدون تصویر</span>
+                                        {(() => {
+                                          const thumbSrc = currentImage || getCategoryFallbackImage(cat.name);
+                                          const isCustom = !!currentImage;
+                                          return (
+                                            <div className="flex-shrink-0 w-48">
+                                              <p className="text-xs text-gray-400 mb-1 text-center">
+                                                {isCustom ? 'تصویر فعلی (S3)' : 'تصویر پیش‌فرض'}
+                                              </p>
+                                              <div className="w-48 rounded-lg overflow-hidden border shadow-sm" style={{ height: '72px' }}>
+                                                <img
+                                                  src={thumbSrc}
+                                                  alt={currentName}
+                                                  className="w-full h-full object-cover"
+                                                  onError={(e) => {
+                                                    e.currentTarget.src = getCategoryFallbackImage(cat.name);
+                                                  }}
+                                                />
+                                              </div>
+                                              {isCustom && (
+                                                <p className="text-xs text-green-600 text-center mt-1">✓ تصویر سفارشی</p>
+                                              )}
                                             </div>
-                                          </div>
-                                        </div>
+                                          );
+                                        })()}
                                       </div>
                                     </div>
                                     <div className="flex gap-2 pt-1">
