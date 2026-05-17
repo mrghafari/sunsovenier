@@ -1813,37 +1813,63 @@ s0.parentNode.insertBefore(s1,s0);
                                           e.target.value = '';
                                         }}
                                       />
-                                      <div className="flex gap-2 items-center">
-                                        <Button
-                                          type="button"
-                                          size="sm"
-                                          variant="outline"
-                                          className="h-8 text-xs border-blue-300 text-blue-700 hover:bg-blue-50"
-                                          disabled={categoryImageUploading === cat.id}
-                                          onClick={() => categoryImageInputRefs.current[cat.id]?.click()}
-                                        >
-                                          {categoryImageUploading === cat.id ? (
-                                            <><RefreshCw className="w-3 h-3 ml-1 animate-spin" />در حال آپلود...</>
-                                          ) : (
-                                            <><Upload className="w-3 h-3 ml-1" />آپلود تصویر</>
+                                      {/* Two-column: controls left, thumbnail right */}
+                                      <div className="flex gap-4 items-start">
+                                        {/* Left: upload button + hints */}
+                                        <div className="flex-1 min-w-0">
+                                          <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-8 text-xs border-blue-300 text-blue-700 hover:bg-blue-50 mb-2"
+                                            disabled={categoryImageUploading === cat.id}
+                                            onClick={() => categoryImageInputRefs.current[cat.id]?.click()}
+                                          >
+                                            {categoryImageUploading === cat.id ? (
+                                              <><RefreshCw className="w-3 h-3 ml-1 animate-spin" />در حال آپلود...</>
+                                            ) : (
+                                              <><Upload className="w-3 h-3 ml-1" />آپلود تصویر جدید</>
+                                            )}
+                                          </Button>
+                                          {/* Dimension hint */}
+                                          <div className="rounded-md bg-blue-50 border border-blue-100 px-3 py-2 flex items-start gap-2">
+                                            <Image className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                                            <div className="text-xs text-blue-700 leading-relaxed">
+                                              <span className="font-semibold">ابعاد توصیه‌شده: ۸۰۰ × ۳۰۰ پیکسل</span>
+                                              <span className="text-blue-500"> (نسبت ۸:۳)</span>
+                                              <br />
+                                              <span className="text-blue-500">فرمت: JPG، PNG یا WebP — حداکثر ۲MB</span>
+                                            </div>
+                                          </div>
+                                          {currentImage && (
+                                            <p className="text-xs text-blue-500 truncate mt-1" dir="ltr">{currentImage}</p>
                                           )}
-                                        </Button>
-                                      </div>
-                                      {/* Dimension hint */}
-                                      <div className="mt-2 rounded-md bg-blue-50 border border-blue-100 px-3 py-2 flex items-start gap-2">
-                                        <Image className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
-                                        <div className="text-xs text-blue-700 leading-relaxed">
-                                          <span className="font-semibold">ابعاد توصیه‌شده: ۸۰۰ × ۳۰۰ پیکسل</span>
-                                          <span className="text-blue-500"> (نسبت ۸:۳)</span>
-                                          <br />
-                                          <span className="text-blue-500">فرمت: JPG، PNG یا WebP — حداکثر ۲MB</span>
-                                          <br />
-                                          <span className="text-gray-500 text-xs">تصویر با این نسبت کاملاً با کارت‌های صفحه اصلی تطابق دارد</span>
+                                        </div>
+                                        {/* Right: current image thumbnail */}
+                                        <div className="flex-shrink-0 w-48">
+                                          <p className="text-xs text-gray-400 mb-1 text-center">تصویر فعلی</p>
+                                          <div className="w-48 h-18 rounded-lg overflow-hidden bg-gray-100 border border-gray-200 shadow-sm" style={{ height: '72px' }}>
+                                            {currentImage ? (
+                                              <img
+                                                src={currentImage}
+                                                alt={currentName}
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => {
+                                                  e.currentTarget.style.display = 'none';
+                                                  (e.currentTarget.nextElementSibling as HTMLElement | null)?.style.setProperty('display', 'flex');
+                                                }}
+                                              />
+                                            ) : null}
+                                            <div
+                                              className="w-full h-full items-center justify-center text-gray-300 flex-col gap-1"
+                                              style={{ display: currentImage ? 'none' : 'flex' }}
+                                            >
+                                              <Package className="w-6 h-6" />
+                                              <span className="text-xs">بدون تصویر</span>
+                                            </div>
+                                          </div>
                                         </div>
                                       </div>
-                                      {currentImage && (
-                                        <p className="text-xs text-blue-500 truncate mt-1" dir="ltr">{currentImage}</p>
-                                      )}
                                     </div>
                                     <div className="flex gap-2 pt-1">
                                       <Button
