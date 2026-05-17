@@ -1828,7 +1828,18 @@ s0.parentNode.insertBefore(s1,s0);
                                             <><Upload className="w-3 h-3 ml-1" />آپلود تصویر</>
                                           )}
                                         </Button>
-                                        <span className="text-xs text-gray-400">JPG، PNG یا WebP — حداکثر ۲MB</span>
+                                      </div>
+                                      {/* Dimension hint */}
+                                      <div className="mt-2 rounded-md bg-blue-50 border border-blue-100 px-3 py-2 flex items-start gap-2">
+                                        <Image className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                                        <div className="text-xs text-blue-700 leading-relaxed">
+                                          <span className="font-semibold">ابعاد توصیه‌شده: ۸۰۰ × ۳۰۰ پیکسل</span>
+                                          <span className="text-blue-500"> (نسبت ۸:۳)</span>
+                                          <br />
+                                          <span className="text-blue-500">فرمت: JPG، PNG یا WebP — حداکثر ۲MB</span>
+                                          <br />
+                                          <span className="text-gray-500 text-xs">تصویر با این نسبت کاملاً با کارت‌های صفحه اصلی تطابق دارد</span>
+                                        </div>
                                       </div>
                                       {currentImage && (
                                         <p className="text-xs text-blue-500 truncate mt-1" dir="ltr">{currentImage}</p>
