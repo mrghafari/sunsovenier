@@ -3806,6 +3806,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Proxy route to serve category images from S3
+  app.get('/uploads/category-images/:key', async (req, res) => {
+    try {
+      const key = `category-images/${req.params.key}`;
+      const s3Service = getAwsS3Service();
+      const fileBuffer = await s3Service.getFile(key);
+      if (!fileBuffer) {
+        return res.status(404).json({ success: false, message: 'Category image not found' });
+      }
+      const ext = path.extname(req.params.key).toLowerCase();
+      let contentType = 'image/jpeg';
+      if (ext === '.png') contentType = 'image/png';
+      else if (ext === '.webp') contentType = 'image/webp';
+      else if (ext === '.gif') contentType = 'image/gif';
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.send(fileBuffer);
+    } catch (error) {
+      console.error('❌ [S3 PROXY] Error serving category image:', error);
+      res.status(500).json({ success: false, message: 'Failed to retrieve category image' });
+    }
+  });
+
   // File upload endpoints
   // Generic upload route (for images) - accepts both 'file' and 'image' field names
   const uploadFlexible = multer({

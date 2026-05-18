@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { ShoppingCart, Plus, Minus, Filter, Search, Grid, List, Star, User, LogOut, X, ChevronDown, ChevronLeft, ChevronRight, Eye, EyeOff, Brain, Sparkles, Wallet, FileText, Download, AlertTriangle, Package, MessageSquare, ZoomIn, Flame, Heart } from "lucide-react";
 import { useLocation } from "wouter";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -150,8 +150,9 @@ const Shop = () => {
   }, [searchTerm]);
 
   // Advanced search query
-  const { data: searchResults, isLoading: productsLoading } = useQuery({
+  const { data: searchResults, isLoading: productsLoading, isFetching: productsFetching } = useQuery({
     queryKey: ['shopSearch', debouncedQuery, filters, currentPage],
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       const params = new URLSearchParams({
         q: debouncedQuery || '', // Always include query parameter, even if empty
@@ -1216,7 +1217,12 @@ const Shop = () => {
             </div>
 
             {/* Products Grid */}
-            <div className={`${
+            {productsFetching && !productsLoading && (
+              <div className="h-1 w-full bg-gray-100 rounded-full overflow-hidden mb-3">
+                <div className="h-full bg-blue-500 animate-pulse rounded-full" style={{ width: '60%' }} />
+              </div>
+            )}
+            <div className={`transition-opacity duration-200 ${productsFetching && !productsLoading ? 'opacity-60' : 'opacity-100'} ${
               viewMode === "grid" 
                 ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6" 
                 : "flex flex-col gap-3 sm:gap-4"
