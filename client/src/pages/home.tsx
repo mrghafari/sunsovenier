@@ -6,31 +6,64 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Award, Leaf, FlaskRound, Truck, Headphones, FuelIcon as Fuel, Droplets, PaintBucket, Wheat, Download, FileText, Package, Beaker, Factory } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Award, Leaf, FlaskRound, Truck, Headphones, FuelIcon as Fuel, Droplets, PaintBucket, FileText, Package, Beaker, Factory } from "lucide-react";
 import type { ShopProduct, ShopCategory } from "@shared/shop-schema";
-import waterTreatmentImg from "@assets/download_1749877891276.jpeg";
 import { useLanguage } from "@/contexts/LanguageContext";
 import OpenGraphTags from "@/components/seo/OpenGraphTags";
 import CanonicalUrl from "@/components/seo/CanonicalUrl";
 
 // Map category name to icon and color
-function getCategoryMeta(name: string): { icon: React.ReactNode; iconBg: string; fallbackImage: string } {
+function getCategoryMeta(name: string): { icon: React.ReactNode; iconEl: React.ReactNode; iconBg: string } {
   const n = name.toLowerCase();
   if (n.includes('fuel') || n.includes('additive'))
-    return { icon: <Fuel className="text-white text-xl" />, iconBg: "bg-primary-blue", fallbackImage: "https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?auto=format&fit=crop&w=1000&q=80" };
+    return { icon: <Fuel className="text-white text-xl" />, iconEl: <Fuel className="w-16 h-16 text-white opacity-80" />, iconBg: "bg-primary-blue" };
   if (n.includes('water') || n.includes('treatment'))
-    return { icon: <Droplets className="text-white text-xl" />, iconBg: "bg-primary-green", fallbackImage: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1000&q=80" };
+    return { icon: <Droplets className="text-white text-xl" />, iconEl: <Droplets className="w-16 h-16 text-white opacity-80" />, iconBg: "bg-primary-green" };
   if (n.includes('paint') || n.includes('thinner') || n.includes('solvent'))
-    return { icon: <PaintBucket className="text-white text-xl" />, iconBg: "bg-accent-orange", fallbackImage: "https://images.unsplash.com/photo-1581833971358-2c8b550f87b3?auto=format&fit=crop&w=1000&q=80" };
+    return { icon: <PaintBucket className="text-white text-xl" />, iconEl: <PaintBucket className="w-16 h-16 text-white opacity-80" />, iconBg: "bg-accent-orange" };
   if (n.includes('agricultural') || n.includes('fertilizer'))
-    return { icon: <Wheat className="text-white text-xl" />, iconBg: "bg-primary-green", fallbackImage: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?auto=format&fit=crop&w=1000&q=80" };
+    return { icon: <Leaf className="text-white text-xl" />, iconEl: <Leaf className="w-16 h-16 text-white opacity-80" />, iconBg: "bg-primary-green" };
   if (n.includes('industrial') || n.includes('chemical'))
-    return { icon: <Beaker className="text-white text-xl" />, iconBg: "bg-primary-blue", fallbackImage: "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?auto=format&fit=crop&w=1000&q=80" };
+    return { icon: <Beaker className="text-white text-xl" />, iconEl: <Beaker className="w-16 h-16 text-white opacity-80" />, iconBg: "bg-primary-blue" };
   if (n.includes('technical') || n.includes('equipment'))
-    return { icon: <Factory className="text-white text-xl" />, iconBg: "bg-accent-orange", fallbackImage: "https://images.unsplash.com/photo-1565715101917-9474fc0ff03c?auto=format&fit=crop&w=1000&q=80" };
+    return { icon: <Factory className="text-white text-xl" />, iconEl: <Factory className="w-16 h-16 text-white opacity-80" />, iconBg: "bg-accent-orange" };
   if (n.includes('commercial') || n.includes('goods'))
-    return { icon: <Package className="text-white text-xl" />, iconBg: "bg-primary-blue", fallbackImage: "https://images.unsplash.com/photo-1553413077-190dd305871c?auto=format&fit=crop&w=1000&q=80" };
-  return { icon: <Package className="text-white text-xl" />, iconBg: "bg-primary-blue", fallbackImage: "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?auto=format&fit=crop&w=1000&q=80" };
+    return { icon: <Package className="text-white text-xl" />, iconEl: <Package className="w-16 h-16 text-white opacity-80" />, iconBg: "bg-primary-blue" };
+  return { icon: <Package className="text-white text-xl" />, iconEl: <Package className="w-16 h-16 text-white opacity-80" />, iconBg: "bg-primary-blue" };
+}
+
+// Category image with lazy loading, skeleton placeholder, and icon fallback on error
+function CategoryImage({ src, alt, iconEl, iconBg }: { src: string | null | undefined; alt: string; iconEl: React.ReactNode; iconBg: string }) {
+  const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>(src ? 'loading' : 'error');
+
+  useEffect(() => {
+    setStatus(src ? 'loading' : 'error');
+  }, [src]);
+
+  if (!src || status === 'error') {
+    return (
+      <div className={`w-full h-48 ${iconBg} flex items-center justify-center`}>
+        {iconEl}
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative w-full h-48">
+      {status === 'loading' && (
+        <div className="absolute inset-0 bg-gray-200 animate-pulse" />
+      )}
+      <img
+        src={src}
+        alt={alt}
+        loading="lazy"
+        className={`w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300 ${status === 'loading' ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
+        onLoad={() => setStatus('loaded')}
+        onError={() => setStatus('error')}
+      />
+    </div>
+  );
 }
 
 const Home = () => {
@@ -131,24 +164,23 @@ const Home = () => {
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-8">
               {allCategories.map((category) => {
-                const { icon, iconBg, fallbackImage } = getCategoryMeta(category.name);
+                const { icon, iconEl, iconBg } = getCategoryMeta(category.name);
                 const slug = category.slug || category.name.toLowerCase().replace(/\s+/g, '-');
                 const href = `/products/${slug}`;
                 const categoryProducts = productsByCategory[category.name] || [];
                 const productCount = categoryProducts.length;
-                const displayImage = category.imageUrl || (category.name.toLowerCase().includes('water') ? waterTreatmentImg : fallbackImage);
 
                 return (
                   <Card key={category.id} className="group bg-white hover:shadow-xl transition-all duration-300 border border-gray-200 hover:border-blue-200">
                     <CardContent className="p-0">
                       <div className="relative overflow-hidden rounded-t-lg">
-                        <img
-                          src={displayImage}
+                        <CategoryImage
+                          src={category.imageUrl}
                           alt={category.name}
-                          className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                          onError={(e) => { e.currentTarget.src = fallbackImage; }}
+                          iconEl={iconEl}
+                          iconBg={iconBg}
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none"></div>
                         <div className={`absolute top-4 left-4 w-12 h-12 ${iconBg} rounded-lg flex items-center justify-center`}>
                           {icon}
                         </div>
