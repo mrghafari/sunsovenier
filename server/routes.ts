@@ -18817,6 +18817,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     newQuantity,
                     `Order ${orderNumber} - Sold ${quantityToSell} units (fallback)`
                   );
+
+                  // Also deduct from showcase_products (kardex) as a best-effort fallback
+                  try {
+                    if (product.barcode) {
+                      await shopStorage.reduceInventoryFIFO(
+                        product.barcode,
+                        quantityToSell,
+                        `Fallback FIFO deduction - Order ${orderNumber}`
+                      );
+                      console.log(`🔄 [FALLBACK] FIFO deduction applied to showcase_products for barcode ${product.barcode}`);
+                    }
+                  } catch (fifoFallbackErr) {
+                    console.error(`⚠️ [FALLBACK] Could not deduct showcase_products:`, fifoFallbackErr);
+                  }
                   
                   console.log(`⚠️ Fallback stock update completed for product ${productId}`);
                 }
@@ -23343,6 +23357,51 @@ Momtaz Chemical Technical Team`,
     } catch (error) {
       console.error("Error in force sync:", error);
       res.status(500).json({ success: false, message: "Failed to sync inventories" });
+    }
+  });
+
+  // Sync shop_products.stockQuantity from showcase_products batch totals (kardex → shop)
+  // Call this to fix historical orders that were processed before the FIFO sync fix
+  app.post("/api/inventory/sync/kardex-to-shop", requireAuth, async (req, res) => {
+    try {
+      const { pool } = await import("./db");
+      const { db } = await import("./db");
+      const { shopProducts } = await import("../shared/shop-schema");
+      const { eq } = await import("drizzle-orm");
+
+      // Get all shop_products that have a barcode
+      const products = await db.select({
+        id: shopProducts.id,
+        name: shopProducts.name,
+        barcode: shopProducts.barcode,
+        stockQuantity: shopProducts.stockQuantity,
+      }).from(shopProducts);
+
+      let synced = 0;
+      let skipped = 0;
+      const details: any[] = [];
+
+      for (const product of products) {
+        if (!product.barcode) { skipped++; continue; }
+        const result = await pool.query(
+          `SELECT COALESCE(SUM(stock_quantity), 0) AS total FROM showcase_products WHERE barcode = $1`,
+          [product.barcode]
+        );
+        const kardexTotal = parseInt(result.rows[0]?.total ?? '0');
+        if (kardexTotal !== (product.stockQuantity ?? 0)) {
+          await db.update(shopProducts)
+            .set({ stockQuantity: kardexTotal })
+            .where(eq(shopProducts.id, product.id));
+          details.push({ name: product.name, barcode: product.barcode, before: product.stockQuantity, after: kardexTotal });
+          synced++;
+        }
+      }
+
+      console.log(`✅ [KARDEX-SYNC] Synced ${synced} products, skipped ${skipped} (no barcode)`);
+      res.json({ success: true, synced, skipped, details });
+    } catch (error) {
+      console.error("Error in kardex-to-shop sync:", error);
+      res.status(500).json({ success: false, message: "خطا در sync موجودی" });
     }
   });
 

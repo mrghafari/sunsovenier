@@ -131,6 +131,7 @@ function FinanceOrders() {
   const [orderDetails, setOrderDetails] = useState<any>(null);
   const [orderDocuments, setOrderDocuments] = useState<any[]>([]);
   const [orderDetailsWalletBalance, setOrderDetailsWalletBalance] = useState<number>(0);
+  const [hasViewedReceipt, setHasViewedReceipt] = useState(false);
 
   // Check admin authentication - MOVED to top to avoid conditional hooks
   const { data: adminUser, isLoading: isCheckingAuth, error: authError } = useQuery({
@@ -428,6 +429,7 @@ function FinanceOrders() {
     setSelectedOrder(order);
     setReviewNotes(order.financialNotes || "");
     setReceiptAmount("");
+    setHasViewedReceipt(false);
     setDialogOpen(true);
     
     // Fetch wallet balance for this customer - simplified and more reliable approach
@@ -1149,6 +1151,35 @@ function FinanceOrders() {
               </div>
             </div>
 
+            {/* Receipt Viewing - MUST view before approving */}
+            {selectedOrder && selectedOrder.paymentReceiptUrl && (
+              <div className={`p-3 rounded-lg border-2 flex items-center justify-between gap-3 ${hasViewedReceipt ? 'bg-green-50 border-green-300' : 'bg-orange-50 border-orange-400'}`}>
+                <div className="flex items-center gap-2">
+                  <FileText className={`w-5 h-5 ${hasViewedReceipt ? 'text-green-600' : 'text-orange-500'}`} />
+                  <div>
+                    <p className={`text-sm font-semibold ${hasViewedReceipt ? 'text-green-700' : 'text-orange-700'}`}>
+                      {hasViewedReceipt ? '✅ فیش بانکی مشاهده شد' : '⚠️ فیش بانکی مشاهده نشده'}
+                    </p>
+                    {!hasViewedReceipt && (
+                      <p className="text-xs text-orange-600">برای فعال شدن دکمه تایید، ابتدا فیش را مشاهده کنید</p>
+                    )}
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant={hasViewedReceipt ? "outline" : "default"}
+                  className={hasViewedReceipt ? "border-green-400 text-green-700" : "bg-orange-500 hover:bg-orange-600 text-white"}
+                  onClick={() => {
+                    openImageModal(selectedOrder.paymentReceiptUrl!);
+                    setHasViewedReceipt(true);
+                  }}
+                >
+                  <Eye className="w-4 h-4 mr-1" />
+                  {hasViewedReceipt ? 'مشاهده مجدد' : 'مشاهده فیش'}
+                </Button>
+              </div>
+            )}
+
             {/* Visual Hint for Sufficient Wallet Balance */}
             {selectedOrder && selectedOrder.paymentMethod === 'wallet' && walletBalance >= parseFloat(selectedOrder.totalAmount || '0') && (
               <div className="p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border-2 border-green-300 shadow-lg">
@@ -1308,6 +1339,10 @@ function FinanceOrders() {
               onClick={handleApprove}
               disabled={(() => {
                 if (!selectedOrder) return true;
+
+                // Must view receipt before approving if one exists
+                if (selectedOrder.paymentReceiptUrl && !hasViewedReceipt) return true;
+
                 const isBankTransfer = selectedOrder.paymentMethod === 'bank_transfer_grace' || selectedOrder.paymentMethod === 'واریز بانکی با مهلت 3 روزه';
                 
                 // For bank transfer: require receiptAmount (check for actual numeric value)

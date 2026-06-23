@@ -544,6 +544,25 @@ export class UnifiedInventoryManager {
       );
       
       console.log(`✅ [ORDER PROCESSING] FIFO inventory reduction completed for order ${orderId}`);
+
+      // ✅ CRITICAL FIX: After FIFO deduction from showcase_products (kardex),
+      // recalculate total remaining stock across ALL batches and sync to shop_products.
+      // Without this, shop_products.stockQuantity stays stale and the next batch
+      // never enters the sales circuit.
+      try {
+        const { pool } = await import('./db');
+        const totalResult = await pool.query(
+          `SELECT COALESCE(SUM(stock_quantity), 0) AS total FROM showcase_products WHERE barcode = $1`,
+          [productData.barcode]
+        );
+        const newTotal = parseInt(totalResult.rows[0]?.total ?? '0');
+        await db.update(shopProducts)
+          .set({ stockQuantity: newTotal })
+          .where(eq(shopProducts.id, productId));
+        console.log(`🔄 [ORDER PROCESSING] Synced shop_products.stockQuantity=${newTotal} for barcode ${productData.barcode} after FIFO deduction`);
+      } catch (syncErr) {
+        console.error(`⚠️ [ORDER PROCESSING] Failed to sync shop_products stockQuantity after FIFO:`, syncErr);
+      }
       
       return {
         success: true,
