@@ -1015,6 +1015,7 @@ export interface Translation {
     stockManagement: string;
     stockRow: string;
     stockNotEditable: string;
+    initialStockHelp: string;
     stockAdditionHelp: string;
     chemical: string;
     allBatches: string;
@@ -2143,6 +2144,7 @@ export const translations: Record<Language, Translation> = {
       stockManagement: 'Stock & Weight Management',
       stockRow: 'Stock row',
       stockNotEditable: 'Current product stock in warehouse (not directly editable)',
+      initialStockHelp: 'Initial stock quantity to register for this new product',
       stockAdditionHelp: 'Stock quantity you want to add to warehouse (only in existing product edit)',
       chemical: 'Chemical',
       allBatches: 'All Batches',
@@ -3588,6 +3590,7 @@ export const translations: Record<Language, Translation> = {
       stockManagement: 'إدارة المخزون والوزن',
       stockRow: 'صف المخزون',
       stockNotEditable: 'مخزون المنتج الحالي في المستودع (غير قابل للتغيير مباشرة)',
+      initialStockHelp: 'موجودی اولیه برای ثبت این محصول جدید',
       stockAdditionHelp: 'كمية المخزون التي تريد إضافتها إلى المستودع (فقط في تحرير المنتج الموجود)',
       chemical: 'كيميائي',
       allBatches: 'جميع الدفعات',

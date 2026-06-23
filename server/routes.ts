@@ -4897,7 +4897,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         shortDescription: productData.shortDescription || productData.description,
         unitPrice: productData.unitPrice || productData.price || 11,
         currency: productData.currency || 'IQD',
-        stockQuantity: productData.stockQuantity || 11,
+        stockQuantity: productData.stockQuantity || 0,
         minStockLevel: productData.minStockLevel || 5,
         maxStockLevel: productData.maxStockLevel || 100,
         sku: productData.sku || `SKU-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,

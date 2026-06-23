@@ -2578,13 +2578,13 @@ export default function ProductsPage() {
                         <FormItem>
                           <FormLabel className={`text-sm font-medium flex items-center gap-2 ${validationErrors.stockQuantity ? 'text-red-600' : ''}`}>
                             {t.productManagement.currentStock}
-                            <Lock className="h-3 w-3 text-gray-400" />
+                            {editingProduct && <Lock className="h-3 w-3 text-gray-400" />}
                             <Tooltip>
                               <TooltipTrigger>
                                 <HelpCircle className="h-3 w-3 text-gray-400" />
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>{t.productManagement.stockNotEditable}</p>
+                                <p>{editingProduct ? t.productManagement.stockNotEditable : t.productManagement.initialStockHelp}</p>
                               </TooltipContent>
                             </Tooltip>
                           </FormLabel>
@@ -2592,10 +2592,15 @@ export default function ProductsPage() {
                             <Input 
                               type="number" 
                               placeholder="0" 
-                              className={`h-9 bg-gray-50 text-gray-600 ${validationErrors.stockQuantity ? "border-red-500 focus:border-red-500" : ""}`}
+                              className={`h-9 ${editingProduct ? "bg-gray-50 text-gray-600" : ""} ${validationErrors.stockQuantity ? "border-red-500 focus:border-red-500" : ""}`}
                               {...field}
                               value={field.value || ''}
-                              readOnly
+                              readOnly={!!editingProduct}
+                              onChange={(e) => {
+                                if (!editingProduct) {
+                                  field.onChange(e.target.value ? parseInt(e.target.value) : 0);
+                                }
+                              }}
                             />
                           </FormControl>
                           <FormMessage />
