@@ -1188,23 +1188,21 @@ export default function ProductsPage() {
       isActive: product.isActive !== false,
     });
     
-    // Set image previews AFTER form reset - for new products only
-    // For existing products, images are handled by displayImagePreviews
-    if (!editingProduct) {
-      setImagePreview(product.imageUrl || null);
-      const newPreviews: (string | null)[] = [null, null, null];
-      existingImageUrls.forEach((url: string, index: number) => {
-        if (index < 3) newPreviews[index] = url;
-      });
-      setImagePreviews(newPreviews);
-      
-      // Set primary image index based on legacy imageUrl or default to 0
-      let primaryIndex = 0;
-      if (product.imageUrl && existingImageUrls.includes(product.imageUrl)) {
-        primaryIndex = existingImageUrls.indexOf(product.imageUrl);
-      }
-      setPrimaryImageIndex(primaryIndex);
+    // Set image previews AFTER form reset - always reset when opening any product
+    // This ensures batch switches show correct images for the selected batch
+    setImagePreview(product.imageUrl || null);
+    const newPreviews: (string | null)[] = [null, null, null];
+    existingImageUrls.forEach((url: string, index: number) => {
+      if (index < 3) newPreviews[index] = url;
+    });
+    setImagePreviews(newPreviews);
+    
+    // Set primary image index based on legacy imageUrl or default to 0
+    let primaryIndex = 0;
+    if (product.imageUrl && existingImageUrls.includes(product.imageUrl)) {
+      primaryIndex = existingImageUrls.indexOf(product.imageUrl);
     }
+    setPrimaryImageIndex(primaryIndex);
     
     setDialogOpen(true);
   };
