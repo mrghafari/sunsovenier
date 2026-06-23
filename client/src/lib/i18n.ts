@@ -1068,9 +1068,6 @@ export interface Translation {
     visibleProducts: string;
     searchLabel: string;
     clearAll: string;
-    cacheCleared: string;
-    dataRefreshed: string;
-    forceRefresh: string;
     totalProducts: string;
     fileTooLarge: string;
     fileTooLargeDesc: string;
@@ -2199,9 +2196,6 @@ export const translations: Record<Language, Translation> = {
       visibleProducts: 'Visible Products',
       searchLabel: 'Search',
       clearAll: 'Clear All',
-      cacheCleared: 'Cache Cleared',
-      dataRefreshed: 'Data refreshed successfully',
-      forceRefresh: 'Force Refresh',
       totalProducts: 'Total Products',
       fileTooLarge: 'File Too Large',
       fileTooLargeDesc: 'File must be less than 2MB. Please compress or resize the file.',
@@ -3647,9 +3641,6 @@ export const translations: Record<Language, Translation> = {
       visibleProducts: 'المنتجات الظاهرة',
       searchLabel: 'البحث',
       clearAll: 'مسح الكل',
-      cacheCleared: 'تم مسح ذاكرة التخزين المؤقت',
-      dataRefreshed: 'تم تحديث البيانات بنجاح',
-      forceRefresh: 'تحديث إجباري',
       totalProducts: 'إجمالي المنتجات',
       fileTooLarge: 'حجم الملف كبير جداً',
       fileTooLargeDesc: 'يجب أن يكون حجم الملف أقل من 2 ميجابايت. يرجى ضغط الملف أو تصغير حجمه.',

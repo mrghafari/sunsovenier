@@ -20,7 +20,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertShowcaseProductSchema, type ShowcaseProduct, type InsertShowcaseProduct } from "@shared/showcase-schema";
 import { z } from "zod";
-import { Plus, Edit, Trash2, Package, DollarSign, Beaker, Droplet, LogOut, User, Upload, Image, FileText, X, AlertTriangle, CheckCircle, AlertCircle, XCircle, TrendingUp, TrendingDown, BarChart3, QrCode, Mail, Search, Database, Factory, BookOpen, ArrowLeft, Wheat, Eye, EyeOff, HelpCircle, Info, Tag, Lock, RefreshCw, Sparkles, Flame } from "lucide-react";
+import { Plus, Edit, Trash2, Package, DollarSign, Beaker, Droplet, LogOut, User, Upload, Image, FileText, X, AlertTriangle, CheckCircle, AlertCircle, XCircle, TrendingUp, TrendingDown, BarChart3, QrCode, Mail, Search, Factory, BookOpen, ArrowLeft, Wheat, Eye, EyeOff, HelpCircle, Info, Tag, Lock, RefreshCw, Sparkles, Flame } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import JsBarcode from "jsbarcode";
 import VisualBarcode from "@/components/ui/visual-barcode";
@@ -1484,22 +1484,6 @@ export default function ProductsPage() {
             {t.addProduct}
           </Button>
           
-          <Button 
-            onClick={() => {
-              queryClient.clear();
-              queryClient.removeQueries({ queryKey: [productsEndpoint] });
-              refetch();
-              toast({
-                title: t.productManagement.cacheCleared,
-                description: t.productManagement.dataRefreshed,
-              });
-            }}
-            variant="outline" 
-            className="h-12 text-sm"
-          >
-            <Database className="w-4 h-4 mr-2" />
-            {t.productManagement.forceRefresh}
-          </Button>
         </div>
       </div>
 
