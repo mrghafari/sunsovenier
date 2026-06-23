@@ -1938,7 +1938,7 @@ export default function ProductsPage() {
 
       {/* Product Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto">
+        <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
           <DialogHeader className="pb-4 border-b">
             <DialogTitle className="text-2xl font-bold text-center text-blue-700 flex items-center justify-center gap-2">
               <Package className="h-6 w-6" />
