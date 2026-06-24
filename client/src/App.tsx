@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import ShopSearch from "./components/ShopSearch";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LanguageProvider } from "@/contexts/LanguageContext";
+import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
 import Home from "@/pages/home";
@@ -371,6 +372,7 @@ function App() {
           <TooltipProvider>
             <Toaster />
             <TawkToChat />
+            <PWAInstallPrompt />
             <Router />
           </TooltipProvider>
         </LanguageProvider>

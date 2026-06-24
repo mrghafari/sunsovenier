@@ -1,0 +1,138 @@
+import { useState, useEffect } from 'react';
+import { usePWA } from '@/hooks/usePWA';
+import { Button } from '@/components/ui/button';
+import { X, Download, Wifi, WifiOff, Smartphone } from 'lucide-react';
+
+export function PWAInstallPrompt() {
+  const { isInstallable, isInstalled, isOnline, installApp, dismissInstall } = usePWA();
+  const [showPrompt, setShowPrompt] = useState(false);
+  const [showOfflineBanner, setShowOfflineBanner] = useState(false);
+
+  useEffect(() => {
+    if (!isInstallable || isInstalled) return;
+    // Check if dismissed recently (within 7 days)
+    const dismissed = localStorage.getItem('pwa-install-dismissed');
+    if (dismissed) {
+      const diff = Date.now() - parseInt(dismissed);
+      if (diff < 7 * 24 * 60 * 60 * 1000) return;
+    }
+    // Show after 3 seconds on shop pages
+    const timer = setTimeout(() => setShowPrompt(true), 3000);
+    return () => clearTimeout(timer);
+  }, [isInstallable, isInstalled]);
+
+  useEffect(() => {
+    if (!isOnline) {
+      setShowOfflineBanner(true);
+    } else {
+      const timer = setTimeout(() => setShowOfflineBanner(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [isOnline]);
+
+  const handleDismiss = () => {
+    setShowPrompt(false);
+    dismissInstall();
+  };
+
+  const handleInstall = async () => {
+    await installApp();
+    setShowPrompt(false);
+  };
+
+  return (
+    <>
+      {/* Offline/Online status banner */}
+      {showOfflineBanner && (
+        <div
+          className={`fixed top-0 left-0 right-0 z-[9999] flex items-center justify-center gap-2 py-2 px-4 text-sm font-medium transition-all duration-300 ${
+            isOnline
+              ? 'bg-green-600 text-white'
+              : 'bg-gray-800 text-white'
+          }`}
+        >
+          {isOnline ? (
+            <>
+              <Wifi className="w-4 h-4" />
+              <span>اتصال اینترنت برقرار شد</span>
+            </>
+          ) : (
+            <>
+              <WifiOff className="w-4 h-4" />
+              <span>اتصال اینترنت قطع است — برخی محتوا از حافظه نمایش داده می‌شود</span>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Install prompt banner - shown at bottom */}
+      {showPrompt && (
+        <div
+          dir="rtl"
+          className="fixed bottom-4 left-4 right-4 z-[9998] mx-auto max-w-md bg-white border border-blue-200 rounded-2xl shadow-2xl p-4 flex items-start gap-3 animate-in slide-in-from-bottom-4 duration-300"
+        >
+          {/* Icon */}
+          <div className="flex-shrink-0 w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center">
+            <Smartphone className="w-6 h-6 text-white" />
+          </div>
+
+          {/* Text */}
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-gray-900 text-sm">نصب اپ ممتازکم</p>
+            <p className="text-gray-500 text-xs mt-0.5 leading-relaxed">
+              فروشگاه را روی گوشی نصب کنید و بدون مرورگر، سریع‌تر خرید کنید
+            </p>
+            <div className="flex gap-2 mt-3">
+              <Button
+                size="sm"
+                onClick={handleInstall}
+                className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-8 px-4 rounded-lg flex items-center gap-1.5"
+              >
+                <Download className="w-3.5 h-3.5" />
+                نصب
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleDismiss}
+                className="text-gray-500 text-xs h-8 px-3 rounded-lg"
+              >
+                بعداً
+              </Button>
+            </div>
+          </div>
+
+          {/* Close button */}
+          <button
+            onClick={handleDismiss}
+            className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+          >
+            <X className="w-3.5 h-3.5 text-gray-500" />
+          </button>
+        </div>
+      )}
+    </>
+  );
+}
+
+export function PWAOfflineFallback() {
+  const { isOnline } = usePWA();
+
+  if (isOnline) return null;
+
+  return (
+    <div
+      dir="rtl"
+      className="fixed inset-0 z-[10000] bg-white flex flex-col items-center justify-center p-8 text-center"
+    >
+      <WifiOff className="w-16 h-16 text-gray-300 mb-6" />
+      <h2 className="text-xl font-bold text-gray-800 mb-2">اتصال اینترنت ندارید</h2>
+      <p className="text-gray-500 text-sm mb-6">
+        لطفاً اتصال اینترنت خود را بررسی کنید و دوباره تلاش کنید
+      </p>
+      <Button onClick={() => window.location.reload()} className="bg-blue-600 hover:bg-blue-700 text-white">
+        تلاش مجدد
+      </Button>
+    </div>
+  );
+}
