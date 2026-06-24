@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { usePWA } from '@/hooks/usePWA';
 import { Button } from '@/components/ui/button';
 import { X, Download, Wifi, WifiOff, Smartphone } from 'lucide-react';
@@ -7,18 +7,27 @@ export function PWAInstallPrompt() {
   const { isInstallable, isInstalled, isOnline, installApp, dismissInstall } = usePWA();
   const [showPrompt, setShowPrompt] = useState(false);
   const [showOfflineBanner, setShowOfflineBanner] = useState(false);
+  const autoDismissRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!isInstallable || isInstalled) return;
-    // Check if dismissed recently (within 7 days)
     const dismissed = localStorage.getItem('pwa-install-dismissed');
     if (dismissed) {
       const diff = Date.now() - parseInt(dismissed);
       if (diff < 7 * 24 * 60 * 60 * 1000) return;
     }
-    // Show after 3 seconds on shop pages
-    const timer = setTimeout(() => setShowPrompt(true), 3000);
-    return () => clearTimeout(timer);
+    const showTimer = setTimeout(() => {
+      setShowPrompt(true);
+      // Auto-dismiss after 5 seconds
+      autoDismissRef.current = setTimeout(() => {
+        setShowPrompt(false);
+        dismissInstall();
+      }, 5000);
+    }, 2000);
+    return () => {
+      clearTimeout(showTimer);
+      if (autoDismissRef.current) clearTimeout(autoDismissRef.current);
+    };
   }, [isInstallable, isInstalled]);
 
   useEffect(() => {
@@ -31,11 +40,13 @@ export function PWAInstallPrompt() {
   }, [isOnline]);
 
   const handleDismiss = () => {
+    if (autoDismissRef.current) clearTimeout(autoDismissRef.current);
     setShowPrompt(false);
     dismissInstall();
   };
 
   const handleInstall = async () => {
+    if (autoDismissRef.current) clearTimeout(autoDismissRef.current);
     await installApp();
     setShowPrompt(false);
   };
@@ -46,9 +57,7 @@ export function PWAInstallPrompt() {
       {showOfflineBanner && (
         <div
           className={`fixed top-0 left-0 right-0 z-[9999] flex items-center justify-center gap-2 py-2 px-4 text-sm font-medium transition-all duration-300 ${
-            isOnline
-              ? 'bg-green-600 text-white'
-              : 'bg-gray-800 text-white'
+            isOnline ? 'bg-green-600 text-white' : 'bg-gray-800 text-white'
           }`}
         >
           {isOnline ? (
@@ -65,22 +74,20 @@ export function PWAInstallPrompt() {
         </div>
       )}
 
-      {/* Install prompt banner - shown at bottom */}
+      {/* Install prompt — bottom banner, auto-dismissed after 5s */}
       {showPrompt && (
         <div
           dir="rtl"
-          className="fixed bottom-4 left-4 right-4 z-[9998] mx-auto max-w-md bg-white border border-blue-200 rounded-2xl shadow-2xl p-4 flex items-start gap-3 animate-in slide-in-from-bottom-4 duration-300"
+          className="fixed bottom-20 left-4 right-4 z-[9998] mx-auto max-w-sm bg-white border border-blue-200 rounded-2xl shadow-2xl p-4 flex items-start gap-3 animate-in slide-in-from-bottom-4 duration-300 md:bottom-4"
         >
-          {/* Icon */}
-          <div className="flex-shrink-0 w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center">
-            <Smartphone className="w-6 h-6 text-white" />
+          <div className="flex-shrink-0 w-11 h-11 bg-blue-600 rounded-xl flex items-center justify-center">
+            <Smartphone className="w-5 h-5 text-white" />
           </div>
 
-          {/* Text */}
           <div className="flex-1 min-w-0">
             <p className="font-bold text-gray-900 text-sm">نصب اپ ممتازکم</p>
             <p className="text-gray-500 text-xs mt-0.5 leading-relaxed">
-              فروشگاه را روی گوشی نصب کنید و بدون مرورگر، سریع‌تر خرید کنید
+              فروشگاه را روی گوشی نصب کنید و سریع‌تر خرید کنید
             </p>
             <div className="flex gap-2 mt-3">
               <Button
@@ -102,7 +109,6 @@ export function PWAInstallPrompt() {
             </div>
           </div>
 
-          {/* Close button */}
           <button
             onClick={handleDismiss}
             className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
@@ -117,9 +123,7 @@ export function PWAInstallPrompt() {
 
 export function PWAOfflineFallback() {
   const { isOnline } = usePWA();
-
   if (isOnline) return null;
-
   return (
     <div
       dir="rtl"

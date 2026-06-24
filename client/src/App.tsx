@@ -7,6 +7,7 @@ import ShopSearch from "./components/ShopSearch";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
 import Home from "@/pages/home";
@@ -167,7 +168,7 @@ function Router() {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <main className="flex-1">
+      <main className="flex-1 pb-16 md:pb-0">
         <Switch>
           <Route path="/" component={Home} />
           <Route path="/about" component={About} />
@@ -360,6 +361,7 @@ function Router() {
         </Switch>
       </main>
       <Footer />
+      <MobileBottomNav />
     </div>
   );
 }
