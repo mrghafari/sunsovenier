@@ -3830,6 +3830,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Helper to resolve content-type from file extension
+  const getImageContentType = (filename: string) => {
+    const ext = path.extname(filename).toLowerCase();
+    if (ext === '.png') return 'image/png';
+    if (ext === '.webp') return 'image/webp';
+    if (ext === '.gif') return 'image/gif';
+    return 'image/jpeg';
+  };
+
+  // Proxy route to serve product images from S3 (folder: product-images)
+  app.get('/uploads/product-images/:key', async (req, res) => {
+    try {
+      const key = `product-images/${req.params.key}`;
+      const s3Service = getAwsS3Service();
+      const fileBuffer = await s3Service.getFile(key);
+      if (!fileBuffer) {
+        return res.status(404).json({ success: false, message: 'Product image not found' });
+      }
+      res.setHeader('Content-Type', getImageContentType(req.params.key));
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.send(fileBuffer);
+    } catch (error) {
+      console.error('❌ [S3 PROXY] Error serving product image:', error);
+      res.status(500).json({ success: false, message: 'Failed to retrieve product image' });
+    }
+  });
+
+  // Proxy route to serve general-files from S3 (used by product images uploaded via flexible upload)
+  app.get('/uploads/general-files/:key', async (req, res) => {
+    try {
+      const key = `general-files/${req.params.key}`;
+      const s3Service = getAwsS3Service();
+      const fileBuffer = await s3Service.getFile(key);
+      if (!fileBuffer) {
+        return res.status(404).json({ success: false, message: 'File not found' });
+      }
+      res.setHeader('Content-Type', getImageContentType(req.params.key));
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.send(fileBuffer);
+    } catch (error) {
+      console.error('❌ [S3 PROXY] Error serving general file:', error);
+      res.status(500).json({ success: false, message: 'Failed to retrieve file' });
+    }
+  });
+
   // File upload endpoints
   // Generic upload route (for images) - accepts both 'file' and 'image' field names
   const uploadFlexible = multer({
