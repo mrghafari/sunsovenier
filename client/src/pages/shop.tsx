@@ -41,7 +41,7 @@ const Shop = () => {
   const { isAuthenticated, user: authenticatedCustomer, logout: customerLogout } = useCustomerAuth();
     
   // استفاده از لوگو شرکت به جای placeholder
-  const COMPANY_LOGO = '/uploads/company-logos/Momtazchem-Logo.png';
+  const COMPANY_LOGO = '/uploads/logos/company-logos/Momtazchem-logo.png';
 
 
   const [, navigate] = useLocation();

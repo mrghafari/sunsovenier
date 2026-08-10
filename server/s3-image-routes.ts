@@ -412,6 +412,22 @@ export function registerS3ImageRoutes(app: Express) {
       console.log(`📁 [LOCAL LOGO] Serving from local: ${req.params.fileName}`);
       return next();
     }
+
+    // Keep legacy logo URLs working even when the external S3 credentials are unavailable.
+    // This local asset is the same logo used by the public frontend.
+    const localFallbackPath = path.join(
+      process.cwd(),
+      'uploads',
+      'logos',
+      'company-logos',
+      'Momtazchem-logo.png'
+    );
+    if (fs.existsSync(localFallbackPath)) {
+      console.log(`📁 [LOCAL LOGO] Serving fallback asset for: ${req.params.fileName}`);
+      res.type('png');
+      res.set('Cache-Control', 'public, max-age=31536000');
+      return res.sendFile(localFallbackPath);
+    }
     
     try {
       console.log(`🏢 [S3 LOGO] File not found locally, trying S3: ${req.params.fileName}`);

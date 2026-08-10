@@ -35,93 +35,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import CustomerActivitiesCard from "@/components/CustomerActivitiesCard";
-                </div>
-              </div>
-            ))
-          ) : (
-            // Fallback mock data for demonstration
-            <>
-              <div className="p-4 rounded-lg border bg-green-50 border-green-200">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start space-x-3 space-x-reverse flex-1">
-                    <LogIn className="w-4 h-4 text-green-500" />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium text-sm">احمد رضایی</span>
-                        <Badge variant="secondary" className="text-xs">ورود</Badge>
-                      </div>
-                      <div className="space-y-1 text-xs text-gray-600">
-                        <div className="flex items-center gap-2">
-                          <Phone className="w-3 h-3" />
-                          <span dir="ltr">+964 750 123 4567</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Mail className="w-3 h-3" />
-                          <span dir="ltr">ahmad.rezaei@email.com</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <span className="text-xs text-gray-500">09:15</span>
-                </div>
-              </div>
-              
-              <div className="p-4 rounded-lg border bg-red-50 border-red-200">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start space-x-3 space-x-reverse flex-1">
-                    <LogOut className="w-4 h-4 text-red-500" />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium text-sm">فاطمه حسینی</span>
-                        <Badge variant="secondary" className="text-xs">خروج</Badge>
-                      </div>
-                      <div className="space-y-1 text-xs text-gray-600">
-                        <div className="flex items-center gap-2">
-                          <Phone className="w-3 h-3" />
-                          <span dir="ltr">+964 770 987 6543</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Mail className="w-3 h-3" />
-                          <span dir="ltr">fatemeh.hosseini@email.com</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <span className="text-xs text-gray-500">08:45</span>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-lg border bg-green-50 border-green-200">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start space-x-3 space-x-reverse flex-1">
-                    <LogIn className="w-4 h-4 text-green-500" />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium text-sm">شرکت کیمیا صنعت</span>
-                        <Badge variant="secondary" className="text-xs">ورود</Badge>
-                      </div>
-                      <div className="space-y-1 text-xs text-gray-600">
-                        <div className="flex items-center gap-2">
-                          <Phone className="w-3 h-3" />
-                          <span dir="ltr">+964 751 456 7890</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Mail className="w-3 h-3" />
-                          <span dir="ltr">info@kimyasanat.com</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <span className="text-xs text-gray-500">08:30</span>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
 
 // Quick Action Widget Component
 interface QuickActionWidgetProps {
@@ -224,13 +137,13 @@ export default function ManagementDashboard() {
   const [lastUpdated, setLastUpdated] = useState(new Date());
 
   // Fetch dashboard data
-  const { data: dashboardData, isLoading, refetch } = useQuery({
+  const { data: dashboardData, isLoading, refetch } = useQuery<any>({
     queryKey: ['/api/management/dashboard'],
     staleTime: 30000,
     refetchInterval: 5 * 60 * 1000, // 5 minutes
   });
 
-  const { data: systemHealth, isLoading: healthLoading } = useQuery({
+  const { data: systemHealth, isLoading: healthLoading } = useQuery<any>({
     queryKey: ['/api/management/system-health'],
     staleTime: 60000,
   });

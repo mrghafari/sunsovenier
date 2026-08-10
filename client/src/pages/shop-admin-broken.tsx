@@ -77,7 +77,7 @@ const ShopAdmin = () => {
   // Update order status mutation
   const updateOrderMutation = useMutation({
     mutationFn: async ({ orderId, updates }: { orderId: number; updates: any }) => {
-      return apiRequest(`/api/shop/orders/${orderId}`, "PATCH", updates);
+      return apiRequest(`/api/shop/orders/${orderId}`, { method: "PATCH", body: updates });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/shop/orders"] });
@@ -99,7 +99,7 @@ const ShopAdmin = () => {
   // Update inventory mutation
   const updateInventoryMutation = useMutation({
     mutationFn: async ({ productId, newQuantity, reason }: { productId: number; newQuantity: number; reason: string }) => {
-      return apiRequest("/api/shop/inventory/update", "POST", { productId, newQuantity, reason });
+      return apiRequest("/api/shop/inventory/update", { method: "POST", body: { productId, newQuantity, reason } });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/shop/products"] });
@@ -132,7 +132,7 @@ const ShopAdmin = () => {
   // Create discount mutation
   const createDiscountMutation = useMutation({
     mutationFn: async (data: DiscountFormData) => {
-      return apiRequest("/api/shop/discounts", "POST", data);
+      return apiRequest("/api/shop/discounts", { method: "POST", body: data });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/shop/discounts"] });
@@ -155,7 +155,7 @@ const ShopAdmin = () => {
   // Update discount mutation
   const updateDiscountMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: Partial<DiscountFormData> }) => {
-      return apiRequest(`/api/shop/discounts/${id}`, "PATCH", data);
+      return apiRequest(`/api/shop/discounts/${id}`, { method: "PATCH", body: data });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/shop/discounts"] });
@@ -177,7 +177,7 @@ const ShopAdmin = () => {
   // Delete discount mutation
   const deleteDiscountMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest(`/api/shop/discounts/${id}`, "DELETE");
+      return apiRequest(`/api/shop/discounts/${id}`, { method: "DELETE" });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/shop/discounts"] });
@@ -216,7 +216,7 @@ const ShopAdmin = () => {
   // Get order details
   const getOrderDetails = async (orderId: number) => {
     try {
-      const response = await apiRequest(`/api/shop/orders/${orderId}`, "GET");
+      const response = await apiRequest(`/api/shop/orders/${orderId}`, { method: "GET" });
       setSelectedOrder(response);
     } catch (error) {
       toast({
@@ -575,75 +575,7 @@ const ShopAdmin = () => {
             </DialogContent>
           </Dialog>
         )}
-          </TabsContent>
 
-          {/* Inventory Management */}
-          <TabsContent value="inventory">
-            <Card>
-              <CardHeader>
-                <CardTitle>Inventory Management</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {products.map((product: any) => (
-                      <Card key={product.id} className="p-4">
-                        <h3 className="font-semibold">{product.name}</h3>
-                        <p className="text-sm text-gray-600">SKU: {product.sku}</p>
-                        <p className="text-sm">Stock: {product.stockQuantity}</p>
-                        <p className="text-sm">Price: ${product.price}</p>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Discount Settings */}
-          <TabsContent value="discounts">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Percent className="w-5 h-5" />
-                  Discount Settings
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {Array.isArray(discounts) && discounts.length > 0 ? (
-                    <div className="space-y-3">
-                      {discounts.map((discount: any) => (
-                        <div key={discount.id} className="flex items-center justify-between p-4 border rounded-lg">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3">
-                              <h3 className="font-semibold">{discount.name}</h3>
-                              <Badge variant={discount.isActive ? "default" : "secondary"}>
-                                {discount.isActive ? "Active" : "Inactive"}
-                              </Badge>
-                            </div>
-                            <div className="text-sm text-gray-600 mt-1">
-                              {discount.discountPercentage}% off for {discount.minQuantity}+ items
-                            </div>
-                            {discount.description && (
-                              <div className="text-sm text-gray-500 mt-1">
-                                {discount.description}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-gray-500">
-                      Discount rules loaded from database successfully. Current active discounts: 10+ items (5%), 25+ items (10%), 50+ items (15%).
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
       </div>
     </div>
   );

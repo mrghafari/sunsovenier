@@ -1,0 +1,1 @@
+- [S3 asset fallback](s3-asset-fallback.md) — public assets should have a local fallback because development S3 credentials may be unavailable or invalid.

@@ -25,8 +25,8 @@ import {
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
 
-// Company logo via proxy route (supports both local and S3)
-const COMPANY_LOGO_URL = "/uploads/company-logos/Momtazchem-Logo.png";
+// Use the verified local upload first; the server route can still provide S3-backed assets.
+const COMPANY_LOGO_URL = "/uploads/logos/company-logos/Momtazchem-logo.png";
 
 export default function Header() {
   const [location] = useLocation();

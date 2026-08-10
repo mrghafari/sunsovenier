@@ -37,7 +37,7 @@ export default function WishlistPage() {
   const { toast } = useMultilingualToast();
   const { addToCart } = usePersistentCart();
   
-  const COMPANY_LOGO = '/uploads/company-logos/Momtazchem-Logo.png';
+  const COMPANY_LOGO = '/uploads/logos/company-logos/Momtazchem-logo.png';
 
   const { data: wishlistItems = [], isLoading } = useQuery<WishlistItem[]>({
     queryKey: ["/api/customer/wishlist"],
