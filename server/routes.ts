@@ -27881,28 +27881,28 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         res.json({ success: true, data: JSON.parse(result.rows[0].setting_value) });
       } else {
         // Default: all languages enabled
-        res.json({ success: true, data: { en: true, ar: true, ku: true, tr: true } });
+        res.json({ success: true, data: { en: true, ar: true, ku: true, tr: true, fa: true } });
       }
     } catch (error) {
-      res.json({ success: true, data: { en: true, ar: true, ku: true, tr: true } });
+      res.json({ success: true, data: { en: true, ar: true, ku: true, tr: true, fa: true } });
     }
   });
 
   // Language settings - admin update
   app.put("/api/admin/language-settings", requireAuth, async (req, res) => {
     try {
-      const { en, ar, ku, tr } = req.body;
-      if (en === false && ar === false && ku === false && tr === false) {
+      const { en, ar, ku, tr, fa } = req.body;
+      if (en === false && ar === false && ku === false && tr === false && fa === false) {
         return res.status(400).json({ success: false, message: "حداقل یک زبان باید فعال باشد" });
       }
-      const value = JSON.stringify({ en: !!en, ar: !!ar, ku: !!ku, tr: !!tr });
+      const value = JSON.stringify({ en: !!en, ar: !!ar, ku: !!ku, tr: !!tr, fa: !!fa });
       const { pool } = await import('./db');
       await pool.query(`
         INSERT INTO shop_settings (setting_key, setting_value, setting_type, display_name, category, is_public)
         VALUES ('language_settings', $1, 'json', 'تنظیمات زبان‌های سایت', 'appearance', true)
         ON CONFLICT (setting_key) DO UPDATE SET setting_value = $1, updated_at = NOW()
       `, [value]);
-      res.json({ success: true, message: "تنظیمات زبان با موفقیت ذخیره شد", data: { en: !!en, ar: !!ar, ku: !!ku, tr: !!tr } });
+      res.json({ success: true, message: "تنظیمات زبان با موفقیت ذخیره شد", data: { en: !!en, ar: !!ar, ku: !!ku, tr: !!tr, fa: !!fa } });
     } catch (error) {
       console.error("Error updating language settings:", error);
       res.status(500).json({ success: false, message: "خطا در ذخیره تنظیمات زبان" });

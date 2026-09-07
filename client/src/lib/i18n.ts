@@ -1,4 +1,4 @@
-export type Language = 'en' | 'ar' | 'tr';
+export type Language = 'en' | 'ar' | 'tr' | 'fa';
 
 export interface Translation {
   // Navigation
@@ -1450,7 +1450,7 @@ export interface Translation {
   };
 }
 
-export const translations: Record<Language, Translation> = {
+const baseTranslations = {
   
   en: {
     // Navigation
@@ -5687,7 +5687,61 @@ export const translations: Record<Language, Translation> = {
       quoteFailed: 'Fiyat teklifi talebi gönderilemedi. Lütfen tekrar deneyin.',
     },
   },
-};
+} as Record<Exclude<Language, 'fa'>, Translation>;
+
+// Persian uses English as a safe fallback for translation keys that have not
+// yet been added to the Persian catalog. Core customer-facing labels are
+// overridden here so selecting Persian never produces an empty interface.
+export const translations = {
+  ...baseTranslations,
+  fa: {
+  ...baseTranslations.en,
+  home: 'خانه',
+  about: 'درباره ما',
+  services: 'خدمات',
+  products: 'محصولات',
+  contact: 'تماس با ما',
+  login: 'ورود',
+  logout: 'خروج',
+  register: 'ثبت‌نام',
+  search: 'جستجو',
+  loading: 'در حال بارگذاری...',
+  error: 'خطا',
+  save: 'ذخیره',
+  cancel: 'لغو',
+  close: 'بستن',
+  submit: 'ثبت',
+  continueShopping: 'ادامه خرید',
+  accountInformation: 'اطلاعات حساب',
+  manageAccount: 'مدیریت حساب و مشاهده تاریخچه سفارش‌ها',
+  editProfile: 'ویرایش پروفایل',
+  firstName: 'نام',
+  lastName: 'نام خانوادگی',
+  phone: 'تلفن',
+  address: 'آدرس',
+  city: 'شهر',
+  country: 'کشور',
+  province: 'استان',
+  welcome: 'خوش آمدید',
+  shop: {
+    ...baseTranslations.en.shop,
+    title: 'فروشگاه',
+    addToCart: 'افزودن به سبد خرید',
+    buy: 'خرید',
+    search: 'جستجوی محصولات',
+    inStock: 'موجود',
+    outOfStock: 'ناموجود',
+    priceFilter: 'فیلتر قیمت',
+  },
+  cart: 'سبد خرید',
+  checkout: 'تسویه حساب',
+  total: 'مجموع',
+  subtotal: 'جمع جزء',
+  shipping: 'ارسال',
+  orderSummary: 'خلاصه سفارش',
+  placeOrder: 'ثبت سفارش',
+  },
+} as Record<Language, Translation>;
 
 export const getDirection = (language: Language): 'ltr' | 'rtl' => {
   return language === 'en' || language === 'tr' ? 'ltr' : 'rtl';
@@ -5697,7 +5751,8 @@ export const getLanguageName = (language: Language): string => {
   const names = {
     en: 'English',
     ar: 'العربية',
-    tr: 'Türkçe'
+    tr: 'Türkçe',
+    fa: 'فارسی',
   };
   return names[language];
 };

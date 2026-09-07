@@ -67,6 +67,69 @@ interface RechargeRequest {
   createdAt: string;
 }
 
+const WALLET_T = {
+  en: {
+    syncSuccess: "Sync completed", syncSuccessDesc: "Wallet information was synchronized successfully",
+    syncError: "Sync failed", syncErrorDesc: "Could not synchronize wallet information",
+    clearCache: "Cache cleared", clearCacheDesc: "The cache was cleared. Reloading the page...",
+    clearCacheError: "Could not clear cache", redirecting: "Redirecting to the payment gateway...", pleaseWait: "Please wait",
+    bankReferenceRequired: "Bank reference number is required", bankReceiptRequired: "Bank receipt is required",
+    bankingInfo: "Bank account information", loadingBanking: "Loading banking information...",
+    bankName: "Bank name:", accountNumber: "Account number:", accountHolder: "Account holder:", iban: "IBAN:",
+    pendingInfo: "Pending completion", fallbackBank: "Iraq National Bank", bankReference: "Bank reference number",
+    enterBankReference: "Enter the bank reference number", bankReceipt: "Bank receipt", uploadReceipt: "Upload bank receipt",
+    transactionsDescription: "View all your wallet transactions", rechargeDescription: "View all your recharge requests",
+    orderPayment: "Order payment", order: "Order #", before: "Before:", after: "After:", admin: "Admin",
+    reserved: "Reserved:", reservedHelp: "(Pending bank payment completion)",
+    statuses: { pending: "Pending", approved: "Approved", completed: "Completed", rejected: "Rejected", active: "Active", frozen: "Frozen" },
+  },
+  ar: {
+    syncSuccess: "تمت المزامنة", syncSuccessDesc: "تمت مزامنة معلومات المحفظة بنجاح",
+    syncError: "فشلت المزامنة", syncErrorDesc: "تعذرت مزامنة معلومات المحفظة",
+    clearCache: "تم مسح الذاكرة المؤقتة", clearCacheDesc: "تم مسح الذاكرة المؤقتة، جارٍ إعادة تحميل الصفحة...",
+    clearCacheError: "تعذر مسح الذاكرة المؤقتة", redirecting: "جارٍ الانتقال إلى بوابة الدفع...", pleaseWait: "يرجى الانتظار",
+    bankReferenceRequired: "رقم المرجع البنكي مطلوب", bankReceiptRequired: "الإيصال البنكي مطلوب",
+    bankingInfo: "معلومات الحساب البنكي", loadingBanking: "جارٍ تحميل المعلومات البنكية...",
+    bankName: "اسم البنك:", accountNumber: "رقم الحساب:", accountHolder: "صاحب الحساب:", iban: "IBAN:",
+    pendingInfo: "بانتظار استكمال المعلومات", fallbackBank: "المصرف الوطني العراقي", bankReference: "رقم المرجع البنكي",
+    enterBankReference: "أدخل رقم المرجع البنكي", bankReceipt: "الإيصال البنكي", uploadReceipt: "رفع الإيصال البنكي",
+    transactionsDescription: "عرض جميع معاملات محفظتك", rechargeDescription: "عرض جميع طلبات شحن محفظتك",
+    orderPayment: "دفع الطلب", order: "الطلب #", before: "قبل:", after: "بعد:", admin: "المدير",
+    reserved: "المبلغ المحجوز:", reservedHelp: "(بانتظار إكمال الدفع البنكي)",
+    statuses: { pending: "معلق", approved: "موافق عليه", completed: "مكتمل", rejected: "مرفوض", active: "نشط", frozen: "مجمد" },
+  },
+  tr: {
+    syncSuccess: "Eşitleme tamamlandı", syncSuccessDesc: "Cüzdan bilgileri başarıyla eşitlendi",
+    syncError: "Eşitleme başarısız", syncErrorDesc: "Cüzdan bilgileri eşitlenemedi",
+    clearCache: "Önbellek temizlendi", clearCacheDesc: "Önbellek temizlendi. Sayfa yeniden yükleniyor...",
+    clearCacheError: "Önbellek temizlenemedi", redirecting: "Ödeme sayfasına yönlendiriliyor...", pleaseWait: "Lütfen bekleyin",
+    bankReferenceRequired: "Banka referans numarası gerekli", bankReceiptRequired: "Banka dekontu gerekli",
+    bankingInfo: "Banka hesap bilgileri", loadingBanking: "Banka bilgileri yükleniyor...",
+    bankName: "Banka adı:", accountNumber: "Hesap numarası:", accountHolder: "Hesap sahibi:", iban: "IBAN:",
+    pendingInfo: "Bilgiler bekleniyor", fallbackBank: "Irak Ulusal Bankası", bankReference: "Banka referans numarası",
+    enterBankReference: "Banka referans numarasını girin", bankReceipt: "Banka dekontu", uploadReceipt: "Banka dekontu yükle",
+    transactionsDescription: "Tüm cüzdan işlemlerinizi görüntüleyin", rechargeDescription: "Tüm bakiye yükleme taleplerinizi görüntüleyin",
+    orderPayment: "Sipariş ödemesi", order: "Sipariş #", before: "Önce:", after: "Sonra:", admin: "Yönetici",
+    reserved: "Ayrılan:", reservedHelp: "(Banka ödemesinin tamamlanması bekleniyor)",
+    statuses: { pending: "Bekliyor", approved: "Onaylandı", completed: "Tamamlandı", rejected: "Reddedildi", active: "Aktif", frozen: "Donduruldu" },
+  },
+  fa: {
+    syncSuccess: "همگام‌سازی موفق", syncSuccessDesc: "اطلاعات کیف پول با موفقیت همگام‌سازی شد",
+    syncError: "خطا در همگام‌سازی", syncErrorDesc: "همگام‌سازی اطلاعات کیف پول انجام نشد",
+    clearCache: "حافظه موقت پاک شد", clearCacheDesc: "حافظه موقت پاک شد؛ صفحه در حال بازگشایی است...",
+    clearCacheError: "خطا در پاک‌سازی", redirecting: "در حال انتقال به درگاه پرداخت...", pleaseWait: "لطفاً صبر کنید",
+    bankReferenceRequired: "شماره مرجع بانکی الزامی است", bankReceiptRequired: "فیش بانکی الزامی است",
+    bankingInfo: "اطلاعات حساب بانکی", loadingBanking: "در حال بارگذاری اطلاعات بانکی...",
+    bankName: "نام بانک:", accountNumber: "شماره حساب:", accountHolder: "صاحب حساب:", iban: "شماره شبا:",
+    pendingInfo: "در انتظار تکمیل اطلاعات", fallbackBank: "بانک ملی عراق", bankReference: "شماره مرجع بانکی",
+    enterBankReference: "شماره مرجع بانکی را وارد کنید", bankReceipt: "فیش بانکی", uploadReceipt: "بارگذاری فیش بانکی",
+    transactionsDescription: "همه تراکنش‌های کیف پول خود را مشاهده کنید", rechargeDescription: "همه درخواست‌های شارژ را مشاهده کنید",
+    orderPayment: "پرداخت سفارش", order: "سفارش #", before: "قبل:", after: "بعد:", admin: "مدیر",
+    reserved: "مبلغ رزروشده:", reservedHelp: "(در انتظار تکمیل پرداخت بانکی)",
+    statuses: { pending: "در انتظار", approved: "تأییدشده", completed: "تکمیل‌شده", rejected: "ردشده", active: "فعال", frozen: "مسدود" },
+  },
+} as const;
+
 export default function CustomerWallet() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -87,6 +150,7 @@ export default function CustomerWallet() {
 
   // Get language from centralized system
   const { language, t, direction } = useLanguage();
+  const wt = WALLET_T[language];
   const isRTL = direction === 'rtl';
 
   // Get refresh interval from global settings
@@ -144,8 +208,8 @@ export default function CustomerWallet() {
     },
     onSuccess: (data) => {
       toast({
-        title: "همگام‌سازی موفق",
-        description: "اطلاعات کیف پول با موفقیت همگام‌سازی شد",
+        title: wt.syncSuccess,
+        description: wt.syncSuccessDesc,
       });
       queryClient.invalidateQueries({ queryKey: ['/api/customer/wallet'] });
       queryClient.invalidateQueries({ queryKey: ['/api/customer/wallet/recharge-requests'] });
@@ -153,8 +217,8 @@ export default function CustomerWallet() {
     },
     onError: (error: any) => {
       toast({
-        title: "خطا در همگام‌سازی",
-        description: error.message || "خطا در همگام‌سازی اطلاعات کیف پول",
+        title: wt.syncError,
+        description: error.message || wt.syncErrorDesc,
         variant: "destructive",
       });
     }
@@ -180,14 +244,14 @@ export default function CustomerWallet() {
     },
     onSuccess: () => {
       toast({
-        title: "پاکسازی حافظه موقت",
-        description: "حافظه موقت پاک شد، صفحه در حال بازگشایی...",
+        title: wt.clearCache,
+        description: wt.clearCacheDesc,
       });
     },
     onError: (error: any) => {
       toast({
-        title: "خطا در پاکسازی",
-        description: error.message || "خطا در پاکسازی حافظه موقت",
+        title: wt.clearCacheError,
+        description: error.message || wt.clearCacheError,
         variant: "destructive",
       });
     }
@@ -215,8 +279,8 @@ export default function CustomerWallet() {
     onSuccess: (result) => {
       if (result.paymentUrl) {
         toast({
-          title: "در حال انتقال به درگاه پرداخت...",
-          description: "لطفاً صبر کنید",
+          title: wt.redirecting,
+          description: wt.pleaseWait,
         });
         window.location.href = result.paymentUrl;
         return;
@@ -273,7 +337,7 @@ export default function CustomerWallet() {
       if (!rechargeForm.bankReference.trim()) {
         toast({
           title: t.inputError,
-          description: "رقم المرجع البنكي مطلوب",
+          description: wt.bankReferenceRequired,
           variant: "destructive",
         });
         return;
@@ -282,7 +346,7 @@ export default function CustomerWallet() {
       if (!rechargeForm.bankReceipt) {
         toast({
           title: t.inputError,
-          description: "إيصال البنك مطلوب",
+          description: wt.bankReceiptRequired,
           variant: "destructive",
         });
         return;
@@ -333,7 +397,7 @@ export default function CustomerWallet() {
 
   const formatCurrency = (amount: string | number, currency: string = "IQD") => {
     const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
-    const locale = language === 'en' ? 'en-US' : 'ar-IQ';
+    const locale = { en: 'en-US', ar: 'ar-IQ', tr: 'tr-TR', fa: 'fa-IR' }[language];
     return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency: currency,
@@ -343,18 +407,19 @@ export default function CustomerWallet() {
   };
 
   const getStatusBadge = (status: string) => {
-    const statusConfig: Record<string, { labelEn: string; labelAr: string; variant: any }> = {
-      'pending': { labelEn: 'Pending', labelAr: 'معلق', variant: 'secondary' },
-      'approved': { labelEn: 'Approved', labelAr: 'موافق عليه', variant: 'default' },
-      'completed': { labelEn: 'Completed', labelAr: 'مكتمل', variant: 'default' },
-      'rejected': { labelEn: 'Rejected', labelAr: 'مرفوض', variant: 'destructive' },
-      'active': { labelEn: 'Active', labelAr: 'نشط', variant: 'default' },
-      'frozen': { labelEn: 'Frozen', labelAr: 'مجمد', variant: 'destructive' }
+    const variants: Record<string, any> = {
+      pending: 'secondary', approved: 'default', completed: 'default',
+      rejected: 'destructive', active: 'default', frozen: 'destructive'
     };
-    
-    const config = statusConfig[status] || { labelEn: status, labelAr: status, variant: 'secondary' };
-    const label = language === 'en' ? config.labelEn : config.labelAr;
-    return <Badge variant={config.variant}>{label}</Badge>;
+    const label = wt.statuses[status as keyof typeof wt.statuses] || status;
+    return <Badge variant={variants[status] || 'secondary'}>{label}</Badge>;
+  };
+
+  const getTransactionDescription = (transaction: WalletSummary['recentTransactions'][number]) => {
+    const normalized = transaction.description?.trim().toLowerCase();
+    const isOrderPayment = transaction.referenceType === 'order'
+      || ['پرداخت سفارش', 'order payment', 'دفع الطلب', 'sipariş ödemesi'].includes(normalized);
+    return isOrderPayment ? wt.orderPayment : transaction.description;
   };
 
   const getTransactionIcon = (type: string) => {
@@ -437,7 +502,7 @@ export default function CustomerWallet() {
               <div className="flex items-center gap-2 bg-red-100 dark:bg-red-900/30 px-3 py-1 rounded-full border border-red-200 dark:border-red-800">
                 <Shield className="h-4 w-4 text-red-600 dark:text-red-400" />
                 <span className="text-sm font-medium text-red-700 dark:text-red-300">
-                  {isRTL ? 'مدیر' : 'Admin'}
+                  {wt.admin}
                 </span>
               </div>
             )}
@@ -463,13 +528,13 @@ export default function CustomerWallet() {
                 <div className="mt-2 p-2 bg-orange-50 dark:bg-orange-900/20 rounded border border-orange-200 dark:border-orange-800">
                   <div className="text-xs text-orange-700 dark:text-orange-300 flex items-center gap-1">
                     <Clock className="h-3 w-3" />
-                    {isRTL ? 'مبلغ رزرو شده:' : 'Reserved:'}
+                    {wt.reserved}
                     <span className="font-semibold">
                       {formatCurrency(walletData?.data?.reservedBalance ?? 0, wallet?.currency || 'IQD')}
                     </span>
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {isRTL ? '(در انتظار تکمیل پرداخت بانکی)' : '(Pending bank payment completion)'}
+                    {wt.reservedHelp}
                   </div>
                 </div>
               )}
@@ -604,41 +669,41 @@ export default function CustomerWallet() {
                             <CardHeader>
                               <CardTitle className="flex items-center gap-2 text-base">
                                 <Building2 className="w-4 h-4 text-blue-600" />
-                                اطلاعات حساب بانکی برای واریز
+                                {wt.bankingInfo}
                               </CardTitle>
                             </CardHeader>
                             <CardContent>
                               {isLoadingCompanyInfo ? (
                                 <div className="text-center py-2">
-                                  <p className="text-sm text-muted-foreground">در حال بارگذاری اطلاعات بانکی...</p>
+                                  <p className="text-sm text-muted-foreground">{wt.loadingBanking}</p>
                                 </div>
                               ) : (
                                 <div className="space-y-2 text-sm">
                                   <div className="grid grid-cols-2 gap-3">
                                     <div>
-                                      <span className="font-medium">نام بانک:</span>
+                                      <span className="font-medium">{wt.bankName}</span>
                                       <p className="text-muted-foreground">
-                                        {companyInfo?.bankName || 'بانک ملی عراق'}
+                                        {companyInfo?.bankName || wt.fallbackBank}
                                       </p>
                                     </div>
                                     <div>
-                                      <span className="font-medium">شماره حساب:</span>
+                                      <span className="font-medium">{wt.accountNumber}</span>
                                       <p className="font-mono text-sm">
-                                        {companyInfo?.bankAccount || 'در انتظار تکمیل اطلاعات'}
+                                        {companyInfo?.bankAccount || wt.pendingInfo}
                                       </p>
                                     </div>
                                   </div>
                                   <div className="grid grid-cols-2 gap-3">
                                     <div>
-                                      <span className="font-medium">نام صاحب حساب:</span>
+                                      <span className="font-medium">{wt.accountHolder}</span>
                                       <p className="text-muted-foreground">
-                                        {companyInfo?.bankAccountHolder || companyInfo?.companyNameAr || companyInfo?.companyNameEn || 'شرکت ممتاز شیمی'}
+                                        {companyInfo?.bankAccountHolder || companyInfo?.companyNameAr || companyInfo?.companyNameEn || wt.pendingInfo}
                                       </p>
                                     </div>
                                     <div>
-                                      <span className="font-medium">شماره IBAN:</span>
+                                      <span className="font-medium">{wt.iban}</span>
                                       <p className="font-mono text-sm">
-                                        {companyInfo?.bankIban || 'در انتظار تکمیل اطلاعات'}
+                                        {companyInfo?.bankIban || wt.pendingInfo}
                                       </p>
                                     </div>
                                   </div>
@@ -656,17 +721,17 @@ export default function CustomerWallet() {
                           </Card>
 
                           <div>
-                            <Label htmlFor="bankReference">رقم المرجع البنكي *</Label>
+                            <Label htmlFor="bankReference">{wt.bankReference} *</Label>
                             <Input
                               id="bankReference"
                               value={rechargeForm.bankReference}
                               onChange={(e) => setRechargeForm({...rechargeForm, bankReference: e.target.value})}
-                              placeholder="أدخل رقم المرجع البنكي"
+                              placeholder={wt.enterBankReference}
                               required
                             />
                           </div>
                           <div>
-                            <Label htmlFor="bankReceipt">إيصال البنك *</Label>
+                            <Label htmlFor="bankReceipt">{wt.bankReceipt} *</Label>
                             <Input
                               id="bankReceipt"
                               type="file"
@@ -675,7 +740,7 @@ export default function CustomerWallet() {
                               required
                             />
                             <p className="text-sm text-muted-foreground mt-1">
-                              "رفع إيصال البنك"
+                              {wt.uploadReceipt}
                             </p>
                           </div>
                         </>
@@ -734,7 +799,7 @@ export default function CustomerWallet() {
               <CardHeader>
                 <CardTitle>{t.allTransactions}</CardTitle>
                 <CardDescription>
-                  {language === 'en' ? 'View all your wallet transactions' : 'عرض جميع معاملات محفظتك'}
+                  {wt.transactionsDescription}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -745,15 +810,15 @@ export default function CustomerWallet() {
                         <div className={`flex items-center space-x-4 ${isRTL ? 'flex-row-reverse space-x-reverse' : ''}`}>
                           {getTransactionIcon(transaction.transactionType)}
                           <div className={isRTL ? 'text-right' : 'text-left'}>
-                            <p className="font-medium">{transaction.description}</p>
+                            <p className="font-medium">{getTransactionDescription(transaction)}</p>
                             {/* Display order number when transaction is related to an order */}
                             {transaction.referenceType === 'order' && transaction.referenceId && (
                               <p className="text-sm font-medium text-blue-600">
-                                {language === 'en' ? 'Order #' : 'سفارش #'}{transaction.referenceId}
+                                {wt.order}{transaction.referenceId}
                               </p>
                             )}
                             <p className="text-sm text-gray-500">
-                              {new Date(transaction.createdAt).toLocaleDateString(language === 'en' ? 'en-US' : 'ar-SA')}
+                              {new Date(transaction.createdAt).toLocaleDateString({ en: 'en-US', ar: 'ar-IQ', tr: 'tr-TR', fa: 'fa-IR' }[language])}
                             </p>
                           </div>
                         </div>
@@ -761,7 +826,7 @@ export default function CustomerWallet() {
                           {/* Balance Before */}
                           {transaction.balanceBefore && (
                             <p className="text-xs text-gray-500">
-                              {language === 'en' ? 'Before:' : 'قبل:'} {formatCurrency(transaction.balanceBefore, transaction.currency)}
+                              {wt.before} {formatCurrency(transaction.balanceBefore, transaction.currency)}
                             </p>
                           )}
                           {/* Transaction Amount */}
@@ -771,7 +836,7 @@ export default function CustomerWallet() {
                           {/* Balance After */}
                           {transaction.balanceAfter && (
                             <p className="text-xs text-gray-500">
-                              {language === 'en' ? 'After:' : 'بعد:'} {formatCurrency(transaction.balanceAfter, transaction.currency)}
+                              {wt.after} {formatCurrency(transaction.balanceAfter, transaction.currency)}
                             </p>
                           )}
                           {getStatusBadge(transaction.status)}
@@ -792,7 +857,7 @@ export default function CustomerWallet() {
               <CardHeader>
                 <CardTitle>{t.rechargeRequests}</CardTitle>
                 <CardDescription>
-                  {language === 'en' ? 'View all your recharge requests' : 'عرض جميع طلبات الشحن الخاصة بك'}
+                  {wt.rechargeDescription}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -806,7 +871,7 @@ export default function CustomerWallet() {
                             <p className="font-medium">{t.requestNumber}: {request.requestNumber}</p>
                             <p className="text-sm text-gray-500">{request.paymentMethod}</p>
                             <p className="text-sm text-gray-500">
-                              {new Date(request.createdAt).toLocaleDateString(language === 'en' ? 'en-US' : 'ar-SA')}
+                              {new Date(request.createdAt).toLocaleDateString({ en: 'en-US', ar: 'ar-IQ', tr: 'tr-TR', fa: 'fa-IR' }[language])}
                             </p>
                           </div>
                         </div>

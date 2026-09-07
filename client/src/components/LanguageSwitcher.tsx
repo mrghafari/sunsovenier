@@ -14,8 +14,8 @@ import { useEffect } from 'react';
 const ALL_LANGUAGES: { code: Language; label: string }[] = [
   { code: 'en', label: 'English' },
   { code: 'ar', label: 'العربية' },
-  { code: 'ku', label: 'کوردی' },
   { code: 'tr', label: 'Türkçe' },
+  { code: 'fa', label: 'فارسی' },
 ];
 
 export function LanguageSwitcher() {
@@ -26,7 +26,7 @@ export function LanguageSwitcher() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const enabledMap: Record<string, boolean> = (langSettingsData as any)?.data ?? { en: true, ar: true, ku: true, tr: true };
+  const enabledMap: Record<string, boolean> = (langSettingsData as any)?.data ?? { en: true, ar: true, tr: true, fa: true };
 
   const availableLanguages = ALL_LANGUAGES.filter(l => enabledMap[l.code] !== false);
 

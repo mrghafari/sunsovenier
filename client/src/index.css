@@ -71,6 +71,11 @@
   font-weight: 500;
 }
 
+.lang-fa {
+  font-family: "Vazirmatn", "IRANSans", "Tahoma", "Segoe UI", Arial, sans-serif;
+  font-weight: 500;
+}
+
 .lang-en {
   font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   font-weight: 500;
@@ -107,7 +112,7 @@
 }
 
 /* Better Arabic and Kurdish font rendering - Premium Typography */
-.lang-ar, .lang-ku {
+.lang-ar, .lang-ku, .lang-fa {
   font-feature-settings: "liga" 1, "kern" 1, "calt" 1;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -117,14 +122,14 @@
 }
 
 /* Improved typography for RTL languages - Modern Arabic Design */
-.lang-ar h1, .lang-ku h1 {
+.lang-ar h1, .lang-ku h1, .lang-fa h1 {
   font-family: "Cairo", "Tajawal", sans-serif;
   font-weight: 800;
   letter-spacing: -0.03em;
   line-height: 1.3;
 }
 
-.lang-ar h2, .lang-ku h2 {
+.lang-ar h2, .lang-ku h2, .lang-fa h2 {
   font-family: "Cairo", "Tajawal", sans-serif;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -139,7 +144,13 @@
   line-height: 1.4;
 }
 
-.lang-ar p, .lang-ku p {
+.lang-fa h3, .lang-fa h4, .lang-fa h5, .lang-fa h6 {
+  font-family: "Vazirmatn", "Tahoma", sans-serif;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.lang-ar p, .lang-ku p, .lang-fa p {
   font-family: "Tajawal", "Cairo", "Almarai", sans-serif;
   line-height: 1.8;
   font-weight: 400;
@@ -151,6 +162,11 @@
   font-family: "Cairo", "Tajawal", sans-serif;
   font-weight: 600;
   letter-spacing: -0.01em;
+}
+
+.lang-fa button, .lang-fa .button {
+  font-family: "Vazirmatn", "Tahoma", sans-serif;
+  font-weight: 600;
 }
 
 /* Hero section special styling for Arabic */

@@ -20,7 +20,7 @@ interface ContentItem {
   key: string;
   content: string;
   contentType: 'text' | 'html' | 'image' | 'json';
-  language: 'en' | 'ar' | 'ku' | 'tr';
+  language: 'en' | 'ar' | 'ku' | 'tr' | 'fa';
   section: string;
   isActive: boolean;
   createdAt: string;
@@ -94,7 +94,7 @@ export default function ContentManagement() {
   const { toast } = useToast();
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [selectedLanguage, setSelectedLanguage] = useState<'en' | 'ar' | 'ku' | 'tr'>('en');
+  const [selectedLanguage, setSelectedLanguage] = useState<'en' | 'ar' | 'ku' | 'tr' | 'fa'>('en');
   const [selectedSection, setSelectedSection] = useState<string>('product_display');
   const [editingContent, setEditingContent] = useState<ContentItem | null>(null);
   const [activeTab, setActiveTab] = useState<string>('content');
@@ -454,7 +454,8 @@ export default function ContentManagement() {
     { value: 'en', label: 'English', flag: '🇺🇸' },
     { value: 'ar', label: 'Arabic', flag: '🇮🇶' },
     { value: 'ku', label: 'Kurdish', flag: '🏳️' },
-    { value: 'tr', label: 'Turkish', flag: '🇹🇷' }
+    { value: 'tr', label: 'Turkish', flag: '🇹🇷' },
+    { value: 'fa', label: 'Persian', flag: '🇮🇷' }
   ];
 
   return (
@@ -485,7 +486,7 @@ export default function ContentManagement() {
           
           {/* Language and Section Selectors */}
           <div className="flex items-center gap-4">
-            <Select value={selectedLanguage} onValueChange={(value: 'en' | 'ar' | 'ku' | 'tr') => setSelectedLanguage(value)}>
+            <Select value={selectedLanguage} onValueChange={(value: 'en' | 'ar' | 'ku' | 'tr' | 'fa') => setSelectedLanguage(value)}>
               <SelectTrigger className="w-40">
                 <SelectValue />
               </SelectTrigger>
@@ -1467,7 +1468,7 @@ export default function ContentManagement() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setSelectedLanguage(lang.value as 'en' | 'ar' | 'ku')}
+                          onClick={() => setSelectedLanguage(lang.value as 'en' | 'ar' | 'ku' | 'tr' | 'fa')}
                         >
                           Edit Content
                         </Button>
@@ -1979,7 +1980,7 @@ function LanguageSettingsTab() {
     staleTime: 0,
   });
 
-  const [settings, setSettings] = useState<Record<string, boolean>>({ en: true, ar: true, ku: true, tr: true });
+  const [settings, setSettings] = useState<Record<string, boolean>>({ en: true, ar: true, ku: true, tr: true, fa: true });
 
   useEffect(() => {
     if ((langData as any)?.data) {
@@ -2009,6 +2010,7 @@ function LanguageSettingsTab() {
     { code: 'ar', name: 'Arabic', nativeName: 'عربی', flag: '🇸🇦' },
     { code: 'ku', name: 'Kurdish', nativeName: 'کوردی', flag: '🇮🇶' },
     { code: 'tr', name: 'Turkish', nativeName: 'ترکی', flag: '🇹🇷' },
+    { code: 'fa', name: 'Persian', nativeName: 'فارسی', flag: '🇮🇷' },
   ];
 
   const enabledCount = Object.values(settings).filter(Boolean).length;
