@@ -75,13 +75,14 @@ export class AwsS3Service {
    */
   initialize(settings: AwsS3Settings) {
     try {
-      // Decrypt keys
-      const accessKeyId = settings.accessKeyId.includes(':') 
-        ? decrypt(settings.accessKeyId) 
-        : settings.accessKeyId;
-      const secretAccessKey = settings.secretAccessKey.includes(':') 
-        ? decrypt(settings.secretAccessKey) 
-        : settings.secretAccessKey;
+      // Prefer runtime secrets so rotated credentials take effect without
+      // persisting plaintext credentials or rewriting the S3 settings row.
+      const accessKeyId = process.env.AWS_ACCESS_KEY_ID_NEW || (
+        settings.accessKeyId.includes(':') ? decrypt(settings.accessKeyId) : settings.accessKeyId
+      );
+      const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY_NEW || (
+        settings.secretAccessKey.includes(':') ? decrypt(settings.secretAccessKey) : settings.secretAccessKey
+      );
 
       // Create S3 client configuration
       const config: any = {
