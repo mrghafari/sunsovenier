@@ -9,6 +9,7 @@ import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useCustomer } from '@/hooks/useCustomer';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
+import bundledCompanyLogo from '@assets/company-logo.png';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,9 +26,9 @@ import {
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
 
-// Use the verified local upload first; the server route can still provide S3-backed assets.
-const COMPANY_LOGO_URL = "/uploads/logos/company-logos/Momtazchem-logo.png?v=20260908";
-const COMPANY_LOGO_FALLBACK_URL = "/company-logo.png";
+// Import the logo into the frontend bundle so it is available in production
+// without depending on a persistent /uploads directory or an S3 request.
+const COMPANY_LOGO_URL = bundledCompanyLogo;
 
 export default function Header() {
   const [location] = useLocation();
@@ -196,11 +197,6 @@ export default function Header() {
                 src={COMPANY_LOGO_URL} 
                 alt="Momtazchem" 
                 className="h-10 w-10 shrink-0 object-contain"
-                onError={(event) => {
-                  const image = event.currentTarget;
-                  if (image.src.endsWith(COMPANY_LOGO_FALLBACK_URL)) return;
-                  image.src = COMPANY_LOGO_FALLBACK_URL;
-                }}
               />
               <span className="hidden sm:block text-xl font-bold text-gray-900 dark:text-white">
                 Momtazchem
