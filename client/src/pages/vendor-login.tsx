@@ -31,6 +31,7 @@ const vendorLoginTranslations = {
     invalidCredentials: "Invalid email or password",
     usernameRequired: "Please enter username or email",
     passwordRequired: "Password must be at least 6 characters",
+    forgotPassword: "Forgot password?",
   },
   ar: {
     title: "دخول البائع",
@@ -50,6 +51,7 @@ const vendorLoginTranslations = {
     invalidCredentials: "البريد الإلكتروني أو كلمة المرور غير صحيحة",
     usernameRequired: "الرجاء إدخال اسم المستخدم أو البريد الإلكتروني",
     passwordRequired: "كلمة المرور يجب أن تكون 6 أحرف على الأقل",
+    forgotPassword: "نسيت كلمة المرور؟",
   },
   ku: {
     title: "چوونەژوورەوەی فرۆشیار",
@@ -69,6 +71,7 @@ const vendorLoginTranslations = {
     invalidCredentials: "ئیمەیڵ یان وشەی نهێنی هەڵەیە",
     usernameRequired: "تکایە ناوی بەکارهێنەر یان ئیمەیڵ بنووسە",
     passwordRequired: "وشەی نهێنی دەبێت لانیکەم ٦ پیت بێت",
+    forgotPassword: "وشەی نهێنیت لەبیر کردووە؟",
   },
   tr: {
     title: "Satıcı Girişi",
@@ -88,6 +91,7 @@ const vendorLoginTranslations = {
     invalidCredentials: "E-posta veya şifre yanlış",
     usernameRequired: "Kullanıcı adı veya e-posta girin",
     passwordRequired: "Şifre en az 6 karakter olmalıdır",
+    forgotPassword: "Şifrenizi mi unuttunuz?",
   },
   fa: {
     title: "ورود فروشنده",
@@ -107,6 +111,7 @@ const vendorLoginTranslations = {
     invalidCredentials: "ایمیل یا رمز عبور اشتباه است",
     usernameRequired: "نام کاربری یا ایمیل را وارد کنید",
     passwordRequired: "رمز عبور باید حداقل 6 کاراکتر باشد",
+    forgotPassword: "رمز عبور را فراموش کرده‌اید؟",
   },
 };
 
@@ -218,6 +223,12 @@ export default function VendorLogin() {
                   </FormItem>
                 )}
               />
+
+              <div className={direction === "rtl" ? "text-left" : "text-right"}>
+                <Link href="/vendor/forgot-password" className="text-sm text-purple-700 hover:underline">
+                  {t.forgotPassword}
+                </Link>
+              </div>
 
               <Button
                 type="submit"

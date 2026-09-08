@@ -13,6 +13,10 @@ import { insertVendorSchema, insertVendorUserSchema, customUsers } from "@shared
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
+import { storage } from "./storage";
+import { UniversalEmailService } from "./universal-email-service";
+import { CONFIG } from "./config";
 
 export function createVendorRouter() {
   const router = Router();
@@ -207,6 +211,96 @@ export function createVendorRouter() {
         success: false,
         message: "Error during login"
       });
+    }
+  });
+
+  router.post("/auth/forgot-password", async (req, res) => {
+    const genericMessage = "If a vendor account with this email exists, a password reset link has been sent.";
+    try {
+      const email = z.string().email().parse(req.body?.email).trim().toLowerCase();
+      const vendorUser = await vendorStorage.getVendorUserByEmail(email);
+
+      if (vendorUser?.isActive) {
+        const resetToken = `vendor_${crypto.randomBytes(32).toString("hex")}`;
+        await storage.createPasswordReset({
+          email: vendorUser.email,
+          token: resetToken,
+          expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+          used: false,
+        });
+
+        const resetLink = CONFIG.getVendorPasswordResetUrl(resetToken);
+        const displayName = [vendorUser.firstName, vendorUser.lastName].filter(Boolean).join(" ") || vendorUser.username;
+        await UniversalEmailService.sendEmail({
+          categoryKey: "password-reset",
+          to: [vendorUser.email],
+          subject: "Vendor Password Reset - Momtazchem",
+          html: `<p>Hello ${displayName},</p><p>Use the button below to reset your vendor account password. This link expires in one hour.</p><p><a href="${resetLink}">Reset password</a></p><p>If you did not request this change, ignore this email.</p>`,
+          variables: {
+            customer_name: displayName,
+            email_type: "Vendor password reset",
+            email_content: "A password reset was requested for your vendor account.",
+            password_label: "",
+            password_value: "",
+            security_note: "If you did not request this change, ignore this email. This link expires in one hour.",
+            action_url: resetLink,
+            action_text: "Reset password",
+          },
+        });
+      }
+
+      res.json({ success: true, message: genericMessage });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ success: false, message: "A valid email address is required." });
+      }
+      console.error("Vendor forgot password error:", error);
+      res.status(500).json({ success: false, message: "Unable to process the password reset request." });
+    }
+  });
+
+  router.get("/auth/password-reset-verify", async (req, res) => {
+    const token = typeof req.query.token === "string" ? req.query.token : "";
+    if (!token.startsWith("vendor_")) {
+      return res.status(400).json({ success: false, message: "Invalid or expired reset link." });
+    }
+
+    const reset = await storage.getPasswordResetByToken(token);
+    if (!reset || reset.expiresAt <= new Date()) {
+      return res.status(400).json({ success: false, message: "Invalid or expired reset link." });
+    }
+    res.json({ success: true });
+  });
+
+  router.post("/auth/reset-password", async (req, res) => {
+    try {
+      const { token, newPassword } = z.object({
+        token: z.string().startsWith("vendor_"),
+        newPassword: z.string().min(6).max(128),
+      }).parse(req.body);
+
+      const reset = await storage.getPasswordResetByToken(token);
+      if (!reset || reset.expiresAt <= new Date()) {
+        return res.status(400).json({ success: false, message: "Invalid or expired reset link." });
+      }
+
+      const vendorUser = await vendorStorage.getVendorUserByEmail(reset.email);
+      if (!vendorUser) {
+        await storage.markPasswordResetAsUsed(token);
+        return res.status(400).json({ success: false, message: "Invalid or expired reset link." });
+      }
+
+      await vendorStorage.updateVendorUser(vendorUser.id, {
+        password: newPassword,
+      });
+      await storage.markPasswordResetAsUsed(token);
+      res.json({ success: true, message: "Password updated successfully." });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ success: false, message: "Invalid password reset request." });
+      }
+      console.error("Vendor reset password error:", error);
+      res.status(500).json({ success: false, message: "Unable to reset the password." });
     }
   });
 

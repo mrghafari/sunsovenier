@@ -43,6 +43,11 @@ export const CONFIG = {
     const baseUrl = process.env.FRONTEND_URL || CONFIG.PRODUCTION_DOMAIN;
     return `${baseUrl}/customer-reset-password?token=${token}`;
   },
+
+  getVendorPasswordResetUrl: (token: string): string => {
+    const baseUrl = process.env.FRONTEND_URL || CONFIG.PRODUCTION_DOMAIN;
+    return `${baseUrl}/vendor/reset-password?token=${encodeURIComponent(token)}`;
+  },
   
   // Generate login URL
   getLoginUrl: (req?: any): string => {

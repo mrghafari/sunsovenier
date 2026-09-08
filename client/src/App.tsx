@@ -151,6 +151,8 @@ import MarketplaceManagement from "@/pages/admin/marketplace-management";
 import VendorAccounting from "@/pages/admin/vendor-accounting";
 import VendorRegistration from "@/pages/vendor-registration";
 import VendorLogin from "@/pages/vendor-login";
+import VendorForgotPassword from "@/pages/vendor-forgot-password";
+import VendorResetPassword from "@/pages/vendor-reset-password";
 import VendorDashboard from "@/pages/vendor-dashboard";
 import VendorAddProduct from "@/pages/vendor-add-product";
 import VendorEditProduct from "@/pages/vendor-edit-product";
@@ -183,6 +185,8 @@ function Router() {
           <Route path="/vendor-registration" component={VendorRegistration} />
           <Route path="/become-vendor" component={VendorRegistration} />
           <Route path="/vendor/login" component={VendorLogin} />
+           <Route path="/vendor/forgot-password" component={VendorForgotPassword} />
+           <Route path="/vendor/reset-password" component={VendorResetPassword} />
           <Route path="/vendor/dashboard" component={VendorDashboard} />
           <Route path="/vendor/products/new" component={VendorAddProduct} />
           <Route path="/vendor/products/edit/:id" component={VendorEditProduct} />
