@@ -27888,6 +27888,93 @@ ${message ? `Additional Requirements:\n${message}` : ''}
     }
   });
 
+  const geoLanguageCache = new Map<string, { countryCode: string; language: "en" | "ar" | "tr" | "fa"; expiresAt: number }>();
+
+  // Detect a first-time visitor's language from their IP country. Manual
+  // language choices are handled and preserved by the client.
+  app.get("/api/public/detect-language", async (req, res) => {
+    const languageForCountry = (countryCode: string): "en" | "ar" | "tr" | "fa" => {
+      switch (countryCode.toUpperCase()) {
+        case "IR": return "fa";
+        case "IQ": return "ar";
+        case "TR": return "tr";
+        default: return "en";
+      }
+    };
+
+    try {
+      const countryHeaderNames = [
+        "cf-ipcountry",
+        "x-vercel-ip-country",
+        "x-country-code",
+        "x-geo-country",
+        "cloudfront-viewer-country",
+      ];
+      const headerCountry = countryHeaderNames
+        .map((name) => req.get(name))
+        .find((value) => value && /^[a-z]{2}$/i.test(value))
+        ?.toUpperCase();
+
+      if (headerCountry) {
+        return res.json({
+          success: true,
+          data: { countryCode: headerCountry, language: languageForCountry(headerCountry) },
+        });
+      }
+
+      const forwardedIp = req.get("x-forwarded-for")?.split(",")[0]?.trim();
+      const clientIp = (forwardedIp || req.ip || "")
+        .replace(/^::ffff:/, "")
+        .replace(/^\[|\]$/g, "");
+      const cached = geoLanguageCache.get(clientIp);
+
+      if (cached && cached.expiresAt > Date.now()) {
+        return res.json({
+          success: true,
+          data: { countryCode: cached.countryCode, language: cached.language },
+        });
+      }
+
+      let countryCode = "";
+      const isPublicIp = clientIp &&
+        clientIp !== "::1" &&
+        clientIp !== "127.0.0.1" &&
+        !clientIp.startsWith("10.") &&
+        !clientIp.startsWith("192.168.") &&
+        !/^172\.(1[6-9]|2\d|3[01])\./.test(clientIp);
+
+      if (isPublicIp) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 2000);
+        try {
+          const response = await fetch(`https://ipwho.is/${encodeURIComponent(clientIp)}?fields=success,country_code`, {
+            signal: controller.signal,
+            headers: { Accept: "application/json" },
+          });
+          if (response.ok) {
+            const data = await response.json() as { success?: boolean; country_code?: string };
+            if (data.success && /^[a-z]{2}$/i.test(data.country_code || "")) {
+              countryCode = data.country_code!.toUpperCase();
+            }
+          }
+        } finally {
+          clearTimeout(timeout);
+        }
+      }
+
+      const language = languageForCountry(countryCode);
+      geoLanguageCache.set(clientIp, {
+        countryCode,
+        language,
+        expiresAt: Date.now() + 24 * 60 * 60 * 1000,
+      });
+      res.json({ success: true, data: { countryCode: countryCode || null, language } });
+    } catch (error) {
+      console.warn("[LANGUAGE DETECTION] Falling back to English:", error);
+      res.json({ success: true, data: { countryCode: null, language: "en" } });
+    }
+  });
+
   // Language settings - admin update
   app.put("/api/admin/language-settings", requireAuth, async (req, res) => {
     try {

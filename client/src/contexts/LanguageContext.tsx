@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { Language, translations, Translation, getDirection } from '@/lib/i18n';
 
 interface LanguageContextType {
@@ -16,10 +16,19 @@ interface LanguageProviderProps {
 
 export function LanguageProvider({ children }: LanguageProviderProps) {
   const [language, setLanguage] = useState<Language>(() => {
-    // Get saved language from localStorage or default to English
+    // Preserve explicit user choices. Otherwise English is used briefly until
+    // IP-based detection completes.
     const saved = localStorage.getItem('language') as Language;
-    return saved && (saved === 'en' || saved === 'ar' || saved === 'tr' || saved === 'fa') ? saved : 'en';
+    const wasManuallySelected = localStorage.getItem('language-manually-selected') === 'true';
+    return wasManuallySelected && saved && (saved === 'en' || saved === 'ar' || saved === 'tr' || saved === 'fa')
+      ? saved
+      : 'en';
   });
+
+  const chooseLanguage = useCallback((nextLanguage: Language) => {
+    localStorage.setItem('language-manually-selected', 'true');
+    setLanguage(nextLanguage);
+  }, []);
 
   const direction = getDirection(language);
   const t = translations[language];
@@ -32,9 +41,34 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
     document.documentElement.className = `lang-${language}`;
   }, [language, direction]);
 
+  useEffect(() => {
+    if (localStorage.getItem('language-manually-selected') === 'true') return;
+
+    const controller = new AbortController();
+    fetch('/api/public/detect-language', { signal: controller.signal })
+      .then((response) => response.ok ? response.json() : null)
+      .then((result) => {
+        const detected = result?.data?.language as Language | undefined;
+        if (
+          localStorage.getItem('language-manually-selected') !== 'true' &&
+          detected &&
+          ['en', 'ar', 'tr', 'fa'].includes(detected)
+        ) {
+          setLanguage(detected);
+        }
+      })
+      .catch((error) => {
+        if (error?.name !== 'AbortError') {
+          console.warn('[LANGUAGE] IP detection failed; using English');
+        }
+      });
+
+    return () => controller.abort();
+  }, []);
+
   const value = {
     language,
-    setLanguage,
+    setLanguage: chooseLanguage,
     t,
     direction,
   };

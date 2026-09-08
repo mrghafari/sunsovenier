@@ -1,6 +1,6 @@
-const CACHE_NAME = 'momtazchem-v1';
-const STATIC_CACHE = 'momtazchem-static-v1';
-const API_CACHE = 'momtazchem-api-v1';
+const CACHE_VERSION = 'v2-20260908';
+const STATIC_CACHE = `momtazchem-static-${CACHE_VERSION}`;
+const API_CACHE = `momtazchem-api-${CACHE_VERSION}`;
 
 const STATIC_ASSETS = [
   '/',
@@ -86,8 +86,10 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static assets: Cache first, then network
-  event.respondWith(cacheFirstWithNetwork(request, STATIC_CACHE));
+  // Application assets: prefer the latest deployed bundle, with cache only as
+  // an offline fallback. This prevents users from remaining on an old language
+  // bundle after a deployment.
+  event.respondWith(networkFirstWithCache(request, STATIC_CACHE, 10000));
 });
 
 async function networkFirstWithCache(request, cacheName, timeout) {

@@ -3,9 +3,13 @@ export function registerServiceWorker() {
 
   window.addEventListener('load', () => {
     navigator.serviceWorker
-      .register('/sw.js', { scope: '/' })
+      .register('/sw.js?v=2-20260908', {
+        scope: '/',
+        updateViaCache: 'none',
+      })
       .then((registration) => {
         console.log('[PWA] Service Worker registered, scope:', registration.scope);
+        registration.update();
 
         // Check for updates every hour
         setInterval(() => registration.update(), 60 * 60 * 1000);
