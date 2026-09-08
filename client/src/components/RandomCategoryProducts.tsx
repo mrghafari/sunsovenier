@@ -4,6 +4,64 @@ import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { ShoppingCart, ArrowRight, Package } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import type { Language } from "@/lib/i18n";
+
+const RANDOM_PRODUCTS_COPY: Record<Language, {
+  productsTitle: (category: string) => string;
+  subtitle: (category: string) => string;
+  emptyTitle: (category: string) => string;
+  emptyDescription: string;
+  contact: string;
+  available: string;
+  category: string;
+  viewShop: string;
+  viewAll: string;
+}> = {
+  en: {
+    productsTitle: category => `Our ${category} Products`,
+    subtitle: category => `Discover our comprehensive range of premium ${category} solutions`,
+    emptyTitle: category => `No ${category} Products Yet`,
+    emptyDescription: "Our product catalog is being updated. Please check back soon.",
+    contact: "Contact Us for Information",
+    available: "Available in Shop",
+    category: "Category:",
+    viewShop: "View in Shop",
+    viewAll: "View All Shop Products",
+  },
+  ar: {
+    productsTitle: category => `منتجات ${category}`,
+    subtitle: category => `اكتشف مجموعتنا المتكاملة من حلول ${category} عالية الجودة`,
+    emptyTitle: category => `لا توجد منتجات ضمن ${category} حتى الآن`,
+    emptyDescription: "يجري تحديث كتالوج منتجاتنا. يرجى العودة قريبًا.",
+    contact: "تواصل معنا للحصول على المعلومات",
+    available: "متوفر في المتجر",
+    category: "الفئة:",
+    viewShop: "عرض في المتجر",
+    viewAll: "عرض جميع منتجات المتجر",
+  },
+  tr: {
+    productsTitle: category => `${category} Ürünlerimiz`,
+    subtitle: category => `Üstün kaliteli ${category} çözümlerimizi keşfedin`,
+    emptyTitle: category => `Henüz ${category} Ürünü Bulunmuyor`,
+    emptyDescription: "Ürün kataloğumuz güncelleniyor. Lütfen yakında tekrar kontrol edin.",
+    contact: "Bilgi İçin Bize Ulaşın",
+    available: "Mağazada Mevcut",
+    category: "Kategori:",
+    viewShop: "Mağazada Görüntüle",
+    viewAll: "Tüm Mağaza Ürünlerini Görüntüle",
+  },
+  fa: {
+    productsTitle: category => `محصولات ${category}`,
+    subtitle: category => `مجموعه کامل راهکارهای باکیفیت ${category} را مشاهده کنید`,
+    emptyTitle: category => `هنوز محصولی در دسته ${category} موجود نیست`,
+    emptyDescription: "کاتالوگ محصولات ما در حال به‌روزرسانی است. لطفاً به‌زودی دوباره مراجعه کنید.",
+    contact: "تماس با ما برای اطلاعات بیشتر",
+    available: "موجود در فروشگاه",
+    category: "دسته‌بندی:",
+    viewShop: "مشاهده در فروشگاه",
+    viewAll: "مشاهده همه محصولات فروشگاه",
+  },
+};
 
 interface Product {
   id: number;
@@ -25,8 +83,9 @@ interface RandomCategoryProductsProps {
 
 export function RandomCategoryProducts({ category, title, categoryDisplayName, hideTitle = false }: RandomCategoryProductsProps) {
   const [, navigate] = useLocation();
-  const { t, language } = useLanguage();
-  const isRTL = language === 'ar';
+  const { language, direction } = useLanguage();
+  const copy = RANDOM_PRODUCTS_COPY[language];
+  const isRTL = direction === 'rtl';
   
   const { data: productsResponse, isLoading, error } = useQuery({
     queryKey: ['/api/products/random', category],
@@ -79,15 +138,10 @@ export function RandomCategoryProducts({ category, title, categoryDisplayName, h
     );
   }
 
-  const displayTitle = title || (
-    isRTL 
-      ? `محصولات ${categoryDisplayName || category}` 
-      : `Our ${categoryDisplayName || category} Products`
-  );
+  const displayCategory = categoryDisplayName || category;
+  const displayTitle = title || copy.productsTitle(displayCategory);
   
-  const displaySubtitle = isRTL
-    ? `مجموعه‌ای کامل از ${categoryDisplayName || category} با کیفیت بالا`
-    : `Discover our comprehensive range of premium ${categoryDisplayName || category.toLowerCase()} solutions`;
+  const displaySubtitle = copy.subtitle(displayCategory);
   
   // Empty state when no products available
   if (error || !uniqueProducts || uniqueProducts.length === 0) {
@@ -111,23 +165,17 @@ export function RandomCategoryProducts({ category, title, categoryDisplayName, h
               <Package className="h-12 w-12 text-gray-400" />
             </div>
             <h3 className="text-2xl font-semibold text-gray-700 dark:text-gray-300 mb-3">
-              {isRTL 
-                ? `هنوز محصولی از ${categoryDisplayName || category} موجود نیست` 
-                : `No ${categoryDisplayName || category} Products Yet`
-              }
+               {copy.emptyTitle(displayCategory)}
             </h3>
             <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-md mx-auto">
-              {isRTL
-                ? 'کاتالوگ محصولات ما در حال به‌روزرسانی است. لطفاً به زودی مراجعه کنید.'
-                : 'Our product catalog is being updated. Please check back soon.'
-              }
+               {copy.emptyDescription}
             </p>
             <Button 
               onClick={() => navigate('/contact')}
               className="bg-orange-600 hover:bg-orange-700 text-white"
               data-testid="button-contact-for-information"
             >
-              {isRTL ? 'تماس با ما برای اطلاعات' : 'Contact Us for Information'}
+               {copy.contact}
             </Button>
           </div>
         </div>
@@ -171,7 +219,7 @@ export function RandomCategoryProducts({ category, title, categoryDisplayName, h
                     />
                     <div className={`absolute top-4 ${isRTL ? 'right-4' : 'left-4'}`}>
                       <div className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium">
-                        {isRTL ? 'موجود در فروشگاه' : 'Available in Shop'}
+                         {copy.available}
                       </div>
                     </div>
                   </div>
@@ -185,11 +233,11 @@ export function RandomCategoryProducts({ category, title, categoryDisplayName, h
                   </p>
                   <div className="flex items-center justify-between">
                     <div className="text-sm text-gray-500 dark:text-gray-400">
-                      {isRTL ? 'کتگوری: ' : 'Category: '}
+                       {copy.category}{' '}
                       <span className="font-medium">{product.category}</span>
                     </div>
                     <div className={`flex items-center text-green-600 font-medium ${isRTL ? 'flex-row-reverse' : ''}`}>
-                      {isRTL ? 'مشاهده در فروشگاه' : 'View in Shop'}
+                       {copy.viewShop}
                       <ArrowRight className={`h-4 w-4 ${isRTL ? 'ml-2 rotate-180' : 'mr-2'}`} />
                     </div>
                   </div>
@@ -208,7 +256,7 @@ export function RandomCategoryProducts({ category, title, categoryDisplayName, h
             data-testid="button-view-all-shop-products"
           >
             <ShoppingCart className={`h-5 w-5 ${isRTL ? 'mr-2' : 'ml-2'}`} />
-            {isRTL ? 'مشاهده تمام محصولات فروشگاه' : 'View All Shop Products'}
+             {copy.viewAll}
           </Button>
         </div>
       </div>
