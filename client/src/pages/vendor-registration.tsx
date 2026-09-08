@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -15,26 +15,28 @@ import { useToast } from "@/hooks/use-toast";
 import { Store, Upload, CheckCircle2, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 import { countries } from "@shared/countries";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { vendorRegistrationCopy } from "./vendor-registration-copy";
 
-const vendorRegistrationSchema = z.object({
+const createVendorRegistrationSchema = (c: Record<string, string>) => z.object({
   // Vendor Information
-  vendorName: z.string().min(2, "اسم شرکت باید حداقل 2 حرف باشد"),
+  vendorName: z.string().min(2, c.nameMin),
   vendorNameEn: z.string().optional(),
   vendorNameAr: z.string().optional(),
   vendorNameKu: z.string().optional(),
   vendorNameTr: z.string().optional(),
-  contactEmail: z.string().email("ایمیل معتبر وارد کنید"),
-  contactPhone: z.string().min(10, "شماره تلفن معتبر وارد کنید"),
+  contactEmail: z.string().email(c.emailInvalid),
+  contactPhone: z.string().min(10, c.phoneInvalid),
   businessLicense: z.string().optional(),
   taxId: z.string().optional(),
-  description: z.string().min(20, "توضیحات باید حداقل 20 حرف باشد"),
+  description: z.string().min(20, c.descriptionMin),
   descriptionEn: z.string().optional(),
   descriptionAr: z.string().optional(),
   descriptionKu: z.string().optional(),
   descriptionTr: z.string().optional(),
-  address: z.string().min(10, "آدرس کامل وارد کنید"),
-  city: z.string().min(2, "شهر را وارد کنید"),
-  country: z.string().min(1, "لطفاً کشور را انتخاب کنید"),
+  address: z.string().min(10, c.addressInvalid),
+  city: z.string().min(2, c.cityInvalid),
+  country: z.string().min(1, c.countryRequired),
   postalCode: z.string().optional(),
   bankName: z.string().optional(),
   bankAccountNumber: z.string().optional(),
@@ -42,16 +44,19 @@ const vendorRegistrationSchema = z.object({
   iban: z.string().optional(),
   
   // User Account Information
-  username: z.string().min(3, "نام کاربری باید حداقل 3 حرف باشد"),
-  password: z.string().min(6, "رمز عبور باید حداقل 6 حرف باشد"),
-  firstName: z.string().min(2, "نام باید حداقل 2 حرف باشد"),
-  lastName: z.string().min(2, "نام خانوادگی باید حداقل 2 حرف باشد"),
+  username: z.string().min(3, c.usernameMin),
+  password: z.string().min(6, c.passwordMin),
+  firstName: z.string().min(2, c.firstNameMin),
+  lastName: z.string().min(2, c.lastNameMin),
 });
 
-type VendorRegistrationForm = z.infer<typeof vendorRegistrationSchema>;
+type VendorRegistrationForm = z.infer<ReturnType<typeof createVendorRegistrationSchema>>;
 
 export default function VendorRegistration() {
   const { toast } = useToast();
+  const { language, direction } = useLanguage();
+  const c = vendorRegistrationCopy[language];
+  const vendorRegistrationSchema = useMemo(() => createVendorRegistrationSchema(c), [c]);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string>("");
   const [isSuccess, setIsSuccess] = useState(false);
@@ -121,8 +126,8 @@ export default function VendorRegistration() {
     onSuccess: () => {
       setIsSuccess(true);
       toast({
-        title: "✅ ثبت نام موفق",
-        description: "درخواست شما با موفقیت ارسال شد. پس از بررسی توسط تیم ما، از طریق ایمیل مطلع خواهید شد.",
+        title: `✅ ${c.successTitle}`,
+        description: c.successMessage,
         variant: "default",
       });
       form.reset();
@@ -131,8 +136,8 @@ export default function VendorRegistration() {
     },
     onError: (error: any) => {
       toast({
-        title: "❌ خطا در ثبت نام",
-        description: error.message || "لطفاً دوباره تلاش کنید",
+        title: `❌ ${c.errorTitle}`,
+        description: error.message || c.retry,
         variant: "destructive",
       });
     },
@@ -143,8 +148,8 @@ export default function VendorRegistration() {
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
         toast({
-          title: "⚠️ حجم فایل بیش از حد مجاز",
-          description: "لوگو باید کمتر از 5 مگابایت باشد",
+          title: `⚠️ ${c.fileTooLarge}`,
+          description: c.fileLimit,
           variant: "destructive",
         });
         return;
@@ -164,25 +169,25 @@ export default function VendorRegistration() {
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
+      <div dir={direction} className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
         <Card className="max-w-md w-full text-center">
           <CardHeader>
             <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4">
               <CheckCircle2 className="w-10 h-10 text-green-600 dark:text-green-400" />
             </div>
-            <CardTitle className="text-2xl">ثبت نام موفق!</CardTitle>
+            <CardTitle className="text-2xl">{c.successTitle}</CardTitle>
             <CardDescription className="text-base mt-2">
-              درخواست شما با موفقیت ارسال شد. تیم ما درخواست شما را بررسی کرده و از طریق ایمیل با شما تماس خواهند گرفت.
+              {c.successMessage}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                📧 یک ایمیل تأیید به {form.watch("contactEmail")} ارسال شد
+                📧 {c.emailSent} {form.watch("contactEmail")}
               </p>
               <Link href="/">
                 <Button className="w-full" variant="outline">
-                  بازگشت به صفحه اصلی
+                  {c.home}
                 </Button>
               </Link>
             </div>
@@ -193,7 +198,7 @@ export default function VendorRegistration() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-12 px-4">
+    <div dir={direction} className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-12 px-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
@@ -201,19 +206,19 @@ export default function VendorRegistration() {
             <Store className="w-8 h-8 text-purple-600 dark:text-purple-400" />
           </div>
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
-            ثبت نام فروشنده
+            {c.title}
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-300">
-            به بازار Momtazchem بپیوندید و محصولات خود را به فروش برسانید
+            {c.subtitle}
           </p>
         </div>
 
         {/* Form */}
         <Card>
           <CardHeader>
-            <CardTitle>اطلاعات شرکت</CardTitle>
+            <CardTitle>{c.companyInfo}</CardTitle>
             <CardDescription>
-              لطفاً اطلاعات کامل شرکت خود را وارد کنید. تمام فیلدهای ستاره‌دار (*) الزامی هستند.
+              {c.requiredNote}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -221,7 +226,7 @@ export default function VendorRegistration() {
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 {/* Logo Upload */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">لوگوی شرکت (اختیاری)</label>
+                  <label className="text-sm font-medium">{c.companyLogo}</label>
                   <div className="flex items-center gap-4">
                     {logoPreview && (
                       <img
@@ -239,7 +244,7 @@ export default function VendorRegistration() {
                         data-testid="input-vendor-logo"
                       />
                       <p className="text-xs text-muted-foreground mt-1">
-                        حداکثر حجم: 5MB - فرمت‌های مجاز: JPG, PNG, WEBP
+                        {c.logoLimit}
                       </p>
                     </div>
                   </div>
@@ -247,10 +252,10 @@ export default function VendorRegistration() {
 
                 {/* Company Name - Multilingual Tabs */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">نام شرکت <span className="text-red-500">*</span></label>
+                  <label className="text-sm font-medium">{c.companyName} <span className="text-red-500">*</span></label>
                   <Tabs defaultValue="main" className="w-full">
                     <TabsList className="grid w-full grid-cols-5">
-                      <TabsTrigger value="main">اصلی</TabsTrigger>
+                      <TabsTrigger value="main">{c.main}</TabsTrigger>
                       <TabsTrigger value="en">English</TabsTrigger>
                       <TabsTrigger value="ar">العربية</TabsTrigger>
                       <TabsTrigger value="ku">کوردی</TabsTrigger>
@@ -263,7 +268,7 @@ export default function VendorRegistration() {
                         render={({ field }) => (
                           <FormItem>
                             <FormControl>
-                              <Input placeholder="نام شرکت (زبان اصلی)" {...field} data-testid="input-vendor-name" />
+                              <Input placeholder={c.mainNamePlaceholder} {...field} data-testid="input-vendor-name" />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -336,7 +341,7 @@ export default function VendorRegistration() {
                     name="contactEmail"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>ایمیل تماس <span className="text-red-500">*</span></FormLabel>
+                        <FormLabel>{c.contactEmail} <span className="text-red-500">*</span></FormLabel>
                         <FormControl>
                           <Input type="email" placeholder="info@company.com" {...field} data-testid="input-contact-email" />
                         </FormControl>
@@ -349,7 +354,7 @@ export default function VendorRegistration() {
                     name="contactPhone"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>شماره تلفن <span className="text-red-500">*</span></FormLabel>
+                        <FormLabel>{c.contactPhone} <span className="text-red-500">*</span></FormLabel>
                         <FormControl>
                           <Input placeholder="+964 XXX XXX XXXX" {...field} data-testid="input-contact-phone" />
                         </FormControl>
@@ -366,7 +371,7 @@ export default function VendorRegistration() {
                     name="businessLicense"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>شماره جواز کسب <span className="text-red-500">*</span></FormLabel>
+                        <FormLabel>{c.businessLicense} <span className="text-red-500">*</span></FormLabel>
                         <FormControl>
                           <Input placeholder="BL-XXXXX" {...field} data-testid="input-business-license" />
                         </FormControl>
@@ -379,7 +384,7 @@ export default function VendorRegistration() {
                     name="taxId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>شماره مالیاتی <span className="text-red-500">*</span></FormLabel>
+                        <FormLabel>{c.taxId} <span className="text-red-500">*</span></FormLabel>
                         <FormControl>
                           <Input placeholder="TAX-XXXXX" {...field} data-testid="input-tax-id" />
                         </FormControl>
@@ -391,10 +396,10 @@ export default function VendorRegistration() {
 
                 {/* Description - Multilingual Tabs */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">توضیحات شرکت <span className="text-red-500">*</span></label>
+                  <label className="text-sm font-medium">{c.description} <span className="text-red-500">*</span></label>
                   <Tabs defaultValue="main" className="w-full">
                     <TabsList className="grid w-full grid-cols-5">
-                      <TabsTrigger value="main">اصلی</TabsTrigger>
+                      <TabsTrigger value="main">{c.main}</TabsTrigger>
                       <TabsTrigger value="en">English</TabsTrigger>
                       <TabsTrigger value="ar">العربية</TabsTrigger>
                       <TabsTrigger value="ku">کوردی</TabsTrigger>
@@ -408,7 +413,7 @@ export default function VendorRegistration() {
                           <FormItem>
                             <FormControl>
                               <Textarea 
-                                placeholder="درباره شرکت خود بنویسید..." 
+                                placeholder={c.mainDescriptionPlaceholder}
                                 rows={4} 
                                 {...field}
                                 data-testid="textarea-description"
@@ -505,9 +510,9 @@ export default function VendorRegistration() {
                     name="address"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>آدرس کامل <span className="text-red-500">*</span></FormLabel>
+                        <FormLabel>{c.address} <span className="text-red-500">*</span></FormLabel>
                         <FormControl>
-                          <Input placeholder="خیابان، کوچه، پلاک" {...field} data-testid="input-address" />
+                          <Input placeholder={c.addressPlaceholder} {...field} data-testid="input-address" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -518,9 +523,9 @@ export default function VendorRegistration() {
                     name="city"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>شهر <span className="text-red-500">*</span></FormLabel>
+                        <FormLabel>{c.city} <span className="text-red-500">*</span></FormLabel>
                         <FormControl>
-                          <Input placeholder="بغداد، اربیل، ..." {...field} data-testid="input-city" />
+                          <Input placeholder={c.cityPlaceholder} {...field} data-testid="input-city" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -534,11 +539,11 @@ export default function VendorRegistration() {
                     name="country"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>کشور <span className="text-red-500">*</span></FormLabel>
+                        <FormLabel>{c.country} <span className="text-red-500">*</span></FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger data-testid="select-country">
-                              <SelectValue placeholder="انتخاب کشور" />
+                              <SelectValue placeholder={c.selectCountry} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent className="max-h-[300px]">
@@ -558,7 +563,7 @@ export default function VendorRegistration() {
                     name="postalCode"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>کد پستی (اختیاری)</FormLabel>
+                        <FormLabel>{c.postalCode}</FormLabel>
                         <FormControl>
                           <Input placeholder="10001" {...field} data-testid="input-postal-code" />
                         </FormControl>
@@ -570,9 +575,9 @@ export default function VendorRegistration() {
 
                 {/* Bank Information */}
                 <div className="border-t pt-6 space-y-4">
-                  <h3 className="text-lg font-semibold">اطلاعات بانکی (اختیاری)</h3>
+                  <h3 className="text-lg font-semibold">{c.bankInfo}</h3>
                   <p className="text-sm text-muted-foreground">
-                    این اطلاعات برای پرداخت کمیسیون‌های شما مورد استفاده قرار می‌گیرد
+                    {c.bankNote}
                   </p>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -581,9 +586,9 @@ export default function VendorRegistration() {
                       name="bankName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>نام بانک</FormLabel>
+                          <FormLabel>{c.bankName}</FormLabel>
                           <FormControl>
-                            <Input placeholder="بانک..." {...field} data-testid="input-bank-name" />
+                            <Input placeholder={c.bankPlaceholder} {...field} data-testid="input-bank-name" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -594,9 +599,9 @@ export default function VendorRegistration() {
                       name="bankAccountName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>نام صاحب حساب</FormLabel>
+                          <FormLabel>{c.accountHolder}</FormLabel>
                           <FormControl>
-                            <Input placeholder="نام کامل" {...field} data-testid="input-bank-account-name" />
+                            <Input placeholder={c.fullName} {...field} data-testid="input-bank-account-name" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -610,7 +615,7 @@ export default function VendorRegistration() {
                       name="bankAccountNumber"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>شماره حساب</FormLabel>
+                          <FormLabel>{c.accountNumber}</FormLabel>
                           <FormControl>
                             <Input placeholder="XXXX-XXXX-XXXX" {...field} data-testid="input-bank-account-number" />
                           </FormControl>
@@ -623,7 +628,7 @@ export default function VendorRegistration() {
                       name="iban"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>شماره شبا (IBAN)</FormLabel>
+                          <FormLabel>{c.iban}</FormLabel>
                           <FormControl>
                             <Input placeholder="IQ XX XXXX XXXX XXXX XXXX" {...field} data-testid="input-iban" />
                           </FormControl>
@@ -636,9 +641,9 @@ export default function VendorRegistration() {
 
                 {/* User Account Information */}
                 <div className="space-y-4 pt-6 border-t">
-                  <h3 className="text-lg font-semibold">اطلاعات حساب کاربری <span className="text-red-500">*</span></h3>
+                  <h3 className="text-lg font-semibold">{c.accountInfo} <span className="text-red-500">*</span></h3>
                   <p className="text-sm text-muted-foreground">
-                    این اطلاعات برای ورود به پنل فروشنده استفاده می‌شود
+                    {c.accountNote}
                   </p>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -647,9 +652,9 @@ export default function VendorRegistration() {
                       name="username"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>نام کاربری <span className="text-red-500">*</span></FormLabel>
+                          <FormLabel>{c.username} <span className="text-red-500">*</span></FormLabel>
                           <FormControl>
-                            <Input placeholder="نام کاربری برای ورود" {...field} data-testid="input-username" />
+                            <Input placeholder={c.usernamePlaceholder} {...field} data-testid="input-username" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -660,9 +665,9 @@ export default function VendorRegistration() {
                       name="password"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>رمز عبور <span className="text-red-500">*</span></FormLabel>
+                          <FormLabel>{c.password} <span className="text-red-500">*</span></FormLabel>
                           <FormControl>
-                            <Input type="password" placeholder="حداقل 6 کاراکتر" {...field} data-testid="input-password" />
+                            <Input type="password" placeholder={c.passwordPlaceholder} {...field} data-testid="input-password" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -676,9 +681,9 @@ export default function VendorRegistration() {
                       name="firstName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>نام <span className="text-red-500">*</span></FormLabel>
+                          <FormLabel>{c.firstName} <span className="text-red-500">*</span></FormLabel>
                           <FormControl>
-                            <Input placeholder="نام" {...field} data-testid="input-first-name" />
+                            <Input placeholder={c.firstName} {...field} data-testid="input-first-name" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -689,9 +694,9 @@ export default function VendorRegistration() {
                       name="lastName"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>نام خانوادگی <span className="text-red-500">*</span></FormLabel>
+                          <FormLabel>{c.lastName} <span className="text-red-500">*</span></FormLabel>
                           <FormControl>
-                            <Input placeholder="نام خانوادگی" {...field} data-testid="input-last-name" />
+                            <Input placeholder={c.lastName} {...field} data-testid="input-last-name" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -711,18 +716,18 @@ export default function VendorRegistration() {
                     {registerMutation.isPending ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        در حال ارسال...
+                        {c.submitting}
                       </>
                     ) : (
                       <>
                         <Upload className="w-4 h-4 mr-2" />
-                        ارسال درخواست
+                        {c.submit}
                       </>
                     )}
                   </Button>
                   <Link href="/">
                     <Button type="button" variant="outline" data-testid="button-cancel">
-                      انصراف
+                      {c.cancel}
                     </Button>
                   </Link>
                 </div>
@@ -734,12 +739,12 @@ export default function VendorRegistration() {
         {/* Info Box */}
         <Card className="mt-6 bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
           <CardContent className="pt-6">
-            <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">📝 نکات مهم:</h3>
+            <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">📝 {c.important}</h3>
             <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1 list-disc list-inside">
-              <li>تمام درخواست‌ها توسط تیم Momtazchem بررسی می‌شوند</li>
-              <li>زمان بررسی معمولاً 2-3 روز کاری است</li>
-              <li>پس از تأیید، اطلاعات ورود به پنل فروشنده برای شما ایمیل می‌شود</li>
-              <li>نرخ کمیسیون پلتفرم 10% است که قابل مذاکره می‌باشد</li>
+              <li>{c.note1}</li>
+              <li>{c.note2}</li>
+              <li>{c.note3}</li>
+              <li>{c.note4}</li>
             </ul>
           </CardContent>
         </Card>
