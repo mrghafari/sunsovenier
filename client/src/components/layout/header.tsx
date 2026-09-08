@@ -26,7 +26,8 @@ import {
 } from "@/components/ui/navigation-menu";
 
 // Use the verified local upload first; the server route can still provide S3-backed assets.
-const COMPANY_LOGO_URL = "/uploads/logos/company-logos/Momtazchem-logo.png";
+const COMPANY_LOGO_URL = "/uploads/logos/company-logos/Momtazchem-logo.png?v=20260908";
+const COMPANY_LOGO_FALLBACK_URL = "/company-logo.png";
 
 export default function Header() {
   const [location] = useLocation();
@@ -194,7 +195,12 @@ export default function Header() {
               <img 
                 src={COMPANY_LOGO_URL} 
                 alt="Momtazchem" 
-                className="h-8 w-auto"
+                className="h-10 w-10 shrink-0 object-contain"
+                onError={(event) => {
+                  const image = event.currentTarget;
+                  if (image.src.endsWith(COMPANY_LOGO_FALLBACK_URL)) return;
+                  image.src = COMPANY_LOGO_FALLBACK_URL;
+                }}
               />
               <span className="hidden sm:block text-xl font-bold text-gray-900 dark:text-white">
                 Momtazchem
