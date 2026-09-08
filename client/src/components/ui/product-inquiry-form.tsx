@@ -14,6 +14,15 @@ import { MessageCircle, Send, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { ShowcaseProduct } from "@shared/showcase-schema";
+import { useLanguage } from "@/contexts/LanguageContext";
+import type { Language } from "@/lib/i18n";
+
+const INQUIRY_T: Record<Language, Record<string, string>> = {
+  en: { product:"Product", subjectPrefix:"Inquiry about", messagePrefix:"I am interested in learning more about", messageSuffix:"Please provide pricing, specifications, and availability.", submitted:"Inquiry Submitted", submittedDesc:"Thank you! We'll get back to you within 24 hours.", error:"Error", errorDesc:"Failed to submit inquiry. Please try again.", title:"Product Inquiry", success:"Inquiry Submitted Successfully!", successDesc:"We'll get back to you within 24 hours with detailed information.", category:"Agricultural Products", email:"Email Address", phone:"Phone Number", company:"Company", companyPlaceholder:"Your company name", type:"Inquiry Type", productInfo:"Product Information", quote:"Request Quote", support:"Technical Support", general:"General Inquiry", priority:"Priority", normal:"Normal", high:"High", urgent:"Urgent", subject:"Subject", subjectPlaceholder:"Brief description of your inquiry", message:"Message", messagePlaceholder:"Please provide details about your requirements, quantities, timeline, or questions...", cancel:"Cancel", submitting:"Submitting...", submit:"Submit Inquiry" },
+  ar: { product:"المنتج", subjectPrefix:"استفسار عن", messagePrefix:"أرغب في معرفة المزيد عن", messageSuffix:"يرجى تزويدي بالأسعار والمواصفات ومدى التوفر.", submitted:"تم إرسال الاستفسار", submittedDesc:"شكرًا لك! سنتواصل معك خلال 24 ساعة.", error:"خطأ", errorDesc:"تعذر إرسال الاستفسار. يرجى المحاولة مرة أخرى.", title:"استفسار عن المنتج", success:"تم إرسال الاستفسار بنجاح", successDesc:"سنتواصل معك خلال 24 ساعة بالمعلومات التفصيلية.", category:"المنتجات الزراعية", email:"البريد الإلكتروني", phone:"رقم الهاتف", company:"الشركة", companyPlaceholder:"اسم شركتك", type:"نوع الاستفسار", productInfo:"معلومات المنتج", quote:"طلب عرض سعر", support:"الدعم الفني", general:"استفسار عام", priority:"الأولوية", normal:"عادية", high:"عالية", urgent:"عاجلة", subject:"الموضوع", subjectPlaceholder:"وصف مختصر للاستفسار", message:"الرسالة", messagePlaceholder:"اذكر المتطلبات والكميات والمدة الزمنية أو أي أسئلة محددة...", cancel:"إلغاء", submitting:"جارٍ الإرسال...", submit:"إرسال الاستفسار" },
+  tr: { product:"Ürün", subjectPrefix:"Ürün hakkında bilgi", messagePrefix:"Şu ürün hakkında daha fazla bilgi almak istiyorum:", messageSuffix:"Lütfen fiyat, teknik özellik ve stok bilgilerini paylaşın.", submitted:"Talep gönderildi", submittedDesc:"Teşekkürler! 24 saat içinde size dönüş yapacağız.", error:"Hata", errorDesc:"Talep gönderilemedi. Lütfen tekrar deneyin.", title:"Ürün Talebi", success:"Talebiniz başarıyla gönderildi", successDesc:"Ayrıntılı bilgilerle 24 saat içinde size döneceğiz.", category:"Tarım Ürünleri", email:"E-posta Adresi", phone:"Telefon Numarası", company:"Şirket", companyPlaceholder:"Şirketinizin adı", type:"Talep Türü", productInfo:"Ürün Bilgisi", quote:"Fiyat Teklifi", support:"Teknik Destek", general:"Genel Talep", priority:"Öncelik", normal:"Normal", high:"Yüksek", urgent:"Acil", subject:"Konu", subjectPlaceholder:"Talebinizin kısa açıklaması", message:"Mesaj", messagePlaceholder:"Gereksinim, miktar, zamanlama veya sorularınızı yazın...", cancel:"İptal", submitting:"Gönderiliyor...", submit:"Talebi Gönder" },
+  fa: { product:"محصول", subjectPrefix:"استعلام درباره", messagePrefix:"مایلم اطلاعات بیشتری درباره این محصول دریافت کنم:", messageSuffix:"لطفاً قیمت، مشخصات و وضعیت موجودی را اعلام کنید.", submitted:"درخواست ارسال شد", submittedDesc:"سپاسگزاریم؛ حداکثر تا ۲۴ ساعت آینده با شما تماس می‌گیریم.", error:"خطا", errorDesc:"ارسال درخواست انجام نشد؛ دوباره تلاش کنید.", title:"استعلام محصول", success:"درخواست با موفقیت ارسال شد", successDesc:"حداکثر تا ۲۴ ساعت آینده اطلاعات کامل را برای شما ارسال می‌کنیم.", category:"محصولات کشاورزی", email:"ایمیل", phone:"شماره تلفن", company:"شرکت", companyPlaceholder:"نام شرکت", type:"نوع درخواست", productInfo:"اطلاعات محصول", quote:"درخواست قیمت", support:"پشتیبانی فنی", general:"درخواست عمومی", priority:"اولویت", normal:"عادی", high:"بالا", urgent:"فوری", subject:"موضوع", subjectPlaceholder:"شرح کوتاه درخواست", message:"پیام", messagePlaceholder:"نیازمندی‌ها، مقدار، زمان‌بندی یا پرسش‌های خود را بنویسید...", cancel:"انصراف", submitting:"در حال ارسال...", submit:"ارسال درخواست" },
+};
 
 // Form validation schema
 const inquiryFormSchema = z.object({
@@ -50,8 +59,10 @@ export function ProductInquiryForm({
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const { toast } = useToast();
+  const { language, direction } = useLanguage();
+  const it = INQUIRY_T[language];
 
-  const displayProductName = product?.name || productName || "Product";
+  const displayProductName = product?.name || productName || it.product;
   
   const form = useForm<InquiryFormData>({
     resolver: zodResolver(inquiryFormSchema),
@@ -59,8 +70,8 @@ export function ProductInquiryForm({
       contactEmail: "",
       contactPhone: "",
       company: "",
-      subject: `Inquiry about ${displayProductName}`,
-      message: `I am interested in learning more about ${displayProductName}. Please provide me with detailed information including pricing, specifications, and availability.`,
+      subject: `${it.subjectPrefix} ${displayProductName}`,
+      message: `${it.messagePrefix} ${displayProductName}. ${it.messageSuffix}`,
       type: "product_info",
       priority: "normal",
     },
@@ -81,8 +92,8 @@ export function ProductInquiryForm({
       setIsSubmitted(true);
       form.reset();
       toast({
-        title: "Inquiry Submitted",
-        description: "Thank you! We'll get back to you within 24 hours.",
+        title: it.submitted,
+        description: it.submittedDesc,
       });
       
       // Auto-close dialog after 3 seconds
@@ -93,8 +104,8 @@ export function ProductInquiryForm({
     },
     onError: () => {
       toast({
-        title: "Error",
-        description: "Failed to submit inquiry. Please try again.",
+        title: it.error,
+        description: it.errorDesc,
         variant: "destructive",
       });
     },
@@ -117,11 +128,11 @@ export function ProductInquiryForm({
         </Button>
       </DialogTrigger>
       
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto" dir={direction}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <MessageCircle className="w-5 h-5" />
-            Product Inquiry
+            {it.title}
           </DialogTitle>
         </DialogHeader>
 
@@ -129,10 +140,10 @@ export function ProductInquiryForm({
           <div className="text-center py-8">
             <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Inquiry Submitted Successfully!
+              {it.success}
             </h3>
             <p className="text-gray-600">
-              We'll get back to you within 24 hours with detailed information.
+              {it.successDesc}
             </p>
           </div>
         ) : (
@@ -150,7 +161,7 @@ export function ProductInquiryForm({
                 <div className="flex-1">
                   <h4 className="font-semibold text-gray-900">{displayProductName}</h4>
                   <Badge variant="outline" className="mt-1 text-xs">
-                    {product?.category?.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()) || "Agricultural Products"}
+                    {product?.category?.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()) || it.category}
                   </Badge>
                   {product?.priceRange && (
                     <p className="text-sm text-gray-600 mt-1">{product.priceRange}</p>
@@ -167,7 +178,7 @@ export function ProductInquiryForm({
                     name="contactEmail"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Email Address *</FormLabel>
+                        <FormLabel>{it.email} *</FormLabel>
                         <FormControl>
                           <Input {...field} type="email" placeholder="your@email.com" />
                         </FormControl>
@@ -181,7 +192,7 @@ export function ProductInquiryForm({
                     name="contactPhone"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Phone Number</FormLabel>
+                        <FormLabel>{it.phone}</FormLabel>
                         <FormControl>
                           <Input {...field} placeholder="+1 (555) 123-4567" />
                         </FormControl>
@@ -196,9 +207,9 @@ export function ProductInquiryForm({
                   name="company"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Company</FormLabel>
+                      <FormLabel>{it.company}</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="Your company name" />
+                        <Input {...field} placeholder={it.companyPlaceholder} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -211,17 +222,17 @@ export function ProductInquiryForm({
                     name="type"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Inquiry Type</FormLabel>
+                        <FormLabel>{it.type}</FormLabel>
                         <FormControl>
                           <Select value={field.value} onValueChange={field.onChange}>
                             <SelectTrigger>
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="product_info">Product Information</SelectItem>
-                              <SelectItem value="quote_request">Request Quote</SelectItem>
-                              <SelectItem value="technical_support">Technical Support</SelectItem>
-                              <SelectItem value="general">General Inquiry</SelectItem>
+                              <SelectItem value="product_info">{it.productInfo}</SelectItem>
+                              <SelectItem value="quote_request">{it.quote}</SelectItem>
+                              <SelectItem value="technical_support">{it.support}</SelectItem>
+                              <SelectItem value="general">{it.general}</SelectItem>
                             </SelectContent>
                           </Select>
                         </FormControl>
@@ -235,16 +246,16 @@ export function ProductInquiryForm({
                     name="priority"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Priority</FormLabel>
+                        <FormLabel>{it.priority}</FormLabel>
                         <FormControl>
                           <Select value={field.value} onValueChange={field.onChange}>
                             <SelectTrigger>
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="normal">Normal</SelectItem>
-                              <SelectItem value="high">High</SelectItem>
-                              <SelectItem value="urgent">Urgent</SelectItem>
+                              <SelectItem value="normal">{it.normal}</SelectItem>
+                              <SelectItem value="high">{it.high}</SelectItem>
+                              <SelectItem value="urgent">{it.urgent}</SelectItem>
                             </SelectContent>
                           </Select>
                         </FormControl>
@@ -259,9 +270,9 @@ export function ProductInquiryForm({
                   name="subject"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Subject *</FormLabel>
+                      <FormLabel>{it.subject} *</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="Brief description of your inquiry" />
+                        <Input {...field} placeholder={it.subjectPlaceholder} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -273,11 +284,11 @@ export function ProductInquiryForm({
                   name="message"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Message *</FormLabel>
+                      <FormLabel>{it.message} *</FormLabel>
                       <FormControl>
                         <Textarea 
                           {...field} 
-                          placeholder="Please provide details about your requirements, quantities, timeline, or any specific questions..."
+                          placeholder={it.messagePlaceholder}
                           rows={4}
                         />
                       </FormControl>
@@ -292,18 +303,18 @@ export function ProductInquiryForm({
                     variant="outline" 
                     onClick={() => setIsOpen(false)}
                   >
-                    Cancel
+                    {it.cancel}
                   </Button>
                   <Button 
                     type="submit" 
                     disabled={submitInquiryMutation.isPending}
                   >
                     {submitInquiryMutation.isPending ? (
-                      "Submitting..."
+                      it.submitting
                     ) : (
                       <>
                         <Send className="w-4 h-4 mr-2" />
-                        Submit Inquiry
+                        {it.submit}
                       </>
                     )}
                   </Button>
