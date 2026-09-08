@@ -30,11 +30,25 @@ import {
 // without depending on a persistent /uploads directory or an S3 request.
 const COMPANY_LOGO_URL = bundledCompanyLogo;
 
+interface PublicCompanyInformationResponse {
+  success?: boolean;
+  data?: {
+    logoUrl?: string | null;
+  } | null;
+}
+
 export default function Header() {
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { t, direction } = useLanguage();
   const { customer, isAuthenticated, logout } = useCustomer();
+
+  const { data: companyInformation } = useQuery<PublicCompanyInformationResponse>({
+    queryKey: ['/api/company-information'],
+    staleTime: 10 * 60 * 1000,
+    retry: 1,
+  });
+  const configuredLogoUrl = companyInformation?.data?.logoUrl?.trim();
     
   // Only check admin auth when in admin routes
   const isInAdminRoute = location.startsWith('/admin');
@@ -194,9 +208,15 @@ export default function Header() {
               className="flex items-center gap-2"
             >
               <img 
-                src={COMPANY_LOGO_URL} 
+                src={configuredLogoUrl || COMPANY_LOGO_URL}
                 alt="Momtazchem" 
                 className="h-10 w-10 shrink-0 object-contain"
+                onError={(event) => {
+                  const image = event.currentTarget;
+                  if (image.src !== COMPANY_LOGO_URL) {
+                    image.src = COMPANY_LOGO_URL;
+                  }
+                }}
               />
               <span className="hidden sm:block text-xl font-bold text-gray-900 dark:text-white">
                 Momtazchem
