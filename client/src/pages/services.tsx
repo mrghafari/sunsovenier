@@ -9,9 +9,11 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Link } from "wouter";
 import { useLanguage } from "@/contexts/LanguageContext";
+import OpenGraphTags from "@/components/seo/OpenGraphTags";
+import CanonicalUrl from "@/components/seo/CanonicalUrl";
 
 const Services = () => {
-  const { t, direction } = useLanguage();
+  const { t, direction, language } = useLanguage();
   const [isContactDialogOpen, setIsContactDialogOpen] = useState(false);
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -222,7 +224,14 @@ const Services = () => {
   ];
 
   return (
-    <div className="pt-20">
+    <div className="pt-20" dir={direction}>
+      <OpenGraphTags
+        title={language === 'fa' ? 'خدمات ممتازکم | تحقیق، تولید و پشتیبانی مواد شیمیایی' : 'Momtazchem Services & Capabilities'}
+        description={language === 'fa' ? 'خدمات تحقیق و توسعه، تولید سفارشی، تضمین کیفیت، توزیع جهانی، مشاوره و پشتیبانی فنی ممتازکم.' : 'Explore Momtazchem research, manufacturing, quality assurance, distribution, consulting, and technical support services.'}
+        type="website"
+        locale={language === 'fa' ? 'fa_IR' : language === 'ar' ? 'ar_IQ' : language === 'tr' ? 'tr_TR' : 'en_US'}
+      />
+      <CanonicalUrl path="/services" />
       {/* Hero Section */}
       <section className="relative py-20 bg-gradient-to-r from-primary to-secondary text-white" dir={direction}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
