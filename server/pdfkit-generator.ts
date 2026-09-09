@@ -103,6 +103,20 @@ async function getCompanyLogo(): Promise<Buffer | null> {
   }
 }
 
+// Invoice generation must not fail when an uploaded/S3 logo is malformed or
+// uses an image encoding that PDFKit cannot parse. The bundled logo is known
+// to be PDFKit-compatible and remains available when object storage is down.
+function getSafeInvoiceLogo(): Buffer | null {
+  try {
+    if (!fs.existsSync('server/logo-base64.txt')) return null;
+    const logo = Buffer.from(fs.readFileSync('server/logo-base64.txt', 'utf8').trim(), 'base64');
+    return logo.length > 0 ? logo : null;
+  } catch (error) {
+    console.warn('⚠️ [PDF LOGO] Safe invoice logo unavailable:', error);
+    return null;
+  }
+}
+
 // Get company information including addresses from database
 async function getCompanyInformation(): Promise<any | null> {
   try {
@@ -545,7 +559,7 @@ export async function generateInvoicePDF(data: any): Promise<Buffer> {
     fa: ['شماره ثبت', 'شماره مالیاتی', 'شرکت', 'کد پستی', 'کشور / شهر'],
   }[lang];
   const company = data.companyInfo || await getCompanyInformation() || {};
-  const companyLogo = await getCompanyLogo();
+  const companyLogo = getSafeInvoiceLogo();
   const suffix = lang === 'en' ? 'En' : lang === 'ar' ? 'Ar' : lang === 'tr' ? 'Tr' : 'En';
   const companyName = company[`companyName${suffix}`] || company.companyName || company.companyNameEn || 'Momtaz Chemical Solutions';
   const customer = data.customer || {};
