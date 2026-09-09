@@ -4,7 +4,7 @@ import OpenGraphTags from "@/components/seo/OpenGraphTags";
 import CanonicalUrl from "@/components/seo/CanonicalUrl";
 
 const About = () => {
-  const { t, direction } = useLanguage();
+  const { t, direction, language } = useLanguage();
   
   const values = [
     {
@@ -32,11 +32,11 @@ const About = () => {
   return (
     <div className={`pt-20 ${direction === 'rtl' ? 'rtl' : 'ltr'}`} dir={direction}>
       <OpenGraphTags
-        title="About Momtazchem - Leading Chemical Solutions Provider Since 2015"
-        description="Learn about Momtazchem, Iraq's trusted chemical solutions provider. 50+ countries served, ISO certified, committed to quality excellence and environmental responsibility. Discover our mission, vision, and values."
+        title={language === 'fa' ? 'درباره ممتازکم | راهکارهای شیمیایی باکیفیت' : "About Momtazchem - Leading Chemical Solutions Provider Since 2015"}
+        description={language === 'fa' ? 'با تاریخچه، ماموریت، چشم‌انداز، ارزش‌ها، تخصص‌ها و استانداردهای ممتازکم آشنا شوید.' : "Learn about Momtazchem, Iraq's trusted chemical solutions provider. 50+ countries served, ISO certified, committed to quality excellence and environmental responsibility. Discover our mission, vision, and values."}
         type="website"
         image="https://momtazchem.com/og-about.jpg"
-        locale="en_US"
+        locale={language === 'fa' ? 'fa_IR' : language === 'ar' ? 'ar_IQ' : language === 'tr' ? 'tr_TR' : 'en_US'}
       />
       <CanonicalUrl path="/about" />
       
@@ -71,7 +71,7 @@ const About = () => {
             <div>
               <img
                 src="https://images.unsplash.com/photo-1565814329452-e1efa11c5b89?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80"
-                alt="Modern chemical manufacturing facility"
+                alt={language === 'fa' ? 'مجموعه مدرن تولید مواد شیمیایی' : 'Modern chemical manufacturing facility'}
                 className="rounded-lg shadow-lg"
               />
             </div>
@@ -165,7 +165,7 @@ const About = () => {
             <div>
               <img
                 src="https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80"
-                alt="Chemical research laboratory"
+                alt={language === 'fa' ? 'آزمایشگاه تحقیقاتی صنایع شیمیایی' : 'Chemical research laboratory'}
                 className="rounded-lg shadow-lg"
               />
             </div>
