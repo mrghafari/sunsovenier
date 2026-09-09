@@ -67,7 +67,28 @@ function CategoryImage({ src, alt, iconEl, iconBg }: { src: string | null | unde
 }
 
 const Home = () => {
-  const { t } = useLanguage();
+  const { t, language, direction } = useLanguage();
+  const fa = language === 'fa';
+  const categoryNameFa: Record<string, string> = {
+    'fuel-additives': 'افزودنی‌های سوخت',
+    'water-treatment': 'تصفیه آب',
+    'paint-thinner': 'رنگ و تینر',
+    'paint-solvents': 'حلال‌های رنگ',
+    'agricultural-fertilizers': 'کودهای کشاورزی',
+    'industrial-chemicals': 'مواد شیمیایی صنعتی',
+    'technical-equipment': 'تجهیزات فنی',
+    'commercial-goods': 'کالاهای تجاری',
+  };
+  const categoryDescriptionFa: Record<string, string> = {
+    'fuel-additives': 'راهکارهای تخصصی برای بهبود عملکرد، کیفیت و بهره‌وری سوخت.',
+    'water-treatment': 'مواد شیمیایی تخصصی برای تصفیه و بهبود کیفیت آب.',
+    'paint-thinner': 'تینرها و حلال‌های باکیفیت برای کاربردهای صنعتی و تخصصی.',
+    'paint-solvents': 'حلال‌های تخصصی و مطمئن برای صنایع رنگ و پوشش.',
+    'agricultural-fertilizers': 'کودهای تخصصی برای بهبود رشد محصول و سلامت خاک.',
+    'industrial-chemicals': 'مواد شیمیایی مطمئن برای فرایندها و کاربردهای صنعتی.',
+    'technical-equipment': 'تجهیزات فنی و صنعتی متناسب با نیازهای حرفه‌ای.',
+    'commercial-goods': 'کالاهای تجاری منتخب برای تأمین نیاز صنایع و کسب‌وکارها.',
+  };
   // Fetch all products from database
   const { data: productsResponse, isLoading } = useQuery({
     queryKey: ["/api/products"],
@@ -117,10 +138,10 @@ const Home = () => {
   ];
 
   return (
-    <div>
+    <div dir={direction}>
       <OpenGraphTags
-        title="Momtazchem - Premium Chemical Solutions | Industrial Chemicals & Fuel Additives"
-        description="Leading provider of high-quality chemical solutions in Iraq. Specializing in fuel additives, water treatment, paint thinners, and agricultural fertilizers. Quality guaranteed, 40+ countries served."
+        title={fa ? 'ممتازکم | راهکارهای تخصصی مواد شیمیایی و افزودنی‌های سوخت' : 'Momtazchem - Premium Chemical Solutions | Industrial Chemicals & Fuel Additives'}
+        description={fa ? 'ارائه‌دهنده راهکارهای شیمیایی باکیفیت، افزودنی‌های سوخت، مواد تصفیه آب، تینر و کودهای کشاورزی برای صنایع مختلف.' : 'Leading provider of high-quality chemical solutions in Iraq. Specializing in fuel additives, water treatment, paint thinners, and agricultural fertilizers. Quality guaranteed, 40+ countries served.'}
         type="website"
         image="https://momtazchem.com/og-home.jpg"
         locale="en_US"
@@ -166,6 +187,8 @@ const Home = () => {
               {allCategories.map((category) => {
                 const { icon, iconEl, iconBg } = getCategoryMeta(category.name);
                 const slug = category.slug || category.name.toLowerCase().replace(/\s+/g, '-');
+                const displayCategoryName = fa ? (categoryNameFa[slug] || category.name) : category.name;
+                const displayCategoryDescription = fa ? (categoryDescriptionFa[slug] || category.description || '') : (category.description || '');
                 const href = `/products/${slug}`;
                 const categoryProducts = productsByCategory[category.name] || [];
                 const productCount = categoryProducts.length;
@@ -176,7 +199,7 @@ const Home = () => {
                       <div className="relative overflow-hidden rounded-t-lg">
                         <CategoryImage
                           src={category.imageUrl}
-                          alt={category.name}
+                           alt={displayCategoryName}
                           iconEl={iconEl}
                           iconBg={iconBg}
                         />
@@ -191,10 +214,10 @@ const Home = () => {
 
                       <div className="p-6">
                         <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors">
-                          {category.name}
+                           {displayCategoryName}
                         </h3>
                         <p className="text-gray-600 mb-4 line-clamp-3">
-                          {category.description || ""}
+                           {displayCategoryDescription}
                         </p>
 
                         {categoryProducts.length > 0 && (
@@ -236,7 +259,7 @@ const Home = () => {
 
                         <Link href={href}>
                           <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
-                            {t.viewAll} {category.name}
+                             {t.viewAll} {displayCategoryName}
                           </Button>
                         </Link>
                       </div>
@@ -264,7 +287,7 @@ const Home = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <div className="flex items-start">
-                  <div className="w-12 h-12 bg-primary-blue rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
+                   <div className={`w-12 h-12 bg-primary-blue rounded-lg flex items-center justify-center ${direction === 'rtl' ? 'ml-4' : 'mr-4'} flex-shrink-0`}>
                     <Award className="text-white h-6 w-6" />
                   </div>
                   <div>
@@ -273,7 +296,7 @@ const Home = () => {
                   </div>
                 </div>
                 <div className="flex items-start">
-                  <div className="w-12 h-12 bg-primary-green rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
+                   <div className={`w-12 h-12 bg-primary-green rounded-lg flex items-center justify-center ${direction === 'rtl' ? 'ml-4' : 'mr-4'} flex-shrink-0`}>
                     <Leaf className="text-white h-6 w-6" />
                   </div>
                   <div>
@@ -293,7 +316,7 @@ const Home = () => {
             <div className="relative">
               <img
                 src="https://images.unsplash.com/photo-1582719471384-894fbb16e074?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&q=80"
-                alt="Chemical research laboratory"
+                 alt={fa ? 'آزمایشگاه تحقیق و توسعه مواد شیمیایی' : 'Chemical research laboratory'}
                 className="rounded-2xl shadow-lg w-full h-auto"
               />
               
@@ -328,7 +351,7 @@ const Home = () => {
                 <ul className="space-y-2">
                   {service.features.map((feature, featureIndex) => (
                     <li key={featureIndex} className="flex items-center text-gray-600">
-                      <div className="w-2 h-2 bg-secondary rounded-full mr-2"></div>
+                     <div className={`w-2 h-2 bg-secondary rounded-full ${direction === 'rtl' ? 'ml-2' : 'mr-2'}`}></div>
                       <span className="text-sm">{feature}</span>
                     </li>
                   ))}

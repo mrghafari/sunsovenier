@@ -7,10 +7,10 @@ import company_logo_png from "@assets/company-logo.png.jpg";
 import heroBackground from "@assets/hero_background_1770191229724.png";
 
 const HeroSection = () => {
-  const { t } = useLanguage();
+  const { t, language, direction } = useLanguage();
   
   return (
-    <section className="relative min-h-screen flex items-center">
+    <section className="relative min-h-screen flex items-center" dir={direction}>
       {/* Background Image with Overlay */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -34,8 +34,8 @@ const HeroSection = () => {
                 className="bg-blue-600 hover:bg-blue-700 text-white text-lg font-semibold"
                 data-testid="button-shop"
               >
-                <FlaskRound className="mr-3 h-5 w-5" />
-                Shop
+                <FlaskRound className={direction === 'rtl' ? 'ml-3 h-5 w-5' : 'mr-3 h-5 w-5'} />
+                {language === 'fa' ? 'فروشگاه' : 'Shop'}
               </Button>
             </Link>
             <Link href="/vendor">
@@ -44,8 +44,8 @@ const HeroSection = () => {
                 className="bg-green-600 hover:bg-green-700 text-white text-lg font-semibold"
                 data-testid="button-vendor"
               >
-                <FlaskRound className="mr-3 h-5 w-5" />
-                Vendor
+                <FlaskRound className={direction === 'rtl' ? 'ml-3 h-5 w-5' : 'mr-3 h-5 w-5'} />
+                {language === 'fa' ? 'پنل فروشندگان' : 'Vendor'}
               </Button>
             </Link>
             <Link href="/contact">
@@ -54,7 +54,7 @@ const HeroSection = () => {
                 size="lg"
                 className="inline-flex items-center justify-center gap-2 whitespace-nowrap ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 h-11 rounded-md px-8 border-2 border-white text-white hover:bg-white hover:text-primary text-lg font-semibold bg-[#0079f2]"
                 src={company_logo_png}>
-                <Phone className="mr-3 h-5 w-5" />
+                <Phone className={direction === 'rtl' ? 'ml-3 h-5 w-5' : 'mr-3 h-5 w-5'} />
                 {t.contactSales}
               </Button>
             </Link>
