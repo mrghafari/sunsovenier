@@ -137,7 +137,7 @@ async function getCompanyInformation(): Promise<any | null> {
 }
 
 // Helper function to format RTL text for proper display
-function formatRTLText(text: string): string {
+function formatRTLText(text: string, language: 'ar' | 'fa' = 'fa'): string {
   // Check if text contains RTL characters (Persian, Arabic, Kurdish)
   const rtlPattern = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
   
@@ -145,15 +145,10 @@ function formatRTLText(text: string): string {
     return text; // Return as-is for non-RTL text
   }
   
-  // Split text into words and reverse their order for RTL display
-  const words = text.split(' ');
-  const reversedText = words.reverse().join(' ');
-  
-  // Reverse parentheses for proper RTL display
-  return reversedText
-    .replace(/\(/g, '###TEMP_OPEN###')
-    .replace(/\)/g, '(')
-    .replace(/###TEMP_OPEN###/g, ')');
+  // PDFKit/fontkit performs Arabic shaping and bidi layout. Keep the source in
+  // logical Unicode order; manual reversal causes Persian and Arabic text to
+  // be rendered backwards.
+  return text;
 }
 
 // Helper function to format mixed RTL/LTR text with Unicode markers
@@ -571,9 +566,9 @@ export async function generateInvoicePDF(data: any): Promise<Buffer> {
     const doc = new PDFDocument({ size: 'A4', margin: 42, info: { Title: `${data.invoiceType === 'PROFORMA' ? L[1] : L[0]} ${str(data.invoiceNumber)}`, Author: companyName, Subject: L[0], Keywords: lang } });
     const chunks: Buffer[] = []; doc.on('data', (c: Buffer) => chunks.push(c)); doc.on('end', () => resolve(Buffer.concat(chunks))); doc.on('error', reject);
     try { doc.registerFont('VazirRegular', Buffer.from(vazirRegular, 'base64')); doc.registerFont('VazirBold', Buffer.from(vazirBold, 'base64')); doc.font('VazirRegular'); } catch {}
-    const tx = (v: any) => rtl ? formatRTLText(str(v)) : str(v);
+    const tx = (v: any) => rtl ? formatRTLText(str(v), lang as 'ar' | 'fa') : str(v);
     const al = rtl ? 'right' : 'left';
-    const pair = (label: string, val: any, x: number, y: number, w = 245) => doc.font('VazirRegular').fontSize(9).text(tx(`${label}: ${val}`), x, y, { width: w, align: al, features: rtl ? ['rtla'] : undefined });
+    const pair = (label: string, val: any, x: number, y: number, w = 245) => doc.font('VazirRegular').fontSize(9).text(tx(`${label}: ${val}`), x, y, { width: w, align: al });
     if (companyLogo) {
       try { doc.image(companyLogo, 42, 32, { fit: [64, 48] }); } catch {}
     }
