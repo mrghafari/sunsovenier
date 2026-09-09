@@ -1036,7 +1036,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Proforma Invoice PDF generation endpoint  
-  app.get("/download-proforma-invoice/:orderId", async (req, res) => {
+  app.get("/download-proforma-invoice/:orderId", requireCustomerAuth, async (req, res) => {
     console.log('📄 Proforma Invoice PDF generation requested for order:', req.params.orderId);
     
     try {
@@ -1049,11 +1049,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const orderResult = await db
         .select({
           id: customerOrders.id,
+           customerId: customerOrders.customerId,
           orderNumber: customerOrders.orderNumber,
           totalAmount: customerOrders.totalAmount,
           shippingCost: customerOrders.shippingCost,
           currency: customerOrders.currency,
           paymentMethod: customerOrders.paymentMethod,
+           paymentStatus: customerOrders.paymentStatus,
           status: customerOrders.status,
           createdAt: customerOrders.createdAt,
           vatAmount: customerOrders.vatAmount, // Frozen VAT amount from order creation
@@ -1062,6 +1064,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           customerEmail: crmCustomers.email,
           customerPhone: crmCustomers.phone,
           customerAddress: crmCustomers.address,
+          customerCompany: crmCustomers.company,
+          customerPostalCode: crmCustomers.postalCode,
         })
         .from(customerOrders)
         .leftJoin(crmCustomers, eq(customerOrders.customerId, crmCustomers.id))
@@ -1072,6 +1076,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const order = orderResult[0];
+      if (order.customerId !== req.session.customerId) {
+        return res.status(403).json({ success: false, message: 'دسترسی به این سفارش مجاز نیست' });
+      }
+      const requestedLanguage = String(req.query.lang || 'en').toLowerCase();
+      if (!['en', 'ar', 'tr', 'fa'].includes(requestedLanguage)) {
+        return res.status(400).json({ success: false, message: 'زبان نامعتبر است' });
+      }
 
       // Get order items
       const itemsResult = await db
@@ -1104,12 +1115,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         invoiceType: 'PROFORMA', // نوع فاکتور: پیش فاکتور
         invoiceNumber: `P-${order.orderNumber}`, // P- برای پیش فاکتور
         orderNumber: order.orderNumber,
-        invoiceDate: new Date().toISOString(),
+         invoiceDate: order.createdAt,
+         language: requestedLanguage,
         customer: {
           name: order.customerName || 'مشتری',
           email: order.customerEmail,
           phone: order.customerPhone,
           address: order.customerAddress,
+          company: order.customerCompany,
+          postalCode: order.customerPostalCode,
         },
         items: itemsResult.map(item => ({
           name: item.productName,
@@ -1123,7 +1137,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         shippingCost: Math.round(parseFloat(order.shippingCost || '0')),
         total: Math.round(subtotal + storedVatAmount + storedSurchargeAmount + parseFloat(order.shippingCost || '0')),
         currency: order.currency || 'IQD',
-        paymentStatus: 'در انتظار پرداخت', // برای پیش فاکتور
+         paymentMethod: order.paymentMethod,
+         paymentStatus: order.paymentStatus,
         notes: 'این پیش فاکتور است و پس از پرداخت و تأیید مالی، فاکتور نهایی صادر خواهد شد.'
       };
       
@@ -1180,7 +1195,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Final Invoice PDF generation endpoint (for approved orders)
-  app.get("/download-invoice/:orderId", async (req, res) => {
+  app.get("/download-invoice/:orderId", requireCustomerAuth, async (req, res) => {
     console.log('📄 Final Invoice PDF generation requested for order:', req.params.orderId);
     
     try {
@@ -1193,11 +1208,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const orderResult = await db
         .select({
           id: customerOrders.id,
+           customerId: customerOrders.customerId,
           orderNumber: customerOrders.orderNumber,
           totalAmount: customerOrders.totalAmount,
           shippingCost: customerOrders.shippingCost,
           currency: customerOrders.currency,
           paymentMethod: customerOrders.paymentMethod,
+           paymentStatus: customerOrders.paymentStatus,
           status: customerOrders.status,
           createdAt: customerOrders.createdAt,
           vatAmount: customerOrders.vatAmount, // Frozen VAT amount from order creation
@@ -1207,6 +1224,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           customerEmail: crmCustomers.email,
           customerPhone: crmCustomers.phone,
           customerAddress: crmCustomers.address,
+          customerCompany: crmCustomers.company,
+          customerPostalCode: crmCustomers.postalCode,
         })
         .from(customerOrders)
         .leftJoin(crmCustomers, eq(customerOrders.customerId, crmCustomers.id))
@@ -1217,6 +1236,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const order = orderResult[0];
+      if (order.customerId !== req.session.customerId) {
+        return res.status(403).json({ success: false, message: 'دسترسی به این سفارش مجاز نیست' });
+      }
+      const requestedLanguage = String(req.query.lang || 'en').toLowerCase();
+      if (!['en', 'ar', 'tr', 'fa'].includes(requestedLanguage)) {
+        return res.status(400).json({ success: false, message: 'زبان نامعتبر است' });
+      }
 
       // 🧾 Check if order is eligible for final invoice download
       // Allow download if invoiceType is 'official_invoice' OR if order has traditional approval statuses
@@ -1279,12 +1305,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         invoiceType: 'FINAL', // نوع فاکتور: فاکتور نهایی
         invoiceNumber: order.orderNumber,
         orderNumber: order.orderNumber,
-        invoiceDate: new Date().toISOString(),
+         invoiceDate: order.createdAt,
+         language: requestedLanguage,
         customer: {
           name: order.customerName || 'مشتری',
           email: order.customerEmail,
           phone: order.customerPhone,
           address: order.customerAddress,
+          company: order.customerCompany,
+          postalCode: order.customerPostalCode,
         },
         items: itemsResult.map(item => ({
           name: item.productName,
@@ -1298,7 +1327,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         shippingCost: Math.round(parseFloat(order.shippingCost || '0')),
         total: Math.round(subtotal + storedVatAmount + storedSurchargeAmount + parseFloat(order.shippingCost || '0')),
         currency: order.currency || 'IQD',
-        paymentStatus: 'پرداخت شده', // برای فاکتور نهایی
+         paymentMethod: order.paymentMethod,
+         paymentStatus: order.paymentStatus,
         notes: 'این فاکتور نهایی است و پس از تأیید مالی و آماده‌سازی در انبار صادر شده است.'
       };
       

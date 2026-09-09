@@ -1352,7 +1352,7 @@ const CustomerProfile = () => {
                                 (order.invoiceType === "official_invoice" ? (
                                   <Button
                                     size="sm"
-                                    onClick={() => window.open(`/download-invoice/${order.id}`, "_blank")}
+                                    onClick={() => window.open(`/download-invoice/${order.id}?lang=${encodeURIComponent(language)}`, "_blank")}
                                     className="bg-green-600 hover:bg-green-700"
                                   >
                                     <Download className="w-4 h-4 mr-2" />
@@ -1361,7 +1361,7 @@ const CustomerProfile = () => {
                                 ) : (
                                   <Button
                                     size="sm"
-                                    onClick={() => window.open(`/download-proforma-invoice/${order.id}`, "_blank")}
+                                    onClick={() => window.open(`/download-proforma-invoice/${order.id}?lang=${encodeURIComponent(language)}`, "_blank")}
                                     className="bg-blue-600 hover:bg-blue-700"
                                   >
                                     <Download className="w-4 h-4 mr-2" />
@@ -1675,7 +1675,7 @@ const CustomerProfile = () => {
                       (order.invoiceType === "official_invoice" ? (
                         <Button
                           size="sm"
-                          onClick={() => window.open(`/download-invoice/${order.id}`, "_blank")}
+                          onClick={() => window.open(`/download-invoice/${order.id}?lang=${encodeURIComponent(language)}`, "_blank")}
                           className="bg-green-600 hover:bg-green-700"
                         >
                           <Download className="w-4 h-4 mr-2" />
@@ -1684,7 +1684,7 @@ const CustomerProfile = () => {
                       ) : (
                         <Button
                           size="sm"
-                          onClick={() => window.open(`/download-proforma-invoice/${order.id}`, "_blank")}
+                          onClick={() => window.open(`/download-proforma-invoice/${order.id}?lang=${encodeURIComponent(language)}`, "_blank")}
                           className="bg-blue-600 hover:bg-blue-700"
                         >
                           <Download className="w-4 h-4 mr-2" />

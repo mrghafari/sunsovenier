@@ -162,7 +162,7 @@ function formatMixedText(text: string): string {
 }
 
 // Generate Invoice PDF using PDFKit
-export async function generateInvoicePDF(invoiceData: any): Promise<Buffer> {
+async function generateLegacyInvoicePDF(invoiceData: any): Promise<Buffer> {
   return new Promise(async (resolve, reject) => {
     try {
       console.log('📄 Generating invoice PDF with PDFKit...');
@@ -524,6 +524,58 @@ export async function generateInvoicePDF(invoiceData: any): Promise<Buffer> {
       console.error('❌ Error in generateInvoicePDF:', error);
       reject(error);
     }
+  });
+}
+
+// Localized invoice renderer. The legacy renderer above is retained for compatibility
+// with any callers that may still reference its historical layout.
+export async function generateInvoicePDF(data: any): Promise<Buffer> {
+  const lang = ['en', 'ar', 'tr', 'fa'].includes(data.language) ? data.language : 'en';
+  const rtl = lang === 'ar' || lang === 'fa';
+  const L: Record<string, any> = {
+    en: ['Invoice', 'Proforma Invoice', 'Invoice number', 'Order number', 'Invoice date', 'Seller', 'Customer', 'Name', 'Phone', 'Email', 'Address', 'Payment method', 'Payment status', 'Product', 'Quantity', 'Unit price', 'Amount', 'Subtotal', 'VAT', 'Surcharge / duties', 'Shipping', 'Total', 'This is a proforma invoice. The final invoice will be issued after payment confirmation.', 'This is the final invoice.'],
+    ar: ['فاتورة', 'فاتورة أولية', 'رقم الفاتورة', 'رقم الطلب', 'تاريخ الفاتورة', 'البائع', 'العميل', 'الاسم', 'الهاتف', 'البريد الإلكتروني', 'العنوان', 'طريقة الدفع', 'حالة الدفع', 'المنتج', 'الكمية', 'سعر الوحدة', 'المبلغ', 'المجموع الفرعي', 'ضريبة القيمة المضافة', 'رسوم إضافية', 'الشحن', 'الإجمالي', 'هذه فاتورة أولية. سيتم إصدار الفاتورة النهائية بعد تأكيد الدفع.', 'هذه هي الفاتورة النهائية.'],
+    tr: ['Fatura', 'Proforma Fatura', 'Fatura numarası', 'Sipariş numarası', 'Fatura tarihi', 'Satıcı', 'Müşteri', 'Ad', 'Telefon', 'E-posta', 'Adres', 'Ödeme yöntemi', 'Ödeme durumu', 'Ürün', 'Miktar', 'Birim fiyatı', 'Tutar', 'Ara toplam', 'KDV', 'Ek ücretler / vergiler', 'Kargo', 'Toplam', 'Bu bir proforma faturadır. Ödeme onayından sonra nihai fatura düzenlenir.', 'Bu nihai faturadır.'],
+    fa: ['فاکتور', 'پیش‌فاکتور', 'شماره فاکتور', 'شماره سفارش', 'تاریخ فاکتور', 'فروشنده', 'مشتری', 'نام', 'تلفن', 'ایمیل', 'آدرس', 'روش پرداخت', 'وضعیت پرداخت', 'کالا', 'تعداد', 'قیمت واحد', 'مبلغ', 'جمع جزء', 'مالیات بر ارزش افزوده', 'عوارض / هزینه اضافی', 'هزینه ارسال', 'مجموع کل', 'این پیش‌فاکتور است و پس از تأیید پرداخت، فاکتور نهایی صادر می‌شود.', 'این فاکتور نهایی است.']
+  }[lang];
+  const extra: Record<string, string[]> = {
+    en: ['Registration number', 'Tax number', 'Company', 'Postal code', 'Country / city'],
+    ar: ['رقم التسجيل', 'الرقم الضريبي', 'الشركة', 'الرمز البريدي', 'الدولة / المدينة'],
+    tr: ['Kayıt numarası', 'Vergi numarası', 'Şirket', 'Posta kodu', 'Ülke / şehir'],
+    fa: ['شماره ثبت', 'شماره مالیاتی', 'شرکت', 'کد پستی', 'کشور / شهر'],
+  }[lang];
+  const company = data.companyInfo || await getCompanyInformation() || {};
+  const companyLogo = await getCompanyLogo();
+  const suffix = lang === 'en' ? 'En' : lang === 'ar' ? 'Ar' : lang === 'tr' ? 'Tr' : 'En';
+  const companyName = company[`companyName${suffix}`] || company.companyName || company.companyNameEn || 'Momtaz Chemical Solutions';
+  const customer = data.customer || {};
+  const str = (v: any) => v === undefined || v === null || v === '' ? '—' : String(v);
+  const fmt = (v: any) => Math.round(Number(v) || 0).toLocaleString(lang === 'fa' ? 'fa-IR' : lang, { maximumFractionDigits: 0 });
+  const date = new Date(data.invoiceDate);
+  const dateText = isNaN(date.getTime()) ? '—' : date.toLocaleDateString(lang === 'fa' ? 'fa-IR' : lang);
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ size: 'A4', margin: 42, info: { Title: `${data.invoiceType === 'PROFORMA' ? L[1] : L[0]} ${str(data.invoiceNumber)}`, Author: companyName, Subject: L[0], Keywords: lang } });
+    const chunks: Buffer[] = []; doc.on('data', (c: Buffer) => chunks.push(c)); doc.on('end', () => resolve(Buffer.concat(chunks))); doc.on('error', reject);
+    try { doc.registerFont('VazirRegular', Buffer.from(vazirRegular, 'base64')); doc.registerFont('VazirBold', Buffer.from(vazirBold, 'base64')); doc.font('VazirRegular'); } catch {}
+    const tx = (v: any) => rtl ? formatRTLText(str(v)) : str(v);
+    const al = rtl ? 'right' : 'left';
+    const pair = (label: string, val: any, x: number, y: number, w = 245) => doc.font('VazirRegular').fontSize(9).text(tx(`${label}: ${val}`), x, y, { width: w, align: al, features: rtl ? ['rtla'] : undefined });
+    if (companyLogo) {
+      try { doc.image(companyLogo, 42, 32, { fit: [64, 48] }); } catch {}
+    }
+    doc.font('VazirBold').fontSize(18).text(tx(companyName), 112, 42, { width: 370, align: 'center' });
+    doc.fontSize(15).text(tx(data.invoiceType === 'PROFORMA' ? L[1] : L[0]), 42, 68, { width: 510, align: 'center' });
+    pair(L[2], data.invoiceNumber, 42, 98, 510); pair(L[3], data.orderNumber, 42, 115, 510); pair(L[4], dateText, 42, 132, 510);
+    doc.font('VazirBold').fontSize(11).text(tx(L[5]), 42, 160, { width: 245, align: al }); pair(L[7], companyName, 42, 178); pair(L[8], company.phonePrimary, 42, 194); pair(L[9], company.emailPrimary, 42, 210); pair(L[10], [company.mainAddress, company.city, company.country].filter(Boolean).join(', '), 42, 226); pair(extra[0], company.registrationNumber, 42, 242); pair(extra[1], company.taxNumber, 42, 258);
+    doc.font('VazirBold').fontSize(11).text(tx(L[6]), 307, 160, { width: 245, align: al }); pair(L[7], customer.name, 307, 178); pair(extra[2], customer.company, 307, 194); pair(L[8], customer.phone, 307, 210); pair(L[9], customer.email, 307, 226); pair(L[10], customer.address, 307, 242); pair(extra[3], customer.postalCode, 307, 258);
+    pair(L[11], data.paymentMethod, 42, 278); pair(L[12], data.paymentStatus, 307, 278);
+    let y = 308; const cols = rtl ? [[L[16], 42, 130], [L[15], 172, 110], [L[14], 282, 70], [L[13], 352, 200]] : [[L[13], 42, 200], [L[14], 242, 70], [L[15], 312, 110], [L[16], 422, 130]];
+    const header = () => { doc.rect(42, y, 510, 24).fillAndStroke('#eeeeee', '#777777'); doc.fillColor('#000').font('VazirBold').fontSize(9); cols.forEach((c: any) => doc.text(tx(c[0]), c[1] + 3, y + 7, { width: c[2] - 6, align: 'center' })); y += 24; };
+    header(); const items = data.items || []; doc.font('VazirRegular').fontSize(8);
+    items.forEach((item: any) => { if (y > 735) { doc.addPage(); y = 42; header(); } const row = [item.name || item.productName, item.quantity, fmt(item.unitPrice), fmt(item.total || item.totalPrice || Number(item.quantity || 0) * Number(item.unitPrice || 0))]; cols.forEach((c: any, i: number) => { const ri = rtl ? [3, 2, 1, 0][i] : i; doc.text(tx(row[ri]), c[1] + 3, y + 7, { width: c[2] - 6, height: 16, ellipsis: true, align: i === (rtl ? 3 : 0) ? al : 'center' }); }); doc.rect(42, y, 510, 24).stroke('#bbb'); y += 24; });
+    const subtotal = Number(data.subtotal ?? items.reduce((s: number, i: any) => s + Number(i.total || i.totalPrice || Number(i.quantity || 0) * Number(i.unitPrice || 0)), 0)); const vat = Number(data.vatAmount || 0), duties = Number(data.dutiesAmount || 0), shipping = Number(data.shippingCost || 0);
+    if (y > 650) { doc.addPage(); y = 42; } y += 14; [[L[17], subtotal], [L[18], vat], [L[19], duties], [L[20], shipping], [L[21], subtotal + vat + duties + shipping]].forEach((r: any, i) => { doc.font(i === 4 ? 'VazirBold' : 'VazirRegular').fontSize(i === 4 ? 11 : 9); pair(r[0], `${fmt(r[1])} ${str(data.currency || 'IQD')}`, 42, y, 510); y += 19; });
+    doc.font('VazirRegular').fontSize(9).text(tx(data.invoiceType === 'PROFORMA' ? L[22] : L[23]), 42, y + 10, { width: 510, align: al }); doc.end();
   });
 }
 
