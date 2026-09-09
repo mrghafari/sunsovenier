@@ -1,0 +1,16 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "nh09uPvkz8Z2hxh3kDZNd"
+uri = "file://samples/persian-invoice-rtl-test.pdf"
+type = "pdf"
+title = "نمونه فاکتور فارسی RTL"
+description = "نمونه آزمایشی شامل شماره فاکتور، تاریخ شمسی، دو ردیف کالا، قیمت‌ها و جمع کل با ترتیب صحیح RTL/LTR."
+logical_id = "977e987f-8c87-4436-9b24-4c5c3571b598"
+content_hash = "sha256:72c31e9a1d9dd8ac5ecd9772f210941e2681ba32747665dd64392234e14dafa6"
+size = 82522
+mtime_ms = 1788986294982
+storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:861926f6-85c5-4e93-bb9b-7e1a3d8bd878/977e987f-8c87-4436-9b24-4c5c3571b598/604be8db-4c34-4df9-9e4a-e16f4eaba038"
+storage_version_token = "1788986461200345"
+content_type = "application/pdf"

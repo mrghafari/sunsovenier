@@ -559,16 +559,50 @@ export async function generateInvoicePDF(data: any): Promise<Buffer> {
   const companyName = company[`companyName${suffix}`] || company.companyName || company.companyNameEn || 'Momtaz Chemical Solutions';
   const customer = data.customer || {};
   const str = (v: any) => v === undefined || v === null || v === '' ? '—' : String(v);
-  const fmt = (v: any) => Math.round(Number(v) || 0).toLocaleString(lang === 'fa' ? 'fa-IR' : lang, { maximumFractionDigits: 0 });
+  const latinDigits = (v: any) => str(v)
+    .replace(/[۰-۹]/g, digit => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)))
+    .replace(/[٠-٩]/g, digit => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)));
+  // PDFKit may reverse Arabic-script digits even inside a bidi isolate. Invoice
+  // numeric values therefore use Latin digits, which remain stable in LTR runs.
+  const fmt = (v: any) => Math.round(Number(v) || 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
   const date = new Date(data.invoiceDate);
-  const dateText = isNaN(date.getTime()) ? '—' : date.toLocaleDateString(lang === 'fa' ? 'fa-IR' : lang);
+  const dateText = isNaN(date.getTime()) ? '—' : latinDigits(date.toLocaleDateString(lang === 'fa' ? 'fa-IR' : lang));
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: 'A4', margin: 42, info: { Title: `${data.invoiceType === 'PROFORMA' ? L[1] : L[0]} ${str(data.invoiceNumber)}`, Author: companyName, Subject: L[0], Keywords: lang } });
     const chunks: Buffer[] = []; doc.on('data', (c: Buffer) => chunks.push(c)); doc.on('end', () => resolve(Buffer.concat(chunks))); doc.on('error', reject);
     try { doc.registerFont('VazirRegular', Buffer.from(vazirRegular, 'base64')); doc.registerFont('VazirBold', Buffer.from(vazirBold, 'base64')); doc.font('VazirRegular'); } catch {}
     const tx = (v: any) => rtl ? formatRTLText(str(v), lang as 'ar' | 'fa') : str(v);
+    const hasRTL = (v: any) => /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(str(v));
+    const ltr = (v: any) => `\u2066${str(v)}\u2069`;
     const al = rtl ? 'right' : 'left';
-    const pair = (label: string, val: any, x: number, y: number, w = 245) => doc.font('VazirRegular').fontSize(9).text(tx(`${label}: ${val}`), x, y, { width: w, align: al });
+    const pair = (label: string, val: any, x: number, y: number, w = 245) => {
+      doc.font('VazirRegular').fontSize(9);
+      if (!rtl) {
+        doc.text(`${label}: ${str(val)}`, x, y, { width: w, align: 'left' });
+        return;
+      }
+
+      // Keep the RTL label and its value in separate layout boxes. This avoids
+      // bidi reordering across the colon and preserves dates, IDs and amounts.
+      const labelWidth = w >= 400 ? 190 : Math.max(94, Math.round(w * 0.42));
+      const gap = 5;
+      let labelCursor = x + w;
+      const wordGap = doc.widthOfString(' ');
+      for (const word of label.trim().split(/\s+/)) {
+        const wordWidth = doc.widthOfString(word);
+        labelCursor -= wordWidth;
+        doc.text(tx(word), labelCursor, y, { width: wordWidth + 1, align: 'right', lineBreak: false });
+        labelCursor -= wordGap;
+      }
+      const colonWidth = doc.widthOfString(':');
+      labelCursor -= colonWidth;
+      doc.text(':', labelCursor, y, { width: colonWidth + 1, align: 'left', lineBreak: false });
+      doc.text(hasRTL(val) ? tx(val) : ltr(val), x, y, {
+        width: w - labelWidth - gap,
+        align: 'right',
+        lineBreak: false,
+      });
+    };
     if (companyLogo) {
       try { doc.image(companyLogo, 42, 32, { fit: [64, 48] }); } catch {}
     }
@@ -581,7 +615,24 @@ export async function generateInvoicePDF(data: any): Promise<Buffer> {
     let y = 308; const cols = rtl ? [[L[16], 42, 130], [L[15], 172, 110], [L[14], 282, 70], [L[13], 352, 200]] : [[L[13], 42, 200], [L[14], 242, 70], [L[15], 312, 110], [L[16], 422, 130]];
     const header = () => { doc.rect(42, y, 510, 24).fillAndStroke('#eeeeee', '#777777'); doc.fillColor('#000').font('VazirBold').fontSize(9); cols.forEach((c: any) => doc.text(tx(c[0]), c[1] + 3, y + 7, { width: c[2] - 6, align: 'center' })); y += 24; };
     header(); const items = data.items || []; doc.font('VazirRegular').fontSize(8);
-    items.forEach((item: any) => { if (y > 735) { doc.addPage(); y = 42; header(); } const row = [item.name || item.productName, item.quantity, fmt(item.unitPrice), fmt(item.total || item.totalPrice || Number(item.quantity || 0) * Number(item.unitPrice || 0))]; cols.forEach((c: any, i: number) => { const ri = rtl ? [3, 2, 1, 0][i] : i; doc.text(tx(row[ri]), c[1] + 3, y + 7, { width: c[2] - 6, height: 16, ellipsis: true, align: i === (rtl ? 3 : 0) ? al : 'center' }); }); doc.rect(42, y, 510, 24).stroke('#bbb'); y += 24; });
+    items.forEach((item: any) => {
+      if (y > 735) { doc.addPage(); y = 42; header(); }
+      const row = [item.name || item.productName, item.quantity, fmt(item.unitPrice), fmt(item.total || item.totalPrice || Number(item.quantity || 0) * Number(item.unitPrice || 0))];
+      cols.forEach((c: any, i: number) => {
+        const ri = rtl ? [3, 2, 1, 0][i] : i;
+        const isProductCell = i === (rtl ? 3 : 0);
+        const cellText = isProductCell ? tx(row[ri]) : ltr(row[ri]);
+        doc.text(cellText, c[1] + 3, y + 7, {
+          width: c[2] - 6,
+          height: 16,
+          ellipsis: true,
+          align: isProductCell ? al : 'center',
+          lineBreak: false,
+        });
+      });
+      doc.rect(42, y, 510, 24).stroke('#bbb');
+      y += 24;
+    });
     const subtotal = Number(data.subtotal ?? items.reduce((s: number, i: any) => s + Number(i.total || i.totalPrice || Number(i.quantity || 0) * Number(i.unitPrice || 0)), 0)); const vat = Number(data.vatAmount || 0), duties = Number(data.dutiesAmount || 0), shipping = Number(data.shippingCost || 0);
     if (y > 650) { doc.addPage(); y = 42; } y += 14; [[L[17], subtotal], [L[18], vat], [L[19], duties], [L[20], shipping], [L[21], subtotal + vat + duties + shipping]].forEach((r: any, i) => { doc.font(i === 4 ? 'VazirBold' : 'VazirRegular').fontSize(i === 4 ? 11 : 9); pair(r[0], `${fmt(r[1])} ${str(data.currency || 'IQD')}`, 42, y, 510); y += 19; });
     doc.font('VazirRegular').fontSize(9).text(tx(data.invoiceType === 'PROFORMA' ? L[22] : L[23]), 42, y + 10, { width: 510, align: al }); doc.end();
