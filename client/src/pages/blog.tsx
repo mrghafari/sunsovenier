@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useLocation } from "wouter";
 import { format } from "date-fns";
-import { ar } from "date-fns/locale";
+import { ar, faIR } from "date-fns/locale";
 import { motion } from "framer-motion";
 import {
   Card,
@@ -35,6 +35,12 @@ import CanonicalUrl from "@/components/seo/CanonicalUrl";
 export default function Blog() {
   const { t, language, direction } = useLanguage();
   const [, navigate] = useLocation();
+  const pageCopy = {
+    en: { latest: "Latest Industry Insights", articles: "Articles", categories: "Categories", featured: "Featured Article" },
+    ar: { latest: "أحدث رؤى الصناعة", articles: "مقالات", categories: "تصنيفات", featured: "مقال مميز" },
+    tr: { latest: "En Son Sektör İçgörüleri", articles: "Makaleler", categories: "Kategoriler", featured: "Öne Çıkan Makale" },
+    fa: { latest: "تازه‌ترین دیدگاه‌های صنعت", articles: "مقاله", categories: "دسته‌بندی", featured: "مقاله ویژه" },
+  }[language];
   
   const [search, setSearch] = useState("");
   const [selectedTag, setSelectedTag] = useState("");
@@ -88,8 +94,8 @@ export default function Blog() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    if (language === 'ar') {
-      return format(date, 'dd MMMM yyyy', { locale: ar });
+    if (language === 'ar' || language === 'fa') {
+      return format(date, 'dd MMMM yyyy', { locale: language === 'fa' ? faIR : ar });
     }
     return format(date, 'MMM dd, yyyy');
   };
@@ -159,7 +165,7 @@ export default function Blog() {
           >
             <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full mb-6">
               <Sparkles className="w-4 h-4 text-yellow-400" />
-              <span className="text-sm font-medium">{"Latest Industry Insights"}</span>
+              <span className="text-sm font-medium">{pageCopy.latest}</span>
             </div>
             
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white via-blue-100 to-purple-100" data-testid="blog-title">
@@ -178,7 +184,7 @@ export default function Blog() {
                 </div>
                 <div className="text-left">
                   <div className="text-2xl font-bold">{total}+</div>
-                  <div className="text-sm text-blue-200">{"Articles"}</div>
+                  <div className="text-sm text-blue-200">{pageCopy.articles}</div>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -187,7 +193,7 @@ export default function Blog() {
                 </div>
                 <div className="text-left">
                   <div className="text-2xl font-bold">{availableTags.length}</div>
-                  <div className="text-sm text-blue-200">{"Categories"}</div>
+                  <div className="text-sm text-blue-200">{pageCopy.categories}</div>
                 </div>
               </div>
             </div>
@@ -302,7 +308,7 @@ export default function Blog() {
           >
             <div className="flex items-center gap-2 mb-6">
               <TrendingUp className="w-5 h-5 text-blue-600" />
-              <span className="font-semibold text-blue-600 dark:text-blue-400">{"Featured Article"}</span>
+              <span className="font-semibold text-blue-600 dark:text-blue-400">{pageCopy.featured}</span>
             </div>
             
             <Card 

@@ -36,7 +36,29 @@ import ProductModel3DViewer from "@/components/ProductModel3DViewer";
 
 const Shop = () => {
   const { toast } = useMultilingualToast();
-  const { t, direction } = useLanguage();
+  const { t, direction, language } = useLanguage();
+  const shopCopy = language === 'fa' ? {
+    login: 'ورود',
+    register: 'ثبت‌نام',
+    cart: 'سبد خرید',
+    save: 'صرفه‌جویی',
+    noProducts: 'کالایی مطابق معیارهای شما پیدا نشد',
+    adjustSearch: 'عبارت جستجو را تغییر دهید یا فیلترها را پاک کنید',
+    clearFilters: 'پاک‌کردن همه فیلترها',
+    bulkDiscount: 'تخفیف خرید عمده',
+    volumeDeals: 'تخفیف‌های حجمی',
+    items: 'عدد',
+    shopTitle: 'فروش محصولات شیمیایی ممتازکم | خرید آنلاین',
+    shopDescription: 'مشاهده و خرید آنلاین محصولات شیمیایی ممتاز، افزودنی‌های سوخت، مواد تصفیه آب، تینرها و کودهای کشاورزی با پرداخت امن و ارسال سریع.',
+  } : {
+    login: 'Login', register: 'Register', cart: 'Cart', save: 'Save',
+    noProducts: 'No products found matching your criteria',
+    adjustSearch: 'Try adjusting your search terms or clearing filters',
+    clearFilters: 'Clear all filters', bulkDiscount: 'Bulk Purchase Discount',
+    volumeDeals: 'Volume Deals', items: 'items',
+    shopTitle: 'Shop Chemical Products - Momtazchem | Order Online',
+    shopDescription: 'Browse and purchase premium chemical products online. Fuel additives, water treatment chemicals, paint thinners, and agricultural fertilizers. Secure checkout, fast delivery across Iraq and beyond.',
+  };
   const queryClient = useQueryClient();
   const { isAuthenticated, user: authenticatedCustomer, logout: customerLogout } = useCustomerAuth();
     
@@ -870,8 +892,8 @@ const Shop = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <OpenGraphTags
-        title="Shop Chemical Products - Momtazchem | Order Online"
-        description="Browse and purchase premium chemical products online. Fuel additives, water treatment chemicals, paint thinners, and agricultural fertilizers. Secure checkout, fast delivery across Iraq and beyond."
+        title={shopCopy.shopTitle}
+        description={shopCopy.shopDescription}
         type="website"
         image="https://momtazchem.com/og-shop.jpg"
         locale="en_US"
@@ -904,7 +926,7 @@ const Shop = () => {
                     className="flex items-center gap-1 sm:gap-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2 sm:px-3 py-1 sm:py-2"
                   >
                     <User className="w-3 h-3 sm:w-4 sm:h-4" />
-                    <span className="text-xs sm:text-sm">Login</span>
+                    <span className="text-xs sm:text-sm">{shopCopy.login}</span>
                   </Button>
                   <span className="text-gray-400 text-xs sm:text-sm">/</span>
                   <Button 
@@ -916,7 +938,7 @@ const Shop = () => {
                     }}
                     className="flex items-center gap-1 sm:gap-2 text-green-600 hover:text-green-700 hover:bg-green-50 px-2 sm:px-3 py-1 sm:py-2"
                   >
-                    <span className="text-xs sm:text-sm">Register</span>
+                    <span className="text-xs sm:text-sm">{shopCopy.register}</span>
                   </Button>
                 </div>
               )}
@@ -980,7 +1002,7 @@ const Shop = () => {
                   disabled={getTotalItems() === 0}
                 >
                   <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
-                  <span className="hidden sm:inline">Cart</span> ({getTotalItems()})
+                  <span className="hidden sm:inline">{shopCopy.cart}</span> ({getTotalItems()})
                   {getTotalItems() > 0 && (
                     <div className="flex items-center gap-1 sm:gap-2">
                       <Badge variant="secondary" className="text-xs px-1 sm:px-2">
@@ -988,7 +1010,7 @@ const Shop = () => {
                       </Badge>
                       {getTotalSavings() > 0 && (
                         <Badge variant="default" className="bg-green-600 text-xs px-1 sm:px-2">
-                          <span className="hidden sm:inline">Save</span> {getTotalSavings().toFixed(0)}
+                          <span className="hidden sm:inline">{shopCopy.save}</span> {getTotalSavings().toFixed(0)}
                         </Badge>
                       )}
                     </div>
@@ -1235,11 +1257,11 @@ const Shop = () => {
                 <div className="col-span-full text-center py-12">
                   <div className="mb-4">
                     <Search className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500 text-lg mb-2">No products found matching your criteria</p>
-                    <p className="text-gray-400 text-sm">Try adjusting your search terms or clearing filters</p>
+                    <p className="text-gray-500 text-lg mb-2">{shopCopy.noProducts}</p>
+                    <p className="text-gray-400 text-sm">{shopCopy.adjustSearch}</p>
                   </div>
                   <Button variant="outline" onClick={clearFilters} className="mt-4">
-                    Clear all filters
+                    {shopCopy.clearFilters}
                   </Button>
                 </div>
               ) : (
@@ -1576,7 +1598,7 @@ const Shop = () => {
                                   <div className="flex items-center mb-1">
                                     <div className="flex items-center gap-1 sm:gap-2">
                                       <span className="text-sm sm:text-base">📦</span>
-                                      <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider">Bulk Purchase Discount</span>
+                                      <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider">{shopCopy.bulkDiscount}</span>
                                     </div>
                                   </div>
                                   {(() => {
@@ -2099,7 +2121,7 @@ const Shop = () => {
 
                                 <div className="flex flex-col gap-1">
                                   <Badge variant={product.inStock ? "secondary" : "destructive"}>
-                                    {product.inStock ? "In Stock" : "Out of Stock"}
+                                    {product.inStock ? t.shop.inStock : t.shop.outOfStock}
                                   </Badge>
                                   
 
@@ -2118,7 +2140,7 @@ const Shop = () => {
                                     <div className="relative z-20 p-3 h-full text-orange-800">
                                       <div className="flex items-center gap-2 mb-1">
                                         <span className="text-base">📦</span>
-                                        <span className="text-xs font-semibold uppercase tracking-wider">Bulk Purchase Discount</span>
+                                        <span className="text-xs font-semibold uppercase tracking-wider">{shopCopy.bulkDiscount}</span>
                                       </div>
                                       {(() => {
                                         const currentQty = getProductQuantity(product.id);
@@ -2159,7 +2181,7 @@ const Shop = () => {
                                               <div className="bg-orange-100/50 rounded-lg p-1.5 border border-orange-200/50">
                                                 <div className="flex items-center justify-center gap-1 text-xs">
                                                   <span className="font-bold text-orange-700">
-                                                    {getEffectiveDiscounts(product)[0]?.minQty}+ items: {((getEffectiveDiscounts(product)[0]?.discount || 0) * 100).toFixed(0)}% OFF
+                                                    {getEffectiveDiscounts(product)[0]?.minQty}+ {shopCopy.items}: {((getEffectiveDiscounts(product)[0]?.discount || 0) * 100).toFixed(0)}% {t.shop.off}
                                                   </span>
                                                 </div>
                                               </div>
@@ -2186,7 +2208,7 @@ const Shop = () => {
                                         <div className="flex items-center gap-3">
                                           <div className="flex items-center gap-2">
                                             <div className="w-3 h-3 bg-yellow-400 rounded-full shadow-lg animate-pulse"></div>
-                                            <span className="text-sm font-semibold uppercase tracking-wider">Volume Deals</span>
+                                            <span className="text-sm font-semibold uppercase tracking-wider">{shopCopy.volumeDeals}</span>
                                           </div>
                                           
                                           {/* Progress Bar */}

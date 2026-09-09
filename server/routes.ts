@@ -56037,8 +56037,9 @@ momtazchem.com
       const tag = req.query.tag as string;
       const language = (req.query.language as string) || "en";
 
-      // Validate language
-      if (language !== "en" && language !== "ar") {
+      // Persian and Turkish currently fall back to English when a dedicated
+      // translation has not yet been authored for a post.
+      if (!["en", "ar", "tr", "fa"].includes(language)) {
         return res.status(400).json({
           success: false,
           message: "اللغة غير صالحة / Invalid language parameter",
@@ -56064,7 +56065,7 @@ momtazchem.com
       // Get translations for each post
       const postsWithTranslation = await Promise.all(
         posts.map(async (post) => {
-          const [translation] = await db
+          const [requestedTranslation] = await db
             .select()
             .from(blogPostTranslations)
             .where(
@@ -56074,10 +56075,20 @@ momtazchem.com
               )
             )
             .limit(1);
+          const [englishTranslation] = requestedTranslation ? [] : await db
+            .select()
+            .from(blogPostTranslations)
+            .where(
+              and(
+                eq(blogPostTranslations.postId, post.id),
+                eq(blogPostTranslations.language, "en")
+              )
+            )
+            .limit(1);
 
           return {
             ...post,
-            translation,
+            translation: requestedTranslation || englishTranslation,
           };
         })
       );
@@ -56122,27 +56133,22 @@ momtazchem.com
       const slug = req.params.slug;
       const language = (req.query.language as string) || "en";
 
-      // Validate language
-      if (language !== "en" && language !== "ar") {
+      if (!["en", "ar", "tr", "fa"].includes(language)) {
         return res.status(400).json({
           success: false,
           message: "اللغة غير صالحة / Invalid language parameter",
         });
       }
 
-      // Find translation by slug
-      const [translation] = await db
+      // Resolve the post from any known language slug, then return the
+      // requested translation (or English until that translation is authored).
+      const [slugTranslation] = await db
         .select()
         .from(blogPostTranslations)
-        .where(
-          and(
-            eq(blogPostTranslations.slug, slug),
-            eq(blogPostTranslations.language, language)
-          )
-        )
+        .where(eq(blogPostTranslations.slug, slug))
         .limit(1);
 
-      if (!translation) {
+      if (!slugTranslation) {
         return res.status(404).json({
           success: false,
           message: "المقال غير موجود / Blog post not found",
@@ -56155,7 +56161,7 @@ momtazchem.com
         .from(blogPosts)
         .where(
           and(
-            eq(blogPosts.id, translation.postId),
+            eq(blogPosts.id, slugTranslation.postId),
             eq(blogPosts.status, "published")
           )
         )
@@ -56167,6 +56173,24 @@ momtazchem.com
           message: "المقال غير موجود / Blog post not found",
         });
       }
+
+      const [requestedTranslation] = await db
+        .select()
+        .from(blogPostTranslations)
+        .where(and(
+          eq(blogPostTranslations.postId, post.id),
+          eq(blogPostTranslations.language, language)
+        ))
+        .limit(1);
+      const [englishTranslation] = requestedTranslation ? [] : await db
+        .select()
+        .from(blogPostTranslations)
+        .where(and(
+          eq(blogPostTranslations.postId, post.id),
+          eq(blogPostTranslations.language, "en")
+        ))
+        .limit(1);
+      const translation = requestedTranslation || englishTranslation || slugTranslation;
 
       // Increment view count
       await db
@@ -56206,8 +56230,7 @@ momtazchem.com
       const language = (req.query.language as string) || "en";
       const limit = parseInt(req.query.limit as string) || 5;
 
-      // Validate language
-      if (language !== "en" && language !== "ar") {
+      if (!["en", "ar", "tr", "fa"].includes(language)) {
         return res.status(400).json({
           success: false,
           message: "اللغة غير صالحة / Invalid language parameter",
@@ -56252,7 +56275,7 @@ momtazchem.com
       // Get translations for related posts
       const relatedPostsWithTranslation = await Promise.all(
         relatedPosts.map(async (post) => {
-          const [translation] = await db
+          const [requestedTranslation] = await db
             .select()
             .from(blogPostTranslations)
             .where(
@@ -56262,10 +56285,20 @@ momtazchem.com
               )
             )
             .limit(1);
+          const [englishTranslation] = requestedTranslation ? [] : await db
+            .select()
+            .from(blogPostTranslations)
+            .where(
+              and(
+                eq(blogPostTranslations.postId, post.id),
+                eq(blogPostTranslations.language, "en")
+              )
+            )
+            .limit(1);
 
           return {
             ...post,
-            translation,
+            translation: requestedTranslation || englishTranslation,
           };
         })
       );

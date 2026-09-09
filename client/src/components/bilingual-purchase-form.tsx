@@ -19,7 +19,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { formatIQDAmount, displayCurrencyAmountWithSymbol } from "@/lib/currency-utils";
 
 // Language types
-type Language = 'en' | 'ar';
+type Language = 'en' | 'ar' | 'fa';
 
 // Translation system
 const translations = {
@@ -291,6 +291,119 @@ const translations = {
     vehicle: "مركبة",
     totalLoadWeight: "إجمالي وزن الحمولة:",
     totalCost: "التكلفة الإجمالية:",
+  },
+  fa: {
+    purchaseOrder: "سفارش خرید",
+    enterDetails: "اطلاعات خود را وارد کنید",
+    customerName: "نام مشتری",
+    deliveryPhone: "شماره تلفن تحویل",
+    deliveryAddress: "آدرس تحویل",
+    province: "استان",
+    city: "شهر",
+    postalCode: "کد پستی (اختیاری)",
+    selectProvince: "استان را انتخاب کنید",
+    selectCity: "شهر را انتخاب کنید",
+    selectProvinceFirst: "ابتدا استان را انتخاب کنید",
+    cityNotRegistered: "شهر ثبت نشده است",
+    gpsLocation: "موقعیت مکانی",
+    findLocation: "یافتن موقعیت من",
+    orderNotes: "یادداشت سفارش",
+    submitOrder: "ثبت سفارش",
+    cancel: "لغو",
+    loading: "در حال بارگذاری...",
+    cartManagement: "مدیریت سبد خرید",
+    each: "هر عدد",
+    subtotal: "جمع جزء:",
+    totalAmount: "مبلغ کل",
+    removeItem: "حذف کالا",
+    decreaseQuantity: "کاهش تعداد",
+    increaseQuantity: "افزایش تعداد",
+    nameRequired: "نام مشتری الزامی است",
+    phoneRequired: "شماره تلفن الزامی است",
+    addressRequired: "آدرس کامل تحویل الزامی است",
+    cityRequired: "شهر الزامی است",
+    namePlaceholder: "مثلاً: احمد علی",
+    phonePlaceholder: "شماره تلفن را وارد کنید",
+    addressPlaceholder: "آدرس کامل تحویل را وارد کنید",
+    cityPlaceholder: "نام شهر را وارد کنید",
+    postalCodePlaceholder: "اختیاری",
+    notesPlaceholder: "یادداشت‌های اضافی برای سفارش",
+    locationFound: "موقعیت با موفقیت پیدا شد",
+    locationError: "دریافت موقعیت ممکن نیست. لطفاً دستی وارد کنید.",
+    orderSubmitted: "سفارش با موفقیت ثبت شد",
+    orderError: "ثبت سفارش ناموفق بود",
+    switchLanguage: "العربية",
+    language: "زبان",
+    paymentMethod: "روش پرداخت",
+    walletPayment: "پرداخت از کیف پول",
+    traditionalPayment: "پرداخت سنتی",
+    walletBalance: "موجودی کیف پول",
+    useWalletFull: "پرداخت کامل از کیف پول",
+    useWalletPartial: "پرداخت بخشی از کیف پول",
+    walletAmount: "مبلغ از کیف پول",
+    remainingAmount: "مبلغ باقی‌مانده",
+    insufficientWallet: "موجودی کیف پول کافی نیست",
+    discountApplied: "تخفیف اعمال شد",
+    bankTransferGrace: "انتقال بانکی با مهلت پرداخت",
+    bankTransferWithDays: "انتقال بانکی با مهلت {days} روزه",
+    deliveryMethod: "روش تحویل",
+    selectDeliveryMethod: "روش تحویل را انتخاب کنید",
+    shippingCost: "هزینه ارسال",
+    freeShipping: "ارسال رایگان",
+    secondDeliveryAddress: "آدرس دوم تحویل",
+    addSecondAddress: "افزودن آدرس دوم",
+    removeSecondAddress: "حذف آدرس دوم",
+    secondAddressPlaceholder: "آدرس متفاوت تحویل را وارد کنید...",
+    secondAddressInstruction: "اگر آدرس تحویل با آدرس بالا متفاوت است، آدرس جدید را وارد کنید",
+    recipientMobileNumber: "شماره تلفن همراه گیرنده",
+    addRecipientMobile: "افزودن تلفن همراه گیرنده",
+    removeRecipientMobile: "حذف تلفن همراه گیرنده",
+    recipientMobilePlaceholder: "شماره تلفن همراه گیرنده را وارد کنید...",
+    recipientMobileInstruction: "اگر گیرنده شخص دیگری است، شماره تلفن همراه او را وارد کنید",
+    crmAddressDisabled: "آدرس پیش‌فرض (غیرفعال)",
+    crmPhoneDisabled: "تلفن پیش‌فرض (غیرفعال)",
+    defaultDeliveryAddress: "آدرس پیش‌فرض تحویل",
+    redirectingToFIB: "در حال انتقال به FIB",
+    redirectingToFIBDesc: "در حال انتقال شما به سامانه پرداخت FIB...",
+    redirectingToBank: "در حال انتقال به درگاه بانکی",
+    redirectingToBankDesc: "در حال انتقال شما به درگاه پرداخت بانکی...",
+    orderRegistered: "سفارش ثبت شد",
+    orderFullyPaidWallet: "سفارش شما با موفقیت ثبت و به‌طور کامل از کیف پول پرداخت شد. شماره سفارش:",
+    walletPaymentSuccess: "✅ پرداخت از کیف پول موفق بود",
+    orderFullyPaidAmount: "سفارش شما به مبلغ {amount} به‌طور کامل از کیف پول پرداخت شد",
+    onlinePaymentDisabled: "پرداخت آنلاین غیرفعال است",
+    bankGatewayUnavailable: "درگاه بانکی در حال حاضر در دسترس نیست. روش پرداخت دیگری انتخاب کنید.",
+    redirectingToPaymentGateway: "در حال انتقال به درگاه پرداخت",
+    redirectingToPaymentDesc: "در حال انتقال شما به درگاه پرداخت...",
+    orderAndReceiptRegistered: "✅ سفارش و رسید بانکی ثبت شد",
+    orderReceiptSuccess: "سفارش شما همراه با رسید بانکی با موفقیت ثبت شد",
+    pleaseUploadReceipt: "لطفاً رسید انتقال بانکی خود را بارگذاری کنید",
+    shipmentWeight: "وزن محموله:",
+    kilogram: "کیلوگرم",
+    subtotalWithoutShipping: "جمع (بدون هزینه ارسال)",
+    smartVehicleSelection: "انتخاب هوشمند خودرو - محاسبه خودکار بهترین گزینه",
+    smartVehicleLabel: "انتخاب هوشمند خودرو:",
+    smartVehicleDescription: "سامانه بهترین خودرو را بر اساس وزن، مقصد و کمترین هزینه انتخاب می‌کند",
+    selectedVehicle: "خودروی انتخاب‌شده:",
+    basePrice: "قیمت پایه:",
+    distanceCost: "هزینه مسافت:",
+    smartShippingCost: "هزینه ارسال هوشمند",
+    useWallet: "استفاده از کیف پول (حداکثر",
+    amountFromWallet: "مبلغ از کیف پول (حداکثر",
+    walletPaymentAmount: "مبلغ پرداخت از کیف پول",
+    walletLimit: "سقف کیف پول",
+    bankCardPayment: "پرداخت با کارت بانکی",
+    selfPickup: "تحویل حضوری - رایگان",
+    selfPickupLabel: "تحویل حضوری:",
+    free: "رایگان",
+    calculating: "در حال محاسبه...",
+    waitingForAddress: "در انتظار آدرس مقصد...",
+    selfPickupDescription: "کالاها را خودتان از محل شرکت تحویل می‌گیرید - بدون هزینه ارسال",
+    vehicles: "خودرو",
+    vehicleBreakdown: "جزئیات خودروهای انتخاب‌شده:",
+    vehicle: "خودرو",
+    totalLoadWeight: "وزن کل بار:",
+    totalCost: "هزینه کل:"
   }
 };
 
@@ -1564,8 +1677,8 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       // Handle bank transfer with grace period
       else if (paymentMethod === 'bank_transfer_grace') {
         toast({
-          title: `✅ سفارش با مهلت ${proformaDeadlineDays} روزه ثبت شد`,
-          description: `سفارش شما قفل شد. تا ${proformaDeadlineDays} روز آینده فیش واریزی خود را آپلود کنید`
+          title: language === 'en' ? `✅ Order registered with ${proformaDeadlineDays}-day grace period` : language === 'fa' ? `✅ سفارش با مهلت ${proformaDeadlineDays} روزه ثبت شد` : `✅ تم تسجيل الطلب مع مهلة ${proformaDeadlineDays} يوم`,
+          description: language === 'en' ? `Your order is locked. Upload your bank receipt within ${proformaDeadlineDays} days` : language === 'fa' ? `سفارش شما قفل شد. تا ${proformaDeadlineDays} روز آینده رسید بانکی خود را بارگذاری کنید` : `تم قفل طلبك. يرجى تحميل إيصال البنك خلال ${proformaDeadlineDays} أيام`
         });
         onOrderComplete();
       }
@@ -1584,8 +1697,8 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
         if (gatewayUrl) {
           toast({
             title: t.redirectingToBank || "انتقال به درگاه بانک",
-            description: language === 'ar' 
-              ? `مبلغ ${formatCurrency(response.walletAmountDeducted || walletBalance)} از کیف پول کسر شد. مبلغ باقیمانده: ${formatCurrency(remainingToPayBank)}`
+            description: language === 'ar' || language === 'fa'
+              ? `${language === 'fa' ? 'مبلغ' : 'مبلغ'} ${formatCurrency(response.walletAmountDeducted || walletBalance)} ${language === 'fa' ? 'از کیف پول کسر شد. مبلغ باقی‌مانده:' : 'من کیف پول کسر شد. المبلغ المتبقي:'} ${formatCurrency(remainingToPayBank)}`
               : `Wallet deducted: ${formatCurrency(response.walletAmountDeducted || walletBalance)}. Remaining: ${formatCurrency(remainingToPayBank)}`
           });
           
@@ -1597,8 +1710,8 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
           // No gateway URL but partial payment needed - show error
           toast({
             title: t.onlinePaymentDisabled || "درگاه پرداخت در دسترس نیست",
-            description: language === 'ar' 
-              ? "سفارش ثبت شد. لطفاً مبلغ باقیمانده را از طریق کارت به کارت پرداخت کنید"
+            description: language === 'ar' || language === 'fa'
+              ? language === 'fa' ? "سفارش ثبت شد. لطفاً مبلغ باقی‌مانده را از طریق انتقال بانکی پرداخت کنید" : "تم تسجيل الطلب. يرجى دفع المبلغ المتبقي عبر التحويل البنكي"
               : "Order registered. Please pay the remaining amount via bank transfer",
             variant: "destructive"
           });
@@ -1609,8 +1722,8 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       // Handle bank transfer - redirect to payment gateway  
       else if (response.paymentMethod === 'bank_transfer' || (paymentMethod !== 'wallet' && paymentMethod !== 'wallet_full' && paymentMethod !== 'wallet_partial' && paymentMethod !== 'wallet_combined' && paymentMethod !== 'online_payment' && paymentMethod !== 'bank_transfer_grace' && paymentMethod !== 'bank_receipt')) {
         toast({
-          title: "انتقال به درگاه بانک",
-          description: "در حال هدایت شما به درگاه پرداخت بانکی..."
+          title: t.redirectingToBank,
+          description: t.redirectingToBankDesc
         });
         
         // Redirect to bank payment gateway
@@ -1623,7 +1736,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       else {
         toast({
           title: t.orderSubmitted,
-          description: "سفارش شما با موفقیت ثبت شد"
+          description: t.orderSubmitted
         });
         onOrderComplete();
       }
@@ -1635,7 +1748,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       const errorMessage = error.message || t.orderError;
       
       toast({
-        title: 'خطا در ثبت سفارش',
+        title: t.orderError,
         description: errorMessage,
         variant: "destructive"
       });
@@ -1655,8 +1768,8 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     if (!selectedShippingMethod) {
       console.log('🚀 [SUBMIT DEBUG] Shipping method validation failed');
       toast({
-        title: language === 'ar' ? "روش ارسال اجباری است" : "Shipping method is required",
-        description: language === 'ar' ? "لطفاً روش ارسال را انتخاب کنید" : "Please select a shipping method",
+          title: language === 'fa' ? "انتخاب روش ارسال الزامی است" : language === 'ar' ? "طريقة الشحن مطلوبة" : "Shipping method is required",
+          description: language === 'fa' ? "لطفاً یک روش ارسال انتخاب کنید" : language === 'ar' ? "يرجى اختيار طريقة الشحن" : "Please select a shipping method",
         variant: "destructive"
       });
       return;
@@ -1820,7 +1933,8 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
 
   return (
     <div className="fixed inset-0 bg-black/20 z-40 pointer-events-none">
-      <Card 
+        <Card
+         dir={direction}
         ref={formRef}
         className={`w-full max-w-2xl max-h-[90vh] overflow-y-auto ${isRTL ? 'rtl' : 'ltr'} absolute cursor-move ${isDragging ? 'select-none' : ''} pointer-events-auto z-50 shadow-2xl`}
         style={{
@@ -1935,7 +2049,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                             }
                           }}
                           className="h-7 w-16 text-center text-sm font-medium px-1 py-0"
-                          title="تغییر مستقیم تعداد"
+                          title={language === 'en' ? 'Change quantity directly' : language === 'fa' ? 'تغییر مستقیم تعداد' : 'تغيير الكمية مباشرة'}
                         />
                         
                         <Button
@@ -1968,7 +2082,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                     {/* Item Total with discount info */}
                     <div className="mt-2 pt-2 border-t space-y-1">
                       <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Item Total</span>
+                        <span className="text-sm text-muted-foreground">{language === 'en' ? 'Item Total' : language === 'fa' ? 'مجموع کالا' : 'إجمالي العنصر'}</span>
                         <span className="font-medium">{formatCurrency(itemTotal)}</span>
                       </div>
                       {discountedPrice < basePrice && (
@@ -2018,11 +2132,11 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                 {isLoadingShippingRates ? (
                   <div className="text-sm text-muted-foreground flex items-center gap-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                    {language === 'en' ? 'Loading shipping methods...' : language === 'ar' ? 'جارٍ تحميل طرق الشحن...' : 'جارٍ تحميل طرق الشحن...'}
+                    {language === 'en' ? 'Loading shipping methods...' : language === 'fa' ? 'در حال بارگذاری روش‌های ارسال...' : 'جارٍ تحميل طرق الشحن...'}
                   </div>
                 ) : shippingRatesError ? (
                   <div className="text-sm text-red-600 bg-red-50 dark:bg-red-900/20 rounded-lg p-2 border border-red-200 dark:border-red-800">
-                    {language === 'en' ? 'Failed to load shipping methods. Please refresh page.' : language === 'ar' ? 'فشل تحميل طرق الشحن. يرجى إعادة تحميل الصفحة.' : 'فشل تحميل طرق الشحن. يرجى إعادة تحميل الصفحة.'}
+                    {language === 'en' ? 'Failed to load shipping methods. Please refresh page.' : language === 'fa' ? 'بارگذاری روش‌های ارسال ناموفق بود. لطفاً صفحه را تازه‌سازی کنید.' : 'فشل تحميل طرق الشحن. يرجى إعادة تحميل الصفحة.'}
                   </div>
                 ) : shippingRatesData && shippingRatesData.length > 0 ? (
                   <div className="space-y-2">
@@ -2056,7 +2170,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                         if (rate.deliveryMethod === 'freight_collect' || rate.delivery_method === 'freight_collect') {
                           return (
                             <option key={rate.id} value={rate.id} style={{backgroundColor: '#fed7aa', color: '#c2410c'}}>
-                              🚚 {language === 'en' ? 'Freight Collect' : 'الشحن عند التسليم'} - {language === 'en' ? 'Pay upon delivery' : 'الدفع عند الاستلام'}
+                              🚚 {language === 'en' ? 'Freight Collect' : language === 'fa' ? 'کرایه در مقصد' : 'الشحن عند التسليم'} - {language === 'en' ? 'Pay upon delivery' : language === 'fa' ? 'پرداخت هنگام تحویل' : 'الدفع عند الاستلام'}
                             </option>
                           );
                         }
@@ -2068,7 +2182,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                         return (
                           <option key={rate.id} value={rate.id}>
                             {rate.deliveryMethod || rate.delivery_method || rate.name} - {qualifiesForFreeShipping ? t.freeShipping : formatCurrency(parseFloat(rate.basePrice || rate.base_price || '0'))}
-                            {rate.estimatedDays && ` (${rate.estimatedDays} ${language === 'en' ? 'days' : language === 'ar' ? 'أيام' : 'أيام'})`}
+                            {rate.estimatedDays && ` (${rate.estimatedDays} ${language === 'en' ? 'days' : language === 'fa' ? 'روز' : 'أيام'})`}
                           </option>
                         );
                       })}
@@ -2173,11 +2287,11 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                             return (
                               <div className="space-y-2">
                                 <div className="flex justify-between items-center text-sm">
-                                  <span className="text-orange-700 font-medium">🚚 {language === 'en' ? 'Freight Collect' : 'الشحن عند التسليم'}</span>
-                                  <span className="font-bold text-orange-800">{language === 'en' ? 'Pay upon delivery' : 'الدفع عند الاستلام'}</span>
+                                  <span className="text-orange-700 font-medium">🚚 {language === 'en' ? 'Freight Collect' : language === 'fa' ? 'کرایه در مقصد' : 'الشحن عند التسليم'}</span>
+                                  <span className="font-bold text-orange-800">{language === 'en' ? 'Pay upon delivery' : language === 'fa' ? 'پرداخت هنگام تحویل' : 'الدفع عند الاستلام'}</span>
                                 </div>
                                 <div className="text-xs text-orange-600 bg-orange-50 p-2 rounded border border-orange-200">
-                                  ✓ {language === 'en' ? 'Shipping cost will be paid upon delivery by the customer' : 'سيتم دفع تكلفة الشحن عند التسليم من قبل العميل'}
+                                  ✓ {language === 'en' ? 'Shipping cost will be paid upon delivery by the customer' : language === 'fa' ? 'هزینه ارسال هنگام تحویل توسط مشتری پرداخت می‌شود' : 'سيتم دفع تكلفة الشحن عند التسليم من قبل العميل'}
                                 </div>
                               </div>
                             );
@@ -2197,7 +2311,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                                 if (freeShippingThreshold > 0 && subtotalAmount >= freeShippingThreshold) {
                                   return (
                                     <div className="text-xs text-green-600 dark:text-green-400 mt-1">
-                                      ✓ {language === 'en' ? 'Free shipping for orders over' : language === 'ar' ? 'شحن مجاني للطلبات فوق' : 'شحن مجاني للطلبات فوق'} {formatCurrency(freeShippingThreshold)}
+                                      ✓ {language === 'en' ? 'Free shipping for orders over' : language === 'fa' ? 'ارسال رایگان برای سفارش‌های بیش از' : 'شحن مجاني للطلبات فوق'} {formatCurrency(freeShippingThreshold)}
                                     </div>
                                   );
                                 }
@@ -2211,7 +2325,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                   </div>
                 ) : (
                   <div className="text-sm text-amber-600 bg-amber-50 dark:bg-amber-900/20 rounded-lg p-2 border border-amber-200 dark:border-amber-800">
-                    {language === 'en' ? 'No shipping methods available at the moment.' : language === 'ar' ? 'لا توجد طرق شحن متاحة في الوقت الحالي.' : 'لا توجد طرق شحن متاحة في الوقت الحالي.'}
+                    {language === 'en' ? 'No shipping methods available at the moment.' : language === 'fa' ? 'در حال حاضر روش ارسالی در دسترس نیست.' : 'لا توجد طرق شحن متاحة في الوقت الحالي.'}
                   </div>
                 )}
               </div>
@@ -2235,7 +2349,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                       
                       // Handle freight_collect display  
                       if (selectedRate && (selectedRate.deliveryMethod === 'freight_collect' || selectedRate.delivery_method === 'freight_collect')) {
-                        return `🚚 ${language === 'en' ? 'Freight Collect' : 'الشحن عند التسليم'}`;
+                        return `🚚 ${language === 'en' ? 'Freight Collect' : language === 'fa' ? 'کرایه در مقصد' : 'الشحن عند التسليم'}`;
                       }
                       
                       return selectedRate?.name || t.deliveryMethod;
@@ -2269,7 +2383,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
               
               {/* Final Amount */}
               <div className="flex justify-between font-bold text-lg border-t pt-2 bg-yellow-300 px-2 py-2 rounded-lg">
-                <span>Final Amount</span>
+                <span>{language === 'en' ? 'Final Amount' : language === 'fa' ? 'مبلغ نهایی' : 'المبلغ النهائي'}</span>
                 <span className="text-gray-900">{formatCurrency(totalAmount)}</span>
               </div>
             </div>
@@ -2312,7 +2426,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                         <RadioGroupItem value="fib_online" id="fib_online" data-testid="radio-fib-online" />
                         <Label htmlFor="fib_online" className="flex items-center gap-2 cursor-pointer">
                           <CreditCard className="w-4 h-4 text-green-600" />
-                          <span className="font-semibold">{language === 'ar' ? method.methodName : method.methodNameEn}</span>
+                          <span className="font-semibold">{language === 'ar' ? method.methodName : language === 'fa' ? method.methodName : method.methodNameEn}</span>
                         </Label>
                       </div>
                     );
@@ -2381,8 +2495,8 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                         const value = parseFloat(e.target.value) || 0;
                         setWalletAmount(Math.min(value, Math.min(walletBalance, totalAmount)));
                       }}
-                      placeholder="مقدار دلخواه از کیف پول"
-                      className="text-right"
+                      placeholder={language === 'en' ? 'Enter wallet amount' : language === 'fa' ? 'مبلغ دلخواه از کیف پول' : 'أدخل المبلغ من المحفظة'}
+                      className={isRTL ? 'text-right' : 'text-left'}
                     />
                   </div>
                   
@@ -2393,7 +2507,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                         <tbody>
                           {/* Final Amount Row */}
                           <tr className="border-b">
-                            <td className="px-4 py-3 text-right font-medium bg-gray-50">Final Amount</td>
+                            <td className="px-4 py-3 text-right font-medium bg-gray-50">{language === 'en' ? 'Final Amount' : language === 'fa' ? 'مبلغ نهایی' : 'المبلغ النهائي'}</td>
                             <td className="px-4 py-3 text-center font-bold">{formatIQDAmount(totalAmount)}</td>
                             <td className="px-4 py-3 bg-gray-50"></td>
                             <td className="px-4 py-3 bg-gray-50"></td>
@@ -2426,15 +2540,15 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                 <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 border border-green-200 dark:border-green-800">
                   <div className="space-y-1 text-sm">
                     <div className="flex justify-between">
-                      <span>مبلغ کل:</span>
+                       <span>{language === 'en' ? 'Total amount:' : language === 'fa' ? 'مبلغ کل:' : 'المبلغ الإجمالي:'}</span>
                       <span>{formatCurrency(totalAmount)}</span>
                     </div>
                     <div className="flex justify-between text-green-600">
-                      <span>پرداخت از والت:</span>
+                       <span>{language === 'en' ? 'Paid from wallet:' : language === 'fa' ? 'پرداخت از کیف پول:' : 'الدفع من المحفظة:'}</span>
                       <span>-{formatCurrency(paymentMethod === 'wallet_full' ? totalAmount : walletAmount)}</span>
                     </div>
                     <div className="flex justify-between font-medium border-t pt-1">
-                      <span>مبلغ باقیمانده:</span>
+                       <span>{language === 'en' ? 'Remaining amount:' : language === 'fa' ? 'مبلغ باقی‌مانده:' : 'المبلغ المتبقي:'}</span>
                       <span>{formatCurrency(paymentMethod === 'wallet_full' ? 0 : Math.max(0, totalAmount - walletAmount))}</span>
                     </div>
                   </div>
@@ -2531,7 +2645,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                         <p className={`text-sm ${
                           isPrimaryAddressDisabled ? 'text-gray-500' : 'text-green-700'
                         }`}>
-                          {crmCustomerData?.address || 'آدرس ثبت نشده'}
+                          {crmCustomerData?.address || (language === 'en' ? 'Address not registered' : language === 'fa' ? 'آدرس ثبت نشده' : 'العنوان غير مسجل')}
                         </p>
                         <div className="flex items-center gap-4 mt-2">
                           <p className={`text-xs ${

@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useLocation, useParams } from "wouter";
 import { format } from "date-fns";
-import { ar } from "date-fns/locale";
+import { ar, faIR } from "date-fns/locale";
 import { marked } from "marked";
 import { motion } from "framer-motion";
 import {
@@ -49,6 +49,12 @@ export default function BlogPost() {
   const { t, language, direction } = useLanguage();
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const pageCopy = {
+    en: { blog: "Blog", author: "Author", helpful: "Did you find this article helpful?", authorBio: "Chemical industry expert and content creator at Momtazchem" },
+    ar: { blog: "المدونة", author: "الكاتب", helpful: "هل وجدت هذه المقالة مفيدة؟", authorBio: "خبير في الصناعات الكيميائية وصانع محتوى في Momtazchem" },
+    tr: { blog: "Blog", author: "Yazar", helpful: "Bu makaleyi faydalı buldunuz mu?", authorBio: "Momtazchem'de kimya sektörü uzmanı ve içerik üreticisi" },
+    fa: { blog: "بلاگ", author: "نویسنده", helpful: "آیا این مقاله برای شما مفید بود؟", authorBio: "کارشناس صنایع شیمیایی و تولیدکننده محتوا در ممتازکم" },
+  }[language];
   const [activeHeading, setActiveHeading] = useState<string>("");
 
   useEffect(() => {
@@ -130,8 +136,8 @@ export default function BlogPost() {
     if (!dateString) return '';
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return '';
-    if (language === 'ar') {
-      return format(date, 'dd MMMM yyyy', { locale: ar });
+    if (language === 'ar' || language === 'fa') {
+      return format(date, 'dd MMMM yyyy', { locale: language === 'fa' ? faIR : ar });
     }
     return format(date, 'MMMM dd, yyyy');
   };
@@ -306,7 +312,7 @@ export default function BlogPost() {
             <div className="mb-8">
               <Breadcrumbs
                 items={[
-                  { label: 'Blog', href: '/blog' },
+                  { label: pageCopy.blog, href: '/blog' },
                   { label: post.title },
                 ]}
                 className="text-white/80"
@@ -345,7 +351,7 @@ export default function BlogPost() {
                 </div>
                 <div>
                   <div className="font-semibold">{post.authorName || 'Momtazchem'}</div>
-                  <div className="text-sm text-white/70">{t.blog.by} Author</div>
+                  <div className="text-sm text-white/70">{t.blog.by} {pageCopy.author}</div>
                 </div>
               </div>
 
@@ -448,7 +454,7 @@ export default function BlogPost() {
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <Heart className="h-6 w-6 text-red-500" />
-                  <span className="text-slate-700 dark:text-slate-300">Did you find this article helpful?</span>
+                  <span className="text-slate-700 dark:text-slate-300">{pageCopy.helpful}</span>
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -533,7 +539,7 @@ export default function BlogPost() {
                 </div>
                 <h3 className="font-bold text-xl mt-4">{post.authorName || 'Momtazchem'}</h3>
                 <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
-                  Chemical industry expert and content creator at Momtazchem
+                  {pageCopy.authorBio}
                 </p>
               </CardContent>
             </Card>
@@ -553,8 +559,8 @@ export default function BlogPost() {
                       <button
                         key={item.id}
                         onClick={() => scrollToHeading(item.id)}
-                        className={`block w-full text-left text-sm py-2 px-3 rounded-lg transition-all duration-200 ${
-                          item.level === 3 ? 'pl-6' : ''
+                        className={`block w-full ${direction === 'rtl' ? 'text-right' : 'text-left'} text-sm py-2 px-3 rounded-lg transition-all duration-200 ${
+                          item.level === 3 ? (direction === 'rtl' ? 'pr-6' : 'pl-6') : ''
                         } ${
                           activeHeading === item.id
                             ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-medium'

@@ -28,12 +28,49 @@ const Contact = () => {
   const { toast } = useMultilingualToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { language, t, direction } = useLanguage();
+  const fa = language === 'fa';
+  const copy = fa ? {
+    seoTitle: 'تماس با ممتازکم | پشتیبانی و مشاوره تخصصی مواد شیمیایی',
+    seoDescription: 'برای استعلام محصولات شیمیایی، پشتیبانی فنی، دریافت قیمت و مشاوره تخصصی با ممتازکم تماس بگیرید.',
+    heroTitle: 'با ما در تماس باشید',
+    heroSubtitle: 'برای بررسی نیازهای شیمیایی مجموعه خود آماده‌اید؟ کارشناسان ما برای یافتن بهترین راهکار متناسب با صنعت شما همراهتان هستند.',
+    formTitle: 'برای ما پیام بفرستید',
+    headquarters: 'دفتر مرکزی',
+    companyName: 'شرکت ممتازکم',
+    erbil: 'اربیل',
+    facility: 'مجموعه تولید مواد شیمیایی',
+    phoneTitle: 'تلفن و واتساپ',
+    whatsappAvailable: 'پاسخ‌گویی در واتساپ',
+    email: 'ایمیل',
+    hours: 'ساعات کاری',
+    weekdays: 'دوشنبه تا جمعه: ۸ صبح تا ۶ عصر',
+    saturday: 'شنبه: ۹ صبح تا ۱ بعدازظهر',
+    careers: 'فرصت‌های شغلی',
+    joinTeam: 'به تیم در حال رشد ما بپیوندید',
+    careerRoles1: 'مهندسان شیمی و کارشناسان آزمایشگاه',
+    careerRoles2: 'کارشناسان فروش و کنترل کیفیت',
+    whatsapp: 'واتساپ',
+    mapTitle: 'موقعیت ممتازکم در اربیل',
+    region: 'اربیل، اقلیم کردستان، عراق',
+  } : {
+    seoTitle: 'Contact Momtazchem - Get Expert Chemical Solutions Support',
+    seoDescription: 'Reach out to Momtazchem for chemical product inquiries, technical support, quotes, and consultations. Available 24/7. Email, phone, and office locations in Iraq and worldwide.',
+    heroTitle: 'Get In Touch', heroSubtitle: 'Ready to discuss your chemical solution needs? Our team of experts is here to help you find the perfect solution for your industry.',
+    formTitle: 'Send Us a Message', headquarters: 'Headquarters', companyName: 'Momtazchem Company',
+    erbil: 'Erbil', facility: 'Chemical Manufacturing Facility', phoneTitle: 'Phone & WhatsApp',
+    whatsappAvailable: 'Available on WhatsApp', email: 'Email', hours: 'Business Hours',
+    weekdays: 'Monday - Friday: 8:00 AM - 6:00 PM', saturday: 'Saturday: 9:00 AM - 1:00 PM',
+    careers: 'Career Opportunities', joinTeam: 'Join our growing team',
+    careerRoles1: 'Chemical Engineers, Lab Technicians', careerRoles2: 'Sales Representatives, Quality Control',
+    whatsapp: 'WhatsApp', mapTitle: 'Momtazchem Location - Erbil', region: 'Erbil, Kurdistan Region, Iraq',
+  };
 
   // Map language codes to content management language codes
   const getLanguageCode = () => {
     switch(language) {
       case 'ar': return 'ar';
       case 'ku': return 'ku';
+      case 'fa': return 'fa';
       default: return 'en';
     }
   };
@@ -102,27 +139,27 @@ const Contact = () => {
   const contactInfo = [
     {
       icon: <MapPin className="h-6 w-6 text-white" />,
-      title: getContent('address_title', 'Headquarters'),
+       title: getContent('address_title', copy.headquarters),
       content: [
-        getContent('address_line1', 'Momtazchem Company'),
-        getContent('address_line2', 'Erbil'),
-        getContent('address_line3', 'Chemical Manufacturing Facility')
+         getContent('address_line1', copy.companyName),
+         getContent('address_line2', copy.erbil),
+         getContent('address_line3', copy.facility)
       ],
       bgColor: "bg-primary-blue",
       link: getContent('address_map_link', 'https://maps.app.goo.gl/umCmoKpmaovSkTJ96')
     },
     {
       icon: <Phone className="h-6 w-6 text-white" />,
-      title: getContent('phone_title', 'Phone & WhatsApp'),
+       title: getContent('phone_title', copy.phoneTitle),
       content: [
         getContent('phone_number', '+9647709996771'),
-        getContent('phone_availability', 'Available on WhatsApp')
+         getContent('phone_availability', copy.whatsappAvailable)
       ],
       bgColor: "bg-primary-green"
     },
     {
       icon: <Mail className="h-6 w-6 text-white" />,
-      title: getContent('email_title', 'Email'),
+       title: getContent('email_title', copy.email),
       content: [
         getContent('email_info', 'info@momtazchem.com'),
         getContent('email_sales', 'sales@momtazchem.com'),
@@ -132,20 +169,20 @@ const Contact = () => {
     },
     {
       icon: <Clock className="h-6 w-6 text-white" />,
-      title: getContent('hours_title', 'Business Hours'),
+       title: getContent('hours_title', copy.hours),
       content: [
-        getContent('hours_weekdays', 'Monday - Friday: 8:00 AM - 6:00 PM'),
-        getContent('hours_saturday', 'Saturday: 9:00 AM - 1:00 PM')
+         getContent('hours_weekdays', copy.weekdays),
+         getContent('hours_saturday', copy.saturday)
       ],
       bgColor: "bg-primary-blue"
     },
     {
       icon: <Briefcase className="h-6 w-6 text-white" />,
-      title: getContent('career_title', 'Career Opportunities'),
+       title: getContent('career_title', copy.careers),
       content: [
-        getContent('career_line1', 'Join our growing team'),
-        getContent('career_line2', 'Chemical Engineers, Lab Technicians'),
-        getContent('career_line3', 'Sales Representatives, Quality Control')
+         getContent('career_line1', copy.joinTeam),
+         getContent('career_line2', copy.careerRoles1),
+         getContent('career_line3', copy.careerRoles2)
       ],
       bgColor: "bg-green-600",
       link: getContent('career_email', 'mailto:careers@momtazchem.com')
@@ -155,8 +192,8 @@ const Contact = () => {
   return (
     <div className="pt-20" dir={direction}>
       <OpenGraphTags
-        title="Contact Momtazchem - Get Expert Chemical Solutions Support"
-        description="Reach out to Momtazchem for chemical product inquiries, technical support, quotes, and consultations. Available 24/7. Email, phone, and office locations in Iraq and worldwide."
+        title={copy.seoTitle}
+        description={copy.seoDescription}
         type="website"
         image="https://momtazchem.com/og-contact.jpg"
         locale="en_US"
@@ -168,10 +205,10 @@ const Contact = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              {getContent('hero_title', 'Get In Touch')}
+              {getContent('hero_title', copy.heroTitle)}
             </h1>
             <p className="text-xl max-w-3xl mx-auto">
-              {getContent('hero_subtitle', 'Ready to discuss your chemical solution needs? Our team of experts is here to help you find the perfect solution for your industry.')}
+              {getContent('hero_subtitle', copy.heroSubtitle)}
             </p>
           </div>
         </div>
@@ -184,7 +221,7 @@ const Contact = () => {
             {/* Contact Form */}
             <div className="bg-gray-50 rounded-2xl p-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                {getContent('form_title', 'Send Us a Message')}
+                 {getContent('form_title', copy.formTitle)}
               </h2>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -310,14 +347,14 @@ const Contact = () => {
                 <div className="space-y-6">
                   {contactInfo.map((info, index) => (
                     <div key={index} className="flex items-start">
-                      <div className={`w-12 h-12 ${info.bgColor} rounded-lg flex items-center justify-center mr-4 flex-shrink-0`}>
+                      <div className={`w-12 h-12 ${info.bgColor} rounded-lg flex items-center justify-center ${direction === 'rtl' ? 'ml-4' : 'mr-4'} flex-shrink-0`}>
                         {info.icon}
                       </div>
                       <div>
                         <h3 className="font-semibold text-gray-900 mb-1">{info.title}</h3>
                         {info.content.map((line, lineIndex) => (
                           <div key={lineIndex} className="text-gray-600">
-                            {info.title === "Phone & WhatsApp" ? (
+                            {index === 1 ? (
                               line.includes("+9647709996771") ? (
                                 <div className="flex items-center gap-2">
                                   <a 
@@ -333,27 +370,27 @@ const Contact = () => {
                                     className="inline-flex items-center px-3 py-1 text-sm bg-green-600 text-white rounded-full hover:bg-green-700 transition-colors duration-200"
                                   >
                                     <i className="fab fa-whatsapp mr-1"></i>
-                                    WhatsApp
+                                    {copy.whatsapp}
                                   </a>
                                 </div>
                               ) : (
                                 <span>{line}</span>
                               )
-                            ) : info.title === "Email" ? (
+                            ) : index === 2 ? (
                               <a 
                                 href={`mailto:${line}`}
                                 className="hover:text-primary transition-colors duration-200 cursor-pointer"
                               >
                                 {line}
                               </a>
-                            ) : info.title === "Career Opportunities" && info.link ? (
+                            ) : index === 4 && info.link ? (
                               <a 
                                 href={info.link}
                                 className="hover:text-primary transition-colors duration-200 cursor-pointer"
                               >
                                 {line}
                               </a>
-                            ) : info.title === "Headquarters" && info.link ? (
+                            ) : index === 0 && info.link ? (
                               <a 
                                 href={info.link}
                                 target="_blank"
@@ -413,7 +450,7 @@ const Contact = () => {
                   allowFullScreen
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
-                  title="Momtazchem Location - Erbil"
+                  title={copy.mapTitle}
                 ></iframe>
 
                 
@@ -421,10 +458,10 @@ const Contact = () => {
                   <div className="flex items-center space-x-3">
                     <MapPin className="h-6 w-6 text-red-500" />
                     <div>
-                      <h3 className="font-semibold text-gray-900">Momtazchem Company</h3>
-                      <p className="text-sm text-gray-600">Chemical Manufacturing Facility</p>
+                       <h3 className="font-semibold text-gray-900">{copy.companyName}</h3>
+                       <p className="text-sm text-gray-600">{copy.facility}</p>
                       <p className="text-xs text-gray-500">36.1578°N, 43.8822°E</p>
-                      <p className="text-xs text-gray-400">Erbil, Kurdistan Region, Iraq</p>
+                       <p className="text-xs text-gray-400">{copy.region}</p>
                       <a
                         href="https://maps.app.goo.gl/umCmoKpmaovSkTJ96"
                         target="_blank"
@@ -441,8 +478,8 @@ const Contact = () => {
             <div className="p-6 bg-white">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Momtazchem Headquarters</h3>
-                  <p className="text-gray-600">Erbil</p>
+                   <h3 className="text-lg font-semibold text-gray-900 mb-2">{fa ? 'دفتر مرکزی ممتازکم' : 'Momtazchem Headquarters'}</h3>
+                   <p className="text-gray-600">{copy.erbil}</p>
                 </div>
                 <a
                   href="https://maps.app.goo.gl/ngapesxcH4XiT4L26"

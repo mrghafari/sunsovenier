@@ -181,7 +181,7 @@ const Footer = () => {
                               alt="WeChat QR Code" 
                               className="w-24 h-24"
                             />
-                            <p className="text-xs text-gray-600 text-center mt-1">Scan for WeChat</p>
+                            <p className="text-xs text-gray-600 text-center mt-1">{language === 'fa' ? 'اسکن برای وی‌چت' : 'Scan for WeChat'}</p>
                           </div>
                         </div>
                       );
@@ -209,7 +209,7 @@ const Footer = () => {
           {/* Products Links - Compact */}
           {footerSettings?.showLinks && productLinks.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold mb-3">Products</h3>
+              <h3 className="text-sm font-semibold mb-3">{language === 'fa' ? 'محصولات' : 'Products'}</h3>
               <ul className="space-y-2">
                 {productLinks.slice(0, 4).map((link, index) => (
                   <li key={index}>
@@ -227,7 +227,7 @@ const Footer = () => {
           {/* Company Links - Compact */}
           {footerSettings?.showLinks && companyLinks.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold mb-3">Company</h3>
+              <h3 className="text-sm font-semibold mb-3">{language === 'fa' ? 'شرکت' : 'Company'}</h3>
               <ul className="space-y-2">
                 {companyLinks.slice(0, 4).map((link, index) => (
                   <li key={index}>
@@ -245,7 +245,7 @@ const Footer = () => {
           {/* Support Links - Compact */}
           {footerSettings?.showLinks && supportLinks.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold mb-3">Support</h3>
+              <h3 className="text-sm font-semibold mb-3">{language === 'fa' ? 'پشتیبانی' : 'Support'}</h3>
               <ul className="space-y-2">
                 {supportLinks.slice(0, 4).map((link, index) => (
                   <li key={index}>
@@ -263,20 +263,20 @@ const Footer = () => {
           {/* Vendor Links - Static */}
           <div>
             <h3 className="text-sm font-semibold mb-3">
-              {language === 'ar' ? 'للبائعين' : language === 'ku' ? 'بۆ فرۆشیاران' : language === 'tr' ? 'Satıcılar İçin' : 'For Vendors'}
+              {language === 'fa' ? 'برای فروشندگان' : language === 'ar' ? 'للبائعين' : language === 'ku' ? 'بۆ فرۆشیاران' : language === 'tr' ? 'Satıcılar İçin' : 'For Vendors'}
             </h3>
             <ul className="space-y-2">
               <li>
                 <Link href="/vendor-registration">
                   <span className="text-gray-400 hover:text-white transition-colors duration-200 cursor-pointer text-sm">
-                    {language === 'ar' ? 'انضم كبائع' : language === 'ku' ? 'وەکو فرۆشیار بەشداری بکە' : language === 'tr' ? 'Satıcı Olun' : 'Become a Vendor'}
+                    {language === 'fa' ? 'ثبت‌نام فروشنده' : language === 'ar' ? 'انضم كبائع' : language === 'ku' ? 'وەکو فرۆشیار بەشداری بکە' : language === 'tr' ? 'Satıcı Olun' : 'Become a Vendor'}
                   </span>
                 </Link>
               </li>
               <li>
                 <Link href="/vendor/login">
                   <span className="text-gray-400 hover:text-white transition-colors duration-200 cursor-pointer text-sm">
-                    {language === 'ar' ? 'تسجيل دخول البائع' : language === 'ku' ? 'چوونەژوورەوەی فرۆشیار' : language === 'tr' ? 'Satıcı Girişi' : 'Vendor Login'}
+                    {language === 'fa' ? 'ورود فروشنده' : language === 'ar' ? 'تسجيل دخول البائع' : language === 'ku' ? 'چوونەژوورەوەی فرۆشیار' : language === 'tr' ? 'Satıcı Girişi' : 'Vendor Login'}
                   </span>
                 </Link>
               </li>
@@ -290,7 +290,7 @@ const Footer = () => {
             
             {/* Copyright */}
             <div className="text-gray-400 text-xs">
-              {footerSettings?.copyrightText || '© 2025 Momtazchem. All rights reserved.'}
+              {footerSettings?.copyrightText || (language === 'fa' ? '© ۲۰۲۵ ممتازکم. تمامی حقوق محفوظ است.' : '© 2025 Momtazchem. All rights reserved.')}
             </div>
             
             {/* Legal Links */}
@@ -310,7 +310,7 @@ const Footer = () => {
             <div className="text-gray-400 text-sm text-center md:text-right">
               {footerSettings?.additionalInfo || (
                 <>
-                  Design by{" "}
+                  {language === 'fa' ? 'طراحی توسط' : 'Design by'}{" "}
                   <a 
                     href="https://wa.me/358411546489" 
                     target="_blank" 
