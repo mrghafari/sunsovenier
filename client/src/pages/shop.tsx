@@ -232,6 +232,32 @@ const Shop = () => {
   };
 
   const highestDiscountPercentage = getHighestDiscount();
+  const discountBannerCopy = {
+    en: {
+      title: 'MAXIMIZE YOUR SAVINGS!',
+      message: `Buy more, save more! Up to ${highestDiscountPercentage}% OFF on bulk orders`,
+      active: 'VOLUME DISCOUNTS ACTIVE',
+      hint: 'Check the product cards below!',
+    },
+    ar: {
+      title: 'وفّر أكثر مع كل طلب!',
+      message: `اشترِ أكثر ووفّر أكثر! خصم يصل إلى ${highestDiscountPercentage}% على الطلبات بالجملة`,
+      active: 'خصومات الكميات متاحة',
+      hint: 'اطّلع على بطاقات المنتجات أدناه!',
+    },
+    tr: {
+      title: 'TASARRUFUNUZU ARTIRIN!',
+      message: `Daha fazla alın, daha fazla kazanın! Toplu siparişlerde %${highestDiscountPercentage}'e varan indirim`,
+      active: 'TOPLU ALIM İNDİRİMLERİ AKTİF',
+      hint: 'Aşağıdaki ürün kartlarını inceleyin!',
+    },
+    fa: {
+      title: 'بیشتر خرید کنید، بیشتر صرفه‌جویی کنید!',
+      message: `برای سفارش‌های عمده تا ${highestDiscountPercentage}٪ تخفیف دریافت کنید`,
+      active: 'تخفیف‌های حجمی فعال است',
+      hint: 'کارت محصولات زیر را بررسی کنید!',
+    },
+  }[language];
 
   // Fetch frontend visibility controls
   const { data: frontendControls } = useQuery({
@@ -1041,9 +1067,9 @@ const Shop = () => {
                 <div className="flex items-center gap-2 sm:gap-3">
                   <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 animate-spin text-yellow-300" />
                   <div>
-                    <h3 className="text-base sm:text-xl md:text-2xl font-bold mb-0.5 sm:mb-1">💰 {t.shop?.maximizeSavings || 'MAXIMIZE YOUR SAVINGS!'}</h3>
+                    <h3 className="text-base sm:text-xl md:text-2xl font-bold mb-0.5 sm:mb-1">💰 {discountBannerCopy.title}</h3>
                     <p className="text-purple-100 text-xs sm:text-sm">
-                      {discountBannerText || t.shop?.bulkDiscountMessage || `Buy more, save more! Up to ${highestDiscountPercentage}% OFF on bulk orders`}
+                      {language === 'fa' && discountBannerText ? discountBannerText : discountBannerCopy.message}
                     </p>
                   </div>
                 </div>
@@ -1051,12 +1077,12 @@ const Shop = () => {
               
               <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 w-full sm:w-auto">
                 <div className="bg-yellow-400 text-purple-900 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full font-bold text-xs sm:text-sm animate-pulse shadow-lg whitespace-nowrap">
-                  🔥 {t.shop?.volumeDiscountsActive || 'VOLUME DISCOUNTS ACTIVE'}
+                  🔥 {discountBannerCopy.active}
                 </div>
                 <div className="bg-white/20 backdrop-blur-sm rounded-lg px-2 py-1.5 sm:px-3 sm:py-2 border border-white/30">
                   <div className="flex items-center gap-2 text-xs sm:text-sm">
                     <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-400 rounded-full animate-pulse"></div>
-                    <span className="font-semibold">{t.shop?.checkProductCards || 'Check product cards below!'}</span>
+                    <span className="font-semibold">{discountBannerCopy.hint}</span>
                   </div>
                 </div>
               </div>
