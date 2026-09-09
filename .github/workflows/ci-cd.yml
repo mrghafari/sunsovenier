@@ -33,19 +33,30 @@ jobs:
         id: vars
         run: echo "TAG=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_OUTPUT
 
-      # 4️⃣ Build Docker image
+      # 4️⃣ Remove Replit-internal npm URLs from lockfile before Docker build
+      - name: Normalize npm registry URLs
+        run: |
+          set -e
+          sed -i 's#http://package-firewall.replit.internal/npm/#https://registry.npmjs.org/#g' package-lock.json
+          if grep -n 'package-firewall.replit.internal' package-lock.json; then
+            echo "ERROR: Replit-internal npm URL still exists in package-lock.json"
+            exit 1
+          fi
+          echo "npm registry URLs verified."
+
+      # 5️⃣ Build Docker image
       - name: Build Docker image
         run: |
           docker build -t $IMAGE_NAME:${{ steps.vars.outputs.TAG }} .
           docker tag $IMAGE_NAME:${{ steps.vars.outputs.TAG }} $IMAGE_NAME:latest
 
-      # 5️⃣ Push images to DockerHub
+      # 6️⃣ Push images to DockerHub
       - name: Push Docker images
         run: |
           docker push $IMAGE_NAME:${{ steps.vars.outputs.TAG }}
           docker push $IMAGE_NAME:latest
 
-      # 6️⃣ Deploy to server using docker-compose
+      # 7️⃣ Deploy to server using docker-compose
       - name: Deploy to server
         uses: appleboy/ssh-action@v0.1.7
         with:
