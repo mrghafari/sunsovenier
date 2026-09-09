@@ -54,6 +54,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ env.SSH_PORT }}
           script: |
+            set -e
             cd /opt/momtazchem
 
             echo "Pulling latest images..."
@@ -62,10 +63,16 @@ jobs:
             echo "Restarting containers with docker-compose..."
             docker-compose up -d --remove-orphans
 
-            echo "Cleaning old images (keep last 5, excluding latest)..."
-            docker images $IMAGE_NAME --format "{{.Repository}}:{{.Tag}}" \
-              | grep -v latest \
+            echo "Cleaning old images (keep latest + 5 previous versions)..."
+            docker images "$IMAGE_NAME" --format "{{.Repository}}:{{.Tag}}" \
+              | grep -v ':latest$' \
               | tail -n +6 \
               | xargs -r docker rmi || true
+
+            echo "Cleaning dangling images..."
+            docker image prune -f
+
+            echo "Docker disk usage after cleanup:"
+            docker system df
 
             echo "✅ Deployment complete!"
