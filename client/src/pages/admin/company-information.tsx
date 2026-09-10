@@ -1382,11 +1382,21 @@ export default function CompanyInformation() {
                         <div>نوع: {doc.documentType}</div>
                         {doc.documentNumber && <div>شماره: {doc.documentNumber}</div>}
                         {doc.issuingAuthority && <div>صادرکننده: {doc.issuingAuthority}</div>}
-                        <div className="flex gap-4">
-                          <span>صدور: {new Date(doc.issueDate).toLocaleDateString('fa-IR')}</span>
-                          {doc.expiryDate && (
-                            <span>انقضا: {new Date(doc.expiryDate).toLocaleDateString('fa-IR')}</span>
-                          )}
+                        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                          <div className="flex items-center gap-2 rounded-md border bg-gray-50 px-3 py-2">
+                            <Calendar className="h-4 w-4 text-blue-600" />
+                            <span className="font-medium text-gray-700">تاریخ صدور:</span>
+                            <span>{new Date(doc.issueDate).toLocaleDateString('fa-IR')}</span>
+                          </div>
+                          <div className="flex items-center gap-2 rounded-md border bg-amber-50 px-3 py-2">
+                            <Clock className="h-4 w-4 text-amber-600" />
+                            <span className="font-medium text-gray-700">تاریخ انقضا:</span>
+                            <span className={doc.expiryDate ? 'text-gray-900' : 'text-gray-500'}>
+                              {doc.expiryDate
+                                ? new Date(doc.expiryDate).toLocaleDateString('fa-IR')
+                                : 'ثبت نشده'}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
