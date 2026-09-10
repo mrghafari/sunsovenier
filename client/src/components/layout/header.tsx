@@ -40,7 +40,7 @@ interface PublicCompanyInformationResponse {
 export default function Header() {
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { t, direction } = useLanguage();
+  const { t, direction, language } = useLanguage();
   const { customer, isAuthenticated, logout } = useCustomer();
 
   const { data: companyInformation } = useQuery<PublicCompanyInformationResponse>({
