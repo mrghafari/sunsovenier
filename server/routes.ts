@@ -20143,13 +20143,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const paymentStatus = paymentStatusMap[order.paymentStatus] || order.paymentStatus;
         const paymentMethod = paymentMethodMap[order.paymentMethod] || order.paymentMethod;
         const totalAmount = order.totalAmount ? order.totalAmount.toLocaleString('fa-IR') : '0';
-        const address = order.address || 'نامشخص';
+        const shippingAddress = order.shippingAddress as any;
+        const addressParts = [
+          order.recipientAddress,
+          typeof shippingAddress === 'string' ? shippingAddress : shippingAddress?.address || shippingAddress?.addressLine1 || shippingAddress?.street,
+          typeof shippingAddress === 'object' ? shippingAddress?.city : null,
+          typeof shippingAddress === 'object' ? shippingAddress?.province || shippingAddress?.state : null,
+          typeof shippingAddress === 'object' ? shippingAddress?.country : null,
+          typeof shippingAddress === 'object' && shippingAddress?.postalCode ? `کد پستی: ${shippingAddress.postalCode}` : null,
+        ].filter((value, index, values) => value && values.indexOf(value) === index);
+        const address = addressParts.length > 0 ? addressParts.join(' - ') : 'نامشخص';
         
         // Create one row per item in the order
         if (order.items && order.items.length > 0) {
           for (const item of order.items) {
-            const unitPrice = item.price ? Number(item.price).toLocaleString('fa-IR') : '0';
-            const lineTotal = item.price && item.quantity ? (Number(item.price) * item.quantity).toLocaleString('fa-IR') : '0';
+            const numericUnitPrice = Number(item.unitPrice ?? item.price ?? 0);
+            const numericQuantity = Number(item.quantity ?? 0);
+            const numericLineTotal = Number(item.totalPrice ?? (numericUnitPrice * numericQuantity));
+            const unitPrice = numericUnitPrice.toLocaleString('fa-IR');
+            const lineTotal = numericLineTotal.toLocaleString('fa-IR');
             
             const row = [
               order.orderNumber || 'نامشخص',
