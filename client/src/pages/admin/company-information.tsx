@@ -338,10 +338,20 @@ export default function CompanyInformation() {
 
   const addCertificateMutation = useMutation({
     mutationFn: async (data: CompanyDocument) => {
-      return apiRequest('/api/company-documents', {
+      const response = await fetch('/api/company-documents', {
         method: 'POST',
-        body: data,
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(data),
       });
+      const result = await response.json().catch(() => null);
+      if (response.status === 401) {
+        throw new Error('نشست مدیریت منقضی شده است. لطفاً دوباره وارد شوید.');
+      }
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.message || 'ثبت گواهینامه انجام نشد');
+      }
+      return result;
     },
     onSuccess: () => {
       toast({ title: "موفقیت", description: "گواهینامه با موفقیت ثبت شد" });
@@ -352,13 +362,27 @@ export default function CompanyInformation() {
     },
     onError: (error) => {
       console.error('Error adding certificate:', error);
-      toast({ title: "خطا", description: "ثبت گواهینامه انجام نشد", variant: "destructive" });
+      const message = error instanceof Error ? error.message : "ثبت گواهینامه انجام نشد";
+      toast({ title: "خطا", description: message, variant: "destructive" });
+      if (message.includes('نشست مدیریت')) {
+        window.setTimeout(() => {
+          window.location.href = '/admin/login';
+        }, 1200);
+      }
     }
   });
 
   const handleCertificateUpload = async (file: File) => {
     setCertificateUploading(true);
     try {
+      const authResponse = await fetch('/api/admin/me', { credentials: 'include' });
+      if (authResponse.status === 401) {
+        throw new Error('نشست مدیریت منقضی شده است. لطفاً دوباره وارد شوید.');
+      }
+      if (!authResponse.ok) {
+        throw new Error('بررسی نشست مدیریت انجام نشد. دوباره تلاش کنید.');
+      }
+
       const generateResponse = await fetch('/api/secure-upload/generate-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -385,11 +409,17 @@ export default function CompanyInformation() {
       setCertificateFileUrl(uploadData.objectPath);
       toast({ title: "آپلود موفق", description: "فایل گواهینامه آماده ثبت است" });
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'آپلود فایل انجام نشد';
       toast({
         title: "خطا در آپلود",
-        description: error instanceof Error ? error.message : 'آپلود فایل انجام نشد',
+        description: message,
         variant: "destructive",
       });
+      if (message.includes('نشست مدیریت')) {
+        window.setTimeout(() => {
+          window.location.href = '/admin/login';
+        }, 1200);
+      }
     } finally {
       setCertificateUploading(false);
     }
