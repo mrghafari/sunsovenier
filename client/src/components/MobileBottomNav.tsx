@@ -76,16 +76,16 @@ export function MobileBottomNav() {
       className="fixed bottom-0 left-0 right-0 z-[990] md:hidden bg-white/95 backdrop-blur-sm border-t border-gray-200 shadow-[0_-2px_12px_rgba(0,0,0,0.08)]"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
-      <div className="flex items-stretch h-16">
+      <div className="grid h-16 w-full grid-cols-5 items-stretch overflow-hidden">
         {tabs.map((tab, idx) => {
           const Icon = tab.icon;
           const active = getActive(tab, idx);
 
           return (
-            <Link key={idx} href={tab.href} className="flex-1 relative flex items-stretch">
+            <Link key={idx} href={tab.href} className="relative flex min-w-0 items-stretch overflow-hidden">
               <div
                 className={cn(
-                  'flex flex-col items-center justify-center gap-0.5 py-2 px-1 w-full transition-colors duration-150',
+                  'flex w-full min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 py-2 transition-colors duration-150',
                   active ? 'text-blue-600' : 'text-gray-500 active:text-gray-800'
                 )}
               >
@@ -113,7 +113,7 @@ export function MobileBottomNav() {
                 {/* Label */}
                 <span
                   className={cn(
-                    'text-[10px] font-medium leading-none mt-0.5',
+                    'block w-full truncate whitespace-nowrap px-0.5 text-center text-[9px] font-medium leading-none mt-0.5',
                     active ? 'text-blue-600' : 'text-gray-500'
                   )}
                 >

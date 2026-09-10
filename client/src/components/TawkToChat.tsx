@@ -1,5 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { MessageCircle, X } from 'lucide-react';
 
 interface TawkSettings {
   isEnabled: boolean;
@@ -16,6 +17,9 @@ declare global {
 export default function TawkToChat() {
   const scriptLoadedRef = useRef(false);
   const lastEnabledState = useRef<boolean | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [widgetReady, setWidgetReady] = useState(false);
+  const [isMobileWidgetVisible, setIsMobileWidgetVisible] = useState(false);
   
   const { data: tawkSettings, refetch } = useQuery<{ success: boolean; data: TawkSettings }>({
     queryKey: ['/api/tawk-support'],
@@ -33,6 +37,26 @@ export default function TawkToChat() {
     window.addEventListener('tawk-settings-updated', handleTawkUpdate);
     return () => window.removeEventListener('tawk-settings-updated', handleTawkUpdate);
   }, [refetch]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 767px)');
+    const syncViewport = () => {
+      const mobile = mediaQuery.matches;
+      setIsMobile(mobile);
+      if (window.Tawk_API) {
+        if (mobile && typeof window.Tawk_API.hideWidget === 'function') {
+          window.Tawk_API.hideWidget();
+          setIsMobileWidgetVisible(false);
+        } else if (!mobile && typeof window.Tawk_API.showWidget === 'function') {
+          window.Tawk_API.showWidget();
+        }
+      }
+    };
+
+    syncViewport();
+    mediaQuery.addEventListener('change', syncViewport);
+    return () => mediaQuery.removeEventListener('change', syncViewport);
+  }, []);
 
   useEffect(() => {
     const isEnabled = tawkSettings?.success && tawkSettings.data?.isEnabled;
@@ -72,6 +96,8 @@ export default function TawkToChat() {
         }
         delete window.Tawk_API;
         delete window.Tawk_LoadStart;
+        setWidgetReady(false);
+        setIsMobileWidgetVisible(false);
         console.log('🧹 Cleared Tawk API objects');
       }
       
@@ -125,10 +151,18 @@ export default function TawkToChat() {
             },
             mobile: {
               position: 'bl', // bottom-left on mobile
-              xOffset: 10,
+              xOffset: 52,
               // Keep the launcher above the mobile bottom navigation/account button.
               yOffset: 80
             }
+          }
+        };
+
+        window.Tawk_API.onLoad = () => {
+          setWidgetReady(true);
+          if (window.matchMedia('(max-width: 767px)').matches) {
+            window.Tawk_API?.hideWidget?.();
+            setIsMobileWidgetVisible(false);
           }
         };
         
@@ -166,5 +200,32 @@ export default function TawkToChat() {
     }
   }, [tawkSettings]);
 
-  return null;
+  const toggleMobileWidget = () => {
+    if (!window.Tawk_API || !widgetReady) return;
+
+    if (isMobileWidgetVisible) {
+      window.Tawk_API.hideWidget?.();
+      setIsMobileWidgetVisible(false);
+    } else {
+      window.Tawk_API.showWidget?.();
+      setIsMobileWidgetVisible(true);
+    }
+  };
+
+  const isEnabled = Boolean(tawkSettings?.success && tawkSettings.data?.isEnabled);
+
+  if (!isEnabled || !isMobile) return null;
+
+  return (
+    <button
+      type="button"
+      onClick={toggleMobileWidget}
+      disabled={!widgetReady}
+      aria-label={isMobileWidgetVisible ? 'Hide chat' : 'Show chat'}
+      title={isMobileWidgetVisible ? 'Hide chat' : 'Show chat'}
+      className="fixed bottom-[5.25rem] left-0 z-[2147483000] flex h-11 w-10 -translate-x-1 items-center justify-center rounded-r-full bg-blue-600 text-white shadow-lg transition-transform hover:translate-x-0 disabled:cursor-wait disabled:opacity-60 md:hidden"
+    >
+      {isMobileWidgetVisible ? <X className="h-5 w-5" /> : <MessageCircle className="h-5 w-5" />}
+    </button>
+  );
 }
