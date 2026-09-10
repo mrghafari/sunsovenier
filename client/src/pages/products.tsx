@@ -196,6 +196,7 @@ export default function ProductsPage() {
   const { user, isLoading: authLoading, isAuthenticated, logout } = useAuth();
   const { toast } = useToast();
   const barcodeCanvasRef = useRef<HTMLCanvasElement>(null);
+  const keepDialogOpenAfterUpdateRef = useRef(false);
   
   // Fetch vendor session if in vendor mode
   const { data: vendorSession, isLoading: isLoadingVendorSession } = useQuery<{ vendorId: number; vendorName: string }>({
@@ -434,12 +435,15 @@ export default function ProductsPage() {
       const method = isVendorMode ? "PATCH" : "PUT";
       return apiRequest(endpoint, { method, body: data });
     },
-    onSuccess: async (result) => {
+    onSuccess: async (result, variables) => {
       console.log('✅ [DEBUG] Update mutation successful, result:', result);
       setIsSubmitting(false);
+      const keepDialogOpen = keepDialogOpenAfterUpdateRef.current || Boolean(result?.batchNumber);
+      const addedStock = Number(variables?.data?.inventoryAddition) || 0;
+      keepDialogOpenAfterUpdateRef.current = false;
       
-      // Only refresh data, keep dialog open if it was a batch addition
-      if (!result?.batchNumber) {
+      // A regular Save closes the form; Apply and batch additions keep it open.
+      if (!keepDialogOpen) {
         // Regular update - close dialog and reset
         setDialogOpen(false);
         setEditingProduct(null);
@@ -447,7 +451,17 @@ export default function ProductsPage() {
         setImagePreviews([null, null, null]);
         form.reset();
       } else {
-        // Batch addition - reset only batch fields but keep images and core data
+        // Keep editing in place and immediately reflect the applied stock.
+        if (addedStock > 0) {
+          form.setValue('stockQuantity', Number(form.getValues('stockQuantity') || 0) + addedStock);
+          if (typeof selectedBatchId === 'number') {
+            setAvailableBatches((batches) => batches.map((batch) =>
+              batch.id === selectedBatchId
+                ? { ...batch, stockQuantity: batch.stockQuantity + addedStock }
+                : batch
+            ));
+          }
+        }
         form.setValue('inventoryAddition', 0);
         form.setValue('newBatchNumber', '');
       }
@@ -465,6 +479,7 @@ export default function ProductsPage() {
     onError: (error: any) => {
       console.error('❌ [DEBUG] Update mutation failed:', error);
       setIsSubmitting(false);
+      keepDialogOpenAfterUpdateRef.current = false;
       
       // Show user-friendly error message
       let errorMessage = t.productManagement.productUpdateError;
@@ -749,6 +764,7 @@ export default function ProductsPage() {
     setValidationErrors(errors);
     
     if (Object.keys(errors).length > 0) {
+      keepDialogOpenAfterUpdateRef.current = false;
       toast({
         title: t.productManagement.enterNameCategory,
         description: t.productManagement.enterNameCategory,
@@ -813,6 +829,25 @@ export default function ProductsPage() {
       createProduct(processedData);
     }
   };
+
+  const applyStockWithoutClosing = form.handleSubmit(
+    (data) => {
+      const amount = Number(data.inventoryAddition) || 0;
+      if (!editingProduct || amount <= 0) {
+        toast({
+          title: t.productManagement.addStock,
+          description: t.productManagement.stockAdditionHelp,
+          variant: "destructive",
+        });
+        return;
+      }
+      keepDialogOpenAfterUpdateRef.current = true;
+      onSubmit(data);
+    },
+    () => {
+      keepDialogOpenAfterUpdateRef.current = false;
+    }
+  );
 
   const handleImageUpload = async (file: File) => {
     if (!file) return;
@@ -1960,7 +1995,11 @@ export default function ProductsPage() {
           
           <TooltipProvider>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit, (errors) => {
+              <form onSubmit={form.handleSubmit((data) => {
+                keepDialogOpenAfterUpdateRef.current = false;
+                onSubmit(data);
+              }, (errors) => {
+                keepDialogOpenAfterUpdateRef.current = false;
                 console.log('❌ [DEBUG] Form validation failed:', errors);
               })} className="space-y-4">
                 
@@ -2331,7 +2370,7 @@ export default function ProductsPage() {
                           </FormLabel>
                           <FormControl>
                             <div className="flex gap-2">
-                              <Input 
+                              <Input
                                 placeholder={editingProduct ? t.productManagement.skuPlaceholderView : t.productManagement.skuPlaceholder} 
                                 className={`h-9 ${editingProduct ? "bg-gray-50 text-gray-500" : ""} ${validationErrors.sku ? "border-red-500 focus:border-red-500" : ""}`}
                                 {...field}
@@ -2632,17 +2671,29 @@ export default function ProductsPage() {
                               </TooltipContent>
                             </Tooltip>
                           </FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number" 
-                              placeholder={editingProduct ? "0" : t.productManagement.editOnlyPlaceholder}
-                              className={`h-9 ${!editingProduct ? "bg-gray-100 text-gray-400" : ""}`}
-                              {...field}
-                              value={field.value || ''}
-                              onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : 0)}
-                              disabled={!editingProduct}
-                            />
-                          </FormControl>
+                          <div className="flex items-center gap-2">
+                            <FormControl>
+                              <Input
+                                type="number"
+                                min="0"
+                                placeholder={editingProduct ? "0" : t.productManagement.editOnlyPlaceholder}
+                                className={`h-9 ${!editingProduct ? "bg-gray-100 text-gray-400" : ""}`}
+                                {...field}
+                                value={field.value || ''}
+                                onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : 0)}
+                                disabled={!editingProduct || isSubmitting}
+                              />
+                            </FormControl>
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={applyStockWithoutClosing}
+                              disabled={!editingProduct || isSubmitting || Number(field.value || 0) <= 0}
+                              className="h-9 shrink-0 bg-orange-600 hover:bg-orange-700"
+                            >
+                              {isSubmitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : t.apply}
+                            </Button>
+                          </div>
                           <FormMessage />
                         </FormItem>
                       )}
