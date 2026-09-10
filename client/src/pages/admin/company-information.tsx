@@ -209,6 +209,7 @@ export default function CompanyInformation() {
   const [logoUploading, setLogoUploading] = useState(false);
   const [certificateUploading, setCertificateUploading] = useState(false);
   const [certificateFileUrl, setCertificateFileUrl] = useState('');
+  const [certificateExpiryDate, setCertificateExpiryDate] = useState('');
 
   // Fetch company information from database
   const { data: companyInfo, isLoading: infoLoading } = useQuery<CompanyInfo>({
@@ -359,6 +360,7 @@ export default function CompanyInformation() {
       queryClient.invalidateQueries({ queryKey: ['/api/company-certifications'] });
       setIsAddingDocument(false);
       setCertificateFileUrl('');
+      setCertificateExpiryDate('');
       setEditingItem(null);
     },
     onError: (error) => {
@@ -396,6 +398,7 @@ export default function CompanyInformation() {
       queryClient.invalidateQueries({ queryKey: ['/api/company-certifications'] });
       setIsAddingDocument(false);
       setCertificateFileUrl('');
+      setCertificateExpiryDate('');
       setEditingItem(null);
     },
     onError: (error) => {
@@ -1353,7 +1356,12 @@ export default function CompanyInformation() {
         <TabsContent value="documents" className="space-y-6">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">گواهینامه‌ها و مدارک شرکت</h2>
-            <Button onClick={() => setIsAddingDocument(true)}>
+            <Button onClick={() => {
+              setEditingItem(null);
+              setCertificateFileUrl('');
+              setCertificateExpiryDate('');
+              setIsAddingDocument(true);
+            }}>
               <Plus className="h-4 w-4 ml-1" />
               گواهینامه جدید
             </Button>
@@ -1401,6 +1409,7 @@ export default function CompanyInformation() {
                         onClick={() => {
                           setEditingItem(doc);
                           setCertificateFileUrl(doc.fileUrl);
+                          setCertificateExpiryDate(doc.expiryDate ? doc.expiryDate.slice(0, 10) : '');
                           setIsAddingDocument(true);
                         }}
                       >
@@ -1639,6 +1648,7 @@ export default function CompanyInformation() {
         setIsAddingDocument(open);
         if (!open) {
           setCertificateFileUrl('');
+          setCertificateExpiryDate('');
           setEditingItem(null);
         }
       }}>
@@ -1663,7 +1673,7 @@ export default function CompanyInformation() {
               documentType: 'certificate',
               documentNumber: (values.get('documentNumber') as string) || '—',
               issueDate: values.get('issueDate') as string,
-              expiryDate: (values.get('expiryDate') as string) || null,
+              expiryDate: certificateExpiryDate || null,
               issuingAuthority: values.get('issuingAuthority') as string,
               fileUrl: certificateFileUrl,
               status: 'active',
@@ -1696,7 +1706,12 @@ export default function CompanyInformation() {
                 </div>
                 <div className="space-y-2">
                   <Label>تاریخ انقضا</Label>
-                  <Input name="expiryDate" type="date" defaultValue={editingItem?.expiryDate ? editingItem.expiryDate.slice(0, 10) : ''} />
+                  <Input
+                    name="expiryDate"
+                    type="date"
+                    value={certificateExpiryDate}
+                    onChange={(event) => setCertificateExpiryDate(event.target.value)}
+                  />
                 </div>
               </div>
               <div className="space-y-2">
