@@ -183,12 +183,52 @@ const Contact = () => {
     const selectedLanguage: 'en' | 'fa' | 'ar' | 'tr' =
       language === 'fa' || language === 'ar' || language === 'tr' ? language : 'en';
     const order: WeekDayKey[] = ['saturday', 'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    const dayRangeSeparator = selectedLanguage === 'fa'
+      ? ' تا '
+      : selectedLanguage === 'ar'
+        ? ' إلى '
+        : ' - ';
+    const groups: Array<{
+      firstDay: WeekDayKey;
+      lastDay: WeekDayKey;
+      status: DayStatus;
+      start: string;
+      end: string;
+    }> = [];
 
-    return order.map((key) => {
+    order.forEach((key) => {
       const day = companyInfo.weeklySchedule![key];
-      const dayName = WEEK_DAY_NAMES[selectedLanguage][key];
-      if (day.status === 'working') return `${dayName}: ${day.start} - ${day.end}`;
-      return `${dayName}: ${DAY_STATUS_NAMES[selectedLanguage][day.status]}`;
+      const previousGroup = groups[groups.length - 1];
+      const hasSameSchedule = previousGroup
+        && previousGroup.status === day.status
+        && (day.status !== 'working'
+          || (previousGroup.start === day.start && previousGroup.end === day.end));
+
+      if (hasSameSchedule) {
+        previousGroup.lastDay = key;
+      } else {
+        groups.push({
+          firstDay: key,
+          lastDay: key,
+          status: day.status,
+          start: day.start,
+          end: day.end,
+        });
+      }
+    });
+
+    return groups.map((group) => {
+      const firstDayName = WEEK_DAY_NAMES[selectedLanguage][group.firstDay];
+      const lastDayName = WEEK_DAY_NAMES[selectedLanguage][group.lastDay];
+      const dayLabel = group.firstDay === group.lastDay
+        ? firstDayName
+        : `${firstDayName}${dayRangeSeparator}${lastDayName}`;
+
+      if (group.status === 'working') {
+        return `${dayLabel}: ${group.start} - ${group.end}`;
+      }
+
+      return `${dayLabel}: ${DAY_STATUS_NAMES[selectedLanguage][group.status]}`;
     });
   };
 
