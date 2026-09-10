@@ -1,10 +1,28 @@
 import { Award, Leaf, Users, Globe, Target, Eye } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { useLanguage } from "../contexts/LanguageContext";
 import OpenGraphTags from "@/components/seo/OpenGraphTags";
 import CanonicalUrl from "@/components/seo/CanonicalUrl";
 
+interface PublicCertification {
+  id: number;
+  documentName: string;
+  issuingAuthority?: string;
+  description?: string;
+  fileUrl: string;
+}
+
 const About = () => {
   const { t, direction, language } = useLanguage();
+  const { data: certifications = [] } = useQuery<PublicCertification[]>({
+    queryKey: ['/api/company-certifications'],
+    queryFn: async () => {
+      const response = await fetch('/api/company-certifications');
+      if (!response.ok) throw new Error('Failed to fetch company certifications');
+      const result = await response.json();
+      return result.data || [];
+    }
+  });
   
   const values = [
     {
@@ -182,27 +200,36 @@ const About = () => {
               {t.certificationsSubtitle}
             </p>
           </div>
-          <div className="grid md:grid-cols-4 gap-8">
-            <div className="text-center p-6 bg-gray-50 rounded-lg">
-              <i className="fas fa-certificate text-primary text-4xl mb-4"></i>
-              <h3 className="font-semibold text-gray-900 mb-2">{t.iso9001}</h3>
-              <p className="text-gray-600 text-sm">{t.iso9001Desc}</p>
-            </div>
-            <div className="text-center p-6 bg-gray-50 rounded-lg">
-              <i className="fas fa-shield-alt text-primary text-4xl mb-4"></i>
-              <h3 className="font-semibold text-gray-900 mb-2">{t.iso14001}</h3>
-              <p className="text-gray-600 text-sm">{t.iso14001Desc}</p>
-            </div>
-            <div className="text-center p-6 bg-gray-50 rounded-lg">
-              <i className="fas fa-hard-hat text-primary text-4xl mb-4"></i>
-              <h3 className="font-semibold text-gray-900 mb-2">{t.ohsas18001}</h3>
-              <p className="text-gray-600 text-sm">{t.ohsas18001Desc}</p>
-            </div>
-            <div className="text-center p-6 bg-gray-50 rounded-lg">
-              <i className="fas fa-check-circle text-primary text-4xl mb-4"></i>
-              <h3 className="font-semibold text-gray-900 mb-2">{t.reachCompliance}</h3>
-              <p className="text-gray-600 text-sm">{t.reachComplianceDesc}</p>
-            </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {(certifications.length > 0 ? certifications : [
+              { id: -1, documentName: t.iso9001, description: t.iso9001Desc, fileUrl: '' },
+              { id: -2, documentName: t.iso14001, description: t.iso14001Desc, fileUrl: '' },
+              { id: -3, documentName: t.ohsas18001, description: t.ohsas18001Desc, fileUrl: '' },
+              { id: -4, documentName: t.reachCompliance, description: t.reachComplianceDesc, fileUrl: '' },
+            ]).map((certificate) => {
+              const card = (
+                <>
+                  <i className="fas fa-certificate text-primary text-4xl mb-4"></i>
+                  <h3 className="font-semibold text-gray-900 mb-2">{certificate.documentName}</h3>
+                  <p className="text-gray-600 text-sm">
+                    {certificate.description || certificate.issuingAuthority || ''}
+                  </p>
+                </>
+              );
+              return certificate.fileUrl ? (
+                <a
+                  key={certificate.id}
+                  href={certificate.fileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-center p-6 bg-gray-50 rounded-lg hover:shadow-lg transition-shadow"
+                >
+                  {card}
+                </a>
+              ) : (
+                <div key={certificate.id} className="text-center p-6 bg-gray-50 rounded-lg">{card}</div>
+              );
+            })}
           </div>
         </div>
       </section>

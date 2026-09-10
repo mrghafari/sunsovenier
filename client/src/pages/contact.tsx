@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { MapPin, Phone, Mail, Clock, IdCard, Briefcase } from "lucide-react";
+import { MapPin, Phone, Mail, Clock, Briefcase } from "lucide-react";
 import OpenGraphTags from "@/components/seo/OpenGraphTags";
 import CanonicalUrl from "@/components/seo/CanonicalUrl";
 
@@ -27,13 +27,6 @@ interface ContentItem {
 interface PublicCompanyInfo {
   businessHoursWeekdays?: string;
   businessHoursSaturday?: string;
-}
-
-interface PublicCertification {
-  id: number;
-  documentName: string;
-  issuingAuthority?: string;
-  fileUrl: string;
 }
 
 const Contact = () => {
@@ -106,16 +99,6 @@ const Contact = () => {
       if (!response.ok) throw new Error('Failed to fetch company information');
       const result = await response.json();
       return result.data || null;
-    }
-  });
-
-  const { data: certifications = [] } = useQuery<PublicCertification[]>({
-    queryKey: ['/api/company-certifications'],
-    queryFn: async () => {
-      const response = await fetch('/api/company-certifications');
-      if (!response.ok) throw new Error('Failed to fetch company certifications');
-      const result = await response.json();
-      return result.data || [];
     }
   });
 
@@ -442,42 +425,6 @@ const Contact = () => {
                 </div>
               </div>
 
-              {/* Certifications */}
-              <div className="bg-gray-50 rounded-xl p-6">
-                <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
-                  <IdCard className={`h-5 w-5 ${direction === 'rtl' ? 'ml-2' : 'mr-2'}`} />
-                  {t.contactPage.ourCertifications}
-                </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  {(certifications.length > 0 ? certifications : [
-                    { id: -1, documentName: 'ISO 9001:2015', fileUrl: '' },
-                    { id: -2, documentName: 'ISO 14001', fileUrl: '' },
-                  ]).map((certificate) => {
-                    const content = (
-                      <>
-                        <i className="fas fa-certificate text-primary text-2xl mb-2"></i>
-                        <div className="text-sm font-medium">{certificate.documentName}</div>
-                        {certificate.issuingAuthority && (
-                          <div className="text-xs text-gray-500 mt-1">{certificate.issuingAuthority}</div>
-                        )}
-                      </>
-                    );
-                    return certificate.fileUrl ? (
-                      <a
-                        key={certificate.id}
-                        href={certificate.fileUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-center p-4 bg-white rounded-lg hover:shadow-md transition-shadow"
-                      >
-                        {content}
-                      </a>
-                    ) : (
-                      <div key={certificate.id} className="text-center p-4 bg-white rounded-lg">{content}</div>
-                    );
-                  })}
-                </div>
-              </div>
             </div>
           </div>
         </div>
