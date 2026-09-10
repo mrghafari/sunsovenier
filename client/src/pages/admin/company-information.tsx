@@ -152,6 +152,41 @@ interface CompanyDocument {
   tags: string;
 }
 
+const WORKING_DAY_OPTIONS = [
+  { value: 'Sunday - Thursday', label: 'یکشنبه تا پنج‌شنبه' },
+  { value: 'Saturday - Thursday', label: 'شنبه تا پنج‌شنبه' },
+  { value: 'Monday - Friday', label: 'دوشنبه تا جمعه' },
+  { value: 'Saturday', label: 'شنبه' },
+  { value: 'Sunday', label: 'یکشنبه' },
+  { value: 'Thursday', label: 'پنج‌شنبه' },
+  { value: 'Friday', label: 'جمعه' },
+];
+
+const WORKING_HOUR_OPTIONS = [
+  { value: '8:00 AM - 4:00 PM', label: '۸:۰۰ صبح تا ۴:۰۰ عصر' },
+  { value: '8:00 AM - 5:00 PM', label: '۸:۰۰ صبح تا ۵:۰۰ عصر' },
+  { value: '8:00 AM - 6:00 PM', label: '۸:۰۰ صبح تا ۶:۰۰ عصر' },
+  { value: '9:00 AM - 2:00 PM', label: '۹:۰۰ صبح تا ۲:۰۰ بعدازظهر' },
+  { value: '9:00 AM - 5:00 PM', label: '۹:۰۰ صبح تا ۵:۰۰ عصر' },
+  { value: 'Closed', label: 'تعطیل' },
+];
+
+function getScheduleParts(schedule?: string) {
+  if (!schedule) return { days: '', hours: '' };
+  const separatorIndex = schedule.indexOf(':');
+  if (separatorIndex === -1) return { days: schedule.trim(), hours: '' };
+  return {
+    days: schedule.slice(0, separatorIndex).trim(),
+    hours: schedule.slice(separatorIndex + 1).trim(),
+  };
+}
+
+function buildSchedule(days: string, hours: string) {
+  if (!days && !hours) return '';
+  if (hours === 'Closed') return days ? `${days}: Closed` : 'Closed';
+  return days && hours ? `${days}: ${hours}` : days || hours;
+}
+
 interface BusinessCard {
   id?: number;
   employeeName: string;
@@ -991,26 +1026,88 @@ export default function CompanyInformation() {
                     <Clock className="h-4 w-4" />
                     ساعات کاری
                   </Label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label>دوشنبه تا جمعه</Label>
-                      <Input
-                        id="businessHoursWeekdays"
-                        value={formData?.businessHoursWeekdays || ''}
-                        placeholder="Monday - Friday: 8:00 AM - 6:00 PM"
-                        dir="ltr"
-                        onChange={(e) => handleFieldChange('businessHoursWeekdays', e.target.value)}
-                      />
+                      <Label>برنامه کاری اصلی</Label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <Select
+                          value={getScheduleParts(formData?.businessHoursWeekdays).days}
+                          onValueChange={(days) => {
+                            const current = getScheduleParts(formData?.businessHoursWeekdays);
+                            handleFieldChange('businessHoursWeekdays', buildSchedule(days, current.hours));
+                          }}
+                        >
+                          <SelectTrigger id="businessHoursWeekdaysDays">
+                            <SelectValue placeholder="انتخاب روزهای کاری" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {WORKING_DAY_OPTIONS.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Select
+                          value={getScheduleParts(formData?.businessHoursWeekdays).hours}
+                          onValueChange={(hours) => {
+                            const current = getScheduleParts(formData?.businessHoursWeekdays);
+                            handleFieldChange('businessHoursWeekdays', buildSchedule(current.days, hours));
+                          }}
+                        >
+                          <SelectTrigger id="businessHoursWeekdaysHours">
+                            <SelectValue placeholder="انتخاب ساعت کاری" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {WORKING_HOUR_OPTIONS.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                     <div className="space-y-2">
-                      <Label>شنبه</Label>
-                      <Input
-                        id="businessHoursSaturday"
-                        value={formData?.businessHoursSaturday || ''}
-                        placeholder="Saturday: 9:00 AM - 2:00 PM"
-                        dir="ltr"
-                        onChange={(e) => handleFieldChange('businessHoursSaturday', e.target.value)}
-                      />
+                      <Label>برنامه کاری تکمیلی</Label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <Select
+                          value={getScheduleParts(formData?.businessHoursSaturday).days}
+                          onValueChange={(days) => {
+                            const current = getScheduleParts(formData?.businessHoursSaturday);
+                            handleFieldChange('businessHoursSaturday', buildSchedule(days, current.hours));
+                          }}
+                        >
+                          <SelectTrigger id="businessHoursSaturdayDays">
+                            <SelectValue placeholder="انتخاب روز" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {WORKING_DAY_OPTIONS.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Select
+                          value={getScheduleParts(formData?.businessHoursSaturday).hours}
+                          onValueChange={(hours) => {
+                            const current = getScheduleParts(formData?.businessHoursSaturday);
+                            handleFieldChange('businessHoursSaturday', buildSchedule(current.days, hours));
+                          }}
+                        >
+                          <SelectTrigger id="businessHoursSaturdayHours">
+                            <SelectValue placeholder="انتخاب ساعت کاری" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {WORKING_HOUR_OPTIONS.map((option) => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                   </div>
                 </div>
