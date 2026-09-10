@@ -27,7 +27,26 @@ interface ContentItem {
 interface PublicCompanyInfo {
   businessHoursWeekdays?: string;
   businessHoursSaturday?: string;
+  weeklySchedule?: WeeklySchedule;
 }
+
+type DayStatus = 'working' | 'weekend' | 'holiday';
+type WeekDayKey = 'saturday' | 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday';
+type WeeklySchedule = Record<WeekDayKey, { status: DayStatus; start: string; end: string }>;
+
+const WEEK_DAY_NAMES: Record<'en' | 'fa' | 'ar' | 'tr', Record<WeekDayKey, string>> = {
+  en: { saturday: 'Saturday', sunday: 'Sunday', monday: 'Monday', tuesday: 'Tuesday', wednesday: 'Wednesday', thursday: 'Thursday', friday: 'Friday' },
+  fa: { saturday: 'شنبه', sunday: 'یکشنبه', monday: 'دوشنبه', tuesday: 'سه‌شنبه', wednesday: 'چهارشنبه', thursday: 'پنج‌شنبه', friday: 'جمعه' },
+  ar: { saturday: 'السبت', sunday: 'الأحد', monday: 'الاثنين', tuesday: 'الثلاثاء', wednesday: 'الأربعاء', thursday: 'الخميس', friday: 'الجمعة' },
+  tr: { saturday: 'Cumartesi', sunday: 'Pazar', monday: 'Pazartesi', tuesday: 'Salı', wednesday: 'Çarşamba', thursday: 'Perşembe', friday: 'Cuma' },
+};
+
+const DAY_STATUS_NAMES: Record<'en' | 'fa' | 'ar' | 'tr', Record<Exclude<DayStatus, 'working'>, string>> = {
+  en: { weekend: 'Weekend', holiday: 'Closed' },
+  fa: { weekend: 'پایان هفته', holiday: 'تعطیل' },
+  ar: { weekend: 'عطلة نهاية الأسبوع', holiday: 'مغلق' },
+  tr: { weekend: 'Hafta sonu', holiday: 'Kapalı' },
+};
 
 const Contact = () => {
   const { toast } = useMultilingualToast();
@@ -153,6 +172,26 @@ const Contact = () => {
       .trim();
   };
 
+  const getWeeklyScheduleLines = () => {
+    if (!companyInfo?.weeklySchedule) {
+      return [
+        localizeBusinessHours(companyInfo?.businessHoursWeekdays, getContent('hours_weekdays', copy.weekdays)),
+        localizeBusinessHours(companyInfo?.businessHoursSaturday, getContent('hours_saturday', copy.saturday)),
+      ];
+    }
+
+    const selectedLanguage: 'en' | 'fa' | 'ar' | 'tr' =
+      language === 'fa' || language === 'ar' || language === 'tr' ? language : 'en';
+    const order: WeekDayKey[] = ['saturday', 'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+
+    return order.map((key) => {
+      const day = companyInfo.weeklySchedule![key];
+      const dayName = WEEK_DAY_NAMES[selectedLanguage][key];
+      if (day.status === 'working') return `${dayName}: ${day.start} - ${day.end}`;
+      return `${dayName}: ${DAY_STATUS_NAMES[selectedLanguage][day.status]}`;
+    });
+  };
+
   const form = useForm({
     resolver: zodResolver(insertContactSchema),
     defaultValues: {
@@ -226,10 +265,7 @@ const Contact = () => {
     {
       icon: <Clock className="h-6 w-6 text-white" />,
        title: getContent('hours_title', copy.hours),
-      content: [
-          localizeBusinessHours(companyInfo?.businessHoursWeekdays, getContent('hours_weekdays', copy.weekdays)),
-          localizeBusinessHours(companyInfo?.businessHoursSaturday, getContent('hours_saturday', copy.saturday))
-      ],
+      content: getWeeklyScheduleLines(),
       bgColor: "bg-primary-blue"
     },
     {

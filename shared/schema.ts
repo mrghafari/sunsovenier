@@ -283,6 +283,7 @@ export const companyInformation = pgTable("company_information", {
   websiteUrl: text("website_url"),
   businessHoursWeekdays: text("business_hours_weekdays"),
   businessHoursSaturday: text("business_hours_saturday"),
+  weeklySchedule: json("weekly_schedule"),
   licenseNumber: text("license_number"),
   licenseType: text("license_type"),
   licenseAuthority: text("license_authority"),

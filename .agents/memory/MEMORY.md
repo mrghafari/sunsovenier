@@ -2,3 +2,4 @@
 - [PWA cache freshness](pwa-cache-freshness.md) — version service-worker caches and avoid cache-first app bundles so translations and fixes reach existing users.
 - [PDFKit RTL text](pdfkit-rtl-text.md) — pass Persian and Arabic in logical Unicode order; manual word or character reversal renders invoices backwards.
 - [Certificate storage](certificate-storage.md) — store new certificate files privately in Amazon S3 and expose only stable app URLs backed by short-lived signed downloads.
+- [Drizzle schema push](drizzle-schema-push.md) — schema introspection can fail on a legacy expression index; keep schema source authoritative and apply additive dev DDL safely.
