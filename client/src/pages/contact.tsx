@@ -48,6 +48,16 @@ const DAY_STATUS_NAMES: Record<'en' | 'fa' | 'ar' | 'tr', Record<Exclude<DayStat
   tr: { weekend: 'Hafta sonu', holiday: 'Kapalı' },
 };
 
+const DEFAULT_WEEKLY_SCHEDULE: WeeklySchedule = {
+  saturday: { status: 'working', start: '08:00', end: '17:00' },
+  sunday: { status: 'weekend', start: '08:00', end: '17:00' },
+  monday: { status: 'working', start: '08:00', end: '17:00' },
+  tuesday: { status: 'working', start: '08:00', end: '17:00' },
+  wednesday: { status: 'working', start: '08:00', end: '17:00' },
+  thursday: { status: 'working', start: '08:00', end: '17:00' },
+  friday: { status: 'holiday', start: '08:00', end: '17:00' },
+};
+
 const Contact = () => {
   const { toast } = useMultilingualToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -76,6 +86,29 @@ const Contact = () => {
     whatsapp: 'واتساپ',
     mapTitle: 'موقعیت ممتازکم در اربیل',
     region: 'اربیل، اقلیم کردستان، عراق',
+  } : language === 'ar' ? {
+    seoTitle: 'تواصل مع ممتازكم | الدعم والحلول الكيميائية',
+    seoDescription: 'تواصل مع ممتازكم للاستفسار عن المنتجات الكيميائية والدعم الفني والأسعار والاستشارات المتخصصة.',
+    heroTitle: 'تواصل معنا',
+    heroSubtitle: 'هل أنت مستعد لمناقشة احتياجاتك من الحلول الكيميائية؟ فريق الخبراء لدينا جاهز لمساعدتك في إيجاد الحل الأنسب لقطاعك.',
+    formTitle: 'أرسل لنا رسالة',
+    headquarters: 'المقر الرئيسي',
+    companyName: 'شركة ممتازكم',
+    erbil: 'أربيل',
+    facility: 'منشأة تصنيع المواد الكيميائية',
+    phoneTitle: 'الهاتف وواتساب',
+    whatsappAvailable: 'متاح عبر واتساب',
+    email: 'البريد الإلكتروني',
+    hours: 'ساعات العمل',
+    weekdays: '',
+    saturday: '',
+    careers: 'فرص العمل',
+    joinTeam: 'انضم إلى فريقنا المتنامي',
+    careerRoles1: 'مهندسو الكيمياء وفنيو المختبرات',
+    careerRoles2: 'مندوبو المبيعات ومختصو مراقبة الجودة',
+    whatsapp: 'واتساب',
+    mapTitle: 'موقع ممتازكم في أربيل',
+    region: 'أربيل، إقليم كردستان، العراق',
   } : language === 'tr' ? {
     seoTitle: 'Momtazchem ile İletişime Geçin | Kimyasal Çözümler ve Destek',
     seoDescription: 'Kimyasal ürün talepleri, teknik destek, fiyat teklifi ve uzman danışmanlık için Momtazchem ile iletişime geçin.',
@@ -173,16 +206,10 @@ const Contact = () => {
   };
 
   const getWeeklyScheduleLines = () => {
-    if (!companyInfo?.weeklySchedule) {
-      return [
-        localizeBusinessHours(companyInfo?.businessHoursWeekdays, getContent('hours_weekdays', copy.weekdays)),
-        localizeBusinessHours(companyInfo?.businessHoursSaturday, getContent('hours_saturday', copy.saturday)),
-      ];
-    }
-
     const selectedLanguage: 'en' | 'fa' | 'ar' | 'tr' =
       language === 'fa' || language === 'ar' || language === 'tr' ? language : 'en';
     const order: WeekDayKey[] = ['saturday', 'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    const schedule = companyInfo?.weeklySchedule || DEFAULT_WEEKLY_SCHEDULE;
     const dayRangeSeparator = selectedLanguage === 'fa'
       ? ' تا '
       : selectedLanguage === 'ar'
@@ -197,7 +224,7 @@ const Contact = () => {
     }> = [];
 
     order.forEach((key) => {
-      const day = companyInfo.weeklySchedule![key];
+      const day = schedule[key];
       const previousGroup = groups[groups.length - 1];
       const hasSameSchedule = previousGroup
         && previousGroup.status === day.status
