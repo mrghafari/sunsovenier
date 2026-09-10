@@ -5712,6 +5712,7 @@ export const translations = {
   close: 'بستن',
   submit: 'ثبت',
   continueShopping: 'ادامه خرید',
+  myAccount: 'حساب من',
   accountInformation: 'اطلاعات حساب',
   manageAccount: 'مدیریت حساب و مشاهده تاریخچه سفارش‌ها',
   editProfile: 'ویرایش پروفایل',
