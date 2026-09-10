@@ -420,7 +420,7 @@ export default function CompanyInformation() {
         throw new Error('بررسی نشست مدیریت انجام نشد. دوباره تلاش کنید.');
       }
 
-      const generateResponse = await fetch('/api/secure-upload/generate-url', {
+      const generateResponse = await fetch('/api/company-certificates/upload-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -428,14 +428,11 @@ export default function CompanyInformation() {
           fileName: file.name,
           fileSize: file.size,
           mimeType: file.type,
-          uploadType: 'general',
-          allowedTypes: ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'],
-          customSizeLimit: 10 * 1024 * 1024,
         }),
       });
       const uploadData = await generateResponse.json();
       if (!generateResponse.ok || !uploadData.success || !uploadData.uploadUrl || !uploadData.objectPath) {
-        throw new Error(uploadData.errors?.[0] || 'دریافت مسیر آپلود انجام نشد');
+        throw new Error(uploadData.message || 'دریافت مسیر آپلود انجام نشد');
       }
       const uploadResponse = await fetch(uploadData.uploadUrl, {
         method: 'PUT',

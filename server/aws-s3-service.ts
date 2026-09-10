@@ -376,6 +376,34 @@ export class AwsS3Service {
   }
 
   /**
+   * Generate a temporary signed PUT URL for uploading a private file directly
+   * from the browser to S3.
+   */
+  async getPresignedUploadUrl(
+    key: string,
+    contentType: string,
+    expiresIn: number = 900
+  ): Promise<string | null> {
+    if (!this.client || !this.settings) {
+      console.error('AWS S3 client not initialized');
+      return null;
+    }
+
+    try {
+      const command = new PutObjectCommand({
+        Bucket: this.settings.bucketName,
+        Key: key,
+        ContentType: contentType,
+      });
+
+      return await getS3SignedUrl(this.client, command, { expiresIn });
+    } catch (error) {
+      console.error('❌ Error generating S3 upload URL:', error);
+      return null;
+    }
+  }
+
+  /**
    * Generate a temporary signed URL for accessing private files
    * @param key - S3 object key
    * @param expiresIn - URL expiration time in seconds (default: 1 hour)

@@ -1,3 +1,4 @@
 - [S3 asset fallback](s3-asset-fallback.md) — public assets should have a local fallback because development S3 credentials may be unavailable or invalid.
 - [PWA cache freshness](pwa-cache-freshness.md) — version service-worker caches and avoid cache-first app bundles so translations and fixes reach existing users.
 - [PDFKit RTL text](pdfkit-rtl-text.md) — pass Persian and Arabic in logical Unicode order; manual word or character reversal renders invoices backwards.
+- [Certificate storage](certificate-storage.md) — store new certificate files privately in Amazon S3 and expose only stable app URLs backed by short-lived signed downloads.

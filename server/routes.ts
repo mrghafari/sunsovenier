@@ -1645,6 +1645,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Generate a private Amazon S3 upload URL for company certificates.
+  app.post('/api/company-certificates/upload-url', requireAuth, async (req, res) => {
+    try {
+      const uploadRequest = z.object({
+        fileName: z.string().min(1).max(255),
+        fileSize: z.number().int().positive().max(10 * 1024 * 1024),
+        mimeType: z.enum([
+          'image/jpeg',
+          'image/png',
+          'image/webp',
+          'application/pdf',
+        ]),
+      }).parse(req.body);
+
+      const rawExtension = path.extname(uploadRequest.fileName).toLowerCase();
+      const allowedExtensions = new Set(['.jpg', '.jpeg', '.png', '.webp', '.pdf']);
+      if (!allowedExtensions.has(rawExtension)) {
+        return res.status(400).json({
+          success: false,
+          message: 'نوع فایل گواهینامه مجاز نیست',
+        });
+      }
+
+      const fileId = `${crypto.randomUUID()}${rawExtension}`;
+      const key = `company-certificates/${fileId}`;
+      const s3Service = getAwsS3Service();
+      const uploadUrl = await s3Service.getPresignedUploadUrl(
+        key,
+        uploadRequest.mimeType,
+        900,
+      );
+
+      if (!uploadUrl) {
+        return res.status(503).json({
+          success: false,
+          message: 'سرویس Amazon S3 آماده نیست. تنظیمات bucket را بررسی کنید.',
+        });
+      }
+
+      res.json({
+        success: true,
+        uploadUrl,
+        objectPath: `/files/company-certificates/${fileId}`,
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          success: false,
+          message: error.errors[0]?.message || 'اطلاعات فایل معتبر نیست',
+        });
+      }
+      console.error('Error generating certificate S3 upload URL:', error);
+      res.status(500).json({
+        success: false,
+        message: 'خطا در ایجاد مسیر آپلود گواهینامه',
+      });
+    }
+  });
+
+  // Keep the S3 bucket private and redirect downloads to a short-lived signed URL.
+  app.get('/files/company-certificates/:fileName', async (req, res) => {
+    try {
+      const { fileName } = req.params;
+      if (!/^[0-9a-f-]{36}\.(jpg|jpeg|png|webp|pdf)$/i.test(fileName)) {
+        return res.status(400).json({ success: false, message: 'Invalid file path' });
+      }
+
+      const signedUrl = await getAwsS3Service().getSignedUrl(
+        `company-certificates/${fileName}`,
+        300,
+      );
+      if (!signedUrl) {
+        return res.status(503).json({
+          success: false,
+          message: 'Certificate storage is unavailable',
+        });
+      }
+
+      res.redirect(302, signedUrl);
+    } catch (error) {
+      console.error('Error serving certificate from S3:', error);
+      res.status(500).json({ success: false, message: 'Error serving certificate' });
+    }
+  });
+
   // Public list used by the website's "Our Certifications" section
   app.get('/api/company-certifications', async (_req, res) => {
     try {
