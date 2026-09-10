@@ -108,6 +108,20 @@ async function getCompanyLogo(): Promise<Buffer | null> {
 // to be PDFKit-compatible and remains available when object storage is down.
 function getSafeInvoiceLogo(): Buffer | null {
   try {
+    const bundledLogoPaths = [
+      'public/company-logo.png',
+      'dist/server/public/company-logo.png',
+    ];
+    for (const logoPath of bundledLogoPaths) {
+      if (fs.existsSync(logoPath)) {
+        const logo = fs.readFileSync(logoPath);
+        if (logo.length > 0) {
+          console.log(`✅ [PDF LOGO] Using bundled company logo: ${logoPath}`);
+          return logo;
+        }
+      }
+    }
+
     if (!fs.existsSync('server/logo-base64.txt')) return null;
     const logo = Buffer.from(fs.readFileSync('server/logo-base64.txt', 'utf8').trim(), 'base64');
     return logo.length > 0 ? logo : null;

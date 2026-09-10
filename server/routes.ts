@@ -55100,7 +55100,23 @@ momtazchem.com
         uploadType // Pass upload type for specialized handling
       });
 
-      res.json(result);
+      let objectPath: string | undefined;
+      if (result.success && result.uploadUrl) {
+        try {
+          const signedUrl = new URL(result.uploadUrl);
+          const uploadedObjectId = signedUrl.pathname.split('/').filter(Boolean).pop();
+          if (uploadedObjectId) {
+            objectPath = `/objects/uploads/${uploadedObjectId}`;
+          }
+        } catch (urlError) {
+          console.error('❌ [SECURE UPLOAD] Could not derive stable object path:', urlError);
+        }
+      }
+
+      res.json({
+        ...result,
+        objectPath
+      });
     } catch (error) {
       console.error('❌ [SECURE UPLOAD] Error generating upload URL:', error);
       res.status(500).json({

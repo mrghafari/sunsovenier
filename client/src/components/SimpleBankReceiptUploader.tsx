@@ -62,6 +62,9 @@ export function SimpleBankReceiptUploader({
       }
 
       const uploadData = await uploadResponse.json();
+      if (!uploadData.success || !uploadData.uploadUrl || !uploadData.objectPath) {
+        throw new Error(uploadData.errors?.[0] || 'اطلاعات مسیر آپلود ناقص است');
+      }
       setProgress(50);
 
       // Upload file
@@ -82,7 +85,7 @@ export function SimpleBankReceiptUploader({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fileUrl: uploadData.uploadUrl,
+          fileUrl: uploadData.objectPath,
           fileName: file.name,
           userId: 'anonymous',
           uploadType: 'bank-receipt'
@@ -98,7 +101,7 @@ export function SimpleBankReceiptUploader({
           title: "✅ آپلود موفق",
           description: "فیش بانکی با موفقیت آپلود و اعتبارسنجی شد"
         });
-        onUploadComplete?.(uploadData.uploadUrl);
+        onUploadComplete?.(uploadData.objectPath);
       } else {
         throw new Error(validationResult.errors?.[0] || 'خطا در اعتبارسنجی فایل');
       }
