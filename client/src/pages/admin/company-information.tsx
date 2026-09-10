@@ -207,6 +207,8 @@ export default function CompanyInformation() {
   const [formData, setFormData] = useState<CompanyInfo>({});
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
+  const [certificateUploading, setCertificateUploading] = useState(false);
+  const [certificateFileUrl, setCertificateFileUrl] = useState('');
 
   // Fetch company information from database
   const { data: companyInfo, isLoading: infoLoading } = useQuery<CompanyInfo>({
@@ -333,6 +335,65 @@ export default function CompanyInformation() {
       });
     }
   });
+
+  const addCertificateMutation = useMutation({
+    mutationFn: async (data: CompanyDocument) => {
+      return apiRequest('/api/company-documents', {
+        method: 'POST',
+        body: data,
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "موفقیت", description: "گواهینامه با موفقیت ثبت شد" });
+      queryClient.invalidateQueries({ queryKey: ['/api/company-documents'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/company-certifications'] });
+      setIsAddingDocument(false);
+      setCertificateFileUrl('');
+    },
+    onError: (error) => {
+      console.error('Error adding certificate:', error);
+      toast({ title: "خطا", description: "ثبت گواهینامه انجام نشد", variant: "destructive" });
+    }
+  });
+
+  const handleCertificateUpload = async (file: File) => {
+    setCertificateUploading(true);
+    try {
+      const generateResponse = await fetch('/api/secure-upload/generate-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          fileName: file.name,
+          fileSize: file.size,
+          mimeType: file.type,
+          uploadType: 'general',
+          allowedTypes: ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'],
+          customSizeLimit: 10 * 1024 * 1024,
+        }),
+      });
+      const uploadData = await generateResponse.json();
+      if (!generateResponse.ok || !uploadData.success || !uploadData.uploadUrl || !uploadData.objectPath) {
+        throw new Error(uploadData.errors?.[0] || 'دریافت مسیر آپلود انجام نشد');
+      }
+      const uploadResponse = await fetch(uploadData.uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      });
+      if (!uploadResponse.ok) throw new Error('آپلود فایل گواهینامه انجام نشد');
+      setCertificateFileUrl(uploadData.objectPath);
+      toast({ title: "آپلود موفق", description: "فایل گواهینامه آماده ثبت است" });
+    } catch (error) {
+      toast({
+        title: "خطا در آپلود",
+        description: error instanceof Error ? error.message : 'آپلود فایل انجام نشد',
+        variant: "destructive",
+      });
+    } finally {
+      setCertificateUploading(false);
+    }
+  };
 
   // Handle save button click
   const handleSaveCompanyInfo = () => {
@@ -678,7 +739,7 @@ export default function CompanyInformation() {
           </TabsTrigger>
           <TabsTrigger value="documents" className="flex items-center gap-2">
             <FileCheck className="h-4 w-4" />
-            مدارک شرکت ({companyDocs?.length || 0})
+            گواهینامه‌ها و مدارک ({companyDocs?.length || 0})
           </TabsTrigger>
           <TabsTrigger value="business-cards" className="flex items-center gap-2">
             <User className="h-4 w-4" />
@@ -1230,10 +1291,10 @@ export default function CompanyInformation() {
         {/* Company Documents Tab */}
         <TabsContent value="documents" className="space-y-6">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold">مدارک شرکت</h2>
+            <h2 className="text-xl font-semibold">گواهینامه‌ها و مدارک شرکت</h2>
             <Button onClick={() => setIsAddingDocument(true)}>
               <Plus className="h-4 w-4 ml-1" />
-              مدرک جدید
+              گواهینامه جدید
             </Button>
           </div>
 
@@ -1494,6 +1555,95 @@ export default function CompanyInformation() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Company Certification Upload Dialog */}
+      <Dialog open={isAddingDocument} onOpenChange={(open) => {
+        setIsAddingDocument(open);
+        if (!open) setCertificateFileUrl('');
+      }}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>افزودن گواهینامه شرکت</DialogTitle>
+            <DialogDescription>
+              اطلاعات گواهینامه را وارد کرده و تصویر یا فایل PDF آن را آپلود کنید.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={(event) => {
+            event.preventDefault();
+            const values = new FormData(event.currentTarget);
+            if (!certificateFileUrl) {
+              toast({ title: "فایل الزامی است", description: "ابتدا فایل گواهینامه را آپلود کنید", variant: "destructive" });
+              return;
+            }
+            addCertificateMutation.mutate({
+              documentName: values.get('documentName') as string,
+              documentType: 'certificate',
+              documentNumber: (values.get('documentNumber') as string) || '—',
+              issueDate: values.get('issueDate') as string,
+              expiryDate: (values.get('expiryDate') as string) || '',
+              issuingAuthority: values.get('issuingAuthority') as string,
+              fileUrl: certificateFileUrl,
+              status: 'active',
+              description: values.get('description') as string,
+              tags: 'public-certification',
+            });
+          }}>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="certificateName">نام گواهینامه *</Label>
+                <Input id="certificateName" name="documentName" required placeholder="ISO 9001:2015" />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>شماره گواهینامه</Label>
+                  <Input name="documentNumber" placeholder="شماره مدرک" />
+                </div>
+                <div className="space-y-2">
+                  <Label>مرجع صادرکننده *</Label>
+                  <Input name="issuingAuthority" required placeholder="مرجع صادرکننده" />
+                </div>
+                <div className="space-y-2">
+                  <Label>تاریخ صدور *</Label>
+                  <Input name="issueDate" type="date" required />
+                </div>
+                <div className="space-y-2">
+                  <Label>تاریخ انقضا</Label>
+                  <Input name="expiryDate" type="date" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>توضیحات</Label>
+                <Textarea name="description" placeholder="توضیحات گواهینامه" />
+              </div>
+              <div className="space-y-2">
+                <Label>فایل گواهینامه *</Label>
+                <Input
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.webp,.pdf"
+                  disabled={certificateUploading}
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) handleCertificateUpload(file);
+                  }}
+                />
+                {certificateUploading && <p className="text-sm text-blue-600">در حال آپلود فایل...</p>}
+                {certificateFileUrl && (
+                  <p className="text-sm text-green-600 flex items-center gap-1">
+                    <CheckCircle className="h-4 w-4" />
+                    فایل با موفقیت آپلود شد
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-6">
+              <Button type="button" variant="outline" onClick={() => setIsAddingDocument(false)}>انصراف</Button>
+              <Button type="submit" disabled={certificateUploading || addCertificateMutation.isPending}>
+                {addCertificateMutation.isPending ? 'در حال ثبت...' : 'ثبت گواهینامه'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Business Card Upload Dialog */}
       <Dialog open={isAddingBusinessCard} onOpenChange={setIsAddingBusinessCard}>

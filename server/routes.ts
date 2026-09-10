@@ -1645,10 +1645,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Public list used by the website's "Our Certifications" section
+  app.get('/api/company-certifications', async (_req, res) => {
+    try {
+      const documents = await companyStorage.getCompanyDocuments();
+      const certifications = documents.filter((document) =>
+        document.isActive !== false &&
+        ['certificate', 'certification'].includes(document.documentType)
+      );
+      res.json({ success: true, data: certifications });
+    } catch (error) {
+      console.error('Error fetching public company certifications:', error);
+      res.status(500).json({ success: false, message: "خطا در دریافت گواهینامه‌های شرکت" });
+    }
+  });
+
   // Create company document
   app.post('/api/company-documents', requireAuth, async (req, res) => {
     try {
-      const validatedData = insertCompanyDocumentsSchema.parse(req.body);
+      const validatedData = insertCompanyDocumentsSchema.parse({
+        ...req.body,
+        issueDate: new Date(req.body.issueDate),
+        expiryDate: req.body.expiryDate ? new Date(req.body.expiryDate) : null,
+      });
       const newDocument = await companyStorage.createCompanyDocument(validatedData);
       
       res.json({ 
