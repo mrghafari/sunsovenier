@@ -126,7 +126,8 @@ export default function TawkToChat() {
             mobile: {
               position: 'bl', // bottom-left on mobile
               xOffset: 10,
-              yOffset: 10
+              // Keep the launcher above the mobile bottom navigation/account button.
+              yOffset: 80
             }
           }
         };
