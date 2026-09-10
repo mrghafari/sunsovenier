@@ -144,7 +144,7 @@ interface CompanyDocument {
   documentType: string;
   documentNumber: string;
   issueDate: string;
-  expiryDate: string;
+  expiryDate: string | null;
   issuingAuthority: string;
   fileUrl: string;
   status: 'active' | 'expired' | 'renewed' | 'cancelled';
@@ -420,26 +420,17 @@ export default function CompanyInformation() {
         throw new Error('بررسی نشست مدیریت انجام نشد. دوباره تلاش کنید.');
       }
 
-      const generateResponse = await fetch('/api/company-certificates/upload-url', {
+      const uploadBody = new FormData();
+      uploadBody.append('file', file);
+      const uploadResponse = await fetch('/api/company-certificates/upload', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({
-          fileName: file.name,
-          fileSize: file.size,
-          mimeType: file.type,
-        }),
+        body: uploadBody,
       });
-      const uploadData = await generateResponse.json();
-      if (!generateResponse.ok || !uploadData.success || !uploadData.uploadUrl || !uploadData.objectPath) {
+      const uploadData = await uploadResponse.json();
+      if (!uploadResponse.ok || !uploadData.success || !uploadData.objectPath) {
         throw new Error(uploadData.message || 'دریافت مسیر آپلود انجام نشد');
       }
-      const uploadResponse = await fetch(uploadData.uploadUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': file.type },
-        body: file,
-      });
-      if (!uploadResponse.ok) throw new Error('آپلود فایل گواهینامه انجام نشد');
       setCertificateFileUrl(uploadData.objectPath);
       toast({ title: "آپلود موفق", description: "فایل گواهینامه آماده ثبت است" });
     } catch (error) {
@@ -1672,7 +1663,7 @@ export default function CompanyInformation() {
               documentType: 'certificate',
               documentNumber: (values.get('documentNumber') as string) || '—',
               issueDate: values.get('issueDate') as string,
-              expiryDate: (values.get('expiryDate') as string) || '',
+              expiryDate: (values.get('expiryDate') as string) || null,
               issuingAuthority: values.get('issuingAuthority') as string,
               fileUrl: certificateFileUrl,
               status: 'active',

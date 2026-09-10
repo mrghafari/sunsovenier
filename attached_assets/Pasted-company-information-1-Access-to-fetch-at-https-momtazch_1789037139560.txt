@@ -1,0 +1,21 @@
+company-information:1 Access to fetch at 'https://momtazchem.s3.eu-central-1.amazonaws.com/company-certificates/4a4e4bef-8392-4e42-b427-700765983c63.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIAYLLSZQTMQSN5OVKC%2F20260910%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260910T104032Z&X-Amz-Expires=900&X-Amz-Signature=e3f731b0e2b9093ca7ee20b09a03c87697e0fa81757bf7761a3a24255e2ca8bb&X-Amz-SignedHeaders=host&x-amz-checksum-crc32=AAAAAA%3D%3D&x-amz-sdk-checksum-algorithm=CRC32&x-id=PutObject' from origin 'https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+company-information.tsx:437  PUT https://momtazchem.s3.eu-central-1.amazonaws.com/company-certificates/4a4e4bef-8392-4e42-b427-700765983c63.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIAYLLSZQTMQSN5OVKC%2F20260910%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20260910T104032Z&X-Amz-Expires=900&X-Amz-Signature=e3f731b0e2b9093ca7ee20b09a03c87697e0fa81757bf7761a3a24255e2ca8bb&X-Amz-SignedHeaders=host&x-amz-checksum-crc32=AAAAAA%3D%3D&x-amz-sdk-checksum-algorithm=CRC32&x-id=PutObject net::ERR_FAILED
+(anonymous) @ company-information.tsx:437
+await in (anonymous)
+(anonymous) @ company-information.tsx:1723
+callCallback2 @ chunk-RPCDYKBN.js?v=ebb5d1fc:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=ebb5d1fc:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=ebb5d1fc:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=ebb5d1fc:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=ebb5d1fc:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=ebb5d1fc:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=ebb5d1fc:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=ebb5d1fc:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=ebb5d1fc:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=ebb5d1fc:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=ebb5d1fc:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=ebb5d1fc:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=ebb5d1fc:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=ebb5d1fc:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=ebb5d1fc:5449
+useAuth.ts:43 Auth check result: {success: true, user: {…}}

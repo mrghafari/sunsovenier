@@ -1704,11 +1704,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Proxy certificate uploads through the application server so S3 bucket CORS
+  // configuration is not required for browser uploads.
+  app.post(
+    '/api/company-certificates/upload',
+    requireAuth,
+    multer({
+      storage: multer.memoryStorage(),
+      limits: { fileSize: 10 * 1024 * 1024 },
+      fileFilter: (_req, file, callback) => {
+        const allowedMimeTypes = new Set([
+          'image/jpeg',
+          'image/png',
+          'image/webp',
+          'application/pdf',
+        ]);
+        if (!allowedMimeTypes.has(file.mimetype)) {
+          return callback(new Error('Only JPEG, PNG, WebP, and PDF files are allowed'));
+        }
+        callback(null, true);
+      },
+    }).single('file'),
+    async (req, res) => {
+      try {
+        if (!req.file) {
+          return res.status(400).json({
+            success: false,
+            message: 'فایل گواهینامه ارسال نشده است',
+          });
+        }
+
+        const rawExtension = path.extname(req.file.originalname).toLowerCase();
+        const allowedExtensions = new Set(['.jpg', '.jpeg', '.png', '.webp', '.pdf']);
+        if (!allowedExtensions.has(rawExtension)) {
+          return res.status(400).json({
+            success: false,
+            message: 'نوع فایل گواهینامه مجاز نیست',
+          });
+        }
+
+        const uploadResult = await getAwsS3Service().uploadPrivateFile(
+          req.file.buffer,
+          `${crypto.randomUUID()}${rawExtension}`,
+          req.file.mimetype,
+          'company-certificates',
+        );
+
+        if (!uploadResult.success || !uploadResult.key) {
+          return res.status(503).json({
+            success: false,
+            message: uploadResult.message || 'آپلود فایل در Amazon S3 انجام نشد',
+          });
+        }
+
+        const fileName = uploadResult.key.split('/').pop();
+        if (!fileName) {
+          throw new Error('S3 returned an invalid certificate key');
+        }
+
+        res.json({
+          success: true,
+          objectPath: `/files/company-certificates/${fileName}`,
+        });
+      } catch (error) {
+        console.error('Error uploading certificate to S3:', error);
+        res.status(500).json({
+          success: false,
+          message: 'خطا در آپلود گواهینامه به Amazon S3',
+        });
+      }
+    },
+  );
+
   // Keep the S3 bucket private and redirect downloads to a short-lived signed URL.
   app.get('/files/company-certificates/:fileName', async (req, res) => {
     try {
       const { fileName } = req.params;
-      if (!/^[0-9a-f-]{36}\.(jpg|jpeg|png|webp|pdf)$/i.test(fileName)) {
+      if (!/^[a-z0-9][a-z0-9._-]{0,199}\.(jpg|jpeg|png|webp|pdf)$/i.test(fileName)) {
         return res.status(400).json({ success: false, message: 'Invalid file path' });
       }
 
@@ -1748,10 +1820,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create company document
   app.post('/api/company-documents', requireAuth, async (req, res) => {
     try {
+      const issueDate = new Date(req.body.issueDate);
+      const expiryDate = req.body.expiryDate ? new Date(req.body.expiryDate) : null;
+      if (Number.isNaN(issueDate.getTime()) || (expiryDate && Number.isNaN(expiryDate.getTime()))) {
+        return res.status(400).json({ success: false, message: "تاریخ گواهینامه معتبر نیست" });
+      }
       const validatedData = insertCompanyDocumentsSchema.parse({
         ...req.body,
-        issueDate: new Date(req.body.issueDate),
-        expiryDate: req.body.expiryDate ? new Date(req.body.expiryDate) : null,
+        issueDate,
+        expiryDate,
       });
       const newDocument = await companyStorage.createCompanyDocument(validatedData);
       
