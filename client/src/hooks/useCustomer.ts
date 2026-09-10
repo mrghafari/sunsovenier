@@ -1,11 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { useLocation } from "wouter";
 
 export function useCustomer() {
   const queryClient = useQueryClient();
+  const [location] = useLocation();
+  const isAdminRoute = location.startsWith("/admin");
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["/api/customers/me"],
+    enabled: !isAdminRoute,
     retry: false,
     staleTime: 1000, // 1 second - allow quick refresh after login
     refetchOnWindowFocus: true, // Enable refetch on focus for better UX

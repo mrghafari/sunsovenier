@@ -1,9 +1,14 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useLocation } from "wouter";
 
 export function useCustomerAuth() {
+  const [location] = useLocation();
+  const isAdminRoute = location.startsWith("/admin");
+
   const { data, isLoading, error } = useQuery({
     queryKey: ["/api/customers/me"],
+    enabled: !isAdminRoute,
     retry: 1,
     staleTime: 5000,
     refetchOnWindowFocus: true,
