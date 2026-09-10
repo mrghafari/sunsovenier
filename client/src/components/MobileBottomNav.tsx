@@ -9,10 +9,9 @@ export function MobileBottomNav() {
   const [location] = useLocation();
   const { getTotalItems } = usePersistentCart();
   const { isAuthenticated } = useCustomerAuth();
-  const { direction } = useLanguage();
+  const { direction, t } = useLanguage();
 
   const totalItems = getTotalItems();
-  const isRtl = direction === 'rtl';
 
   // Hide on admin / department routes
   const isAdminRoute =
@@ -31,28 +30,28 @@ export function MobileBottomNav() {
   const tabs = [
     {
       href: '/',
-      label: isRtl ? 'خانه' : 'Home',
+      label: t.home,
       icon: Home,
     },
     {
       href: '/shop',
-      label: isRtl ? 'فروشگاه' : 'Shop',
+      label: t.shop.title,
       icon: ShoppingBag,
     },
     {
       href: '/shop-search',
-      label: isRtl ? 'جستجو' : 'Search',
+      label: t.search,
       icon: Search,
     },
     {
       href: '/shop',
-      label: isRtl ? 'سبد' : 'Cart',
+      label: t.cart,
       icon: ShoppingCart,
       badge: totalItems > 0 ? totalItems : null,
     },
     {
       href: isAuthenticated ? '/customer/profile' : '/customer/login',
-      label: isRtl ? 'حساب' : 'Account',
+      label: t.myAccount,
       icon: User,
       dot: !isAuthenticated,
     },
