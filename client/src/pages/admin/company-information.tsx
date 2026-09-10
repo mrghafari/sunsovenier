@@ -359,10 +359,47 @@ export default function CompanyInformation() {
       queryClient.invalidateQueries({ queryKey: ['/api/company-certifications'] });
       setIsAddingDocument(false);
       setCertificateFileUrl('');
+      setEditingItem(null);
     },
     onError: (error) => {
       console.error('Error adding certificate:', error);
       const message = error instanceof Error ? error.message : "ثبت گواهینامه انجام نشد";
+      toast({ title: "خطا", description: message, variant: "destructive" });
+      if (message.includes('نشست مدیریت')) {
+        window.setTimeout(() => {
+          window.location.href = '/admin/login';
+        }, 1200);
+      }
+    }
+  });
+
+  const updateCertificateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: CompanyDocument }) => {
+      const response = await fetch(`/api/company-documents/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(data),
+      });
+      const result = await response.json().catch(() => null);
+      if (response.status === 401) {
+        throw new Error('نشست مدیریت منقضی شده است. لطفاً دوباره وارد شوید.');
+      }
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.message || 'به‌روزرسانی گواهینامه انجام نشد');
+      }
+      return result;
+    },
+    onSuccess: () => {
+      toast({ title: "موفقیت", description: "گواهینامه با موفقیت به‌روزرسانی شد" });
+      queryClient.invalidateQueries({ queryKey: ['/api/company-documents'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/company-certifications'] });
+      setIsAddingDocument(false);
+      setCertificateFileUrl('');
+      setEditingItem(null);
+    },
+    onError: (error) => {
+      const message = error instanceof Error ? error.message : "به‌روزرسانی گواهینامه انجام نشد";
       toast({ title: "خطا", description: message, variant: "destructive" });
       if (message.includes('نشست مدیریت')) {
         window.setTimeout(() => {
@@ -1358,10 +1395,27 @@ export default function CompanyInformation() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline">
-                        <Download className="h-4 w-4" />
+                      <Button size="sm" variant="outline" asChild>
+                        <a
+                          href={doc.fileUrl}
+                          download={doc.documentName}
+                          aria-label={`دانلود ${doc.documentName}`}
+                          title="دانلود فایل"
+                        >
+                          <Download className="h-4 w-4" />
+                        </a>
                       </Button>
-                      <Button size="sm" variant="outline">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        aria-label={`ویرایش ${doc.documentName}`}
+                        title="ویرایش گواهینامه"
+                        onClick={() => {
+                          setEditingItem(doc);
+                          setCertificateFileUrl(doc.fileUrl);
+                          setIsAddingDocument(true);
+                        }}
+                      >
                         <Edit className="h-4 w-4" />
                       </Button>
                     </div>
@@ -1595,23 +1649,28 @@ export default function CompanyInformation() {
       {/* Company Certification Upload Dialog */}
       <Dialog open={isAddingDocument} onOpenChange={(open) => {
         setIsAddingDocument(open);
-        if (!open) setCertificateFileUrl('');
+        if (!open) {
+          setCertificateFileUrl('');
+          setEditingItem(null);
+        }
       }}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>افزودن گواهینامه شرکت</DialogTitle>
+            <DialogTitle>{editingItem ? 'ویرایش گواهینامه شرکت' : 'افزودن گواهینامه شرکت'}</DialogTitle>
             <DialogDescription>
-              اطلاعات گواهینامه را وارد کرده و تصویر یا فایل PDF آن را آپلود کنید.
+              {editingItem
+                ? 'اطلاعات گواهینامه را ویرایش کنید. در صورت نیاز می‌توانید فایل آن را نیز جایگزین کنید.'
+                : 'اطلاعات گواهینامه را وارد کرده و تصویر یا فایل PDF آن را آپلود کنید.'}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={(event) => {
+          <form key={editingItem?.id || 'new-certificate'} onSubmit={(event) => {
             event.preventDefault();
             const values = new FormData(event.currentTarget);
             if (!certificateFileUrl) {
               toast({ title: "فایل الزامی است", description: "ابتدا فایل گواهینامه را آپلود کنید", variant: "destructive" });
               return;
             }
-            addCertificateMutation.mutate({
+            const certificateData: CompanyDocument = {
               documentName: values.get('documentName') as string,
               documentType: 'certificate',
               documentNumber: (values.get('documentNumber') as string) || '—',
@@ -1622,34 +1681,39 @@ export default function CompanyInformation() {
               status: 'active',
               description: values.get('description') as string,
               tags: 'public-certification',
-            });
+            };
+            if (editingItem?.id) {
+              updateCertificateMutation.mutate({ id: editingItem.id, data: certificateData });
+            } else {
+              addCertificateMutation.mutate(certificateData);
+            }
           }}>
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="certificateName">نام گواهینامه *</Label>
-                <Input id="certificateName" name="documentName" required placeholder="ISO 9001:2015" />
+                <Input id="certificateName" name="documentName" required placeholder="ISO 9001:2015" defaultValue={editingItem?.documentName || ''} />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>شماره گواهینامه</Label>
-                  <Input name="documentNumber" placeholder="شماره مدرک" />
+                  <Input name="documentNumber" placeholder="شماره مدرک" defaultValue={editingItem?.documentNumber || ''} />
                 </div>
                 <div className="space-y-2">
                   <Label>مرجع صادرکننده *</Label>
-                  <Input name="issuingAuthority" required placeholder="مرجع صادرکننده" />
+                  <Input name="issuingAuthority" required placeholder="مرجع صادرکننده" defaultValue={editingItem?.issuingAuthority || ''} />
                 </div>
                 <div className="space-y-2">
                   <Label>تاریخ صدور *</Label>
-                  <Input name="issueDate" type="date" required />
+                  <Input name="issueDate" type="date" required defaultValue={editingItem?.issueDate ? editingItem.issueDate.slice(0, 10) : ''} />
                 </div>
                 <div className="space-y-2">
                   <Label>تاریخ انقضا</Label>
-                  <Input name="expiryDate" type="date" />
+                  <Input name="expiryDate" type="date" defaultValue={editingItem?.expiryDate ? editingItem.expiryDate.slice(0, 10) : ''} />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label>توضیحات</Label>
-                <Textarea name="description" placeholder="توضیحات گواهینامه" />
+                <Textarea name="description" placeholder="توضیحات گواهینامه" defaultValue={editingItem?.description || ''} />
               </div>
               <div className="space-y-2">
                 <Label>فایل گواهینامه *</Label>
@@ -1666,15 +1730,22 @@ export default function CompanyInformation() {
                 {certificateFileUrl && (
                   <p className="text-sm text-green-600 flex items-center gap-1">
                     <CheckCircle className="h-4 w-4" />
-                    فایل با موفقیت آپلود شد
+                    {editingItem && certificateFileUrl === editingItem.fileUrl
+                      ? 'فایل فعلی حفظ می‌شود'
+                      : 'فایل با موفقیت آپلود شد'}
                   </p>
                 )}
               </div>
             </div>
             <div className="flex justify-end gap-2 mt-6">
               <Button type="button" variant="outline" onClick={() => setIsAddingDocument(false)}>انصراف</Button>
-              <Button type="submit" disabled={certificateUploading || addCertificateMutation.isPending}>
-                {addCertificateMutation.isPending ? 'در حال ثبت...' : 'ثبت گواهینامه'}
+              <Button
+                type="submit"
+                disabled={certificateUploading || addCertificateMutation.isPending || updateCertificateMutation.isPending}
+              >
+                {addCertificateMutation.isPending || updateCertificateMutation.isPending
+                  ? 'در حال ذخیره...'
+                  : editingItem ? 'ذخیره تغییرات' : 'ثبت گواهینامه'}
               </Button>
             </div>
           </form>

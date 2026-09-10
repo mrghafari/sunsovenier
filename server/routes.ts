@@ -1685,7 +1685,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put('/api/company-documents/:id', requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
-      const validatedData = insertCompanyDocumentsSchema.partial().parse(req.body);
+      const normalizedData = {
+        ...req.body,
+        ...(req.body.issueDate !== undefined && {
+          issueDate: req.body.issueDate ? new Date(req.body.issueDate) : undefined,
+        }),
+        ...(req.body.expiryDate !== undefined && {
+          expiryDate: req.body.expiryDate ? new Date(req.body.expiryDate) : null,
+        }),
+      };
+      const validatedData = insertCompanyDocumentsSchema.partial().parse(normalizedData);
       const updatedDocument = await companyStorage.updateCompanyDocument(parseInt(id), validatedData);
       
       if (!updatedDocument) {
