@@ -138,7 +138,7 @@ const Contact = () => {
   const { data: companyInfo } = useQuery<PublicCompanyInfo | null>({
     queryKey: ['/api/company-information'],
     queryFn: async () => {
-      const response = await fetch('/api/company-information');
+      const response = await fetch('/api/company-information', { cache: 'no-store' });
       if (!response.ok) throw new Error('Failed to fetch company information');
       const result = await response.json();
       return result.data || null;

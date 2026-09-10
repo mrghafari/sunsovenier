@@ -272,8 +272,13 @@ export default function CompanyInformation() {
   // Initialize formData when companyInfo loads
   useEffect(() => {
     if (companyInfo) {
-      setFormData(companyInfo);
-      setHasUnsavedChanges(false);
+      setFormData({
+        ...companyInfo,
+        weeklySchedule: companyInfo.weeklySchedule || DEFAULT_WEEKLY_SCHEDULE,
+      });
+      // A visible default schedule must be persisted before the public Contact
+      // page can use it instead of the legacy business-hours text.
+      setHasUnsavedChanges(!companyInfo.weeklySchedule);
     }
   }, [companyInfo]);
 
@@ -349,13 +354,17 @@ export default function CompanyInformation() {
     mutationFn: async (data: CompanyInfo) => {
       const response = await apiRequest('/api/admin/company-information', {
         method: 'PUT',
-        body: data, // Remove JSON.stringify as apiRequest does this automatically
+        body: {
+          ...data,
+          weeklySchedule: data.weeklySchedule || DEFAULT_WEEKLY_SCHEDULE,
+        },
       });
       return response;
     },
     onSuccess: () => {
       toast({ title: "موفقیت", description: "اطلاعات شرکت با موفقیت در دیتابیس ذخیره شد" });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/company-information'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/company-information'] });
       setHasUnsavedChanges(false);
     },
     onError: (error) => {

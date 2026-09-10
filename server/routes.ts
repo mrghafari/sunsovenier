@@ -2075,6 +2075,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/company-information', async (req, res) => {
     try {
       const companyInfo = await companyStorage.getCompanyInformation();
+      res.setHeader('Cache-Control', 'no-store');
       res.json({ success: true, data: companyInfo });
     } catch (error) {
       console.error('Error fetching company information:', error);
