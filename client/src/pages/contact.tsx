@@ -57,6 +57,29 @@ const Contact = () => {
     whatsapp: 'واتساپ',
     mapTitle: 'موقعیت ممتازکم در اربیل',
     region: 'اربیل، اقلیم کردستان، عراق',
+  } : language === 'tr' ? {
+    seoTitle: 'Momtazchem ile İletişime Geçin | Kimyasal Çözümler ve Destek',
+    seoDescription: 'Kimyasal ürün talepleri, teknik destek, fiyat teklifi ve uzman danışmanlık için Momtazchem ile iletişime geçin.',
+    heroTitle: 'Bizimle İletişime Geçin',
+    heroSubtitle: 'Kimyasal çözüm ihtiyaçlarınızı görüşmeye hazır mısınız? Uzman ekibimiz, sektörünüze en uygun çözümü bulmanıza yardımcı olmaya hazır.',
+    formTitle: 'Bize Mesaj Gönderin',
+    headquarters: 'Genel Merkez',
+    companyName: 'Momtazchem Şirketi',
+    erbil: 'Erbil',
+    facility: 'Kimyasal Üretim Tesisi',
+    phoneTitle: 'Telefon ve WhatsApp',
+    whatsappAvailable: 'WhatsApp üzerinden ulaşabilirsiniz',
+    email: 'E-posta',
+    hours: 'Çalışma Saatleri',
+    weekdays: 'Pazartesi - Cuma: 08:00 - 18:00',
+    saturday: 'Cumartesi: 09:00 - 13:00',
+    careers: 'Kariyer Fırsatları',
+    joinTeam: 'Büyüyen ekibimize katılın',
+    careerRoles1: 'Kimya Mühendisleri ve Laboratuvar Teknisyenleri',
+    careerRoles2: 'Satış Temsilcileri ve Kalite Kontrol Uzmanları',
+    whatsapp: 'WhatsApp',
+    mapTitle: 'Momtazchem Konumu - Erbil',
+    region: 'Erbil, Kürdistan Bölgesi, Irak',
   } : {
     seoTitle: 'Contact Momtazchem - Get Expert Chemical Solutions Support',
     seoDescription: 'Reach out to Momtazchem for chemical product inquiries, technical support, quotes, and consultations. Available 24/7. Email, phone, and office locations in Iraq and worldwide.',
@@ -76,6 +99,7 @@ const Contact = () => {
       case 'ar': return 'ar';
       case 'ku': return 'ku';
       case 'fa': return 'fa';
+      case 'tr': return 'tr';
       default: return 'en';
     }
   };
@@ -110,6 +134,23 @@ const Contact = () => {
   const getContent = (key: string, fallback: string = '') => {
     const item = contactContent.find(item => item.key === key);
     return item?.content || fallback;
+  };
+
+  const localizeBusinessHours = (value: string | undefined, fallback: string) => {
+    if (!value) return fallback;
+    if (language !== 'tr') return value;
+
+    return value
+      .replace(/Monday\s*-\s*Friday:\s*8:00\s*AM\s*-\s*6:00\s*PM/gi, 'Pazartesi - Cuma: 08:00 - 18:00')
+      .replace(/Saturday:\s*9:00\s*AM\s*-\s*(?:1|2):00\s*PM/gi, (match) =>
+        match.includes('2:00') ? 'Cumartesi: 09:00 - 14:00' : 'Cumartesi: 09:00 - 13:00'
+      )
+      .replace(/Monday\s*-\s*Friday/gi, 'Pazartesi - Cuma')
+      .replace(/Saturday/gi, 'Cumartesi')
+      .replace(/\bAM\b/gi, '')
+      .replace(/\bPM\b/gi, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
   };
 
   const form = useForm({
@@ -186,8 +227,8 @@ const Contact = () => {
       icon: <Clock className="h-6 w-6 text-white" />,
        title: getContent('hours_title', copy.hours),
       content: [
-          companyInfo?.businessHoursWeekdays || getContent('hours_weekdays', copy.weekdays),
-          companyInfo?.businessHoursSaturday || getContent('hours_saturday', copy.saturday)
+          localizeBusinessHours(companyInfo?.businessHoursWeekdays, getContent('hours_weekdays', copy.weekdays)),
+          localizeBusinessHours(companyInfo?.businessHoursSaturday, getContent('hours_saturday', copy.saturday))
       ],
       bgColor: "bg-primary-blue"
     },
