@@ -224,7 +224,7 @@ export default function TawkToChat() {
       aria-label={isMobileWidgetVisible ? 'Hide chat' : 'Show chat'}
       title={isMobileWidgetVisible ? 'Hide chat' : 'Show chat'}
       className={`fixed bottom-[5.25rem] left-0 z-[2147483000] flex h-11 w-10 items-center justify-center rounded-r-full bg-blue-600 text-white shadow-lg transition-transform duration-200 disabled:cursor-wait disabled:opacity-60 md:hidden ${
-        isMobileWidgetVisible ? 'translate-x-0' : '-translate-x-7'
+        isMobileWidgetVisible ? 'translate-x-0' : '-translate-x-2'
       }`}
     >
       {isMobileWidgetVisible ? <X className="h-5 w-5" /> : <MessageCircle className="h-5 w-5" />}
