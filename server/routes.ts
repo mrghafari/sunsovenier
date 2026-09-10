@@ -1638,7 +1638,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/company-documents', requireAuth, async (req, res) => {
     try {
       const documents = await companyStorage.getCompanyDocuments();
-      res.json({ success: true, data: documents });
+      res.set('Cache-Control', 'private, no-store, no-cache, must-revalidate');
+      res.json({
+        success: true,
+        data: documents.map((document) => ({
+          ...document,
+          expiryDate: document.expiryDate ?? null,
+        })),
+      });
     } catch (error) {
       console.error('Error fetching company documents:', error);
       res.status(500).json({ success: false, message: "خطا در دریافت مدارک شرکت" });

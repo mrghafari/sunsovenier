@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v2-20260908';
+const CACHE_VERSION = 'v3-20260910';
 const STATIC_CACHE = `momtazchem-static-${CACHE_VERSION}`;
 const API_CACHE = `momtazchem-api-${CACHE_VERSION}`;
 

@@ -284,10 +284,16 @@ export default function CompanyInformation() {
   const { data: companyDocs } = useQuery<CompanyDocument[]>({
     queryKey: ['/api/company-documents'],
     queryFn: async () => {
-      const response = await fetch('/api/company-documents', { credentials: 'include' });
+      const response = await fetch('/api/company-documents', {
+        credentials: 'include',
+        cache: 'no-store',
+      });
       if (!response.ok) throw new Error('Failed to fetch company documents');
       const result = await response.json();
-      return result.data || [];
+      return (result.data || []).map((document: CompanyDocument & { expiry_date?: string | null }) => ({
+        ...document,
+        expiryDate: document.expiryDate ?? document.expiry_date ?? null,
+      }));
     }
   });
 
