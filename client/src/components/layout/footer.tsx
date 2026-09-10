@@ -160,9 +160,15 @@ const Footer = () => {
                 <div className="flex space-x-2 flex-wrap">
                   {activeSocialMedia.slice(0, 6).map((platform) => {
                     const platformUrl = getSocialMediaUrl(platform.key);
+                    const wechatQrUrl = getSocialMediaUrl('wechat_qr');
+                    const hasRealWechatQr = Boolean(
+                      wechatQrUrl &&
+                      !wechatQrUrl.includes('placeholder.com') &&
+                      !wechatQrUrl.includes('text=WeChat')
+                    );
                     
                     // Special handling for WeChat with QR Code
-                    if (platform.key === 'wechat_url' && getSocialMediaUrl('wechat_qr')) {
+                    if (platform.key === 'wechat_url' && hasRealWechatQr) {
                       return (
                         <div key={platform.key} className="relative group">
                           <a
@@ -177,7 +183,7 @@ const Footer = () => {
                           {/* QR Code Popup on Hover */}
                           <div className="absolute bottom-10 left-0 hidden group-hover:block bg-white p-2 rounded-lg shadow-lg z-10">
                             <img 
-                              src={getSocialMediaUrl('wechat_qr')} 
+                              src={wechatQrUrl}
                               alt="WeChat QR Code" 
                               className="w-24 h-24"
                             />
