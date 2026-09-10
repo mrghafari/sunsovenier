@@ -9,11 +9,26 @@ interface PublicCertification {
   documentName: string;
   issuingAuthority?: string;
   description?: string;
+  expiryDate?: string | null;
   fileUrl: string;
 }
 
 const About = () => {
   const { t, direction, language } = useLanguage();
+  const dateLocale = language === 'fa'
+    ? 'fa-IR'
+    : language === 'ar'
+      ? 'ar-IQ'
+      : language === 'tr'
+        ? 'tr-TR'
+        : 'en-US';
+  const expiryLabel = language === 'fa'
+    ? 'تاریخ انقضا'
+    : language === 'ar'
+      ? 'تاريخ الانتهاء'
+      : language === 'tr'
+        ? 'Son kullanma tarihi'
+        : 'Expiry date';
   const { data: certifications = [] } = useQuery<PublicCertification[]>({
     queryKey: ['/api/company-certifications'],
     queryFn: async () => {
@@ -214,6 +229,11 @@ const About = () => {
                   <p className="text-gray-600 text-sm">
                     {certificate.description || certificate.issuingAuthority || ''}
                   </p>
+                  {certificate.expiryDate && (
+                    <p className="mt-3 text-sm font-medium text-gray-700">
+                      {expiryLabel}: {new Intl.DateTimeFormat(dateLocale).format(new Date(certificate.expiryDate))}
+                    </p>
+                  )}
                 </>
               );
               return certificate.fileUrl ? (
