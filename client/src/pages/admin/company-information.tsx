@@ -71,6 +71,8 @@ interface CompanyInfo {
   emailPrimary?: string;
   emailSecondary?: string;
   websiteUrl?: string;
+  businessHoursWeekdays?: string;
+  businessHoursSaturday?: string;
   licenseNumber?: string;
   licenseType?: string;
   licenseAuthority?: string;
@@ -858,6 +860,28 @@ export default function CompanyInformation() {
                     placeholder="+964 750 123 4569"
                     onChange={(e) => handleFieldChange('fax', e.target.value)}
                   />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>ساعات کاری دوشنبه تا جمعه</Label>
+                    <Input
+                      id="businessHoursWeekdays"
+                      value={formData?.businessHoursWeekdays || ''}
+                      placeholder="Monday - Friday: 8:00 AM - 6:00 PM"
+                      dir="ltr"
+                      onChange={(e) => handleFieldChange('businessHoursWeekdays', e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>ساعات کاری شنبه</Label>
+                    <Input
+                      id="businessHoursSaturday"
+                      value={formData?.businessHoursSaturday || ''}
+                      placeholder="Saturday: 9:00 AM - 2:00 PM"
+                      dir="ltr"
+                      onChange={(e) => handleFieldChange('businessHoursSaturday', e.target.value)}
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label>آدرس اصلی</Label>

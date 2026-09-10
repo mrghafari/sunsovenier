@@ -24,6 +24,11 @@ interface ContentItem {
   contentType: string;
 }
 
+interface PublicCompanyInfo {
+  businessHoursWeekdays?: string;
+  businessHoursSaturday?: string;
+}
+
 const Contact = () => {
   const { toast } = useMultilingualToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -86,6 +91,16 @@ const Contact = () => {
   });
 
   const contentItems = contentResponse?.data || [];
+
+  const { data: companyInfo } = useQuery<PublicCompanyInfo | null>({
+    queryKey: ['/api/company-information'],
+    queryFn: async () => {
+      const response = await fetch('/api/company-information');
+      if (!response.ok) throw new Error('Failed to fetch company information');
+      const result = await response.json();
+      return result.data || null;
+    }
+  });
 
   // Filter content for contact section
   const contactContent = contentItems.filter(item => 
@@ -171,8 +186,8 @@ const Contact = () => {
       icon: <Clock className="h-6 w-6 text-white" />,
        title: getContent('hours_title', copy.hours),
       content: [
-         getContent('hours_weekdays', copy.weekdays),
-         getContent('hours_saturday', copy.saturday)
+          companyInfo?.businessHoursWeekdays || getContent('hours_weekdays', copy.weekdays),
+          companyInfo?.businessHoursSaturday || getContent('hours_saturday', copy.saturday)
       ],
       bgColor: "bg-primary-blue"
     },

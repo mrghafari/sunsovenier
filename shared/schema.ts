@@ -281,6 +281,8 @@ export const companyInformation = pgTable("company_information", {
   emailPrimary: text("email_primary"),
   emailSecondary: text("email_secondary"),
   websiteUrl: text("website_url"),
+  businessHoursWeekdays: text("business_hours_weekdays"),
+  businessHoursSaturday: text("business_hours_saturday"),
   licenseNumber: text("license_number"),
   licenseType: text("license_type"),
   licenseAuthority: text("license_authority"),
