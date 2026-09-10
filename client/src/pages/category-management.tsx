@@ -252,13 +252,21 @@ export default function CategoryManagement() {
 
   // Delete category mutation
   const deleteCategoryMutation = useMutation({
-    mutationFn: (id: number) => 
-      fetch(`/api/admin/categories/${id}`, {
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/admin/categories/${id}`, {
         method: "DELETE",
         credentials: "include",
-      }).then(res => res.json()),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/categories"] });
+      });
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(result?.message || t.deleteError);
+      }
+
+      return result;
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/admin/categories"] });
       toast({
         title: t.deleteSuccess,
         description: t.deleteSuccess,
@@ -613,6 +621,7 @@ export default function CategoryManagement() {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleDelete(category.id)}
+                        disabled={deleteCategoryMutation.isPending}
                         className="text-red-600 hover:text-red-700"
                       >
                         <Trash2 className="w-4 h-4" />
