@@ -482,6 +482,26 @@ const PROFILE_T_WITH_FA = {
   },
 } as const;
 
+const SYSTEM_CANCELLATION_REASONS: Record<string, Record<string, string>> = {
+  "عدم موفقیت در پرداخت آنلاین - سفارش توسط سیستم لغو شد": {
+    en: "Online payment failed — the order was cancelled automatically.",
+    ar: "فشلت عملية الدفع عبر الإنترنت — تم إلغاء الطلب تلقائيًا.",
+    tr: "Çevrimiçi ödeme başarısız oldu — sipariş sistem tarafından iptal edildi.",
+    fa: "عدم موفقیت در پرداخت آنلاین - سفارش توسط سیستم لغو شد",
+  },
+  "سفارش پس از اتمام مهلت ۳ روزه پرداخت بانکی توسط سیستم لغو شد": {
+    en: "The order was cancelled automatically after the 3-day bank transfer payment deadline expired.",
+    ar: "تم إلغاء الطلب تلقائيًا بعد انتهاء مهلة الدفع البنكي البالغة 3 أيام.",
+    tr: "Banka havalesi için 3 günlük ödeme süresi dolduğundan sipariş sistem tarafından iptal edildi.",
+    fa: "سفارش پس از اتمام مهلت ۳ روزه پرداخت بانکی توسط سیستم لغو شد",
+  },
+};
+
+function getLocalizedCancellationReason(reason: unknown, language: string): string {
+  const rawReason = String(reason ?? "");
+  return SYSTEM_CANCELLATION_REASONS[rawReason]?.[language] ?? rawReason;
+}
+
 // ─── BankTransferCountdown ─────────────────────────────────────────────────────
 const BankTransferCountdown = ({
   orderDate,
@@ -1586,7 +1606,12 @@ const CustomerProfile = () => {
                             <h6 className="text-sm font-medium text-red-800 mb-1">
                               {order.status === "cancelled" ? pt.orderCancellationReason : pt.orderRejectionReason}
                             </h6>
-                            <p className="text-sm text-red-700">{order.rejectionReason || order.financialNotes}</p>
+                            <p className="text-sm text-red-700">
+                              {getLocalizedCancellationReason(
+                                order.rejectionReason || order.financialNotes,
+                                language,
+                              )}
+                            </p>
                           </div>
                         </div>
                       </div>
