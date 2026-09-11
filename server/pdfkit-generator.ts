@@ -594,10 +594,15 @@ export async function generateInvoicePDF(data: any): Promise<Buffer> {
     const hasRTL = (v: any) => /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(str(v));
     const ltr = (v: any) => `\u2066${str(v)}\u2069`;
     const al = rtl ? 'right' : 'left';
-    const pair = (label: string, val: any, x: number, y: number, w = 245) => {
+    const pair = (label: string, val: any, x: number, y: number, w = 245, multiline = false) => {
       doc.font('VazirRegular').fontSize(9);
       if (!rtl) {
-        doc.text(`${label}: ${str(val)}`, x, y, { width: w, align: 'left' });
+        doc.text(`${label}: ${str(val)}`, x, y, {
+          width: w,
+          align: 'left',
+          height: multiline ? 28 : undefined,
+          lineBreak: multiline,
+        });
         return;
       }
 
@@ -616,11 +621,32 @@ export async function generateInvoicePDF(data: any): Promise<Buffer> {
       const colonWidth = doc.widthOfString(':');
       labelCursor -= colonWidth;
       doc.text(':', labelCursor, y, { width: colonWidth + 1, align: 'left', lineBreak: false });
-      doc.text(hasRTL(val) ? tx(val) : ltr(val), x, y, {
-        width: w - labelWidth - gap,
-        align: 'right',
-        lineBreak: false,
-      });
+      const valueWidth = w - labelWidth - gap;
+      if (multiline) {
+        const words = str(val).trim().split(/\s+/);
+        const lines = ['', ''];
+        for (const word of words) {
+          const candidate = lines[0] ? `${lines[0]} ${word}` : word;
+          if (!lines[1] && doc.widthOfString(candidate) <= valueWidth) {
+            lines[0] = candidate;
+          } else {
+            lines[1] = lines[1] ? `${lines[1]} ${word}` : word;
+          }
+        }
+        lines.filter(Boolean).forEach((line, index) => {
+          doc.text(hasRTL(line) ? tx(line) : ltr(line), x, y + index * 12, {
+            width: valueWidth,
+            align: 'right',
+            lineBreak: false,
+          });
+        });
+      } else {
+        doc.text(hasRTL(val) ? tx(val) : ltr(val), x, y, {
+          width: valueWidth,
+          align: 'right',
+          lineBreak: false,
+        });
+      }
     };
     if (companyLogo) {
       try { doc.image(companyLogo, 42, 32, { fit: [64, 48] }); } catch {}
@@ -628,10 +654,11 @@ export async function generateInvoicePDF(data: any): Promise<Buffer> {
     doc.font('VazirBold').fontSize(18).text(tx(companyName), 112, 42, { width: 370, align: 'center' });
     doc.fontSize(15).text(tx(data.invoiceType === 'PROFORMA' ? L[1] : L[0]), 42, 68, { width: 510, align: 'center' });
     pair(L[2], data.invoiceNumber, 42, 98, 510); pair(L[3], data.orderNumber, 42, 115, 510); pair(L[4], dateText, 42, 132, 510);
-    doc.font('VazirBold').fontSize(11).text(tx(L[5]), 42, 160, { width: 245, align: al }); pair(L[7], companyName, 42, 178); pair(L[8], company.phonePrimary, 42, 194); pair(L[9], company.emailPrimary, 42, 210); pair(L[10], [company.mainAddress, company.city, company.country].filter(Boolean).join(', '), 42, 226); pair(extra[0], company.registrationNumber, 42, 242); pair(extra[1], company.taxNumber, 42, 258);
-    doc.font('VazirBold').fontSize(11).text(tx(L[6]), 307, 160, { width: 245, align: al }); pair(L[7], customer.name, 307, 178); pair(extra[2], customer.company, 307, 194); pair(L[8], customer.phone, 307, 210); pair(L[9], customer.email, 307, 226); pair(L[10], customer.address, 307, 242); pair(extra[3], customer.postalCode, 307, 258);
-    pair(L[11], data.paymentMethod, 42, 278); pair(L[12], data.paymentStatus, 307, 278);
-    let y = 308; const cols = rtl ? [[L[16], 42, 130], [L[15], 172, 110], [L[14], 282, 70], [L[13], 352, 200]] : [[L[13], 42, 200], [L[14], 242, 70], [L[15], 312, 110], [L[16], 422, 130]];
+    const addressExtraHeight = rtl ? 16 : 0;
+    doc.font('VazirBold').fontSize(11).text(tx(L[5]), 42, 160, { width: 245, align: al }); pair(L[7], companyName, 42, 178); pair(L[8], company.phonePrimary, 42, 194); pair(L[9], company.emailPrimary, 42, 210); pair(L[10], [company.mainAddress, company.city, company.country].filter(Boolean).join(', '), 42, 226, 245, rtl); pair(extra[0], company.registrationNumber, 42, 242 + addressExtraHeight); pair(extra[1], company.taxNumber, 42, 258 + addressExtraHeight);
+    doc.font('VazirBold').fontSize(11).text(tx(L[6]), 307, 160, { width: 245, align: al }); pair(L[7], customer.name, 307, 178); pair(extra[2], customer.company, 307, 194); pair(L[8], customer.phone, 307, 210); pair(L[9], customer.email, 307, 226); pair(L[10], customer.address, 307, 242, 245, rtl); pair(extra[3], customer.postalCode, 307, 258 + addressExtraHeight);
+    pair(L[11], data.paymentMethod, 42, 278 + addressExtraHeight); pair(L[12], data.paymentStatus, 307, 278 + addressExtraHeight);
+    let y = 308 + addressExtraHeight; const cols = rtl ? [[L[16], 42, 130], [L[15], 172, 110], [L[14], 282, 70], [L[13], 352, 200]] : [[L[13], 42, 200], [L[14], 242, 70], [L[15], 312, 110], [L[16], 422, 130]];
     const header = () => { doc.rect(42, y, 510, 24).fillAndStroke('#eeeeee', '#777777'); doc.fillColor('#000').font('VazirBold').fontSize(9); cols.forEach((c: any) => doc.text(tx(c[0]), c[1] + 3, y + 7, { width: c[2] - 6, align: 'center' })); y += 24; };
     header(); const items = data.items || []; doc.font('VazirRegular').fontSize(8);
     items.forEach((item: any) => {
