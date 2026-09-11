@@ -30,6 +30,11 @@ interface PublicCompanyInfo {
   weeklySchedule?: WeeklySchedule;
 }
 
+interface PublicCompanyInfoResponse {
+  success: boolean;
+  data: PublicCompanyInfo | null;
+}
+
 type DayStatus = 'working' | 'weekend' | 'holiday';
 type WeekDayKey = 'saturday' | 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday';
 type WeeklySchedule = Record<WeekDayKey, { status: DayStatus; start: string; end: string }>;
@@ -168,15 +173,15 @@ const Contact = () => {
 
   const contentItems = contentResponse?.data || [];
 
-  const { data: companyInfo } = useQuery<PublicCompanyInfo | null>({
+  const { data: companyInfoResponse } = useQuery<PublicCompanyInfoResponse>({
     queryKey: ['/api/company-information'],
     queryFn: async () => {
       const response = await fetch('/api/company-information', { cache: 'no-store' });
       if (!response.ok) throw new Error('Failed to fetch company information');
-      const result = await response.json();
-      return result.data || null;
+      return response.json();
     }
   });
+  const companyInfo = companyInfoResponse?.data || null;
 
   // Filter content for contact section
   const contactContent = contentItems.filter(item => 
