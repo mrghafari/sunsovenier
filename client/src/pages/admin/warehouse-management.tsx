@@ -49,8 +49,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useOrderNotifications } from '@/hooks/useOrderNotifications';
 import { apiRequest } from '@/lib/queryClient';
-import * as XLSX from 'xlsx';
-import { saveAs } from 'file-saver';
+import { exportRecordsToXlsx } from '@/lib/excel-export';
 
 // Safe date formatting function to prevent Invalid Date errors
 const formatDateSafe = (dateString: string | null | undefined, locale = 'en-US', options = {}): string => {
@@ -262,7 +261,7 @@ const WarehouseManagement: React.FC = () => {
   };
 
   // Excel export function for inventory
-  const exportInventoryToExcel = () => {
+  const exportInventoryToExcel = async () => {
     try {
       if (!unifiedProducts || unifiedProducts.length === 0) {
         console.log({
@@ -299,39 +298,17 @@ const WarehouseManagement: React.FC = () => {
         };
       });
 
-      // Create workbook and worksheet
-      const ws = XLSX.utils.json_to_sheet(excelData);
-      const wb = XLSX.utils.book_new();
-      
       // Set column widths for better display
       const colWidths = [
-        { wch: 8 },   // ردیف
-        { wch: 30 },  // نام محصول (increased width)
-        { wch: 15 },  // دسته‌بندی
-        { wch: 15 },  // کد محصول
-        { wch: 12 },  // موجودی فعلی
-        { wch: 12 },  // کالای در راه
-        { wch: 10 },  // ضایعات
-        { wch: 12 },  // موجودی نهایی
-        { wch: 12 },  // حداقل موجودی
-        { wch: 10 },  // آستانه کم
-        { wch: 12 },  // وضعیت
-        { wch: 15 },  // قیمت واحد
-        { wch: 20 }   // ارزش کل
+        8, 30, 15, 15, 12, 12, 10, 12, 12, 10, 12, 15, 20
       ];
-      ws['!cols'] = colWidths;
-
-      // Add worksheet to workbook
-      XLSX.utils.book_append_sheet(wb, ws, "گزارش موجودی");
       
       // Generate filename with current date
       const currentDate = new Date().toLocaleDateString('fa-IR').replace(/\//g, '-');
       const filename = `گزارش-موجودی-انبار-${currentDate}.xlsx`;
       
       // Export file
-      const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-      const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      saveAs(blob, filename);
+      await exportRecordsToXlsx(excelData, filename, "گزارش موجودی", colWidths);
       
       console.log({
         title: "موفق",

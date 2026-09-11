@@ -18,7 +18,7 @@ import {
   Calendar, CreditCard, Building2, RefreshCw, Download
 } from "lucide-react";
 import { format } from "date-fns";
-import * as XLSX from "xlsx";
+import { exportRecordsToXlsx } from "@/lib/excel-export";
 
 type VendorBalance = {
   id: number;
@@ -805,7 +805,7 @@ export default function VendorAccountingTab() {
                   <Button
                     variant="outline"
                     className="w-full"
-                    onClick={() => {
+                    onClick={async () => {
                       const exportData = filteredTransactions.map(tx => ({
                         "تاریخ": format(new Date(tx.createdAt), "yyyy/MM/dd HH:mm"),
                         "نوع": tx.transactionType === 'sale' ? 'فروش' : tx.transactionType === 'payment' ? 'پرداخت' : tx.transactionType,
@@ -840,14 +840,14 @@ export default function VendorAccountingTab() {
                         "توضیحات": "",
                       });
                       
-                      const ws = XLSX.utils.json_to_sheet(exportData);
-                      const wb = XLSX.utils.book_new();
-                      XLSX.utils.book_append_sheet(wb, ws, "تراکنش‌ها");
-                      
                       const dateRange = txFilterStartDate || txFilterEndDate 
                         ? `_${txFilterStartDate || "start"}_${txFilterEndDate || "end"}`
                         : "";
-                      XLSX.writeFile(wb, `transactions_${selectedVendor?.vendorName?.replace(/\s+/g, "_") || "vendor"}${dateRange}.xlsx`);
+                      await exportRecordsToXlsx(
+                        exportData,
+                        `transactions_${selectedVendor?.vendorName?.replace(/\s+/g, "_") || "vendor"}${dateRange}.xlsx`,
+                        "تراکنش‌ها",
+                      );
                     }}
                     data-testid="btn-export-transactions"
                   >
