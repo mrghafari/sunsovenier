@@ -7,10 +7,12 @@ import fs from 'fs';
 import { CompanyStorage } from './company-storage';
 
 // Get company logo from database
-async function getCompanyLogo(): Promise<Buffer | null> {
+async function getCompanyLogo(companyInfo?: any): Promise<Buffer | null> {
   try {
-    const companyStorage = new CompanyStorage();
-    const companyInfo = await companyStorage.getCompanyInformation();
+    if (!companyInfo) {
+      const companyStorage = new CompanyStorage();
+      companyInfo = await companyStorage.getCompanyInformation();
+    }
     
     if (companyInfo?.logoUrl) {
       console.log('🖼️ [PDF LOGO] Processing logo URL:', companyInfo.logoUrl);
@@ -568,7 +570,10 @@ export async function generateInvoicePDF(data: any): Promise<Buffer> {
     fa: ['شماره ثبت', 'شماره مالیاتی', 'شرکت', 'کد پستی', 'کشور / شهر'],
   }[lang];
   const company = data.companyInfo || await getCompanyInformation() || {};
-  const companyLogo = getSafeInvoiceLogo();
+  // Use the logo selected in Company Information for both invoices and
+  // proforma invoices. getCompanyLogo keeps the bundled logo as a fallback
+  // when the configured upload cannot be read.
+  const companyLogo = await getCompanyLogo(company);
   const suffix = lang === 'en' ? 'En' : lang === 'ar' ? 'Ar' : lang === 'tr' ? 'Tr' : 'En';
   const companyName = company[`companyName${suffix}`] || company.companyName || company.companyNameEn || 'Momtaz Chemical Solutions';
   const customer = data.customer || {};
