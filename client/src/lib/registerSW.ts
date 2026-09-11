@@ -3,7 +3,7 @@ export function registerServiceWorker() {
 
   window.addEventListener('load', () => {
     navigator.serviceWorker
-      .register('/sw.js?v=2-20260908', {
+      .register('/sw.js?v=4-20260911', {
         scope: '/',
         updateViaCache: 'none',
       })
