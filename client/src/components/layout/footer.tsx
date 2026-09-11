@@ -39,6 +39,41 @@ interface LinkItem {
 
 const Footer = () => {
   const { t, language } = useLanguage();
+  const localizedFooterCopy = language === 'ar'
+    ? {
+        companyDescription: 'مزود رائد للحلول الكيميائية المتقدمة',
+        products: 'المنتجات',
+        company: 'الشركة',
+        support: 'الدعم',
+        copyright: '© ٢٠٢٥ ممتازكم. جميع الحقوق محفوظة.',
+        designBy: 'تصميم',
+      }
+    : language === 'fa'
+      ? {
+          companyDescription: 'ارائه‌دهنده پیشرو راهکارهای پیشرفته شیمیایی',
+          products: 'محصولات',
+          company: 'شرکت',
+          support: 'پشتیبانی',
+          copyright: '© ۲۰۲۵ ممتازکم. تمامی حقوق محفوظ است.',
+          designBy: 'طراحی توسط',
+        }
+      : language === 'tr'
+        ? {
+            companyDescription: 'Gelişmiş kimyasal çözümlerin lider sağlayıcısı',
+            products: 'Ürünler',
+            company: 'Şirket',
+            support: 'Destek',
+            copyright: '© 2025 Momtazchem. Tüm hakları saklıdır.',
+            designBy: 'Tasarım',
+          }
+        : {
+            companyDescription: 'Leading provider of advanced chemical solutions',
+            products: 'Products',
+            company: 'Company',
+            support: 'Support',
+            copyright: '© 2025 Momtazchem. All rights reserved.',
+            designBy: 'Design by',
+          };
 
   // Fetch footer settings from the new footer management system
   const { data: footerResponse } = useQuery({
@@ -129,9 +164,11 @@ const Footer = () => {
                 </div>
               </div>
               
-              {footerSettings?.companyDescription && (
+              {(footerSettings?.companyDescription || localizedFooterCopy.companyDescription) && (
                 <p className="text-gray-400 mb-3 text-sm leading-relaxed line-clamp-2">
-                  {footerSettings.companyDescription}
+                  {language !== 'en' && footerSettings?.companyDescription === 'Leading provider of advanced chemical solutions'
+                    ? localizedFooterCopy.companyDescription
+                    : footerSettings?.companyDescription || localizedFooterCopy.companyDescription}
                 </p>
               )}
               
@@ -215,7 +252,7 @@ const Footer = () => {
           {/* Products Links - Compact */}
           {footerSettings?.showLinks && productLinks.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold mb-3">{language === 'fa' ? 'محصولات' : 'Products'}</h3>
+              <h3 className="text-sm font-semibold mb-3">{localizedFooterCopy.products}</h3>
               <ul className="space-y-2">
                 {productLinks.slice(0, 4).map((link, index) => (
                   <li key={index}>
@@ -233,7 +270,7 @@ const Footer = () => {
           {/* Company Links - Compact */}
           {footerSettings?.showLinks && companyLinks.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold mb-3">{language === 'fa' ? 'شرکت' : 'Company'}</h3>
+              <h3 className="text-sm font-semibold mb-3">{localizedFooterCopy.company}</h3>
               <ul className="space-y-2">
                 {companyLinks.slice(0, 4).map((link, index) => (
                   <li key={index}>
@@ -251,7 +288,7 @@ const Footer = () => {
           {/* Support Links - Compact */}
           {footerSettings?.showLinks && supportLinks.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold mb-3">{language === 'fa' ? 'پشتیبانی' : 'Support'}</h3>
+              <h3 className="text-sm font-semibold mb-3">{localizedFooterCopy.support}</h3>
               <ul className="space-y-2">
                 {supportLinks.slice(0, 4).map((link, index) => (
                   <li key={index}>
@@ -296,7 +333,7 @@ const Footer = () => {
             
             {/* Copyright */}
             <div className="text-gray-400 text-xs">
-              {footerSettings?.copyrightText || (language === 'fa' ? '© ۲۰۲۵ ممتازکم. تمامی حقوق محفوظ است.' : '© 2025 Momtazchem. All rights reserved.')}
+              {footerSettings?.copyrightText || localizedFooterCopy.copyright}
             </div>
             
             {/* Legal Links */}
@@ -316,7 +353,7 @@ const Footer = () => {
             <div className="text-gray-400 text-sm text-center md:text-right">
               {footerSettings?.additionalInfo || (
                 <>
-                  {language === 'fa' ? 'طراحی توسط' : 'Design by'}{" "}
+                  {localizedFooterCopy.designBy}{" "}
                   <a 
                     href="https://wa.me/358411546489" 
                     target="_blank" 

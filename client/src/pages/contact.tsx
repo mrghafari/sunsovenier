@@ -620,7 +620,15 @@ const Contact = () => {
             <div className="p-6 bg-white">
               <div className="flex items-center justify-between">
                 <div>
-                   <h3 className="text-lg font-semibold text-gray-900 mb-2">{fa ? 'دفتر مرکزی ممتازکم' : 'Momtazchem Headquarters'}</h3>
+                   <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                     {language === 'fa'
+                       ? 'دفتر مرکزی ممتازکم'
+                       : language === 'ar'
+                         ? 'المقر الرئيسي لممتازكم'
+                         : language === 'tr'
+                           ? 'Momtazchem Genel Merkezi'
+                           : 'Momtazchem Headquarters'}
+                   </h3>
                    <p className="text-gray-600">{copy.erbil}</p>
                 </div>
                 <a
