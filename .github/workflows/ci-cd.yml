@@ -37,8 +37,8 @@ jobs:
       - name: Normalize npm registry URLs
         run: |
           set -e
-          sed -i 's#http://package-firewall.replit.internal/npm/#https://registry.npmjs.org/#g' package-lock.json
-          if grep -n 'package-firewall.replit.internal' package-lock.json; then
+          sed -i -E 's#https?://package-firewall\.replit\.internal/npm/#https://registry.npmjs.org/#g' package-lock.json
+          if grep -nE 'replit\.internal|package-firewall' package-lock.json; then
             echo "ERROR: Replit-internal npm URL still exists in package-lock.json"
             exit 1
           fi
