@@ -65,8 +65,8 @@ interface CompanyInfo {
   city?: string;
   country?: string;
   postalCode?: string;
-  phone?: string;
-  supportPhone?: string;
+  phonePrimary?: string;
+  phoneSecondary?: string;
   fax?: string;
   emailPrimary?: string;
   emailSecondary?: string;
@@ -74,6 +74,19 @@ interface CompanyInfo {
   businessHoursWeekdays?: string;
   businessHoursSaturday?: string;
   weeklySchedule?: WeeklySchedule;
+  contactSettings?: {
+    addressLine1?: string;
+    addressLine2?: string;
+    addressLine3?: string;
+    mapLink?: string;
+    whatsappNumber?: string;
+    phoneAvailability?: string;
+    supportEmail?: string;
+    careersEmail?: string;
+    careerLine1?: string;
+    careerLine2?: string;
+    careerLine3?: string;
+  };
   licenseNumber?: string;
   licenseType?: string;
   licenseAuthority?: string;
@@ -288,6 +301,16 @@ export default function CompanyInformation() {
     setHasUnsavedChanges(true);
   };
 
+  const handleContactSettingChange = (
+    field: keyof NonNullable<CompanyInfo['contactSettings']>,
+    value: string,
+  ) => {
+    handleFieldChange('contactSettings', {
+      ...(formData.contactSettings || {}),
+      [field]: value,
+    });
+  };
+
   // Fetch incoming correspondence
   const { data: incomingMails } = useQuery<Correspondence[]>({
     queryKey: ['/api/correspondence/incoming'],
@@ -496,8 +519,8 @@ export default function CompanyInformation() {
   // Handle save button click
   const handleSaveCompanyInfo = () => {
     console.log('Saving company info:', formData);
-    console.log('Phone Primary:', formData?.phone);
-    console.log('Phone Secondary:', formData?.supportPhone);
+    console.log('Phone Primary:', formData?.phonePrimary);
+    console.log('Phone Secondary:', formData?.phoneSecondary);
     updateCompanyInfoMutation.mutate(formData);
   };
 
@@ -966,7 +989,7 @@ export default function CompanyInformation() {
             </Card>
 
             {/* Contact Information */}
-            <Card>
+            <Card className="md:col-span-2">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Phone className="h-5 w-5" />
@@ -974,7 +997,16 @@ export default function CompanyInformation() {
                 </CardTitle>
                 <CardDescription>تلفن‌ها، ایمیل‌ها و آدرس‌ها</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent>
+                <Tabs defaultValue="headquarters" className="space-y-5">
+                  <TabsList className="grid h-auto w-full grid-cols-2 gap-1 md:grid-cols-5">
+                    <TabsTrigger value="headquarters">دفتر مرکزی</TabsTrigger>
+                    <TabsTrigger value="phones">تلفن و واتساپ</TabsTrigger>
+                    <TabsTrigger value="emails">ایمیل‌ها</TabsTrigger>
+                    <TabsTrigger value="hours">ساعات کاری</TabsTrigger>
+                    <TabsTrigger value="careers">فرصت‌های شغلی</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="emails" className="space-y-4">
                 <div className="space-y-2">
                   <Label>ایمیل اصلی</Label>
                   <Input 
@@ -994,21 +1026,47 @@ export default function CompanyInformation() {
                   />
                 </div>
                 <div className="space-y-2">
+                  <Label>ایمیل پشتیبانی</Label>
+                  <Input
+                    value={formData.contactSettings?.supportEmail || ''}
+                    placeholder="support@momtazchem.com"
+                    onChange={(e) => handleContactSettingChange('supportEmail', e.target.value)}
+                  />
+                </div>
+                  </TabsContent>
+                  <TabsContent value="phones" className="space-y-4">
+                <div className="space-y-2">
                   <Label>تلفن اصلی</Label>
                   <Input 
-                    id="phone"
-                    value={formData?.phone || ''} 
+                    id="phonePrimary"
+                    value={formData?.phonePrimary || ''}
                     placeholder="+964-1-234-5678"
-                    onChange={(e) => handleFieldChange('phone', e.target.value)}
+                    onChange={(e) => handleFieldChange('phonePrimary', e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>تلفن فرعی</Label>
                   <Input 
-                    id="supportPhone"
-                    value={formData?.supportPhone || ''} 
+                    id="phoneSecondary"
+                    value={formData?.phoneSecondary || ''}
                     placeholder="+964-1-234-5679"
-                    onChange={(e) => handleFieldChange('supportPhone', e.target.value)}
+                    onChange={(e) => handleFieldChange('phoneSecondary', e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>شماره واتساپ</Label>
+                  <Input
+                    value={formData.contactSettings?.whatsappNumber || ''}
+                    placeholder="+9647709996771"
+                    onChange={(e) => handleContactSettingChange('whatsappNumber', e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>متن وضعیت پاسخگویی</Label>
+                  <Input
+                    value={formData.contactSettings?.phoneAvailability || ''}
+                    placeholder="Available on WhatsApp"
+                    onChange={(e) => handleContactSettingChange('phoneAvailability', e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
@@ -1020,6 +1078,8 @@ export default function CompanyInformation() {
                     onChange={(e) => handleFieldChange('fax', e.target.value)}
                   />
                 </div>
+                  </TabsContent>
+                  <TabsContent value="hours" className="space-y-4">
                 <div className="space-y-3">
                   <Label className="text-base font-semibold flex items-center gap-2">
                     <Clock className="h-4 w-4" />
@@ -1085,6 +1145,8 @@ export default function CompanyInformation() {
                     </p>
                   </div>
                 </div>
+                  </TabsContent>
+                  <TabsContent value="headquarters" className="space-y-4">
                 <div className="space-y-2">
                   <Label>آدرس اصلی</Label>
                   <Textarea 
@@ -1092,6 +1154,29 @@ export default function CompanyInformation() {
                     value={formData?.mainAddress || ''} 
                     placeholder="آدرس کامل شرکت"
                     onChange={(e) => handleFieldChange('mainAddress', e.target.value)}
+                  />
+                </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  {([
+                    ['addressLine1', 'خط اول کارت آدرس'],
+                    ['addressLine2', 'خط دوم کارت آدرس'],
+                    ['addressLine3', 'خط سوم کارت آدرس'],
+                  ] as const).map(([field, label]) => (
+                    <div className="space-y-2" key={field}>
+                      <Label>{label}</Label>
+                      <Input
+                        value={formData.contactSettings?.[field] || ''}
+                        onChange={(e) => handleContactSettingChange(field, e.target.value)}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="space-y-2">
+                  <Label>لینک موقعیت روی نقشه</Label>
+                  <Input
+                    value={formData.contactSettings?.mapLink || ''}
+                    placeholder="https://maps.app.goo.gl/..."
+                    onChange={(e) => handleContactSettingChange('mapLink', e.target.value)}
                   />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1132,7 +1217,34 @@ export default function CompanyInformation() {
                     </Select>
                   </div>
                 </div>
-
+                  </TabsContent>
+                  <TabsContent value="careers" className="space-y-4">
+                    {([
+                      ['careerLine1', 'خط اول فرصت‌های شغلی'],
+                      ['careerLine2', 'خط دوم فرصت‌های شغلی'],
+                      ['careerLine3', 'خط سوم فرصت‌های شغلی'],
+                    ] as const).map(([field, label]) => (
+                      <div className="space-y-2" key={field}>
+                        <Label>{label}</Label>
+                        <Input
+                          value={formData.contactSettings?.[field] || ''}
+                          onChange={(e) => handleContactSettingChange(field, e.target.value)}
+                        />
+                      </div>
+                    ))}
+                    <div className="space-y-2">
+                      <Label>ایمیل دریافت رزومه</Label>
+                      <Input
+                        value={formData.contactSettings?.careersEmail || ''}
+                        placeholder="careers@momtazchem.com"
+                        onChange={(e) => handleContactSettingChange('careersEmail', e.target.value)}
+                      />
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      عنوان‌ها و توضیحات این کارت به‌صورت خودکار مطابق زبان فعال سایت نمایش داده می‌شوند.
+                    </p>
+                  </TabsContent>
+                </Tabs>
               </CardContent>
             </Card>
 

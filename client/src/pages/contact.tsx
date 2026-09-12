@@ -25,9 +25,30 @@ interface ContentItem {
 }
 
 interface PublicCompanyInfo {
+  mainAddress?: string;
+  province?: string;
+  city?: string;
+  country?: string;
+  phonePrimary?: string;
+  phoneSecondary?: string;
+  emailPrimary?: string;
+  emailSecondary?: string;
   businessHoursWeekdays?: string;
   businessHoursSaturday?: string;
   weeklySchedule?: WeeklySchedule;
+  contactSettings?: {
+    addressLine1?: string;
+    addressLine2?: string;
+    addressLine3?: string;
+    mapLink?: string;
+    whatsappNumber?: string;
+    phoneAvailability?: string;
+    supportEmail?: string;
+    careersEmail?: string;
+    careerLine1?: string;
+    careerLine2?: string;
+    careerLine3?: string;
+  };
 }
 
 interface PublicCompanyInfoResponse {
@@ -182,6 +203,7 @@ const Contact = () => {
     }
   });
   const companyInfo = companyInfoResponse?.data || null;
+  const contactSettings = companyInfo?.contactSettings || {};
 
   // Filter content for contact section
   const contactContent = contentItems.filter(item => 
@@ -308,29 +330,30 @@ const Contact = () => {
       icon: <MapPin className="h-6 w-6 text-white" />,
        title: getContent('address_title', copy.headquarters),
       content: [
-         getContent('address_line1', copy.companyName),
-         getContent('address_line2', copy.erbil),
-         getContent('address_line3', copy.facility)
+         contactSettings.addressLine1 || getContent('address_line1', copy.companyName),
+         contactSettings.addressLine2 || companyInfo?.mainAddress || getContent('address_line2', copy.erbil),
+         contactSettings.addressLine3 || [companyInfo?.city, companyInfo?.province, companyInfo?.country].filter(Boolean).join(', ') || getContent('address_line3', copy.facility)
       ],
       bgColor: "bg-primary-blue",
-      link: getContent('address_map_link', 'https://maps.app.goo.gl/umCmoKpmaovSkTJ96')
+      link: contactSettings.mapLink || getContent('address_map_link', 'https://maps.app.goo.gl/umCmoKpmaovSkTJ96')
     },
     {
       icon: <Phone className="h-6 w-6 text-white" />,
        title: getContent('phone_title', copy.phoneTitle),
       content: [
-        getContent('phone_number', '+9647709996771'),
-         getContent('phone_availability', copy.whatsappAvailable)
-      ],
+        companyInfo?.phonePrimary || getContent('phone_number', '+9647709996771'),
+        companyInfo?.phoneSecondary,
+         contactSettings.phoneAvailability || getContent('phone_availability', copy.whatsappAvailable)
+      ].filter(Boolean) as string[],
       bgColor: "bg-primary-green"
     },
     {
       icon: <Mail className="h-6 w-6 text-white" />,
        title: getContent('email_title', copy.email),
       content: [
-        getContent('email_info', 'info@momtazchem.com'),
-        getContent('email_sales', 'sales@momtazchem.com'),
-        getContent('email_support', 'support@momtazchem.com')
+        companyInfo?.emailPrimary || getContent('email_info', 'info@momtazchem.com'),
+        companyInfo?.emailSecondary || getContent('email_sales', 'sales@momtazchem.com'),
+        contactSettings.supportEmail || getContent('email_support', 'support@momtazchem.com')
       ],
       bgColor: "bg-accent-orange"
     },
@@ -344,12 +367,12 @@ const Contact = () => {
       icon: <Briefcase className="h-6 w-6 text-white" />,
        title: getContent('career_title', copy.careers),
       content: [
-         getContent('career_line1', copy.joinTeam),
-         getContent('career_line2', copy.careerRoles1),
-         getContent('career_line3', copy.careerRoles2)
+         contactSettings.careerLine1 || getContent('career_line1', copy.joinTeam),
+         contactSettings.careerLine2 || getContent('career_line2', copy.careerRoles1),
+         contactSettings.careerLine3 || getContent('career_line3', copy.careerRoles2)
       ],
       bgColor: "bg-green-600",
-      link: getContent('career_email', 'mailto:careers@momtazchem.com')
+      link: `mailto:${contactSettings.careersEmail || 'careers@momtazchem.com'}`
     }
   ];
 
@@ -519,7 +542,7 @@ const Contact = () => {
                         {info.content.map((line, lineIndex) => (
                           <div key={lineIndex} className="text-gray-600">
                             {index === 1 ? (
-                              line.includes("+9647709996771") ? (
+                              line === (companyInfo?.phonePrimary || getContent('phone_number', '+9647709996771')) ? (
                                 <div className="flex items-center gap-2">
                                   <a 
                                     href={`tel:${line.replace(/\s+/g, '')}`}
@@ -528,7 +551,7 @@ const Contact = () => {
                                     {line}
                                   </a>
                                   <a
-                                    href="https://wa.me/9647709996771"
+                                    href={`https://wa.me/${(contactSettings.whatsappNumber || companyInfo?.phonePrimary || '+9647709996771').replace(/\D/g, '')}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="inline-flex items-center px-3 py-1 text-sm bg-green-600 text-white rounded-full hover:bg-green-700 transition-colors duration-200"
@@ -540,6 +563,13 @@ const Contact = () => {
                               ) : (
                                 <span>{line}</span>
                               )
+                            ) : index === 1 && /^\+?[\d\s()-]+$/.test(line) ? (
+                              <a
+                                href={`tel:${line.replace(/[^\d+]/g, '')}`}
+                                className="hover:text-primary transition-colors duration-200"
+                              >
+                                {line}
+                              </a>
                             ) : index === 2 ? (
                               <a 
                                 href={`mailto:${line}`}
@@ -610,7 +640,7 @@ const Contact = () => {
                       <p className="text-xs text-gray-500">36.1578°N, 43.8822°E</p>
                        <p className="text-xs text-gray-400">{copy.region}</p>
                       <a
-                        href="https://maps.app.goo.gl/umCmoKpmaovSkTJ96"
+                        href={contactSettings.mapLink || "https://maps.app.goo.gl/umCmoKpmaovSkTJ96"}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-primary-blue hover:text-primary-blue-dark text-sm font-medium"
@@ -637,7 +667,7 @@ const Contact = () => {
                    <p className="text-gray-600">{copy.erbil}</p>
                 </div>
                 <a
-                  href="https://maps.app.goo.gl/ngapesxcH4XiT4L26"
+                  href={contactSettings.mapLink || "https://maps.app.goo.gl/ngapesxcH4XiT4L26"}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="bg-primary-blue hover:bg-primary-blue-dark text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
