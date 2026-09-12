@@ -18848,8 +18848,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           totalWeight: calculatedTotalWeight > 0 ? calculatedTotalWeight.toFixed(3) : null,
           weightUnit: 'kg',
           vehicleType: checkoutVehicleType,
-          // 🔥 CRITICAL: Include payment method for finance department filtering
-          paymentMethod: finalPaymentMethod,
         
         // Store frozen tax rates at order creation time
         vatRate: taxCalculation.vatRate.toString(),
@@ -20157,10 +20155,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         paymentMethod: order.payment_method,
         status: order.status,
         createdAt: order.created_at,
-          notes: order.notes,
-          customerNotes: order.notes,
-        updatedAt: order.updated_at,
         notes: order.notes,
+        customerNotes: order.notes,
+        updatedAt: order.updated_at,
         shippingCost: order.shipping_cost,
         customerName: order.customer_name,
         guestName: order.guest_name,
@@ -53284,8 +53281,8 @@ momtazchem.com
         status: order.status,
         totalAmount: parseFloat(order.total_amount) || 0,
         createdAt: order.created_at,
-          notes: order.notes,
-          customerNotes: order.notes,
+        notes: order.notes,
+        customerNotes: order.notes,
         updatedAt: order.updated_at,
         shippingMethod: order.shipping_method,
         paymentMethod: order.payment_method,
@@ -53293,7 +53290,6 @@ momtazchem.com
         estimatedDeliveryDate: order.estimated_delivery_date,
         deliveryPersonName: order.delivery_person_name,
         deliveryPersonPhone: order.delivery_person_phone,
-        notes: order.notes,
         customerInfo: {
           firstName: order.first_name,
           lastName: order.last_name,

@@ -425,35 +425,6 @@ export class CrmStorage implements ICrmStorage {
     };
   }
 
-  async logCustomerActivity(activityData: InsertCustomerActivity): Promise<CustomerActivity> {
-    // Get customer name if customerId is provided but customerName is not
-    if (activityData.customerId && !activityData.customerName) {
-      try {
-        const customer = await this.getCrmCustomerById(activityData.customerId);
-        if (customer) {
-          activityData.customerName = `${customer.firstName} ${customer.lastName}`;
-        }
-      } catch (error) {
-        console.log('Could not find customer for activity logging:', error);
-      }
-    }
-    
-    const [activity] = await customerDb
-      .insert(customerActivities)
-      .values(activityData)
-      .returning();
-    return activity;
-  }
-
-  async getCustomerActivities(customerId: number, limit: number = 20): Promise<CustomerActivity[]> {
-    return await customerDb
-      .select()
-      .from(customerActivities)
-      .where(eq(customerActivities.customerId, customerId))
-      .orderBy(desc(customerActivities.createdAt))
-      .limit(limit);
-  }
-
   async createCustomerSegment(segmentData: InsertCustomerSegment): Promise<CustomerSegment> {
     const [segment] = await customerDb
       .insert(customerSegments)

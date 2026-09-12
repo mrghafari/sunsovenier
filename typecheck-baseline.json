@@ -2297,22 +2297,6 @@
       "count": 1
     },
     {
-      "key": "[\"server/crm-storage.ts\",2393,\"Duplicate function implementation.\",\"async getCustomerActivities(customerId: number, limit = 50): Promise<CustomerActivity[]> {\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/crm-storage.ts\",2393,\"Duplicate function implementation.\",\"async getCustomerActivities(customerId: number, limit: number = 20): Promise<CustomerActivity[]> {\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/crm-storage.ts\",2393,\"Duplicate function implementation.\",\"async logCustomerActivity(activity: InsertCustomerActivity): Promise<CustomerActivity> {\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/crm-storage.ts\",2393,\"Duplicate function implementation.\",\"async logCustomerActivity(activityData: InsertCustomerActivity): Promise<CustomerActivity> {\"]",
-      "count": 1
-    },
-    {
       "key": "[\"server/crm-storage.ts\",2416,\"Property 'createOrUpdateCustomerFromOrder' in type 'CrmStorage' is not assignable to the same property in base type 'ICrmStorage'.\\n  Type '(orderData: { email: string; firstName: string; lastName: string; company?: string | undefined; phone: string; country: string; city: string; address: string; postalCode?: string | undefined; orderValue: number; }) => Promise<...>' is not assignable to type '(orderData: { email: string; firstName: string; lastName: string; company?: string | undefined; phone: string; country: string; city: string; address: string; postalCode?: string | undefined; orderValue: number; }) => Promise<...>'. Two different types with this name exist, but they are unrelated.\\n    Type 'Promise<{ address: string; id: number; email: string; state: string | null; country: string; tags: unknown; province: string; createdAt: Date; updatedAt: Date; isActive: boolean | null; averageOrderValue: string | null; ... 37 more ...; resetPasswordExpires: Date | null; }>' is not assignable to type 'Promise<{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 43 more ...; creditStatus: string | null; }>'.\\n      Type '{ address: string; id: number; email: string; state: string | null; country: string; tags: unknown; province: string; createdAt: Date; updatedAt: Date; isActive: boolean | null; averageOrderValue: string | null; ... 37 more ...; resetPasswordExpires: Date | null; }' is missing the following properties from type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 43 more ...; creditStatus: string | null; }': priceRange, createdBy, taxId, website, and 9 more.\",\"async createOrUpdateCustomerFromOrder(orderData: {\"]",
       "count": 1
     },
@@ -2487,26 +2471,6 @@
     {
       "key": "[\"server/fifo-batch-manager.ts\",2741,\"Property 'nextToShow' is missing in type '{ totalStock: string; batchCount: number; oldestBatch: { fifoOrder: number; isOldest: boolean; displayText: string; id: number; name: string; technicalName: string | null; category: string; description: string; ... 55 more ...; updatedAt: Date; }; newestBatch: { ...; }; nextToSell: { ...; }; allBatches: { ...; }[]; }' but required in type '{ totalStock: string; batchCount: number; newestBatch: any; oldestBatch: any; nextToShow: any; allBatches: any[]; }'.\",\"data: result\"]",
       "count": 1
-    },
-    {
-      "key": "[\"server/fifo-display-manager.ts\",18047,\"'batch.stockQuantity' is possibly 'null'.\",\"stockStatus: batch.stockQuantity > 0 ? \\\"موجود\\\" : \\\"ناموجود\\\"\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/fifo-display-manager.ts\",2339,\"Property 'getBatchInfoFIFO' does not exist on type 'typeof FIFODisplayManager'.\",\"const batchInfo = await this.getBatchInfoFIFO(productName);\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/fifo-display-manager.ts\",2345,\"Argument of type 'Date' is not assignable to parameter of type 'string'.\",\"batchAge: this.calculateBatchAge(batch.createdAt),\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/fifo-display-manager.ts\",2393,\"Duplicate function implementation.\",\"static async getBatchStatisticsFIFO(productName: string): Promise<{\"]",
-      "count": 2
-    },
-    {
-      "key": "[\"server/fifo-display-manager.ts\",2393,\"Duplicate function implementation.\",\"static async getOldestBatchForDisplay(productName: string): Promise<{\"]",
-      "count": 2
     },
     {
       "key": "[\"server/fileSecurityService.ts\",2503,\"Cannot find namespace 'sharp'.\",\"private async smartCompress(image: sharp.Sharp, mimeType: string, originalSize: number): Promise<Buffer> {\"]",
@@ -2749,10 +2713,6 @@
       "count": 1
     },
     {
-      "key": "[\"server/order-management-storage.ts\",2393,\"Duplicate function implementation.\",\"async calculateOrderWeight(customerOrderId: number): Promise<number> {\"]",
-      "count": 2
-    },
-    {
       "key": "[\"server/order-management-storage.ts\",2551,\"Property 'customerEmail' does not exist on type '{ id: number; customerId: number; orderNumber: string; status: string; priority: string; totalAmount: string; shippingCost: string | null; currency: string; paymentStatus: string; paymentMethod: string | null; ... 36 more ...; updatedAt: Date; }'. Did you mean 'customerId'?\",\"customerEmail: customerOrder.customerEmail,\"]",
       "count": 1
     },
@@ -2927,14 +2887,6 @@
     {
       "key": "[\"server/pdfmake-generator.ts\",2741,\"Property 'style' is missing in type '{ text: string; alignment: string; }' but required in type '{ text: string; style: string; alignment: string; }'.\",\"{ text: formattedDate, alignment: 'center' }\"]",
       "count": 2
-    },
-    {
-      "key": "[\"server/routes.ts\",1117,\"An object literal cannot have multiple properties with the same name.\",\"notes: order.notes,\"]",
-      "count": 2
-    },
-    {
-      "key": "[\"server/routes.ts\",1117,\"An object literal cannot have multiple properties with the same name.\",\"paymentMethod: finalPaymentMethod,\"]",
-      "count": 1
     },
     {
       "key": "[\"server/routes.ts\",18004,\"No value exists in scope for the shorthand property 'orderNumber'. Either declare one or provide an initializer.\",\"orderNumber,\"]",
@@ -5442,14 +5394,6 @@
     },
     {
       "key": "[\"server/universal-email-service.ts\",2345,\"Argument of type 'number' is not assignable to parameter of type 'string'.\",\"const templates = await emailStorage.getTemplatesByCategory(category.id);\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/universal-email-service.ts\",2393,\"Duplicate function implementation.\",\"static async sendPasswordResetEmail(customerEmail: string, resetToken: string, customerName: string, req?: any) {\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/universal-email-service.ts\",2393,\"Duplicate function implementation.\",\"static async sendPasswordResetEmail(email: string, resetToken: string, userName: string, req?: any) {\"]",
       "count": 1
     },
     {

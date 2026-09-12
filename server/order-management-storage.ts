@@ -597,39 +597,6 @@ export class OrderManagementStorage implements IOrderManagementStorage {
     });
   }
   
-  // Helper method to calculate order weight from items
-  async calculateOrderWeight(customerOrderId: number): Promise<number> {
-    try {
-      console.log('🏋️ [WEIGHT] Calculating weight for customer order:', customerOrderId);
-      
-      const items = await db.select({
-        productId: orderItems.productId,
-        quantity: orderItems.quantity,
-        productWeight: shopProducts.grossWeight // وزن ناخالص از جدول shop_products برای حمل و نقل
-      })
-      .from(orderItems)
-      .leftJoin(shopProducts, eq(orderItems.productId, shopProducts.id))
-      .where(eq(orderItems.orderId, customerOrderId));
-      
-      let totalWeight = 0;
-      
-      for (const item of items) {
-        const weight = parseFloat(item.productWeight || '0');
-        const quantity = parseFloat(item.quantity?.toString() || '0');
-        const itemTotalWeight = weight * quantity;
-        
-        console.log(`🏋️ [WEIGHT] Item ${item.productId}: ${weight}kg x ${quantity} = ${itemTotalWeight}kg`);
-        totalWeight += itemTotalWeight;
-      }
-      
-      console.log(`🏋️ [WEIGHT] Total calculated weight for order ${customerOrderId}: ${totalWeight}kg`);
-      return totalWeight;
-    } catch (error) {
-      console.error('❌ [WEIGHT] Error calculating order weight:', error);
-      return 0;
-    }
-  }
-
   async getOrdersByDepartment(department: Department, statuses?: OrderStatus[]): Promise<any[]> {
     console.log('🔍 [DEPARTMENT] getOrdersByDepartment called with department:', department);
     

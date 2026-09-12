@@ -391,34 +391,6 @@ export class UniversalEmailService {
   }
 
   /**
-   * Send password reset email
-   */
-  static async sendPasswordResetEmail(email: string, resetToken: string, userName: string, req?: any) {
-    const { CONFIG } = await import('./config');
-    const resetLink = CONFIG.getPasswordResetUrl(resetToken, req);
-    
-    const templateVariables = {
-      customer_name: userName,
-      email_type: 'درخواست تغییر رمز عبور',
-      email_content: 'درخواست تغییر رمز عبور برای حساب کاربری شما دریافت شد.',
-      password_label: '',
-      password_value: '',
-      security_note: 'در صورتی که این درخواست را شما نداده‌اید، این ایمیل را نادیده بگیرید. این لینک تا 24 ساعت معتبر است.',
-      action_url: resetLink,
-      action_text: 'تغییر رمز عبور'
-    };
-    
-    return await this.sendEmail({
-      categoryKey: 'password-reset',
-      to: [email],
-      subject: 'Password Reset Request - Momtaz Chemical',
-      html: `<h2>Fallback Template</h2>`, // Will be replaced by template #06
-      templateNumber: '#06',
-      variables: templateVariables
-    });
-  }
-
-  /**
    * Send account verification email
    */
   static async sendAccountVerificationEmail(email: string, verificationLink: string, userName: string) {
