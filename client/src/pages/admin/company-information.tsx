@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import { MapLocationPicker } from '@/components/admin/map-location-picker';
 import { 
   Building2, 
   Phone, 
@@ -79,6 +80,8 @@ interface CompanyInfo {
     addressLine2?: string;
     addressLine3?: string;
     mapLink?: string;
+    mapLatitude?: number;
+    mapLongitude?: number;
     whatsappNumber?: string;
     phoneAvailability?: string;
     supportEmail?: string;
@@ -248,6 +251,7 @@ export default function CompanyInformation() {
   const [certificateUploading, setCertificateUploading] = useState(false);
   const [certificateFileUrl, setCertificateFileUrl] = useState('');
   const [certificateExpiryDate, setCertificateExpiryDate] = useState('');
+  const [isMapPickerOpen, setIsMapPickerOpen] = useState(false);
 
   // Fetch company information from database
   const { data: companyInfo, isLoading: infoLoading } = useQuery<CompanyInfo>({
@@ -308,6 +312,18 @@ export default function CompanyInformation() {
     handleFieldChange('contactSettings', {
       ...(formData.contactSettings || {}),
       [field]: value,
+    });
+  };
+
+  const selectedLatitude = Number(formData.contactSettings?.mapLatitude) || 36.1578;
+  const selectedLongitude = Number(formData.contactSettings?.mapLongitude) || 43.8822;
+
+  const handleMapLocationChange = (latitude: number, longitude: number) => {
+    handleFieldChange('contactSettings', {
+      ...(formData.contactSettings || {}),
+      mapLatitude: latitude,
+      mapLongitude: longitude,
+      mapLink: `https://www.google.com/maps?q=${latitude},${longitude}`,
     });
   };
 
@@ -1173,11 +1189,52 @@ export default function CompanyInformation() {
                 </div>
                 <div className="space-y-2">
                   <Label>لینک موقعیت روی نقشه</Label>
-                  <Input
-                    value={formData.contactSettings?.mapLink || ''}
-                    placeholder="https://maps.app.goo.gl/..."
-                    onChange={(e) => handleContactSettingChange('mapLink', e.target.value)}
-                  />
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <Input
+                      value={formData.contactSettings?.mapLink || ''}
+                      placeholder="برای انتخاب موقعیت روی نقشه کلیک کنید"
+                      onChange={(e) => handleContactSettingChange('mapLink', e.target.value)}
+                      onClick={() => setIsMapPickerOpen(true)}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsMapPickerOpen((open) => !open)}
+                      className="shrink-0"
+                    >
+                      <MapPin className="ml-2 h-4 w-4" />
+                      {isMapPickerOpen ? 'بستن نقشه' : 'انتخاب روی نقشه'}
+                    </Button>
+                  </div>
+                  {isMapPickerOpen && (
+                    <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
+                      <p className="text-sm text-muted-foreground">
+                        روی هر نقطه از نقشه کلیک کنید؛ نشانگر و لینک موقعیت به‌روزرسانی می‌شوند.
+                      </p>
+                      <MapLocationPicker
+                        latitude={selectedLatitude}
+                        longitude={selectedLongitude}
+                        onChange={handleMapLocationChange}
+                      />
+                      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+                        <span className="text-sm font-medium" dir="ltr">
+                          {selectedLatitude.toFixed(6)}, {selectedLongitude.toFixed(6)}
+                        </span>
+                        <Button
+                          type="button"
+                          onClick={() => updateCompanyInfoMutation.mutate(formData)}
+                          disabled={updateCompanyInfoMutation.isPending}
+                        >
+                          {updateCompanyInfoMutation.isPending ? (
+                            <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <Save className="ml-2 h-4 w-4" />
+                          )}
+                          ذخیره موقعیت برای Contact
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">

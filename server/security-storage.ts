@@ -102,7 +102,7 @@ export class SecurityStorage implements ISecurityStorage {
   } = {}): Promise<{ logs: SecurityLog[]; total: number; }> {
     const { eventType, severity, startDate, endDate, limit = 50, offset = 0 } = filters;
     
-    let query = db.select().from(securityLogs);
+    let query = db.select().from(securityLogs).$dynamic();
     const conditions = [];
     
     if (eventType) conditions.push(eq(securityLogs.eventType, eventType));
@@ -249,6 +249,7 @@ export class SecurityStorage implements ISecurityStorage {
     let query = db
       .select()
       .from(ipAccessControl)
+      .$dynamic()
       .where(eq(ipAccessControl.isActive, true));
     
     if (type) {
@@ -298,6 +299,7 @@ export class SecurityStorage implements ISecurityStorage {
     let query = db
       .select()
       .from(securitySessions)
+      .$dynamic()
       .where(eq(securitySessions.isActive, true));
     
     if (userId) {
@@ -358,7 +360,7 @@ export class SecurityStorage implements ISecurityStorage {
   } = {}): Promise<{ alerts: SecurityAlert[]; total: number; }> {
     const { severity, status, limit = 50, offset = 0 } = filters;
     
-    let query = db.select().from(securityAlerts);
+    let query = db.select().from(securityAlerts).$dynamic();
     const conditions = [];
     
     if (severity) conditions.push(eq(securityAlerts.severity, severity));

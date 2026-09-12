@@ -391,7 +391,7 @@ export class ShopStorage implements IShopStorage {
       whereCondition = and(
         eq(shopProducts.sku, trimmedSku),
         sql`${shopProducts.id} != ${excludeId}`
-      );
+      )!;
     }
     
     const result = await shopDb
@@ -503,7 +503,7 @@ export class ShopStorage implements IShopStorage {
           sql`${shopProducts.specifications}::text ILIKE ${searchTerm}`,
           sql`${shopProducts.features}::text ILIKE ${searchTerm}`,
           sql`${shopProducts.applications}::text ILIKE ${searchTerm}`
-        )
+        )!
       );
     }
 
@@ -528,7 +528,7 @@ export class ShopStorage implements IShopStorage {
           or(
             eq(shopProducts.category, cat.name),
             eq(shopProducts.category, cat.slug)
-          )
+          )!
         );
       } else {
         // If category not found in shop_categories, try direct match
@@ -552,7 +552,7 @@ export class ShopStorage implements IShopStorage {
           and(
             eq(shopProducts.inStock, true),
             gt(shopProducts.stockQuantity, 0)
-          )
+          )!
         );
       } else {
         // For other cases, use the inStock flag
@@ -564,7 +564,7 @@ export class ShopStorage implements IShopStorage {
         or(
           gt(shopProducts.stockQuantity, 0),
           eq(shopProducts.showWhenOutOfStock, true)
-        )
+        )!
       );
     }
 
@@ -573,7 +573,7 @@ export class ShopStorage implements IShopStorage {
       const tagConditions = tags.map(tag => 
         sql`${shopProducts.tags}::text ILIKE ${`%${tag}%`}`
       );
-      whereConditions.push(or(...tagConditions));
+      whereConditions.push(or(...tagConditions)!);
     }
 
     // Build ORDER BY clause
@@ -596,19 +596,15 @@ export class ShopStorage implements IShopStorage {
     }
 
     // Get filtered products with proper query building
-    let baseQuery = shopDb
+    const baseQuery = shopDb
       .select()
       .from(shopProducts)
       .where(and(...whereConditions));
 
     // Apply ordering
-    if (sortBy === 'relevance') {
-      baseQuery = baseQuery.orderBy(desc(shopProducts.isFeatured), asc(shopProducts.name));
-    } else {
-      baseQuery = baseQuery.orderBy(orderByClause);
-    }
-
-    const products = await baseQuery
+    const products = await (sortBy === 'relevance'
+      ? baseQuery.orderBy(desc(shopProducts.isFeatured), asc(shopProducts.name))
+      : baseQuery.orderBy(orderByClause))
       .limit(limit)
       .offset(offset);
 
@@ -673,12 +669,12 @@ export class ShopStorage implements IShopStorage {
       .from(shopProducts)
       .where(eq(shopProducts.isActive, true));
 
-    const availableTags = [...new Set(
+    const availableTags = Array.from(new Set(
       allTagsResult
         .filter(item => item.tags)
         .flatMap(item => Array.isArray(item.tags) ? item.tags : [])
         .filter(tag => typeof tag === 'string' && tag.trim())
-    )];
+    ));
 
     // Get active discount settings
     const activeDiscounts = await shopDb
@@ -925,6 +921,10 @@ export class ShopStorage implements IShopStorage {
     return await query;
   }
 
+  async getInventoryTransactions(productId?: number): Promise<any[]> {
+    return await this.getShopInventoryMovements(productId);
+  }
+
   async createShopInventoryMovement(movement: InsertShopInventoryMovement): Promise<ShopInventoryMovement> {
     const [newMovement] = await shopDb
       .insert(shopInventoryMovements)
@@ -970,28 +970,6 @@ export class ShopStorage implements IShopStorage {
       .values(transit)
       .returning();
     return newTransit;
-  }
-
-  async updateGoodsInTransit(id: number, transitUpdate: any): Promise<GoodsInTransit> {
-    const updateData: any = {
-      updatedAt: new Date(),
-    };
-    
-    // Handle each field separately
-    if (transitUpdate.status) {
-      updateData.status = transitUpdate.status;
-    }
-    
-    if (transitUpdate.actualDeliveryDate) {
-      updateData.actualDeliveryDate = new Date();
-    }
-    
-    const [updatedTransit] = await shopDb
-      .update(goodsInTransit)
-      .set(updateData)
-      .where(eq(goodsInTransit.id, id))
-      .returning();
-    return updatedTransit;
   }
 
   async updateGoodsInTransit(id: number, transitUpdate: Partial<InsertGoodsInTransit>): Promise<GoodsInTransit> {
@@ -1269,10 +1247,8 @@ export class ShopStorage implements IShopStorage {
     endDate?: Date;
     orderId?: number;
   }): Promise<FinancialTransaction[]> {
-    let query = shopDb.select().from(financialTransactions);
-    
+    const conditions = [];
     if (filters) {
-      const conditions = [];
       if (filters.type) {
         conditions.push(eq(financialTransactions.type, filters.type));
       }
@@ -1285,11 +1261,15 @@ export class ShopStorage implements IShopStorage {
       if (filters.endDate) {
         conditions.push(lte(financialTransactions.processingDate, filters.endDate));
       }
-      if (conditions.length > 0) {
-        query = query.where(and(...conditions));
-      }
     }
-    
+
+    const query = shopDb.select().from(financialTransactions);
+    if (conditions.length > 0) {
+      return await query
+        .where(and(...conditions)!)
+        .orderBy(desc(financialTransactions.processingDate));
+    }
+
     return await query.orderBy(desc(financialTransactions.processingDate));
   }
 
@@ -1316,10 +1296,8 @@ export class ShopStorage implements IShopStorage {
     startDate?: Date;
     endDate?: Date;
   }): Promise<SalesReport[]> {
-    let query = shopDb.select().from(salesReports);
-    
+    const conditions = [];
     if (filters) {
-      const conditions = [];
       if (filters.reportType) {
         conditions.push(eq(salesReports.reportType, filters.reportType));
       }
@@ -1329,11 +1307,15 @@ export class ShopStorage implements IShopStorage {
       if (filters.endDate) {
         conditions.push(lte(salesReports.reportDate, filters.endDate));
       }
-      if (conditions.length > 0) {
-        query = query.where(and(...conditions));
-      }
     }
-    
+
+    const query = shopDb.select().from(salesReports);
+    if (conditions.length > 0) {
+      return await query
+        .where(and(...conditions)!)
+        .orderBy(desc(salesReports.reportDate));
+    }
+
     return await query.orderBy(desc(salesReports.reportDate));
   }
 
@@ -1505,7 +1487,7 @@ export class ShopStorage implements IShopStorage {
         if (product) {
           await this.updateProductStock(
             item.productId, 
-            product.stockQuantity + item.quantity, 
+            (product.stockQuantity ?? 0) + item.quantity,
             `Return from order #${orderId}`
           );
         }
@@ -1600,7 +1582,7 @@ export class ShopStorage implements IShopStorage {
       if (product) {
         await this.updateProductStock(
           returnRecord.productId, 
-          product.stockQuantity + returnRecord.returnQuantity, 
+          (product.stockQuantity ?? 0) + returnRecord.returnQuantity,
           `Restored stock from deleted return record #${id}`
         );
       }
@@ -1625,7 +1607,7 @@ export class ShopStorage implements IShopStorage {
   private async reduceProductStockForReturn(productId: number, returnQuantity: number): Promise<void> {
     const product = await this.getShopProductById(productId);
     if (product) {
-      const newStockQuantity = Math.max(0, product.stockQuantity - returnQuantity);
+      const newStockQuantity = Math.max(0, (product.stockQuantity ?? 0) - returnQuantity);
       await this.updateProductStock(
         productId, 
         newStockQuantity, 
@@ -1659,7 +1641,10 @@ export class ShopStorage implements IShopStorage {
       
       // Calculate statistics manually
       const totalReturns = allReturns.length;
-      const totalReturnAmount = allReturns.reduce((sum, ret) => sum + (ret.totalReturnAmount || 0), 0);
+      const totalReturnAmount = allReturns.reduce(
+        (sum, ret) => sum + Number(ret.totalReturnAmount || 0),
+        0
+      );
       const pendingReturns = allReturns.filter(ret => ret.refundStatus === 'pending').length;
       const approvedReturns = allReturns.filter(ret => ret.refundStatus === 'approved').length;
       const rejectedReturns = allReturns.filter(ret => ret.refundStatus === 'rejected').length;
@@ -1724,7 +1709,7 @@ export class ShopStorage implements IShopStorage {
           WHERE id = $1
         `, [batchId]);
         
-        if (deleteResult.rowCount > 0) {
+        if ((deleteResult.rowCount ?? 0) > 0) {
           console.log(`✅ [DELETE-BATCH] Successfully deleted batch ${batch.batch_number} (ID: ${batchId})`);
           return true;
         }
@@ -1741,7 +1726,7 @@ export class ShopStorage implements IShopStorage {
           WHERE id = $1
         `, [batchId]);
         
-        if (updateResult.rowCount > 0) {
+        if ((updateResult.rowCount ?? 0) > 0) {
           console.log(`✅ [DELETE-BATCH] Converted batch ${batch.batch_number} to parent product (ID: ${batchId})`);
           return true;
         }

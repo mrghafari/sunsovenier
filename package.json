@@ -8,9 +8,12 @@
   },
   "scripts": {
     "dev": "NODE_ENV=development tsx server/index.ts",
+    "prebuild": "npm run check",
     "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist/server",
     "start": "NODE_ENV=production node dist/server/index.js",
-    "check": "tsc",
+    "check": "node scripts/typecheck-baseline.mjs",
+    "check:raw": "tsc --noEmit",
+    "check:baseline:update": "node scripts/typecheck-baseline.mjs --update",
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
@@ -60,6 +63,7 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/clamscan": "^2.4.1",
     "@types/cron": "^2.0.1",
+    "@types/leaflet": "^1.9.21",
     "@types/memoizee": "^0.4.12",
     "@types/mime-types": "^3.0.1",
     "@types/multer": "^1.4.13",
@@ -99,6 +103,7 @@
     "input-otp": "^1.4.2",
     "jsbarcode": "^3.12.1",
     "jspdf": "^4.2.1",
+    "leaflet": "^1.9.4",
     "lucide-react": "^0.453.0",
     "marked": "^15.0.12",
     "memoizee": "^0.4.17",
@@ -123,6 +128,7 @@
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.55.0",
     "react-icons": "^5.4.0",
+    "react-leaflet": "^4.2.1",
     "react-resizable-panels": "^2.1.7",
     "recharts": "^2.15.2",
     "sharp": "^0.35.4",

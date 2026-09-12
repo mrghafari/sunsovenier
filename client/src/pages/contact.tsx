@@ -41,6 +41,8 @@ interface PublicCompanyInfo {
     addressLine2?: string;
     addressLine3?: string;
     mapLink?: string;
+    mapLatitude?: number;
+    mapLongitude?: number;
     whatsappNumber?: string;
     phoneAvailability?: string;
     supportEmail?: string;
@@ -204,6 +206,10 @@ const Contact = () => {
   });
   const companyInfo = companyInfoResponse?.data || null;
   const contactSettings = companyInfo?.contactSettings || {};
+  const mapLatitude = Number(contactSettings.mapLatitude) || 36.1578;
+  const mapLongitude = Number(contactSettings.mapLongitude) || 43.8822;
+  const mapLink = contactSettings.mapLink || `https://www.google.com/maps?q=${mapLatitude},${mapLongitude}`;
+  const mapEmbedUrl = `https://www.google.com/maps?q=${mapLatitude},${mapLongitude}&z=15&output=embed`;
 
   // Filter content for contact section
   const contactContent = contentItems.filter(item => 
@@ -335,7 +341,7 @@ const Contact = () => {
          contactSettings.addressLine3 || [companyInfo?.city, companyInfo?.province, companyInfo?.country].filter(Boolean).join(', ') || getContent('address_line3', copy.facility)
       ],
       bgColor: "bg-primary-blue",
-      link: contactSettings.mapLink || getContent('address_map_link', 'https://maps.app.goo.gl/umCmoKpmaovSkTJ96')
+      link: mapLink || getContent('address_map_link', 'https://maps.app.goo.gl/umCmoKpmaovSkTJ96')
     },
     {
       icon: <Phone className="h-6 w-6 text-white" />,
@@ -620,7 +626,7 @@ const Contact = () => {
             <div className="relative">
               <div className="h-96 rounded-lg overflow-hidden shadow-lg">
                 <iframe
-                  src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d12885.5!2d43.882198296180086!3d36.15782506411755!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzbCsDA5JzI4LjEiTiA0M8KwNTInNTUuOSJF!5e0!3m2!1sen!2s!4v1649123456789"
+                  src={mapEmbedUrl}
                   width="100%"
                   height="100%"
                   style={{ border: 0 }}
@@ -637,10 +643,12 @@ const Contact = () => {
                     <div>
                        <h3 className="font-semibold text-gray-900">{copy.companyName}</h3>
                        <p className="text-sm text-gray-600">{copy.facility}</p>
-                      <p className="text-xs text-gray-500">36.1578°N, 43.8822°E</p>
+                      <p className="text-xs text-gray-500" dir="ltr">
+                        {mapLatitude.toFixed(6)}, {mapLongitude.toFixed(6)}
+                      </p>
                        <p className="text-xs text-gray-400">{copy.region}</p>
                       <a
-                        href={contactSettings.mapLink || "https://maps.app.goo.gl/umCmoKpmaovSkTJ96"}
+                        href={mapLink}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-primary-blue hover:text-primary-blue-dark text-sm font-medium"
@@ -667,7 +675,7 @@ const Contact = () => {
                    <p className="text-gray-600">{copy.erbil}</p>
                 </div>
                 <a
-                  href={contactSettings.mapLink || "https://maps.app.goo.gl/ngapesxcH4XiT4L26"}
+                  href={mapLink}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="bg-primary-blue hover:bg-primary-blue-dark text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
