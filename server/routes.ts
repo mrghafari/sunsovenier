@@ -56039,11 +56039,11 @@ momtazchem.com
       // Validate post data
       const validatedPost = insertBlogPostSchema.parse(post);
 
-      // Validate translations (should have both English and Arabic)
-      if (!translations || translations.length !== 2) {
+      const supportedBlogLanguages = ["en", "ar", "tr", "fa"] as const;
+      if (!translations || translations.length !== supportedBlogLanguages.length) {
         return res.status(400).json({
           success: false,
-          message: "يجب توفير ترجمتين (إنجليزي وعربي) / Both English and Arabic translations required",
+          message: "Translations are required for English, Arabic, Turkish, and Persian",
         });
       }
 
@@ -56051,14 +56051,11 @@ momtazchem.com
         insertBlogPostTranslationSchema.parse(t)
       );
 
-      // Check if English and Arabic are both present
-      const hasEnglish = validatedTranslations.some((t) => t.language === "en");
-      const hasArabic = validatedTranslations.some((t) => t.language === "ar");
-
-      if (!hasEnglish || !hasArabic) {
+      const submittedLanguages = new Set(validatedTranslations.map((t: { language: string }) => t.language));
+      if (supportedBlogLanguages.some((language) => !submittedLanguages.has(language))) {
         return res.status(400).json({
           success: false,
-          message: "يجب توفير ترجمة إنجليزية وعربية / Both English and Arabic translations required",
+          message: "Translations are required for English, Arabic, Turkish, and Persian",
         });
       }
 
@@ -56105,6 +56102,23 @@ momtazchem.com
     try {
       const postId = parseInt(req.params.id);
       const { post, translations } = req.body;
+      const supportedBlogLanguages = ["en", "ar", "tr", "fa"] as const;
+      if (!translations || translations.length !== supportedBlogLanguages.length) {
+        return res.status(400).json({
+          success: false,
+          message: "Translations are required for English, Arabic, Turkish, and Persian",
+        });
+      }
+      const validatedTranslations = translations.map((translation: any) =>
+        insertBlogPostTranslationSchema.parse(translation)
+      );
+      const submittedLanguages = new Set(validatedTranslations.map((translation: { language: string }) => translation.language));
+      if (supportedBlogLanguages.some((language) => !submittedLanguages.has(language))) {
+        return res.status(400).json({
+          success: false,
+          message: "Translations are required for English, Arabic, Turkish, and Persian",
+        });
+      }
 
       // Check if post exists
       const existingPost = await db
@@ -56148,7 +56162,7 @@ momtazchem.com
         updatedTranslations = await db
           .insert(blogPostTranslations)
           .values(
-            translations.map((t: any) => ({
+            validatedTranslations.map((t: Record<string, unknown>) => ({
               ...t,
               postId: postId,
               updatedAt: new Date(),
@@ -56289,8 +56303,6 @@ momtazchem.com
       const tag = req.query.tag as string;
       const language = (req.query.language as string) || "en";
 
-      // Persian and Turkish currently fall back to English when a dedicated
-      // translation has not yet been authored for a post.
       if (!["en", "ar", "tr", "fa"].includes(language)) {
         return res.status(400).json({
           success: false,
@@ -56298,70 +56310,53 @@ momtazchem.com
         });
       }
 
-      // Build query for published posts
-      let query = db
-        .select()
+      const localizedPostCondition = tag
+        ? and(
+            eq(blogPosts.status, "published"),
+            eq(blogPostTranslations.language, language as "en" | "ar" | "tr" | "fa"),
+            sql`${tag} = ANY(${blogPosts.tags})`
+          )
+        : and(
+            eq(blogPosts.status, "published"),
+            eq(blogPostTranslations.language, language as "en" | "ar" | "tr" | "fa")
+          );
+
+      const localizedRows = await db
+        .select({ post: blogPosts, translation: blogPostTranslations })
         .from(blogPosts)
-        .where(eq(blogPosts.status, "published"))
+        .innerJoin(blogPostTranslations, eq(blogPostTranslations.postId, blogPosts.id))
+        .where(localizedPostCondition)
         .orderBy(blogPosts.publishDate)
         .limit(limit)
         .offset(offset);
 
-      // Filter by tag if provided
-      if (tag) {
-        query = query.where(sql`${tag} = ANY(${blogPosts.tags})`);
-      }
-
-      const posts = await query;
-
-      // Get translations for each post
-      const postsWithTranslation = await Promise.all(
-        posts.map(async (post) => {
-          const [requestedTranslation] = await db
-            .select()
-            .from(blogPostTranslations)
-            .where(
-              and(
-                eq(blogPostTranslations.postId, post.id),
-                eq(blogPostTranslations.language, language)
-              )
-            )
-            .limit(1);
-          const [englishTranslation] = requestedTranslation ? [] : await db
-            .select()
-            .from(blogPostTranslations)
-            .where(
-              and(
-                eq(blogPostTranslations.postId, post.id),
-                eq(blogPostTranslations.language, "en")
-              )
-            )
-            .limit(1);
-
-          return {
-            ...post,
-            translation: requestedTranslation || englishTranslation,
-          };
-        })
-      );
+      const localizedPosts = localizedRows.map(({ post, translation }) => ({
+        ...post,
+        translation,
+      }));
 
       // Get total count
       const [countResult] = await db
         .select({ count: sql<number>`count(*)` })
         .from(blogPosts)
-        .where(eq(blogPosts.status, "published"));
+        .innerJoin(blogPostTranslations, eq(blogPostTranslations.postId, blogPosts.id))
+        .where(localizedPostCondition);
       
       // Get all unique tags
       const allPosts = await db
         .select({ tags: blogPosts.tags })
         .from(blogPosts)
-        .where(eq(blogPosts.status, "published"));
+        .innerJoin(blogPostTranslations, eq(blogPostTranslations.postId, blogPosts.id))
+        .where(and(
+          eq(blogPosts.status, "published"),
+          eq(blogPostTranslations.language, language as "en" | "ar" | "tr" | "fa")
+        ));
       
       const allTags = [...new Set(allPosts.flatMap(p => p.tags || []))];
 
       res.json({
         success: true,
-        posts: postsWithTranslation,
+        posts: localizedPosts,
         total: Number(countResult?.count || 0),
         tags: allTags,
       });
@@ -56392,8 +56387,8 @@ momtazchem.com
         });
       }
 
-      // Resolve the post from any known language slug, then return the
-      // requested translation (or English until that translation is authored).
+      // Resolve the post from any known language slug, then return only the
+      // translation matching the currently selected site language.
       const [slugTranslation] = await db
         .select()
         .from(blogPostTranslations)
@@ -56431,18 +56426,15 @@ momtazchem.com
         .from(blogPostTranslations)
         .where(and(
           eq(blogPostTranslations.postId, post.id),
-          eq(blogPostTranslations.language, language)
+          eq(blogPostTranslations.language, language as "en" | "ar" | "tr" | "fa")
         ))
         .limit(1);
-      const [englishTranslation] = requestedTranslation ? [] : await db
-        .select()
-        .from(blogPostTranslations)
-        .where(and(
-          eq(blogPostTranslations.postId, post.id),
-          eq(blogPostTranslations.language, "en")
-        ))
-        .limit(1);
-      const translation = requestedTranslation || englishTranslation || slugTranslation;
+      if (!requestedTranslation) {
+        return res.status(404).json({
+          success: false,
+          message: "This article is not available in the selected language",
+        });
+      }
 
       // Increment view count
       await db
@@ -56457,7 +56449,7 @@ momtazchem.com
         data: {
           ...post,
           viewCount: (post.viewCount || 0) + 1,
-          translation,
+          translation: requestedTranslation,
         },
       });
     } catch (error: any) {
@@ -56470,13 +56462,13 @@ momtazchem.com
   });
 
   /**
-   * GET /api/blog/:id/related
+   * GET /api/blog-related/:id
    * Get related blog posts by tags (same language)
    * @access Public
    * @query language - en or ar (default: en)
    * @query limit - number of related posts (default: 5)
    */
-  app.get("/api/blog/:id/related", async (req, res) => {
+  app.get("/api/blog-related/:id", async (req, res) => {
     try {
       const postId = parseInt(req.params.id);
       const language = (req.query.language as string) || "en";
@@ -56512,52 +56504,28 @@ momtazchem.com
       }
 
       // Find related posts with overlapping tags
-      const relatedPosts = await db
-        .select()
+      const relatedRows = await db
+        .select({ post: blogPosts, translation: blogPostTranslations })
         .from(blogPosts)
+        .innerJoin(blogPostTranslations, eq(blogPostTranslations.postId, blogPosts.id))
         .where(
           and(
             eq(blogPosts.status, "published"),
             ne(blogPosts.id, postId),
-            sql`${blogPosts.tags} && ${originalPost.tags}`
+            eq(blogPostTranslations.language, language as "en" | "ar" | "tr" | "fa"),
+            sql`${blogPosts.tags} && string_to_array(${originalPost.tags.join(",")}, ',')`
           )
         )
         .limit(limit);
 
-      // Get translations for related posts
-      const relatedPostsWithTranslation = await Promise.all(
-        relatedPosts.map(async (post) => {
-          const [requestedTranslation] = await db
-            .select()
-            .from(blogPostTranslations)
-            .where(
-              and(
-                eq(blogPostTranslations.postId, post.id),
-                eq(blogPostTranslations.language, language)
-              )
-            )
-            .limit(1);
-          const [englishTranslation] = requestedTranslation ? [] : await db
-            .select()
-            .from(blogPostTranslations)
-            .where(
-              and(
-                eq(blogPostTranslations.postId, post.id),
-                eq(blogPostTranslations.language, "en")
-              )
-            )
-            .limit(1);
-
-          return {
-            ...post,
-            translation: requestedTranslation || englishTranslation,
-          };
-        })
-      );
+      const localizedRelatedPosts = relatedRows.map(({ post, translation }) => ({
+        ...post,
+        translation,
+      }));
 
       res.json({
         success: true,
-        data: relatedPostsWithTranslation,
+        data: localizedRelatedPosts,
       });
     } catch (error: any) {
       console.error("Error fetching related blog posts:", error);

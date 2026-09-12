@@ -18,7 +18,7 @@ export const blogPosts = pgTable("blog_posts", {
 export const blogPostTranslations = pgTable("blog_post_translations", {
   id: serial("id").primaryKey(),
   postId: integer("post_id").notNull().references(() => blogPosts.id, { onDelete: "cascade" }),
-  language: text("language", { enum: ["en", "ar"] }).notNull(),
+  language: text("language", { enum: ["en", "ar", "tr", "fa"] }).notNull(),
   title: text("title").notNull(),
   slug: text("slug").notNull(),
   excerpt: text("excerpt").notNull(),
@@ -39,6 +39,7 @@ export const insertBlogPostSchema = createInsertSchema(blogPosts).omit({
 
 export const insertBlogPostTranslationSchema = createInsertSchema(blogPostTranslations).omit({
   id: true,
+  postId: true,
   createdAt: true,
   updatedAt: true,
 });

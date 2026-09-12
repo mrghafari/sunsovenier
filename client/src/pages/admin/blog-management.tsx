@@ -101,6 +101,19 @@ const blogFormSchema = z.object({
   contentAr: z.string().min(1, "Arabic content is required"),
   metaTitleAr: z.string().optional(),
   metaDescriptionAr: z.string().optional(),
+  ogImageAr: imageUrlSchema,
+  titleTr: z.string().min(1, "Turkish title is required"),
+  slugTr: z.string().min(1, "Turkish slug is required"),
+  excerptTr: z.string().min(1, "Turkish excerpt is required"),
+  contentTr: z.string().min(1, "Turkish content is required"),
+  metaTitleTr: z.string().optional(),
+  metaDescriptionTr: z.string().optional(),
+  titleFa: z.string().min(1, "Persian title is required"),
+  slugFa: z.string().min(1, "Persian slug is required"),
+  excerptFa: z.string().min(1, "Persian excerpt is required"),
+  contentFa: z.string().min(1, "Persian content is required"),
+  metaTitleFa: z.string().optional(),
+  metaDescriptionFa: z.string().optional(),
 });
 
 type BlogFormData = z.infer<typeof blogFormSchema>;
@@ -116,7 +129,7 @@ export default function BlogManagement() {
   const [statusFilter, setStatusFilter] = useState<"all" | "draft" | "published">("all");
   const [tagFilter, setTagFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [markdownPreview, setMarkdownPreview] = useState({ en: "", ar: "" });
+  const [markdownPreview, setMarkdownPreview] = useState({ en: "", ar: "", tr: "", fa: "" });
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const postsPerPage = 10;
 
@@ -161,6 +174,19 @@ export default function BlogManagement() {
       contentAr: "",
       metaTitleAr: "",
       metaDescriptionAr: "",
+      ogImageAr: "",
+      titleTr: "",
+      slugTr: "",
+      excerptTr: "",
+      contentTr: "",
+      metaTitleTr: "",
+      metaDescriptionTr: "",
+      titleFa: "",
+      slugFa: "",
+      excerptFa: "",
+      contentFa: "",
+      metaTitleFa: "",
+      metaDescriptionFa: "",
     },
   });
 
@@ -194,6 +220,25 @@ export default function BlogManagement() {
             content: data.contentAr,
             metaTitle: data.metaTitleAr || null,
             metaDescription: data.metaDescriptionAr || null,
+            ogImage: data.ogImageAr || null,
+          },
+          {
+            language: "tr",
+            title: data.titleTr,
+            slug: data.slugTr,
+            excerpt: data.excerptTr,
+            content: data.contentTr,
+            metaTitle: data.metaTitleTr || null,
+            metaDescription: data.metaDescriptionTr || null,
+          },
+          {
+            language: "fa",
+            title: data.titleFa,
+            slug: data.slugFa,
+            excerpt: data.excerptFa,
+            content: data.contentFa,
+            metaTitle: data.metaTitleFa || null,
+            metaDescription: data.metaDescriptionFa || null,
           },
         ],
       };
@@ -207,7 +252,7 @@ export default function BlogManagement() {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/blog'] });
       setIsDialogOpen(false);
       form.reset();
-      setMarkdownPreview({ en: "", ar: "" });
+      setMarkdownPreview({ en: "", ar: "", tr: "", fa: "" });
     },
     onError: (error: any) => {
       toast({
@@ -248,6 +293,25 @@ export default function BlogManagement() {
             content: data.contentAr,
             metaTitle: data.metaTitleAr || null,
             metaDescription: data.metaDescriptionAr || null,
+            ogImage: data.ogImageAr || null,
+          },
+          {
+            language: "tr",
+            title: data.titleTr,
+            slug: data.slugTr,
+            excerpt: data.excerptTr,
+            content: data.contentTr,
+            metaTitle: data.metaTitleTr || null,
+            metaDescription: data.metaDescriptionTr || null,
+          },
+          {
+            language: "fa",
+            title: data.titleFa,
+            slug: data.slugFa,
+            excerpt: data.excerptFa,
+            content: data.contentFa,
+            metaTitle: data.metaTitleFa || null,
+            metaDescription: data.metaDescriptionFa || null,
           },
         ],
       };
@@ -262,7 +326,7 @@ export default function BlogManagement() {
       setIsDialogOpen(false);
       setEditingPost(null);
       form.reset();
-      setMarkdownPreview({ en: "", ar: "" });
+      setMarkdownPreview({ en: "", ar: "", tr: "", fa: "" });
     },
     onError: (error: any) => {
       toast({
@@ -315,11 +379,12 @@ export default function BlogManagement() {
   // Auto-generate slug from title
   const generateSlug = (title: string): string => {
     return title
+      .normalize("NFKC")
       .toLowerCase()
-      .replace(/[^\w\s-]/g, "")
+      .replace(/[^\p{L}\p{N}\s-]/gu, "")
       .replace(/\s+/g, "-")
       .replace(/-+/g, "-")
-      .trim();
+      .replace(/^-|-$/g, "");
   };
 
   // Handle image upload to S3
@@ -361,7 +426,7 @@ export default function BlogManagement() {
   const handleCreate = () => {
     setEditingPost(null);
     form.reset();
-    setMarkdownPreview({ en: "", ar: "" });
+    setMarkdownPreview({ en: "", ar: "", tr: "", fa: "" });
     setIsDialogOpen(true);
   };
 
@@ -370,6 +435,8 @@ export default function BlogManagement() {
     setEditingPost(post);
     const enTranslation = post.translations.find(t => t.language === "en");
     const arTranslation = post.translations.find(t => t.language === "ar");
+    const trTranslation = post.translations.find(t => t.language === "tr");
+    const faTranslation = post.translations.find(t => t.language === "fa");
     
     form.reset({
       authorName: post.authorName,
@@ -389,11 +456,26 @@ export default function BlogManagement() {
       contentAr: arTranslation?.content || "",
       metaTitleAr: arTranslation?.metaTitle || "",
       metaDescriptionAr: arTranslation?.metaDescription || "",
+      ogImageAr: arTranslation?.ogImage || "",
+      titleTr: trTranslation?.title || "",
+      slugTr: trTranslation?.slug || "",
+      excerptTr: trTranslation?.excerpt || "",
+      contentTr: trTranslation?.content || "",
+      metaTitleTr: trTranslation?.metaTitle || "",
+      metaDescriptionTr: trTranslation?.metaDescription || "",
+      titleFa: faTranslation?.title || "",
+      slugFa: faTranslation?.slug || "",
+      excerptFa: faTranslation?.excerpt || "",
+      contentFa: faTranslation?.content || "",
+      metaTitleFa: faTranslation?.metaTitle || "",
+      metaDescriptionFa: faTranslation?.metaDescription || "",
     });
     
     setMarkdownPreview({
       en: enTranslation?.content ? marked(enTranslation.content) as string : "",
       ar: arTranslation?.content ? marked(arTranslation.content) as string : "",
+      tr: trTranslation?.content ? marked(trTranslation.content) as string : "",
+      fa: faTranslation?.content ? marked(faTranslation.content) as string : "",
     });
     
     setIsDialogOpen(true);
@@ -921,12 +1003,18 @@ export default function BlogManagement() {
 
               {/* Language Tabs */}
               <Tabs defaultValue="en" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
+                <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="en" data-testid="tab-english">
                     English
                   </TabsTrigger>
                   <TabsTrigger value="ar" data-testid="tab-arabic">
                     العربية
+                  </TabsTrigger>
+                  <TabsTrigger value="tr" data-testid="tab-turkish">
+                    Türkçe
+                  </TabsTrigger>
+                  <TabsTrigger value="fa" data-testid="tab-persian">
+                    فارسی
                   </TabsTrigger>
                 </TabsList>
 
@@ -1279,6 +1367,50 @@ export default function BlogManagement() {
                       </FormItem>
                     )}
                   />
+                </TabsContent>
+
+                <TabsContent value="tr" className="space-y-4 mt-4">
+                  <FormField control={form.control} name="titleTr" render={({ field }) => (
+                    <FormItem><FormLabel>Başlık</FormLabel><FormControl><Input {...field} placeholder="Türkçe başlık" onChange={(e) => { field.onChange(e); if (!editingPost) form.setValue("slugTr", generateSlug(e.target.value)); }} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="slugTr" render={({ field }) => (
+                    <FormItem><FormLabel>Bağlantı</FormLabel><FormControl><Input {...field} placeholder="turkce-baglanti" /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="excerptTr" render={({ field }) => (
+                    <FormItem><FormLabel>Özet</FormLabel><FormControl><Textarea {...field} placeholder="Yazının kısa özeti" rows={3} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="contentTr" render={({ field }) => (
+                    <FormItem><FormLabel>İçerik (Markdown)</FormLabel><FormControl><Textarea {...field} placeholder="İçeriği Markdown biçiminde yazın..." rows={10} onChange={(e) => { field.onChange(e); setMarkdownPreview(prev => ({ ...prev, tr: marked(e.target.value) as string })); }} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  {markdownPreview.tr && <div className="border rounded-lg p-4"><p className="text-sm font-medium mb-2">Önizleme:</p><div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: markdownPreview.tr }} /></div>}
+                  <FormField control={form.control} name="metaTitleTr" render={({ field }) => (
+                    <FormItem><FormLabel>SEO Başlığı</FormLabel><FormControl><Input {...field} placeholder="SEO başlığı" /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="metaDescriptionTr" render={({ field }) => (
+                    <FormItem><FormLabel>SEO Açıklaması</FormLabel><FormControl><Textarea {...field} placeholder="SEO açıklaması" rows={2} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                </TabsContent>
+
+                <TabsContent value="fa" className="space-y-4 mt-4" dir="rtl">
+                  <FormField control={form.control} name="titleFa" render={({ field }) => (
+                    <FormItem><FormLabel>عنوان</FormLabel><FormControl><Input {...field} placeholder="عنوان فارسی" onChange={(e) => { field.onChange(e); if (!editingPost) form.setValue("slugFa", generateSlug(e.target.value)); }} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="slugFa" render={({ field }) => (
+                    <FormItem><FormLabel>پیوند</FormLabel><FormControl><Input {...field} placeholder="پیوند-فارسی" dir="ltr" /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="excerptFa" render={({ field }) => (
+                    <FormItem><FormLabel>خلاصه</FormLabel><FormControl><Textarea {...field} placeholder="خلاصه کوتاه مطلب" rows={3} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="contentFa" render={({ field }) => (
+                    <FormItem><FormLabel>محتوا (Markdown)</FormLabel><FormControl><Textarea {...field} placeholder="محتوا را با قالب Markdown بنویسید..." rows={10} onChange={(e) => { field.onChange(e); setMarkdownPreview(prev => ({ ...prev, fa: marked(e.target.value) as string })); }} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  {markdownPreview.fa && <div className="border rounded-lg p-4"><p className="text-sm font-medium mb-2">پیش‌نمایش:</p><div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: markdownPreview.fa }} /></div>}
+                  <FormField control={form.control} name="metaTitleFa" render={({ field }) => (
+                    <FormItem><FormLabel>عنوان سئو</FormLabel><FormControl><Input {...field} placeholder="عنوان سئو" /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="metaDescriptionFa" render={({ field }) => (
+                    <FormItem><FormLabel>توضیحات سئو</FormLabel><FormControl><Textarea {...field} placeholder="توضیحات سئو" rows={2} /></FormControl><FormMessage /></FormItem>
+                  )} />
                 </TabsContent>
               </Tabs>
 
