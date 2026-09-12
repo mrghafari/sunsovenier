@@ -17,9 +17,8 @@ declare global {
 export default function TawkToChat() {
   const scriptLoadedRef = useRef(false);
   const lastEnabledState = useRef<boolean | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
   const [widgetReady, setWidgetReady] = useState(false);
-  const [isMobileWidgetVisible, setIsMobileWidgetVisible] = useState(false);
+  const [isWidgetVisible, setIsWidgetVisible] = useState(false);
   
   const { data: tawkSettings, refetch } = useQuery<{ success: boolean; data: TawkSettings }>({
     queryKey: ['/api/tawk-support'],
@@ -39,23 +38,14 @@ export default function TawkToChat() {
   }, [refetch]);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia('(max-width: 767px)');
-    const syncViewport = () => {
-      const mobile = mediaQuery.matches;
-      setIsMobile(mobile);
-      if (window.Tawk_API) {
-        if (mobile && typeof window.Tawk_API.hideWidget === 'function') {
-          window.Tawk_API.hideWidget();
-          setIsMobileWidgetVisible(false);
-        } else if (!mobile && typeof window.Tawk_API.showWidget === 'function') {
-          window.Tawk_API.showWidget();
-        }
-      }
+    const keepWidgetCollapsed = () => {
+      window.Tawk_API?.hideWidget?.();
+      setIsWidgetVisible(false);
     };
 
-    syncViewport();
-    mediaQuery.addEventListener('change', syncViewport);
-    return () => mediaQuery.removeEventListener('change', syncViewport);
+    keepWidgetCollapsed();
+    window.addEventListener('resize', keepWidgetCollapsed);
+    return () => window.removeEventListener('resize', keepWidgetCollapsed);
   }, []);
 
   useEffect(() => {
@@ -97,7 +87,7 @@ export default function TawkToChat() {
         delete window.Tawk_API;
         delete window.Tawk_LoadStart;
         setWidgetReady(false);
-        setIsMobileWidgetVisible(false);
+        setIsWidgetVisible(false);
         console.log('🧹 Cleared Tawk API objects');
       }
       
@@ -160,10 +150,8 @@ export default function TawkToChat() {
 
         window.Tawk_API.onLoad = () => {
           setWidgetReady(true);
-          if (window.matchMedia('(max-width: 767px)').matches) {
-            window.Tawk_API?.hideWidget?.();
-            setIsMobileWidgetVisible(false);
-          }
+          window.Tawk_API?.hideWidget?.();
+          setIsWidgetVisible(false);
         };
         
         console.log('📥 Loading Tawk.to widget at bottom-left position...');
@@ -200,34 +188,34 @@ export default function TawkToChat() {
     }
   }, [tawkSettings]);
 
-  const toggleMobileWidget = () => {
+  const toggleWidget = () => {
     if (!window.Tawk_API || !widgetReady) return;
 
-    if (isMobileWidgetVisible) {
+    if (isWidgetVisible) {
       window.Tawk_API.hideWidget?.();
-      setIsMobileWidgetVisible(false);
+      setIsWidgetVisible(false);
     } else {
       window.Tawk_API.showWidget?.();
-      setIsMobileWidgetVisible(true);
+      setIsWidgetVisible(true);
     }
   };
 
   const isEnabled = Boolean(tawkSettings?.success && tawkSettings.data?.isEnabled);
 
-  if (!isEnabled || !isMobile) return null;
+  if (!isEnabled) return null;
 
   return (
     <button
       type="button"
-      onClick={toggleMobileWidget}
+      onClick={toggleWidget}
       disabled={!widgetReady}
-      aria-label={isMobileWidgetVisible ? 'Hide chat' : 'Show chat'}
-      title={isMobileWidgetVisible ? 'Hide chat' : 'Show chat'}
-      className={`fixed bottom-[5.25rem] left-0 z-[2147483000] flex h-11 w-10 items-center justify-center rounded-r-full bg-blue-600 text-white shadow-lg transition-transform duration-200 disabled:cursor-wait disabled:opacity-60 md:hidden ${
-        isMobileWidgetVisible ? 'translate-x-0' : '-translate-x-2'
+      aria-label={isWidgetVisible ? 'Hide chat' : 'Show chat'}
+      title={isWidgetVisible ? 'Hide chat' : 'Show chat'}
+      className={`fixed bottom-[5.25rem] left-0 z-[2147483000] flex h-11 w-10 items-center justify-center rounded-r-full bg-blue-600 text-white shadow-lg transition-transform duration-200 disabled:cursor-wait disabled:opacity-60 md:bottom-5 ${
+        isWidgetVisible ? 'translate-x-0' : '-translate-x-2'
       }`}
     >
-      {isMobileWidgetVisible ? <X className="h-5 w-5" /> : <MessageCircle className="h-5 w-5" />}
+      {isWidgetVisible ? <X className="h-5 w-5" /> : <MessageCircle className="h-5 w-5" />}
     </button>
   );
 }
