@@ -209,7 +209,11 @@ const Contact = () => {
   const mapLatitude = Number(contactSettings.mapLatitude) || 36.1578;
   const mapLongitude = Number(contactSettings.mapLongitude) || 43.8822;
   const mapLink = contactSettings.mapLink || `https://www.google.com/maps?q=${mapLatitude},${mapLongitude}`;
-  const mapEmbedUrl = `https://www.google.com/maps?q=${mapLatitude},${mapLongitude}&z=15&output=embed`;
+  const mapOffset = 0.012;
+  const mapEmbedUrl =
+    `https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(
+      `${mapLongitude - mapOffset},${mapLatitude - mapOffset},${mapLongitude + mapOffset},${mapLatitude + mapOffset}`,
+    )}&layer=mapnik&marker=${encodeURIComponent(`${mapLatitude},${mapLongitude}`)}`;
 
   // Filter content for contact section
   const contactContent = contentItems.filter(item => 
@@ -616,7 +620,7 @@ const Contact = () => {
       </section>
 
       {/* Map Section */}
-      <section className="py-20 bg-gray-50">
+      <section id="contact-map" className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">{t.contactPage.findUs}</h2>
