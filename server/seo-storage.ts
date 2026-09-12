@@ -325,35 +325,25 @@ export class SeoStorage implements ISeoStorage {
   }
 
   async incrementRedirectHit(id: number): Promise<void> {
-    // Get current redirect first
-    const redirect = await this.getRedirectByFromUrl('');
-    if (redirect) {
-      await seoDb
-        .update(redirects)
-        .set({ hitCount: (redirect.hitCount || 0) + 1 })
-        .where(eq(redirects.id, id));
-    }
+    await seoDb
+      .update(redirects)
+      .set({ hitCount: sql`COALESCE(${redirects.hitCount}, 0) + 1` })
+      .where(eq(redirects.id, id));
   }
 
   async generateRobotsTxt(): Promise<string> {
-    const settings = await this.getSeoSettings();
-    const globalSetting = settings.find(s => s.pageType === 'global');
-    
-    let robotsTxt = 'User-agent: *\n';
-    
-    // Add disallow rules based on robots meta settings
-    if (globalSetting?.robots && globalSetting.robots.includes('noindex')) {
-      robotsTxt += 'Disallow: /\n';
-    } else {
-      robotsTxt += 'Disallow: /admin/\n';
-      robotsTxt += 'Disallow: /api/\n';
-      robotsTxt += 'Allow: /\n';
-    }
-    
-    robotsTxt += '\n';
-    robotsTxt += 'Sitemap: /sitemap.xml\n';
-    
-    return robotsTxt;
+    return [
+      'User-agent: *',
+      'Allow: /',
+      'Disallow: /admin/',
+      'Disallow: /api/',
+      'Disallow: /customer/',
+      'Disallow: /checkout',
+      'Disallow: /payment',
+      '',
+      'Sitemap: https://momtazchem.com/sitemap.xml',
+      '',
+    ].join('\n');
   }
 
   async validateSeoSettings(setting: InsertSeoSetting): Promise<string[]> {

@@ -743,6 +743,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/llms.txt', (_req, res) => {
+    res.type('text/plain; charset=utf-8').send(`# Momtazchem
+
+> Momtazchem supplies chemical products and industrial solutions for fuel additives, water treatment, paints and thinners, agriculture, and related industries.
+
+## Primary pages
+- [Home](https://momtazchem.com/)
+- [Products](https://momtazchem.com/shop)
+- [Services](https://momtazchem.com/services)
+- [About Momtazchem](https://momtazchem.com/about)
+- [Blog and technical articles](https://momtazchem.com/blog)
+- [Contact](https://momtazchem.com/contact)
+- [Request a quote](https://momtazchem.com/quote)
+
+## Languages
+The website and its editorial content are available in English, Arabic, Turkish, and Persian where translations have been published.
+
+## Usage guidance
+Use the canonical page URL when citing Momtazchem. Product availability, prices, specifications, and commercial terms should be confirmed through the website or a direct quotation.
+`);
+  });
+
   // Data Integrity Test Page
   app.get("/test-data-integrity", (req, res) => {
     const html = `<!DOCTYPE html>
@@ -28565,9 +28587,11 @@ ${message ? `Additional Requirements:\n${message}` : ''}
   // Generate language-specific sitemap
   app.get("/sitemap-:language.xml", async (req, res) => {
     try {
-      const { seoStorage } = await import('./seo-storage');
       const { language } = req.params;
-      const sitemapXml = await seoStorage.generateSitemap(language);
+      if (!['en', 'ar', 'tr', 'fa'].includes(language)) {
+        return res.status(404).send("Unsupported sitemap language");
+      }
+      const sitemapXml = await generateSitemap(language);
       res.set('Content-Type', 'application/xml');
       res.send(sitemapXml);
     } catch (error) {
@@ -28689,19 +28713,6 @@ ${message ? `Additional Requirements:\n${message}` : ''}
     }
   });
 
-  // Generate and serve XML sitemap
-  app.get("/sitemap.xml", async (req, res) => {
-    try {
-      const { seoStorage } = await import('./seo-storage');
-      const sitemapXml = await seoStorage.generateSitemap();
-      res.set('Content-Type', 'application/xml');
-      res.send(sitemapXml);
-    } catch (error) {
-      console.error("Error generating sitemap:", error);
-      res.status(500).send("Error generating sitemap");
-    }
-  });
-
   // Generate and serve robots.txt
   app.get("/robots.txt", async (req, res) => {
     try {
@@ -28712,6 +28723,29 @@ ${message ? `Additional Requirements:\n${message}` : ''}
     } catch (error) {
       console.error("Error generating robots.txt:", error);
       res.status(500).send("Error generating robots.txt");
+    }
+  });
+
+  app.use(async (req, res, next) => {
+    if (
+      req.method !== 'GET' ||
+      req.path.startsWith('/api/') ||
+      req.path.startsWith('/admin/') ||
+      req.path.includes('.')
+    ) {
+      return next();
+    }
+
+    try {
+      const { seoStorage } = await import('./seo-storage');
+      const redirect = await seoStorage.getRedirectByFromUrl(req.path);
+      if (!redirect || redirect.toUrl === req.path) return next();
+
+      await seoStorage.incrementRedirectHit(redirect.id);
+      return res.redirect(redirect.statusCode || 301, redirect.toUrl);
+    } catch (error) {
+      console.error('SEO redirect lookup failed:', error);
+      return next();
     }
   });
 
