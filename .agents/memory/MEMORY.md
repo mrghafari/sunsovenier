@@ -3,4 +3,4 @@
 - [PDFKit RTL text](pdfkit-rtl-text.md) — pass Persian and Arabic in logical Unicode order; manual word or character reversal renders invoices backwards.
 - [Certificate storage](certificate-storage.md) — store new certificate files privately in Amazon S3 and expose only stable app URLs backed by short-lived signed downloads.
 - [Drizzle schema push](drizzle-schema-push.md) — schema introspection can fail on a legacy expression index; keep schema source authoritative and apply additive dev DDL safely.
-- [Strict blog localization](strict-blog-localization.md) — blog pages show only the selected language; never silently substitute English for missing translations.
+- [Blog localization fallback](strict-blog-localization.md) — new posts require four languages; legacy posts temporarily fall back to English instead of returning “not found.”

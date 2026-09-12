@@ -1,10 +1,10 @@
 ---
-name: Strict blog localization
-description: Defines how multilingual blog content behaves when a translation is missing.
+name: Blog localization fallback
+description: Defines multilingual blog behavior for new posts and legacy posts missing translations.
 ---
 
-Every blog post must be authored in English, Arabic, Turkish, and Persian. Public list, detail, pagination, tags, and related-post queries must return only the currently selected language.
+New blog posts must be authored in English, Arabic, Turkish, and Persian. Legacy posts that do not yet have Persian or Turkish content may temporarily return their English translation instead of failing.
 
-**Why:** Silent English fallback makes the page language and article content disagree, which violates the site's language selection.
+**Why:** Existing posts predate four-language authoring. Returning “not found” when users switch those posts to Persian or Turkish is worse than showing the available English content until editors add the missing translations.
 
-**How to apply:** Filter by translation language before pagination and limits. If a post lacks the selected translation, omit it from lists and return an unavailable/not-found response for its detail page rather than substituting another language.
+**How to apply:** Prefer the selected-language translation everywhere. Fall back only to English for legacy gaps; keep all four translations mandatory for create and update so newly saved posts become fully localized.

@@ -56310,47 +56310,43 @@ momtazchem.com
         });
       }
 
-      const localizedPostCondition = tag
-        ? and(
-            eq(blogPosts.status, "published"),
-            eq(blogPostTranslations.language, language as "en" | "ar" | "tr" | "fa"),
-            sql`${tag} = ANY(${blogPosts.tags})`
-          )
-        : and(
-            eq(blogPosts.status, "published"),
-            eq(blogPostTranslations.language, language as "en" | "ar" | "tr" | "fa")
-          );
+      const publishedPostCondition = tag
+        ? and(eq(blogPosts.status, "published"), sql`${tag} = ANY(${blogPosts.tags})`)
+        : eq(blogPosts.status, "published");
 
-      const localizedRows = await db
-        .select({ post: blogPosts, translation: blogPostTranslations })
+      const posts = await db
+        .select()
         .from(blogPosts)
-        .innerJoin(blogPostTranslations, eq(blogPostTranslations.postId, blogPosts.id))
-        .where(localizedPostCondition)
+        .where(publishedPostCondition)
         .orderBy(blogPosts.publishDate)
         .limit(limit)
         .offset(offset);
 
-      const localizedPosts = localizedRows.map(({ post, translation }) => ({
-        ...post,
-        translation,
+      const localizedPosts = await Promise.all(posts.map(async (post) => {
+        const translations = await db
+          .select()
+          .from(blogPostTranslations)
+          .where(and(
+            eq(blogPostTranslations.postId, post.id),
+            sql`${blogPostTranslations.language} IN (${language}, 'en')`
+          ));
+        const translation =
+          translations.find((item) => item.language === language) ||
+          translations.find((item) => item.language === "en");
+        return { ...post, translation };
       }));
 
       // Get total count
       const [countResult] = await db
         .select({ count: sql<number>`count(*)` })
         .from(blogPosts)
-        .innerJoin(blogPostTranslations, eq(blogPostTranslations.postId, blogPosts.id))
-        .where(localizedPostCondition);
+        .where(publishedPostCondition);
       
       // Get all unique tags
       const allPosts = await db
         .select({ tags: blogPosts.tags })
         .from(blogPosts)
-        .innerJoin(blogPostTranslations, eq(blogPostTranslations.postId, blogPosts.id))
-        .where(and(
-          eq(blogPosts.status, "published"),
-          eq(blogPostTranslations.language, language as "en" | "ar" | "tr" | "fa")
-        ));
+        .where(eq(blogPosts.status, "published"));
       
       const allTags = [...new Set(allPosts.flatMap(p => p.tags || []))];
 
@@ -56429,10 +56425,19 @@ momtazchem.com
           eq(blogPostTranslations.language, language as "en" | "ar" | "tr" | "fa")
         ))
         .limit(1);
-      if (!requestedTranslation) {
+      const [englishTranslation] = requestedTranslation ? [] : await db
+        .select()
+        .from(blogPostTranslations)
+        .where(and(
+          eq(blogPostTranslations.postId, post.id),
+          eq(blogPostTranslations.language, "en")
+        ))
+        .limit(1);
+      const resolvedTranslation = requestedTranslation || englishTranslation;
+      if (!resolvedTranslation) {
         return res.status(404).json({
           success: false,
-          message: "This article is not available in the selected language",
+          message: "Blog post translation not found",
         });
       }
 
@@ -56449,7 +56454,7 @@ momtazchem.com
         data: {
           ...post,
           viewCount: (post.viewCount || 0) + 1,
-          translation: requestedTranslation,
+          translation: resolvedTranslation,
         },
       });
     } catch (error: any) {
@@ -56504,23 +56509,30 @@ momtazchem.com
       }
 
       // Find related posts with overlapping tags
-      const relatedRows = await db
-        .select({ post: blogPosts, translation: blogPostTranslations })
+      const relatedPosts = await db
+        .select()
         .from(blogPosts)
-        .innerJoin(blogPostTranslations, eq(blogPostTranslations.postId, blogPosts.id))
         .where(
           and(
             eq(blogPosts.status, "published"),
             ne(blogPosts.id, postId),
-            eq(blogPostTranslations.language, language as "en" | "ar" | "tr" | "fa"),
             sql`${blogPosts.tags} && string_to_array(${originalPost.tags.join(",")}, ',')`
           )
         )
         .limit(limit);
 
-      const localizedRelatedPosts = relatedRows.map(({ post, translation }) => ({
-        ...post,
-        translation,
+      const localizedRelatedPosts = await Promise.all(relatedPosts.map(async (post) => {
+        const translations = await db
+          .select()
+          .from(blogPostTranslations)
+          .where(and(
+            eq(blogPostTranslations.postId, post.id),
+            sql`${blogPostTranslations.language} IN (${language}, 'en')`
+          ));
+        const translation =
+          translations.find((item) => item.language === language) ||
+          translations.find((item) => item.language === "en");
+        return { ...post, translation };
       }));
 
       res.json({
