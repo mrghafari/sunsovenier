@@ -777,10 +777,6 @@
       "count": 1
     },
     {
-      "key": "[\"client/src/pages/admin/blog-management.tsx\",2322,\"Type '\\\"ogImageAr\\\"' is not assignable to type '\\\"status\\\" | \\\"tags\\\" | \\\"publishDate\\\" | \\\"featuredImage\\\" | \\\"authorName\\\" | \\\"titleEn\\\" | \\\"slugEn\\\" | \\\"excerptEn\\\" | \\\"contentEn\\\" | \\\"metaTitleEn\\\" | \\\"metaDescriptionEn\\\" | \\\"titleAr\\\" | \\\"slugAr\\\" | \\\"excerptAr\\\" | \\\"contentAr\\\" | \\\"metaTitleAr\\\" | \\\"metaDescriptionAr\\\"'.\",\"name=\\\"ogImageAr\\\"\"]",
-      "count": 1
-    },
-    {
       "key": "[\"client/src/pages/admin/blog-management.tsx\",2345,\"Argument of type '\\\"ogImageAr\\\"' is not assignable to parameter of type '\\\"featuredImage\\\"'.\",\"if (file) handleImageUpload(file, \\\"ogImageAr\\\");\"]",
       "count": 1
     },
@@ -4273,10 +4269,6 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'where' does not exist on type 'Omit<PgSelectBase<\\\"blog_posts\\\", { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"blog_posts\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrimaryKey: true; ... 5 more ...; generated: undefined; }, {}, {}>; ... 8 more ...; updatedAt: PgColumn<...>; }, ... ...'.\",\"query = query.where(sql`${tag} = ANY(${blogPosts.tags})`);\"]",
-      "count": 1
-    },
-    {
       "key": "[\"server/routes.ts\",2339,\"Property 'where' does not exist on type 'Omit<PgSelectBase<\\\"content_items\\\", { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"content_items\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrimaryKey: true; ... 5 more ...; generated: undefined; }, {}, {}>; ... 7 more ...; updatedAt: PgColumn<...>; }...'.\",\"query = query.where(and(\"]",
       "count": 3
     },
@@ -4941,10 +4933,6 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2769,\"No overload matches this call.\\n  Overload 1 of 3, '(left: PgColumn<{ name: \\\"language\\\"; tableName: \\\"blog_post_translations\\\"; dataType: \\\"string\\\"; columnType: \\\"PgText\\\"; data: \\\"ar\\\" | \\\"en\\\"; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, {}>, right: \\\"ar\\\" | ... 1 more ... | SQLWrapper): SQL<...>', gave the following error.\\n    Argument of type 'string' is not assignable to parameter of type '\\\"ar\\\" | \\\"en\\\" | SQLWrapper'.\\n  Overload 2 of 3, '(left: Aliased<string>, right: string | SQLWrapper): SQL<unknown>', gave the following error.\\n    Argument of type 'PgColumn<{ name: \\\"language\\\"; tableName: \\\"blog_post_translations\\\"; dataType: \\\"string\\\"; columnType: \\\"PgText\\\"; data: \\\"ar\\\" | \\\"en\\\"; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, {}>' is not assignable to parameter of type 'Aliased<string>'.\\n      Type 'PgColumn<{ name: \\\"language\\\"; tableName: \\\"blog_post_translations\\\"; dataType: \\\"string\\\"; columnType: \\\"PgText\\\"; data: \\\"ar\\\" | \\\"en\\\"; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, {}>' is missing the following properties from type 'Aliased<string>': sql, fieldAlias\\n  Overload 3 of 3, '(left: never, right: unknown): SQL<unknown>', gave the following error.\\n    Argument of type 'PgColumn<{ name: \\\"language\\\"; tableName: \\\"blog_post_translations\\\"; dataType: \\\"string\\\"; columnType: \\\"PgText\\\"; data: \\\"ar\\\" | \\\"en\\\"; driverParam: string; notNull: true; hasDefault: false; isPrimaryKey: false; ... 5 more ...; generated: undefined; }, {}, {}>' is not assignable to parameter of type 'never'.\",\"eq(blogPostTranslations.language, language)\"]",
-      "count": 3
-    },
-    {
       "key": "[\"server/routes.ts\",2769,\"No overload matches this call.\\n  Overload 1 of 4, '(value: string | number | Date): Date', gave the following error.\\n    Argument of type 'Date | null' is not assignable to parameter of type 'string | number | Date'.\\n      Type 'null' is not assignable to type 'string | number | Date'.\\n  Overload 2 of 4, '(value: string | number): Date', gave the following error.\\n    Argument of type 'Date | null' is not assignable to parameter of type 'string | number'.\\n      Type 'null' is not assignable to type 'string | number'.\",\"const tokenExpiry = new Date(customer.resetPasswordExpires);\"]",
       "count": 1
     },
@@ -5090,14 +5078,6 @@
     },
     {
       "key": "[\"server/routes.ts\",7006,\"Parameter 't' implicitly has an 'any' type.\",\"const debitTransactions = walletTransactions.filter(t => t.transactionType === 'debit' && t.status === 'completed');\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",7006,\"Parameter 't' implicitly has an 'any' type.\",\"const hasArabic = validatedTranslations.some((t) => t.language === \\\"ar\\\");\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",7006,\"Parameter 't' implicitly has an 'any' type.\",\"const hasEnglish = validatedTranslations.some((t) => t.language === \\\"en\\\");\"]",
       "count": 1
     },
     {

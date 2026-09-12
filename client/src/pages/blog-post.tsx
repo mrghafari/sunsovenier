@@ -95,12 +95,25 @@ export default function BlogPost() {
     queryKey: ['/api/blog/', post?.id, 'related', language],
     queryFn: async () => {
       if (!post?.id) return [];
-      const response = await fetch(`/api/blog/${post.id}/related?language=${language}`);
+      const response = await fetch(`/api/blog-related/${post.id}?language=${language}`);
       if (!response.ok) return [];
-      return response.json();
+      const json = await response.json();
+      if (!json.success || !Array.isArray(json.data)) return [];
+      return json.data.map(({ translation, ...relatedPost }: any) => ({
+        ...relatedPost,
+        title: translation?.title || '',
+        slug: translation?.slug || '',
+        excerpt: translation?.excerpt || '',
+      }));
     },
     enabled: !!post?.id,
   });
+
+  useEffect(() => {
+    if (post?.slug && slug !== post.slug) {
+      window.history.replaceState(null, "", `/blog/${post.slug}`);
+    }
+  }, [post?.slug, slug]);
 
   const { htmlContent, tableOfContents } = useMemo(() => {
     if (!post?.content) return { htmlContent: '', tableOfContents: [] };
