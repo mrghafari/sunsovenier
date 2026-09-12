@@ -52248,7 +52248,8 @@ momtazchem.com
         countryCode: internationalCountries.countryCode
       })
       .from(internationalCities)
-      .leftJoin(internationalCountries, eq(internationalCities.countryId, internationalCountries.id));
+      .leftJoin(internationalCountries, eq(internationalCities.countryId, internationalCountries.id))
+      .$dynamic();
       
       if (countryId) {
         query = query.where(eq(internationalCities.countryId, parseInt(countryId as string)));
@@ -52331,7 +52332,8 @@ momtazchem.com
       })
       .from(internationalShippingRates)
       .leftJoin(internationalCountries, eq(internationalShippingRates.countryId, internationalCountries.id))
-      .leftJoin(internationalCities, eq(internationalShippingRates.cityId, internationalCities.id));
+      .leftJoin(internationalCities, eq(internationalShippingRates.cityId, internationalCities.id))
+      .$dynamic();
       
       if (countryId) {
         query = query.where(eq(internationalShippingRates.countryId, parseInt(countryId as string)));
@@ -57399,6 +57401,7 @@ momtazchem.com
         })
         .from(vendorTransactions)
         .innerJoin(vendors, eq(vendorTransactions.vendorId, vendors.id))
+        .$dynamic()
         .orderBy(desc(vendorTransactions.createdAt));
 
       if (vendorId) {

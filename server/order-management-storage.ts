@@ -684,7 +684,8 @@ export class OrderManagementStorage implements IOrderManagementStorage {
     .from(orderManagement)
     .leftJoin(customerOrders, eq(orderManagement.customerOrderId, customerOrders.id))
     .leftJoin(crmCustomers, eq(customerOrders.customerId, crmCustomers.id))
-    .leftJoin(paymentReceipts, eq(paymentReceipts.customerOrderId, customerOrders.id));
+    .leftJoin(paymentReceipts, eq(paymentReceipts.customerOrderId, customerOrders.id))
+    .$dynamic();
     
     if (department === 'financial') {
       // بخش مالی فقط سفارشات در مراحل مالی را می‌بیند - جلوگیری از تکرار

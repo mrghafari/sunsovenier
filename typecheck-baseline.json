@@ -2637,23 +2637,11 @@
       "count": 1
     },
     {
-      "key": "[\"server/order-consolidation-service.ts\",2339,\"Property 'orderManagement' does not exist on type '{ readonly aiApiSettings: RelationalQueryBuilder<ExtractTablesWithRelations<typeof import(\\\"<root>/shared/schema\\\")>, { tsName: \\\"aiApiSettings\\\"; dbName: \\\"ai_api_settings\\\"; columns: { ...; }; relations: Record<...>; primaryKey: AnyColumn[]; }>; ... 152 more ...; readonly marketIntelligence: RelationalQu...'.\",\"const orderMgmt = await db.query.orderManagement.findFirst({\"]",
-      "count": 1
-    },
-    {
       "key": "[\"server/order-consolidation-service.ts\",2345,\"Argument of type '(table: any, { inArray }: { inArray: any; }) => any' is not assignable to parameter of type 'SQL<unknown> | ((aliases: { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"consolidated_order_data\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrimaryKey: true; ... 5 more ...; generated: undefined; }, {}, {}>; ... 54 more ...; updatedAt: PgColumn<...>;...'.\\n  Type '(table: any, { inArray }: { inArray: any; }) => any' is not assignable to type '(aliases: { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"consolidated_order_data\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrimaryKey: true; ... 5 more ...; generated: undefined; }, {}, {}>; ... 54 more ...; updatedAt: PgColumn<...>; }) => SQL<...> ...'.\\n    Target signature provides too few arguments. Expected 2 or more, but got 1.\",\".where((table, { inArray }) => inArray(table.currentStatus, statuses))\"]",
       "count": 1
     },
     {
       "key": "[\"server/order-consolidation-service.ts\",7006,\"Parameter 'table' implicitly has an 'any' type.\",\".where((table, { inArray }) => inArray(table.currentStatus, statuses))\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/order-consolidation-service.ts\",7006,\"Parameter 'table' implicitly has an 'any' type.\",\"where: (table, { eq }) => eq(table.id, orderManagementId)\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/order-consolidation-service.ts\",7031,\"Binding element 'eq' implicitly has an 'any' type.\",\"where: (table, { eq }) => eq(table.id, orderManagementId)\"]",
       "count": 1
     },
     {
@@ -2718,18 +2706,6 @@
     },
     {
       "key": "[\"server/order-management-storage.ts\",2740,\"Type 'Omit<PgSelectBase<\\\"shipping_rates\\\", { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"shipping_rates\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrimaryKey: true; ... 5 more ...; generated: undefined; }, {}, {}>; ... 19 more ...; updatedAt: PgColumn<...>...' is missing the following properties from type 'PgSelectBase<\\\"shipping_rates\\\", { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"shipping_rates\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrimaryKey: true; ... 5 more ...; generated: undefined; }, {}, {}>; ... 19 more ...; updatedAt: PgColumn<...>; }, ...': config, joinsNotNullableMap, tableName, isPartialSelect, and 6 more.\",\"query = query.where(and(...conditions));\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/order-management-storage.ts\",2741,\"Property 'where' is missing in type 'Omit<import(\\\"<root>/node_modules/drizzle-orm/pg-core/query-builders/select\\\").PgSelectBase<\\\"order_management\\\", { id: import(\\\"<root>/node_modules/drizzle-orm/pg-core/columns/common\\\").PgColumn<{ name: \\\"id\\\"; tableName: \\\"order_management\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: ...' but required in type 'Omit<import(\\\"<root>/node_modules/drizzle-orm/pg-core/query-builders/select\\\").PgSelectBase<\\\"order_management\\\", { id: import(\\\"<root>/node_modules/drizzle-orm/pg-core/columns/common\\\").PgColumn<{ name: \\\"id\\\"; tableName: \\\"order_management\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: ...'.\",\"query = query.where(inArray(orderManagement.currentStatus, financialStatuses));\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/order-management-storage.ts\",2741,\"Property 'where' is missing in type 'Omit<import(\\\"<root>/node_modules/drizzle-orm/pg-core/query-builders/select\\\").PgSelectBase<\\\"order_management\\\", { id: import(\\\"<root>/node_modules/drizzle-orm/pg-core/columns/common\\\").PgColumn<{ name: \\\"id\\\"; tableName: \\\"order_management\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: ...' but required in type 'Omit<import(\\\"<root>/node_modules/drizzle-orm/pg-core/query-builders/select\\\").PgSelectBase<\\\"order_management\\\", { id: import(\\\"<root>/node_modules/drizzle-orm/pg-core/columns/common\\\").PgColumn<{ name: \\\"id\\\"; tableName: \\\"order_management\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: ...'.\",\"query = query.where(inArray(orderManagement.currentStatus, logisticsStatuses));\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/order-management-storage.ts\",2741,\"Property 'where' is missing in type 'Omit<import(\\\"<root>/node_modules/drizzle-orm/pg-core/query-builders/select\\\").PgSelectBase<\\\"order_management\\\", { id: import(\\\"<root>/node_modules/drizzle-orm/pg-core/columns/common\\\").PgColumn<{ name: \\\"id\\\"; tableName: \\\"order_management\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: ...' but required in type 'Omit<import(\\\"<root>/node_modules/drizzle-orm/pg-core/query-builders/select\\\").PgSelectBase<\\\"order_management\\\", { id: import(\\\"<root>/node_modules/drizzle-orm/pg-core/columns/common\\\").PgColumn<{ name: \\\"id\\\"; tableName: \\\"order_management\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: ...'.\",\"query = query.where(inArray(orderManagement.currentStatus, warehouseStatuses));\"]",
       "count": 1
     },
     {
@@ -4894,38 +4870,6 @@
     },
     {
       "key": "[\"server/routes.ts\",2740,\"Type 'Omit<PgSelectBase<any, any, \\\"single\\\", any, false, \\\"where\\\", any[], any>, \\\"where\\\">' is missing the following properties from type 'PgSelectBase<any, any, \\\"single\\\", any, false, never, any[], any>': config, joinsNotNullableMap, tableName, isPartialSelect, and 6 more.\",\"query = query.where(eq(outgoingCorrespondence.status, status as string));\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2741,\"Property 'where' is missing in type 'Omit<import(\\\"<root>/node_modules/drizzle-orm/pg-core/query-builders/select\\\").PgSelectBase<\\\"international_cities\\\", { id: import(\\\"<root>/node_modules/drizzle-orm/pg-core/columns/common\\\").PgColumn<{ name: \\\"id\\\"; tableName: \\\"international_cities\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"...' but required in type 'Omit<import(\\\"<root>/node_modules/drizzle-orm/pg-core/query-builders/select\\\").PgSelectBase<\\\"international_cities\\\", { id: import(\\\"<root>/node_modules/drizzle-orm/pg-core/columns/common\\\").PgColumn<{ name: \\\"id\\\"; tableName: \\\"international_cities\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"...'.\",\"query = query.where(eq(internationalCities.cityType, cityType as string));\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2741,\"Property 'where' is missing in type 'Omit<import(\\\"<root>/node_modules/drizzle-orm/pg-core/query-builders/select\\\").PgSelectBase<\\\"international_cities\\\", { id: import(\\\"<root>/node_modules/drizzle-orm/pg-core/columns/common\\\").PgColumn<{ name: \\\"id\\\"; tableName: \\\"international_cities\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"...' but required in type 'Omit<import(\\\"<root>/node_modules/drizzle-orm/pg-core/query-builders/select\\\").PgSelectBase<\\\"international_cities\\\", { id: import(\\\"<root>/node_modules/drizzle-orm/pg-core/columns/common\\\").PgColumn<{ name: \\\"id\\\"; tableName: \\\"international_cities\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"...'.\",\"query = query.where(eq(internationalCities.countryId, parseInt(countryId as string)));\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2741,\"Property 'where' is missing in type 'Omit<import(\\\"<root>/node_modules/drizzle-orm/pg-core/query-builders/select\\\").PgSelectBase<\\\"international_cities\\\", { id: import(\\\"<root>/node_modules/drizzle-orm/pg-core/columns/common\\\").PgColumn<{ name: \\\"id\\\"; tableName: \\\"international_cities\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"...' but required in type 'Omit<import(\\\"<root>/node_modules/drizzle-orm/pg-core/query-builders/select\\\").PgSelectBase<\\\"international_cities\\\", { id: import(\\\"<root>/node_modules/drizzle-orm/pg-core/columns/common\\\").PgColumn<{ name: \\\"id\\\"; tableName: \\\"international_cities\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"...'.\",\"query = query.where(eq(internationalCities.isActive, isActive === 'true'));\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2741,\"Property 'where' is missing in type 'Omit<import(\\\"<root>/node_modules/drizzle-orm/pg-core/query-builders/select\\\").PgSelectBase<\\\"international_shipping_rates\\\", { id: import(\\\"<root>/node_modules/drizzle-orm/pg-core/columns/common\\\").PgColumn<{ name: \\\"id\\\"; tableName: \\\"international_shipping_rates\\\"; dataType: \\\"number\\\"; column...' but required in type 'Omit<import(\\\"<root>/node_modules/drizzle-orm/pg-core/query-builders/select\\\").PgSelectBase<\\\"international_shipping_rates\\\", { id: import(\\\"<root>/node_modules/drizzle-orm/pg-core/columns/common\\\").PgColumn<{ name: \\\"id\\\"; tableName: \\\"international_shipping_rates\\\"; dataType: \\\"number\\\"; column...'.\",\"query = query.where(eq(internationalShippingRates.cityId, parseInt(cityId as string)));\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2741,\"Property 'where' is missing in type 'Omit<import(\\\"<root>/node_modules/drizzle-orm/pg-core/query-builders/select\\\").PgSelectBase<\\\"international_shipping_rates\\\", { id: import(\\\"<root>/node_modules/drizzle-orm/pg-core/columns/common\\\").PgColumn<{ name: \\\"id\\\"; tableName: \\\"international_shipping_rates\\\"; dataType: \\\"number\\\"; column...' but required in type 'Omit<import(\\\"<root>/node_modules/drizzle-orm/pg-core/query-builders/select\\\").PgSelectBase<\\\"international_shipping_rates\\\", { id: import(\\\"<root>/node_modules/drizzle-orm/pg-core/columns/common\\\").PgColumn<{ name: \\\"id\\\"; tableName: \\\"international_shipping_rates\\\"; dataType: \\\"number\\\"; column...'.\",\"query = query.where(eq(internationalShippingRates.countryId, parseInt(countryId as string)));\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2741,\"Property 'where' is missing in type 'Omit<import(\\\"<root>/node_modules/drizzle-orm/pg-core/query-builders/select\\\").PgSelectBase<\\\"international_shipping_rates\\\", { id: import(\\\"<root>/node_modules/drizzle-orm/pg-core/columns/common\\\").PgColumn<{ name: \\\"id\\\"; tableName: \\\"international_shipping_rates\\\"; dataType: \\\"number\\\"; column...' but required in type 'Omit<import(\\\"<root>/node_modules/drizzle-orm/pg-core/query-builders/select\\\").PgSelectBase<\\\"international_shipping_rates\\\", { id: import(\\\"<root>/node_modules/drizzle-orm/pg-core/columns/common\\\").PgColumn<{ name: \\\"id\\\"; tableName: \\\"international_shipping_rates\\\"; dataType: \\\"number\\\"; column...'.\",\"query = query.where(eq(internationalShippingRates.isActive, isActive === 'true'));\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2741,\"Property 'where' is missing in type 'Omit<import(\\\"<root>/node_modules/drizzle-orm/pg-core/query-builders/select\\\").PgSelectBase<\\\"international_shipping_rates\\\", { id: import(\\\"<root>/node_modules/drizzle-orm/pg-core/columns/common\\\").PgColumn<{ name: \\\"id\\\"; tableName: \\\"international_shipping_rates\\\"; dataType: \\\"number\\\"; column...' but required in type 'Omit<import(\\\"<root>/node_modules/drizzle-orm/pg-core/query-builders/select\\\").PgSelectBase<\\\"international_shipping_rates\\\", { id: import(\\\"<root>/node_modules/drizzle-orm/pg-core/columns/common\\\").PgColumn<{ name: \\\"id\\\"; tableName: \\\"international_shipping_rates\\\"; dataType: \\\"number\\\"; column...'.\",\"query = query.where(eq(internationalShippingRates.shippingMethod, shippingMethod as string));\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2741,\"Property 'where' is missing in type 'Omit<import(\\\"<root>/node_modules/drizzle-orm/pg-core/query-builders/select\\\").PgSelectBase<\\\"vendor_transactions\\\", { id: import(\\\"<root>/node_modules/drizzle-orm/pg-core/columns/common\\\").PgColumn<{ name: \\\"id\\\"; tableName: \\\"vendor_transactions\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; ...' but required in type 'Omit<import(\\\"<root>/node_modules/drizzle-orm/pg-core/query-builders/select\\\").PgSelectBase<\\\"vendor_transactions\\\", { id: import(\\\"<root>/node_modules/drizzle-orm/pg-core/columns/common\\\").PgColumn<{ name: \\\"id\\\"; tableName: \\\"vendor_transactions\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; ...'.\",\"query = query.where(eq(vendorTransactions.vendorId, vendorId));\"]",
       "count": 1
     },
     {

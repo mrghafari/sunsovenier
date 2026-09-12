@@ -1,7 +1,8 @@
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
-import * as schema from "@shared/schema";
+import * as baseSchema from "@shared/schema";
+import * as orderManagementSchema from "@shared/order-management-schema";
 import * as showcaseSchema from "@shared/showcase-schema";
 
 neonConfig.webSocketConstructor = ws;
@@ -25,6 +26,11 @@ export const pool = new Pool({
 pool.on('error', (err) => {
   console.error('Main database pool error:', err);
 });
+
+const schema = {
+  ...baseSchema,
+  ...orderManagementSchema,
+};
 
 export const db = drizzle({ client: pool, schema });
 export const showcaseDb = drizzle({ client: pool, schema: showcaseSchema });
