@@ -853,10 +853,11 @@ export default function ShopAdmin() {
                             </td>
                             <td className="px-3 py-2 text-sm text-gray-900 w-48">
                               <div className="truncate">
-                                {order.customer ? 
-                                  `${order.customer.firstName} ${order.customer.lastName}` : 
-                                  order.customerName || tr("unknown")
-                                }
+                                {order.customerName ||
+                                  (order.customer
+                                    ? [order.customer.firstName, order.customer.lastName].filter(Boolean).join(" ")
+                                    : "") ||
+                                  tr("unknown")}
                               </div>
                             </td>
                             <td className="px-3 py-2 text-sm text-gray-900 w-36">
@@ -1736,10 +1737,11 @@ export default function ShopAdmin() {
                   <div>
                      <p className="text-sm text-gray-600">{tr("customerName")}</p>
                     <p className="font-medium">
-                      {selectedOrder.customer ? 
-                        `${selectedOrder.customer.firstName} ${selectedOrder.customer.lastName}` : 
-                        selectedOrder.customerName || tr("unknown")
-                      }
+                      {selectedOrder.customerName ||
+                        (selectedOrder.customer
+                          ? [selectedOrder.customer.firstName, selectedOrder.customer.lastName].filter(Boolean).join(" ")
+                          : "") ||
+                        tr("unknown")}
                     </p>
                   </div>
                   <div>

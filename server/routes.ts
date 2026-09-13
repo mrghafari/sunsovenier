@@ -24286,7 +24286,13 @@ Momtaz Chemical Technical Team`,
 
             // Create customer object
             let customer = null;
-            if (order.customer_id && order.customer_first_name) {
+            if (
+              order.customer_id ||
+              order.customer_first_name ||
+              order.customer_last_name ||
+              order.customer_email ||
+              order.customer_phone
+            ) {
               customer = {
                 id: order.customer_id,
                 firstName: order.customer_first_name,
@@ -24313,7 +24319,9 @@ Momtaz Chemical Technical Team`,
               orderDate: order.created_at,
               items: items,
               customer: customer,
-              customerName: customer ? `${customer.firstName} ${customer.lastName}` : 'نامشخص',
+              customerName: customer
+                ? [customer.firstName, customer.lastName].filter(Boolean).join(' ') || customer.company || 'نامشخص'
+                : 'نامشخص',
               mobileNumber: customer?.phone || 'نامشخص',
               email: customer?.email || 'نامشخص',
               walletAmountUsed: 0,
