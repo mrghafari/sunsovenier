@@ -1533,37 +1533,6 @@ export default function ShopAdmin() {
 
           </TabsContent>
 
-          {/* Inventory Tab */}
-          <TabsContent value="inventory" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Package className="w-5 h-5" />
-                   {tr("inventoryManagement")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-4">
-                  {products.map((product: any) => (
-                    <div key={product.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex-1">
-                        <h3 className="font-medium">{product.name}</h3>
-                         <p className="text-sm text-gray-600">{tr("sku")}: {product.sku}</p>
-                         <p className="text-sm text-gray-600">{tr("price")}: ${product.unitPrice}</p>
-                      </div>
-                      <div className="text-right">
-                         <p className="font-medium">{tr("stock")}: {product.stockQuantity}</p>
-                        <Badge variant={product.stockQuantity > 10 ? 'default' : 'destructive'}>
-                           {product.stockQuantity > 10 ? tr("inStock") : tr("lowStock")}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
           {/* Invoice Management Tab */}
           <TabsContent value="invoices" className="space-y-6">
             <ShopInvoiceManagement />
