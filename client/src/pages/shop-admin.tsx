@@ -81,6 +81,7 @@ const SHOP_TRANSLATIONS: Record<string, ShopTranslation> = {
   allOrders: { en: "All Orders", ar: "كل الطلبات", tr: "Tüm Siparişler", fa: "همه سفارش‌ها" },
   pending: { en: "Pending", ar: "معلق", tr: "Beklemede", fa: "در انتظار" },
   confirmed: { en: "Confirmed", ar: "مؤكد", tr: "Onaylandı", fa: "تأیید شده" },
+  processing: { en: "Processing", ar: "قيد المعالجة", tr: "İşleniyor", fa: "در حال پردازش" },
   shipped: { en: "Shipped", ar: "تم الشحن", tr: "Kargolandı", fa: "ارسال شده" },
   delivered: { en: "Delivered", ar: "تم التسليم", tr: "Teslim Edildi", fa: "تحویل داده شده" },
   cancelled: { en: "Cancelled", ar: "ملغى", tr: "İptal Edildi", fa: "لغو شده" },
@@ -355,6 +356,29 @@ export default function ShopAdmin() {
   const { data: orders = [], isLoading: ordersLoading } = useQuery<Order[]>({
     queryKey: ["/api/orders/all"],
     enabled: isAuthenticated,
+  });
+
+  const normalizedOrderSearch = searchTerm.trim().toLowerCase();
+  const filteredOrders = orders.filter((order: any) => {
+    const matchesStatus =
+      orderStatusFilter === "all" ||
+      String(order.status || "").toLowerCase() === orderStatusFilter;
+    if (!matchesStatus) return false;
+    if (!normalizedOrderSearch) return true;
+
+    return [
+      order.orderNumber,
+      order.id,
+      order.customerName,
+      order.customer?.firstName,
+      order.customer?.lastName,
+      order.customer?.phone,
+      order.mobileNumber,
+      order.customer?.email,
+      order.email,
+    ].some((value) =>
+      String(value ?? "").toLowerCase().includes(normalizedOrderSearch)
+    );
   });
 
   // Fetch products for inventory management
@@ -803,6 +827,7 @@ export default function ShopAdmin() {
                        <SelectItem value="all">{tr("allOrders")}</SelectItem>
                        <SelectItem value="pending">{tr("pending")}</SelectItem>
                        <SelectItem value="confirmed">{tr("confirmed")}</SelectItem>
+                       <SelectItem value="processing">{tr("processing")}</SelectItem>
                        <SelectItem value="shipped">{tr("shipped")}</SelectItem>
                        <SelectItem value="delivered">{tr("delivered")}</SelectItem>
                        <SelectItem value="cancelled">{tr("cancelled")}</SelectItem>
@@ -846,7 +871,7 @@ export default function ShopAdmin() {
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
-                        {orders.length > 0 ? orders.map((order: any) => (
+                        {filteredOrders.length > 0 ? filteredOrders.map((order: any) => (
                           <tr key={order.id} className="hover:bg-gray-50">
                             <td className="px-3 py-2 text-sm font-medium text-gray-900 w-32">
                               <div className="truncate">#{order.orderNumber || order.id}</div>
@@ -877,8 +902,9 @@ export default function ShopAdmin() {
                             </td>
                             <td className="px-3 py-2 w-32">
                               <Badge variant={order.status === 'confirmed' ? 'default' : 'secondary'} className="text-xs">
-                                 {order.status === 'pending' ? tr("pending") :
-                                  order.status === 'confirmed' ? tr("confirmed") :
+                                  {order.status === 'pending' ? tr("pending") :
+                                   order.status === 'confirmed' ? tr("confirmed") :
+                                   order.status === 'processing' ? tr("processing") :
                                   order.status === 'shipped' ? tr("shipped") :
                                   order.status === 'delivered' ? tr("delivered") :
                                   order.status === 'cancelled' ? tr("cancelled") :
@@ -942,8 +968,8 @@ export default function ShopAdmin() {
                   </div>
                   {/* Scroll indicator */}
                   <div className="bg-gray-100 px-4 py-1 text-xs text-gray-500 text-center border-t">
-                    {orders.length > 15 && (
-                       <span>{tr("scrollOrders", { count: orders.length })}</span>
+                    {filteredOrders.length > 15 && (
+                       <span>{tr("scrollOrders", { count: filteredOrders.length })}</span>
                     )}
                   </div>
                 </div>
