@@ -345,10 +345,6 @@
       "count": 1
     },
     {
-      "key": "[\"client/src/components/ShopInvoiceManagement.tsx\",2322,\"Type '{} | { totalPaidOrders: number; totalInvoiceAmount: number; averageOrderValue: number; thisMonthInvoices: number; }' is not assignable to type 'InvoiceStats'.\\n  Type '{}' is missing the following properties from type 'InvoiceStats': totalPaidOrders, totalInvoiceAmount, averageOrderValue, thisMonthInvoices\",\"const stats: InvoiceStats = statsResponse || {\"]",
-      "count": 1
-    },
-    {
       "key": "[\"client/src/components/ShopSearch.tsx\",2339,\"Property 'weight' does not exist on type 'ShopProduct'.\",\"{parseFloat(product.weight).toFixed(1)} {product.weightUnit || 'kg'}\"]",
       "count": 1
     },

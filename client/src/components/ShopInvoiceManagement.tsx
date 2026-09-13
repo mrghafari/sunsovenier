@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -117,7 +117,6 @@ export default function ShopInvoiceManagement() {
     return Object.entries(values).reduce((text, [name, value]) => text.replace(`{${name}}`, String(value)), template);
   };
   const locale = language === 'fa' ? 'fa-IR' : language === 'ar' ? 'ar' : language === 'tr' ? 'tr-TR' : 'en-GB';
-  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [fromDate, setFromDate] = useState('');
@@ -143,12 +142,6 @@ export default function ShopInvoiceManagement() {
     staleTime: 30000, // Cache for 30 seconds
   });
 
-  // Fetch invoice statistics
-  const { data: statsResponse } = useQuery({
-    queryKey: ['/api/shop/invoices/stats'],
-    staleTime: 60000, // Cache for 1 minute
-  });
-
   // Fetch company information for logo
   const { data: companyInfo } = useQuery({
     queryKey: ['/api/admin/company-information'],
@@ -157,12 +150,6 @@ export default function ShopInvoiceManagement() {
   });
 
   const paidOrders: PaidOrder[] = ordersResponse || [];
-  const stats: InvoiceStats = statsResponse || {
-    totalPaidOrders: 0,
-    totalInvoiceAmount: 0,
-    averageOrderValue: 0,
-    thisMonthInvoices: 0
-  };
 
   // Filter orders based on search and status
   const filteredOrders = paidOrders.filter(order => {
@@ -187,10 +174,34 @@ export default function ShopInvoiceManagement() {
     return matchesSearch && matchesStatus && matchesFromDate && matchesToDate;
   });
 
+  const stats: InvoiceStats = (() => {
+    const totalInvoiceAmount = filteredOrders.reduce((sum, order) => {
+      const amount = Number.parseFloat(order.totalAmount || '0');
+      return sum + (Number.isFinite(amount) ? amount : 0);
+    }, 0);
+    const now = new Date();
+    const thisMonthInvoices = filteredOrders.filter((order) => {
+      const invoiceDate = new Date(order.paymentDate || order.createdAt);
+      return !Number.isNaN(invoiceDate.getTime()) &&
+        invoiceDate.getFullYear() === now.getFullYear() &&
+        invoiceDate.getMonth() === now.getMonth();
+    }).length;
+
+    return {
+      totalPaidOrders: filteredOrders.length,
+      totalInvoiceAmount,
+      averageOrderValue: filteredOrders.length > 0
+        ? totalInvoiceAmount / filteredOrders.length
+        : 0,
+      thisMonthInvoices
+    };
+  })();
+
   // Format currency for display
   const formatCurrency = (amount: string | number) => {
     const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-    return new Intl.NumberFormat(locale).format(num) + ` ${tr('currency')}`;
+    const safeAmount = Number.isFinite(num) ? num : 0;
+    return new Intl.NumberFormat(locale).format(safeAmount) + ` ${tr('currency')}`;
   };
 
   // Format Gregorian date
