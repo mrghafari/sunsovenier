@@ -24133,7 +24133,6 @@ Momtaz Chemical Technical Team`,
         WHERE co.status IN ('completed', 'delivered')
            OR co.payment_method IN ('wallet_full', 'wallet_partial', 'bank_transfer')
         ORDER BY co.created_at DESC
-        LIMIT 10
       `;
       
       const result = await db.execute(sql.raw(query));

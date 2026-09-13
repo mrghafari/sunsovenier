@@ -24,6 +24,11 @@ const INVOICE_TRANSLATIONS: Record<string, InvoiceTranslation> = {
   thisMonth: { en: 'This Month', ar: 'هذا الشهر', tr: 'Bu Ay', fa: 'این ماه' },
   search: { en: 'Search by order number, customer name, or phone...', ar: 'البحث برقم الطلب أو اسم العميل أو الهاتف...', tr: 'Sipariş numarası, müşteri adı veya telefonla ara...', fa: 'جستجو بر اساس شماره سفارش، نام مشتری یا شماره تماس...' },
   filterStatus: { en: 'Filter by status', ar: 'تصفية حسب الحالة', tr: 'Duruma göre filtrele', fa: 'فیلتر وضعیت' },
+  fromDate: { en: 'From date', ar: 'من تاريخ', tr: 'Başlangıç tarihi', fa: 'از تاریخ' },
+  toDate: { en: 'To date', ar: 'إلى تاريخ', tr: 'Bitiş tarihi', fa: 'تا تاریخ' },
+  clearDates: { en: 'Clear dates', ar: 'مسح التواريخ', tr: 'Tarihleri temizle', fa: 'پاک کردن تاریخ‌ها' },
+  mobile: { en: 'Mobile', ar: 'الهاتف', tr: 'Telefon', fa: 'موبایل' },
+  email: { en: 'Email', ar: 'البريد الإلكتروني', tr: 'E-posta', fa: 'ایمیل' },
   allOrders: { en: 'All Orders', ar: 'كل الطلبات', tr: 'Tüm Siparişler', fa: 'همه سفارشات' },
   completed: { en: 'Completed', ar: 'مكتمل', tr: 'Tamamlandı', fa: 'تکمیل شده' },
   delivered: { en: 'Delivered', ar: 'تم التسليم', tr: 'Teslim edildi', fa: 'تحویل شده' },
@@ -115,6 +120,8 @@ export default function ShopInvoiceManagement() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<PaidOrder | null>(null);
   const [showInvoicePreview, setShowInvoicePreview] = useState(false);
 
@@ -159,14 +166,25 @@ export default function ShopInvoiceManagement() {
 
   // Filter orders based on search and status
   const filteredOrders = paidOrders.filter(order => {
+    const searchablePhone = order.customerPhone || '';
     const matchesSearch = !searchTerm || 
-      order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      `${order.customerFirstName} ${order.customerLastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customerPhone.includes(searchTerm);
+      (order.orderNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      `${order.customerFirstName || ''} ${order.customerLastName || ''}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      searchablePhone.includes(searchTerm) ||
+      (order.customerEmail || '').toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+    const invoiceDate = new Date(order.paymentDate || order.createdAt);
+    const matchesFromDate = !fromDate || (
+      !Number.isNaN(invoiceDate.getTime()) &&
+      invoiceDate >= new Date(`${fromDate}T00:00:00`)
+    );
+    const matchesToDate = !toDate || (
+      !Number.isNaN(invoiceDate.getTime()) &&
+      invoiceDate <= new Date(`${toDate}T23:59:59.999`)
+    );
     
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesStatus && matchesFromDate && matchesToDate;
   });
 
   // Format currency for display
@@ -719,14 +737,23 @@ export default function ShopInvoiceManagement() {
       });
 
       // Create a simple CSV report for now
+      const escapeCsv = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`;
       const csvContent = [
-        `${tr('orderNumber')},${tr('customer')},${tr('amount')},${tr('paymentMethod')},${tr('paymentDate')}`,
-        ...filteredOrders.map(order => 
-          `${order.orderNumber},"${order.customerFirstName} ${order.customerLastName}",${order.totalAmount},${getPaymentMethodName(order.paymentMethod)},${formatGregorianDate(order.paymentDate)}`
-        )
+        [tr('orderNumber'), tr('customer'), tr('mobile'), tr('email'), tr('amount'), tr('paymentMethod'), tr('paymentDate')]
+          .map(escapeCsv)
+          .join(','),
+        ...filteredOrders.map(order => [
+          order.orderNumber,
+          getCustomerDisplayName(order),
+          order.customerPhone || tr('notProvided'),
+          order.customerEmail || tr('notProvided'),
+          order.totalAmount,
+          getPaymentMethodName(order.paymentMethod),
+          formatGregorianDate(order.paymentDate || order.createdAt)
+        ].map(escapeCsv).join(','))
       ].join('\n');
 
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+      const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -831,7 +858,7 @@ export default function ShopInvoiceManagement() {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-4 items-center bg-gray-50 p-4 rounded-lg">
+      <div className="flex flex-wrap gap-4 items-end bg-gray-50 p-4 rounded-lg">
         <div className="flex-1">
           <div className="relative">
             <Search className={`absolute ${direction === 'rtl' ? 'right-3' : 'left-3'} top-3 h-4 w-4 text-gray-400`} />
@@ -853,6 +880,37 @@ export default function ShopInvoiceManagement() {
             <SelectItem value="delivered">{tr('delivered')}</SelectItem>
           </SelectContent>
         </Select>
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-gray-600">{tr('fromDate')}</label>
+          <Input
+            type="date"
+            value={fromDate}
+            onChange={(event) => setFromDate(event.target.value)}
+            className="w-44 bg-white"
+          />
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-gray-600">{tr('toDate')}</label>
+          <Input
+            type="date"
+            value={toDate}
+            min={fromDate || undefined}
+            onChange={(event) => setToDate(event.target.value)}
+            className="w-44 bg-white"
+          />
+        </div>
+        {(fromDate || toDate) && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              setFromDate('');
+              setToDate('');
+            }}
+          >
+            {tr('clearDates')}
+          </Button>
+        )}
       </div>
 
       {/* Invoices Table */}
@@ -883,8 +941,9 @@ export default function ShopInvoiceManagement() {
                     <td className="p-3 font-medium text-blue-600">{order.orderNumber}</td>
                     <td className="p-3">
                       <div>
-                        <div className="font-medium">{order.customerFirstName} {order.customerLastName}</div>
-                        <div className="text-sm text-gray-500">{order.customerPhone}</div>
+                        <div className="font-medium">{getCustomerDisplayName(order)}</div>
+                        <div className="text-sm text-gray-500">{order.customerPhone || tr('notProvided')}</div>
+                        <div className="text-xs text-gray-500">{order.customerEmail || tr('notProvided')}</div>
                       </div>
                     </td>
                     <td className="p-3 font-bold text-green-600">{formatCurrency(order.totalAmount)}</td>
@@ -893,7 +952,7 @@ export default function ShopInvoiceManagement() {
                         {getPaymentMethodName(order.paymentMethod)}
                       </Badge>
                     </td>
-                    <td className="p-3 text-sm">{formatGregorianDate(order.paymentDate)}</td>
+                    <td className="p-3 text-sm">{formatGregorianDate(order.paymentDate || order.createdAt)}</td>
                     <td className="p-3">
                       <Badge variant="default" className="bg-green-100 text-green-800">
                         {tr('settled')}
