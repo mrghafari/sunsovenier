@@ -24256,7 +24256,7 @@ Momtaz Chemical Technical Team`,
                c.email as customer_email, c.phone as customer_phone, c.company as customer_company,
                c.address as customer_address
         FROM customer_orders co
-        LEFT JOIN customers c ON co.customer_id = c.id
+        LEFT JOIN crm_customers c ON co.customer_id = c.id
         ORDER BY co.created_at DESC
         LIMIT 50
       `;
