@@ -24126,10 +24126,10 @@ Momtaz Chemical Technical Team`,
                co.shipping_cost, co.vat_amount, co.surcharge_amount, co.vat_rate,
                c.first_name as customer_first_name, c.last_name as customer_last_name, 
                c.email as customer_email, c.phone as customer_phone,
-               c.address as customer_address, c.city as customer_city, 
+               c.address as customer_address, c.city_region as customer_city,
                c.province as customer_province
         FROM customer_orders co
-        LEFT JOIN customers c ON co.customer_id = c.id
+        LEFT JOIN crm_customers c ON co.customer_id = c.id
         WHERE co.status IN ('completed', 'delivered')
            OR co.payment_method IN ('wallet_full', 'wallet_partial', 'bank_transfer')
         ORDER BY co.created_at DESC
