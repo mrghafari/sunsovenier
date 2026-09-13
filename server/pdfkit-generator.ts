@@ -134,6 +134,10 @@ function getSafeInvoiceLogo(): Buffer | null {
   }
 }
 
+function normalizeInvoiceCompanyName(value: unknown): string {
+  return String(value || '').replace(/ممتاز\s*شیمیب/g, 'ممتازشیمی');
+}
+
 // Get company information including addresses from database
 async function getCompanyInformation(): Promise<any | null> {
   try {
@@ -583,8 +587,15 @@ export async function generateInvoicePDF(data: any): Promise<Buffer> {
   // proforma invoices. getCompanyLogo keeps the bundled logo as a fallback
   // when the configured upload cannot be read.
   const companyLogo = await getCompanyLogo(company);
-  const suffix = lang === 'en' ? 'En' : lang === 'ar' ? 'Ar' : lang === 'tr' ? 'Tr' : 'En';
-  const companyName = company[`companyName${suffix}`] || company.companyName || company.companyNameEn || 'Momtaz Chemical Solutions';
+  const suffix = lang === 'en' ? 'En' : lang === 'ar' ? 'Ar' : lang === 'tr' ? 'Tr' : 'Fa';
+  const localizedCompanyName = company[`companyName${suffix}`]
+    || (lang === 'fa' ? company.companyNameAr : undefined)
+    || company.companyName
+    || company.companyNameEn
+    || 'Momtaz Chemical Solutions';
+  const companyName = normalizeInvoiceCompanyName(
+    localizedCompanyName
+  );
   const customer = data.customer || {};
   const str = (v: any) => v === undefined || v === null || v === '' ? '—' : String(v);
   const latinDigits = (v: any) => str(v)

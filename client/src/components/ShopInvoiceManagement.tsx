@@ -68,6 +68,9 @@ const INVOICE_TRANSLATIONS: Record<string, InvoiceTranslation> = {
   reportErrorDescription: { en: 'Unable to download report', ar: 'تعذر تنزيل التقرير', tr: 'Rapor indirilemedi', fa: 'امکان دانلود گزارش وجود ندارد' },
 };
 
+const normalizeInvoiceCompanyName = (value: unknown) =>
+  String(value || '').replace(/ممتاز\s*شیمیب/g, 'ممتازشیمی');
+
 interface PaidOrder {
   id: number;
   orderNumber: string;
@@ -560,7 +563,7 @@ export default function ShopInvoiceManagement() {
                      onerror="console.log('Logo failed to load'); this.style.display='none'" />` : 
                 `<div style="width: 60px; height: 60px; border: 1px solid #ccc; border-radius: 4px; margin: 0 auto 8px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #666;">لوگو</div>`}
             </div>
-            <div class="company-name">${companyInfo?.data?.companyNameAr || companyInfo?.data?.companyNameEn || 'شرکت ممتاز شیمی'}</div>
+            <div class="company-name">${normalizeInvoiceCompanyName(companyInfo?.data?.companyNameAr || companyInfo?.data?.companyNameEn || 'ممتازشیمی')}</div>
             <div class="invoice-title">فاکتور فروش</div>
           </div>
 
