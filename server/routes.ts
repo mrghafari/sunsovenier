@@ -40332,54 +40332,58 @@ momtazchem.com
           startDate.setDate(now.getDate() - 30);
       }
 
-      // Get total unique customers count across all regions
-      const totalCustomersResult = await customerDb.select({
-        totalUniqueCustomers: sql`count(distinct ${customerOrders.customerId})::int`.as('totalUniqueCustomers')
-      })
-      .from(customerOrders)
-      .where(
-        and(
-          isNotNull(sql`${customerOrders.shippingAddress}->>'country'`),
-          isNotNull(sql`${customerOrders.shippingAddress}->>'city'`)
-        )
-      );
+      const regionFilter = region !== 'all'
+        ? sql`AND (
+            COALESCE(NULLIF(co.shipping_address->>'country', ''), NULLIF(c.country, ''), 'Unknown') = ${region}
+            OR COALESCE(NULLIF(co.shipping_address->>'city', ''), NULLIF(c.city_region, ''), NULLIF(c.province, ''), 'Unknown') = ${region}
+          )`
+        : sql``;
 
-      const totalUniqueCustomers = totalCustomersResult[0]?.totalUniqueCustomers || 0;
+      const totalCustomersQuery = await db.execute(sql`
+        SELECT COUNT(DISTINCT co.customer_id)::int AS total_unique_customers
+        FROM customer_orders co
+        LEFT JOIN crm_customers c ON c.id = co.customer_id
+        WHERE co.created_at >= ${startDate}
+          AND COALESCE(co.status, '') NOT IN ('cancelled', 'failed')
+          ${regionFilter}
+      `);
+      const totalCustomerRows = (totalCustomersQuery as any).rows || totalCustomersQuery;
+      const totalUniqueCustomers = Number(totalCustomerRows[0]?.total_unique_customers) || 0;
 
-      // Get orders with geographic data from shipping_address JSON
-      const geoData = await customerDb.select({
-        country: sql`${customerOrders.shippingAddress}->>'country'`.as('country'),
-        city: sql`${customerOrders.shippingAddress}->>'city'`.as('city'),
-        totalOrders: sql`count(*)::int`.as('totalOrders'),
-        totalRevenue: sql`sum(${customerOrders.totalAmount})::numeric`.as('totalRevenue'),
-        customerCount: sql`count(distinct ${customerOrders.customerId})::int`.as('customerCount')
-      })
-      .from(customerOrders)
-      .where(
-        and(
-          isNotNull(sql`${customerOrders.shippingAddress}->>'country'`),
-          isNotNull(sql`${customerOrders.shippingAddress}->>'city'`)
-        )
-      )
-      .groupBy(sql`${customerOrders.shippingAddress}->>'country'`, sql`${customerOrders.shippingAddress}->>'city'`)
-      .orderBy(sql`sum(${customerOrders.totalAmount}) desc`)
-      .limit(20);
+      const geoQuery = await db.execute(sql`
+        SELECT
+          COALESCE(NULLIF(co.shipping_address->>'country', ''), NULLIF(c.country, ''), 'Unknown') AS country,
+          COALESCE(NULLIF(co.shipping_address->>'city', ''), NULLIF(c.city_region, ''), NULLIF(c.province, ''), 'Unknown') AS city,
+          COUNT(*)::int AS total_orders,
+          COALESCE(SUM(co.total_amount), 0)::numeric AS total_revenue,
+          COUNT(DISTINCT co.customer_id)::int AS customer_count
+        FROM customer_orders co
+        LEFT JOIN crm_customers c ON c.id = co.customer_id
+        WHERE co.created_at >= ${startDate}
+          AND COALESCE(co.status, '') NOT IN ('cancelled', 'failed')
+          ${regionFilter}
+        GROUP BY 1, 2
+        ORDER BY total_revenue DESC
+        LIMIT 20
+      `);
+      const geoRows = (geoQuery as any).rows || geoQuery;
       
-      console.log('🌍 [GEO] Query result:', geoData.length, 'records found');
+      console.log('🌍 [GEO] Query result:', geoRows.length, 'records found');
       console.log('🌍 [GEO] Total unique customers:', totalUniqueCustomers);
       
       // Process data to add calculated fields and match frontend expectations
-      const processedData = geoData.map((region) => {
-        const totalRevenue = Number(region.totalRevenue) || 0;
-        const avgOrderValue = region.totalOrders > 0 ? totalRevenue / region.totalOrders : 0;
+      const processedData = geoRows.map((region: any) => {
+        const totalRevenue = Number(region.total_revenue) || 0;
+        const totalOrders = Number(region.total_orders) || 0;
+        const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
         
         return {
           region: `${region.country}, ${region.city}`, // Combined region field for frontend
           country: region.country,
           city: region.city,
-          totalOrders: region.totalOrders,
+          totalOrders,
           totalRevenue: totalRevenue,
-          customerCount: region.customerCount,
+          customerCount: Number(region.customer_count) || 0,
           avgOrderValue: Number(avgOrderValue.toFixed(2)),
           topProducts: [] // Simplified for now
         };

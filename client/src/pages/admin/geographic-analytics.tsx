@@ -160,7 +160,11 @@ export default function GeographicAnalytics() {
       if (!response.ok) throw new Error('Failed to fetch geographic data');
       const result = await response.json();
       return result || { data: [], summary: { totalUniqueCustomers: 0 } };
-    }
+    },
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    refetchInterval: 60000
   });
 
   const geoData = geoResult?.data || [];
