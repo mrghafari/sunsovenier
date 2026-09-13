@@ -45,6 +45,19 @@ interface TimeSeriesData {
   regions: { [key: string]: number };
 }
 
+interface RegionOrder {
+  id: number;
+  orderNumber: string;
+  status: string;
+  totalAmount: number;
+  paymentMethod: string;
+  createdAt: string;
+  customerId: number;
+  customerName: string;
+  phone: string;
+  email: string;
+}
+
 interface GpsDeliveryData {
   id: number;
   deliveryVerificationId: number;
@@ -87,6 +100,7 @@ export default function GeographicAnalytics() {
   const [gpsSortField, setGpsSortField] = useState<string>('');
   const [gpsSortDirection, setGpsSortDirection] = useState<'asc' | 'desc'>('asc');
   const [isMapMaximized, setIsMapMaximized] = useState(false);
+  const [selectedRegionDetails, setSelectedRegionDetails] = useState<GeographicData | null>(null);
 
   // Sorting function
   const handleSort = (field: string) => {
@@ -169,6 +183,31 @@ export default function GeographicAnalytics() {
 
   const geoData = geoResult?.data || [];
   const totalUniqueCustomers = geoResult?.summary?.totalUniqueCustomers || 0;
+
+  const { data: regionOrders = [], isLoading: regionOrdersLoading } = useQuery<RegionOrder[]>({
+    queryKey: [
+      '/api/analytics/geographic/orders',
+      dateRange,
+      selectedRegionDetails?.country,
+      selectedRegionDetails?.city
+    ],
+    queryFn: async () => {
+      if (!selectedRegionDetails) return [];
+      const params = new URLSearchParams({
+        period: dateRange,
+        country: selectedRegionDetails.country,
+        city: selectedRegionDetails.city
+      });
+      const response = await fetch(`/api/analytics/geographic/orders?${params}`, {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch region orders');
+      const result = await response.json();
+      return result.data || [];
+    },
+    enabled: Boolean(selectedRegionDetails),
+    staleTime: 0
+  });
 
   // Fetch product analytics
   const { data: productData, isLoading: productLoading } = useQuery<ProductAnalytics[]>({
@@ -535,7 +574,12 @@ export default function GeographicAnalytics() {
             <CardContent>
               <div className="space-y-4">
                 {topRegions.map((region, index) => (
-                  <div key={`${region.country}-${region.city}`} className="flex items-center justify-between p-4 border rounded-lg">
+                  <button
+                    type="button"
+                    key={`${region.country}-${region.city}`}
+                    onClick={() => setSelectedRegionDetails(region)}
+                    className="flex w-full items-center justify-between p-4 border rounded-lg text-left transition-colors hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
                     <div className="flex items-center gap-4">
                       <Badge variant="secondary">#{index + 1}</Badge>
                       <div>
@@ -547,11 +591,68 @@ export default function GeographicAnalytics() {
                       <p className="font-semibold">${region.totalRevenue.toFixed(2)}</p>
                       <p className="text-sm text-gray-600">{region.totalOrders} orders</p>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             </CardContent>
           </Card>
+
+          <Dialog
+            open={Boolean(selectedRegionDetails)}
+            onOpenChange={(open) => {
+              if (!open) setSelectedRegionDetails(null);
+            }}
+          >
+            <DialogContent className="max-w-6xl max-h-[85vh] overflow-hidden flex flex-col">
+              <DialogHeader>
+                <DialogTitle>
+                  Orders in {selectedRegionDetails?.city}, {selectedRegionDetails?.country}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="overflow-auto">
+                {regionOrdersLoading ? (
+                  <div className="py-12 text-center text-muted-foreground">Loading orders...</div>
+                ) : regionOrders.length === 0 ? (
+                  <div className="py-12 text-center text-muted-foreground">No orders found for this region.</div>
+                ) : (
+                  <table className="w-full min-w-[900px] text-sm">
+                    <thead className="sticky top-0 bg-background">
+                      <tr className="border-b">
+                        <th className="p-3 text-left">Order</th>
+                        <th className="p-3 text-left">Customer</th>
+                        <th className="p-3 text-left">Contact</th>
+                        <th className="p-3 text-left">Status</th>
+                        <th className="p-3 text-left">Payment</th>
+                        <th className="p-3 text-right">Amount</th>
+                        <th className="p-3 text-left">Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {regionOrders.map((order) => (
+                        <tr key={order.id} className="border-b hover:bg-muted/40">
+                          <td className="p-3 font-medium">{order.orderNumber}</td>
+                          <td className="p-3">
+                            <div>{order.customerName}</div>
+                            <div className="text-xs text-muted-foreground">ID: {order.customerId}</div>
+                          </td>
+                          <td className="p-3">
+                            <div>{order.phone || '—'}</div>
+                            <div className="text-xs text-muted-foreground">{order.email || '—'}</div>
+                          </td>
+                          <td className="p-3"><Badge variant="outline">{order.status || '—'}</Badge></td>
+                          <td className="p-3">{order.paymentMethod || '—'}</td>
+                          <td className="p-3 text-right font-medium">${order.totalAmount.toFixed(2)}</td>
+                          <td className="p-3">
+                            {order.createdAt ? new Date(order.createdAt).toLocaleString() : '—'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         {/* Product Performance */}

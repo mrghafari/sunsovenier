@@ -40344,7 +40344,7 @@ momtazchem.com
         FROM customer_orders co
         LEFT JOIN crm_customers c ON c.id = co.customer_id
         WHERE co.created_at >= ${startDate}
-          AND COALESCE(co.status, '') NOT IN ('cancelled', 'failed')
+          AND COALESCE(co.status, '') NOT IN ('cancelled', 'failed', 'deleted')
           ${regionFilter}
       `);
       const totalCustomerRows = (totalCustomersQuery as any).rows || totalCustomersQuery;
@@ -40360,7 +40360,7 @@ momtazchem.com
         FROM customer_orders co
         LEFT JOIN crm_customers c ON c.id = co.customer_id
         WHERE co.created_at >= ${startDate}
-          AND COALESCE(co.status, '') NOT IN ('cancelled', 'failed')
+          AND COALESCE(co.status, '') NOT IN ('cancelled', 'failed', 'deleted')
           ${regionFilter}
         GROUP BY 1, 2
         ORDER BY total_revenue DESC
@@ -40400,6 +40400,81 @@ momtazchem.com
     } catch (error) {
       console.error('Geographic analytics API error:', error);
       res.status(500).json({ success: false, message: 'Failed to fetch geographic analytics data' });
+    }
+  });
+
+  app.get('/api/analytics/geographic/orders', async (req, res) => {
+    try {
+      const { period = '30d', country, city } = req.query;
+      if (typeof country !== 'string' || typeof city !== 'string') {
+        return res.status(400).json({ success: false, message: 'Country and city are required' });
+      }
+
+      const now = new Date();
+      const startDate = new Date();
+      switch (period) {
+        case '7d':
+          startDate.setDate(now.getDate() - 7);
+          break;
+        case '30d':
+          startDate.setDate(now.getDate() - 30);
+          break;
+        case '3m':
+          startDate.setMonth(now.getMonth() - 3);
+          break;
+        case '1y':
+          startDate.setFullYear(now.getFullYear() - 1);
+          break;
+        default:
+          startDate.setDate(now.getDate() - 30);
+      }
+
+      const result = await db.execute(sql`
+        SELECT
+          co.id,
+          co.order_number,
+          co.status,
+          co.total_amount,
+          co.payment_method,
+          co.created_at,
+          co.customer_id,
+          c.first_name,
+          c.last_name,
+          c.company,
+          c.phone,
+          c.email
+        FROM customer_orders co
+        LEFT JOIN crm_customers c ON c.id = co.customer_id
+        WHERE co.created_at >= ${startDate}
+          AND COALESCE(co.status, '') NOT IN ('cancelled', 'failed', 'deleted')
+          AND COALESCE(NULLIF(co.shipping_address->>'country', ''), NULLIF(c.country, ''), 'Unknown') = ${country}
+          AND COALESCE(NULLIF(co.shipping_address->>'city', ''), NULLIF(c.city_region, ''), NULLIF(c.province, ''), 'Unknown') = ${city}
+        ORDER BY co.created_at DESC
+        LIMIT 200
+      `);
+      const rows = (result as any).rows || result;
+
+      res.json({
+        success: true,
+        data: rows.map((order: any) => ({
+          id: order.id,
+          orderNumber: order.order_number,
+          status: order.status,
+          totalAmount: Number(order.total_amount) || 0,
+          paymentMethod: order.payment_method,
+          createdAt: order.created_at,
+          customerId: order.customer_id,
+          customerName:
+            [order.first_name, order.last_name].filter(Boolean).join(' ') ||
+            order.company ||
+            'Unknown',
+          phone: order.phone || '',
+          email: order.email || ''
+        }))
+      });
+    } catch (error) {
+      console.error('Geographic region orders API error:', error);
+      res.status(500).json({ success: false, message: 'Failed to fetch region orders' });
     }
   });
 
