@@ -57,6 +57,16 @@ import { ObjectStorageService } from "./objectStorage";
 import { getAwsS3Service } from './aws-s3-service';
 import { sendOrderConfirmationEmail } from "./order-confirmation-email";
 
+const INVOICE_LANGUAGES = ['en', 'ar', 'tr', 'fa'] as const;
+type InvoiceLanguage = typeof INVOICE_LANGUAGES[number];
+
+function parseInvoiceLanguage(value: unknown): InvoiceLanguage | null {
+  const language = String(value ?? '').toLowerCase();
+  return (INVOICE_LANGUAGES as readonly string[]).includes(language)
+    ? language as InvoiceLanguage
+    : null;
+}
+
 import { 
   vehicleTemplates, 
   vehicleSelectionHistory, 
@@ -1030,7 +1040,14 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
     try {
       const { generateInvoicePDF } = await import('./pdfkit-generator');
       
-      const invoiceData = req.body;
+      const requestedLanguage = parseInvoiceLanguage(req.body?.language || 'en');
+      if (!requestedLanguage) {
+        return res.status(400).json({
+          success: false,
+          message: 'زبان فاکتور نامعتبر است'
+        });
+      }
+      const invoiceData = { ...req.body, language: requestedLanguage };
       console.log('Invoice data received:', invoiceData);
       
       // Use frozen tax amounts from order instead of recalculating
@@ -1101,8 +1118,8 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       if (order.customerId !== req.session.customerId) {
         return res.status(403).json({ success: false, message: 'دسترسی به این سفارش مجاز نیست' });
       }
-      const requestedLanguage = String(req.query.lang || 'en').toLowerCase();
-      if (!['en', 'ar', 'tr', 'fa'].includes(requestedLanguage)) {
+      const requestedLanguage = parseInvoiceLanguage(req.query.lang || 'en');
+      if (!requestedLanguage) {
         return res.status(400).json({ success: false, message: 'زبان نامعتبر است' });
       }
 
@@ -1261,8 +1278,8 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       if (order.customerId !== req.session.customerId) {
         return res.status(403).json({ success: false, message: 'دسترسی به این سفارش مجاز نیست' });
       }
-      const requestedLanguage = String(req.query.lang || 'en').toLowerCase();
-      if (!['en', 'ar', 'tr', 'fa'].includes(requestedLanguage)) {
+      const requestedLanguage = parseInvoiceLanguage(req.query.lang || 'en');
+      if (!requestedLanguage) {
         return res.status(400).json({ success: false, message: 'زبان نامعتبر است' });
       }
 
@@ -36878,7 +36895,7 @@ momtazchem.com
   app.get('/api/invoices/:id/download', async (req, res) => {
     try {
       const invoiceId = parseInt(req.params.id);
-      const invoice = await invoiceStorage.getInvoiceById(invoiceId);
+      const invoice = (await invoiceStorage.getInvoiceById(invoiceId))!;
       
       if (!invoice) {
         return res.status(404).json({ success: false, message: 'Invoice not found' });
@@ -36888,12 +36905,55 @@ momtazchem.com
       const items = await invoiceStorage.getInvoiceItems(invoiceId);
       
       // Get customer and order information
-      const order = await shopStorage.getOrderById(invoice.orderId);
-      const customer = await crmStorage.getCrmCustomerById(invoice.customerId);
+      const order = (await shopStorage.getOrderById(invoice.orderId))!;
+      const customer = (await crmStorage.getCrmCustomerById(invoice.customerId))!;
       
       if (!order || !customer) {
         return res.status(404).json({ success: false, message: 'Order or customer not found' });
       }
+
+      // The management UI explicitly supplies the active site language. Use
+      // the same PDF renderer as the other invoice exports so configured logo
+      // handling and RTL text behavior are consistent.
+      const requestedLanguage = parseInvoiceLanguage(req.query.lang || 'en');
+      if (!requestedLanguage) {
+        return res.status(400).json({ success: false, message: 'زبان نامعتبر است' });
+      }
+      const { generateInvoicePDF } = await import('./pdfkit-generator');
+      const localizedPdfBuffer = await generateInvoicePDF({
+        invoiceType: invoice.type === 'proforma' ? 'PROFORMA' : 'FINAL',
+        invoiceNumber: invoice.invoiceNumber,
+        orderNumber: order.orderNumber,
+        invoiceDate: invoice.issueDate || invoice.createdAt,
+        language: requestedLanguage,
+        companyInfo: invoice.companyInfo,
+        customer: {
+          name: `${customer.firstName || ''} ${customer.lastName || ''}`.trim(),
+          email: customer.email,
+          phone: customer.phone,
+          address: [customer.address, customer.province, customer.country].filter(Boolean).join(', '),
+          company: customer.company,
+        },
+        items: items.map(item => ({
+          name: item.productName,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          total: item.totalPrice,
+        })),
+        subtotal: invoice.subtotal,
+        vatAmount: invoice.taxAmount,
+        dutiesAmount: 0,
+        shippingCost: invoice.shippingAmount,
+        discountAmount: invoice.discountAmount,
+        total: invoice.totalAmount,
+        currency: invoice.currency || 'IQD',
+        paymentStatus: invoice.status,
+        notes: invoice.notes,
+      });
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="invoice-${invoice.invoiceNumber}.pdf"`);
+      res.setHeader('Content-Length', localizedPdfBuffer.length.toString());
+      return res.send(localizedPdfBuffer);
 
       // Generate PDF content based on language with multi-language support
       const isRTL = ['ar', 'ku'].includes(invoice.language); // Arabic and Kurdish are RTL
@@ -37255,19 +37315,19 @@ momtazchem.com
                         <td class="multilingual-text"><strong>${t.subtotal}:</strong></td>
                         <td class="multilingual-text"><strong>${invoice.subtotal} ${invoice.currency}</strong></td>
                     </tr>
-                    ${invoice.discountAmount && parseFloat(invoice.discountAmount) > 0 ? `
+                    ${invoice.discountAmount && parseFloat(invoice.discountAmount || '0') > 0 ? `
                     <tr>
                         <td class="multilingual-text"><strong>${t.discount}:</strong></td>
                         <td class="multilingual-text"><strong>-${invoice.discountAmount} ${invoice.currency}</strong></td>
                     </tr>
                     ` : ''}
-                    ${invoice.shippingAmount && parseFloat(invoice.shippingAmount) > 0 ? `
+                    ${invoice.shippingAmount && parseFloat(invoice.shippingAmount || '0') > 0 ? `
                     <tr>
                         <td class="multilingual-text"><strong>${t.shipping}:</strong></td>
                         <td class="multilingual-text"><strong>${invoice.shippingAmount} ${invoice.currency}</strong></td>
                     </tr>
                     ` : ''}
-                    ${invoice.taxAmount && parseFloat(invoice.taxAmount) > 0 ? `
+                    ${invoice.taxAmount && parseFloat(invoice.taxAmount || '0') > 0 ? `
                     <tr>
                         <td class="multilingual-text"><strong>${t.tax}:</strong></td>
                         <td class="multilingual-text"><strong>${invoice.taxAmount} ${invoice.currency}</strong></td>

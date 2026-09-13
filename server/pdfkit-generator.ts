@@ -9,9 +9,12 @@ import { CompanyStorage } from './company-storage';
 // Get company logo from database
 async function getCompanyLogo(companyInfo?: any): Promise<Buffer | null> {
   try {
-    if (!companyInfo) {
-      const companyStorage = new CompanyStorage();
-      companyInfo = await companyStorage.getCompanyInformation();
+    // Invoice records may carry a snapshot of company fields without the
+    // current logo. Keep the snapshot for invoice text, but still resolve the
+    // configured logo from Company Information when it is available.
+    if (!companyInfo || !companyInfo.logoUrl) {
+      const storedCompanyInfo = await new CompanyStorage().getCompanyInformation();
+      companyInfo = { ...(storedCompanyInfo || {}), ...(companyInfo || {}) };
     }
     
     if (companyInfo?.logoUrl) {
@@ -79,11 +82,11 @@ async function getCompanyLogo(companyInfo?: any): Promise<Buffer | null> {
       }
     }
     
-    // Fallback to default logo if exists
-    if (fs.existsSync('server/logo-base64.txt')) {
-      const base64Data = fs.readFileSync('server/logo-base64.txt', 'utf8');
-      console.log('ℹ️ [PDF LOGO] Using fallback logo from file');
-      return Buffer.from(base64Data, 'base64');
+    // Fallback to the public company logo (or the legacy bundled base64 logo).
+    const fallbackLogo = getSafeInvoiceLogo();
+    if (fallbackLogo) {
+      console.log('ℹ️ [PDF LOGO] Using fallback bundled company logo');
+      return fallbackLogo;
     }
     
     console.log('ℹ️ [PDF LOGO] No logo available');
@@ -93,10 +96,8 @@ async function getCompanyLogo(companyInfo?: any): Promise<Buffer | null> {
     
     // Fallback to default logo if exists
     try {
-      if (fs.existsSync('server/logo-base64.txt')) {
-        const base64Data = fs.readFileSync('server/logo-base64.txt', 'utf8');
-        return Buffer.from(base64Data, 'base64');
-      }
+      const fallbackLogo = getSafeInvoiceLogo();
+      if (fallbackLogo) return fallbackLogo;
     } catch (fallbackError) {
       console.warn('⚠️ [PDF LOGO] Fallback also failed:', fallbackError);
     }
@@ -297,6 +298,14 @@ async function generateLegacyInvoicePDF(invoiceData: any): Promise<Buffer> {
             console.log('✅ Company logo added to invoice PDF (left side)');
           } catch (logoError) {
             console.warn('⚠️ Logo embedding failed:', logoError);
+            const fallbackLogo = getSafeInvoiceLogo();
+            if (fallbackLogo && fallbackLogo !== companyLogoBase64) {
+              try {
+                doc.image(fallbackLogo, 50, 30, { width: 80, height: 60 });
+              } catch (fallbackLogoError) {
+                console.warn('⚠️ Bundled invoice logo embedding failed:', fallbackLogoError);
+              }
+            }
           }
         } else {
           console.log('ℹ️ No company logo available for invoice PDF');
@@ -558,10 +567,10 @@ export async function generateInvoicePDF(data: any): Promise<Buffer> {
   const lang = ['en', 'ar', 'tr', 'fa'].includes(data.language) ? data.language : 'en';
   const rtl = lang === 'ar' || lang === 'fa';
   const L: Record<string, any> = {
-    en: ['Invoice', 'Proforma Invoice', 'Invoice number', 'Order number', 'Invoice date', 'Seller', 'Customer', 'Name', 'Phone', 'Email', 'Address', 'Payment method', 'Payment status', 'Product', 'Quantity', 'Unit price', 'Amount', 'Subtotal', 'VAT', 'Surcharge / duties', 'Shipping', 'Total', 'This is a proforma invoice. The final invoice will be issued after payment confirmation.', 'This is the final invoice.'],
-    ar: ['فاتورة', 'فاتورة أولية', 'رقم الفاتورة', 'رقم الطلب', 'تاريخ الفاتورة', 'البائع', 'العميل', 'الاسم', 'الهاتف', 'البريد الإلكتروني', 'العنوان', 'طريقة الدفع', 'حالة الدفع', 'المنتج', 'الكمية', 'سعر الوحدة', 'المبلغ', 'المجموع الفرعي', 'ضريبة القيمة المضافة', 'رسوم إضافية', 'الشحن', 'الإجمالي', 'هذه فاتورة أولية. سيتم إصدار الفاتورة النهائية بعد تأكيد الدفع.', 'هذه هي الفاتورة النهائية.'],
-    tr: ['Fatura', 'Proforma Fatura', 'Fatura numarası', 'Sipariş numarası', 'Fatura tarihi', 'Satıcı', 'Müşteri', 'Ad', 'Telefon', 'E-posta', 'Adres', 'Ödeme yöntemi', 'Ödeme durumu', 'Ürün', 'Miktar', 'Birim fiyatı', 'Tutar', 'Ara toplam', 'KDV', 'Ek ücretler / vergiler', 'Kargo', 'Toplam', 'Bu bir proforma faturadır. Ödeme onayından sonra nihai fatura düzenlenir.', 'Bu nihai faturadır.'],
-    fa: ['فاکتور', 'پیش‌فاکتور', 'شماره فاکتور', 'شماره سفارش', 'تاریخ فاکتور', 'فروشنده', 'مشتری', 'نام', 'تلفن', 'ایمیل', 'آدرس', 'روش پرداخت', 'وضعیت پرداخت', 'کالا', 'تعداد', 'قیمت واحد', 'مبلغ', 'جمع جزء', 'مالیات بر ارزش افزوده', 'عوارض / هزینه اضافی', 'هزینه ارسال', 'مجموع کل', 'این پیش‌فاکتور است و پس از تأیید پرداخت، فاکتور نهایی صادر می‌شود.', 'این فاکتور نهایی است.']
+    en: ['Invoice', 'Proforma Invoice', 'Invoice number', 'Order number', 'Invoice date', 'Seller', 'Customer', 'Name', 'Phone', 'Email', 'Address', 'Payment method', 'Payment status', 'Product', 'Quantity', 'Unit price', 'Amount', 'Subtotal', 'Discount', 'VAT', 'Surcharge / duties', 'Shipping', 'Total', 'This is a proforma invoice. The final invoice will be issued after payment confirmation.', 'This is the final invoice.'],
+    ar: ['فاتورة', 'فاتورة أولية', 'رقم الفاتورة', 'رقم الطلب', 'تاريخ الفاتورة', 'البائع', 'العميل', 'الاسم', 'الهاتف', 'البريد الإلكتروني', 'العنوان', 'طريقة الدفع', 'حالة الدفع', 'المنتج', 'الكمية', 'سعر الوحدة', 'المبلغ', 'المجموع الفرعي', 'الخصم', 'ضريبة القيمة المضافة', 'رسوم إضافية', 'الشحن', 'الإجمالي', 'هذه فاتورة أولية. سيتم إصدار الفاتورة النهائية بعد تأكيد الدفع.', 'هذه هي الفاتورة النهائية.'],
+    tr: ['Fatura', 'Proforma Fatura', 'Fatura numarası', 'Sipariş numarası', 'Fatura tarihi', 'Satıcı', 'Müşteri', 'Ad', 'Telefon', 'E-posta', 'Adres', 'Ödeme yöntemi', 'Ödeme durumu', 'Ürün', 'Miktar', 'Birim fiyatı', 'Tutar', 'Ara toplam', 'İndirim', 'KDV', 'Ek ücretler / vergiler', 'Kargo', 'Toplam', 'Bu bir proforma faturadır. Ödeme onayından sonra nihai fatura düzenlenir.', 'Bu nihai faturadır.'],
+    fa: ['فاکتور', 'پیش‌فاکتور', 'شماره فاکتور', 'شماره سفارش', 'تاریخ فاکتور', 'فروشنده', 'مشتری', 'نام', 'تلفن', 'ایمیل', 'آدرس', 'روش پرداخت', 'وضعیت پرداخت', 'کالا', 'تعداد', 'قیمت واحد', 'مبلغ', 'جمع جزء', 'تخفیف', 'مالیات بر ارزش افزوده', 'عوارض / هزینه اضافی', 'هزینه ارسال', 'مجموع کل', 'این پیش‌فاکتور است و پس از تأیید پرداخت، فاکتور نهایی صادر می‌شود.', 'این فاکتور نهایی است.']
   }[lang];
   const extra: Record<string, string[]> = {
     en: ['Registration number', 'Tax number', 'Company', 'Postal code', 'Country / city'],
@@ -649,7 +658,16 @@ export async function generateInvoicePDF(data: any): Promise<Buffer> {
       }
     };
     if (companyLogo) {
-      try { doc.image(companyLogo, 42, 32, { fit: [64, 48] }); } catch {}
+      try {
+        doc.image(companyLogo, 42, 32, { fit: [64, 48] });
+      } catch {
+        // A configured upload can exist but still be unreadable by PDFKit.
+        // Retry with the known-good public/bundled logo before continuing.
+        const fallbackLogo = getSafeInvoiceLogo();
+        if (fallbackLogo) {
+          try { doc.image(fallbackLogo, 42, 32, { fit: [64, 48] }); } catch {}
+        }
+      }
     }
     doc.font('VazirBold').fontSize(18).text(tx(companyName), 112, 42, { width: 370, align: 'center' });
     doc.fontSize(15).text(tx(data.invoiceType === 'PROFORMA' ? L[1] : L[0]), 42, 68, { width: 510, align: 'center' });
@@ -679,9 +697,17 @@ export async function generateInvoicePDF(data: any): Promise<Buffer> {
       doc.rect(42, y, 510, 24).stroke('#bbb');
       y += 24;
     });
-    const subtotal = Number(data.subtotal ?? items.reduce((s: number, i: any) => s + Number(i.total || i.totalPrice || Number(i.quantity || 0) * Number(i.unitPrice || 0)), 0)); const vat = Number(data.vatAmount || 0), duties = Number(data.dutiesAmount || 0), shipping = Number(data.shippingCost || 0);
-    if (y > 650) { doc.addPage(); y = 42; } y += 14; [[L[17], subtotal], [L[18], vat], [L[19], duties], [L[20], shipping], [L[21], subtotal + vat + duties + shipping]].forEach((r: any, i) => { doc.font(i === 4 ? 'VazirBold' : 'VazirRegular').fontSize(i === 4 ? 11 : 9); pair(r[0], `${fmt(r[1])} ${str(data.currency || 'IQD')}`, 42, y, 510); y += 19; });
-    doc.font('VazirRegular').fontSize(9).text(tx(data.invoiceType === 'PROFORMA' ? L[22] : L[23]), 42, y + 10, { width: 510, align: al }); doc.end();
+    const subtotal = Number(data.subtotal ?? items.reduce((s: number, i: any) => s + Number(i.total || i.totalPrice || Number(i.quantity || 0) * Number(i.unitPrice || 0)), 0)); const discount = Number(data.discountAmount || 0), vat = Number(data.vatAmount || 0), duties = Number(data.dutiesAmount || 0), shipping = Number(data.shippingCost || 0);
+    const grandTotal = data.total !== undefined && data.total !== null
+      ? Number(data.total)
+      : subtotal + vat + duties + shipping;
+    const totals: Array<[string, number]> = [[L[17], subtotal]];
+    if (discount > 0) totals.push([L[18], -discount]);
+    totals.push([L[19], vat], [L[20], duties], [L[21], shipping], [L[22], grandTotal]);
+    if (y > 650) { doc.addPage(); y = 42; }
+    y += 14;
+    totals.forEach((r: any, i: number) => { const isGrandTotal = i === totals.length - 1; doc.font(isGrandTotal ? 'VazirBold' : 'VazirRegular').fontSize(isGrandTotal ? 11 : 9); pair(r[0], `${fmt(r[1])} ${str(data.currency || 'IQD')}`, 42, y, 510); y += 19; });
+    doc.font('VazirRegular').fontSize(9).text(tx(data.invoiceType === 'PROFORMA' ? L[23] : L[24]), 42, y + 10, { width: 510, align: al }); doc.end();
   });
 }
 

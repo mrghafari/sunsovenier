@@ -46,14 +46,216 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { apiRequest } from "@/lib/queryClient";
 import type { ShopProduct, Customer, Order } from "@shared/shop-schema";
 import SalesReport from "@/pages/sales-report";
 import InvoiceManagement from "@/pages/admin/invoice-management";
 import ShopInvoiceManagement from "@/components/ShopInvoiceManagement";
 import AbandonedCartManagement from "@/pages/abandoned-cart-management";
-import PaymentMethodBadge from "@/components/PaymentMethodBadge";
 import BulkPurchaseProductCard from "@/components/BulkPurchaseProductCard";
+
+type ShopLanguage = "en" | "ar" | "tr" | "fa";
+type ShopTranslation = Partial<Record<ShopLanguage, string>>;
+
+const SHOP_TRANSLATIONS: Record<string, ShopTranslation> = {
+  shopAdministration: { en: "Shop Administration", ar: "إدارة المتجر", tr: "Mağaza Yönetimi", fa: "مدیریت فروشگاه" },
+  manageOperations: { en: "Manage your e-commerce operations", ar: "إدارة عمليات التجارة الإلكترونية", tr: "E-ticaret operasyonlarınızı yönetin", fa: "عملیات تجارت الکترونیکی خود را مدیریت کنید" },
+  refreshData: { en: "Refresh Data", ar: "تحديث البيانات", tr: "Verileri Yenile", fa: "به‌روزرسانی داده‌ها" },
+  totalOrders: { en: "Total Orders", ar: "إجمالي الطلبات", tr: "Toplam Sipariş", fa: "کل سفارش‌ها" },
+  pendingOrders: { en: "Pending Orders", ar: "الطلبات المعلقة", tr: "Bekleyen Sipariş", fa: "سفارش‌های در انتظار" },
+  products: { en: "Products", ar: "المنتجات", tr: "Ürünler", fa: "محصولات" },
+  revenue: { en: "Revenue", ar: "الإيرادات", tr: "Gelir", fa: "درآمد" },
+  orders: { en: "Orders", ar: "الطلبات", tr: "Siparişler", fa: "سفارش‌ها" },
+  discountSettings: { en: "Discount Settings", ar: "إعدادات الخصم", tr: "İndirim Ayarları", fa: "تنظیمات تخفیف" },
+  bulkPurchases: { en: "Bulk Purchases", ar: "المشتريات بالجملة", tr: "Toplu Alımlar", fa: "خریدهای عمده" },
+  purchaseProformaDeadline: { en: "Purchase Proforma Deadline", ar: "مهلة الفاتورة الأولية للشراء", tr: "Satın Alma Proforma Son Tarihi", fa: "مهلت پیش‌فاکتور خرید" },
+  inventory: { en: "Inventory", ar: "المخزون", tr: "Stok", fa: "موجودی" },
+  invoiceManagement: { en: "Invoice Management", ar: "إدارة الفواتير", tr: "Fatura Yönetimi", fa: "مدیریت فاکتورها" },
+  returnedItems: { en: "Returned Items", ar: "العناصر المرتجعة", tr: "İade Edilenler", fa: "اقلام برگشتی" },
+  abandonedCart: { en: "Abandoned Cart", ar: "السلة المتروكة", tr: "Terk Edilmiş Sepet", fa: "سبدهای رهاشده" },
+  salesReports: { en: "Sales Reports", ar: "تقارير المبيعات", tr: "Satış Raporları", fa: "گزارش‌های فروش" },
+  orderManagement: { en: "Order Management", ar: "إدارة الطلبات", tr: "Sipariş Yönetimi", fa: "مدیریت سفارش‌ها" },
+  searchOrders: { en: "Search orders...", ar: "البحث في الطلبات...", tr: "Siparişlerde ara...", fa: "جستجوی سفارش‌ها..." },
+  filterStatus: { en: "Filter by status", ar: "تصفية حسب الحالة", tr: "Duruma göre filtrele", fa: "فیلتر بر اساس وضعیت" },
+  allOrders: { en: "All Orders", ar: "كل الطلبات", tr: "Tüm Siparişler", fa: "همه سفارش‌ها" },
+  pending: { en: "Pending", ar: "معلق", tr: "Beklemede", fa: "در انتظار" },
+  confirmed: { en: "Confirmed", ar: "مؤكد", tr: "Onaylandı", fa: "تأیید شده" },
+  shipped: { en: "Shipped", ar: "تم الشحن", tr: "Kargolandı", fa: "ارسال شده" },
+  delivered: { en: "Delivered", ar: "تم التسليم", tr: "Teslim Edildi", fa: "تحویل داده شده" },
+  cancelled: { en: "Cancelled", ar: "ملغى", tr: "İptal Edildi", fa: "لغو شده" },
+  orderNumber: { en: "Order Number", ar: "رقم الطلب", tr: "Sipariş No", fa: "شماره سفارش" },
+  customerName: { en: "Customer Name", ar: "اسم العميل", tr: "Müşteri Adı", fa: "نام مشتری" },
+  mobile: { en: "Mobile", ar: "الجوال", tr: "Cep Telefonu", fa: "موبایل" },
+  email: { en: "Email", ar: "البريد الإلكتروني", tr: "E-posta", fa: "ایمیل" },
+  totalAmount: { en: "Total Amount", ar: "المبلغ الإجمالي", tr: "Toplam Tutar", fa: "مبلغ کل" },
+  status: { en: "Status", ar: "الحالة", tr: "Durum", fa: "وضعیت" },
+  invoiceType: { en: "Invoice Type", ar: "نوع الفاتورة", tr: "Fatura Türü", fa: "نوع فاکتور" },
+  date: { en: "Date", ar: "التاريخ", tr: "Tarih", fa: "تاریخ" },
+  actions: { en: "Actions", ar: "الإجراءات", tr: "İşlemler", fa: "عملیات" },
+  details: { en: "Details", ar: "التفاصيل", tr: "Detaylar", fa: "جزئیات" },
+  invoice: { en: "Invoice", ar: "فاتورة", tr: "Fatura", fa: "فاکتور" },
+  proforma: { en: "Proforma", ar: "فاتورة أولية", tr: "Proforma", fa: "پیش‌فاکتور" },
+  noOrders: { en: "No orders found", ar: "لم يتم العثور على طلبات", tr: "Sipariş bulunamadı", fa: "هیچ سفارشی یافت نشد" },
+  scrollOrders: { en: "Scroll to view all {count} orders", ar: "مرر لعرض الطلبات الـ {count} كلها", tr: "Tüm {count} siparişi görmek için kaydırın", fa: "برای مشاهده هر {count} سفارش پیمایش کنید" },
+  inventoryManagement: { en: "Inventory Management", ar: "إدارة المخزون", tr: "Stok Yönetimi", fa: "مدیریت موجودی" },
+  sku: { en: "SKU", ar: "رمز المنتج", tr: "SKU", fa: "شناسه کالا" },
+  price: { en: "Price", ar: "السعر", tr: "Fiyat", fa: "قیمت" },
+  stock: { en: "Stock", ar: "المخزون", tr: "Stok", fa: "موجودی" },
+  inStock: { en: "In Stock", ar: "متوفر", tr: "Stokta", fa: "موجود" },
+  lowStock: { en: "Low Stock", ar: "مخزون منخفض", tr: "Düşük Stok", fa: "موجودی کم" },
+  createDiscount: { en: "Create New Discount", ar: "إنشاء خصم جديد", tr: "Yeni İndirim Oluştur", fa: "ایجاد تخفیف جدید" },
+  noDiscounts: { en: "No discounts created yet", ar: "لم يتم إنشاء خصومات بعد", tr: "Henüz indirim oluşturulmadı", fa: "هنوز تخفیفی ایجاد نشده است" },
+  createDiscountHint: { en: 'Click "Create New Discount" to get started', ar: "انقر على «إنشاء خصم جديد» للبدء", tr: "Başlamak için «Yeni İndirim Oluştur» seçeneğine tıklayın", fa: "برای شروع روی «ایجاد تخفیف جدید» کلیک کنید" },
+  active: { en: "Active", ar: "فعال", tr: "Aktif", fa: "فعال" },
+  inactive: { en: "Inactive", ar: "غير فعال", tr: "Pasif", fa: "غیرفعال" },
+  discountUpdated: { en: "Discount Updated", ar: "تم تحديث الخصم", tr: "İndirim Güncellendi", fa: "تخفیف به‌روزرسانی شد" },
+  bulkConfiguration: { en: "Bulk Purchase Configuration", ar: "إعداد المشتريات بالجملة", tr: "Toplu Alım Yapılandırması", fa: "پیکربندی خرید عمده" },
+  noProducts: { en: "No products available", ar: "لا توجد منتجات", tr: "Ürün bulunamadı", fa: "محصولی موجود نیست" },
+  bulkHint: { en: "Add products to configure bulk purchases", ar: "أضف منتجات لإعداد المشتريات بالجملة", tr: "Toplu alımları yapılandırmak için ürün ekleyin", fa: "برای پیکربندی خرید عمده محصول اضافه کنید" },
+  deadlineSettings: { en: "Purchase Proforma Deadline Settings", ar: "إعدادات مهلة الفاتورة الأولية للشراء", tr: "Satın Alma Proforma Son Tarihi Ayarları", fa: "تنظیمات مهلت پیش‌فاکتور خرید" },
+  deadlineAlert: { en: "This setting applies to all products in the shop and displays in checkout and purchase cards.", ar: "ينطبق هذا الإعداد على جميع منتجات المتجر ويظهر عند الدفع وفي بطاقات الشراء.", tr: "Bu ayar mağazadaki tüm ürünlere uygulanır ve ödeme ile satın alma kartlarında gösterilir.", fa: "این تنظیم برای همه محصولات فروشگاه اعمال شده و در صفحه پرداخت و کارت‌های خرید نمایش داده می‌شود." },
+  paymentDeadline: { en: "Payment Deadline (Days)", ar: "مهلة الدفع (بالأيام)", tr: "Ödeme Son Tarihi (Gün)", fa: "مهلت پرداخت (روز)" },
+  deadlineHint: { en: "Number of days for payment deadline (minimum 1 day, maximum 30 days)", ar: "عدد أيام مهلة الدفع (يوم واحد كحد أدنى و30 يوماً كحد أقصى)", tr: "Ödeme son tarihi için gün sayısı (en az 1, en fazla 30 gün)", fa: "تعداد روزهای مهلت پرداخت (حداقل ۱ و حداکثر ۳۰ روز)" },
+  previewMessage: { en: "Preview Message", ar: "رسالة المعاينة", tr: "Önizleme Mesajı", fa: "پیام پیش‌نمایش" },
+  deadlineDays: { en: "Payment deadline: {days} days", ar: "مهلة الدفع: {days} أيام", tr: "Ödeme son tarihi: {days} gün", fa: "مهلت پرداخت: {days} روز" },
+  deadlinePreviewHint: { en: "This message displays in purchase cards and checkout page", ar: "تظهر هذه الرسالة في بطاقات الشراء وصفحة الدفع", tr: "Bu mesaj satın alma kartlarında ve ödeme sayfasında gösterilir", fa: "این پیام در کارت‌های خرید و صفحه پرداخت نمایش داده می‌شود" },
+  saveSettings: { en: "Save Settings", ar: "حفظ الإعدادات", tr: "Ayarları Kaydet", fa: "ذخیره تنظیمات" },
+  saving: { en: "Saving...", ar: "جارٍ الحفظ...", tr: "Kaydediliyor...", fa: "در حال ذخیره..." },
+  reminderSchedule: { en: "Customer Reminder Schedule", ar: "جدول تذكير العملاء", tr: "Müşteri Hatırlatma Planı", fa: "جدول زمانی یادآوری مشتریان" },
+  daysBeforeDeadline: { en: "Days before deadline:", ar: "الأيام قبل انتهاء المهلة:", tr: "Son tarihten önceki gün sayısı:", fa: "روز قبل از پایان مهلت:" },
+  sendTime: { en: "Send time:", ar: "وقت الإرسال:", tr: "Gönderim saati:", fa: "ساعت ارسال:" },
+  smsTemplate: { en: "SMS template:", ar: "قالب الرسائل القصيرة:", tr: "SMS şablonu:", fa: "قالب پیامک:" },
+  emailTemplate: { en: "Email template:", ar: "قالب البريد الإلكتروني:", tr: "E-posta şablonu:", fa: "قالب ایمیل:" },
+  chooseSms: { en: "Choose SMS template", ar: "اختر قالب الرسائل القصيرة", tr: "SMS şablonu seçin", fa: "انتخاب قالب پیامک" },
+  chooseEmail: { en: "Choose email template", ar: "اختر قالب البريد الإلكتروني", tr: "E-posta şablonu seçin", fa: "انتخاب قالب ایمیل" },
+  noTemplate: { en: "No template", ar: "بدون قالب", tr: "Şablon yok", fa: "بدون قالب" },
+  add: { en: "Add", ar: "إضافة", tr: "Ekle", fa: "افزودن" },
+  editReminder: { en: "Edit Payment Reminder", ar: "تعديل تذكير الدفع", tr: "Ödeme Hatırlatıcısını Düzenle", fa: "ویرایش یادآوری پرداخت" },
+  cancel: { en: "Cancel", ar: "إلغاء", tr: "İptal", fa: "انصراف" },
+  update: { en: "Update", ar: "تحديث", tr: "Güncelle", fa: "بروزرسانی" },
+  updating: { en: "Updating...", ar: "جارٍ التحديث...", tr: "Güncelleniyor...", fa: "در حال بروزرسانی..." },
+  noReminders: { en: "No reminders configured", ar: "لم يتم إعداد تذكيرات", tr: "Yapılandırılmış hatırlatma yok", fa: "هیچ یادآوری تنظیم نشده است" },
+  reminderNote: { en: "Reminders are sent according to local time. Customers will be notified by email and SMS.", ar: "يتم إرسال التذكيرات حسب التوقيت المحلي. سيتم إخطار العملاء عبر البريد الإلكتروني والرسائل القصيرة.", tr: "Hatırlatmalar yerel saate göre gönderilir. Müşterilere e-posta ve SMS ile bildirim gönderilir.", fa: "یادآوری‌ها بر اساس ساعت محلی ارسال می‌شوند. مشتریان از طریق ایمیل و پیامک مطلع خواهند شد." },
+  returnsManagement: { en: "Returned Items Management", ar: "إدارة العناصر المرتجعة", tr: "İade Edilenler Yönetimi", fa: "مدیریت اقلام برگشتی" },
+  addReturn: { en: "Add New Return", ar: "إضافة مرتجع جديد", tr: "Yeni İade Ekle", fa: "افزودن برگشتی جدید" },
+  totalReturns: { en: "Total Returns", ar: "إجمالي المرتجعات", tr: "Toplam İade", fa: "کل برگشتی‌ها" },
+  totalReturnAmount: { en: "Total Return Amount", ar: "إجمالي مبلغ المرتجعات", tr: "Toplam İade Tutarı", fa: "کل مبلغ برگشتی" },
+  pendingReturns: { en: "Pending Returns", ar: "المرتجعات المعلقة", tr: "Bekleyen İadeler", fa: "برگشتی‌های در انتظار" },
+  approvedReturns: { en: "Approved Returns", ar: "المرتجعات المعتمدة", tr: "Onaylanan İadeler", fa: "برگشتی‌های تأییدشده" },
+  returnsList: { en: "Returns List", ar: "قائمة المرتجعات", tr: "İade Listesi", fa: "فهرست برگشتی‌ها" },
+  returnDate: { en: "Return Date", ar: "تاريخ الإرجاع", tr: "İade Tarihi", fa: "تاریخ برگشت" },
+  amount: { en: "Amount", ar: "المبلغ", tr: "Tutar", fa: "مبلغ" },
+  noReturns: { en: "No returns found", ar: "لم يتم العثور على مرتجعات", tr: "İade bulunamadı", fa: "هیچ برگشتی یافت نشد" },
+  returnDetails: { en: "Return Details", ar: "تفاصيل المرتجع", tr: "İade Detayları", fa: "جزئیات برگشتی" },
+  returnQuantity: { en: "Return Quantity", ar: "كمية الإرجاع", tr: "İade Miktarı", fa: "تعداد برگشتی" },
+  returnAmount: { en: "Return Amount", ar: "مبلغ الإرجاع", tr: "İade Tutarı", fa: "مبلغ برگشتی" },
+  returnReason: { en: "Return Reason", ar: "سبب الإرجاع", tr: "İade Nedeni", fa: "دلیل برگشت" },
+  orderDetails: { en: "Order Details", ar: "تفاصيل الطلب", tr: "Sipariş Detayları", fa: "جزئیات سفارش" },
+  customerInfo: { en: "Customer Information", ar: "معلومات العميل", tr: "Müşteri Bilgileri", fa: "اطلاعات مشتری" },
+  company: { en: "Company", ar: "الشركة", tr: "Şirket", fa: "شرکت" },
+  city: { en: "City", ar: "المدينة", tr: "Şehir", fa: "شهر" },
+  address: { en: "Address", ar: "العنوان", tr: "Adres", fa: "آدرس" },
+  orderSummary: { en: "Order Summary", ar: "ملخص الطلب", tr: "Sipariş Özeti", fa: "خلاصه سفارش" },
+  orderDate: { en: "Order Date", ar: "تاريخ الطلب", tr: "Sipariş Tarihi", fa: "تاریخ سفارش" },
+  orderStatus: { en: "Order Status", ar: "حالة الطلب", tr: "Sipariş Durumu", fa: "وضعیت سفارش" },
+  orderItems: { en: "Order Items ({count} items)", ar: "عناصر الطلب ({count})", tr: "Sipariş Kalemleri ({count} ürün)", fa: "اقلام سفارش ({count} قلم)" },
+  productName: { en: "Product Name", ar: "اسم المنتج", tr: "Ürün Adı", fa: "نام محصول" },
+  productCode: { en: "Product code", ar: "رمز المنتج", tr: "Ürün kodu", fa: "کد محصول" },
+  unitPrice: { en: "Unit price", ar: "سعر الوحدة", tr: "Birim fiyat", fa: "قیمت واحد" },
+  quantity: { en: "Quantity", ar: "الكمية", tr: "Miktar", fa: "تعداد" },
+  noItems: { en: "No items found for this order", ar: "لم يتم العثور على عناصر لهذا الطلب", tr: "Bu sipariş için ürün bulunamadı", fa: "هیچ قلمی برای این سفارش یافت نشد" },
+  paymentInfo: { en: "Payment Information", ar: "معلومات الدفع", tr: "Ödeme Bilgileri", fa: "اطلاعات پرداخت" },
+  paymentMethod: { en: "Payment Method", ar: "طريقة الدفع", tr: "Ödeme Yöntemi", fa: "روش پرداخت" },
+  paymentStatus: { en: "Payment Status", ar: "حالة الدفع", tr: "Ödeme Durumu", fa: "وضعیت پرداخت" },
+  paid: { en: "Paid", ar: "مدفوع", tr: "Ödendi", fa: "پرداخت شده" },
+  pendingPayment: { en: "Pending Payment", ar: "في انتظار الدفع", tr: "Ödeme Bekliyor", fa: "در انتظار پرداخت" },
+  failed: { en: "Failed", ar: "فشل", tr: "Başarısız", fa: "ناموفق" },
+  unknown: { en: "Unknown", ar: "غير معروف", tr: "Bilinmiyor", fa: "نامشخص" },
+  fundingSources: { en: "Funding Sources", ar: "مصادر التمويل", tr: "Finansman Kaynakları", fa: "جزئیات منابع تامین وجه" },
+  wallet: { en: "Wallet", ar: "المحفظة", tr: "Cüzdan", fa: "کیف پول" },
+  partialWallet: { en: "Wallet (partial order)", ar: "المحفظة (طلب جزئي)", tr: "Cüzdan (kısmi sipariş)", fa: "کیف پول (سفارش ناقص)" },
+  incompleteWallet: { en: "Incomplete payment - wallet not debited", ar: "دفع غير مكتمل - لم يتم الخصم من المحفظة", tr: "Tamamlanmamış ödeme - cüzdan düşülmedi", fa: "پرداخت ناتمام - کیف پول کسر نشده" },
+  bankGateway: { en: "Bank Gateway", ar: "البوابة المصرفية", tr: "Banka Geçidi", fa: "درگاه بانکی" },
+  fullBankGateway: { en: "Bank Gateway (full)", ar: "البوابة المصرفية (كاملة)", tr: "Banka Geçidi (tam)", fa: "درگاه بانکی (کامل)" },
+  onlinePayment: { en: "Online Payment", ar: "الدفع الإلكتروني", tr: "Online Ödeme", fa: "پرداخت آنلاین" },
+  bankTransfer: { en: "Bank Transfer", ar: "تحويل مصرفي", tr: "Banka Havalesi", fa: "انتقال بانکی" },
+  graceBankTransfer: { en: "Bank Transfer (grace period)", ar: "تحويل مصرفي (فترة سماح)", tr: "Banka Havalesi (ek süre)", fa: "انتقال بانکی (دوره مهلت)" },
+  hybridPayment: { en: "Hybrid (wallet + bank)", ar: "مختلط (محفظة + بنك)", tr: "Karma (cüzdan + banka)", fa: "ترکیبی (کیف پول + بانک)" },
+  cash: { en: "Cash", ar: "نقدي", tr: "Nakit", fa: "نقدی" },
+  credit: { en: "Credit", ar: "ائتماني", tr: "Kredi", fa: "اعتباری" },
+  discount: { en: "Discount", ar: "الخصم", tr: "İndirim", fa: "تخفیف" },
+  tax: { en: "Tax", ar: "الضريبة", tr: "Vergi", fa: "مالیات" },
+  shippingInfo: { en: "Shipping Information", ar: "معلومات الشحن", tr: "Kargo Bilgileri", fa: "اطلاعات ارسال" },
+  carrier: { en: "Carrier", ar: "شركة الشحن", tr: "Kargo şirketi", fa: "شرکت حمل" },
+  tracking: { en: "Tracking number", ar: "رقم التتبع", tr: "Takip numarası", fa: "کد رهگیری" },
+  shippingAddress: { en: "Shipping address", ar: "عنوان الشحن", tr: "Teslimat adresi", fa: "آدرس ارسال" },
+  close: { en: "Close", ar: "إغلاق", tr: "Kapat", fa: "بستن" },
+  productIdOptional: { en: "Product ID (Optional)", ar: "معرّف المنتج (اختياري)", tr: "Ürün Kimliği (İsteğe bağlı)", fa: "شناسه محصول (اختیاری)" },
+  enterProductId: { en: "Enter product ID", ar: "أدخل معرّف المنتج", tr: "Ürün kimliğini girin", fa: "شناسه محصول را وارد کنید" },
+  enterProductName: { en: "Enter product name", ar: "أدخل اسم المنتج", tr: "Ürün adını girin", fa: "نام محصول را وارد کنید" },
+  productHint: { en: "Type at least 3 characters of the product name to see the product list", ar: "اكتب 3 أحرف على الأقل من اسم المنتج لعرض القائمة", tr: "Ürün listesini görmek için ürün adının en az 3 karakterini yazın", fa: "حداقل ۳ حرف از نام محصول را تایپ کنید تا فهرست محصولات نمایش داده شود" },
+  enterQuantity: { en: "Enter quantity", ar: "أدخل الكمية", tr: "Miktarı girin", fa: "تعداد را وارد کنید" },
+  enterReturnAmount: { en: "Enter return amount", ar: "أدخل مبلغ الإرجاع", tr: "İade tutarını girin", fa: "مبلغ برگشتی را وارد کنید" },
+  enterCustomerName: { en: "Enter customer name", ar: "أدخل اسم العميل", tr: "Müşteri adını girin", fa: "نام مشتری را وارد کنید" },
+  customerPhone: { en: "Customer Phone", ar: "هاتف العميل", tr: "Müşteri Telefonu", fa: "تلفن مشتری" },
+  enterPhone: { en: "Enter phone number", ar: "أدخل رقم الهاتف", tr: "Telefon numarasını girin", fa: "شماره تلفن را وارد کنید" },
+  phoneHint: { en: "Type at least 3 digits of the phone number to see customers", ar: "اكتب 3 أرقام على الأقل من رقم الهاتف لعرض العملاء", tr: "Müşterileri görmek için telefon numarasının en az 3 hanesini yazın", fa: "حداقل ۳ رقم از شماره تلفن را تایپ کنید تا فهرست مشتریان نمایش داده شود" },
+  customerEmail: { en: "Customer Email", ar: "بريد العميل", tr: "Müşteri E-postası", fa: "ایمیل مشتری" },
+  enterEmail: { en: "Enter email address", ar: "أدخل عنوان البريد الإلكتروني", tr: "E-posta adresini girin", fa: "آدرس ایمیل را وارد کنید" },
+  refundStatus: { en: "Refund Status", ar: "حالة الاسترداد", tr: "İade Durumu", fa: "وضعیت بازپرداخت" },
+  approved: { en: "Approved", ar: "معتمد", tr: "Onaylandı", fa: "تأیید شده" },
+  rejected: { en: "Rejected", ar: "مرفوض", tr: "Reddedildi", fa: "رد شده" },
+  refunded: { en: "Refunded", ar: "تم الاسترداد", tr: "İade Edildi", fa: "بازپرداخت شده" },
+  enterReason: { en: "Enter reason for return", ar: "أدخل سبب الإرجاع", tr: "İade nedenini girin", fa: "دلیل برگشت را وارد کنید" },
+  smsContent: { en: "SMS content:", ar: "محتوى الرسائل القصيرة:", tr: "SMS içeriği:", fa: "محتوای پیامک:" },
+  emailContent: { en: "Full template content:", ar: "محتوى القالب الكامل:", tr: "Tam şablon içeriği:", fa: "محتوای کامل قالب:" },
+  emailSubject: { en: "Email subject:", ar: "موضوع البريد الإلكتروني:", tr: "E-posta konusu:", fa: "عنوان ایمیل:" },
+  unavailableSms: { en: "SMS content unavailable", ar: "محتوى الرسائل القصيرة غير متاح", tr: "SMS içeriği kullanılamıyor", fa: "محتوای پیامک در دسترس نیست" },
+  unavailableEmail: { en: "Email content unavailable", ar: "محتوى البريد الإلكتروني غير متاح", tr: "E-posta içeriği kullanılamıyor", fa: "محتوای ایمیل در دسترس نیست" },
+  unavailableSubject: { en: "Subject unavailable", ar: "الموضوع غير متاح", tr: "Konu kullanılamıyor", fa: "عنوان در دسترس نیست" },
+  unitMeasurement: { en: "Unit of measure:", ar: "وحدة القياس:", tr: "Ölçü birimi:", fa: "واحد اندازه‌گیری:" },
+  creating: { en: "Creating...", ar: "جارٍ الإنشاء...", tr: "Oluşturuluyor...", fa: "در حال ایجاد..." },
+  createReturn: { en: "Create Return", ar: "إنشاء مرتجع", tr: "İade Oluştur", fa: "ثبت برگشت" },
+  selected: { en: "Selected", ar: "تم الاختيار", tr: "Seçildi", fa: "انتخاب شد" },
+  discountName: { en: "Discount Name", ar: "اسم الخصم", tr: "İndirim Adı", fa: "نام تخفیف" },
+  description: { en: "Description", ar: "الوصف", tr: "Açıklama", fa: "توضیحات" },
+  discountPercentage: { en: "Discount Percentage (%)", ar: "نسبة الخصم (%)", tr: "İndirim Yüzdesi (%)", fa: "درصد تخفیف (%)" },
+  minOrderAmount: { en: "Minimum Order Amount ($)", ar: "الحد الأدنى لمبلغ الطلب ($)", tr: "Minimum Sipariş Tutarı ($)", fa: "حداقل مبلغ سفارش ($)" },
+  maxDiscountAmount: { en: "Maximum Discount Amount ($)", ar: "الحد الأقصى لمبلغ الخصم ($)", tr: "Maksimum İndirim Tutarı ($)", fa: "حداکثر مبلغ تخفیف ($)" },
+  startDate: { en: "Start Date (Gregorian)", ar: "تاريخ البدء (ميلادي)", tr: "Başlangıç Tarihi (Miladi)", fa: "تاریخ شروع (میلادی)" },
+  endDate: { en: "End Date (Gregorian)", ar: "تاريخ الانتهاء (ميلادي)", tr: "Bitiş Tarihi (Miladi)", fa: "تاریخ پایان (میلادی)" },
+  usageLimit: { en: "Usage Limit", ar: "حد الاستخدام", tr: "Kullanım Sınırı", fa: "محدودیت استفاده" },
+  applyAll: { en: "Apply to all products", ar: "تطبيق على جميع المنتجات", tr: "Tüm ürünlere uygula", fa: "اعمال روی تمام محصولات" },
+  chooseProduct: { en: "Choose specific products:", ar: "اختر منتجات محددة:", tr: "Belirli ürünleri seçin:", fa: "انتخاب محصول مشخص:" },
+  selectedProducts: { en: "{count} products selected", ar: "تم اختيار {count} منتجاً", tr: "{count} ürün seçildi", fa: "{count} محصول انتخاب شده" },
+  requiredFields: { en: "Name and discount percentage are required", ar: "الاسم ونسبة الخصم مطلوبان", tr: "Ad ve indirim yüzdesi gereklidir", fa: "نام و درصد تخفیف الزامی است" },
+  percentageRange: { en: "Discount percentage must be between 0 and 100", ar: "يجب أن تكون نسبة الخصم بين 0 و100", tr: "İndirim yüzdesi 0 ile 100 arasında olmalıdır", fa: "درصد تخفیف باید بین ۰ و ۱۰۰ باشد" },
+  success: { en: "Success", ar: "نجاح", tr: "Başarılı", fa: "موفقیت" },
+  error: { en: "Error", ar: "خطأ", tr: "Hata", fa: "خطا" },
+  updated: { en: "Updated", ar: "تم التحديث", tr: "Güncellendi", fa: "به‌روزرسانی شد" },
+  orderUpdated: { en: "Order status has been updated successfully.", ar: "تم تحديث حالة الطلب بنجاح.", tr: "Sipariş durumu başarıyla güncellendi.", fa: "وضعیت سفارش با موفقیت به‌روزرسانی شد." },
+  updateFailed: { en: "Update Failed", ar: "فشل التحديث", tr: "Güncelleme Başarısız", fa: "به‌روزرسانی ناموفق بود" },
+  orderUpdateFailed: { en: "Failed to update order status.", ar: "فشل تحديث حالة الطلب.", tr: "Sipariş durumu güncellenemedi.", fa: "به‌روزرسانی وضعیت سفارش ناموفق بود." },
+  discountUpdateFailed: { en: "Failed to update discount.", ar: "فشل تحديث الخصم.", tr: "İndirim güncellenemedi.", fa: "به‌روزرسانی تخفیف ناموفق بود." },
+  deleteReturn: { en: "Return deleted successfully", ar: "تم حذف المرتجع بنجاح", tr: "İade başarıyla silindi", fa: "برگشتی با موفقیت حذف شد" },
+  deleteReturnFailed: { en: "Failed to delete return", ar: "فشل حذف المرتجع", tr: "İade silinemedi", fa: "حذف برگشتی ناموفق بود" },
+  deleteDiscount: { en: "Discount deleted successfully", ar: "تم حذف الخصم بنجاح", tr: "İndirim başarıyla silindi", fa: "تخفیف با موفقیت حذف شد" },
+  confirmDeleteDiscount: { en: "Are you sure you want to delete this discount?", ar: "هل أنت متأكد من حذف هذا الخصم؟", tr: "Bu indirimi silmek istediğinizden emin misiniz?", fa: "آیا از حذف این تخفیف اطمینان دارید؟" },
+  convertInvoice: { en: "Order successfully converted from proforma to invoice", ar: "تم تحويل الطلب من فاتورة أولية إلى فاتورة بنجاح", tr: "Sipariş proformadan faturaya başarıyla dönüştürüldü", fa: "سفارش با موفقیت از پیش‌فاکتور به فاکتور تبدیل شد" },
+  convertInvoiceFailed: { en: "Failed to convert proforma to invoice", ar: "فشل تحويل الفاتورة الأولية إلى فاتورة", tr: "Proforma faturaya dönüştürülemedi", fa: "تبدیل پیش‌فاکتور به فاکتور ناموفق بود" },
+  editDiscount: { en: "Edit Discount", ar: "تعديل الخصم", tr: "İndirimi Düzenle", fa: "ویرایش تخفیف" },
+  createNewDiscount: { en: "Create New Discount", ar: "إنشاء خصم جديد", tr: "Yeni İndirim Oluştur", fa: "ایجاد تخفیف جدید" },
+};
+
+function useShopTranslations() {
+  const { language, direction } = useLanguage();
+  const tr = (key: string, values: Record<string, string | number> = {}) => {
+    const template = SHOP_TRANSLATIONS[key]?.[language] || SHOP_TRANSLATIONS[key]?.en || key;
+    return Object.entries(values).reduce((text, [name, value]) => text.replace(`{${name}}`, String(value)), template);
+  };
+  return { tr, direction, language };
+}
 
 export default function ShopAdmin() {
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
@@ -77,6 +279,22 @@ export default function ShopAdmin() {
   // State for proforma to invoice conversion
   const [isConvertingInvoice, setIsConvertingInvoice] = useState(false);
   const { toast } = useToast();
+  const { tr, direction, language } = useShopTranslations();
+  const dateLocale = language === "fa" ? "fa-IR" : language === "ar" ? "ar" : language === "tr" ? "tr-TR" : "en-US";
+  const paymentMethodLabel = (method?: string | null) => {
+    if (!method) return tr("unknown");
+    const labels: Record<string, string> = {
+      wallet_full: tr("wallet"),
+      wallet_partial: tr("partialWallet"),
+      online_payment: tr("onlinePayment"),
+      bank_transfer: tr("bankTransfer"),
+      bank_transfer_grace: tr("graceBankTransfer"),
+      hybrid: tr("hybridPayment"),
+      cash: tr("cash"),
+      credit: tr("credit"),
+    };
+    return labels[method.toLowerCase()] || method;
+  };
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -105,19 +323,19 @@ export default function ShopAdmin() {
   
   // Helper functions to get template content for tooltips
   const getEmailTemplateContent = (templateId: string | number) => {
-    if (!fullEmailTemplates || !Array.isArray(fullEmailTemplates)) return 'محتوای ایمیل در دسترس نیست';
+    if (!fullEmailTemplates || !Array.isArray(fullEmailTemplates)) return tr("unavailableEmail");
     
     const template = fullEmailTemplates.find(t => t.id === parseInt(templateId.toString()));
-    if (!template) return 'محتوای ایمیل در دسترس نیست';
+    if (!template) return tr("unavailableEmail");
     
-    return `موضوع: ${template.subject || 'بدون موضوع'}\n\nمحتوا: ${template.htmlContent || template.textContent || 'بدون محتوا'}`;
+    return `${tr("emailSubject")} ${template.subject || tr("unknown")}\n\n${tr("emailContent")} ${template.htmlContent || template.textContent || tr("unknown")}`;
   };
   
   const getSmsTemplateContent = (templateId: string | number) => {
-    if (!smsTemplates || !Array.isArray(smsTemplates)) return 'محتوای پیامک در دسترس نیست';
+    if (!smsTemplates || !Array.isArray(smsTemplates)) return tr("unavailableSms");
     
     const template = smsTemplates.find(t => t.id === parseInt(templateId.toString()));
-    return template?.templateText || 'محتوای پیامک در دسترس نیست';
+    return template?.templateText || tr("unavailableSms");
   };
 
   // Authentication check
@@ -232,8 +450,8 @@ export default function ShopAdmin() {
     },
     onSuccess: () => {
       toast({
-        title: "Success", 
-        description: "Proforma deadline updated successfully",
+        title: tr("success"),
+        description: tr("updated"),
       });
       // Force refresh the settings data
       queryClient.invalidateQueries({ queryKey: ['/api/shop/settings'] });
@@ -243,8 +461,8 @@ export default function ShopAdmin() {
     },
     onError: (error: any) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to update proforma deadline",
+        title: tr("error"),
+        description: error.message || tr("updateFailed"),
         variant: "destructive",
       });
     },
@@ -275,14 +493,14 @@ export default function ShopAdmin() {
       setSmsTemplateId("");
       setEmailTemplateId("");
       toast({
-        title: "موفق",
-        description: "یادآوری جدید با موفقیت اضافه شد",
+        title: tr("success"),
+        description: tr("add"),
       });
     },
     onError: (error: any) => {
       toast({
-        title: "خطا",
-        description: error.message || "خطا در اضافه کردن یادآوری",
+        title: tr("error"),
+        description: error.message || tr("error"),
         variant: "destructive",
       });
     },
@@ -298,14 +516,14 @@ export default function ShopAdmin() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/shop/proforma-reminders"] });
       toast({
-        title: "موفق",
-        description: "یادآوری با موفقیت حذف شد",
+        title: tr("success"),
+        description: tr("deleteDiscount"),
       });
     },
     onError: (error: any) => {
       toast({
-        title: "خطا", 
-        description: error.message || "خطا در حذف یادآوری",
+        title: tr("error"),
+        description: error.message || tr("error"),
         variant: "destructive",
       });
     },
@@ -339,14 +557,14 @@ export default function ShopAdmin() {
       setSmsTemplateId("");
       setEmailTemplateId("");
       toast({
-        title: "موفق",
-        description: "یادآوری با موفقیت بروزرسانی شد",
+        title: tr("success"),
+        description: tr("updated"),
       });
     },
     onError: (error: any) => {
       toast({
-        title: "خطا",
-        description: error.message || "خطا در بروزرسانی یادآوری",
+        title: tr("error"),
+        description: error.message || tr("error"),
         variant: "destructive",
       });
     },
@@ -361,14 +579,14 @@ export default function ShopAdmin() {
       queryClient.invalidateQueries({ queryKey: ["/api/orders/all"] });
       queryClient.invalidateQueries({ queryKey: ["/api/shop/statistics"] });
       toast({
-        title: "Order Updated",
-        description: "Order status has been updated successfully.",
+        title: tr("updated"),
+        description: tr("orderUpdated"),
       });
     },
     onError: () => {
       toast({
-        title: "Update Failed",
-        description: "Failed to update order status.",
+        title: tr("updateFailed"),
+        description: tr("orderUpdateFailed"),
         variant: "destructive",
       });
     },
@@ -382,14 +600,14 @@ export default function ShopAdmin() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/shop/discounts"] });
       toast({
-        title: "Discount Updated",
-        description: "Discount has been updated successfully.",
+        title: tr("updated"),
+        description: tr("discountUpdated"),
       });
     },
     onError: () => {
       toast({
-        title: "Update Failed",
-        description: "Failed to update discount.",
+        title: tr("updateFailed"),
+        description: tr("discountUpdateFailed"),
         variant: "destructive",
       });
     },
@@ -403,14 +621,14 @@ export default function ShopAdmin() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/shop/discounts"] });
       toast({
-        title: "موفقیت",
-        description: "تخفیف با موفقیت حذف شد",
+        title: tr("success"),
+        description: tr("deleteDiscount"),
       });
     },
     onError: () => {
       toast({
-        title: "خطا",
-        description: "خطا در حذف تخفیف",
+        title: tr("error"),
+        description: tr("error"),
         variant: "destructive",
       });
     },
@@ -426,14 +644,14 @@ export default function ShopAdmin() {
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/orders/all"] });
       toast({
-        title: "موفقیت",
-        description: data.message || "سفارش با موفقیت از پیش‌فاکتور به فاکتور تبدیل شد",
+        title: tr("success"),
+        description: data.message || tr("convertInvoice"),
       });
     },
     onError: (error: any) => {
       toast({
-        title: "خطا",
-        description: error?.message || "خطا در تبدیل پیش‌فاکتور به فاکتور",
+        title: tr("error"),
+        description: error?.message || tr("convertInvoiceFailed"),
         variant: "destructive",
       });
     },
@@ -447,13 +665,13 @@ export default function ShopAdmin() {
       queryClient.invalidateQueries({ queryKey: ["/api/shop/returns"] });
       queryClient.invalidateQueries({ queryKey: ["/api/shop/returns/stats"] });
       toast({
-        title: "Success",
-        description: "Return deleted successfully",
+        title: tr("success"),
+        description: tr("deleteReturn"),
       });
     } catch (error: any) {
       toast({
-        title: "Error", 
-        description: error.message || "Failed to delete return",
+        title: tr("error"),
+        description: error.message || tr("deleteReturnFailed"),
         variant: "destructive",
       });
     }
@@ -472,13 +690,13 @@ export default function ShopAdmin() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-6" dir={direction}>
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Shop Administration</h1>
-            <p className="text-gray-600">Manage your e-commerce operations</p>
+            <h1 className="text-3xl font-bold text-gray-900">{tr("shopAdministration")}</h1>
+            <p className="text-gray-600">{tr("manageOperations")}</p>
           </div>
           <Button
             onClick={() => queryClient.invalidateQueries()}
@@ -486,7 +704,7 @@ export default function ShopAdmin() {
             className="flex items-center gap-2"
           >
             <RefreshCw className="w-4 h-4" />
-            Refresh Data
+            {tr("refreshData")}
           </Button>
         </div>
 
@@ -496,7 +714,7 @@ export default function ShopAdmin() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Total Orders</p>
+                  <p className="text-sm font-medium text-gray-600">{tr("totalOrders")}</p>
                   <p className="text-2xl font-bold text-gray-900">{stats.totalOrders || 0}</p>
                 </div>
                 <ShoppingCart className="w-8 h-8 text-blue-600" />
@@ -508,7 +726,7 @@ export default function ShopAdmin() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Pending Orders</p>
+                  <p className="text-sm font-medium text-gray-600">{tr("pendingOrders")}</p>
                   <p className="text-2xl font-bold text-orange-600">{stats.pendingOrders || 0}</p>
                 </div>
                 <Clock className="w-8 h-8 text-orange-600" />
@@ -520,7 +738,7 @@ export default function ShopAdmin() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Products</p>
+                  <p className="text-sm font-medium text-gray-600">{tr("products")}</p>
                   <p className="text-2xl font-bold text-green-600">{products.length}</p>
                 </div>
                 <Package className="w-8 h-8 text-green-600" />
@@ -532,7 +750,7 @@ export default function ShopAdmin() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Revenue</p>
+                  <p className="text-sm font-medium text-gray-600">{tr("revenue")}</p>
                   <p className="text-2xl font-bold text-purple-600">${accountingStats.totalRevenue || 0}</p>
                 </div>
                 <TrendingUp className="w-8 h-8 text-purple-600" />
@@ -544,15 +762,15 @@ export default function ShopAdmin() {
         {/* Main Content Tabs */}
         <Tabs defaultValue="orders" className="space-y-6">
           <TabsList className="grid grid-cols-5 gap-1 h-auto p-2 bg-gray-100 rounded-lg">
-            <TabsTrigger value="orders" className="text-sm px-3 py-2">Orders</TabsTrigger>
-            <TabsTrigger value="discounts" className="text-sm px-3 py-2">Discount Settings</TabsTrigger>
-            <TabsTrigger value="bulk-purchases" className="text-sm px-3 py-2">Bulk Purchases</TabsTrigger>
-            <TabsTrigger value="proforma-deadline" className="text-sm px-3 py-2">Purchase Proforma Deadline</TabsTrigger>
-            <TabsTrigger value="inventory" className="text-sm px-3 py-2">Inventory</TabsTrigger>
-            <TabsTrigger value="invoices" className="text-sm px-3 py-2">Invoice Management</TabsTrigger>
-            <TabsTrigger value="returns" className="text-sm px-3 py-2">Returned Items</TabsTrigger>
-            <TabsTrigger value="abandoned-cart" className="text-sm px-3 py-2">Abandoned Cart</TabsTrigger>
-            <TabsTrigger value="reports" className="text-sm px-3 py-2">Sales Reports</TabsTrigger>
+            <TabsTrigger value="orders" className="text-sm px-3 py-2">{tr("orders")}</TabsTrigger>
+            <TabsTrigger value="discounts" className="text-sm px-3 py-2">{tr("discountSettings")}</TabsTrigger>
+            <TabsTrigger value="bulk-purchases" className="text-sm px-3 py-2">{tr("bulkPurchases")}</TabsTrigger>
+            <TabsTrigger value="proforma-deadline" className="text-sm px-3 py-2">{tr("purchaseProformaDeadline")}</TabsTrigger>
+            <TabsTrigger value="inventory" className="text-sm px-3 py-2">{tr("inventory")}</TabsTrigger>
+            <TabsTrigger value="invoices" className="text-sm px-3 py-2">{tr("invoiceManagement")}</TabsTrigger>
+            <TabsTrigger value="returns" className="text-sm px-3 py-2">{tr("returnedItems")}</TabsTrigger>
+            <TabsTrigger value="abandoned-cart" className="text-sm px-3 py-2">{tr("abandonedCart")}</TabsTrigger>
+            <TabsTrigger value="reports" className="text-sm px-3 py-2">{tr("salesReports")}</TabsTrigger>
           </TabsList>
 
           {/* Orders Tab */}
@@ -562,7 +780,7 @@ export default function ShopAdmin() {
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
                     <ShoppingCart className="w-5 h-5" />
-                    Order Management
+                    {tr("orderManagement")}
                   </CardTitle>
                 </div>
               </CardHeader>
@@ -571,7 +789,7 @@ export default function ShopAdmin() {
                 <div className="flex gap-4 mb-6">
                   <div className="flex-1">
                     <Input
-                      placeholder="Search orders..."
+                      placeholder={tr("searchOrders")}
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="max-w-sm"
@@ -579,15 +797,15 @@ export default function ShopAdmin() {
                   </div>
                   <Select value={orderStatusFilter} onValueChange={setOrderStatusFilter}>
                     <SelectTrigger className="w-48">
-                      <SelectValue placeholder="Filter by status" />
+                      <SelectValue placeholder={tr("filterStatus")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Orders</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="confirmed">Confirmed</SelectItem>
-                      <SelectItem value="shipped">Shipped</SelectItem>
-                      <SelectItem value="delivered">Delivered</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                       <SelectItem value="all">{tr("allOrders")}</SelectItem>
+                       <SelectItem value="pending">{tr("pending")}</SelectItem>
+                       <SelectItem value="confirmed">{tr("confirmed")}</SelectItem>
+                       <SelectItem value="shipped">{tr("shipped")}</SelectItem>
+                       <SelectItem value="delivered">{tr("delivered")}</SelectItem>
+                       <SelectItem value="cancelled">{tr("cancelled")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -599,31 +817,31 @@ export default function ShopAdmin() {
                       <thead className="bg-gray-50 sticky top-0 z-10">
                         <tr>
                           <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
-                            Order Number
+                            {tr("orderNumber")}
                           </th>
                           <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">
-                            Customer Name
+                            {tr("customerName")}
                           </th>
                           <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-36">
-                            Mobile
+                            {tr("mobile")}
                           </th>
                           <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-52">
-                            Email
+                            {tr("email")}
                           </th>
                           <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
-                            Total Amount
+                            {tr("totalAmount")}
                           </th>
                           <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
-                            Status
+                            {tr("status")}
                           </th>
                           <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
-                            Invoice Type
+                            {tr("invoiceType")}
                           </th>
                           <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
-                            Date
+                            {tr("date")}
                           </th>
                           <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40">
-                            Actions
+                            {tr("actions")}
                           </th>
                         </tr>
                       </thead>
@@ -637,18 +855,18 @@ export default function ShopAdmin() {
                               <div className="truncate">
                                 {order.customer ? 
                                   `${order.customer.firstName} ${order.customer.lastName}` : 
-                                  order.customerName || 'نامشخص'
+                                  order.customerName || tr("unknown")
                                 }
                               </div>
                             </td>
                             <td className="px-3 py-2 text-sm text-gray-900 w-36">
                               <div className="truncate">
-                                {order.customer?.phone || order.mobileNumber || 'نامشخص'}
+                                {order.customer?.phone || order.mobileNumber || tr("unknown")}
                               </div>
                             </td>
                             <td className="px-3 py-2 text-sm text-gray-900 w-52">
                               <div className="truncate">
-                                {order.customer?.email || order.email || 'نامشخص'}
+                                {order.customer?.email || order.email || tr("unknown")}
                               </div>
                             </td>
                             <td className="px-3 py-2 text-sm text-gray-900 w-32">
@@ -658,12 +876,12 @@ export default function ShopAdmin() {
                             </td>
                             <td className="px-3 py-2 w-32">
                               <Badge variant={order.status === 'confirmed' ? 'default' : 'secondary'} className="text-xs">
-                                {order.status === 'pending' ? 'در انتظار' :
-                                 order.status === 'confirmed' ? 'تایید شده' :
-                                 order.status === 'shipped' ? 'ارسال شده' :
-                                 order.status === 'delivered' ? 'تحویل داده شده' :
-                                 order.status === 'cancelled' ? 'لغو شده' :
-                                 order.status}
+                                 {order.status === 'pending' ? tr("pending") :
+                                  order.status === 'confirmed' ? tr("confirmed") :
+                                  order.status === 'shipped' ? tr("shipped") :
+                                  order.status === 'delivered' ? tr("delivered") :
+                                  order.status === 'cancelled' ? tr("cancelled") :
+                                 tr("unknown")}
                               </Badge>
                             </td>
                             <td className="px-3 py-2 text-sm text-gray-900 w-24">
@@ -671,12 +889,12 @@ export default function ShopAdmin() {
                                 variant={order.invoiceType === 'invoice' ? 'default' : 'secondary'} 
                                 className={`text-xs ${order.invoiceType === 'invoice' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}`}
                               >
-                                {order.invoiceType === 'invoice' ? 'فاکتور' : 'پیش‌فاکتور'}
+                                 {order.invoiceType === 'invoice' ? tr("invoice") : tr("proforma")}
                               </Badge>
                             </td>
                             <td className="px-3 py-2 text-sm text-gray-900 w-32">
                               <div className="truncate">
-                                {new Date(order.createdAt).toLocaleDateString('fa-IR')}
+                                 {new Date(order.createdAt).toLocaleDateString(dateLocale)}
                               </div>
                             </td>
                             <td className="px-3 py-2 text-sm text-gray-900 w-40">
@@ -688,7 +906,7 @@ export default function ShopAdmin() {
                                   className="flex items-center gap-1 text-xs px-2 py-1"
                                 >
                                   <Eye className="w-3 h-3" />
-                                  جزئیات
+                                  {tr("details")}
                                 </Button>
                                 {/* Convert to Invoice Button */}
                                 {(order.status === 'shipped' || order.status === 'delivered') && order.invoiceType === 'proforma' && (
@@ -698,13 +916,13 @@ export default function ShopAdmin() {
                                     onClick={() => convertToInvoiceMutation.mutate(order.orderNumber || order.id.toString())}
                                     disabled={convertToInvoiceMutation.isPending}
                                     className="flex items-center gap-1 text-xs px-2 py-1 bg-green-600 hover:bg-green-700"
-                                    title="تبدیل پیش‌فاکتور به فاکتور"
+                                     title={tr("convertInvoice")}
                                   >
                                     <FileText className="w-3 h-3" />
                                     {convertToInvoiceMutation.isPending ? (
                                       <RefreshCw className="w-3 h-3 animate-spin" />
                                     ) : (
-                                      'فاکتور'
+                                      tr("invoice")
                                     )}
                                   </Button>
                                 )}
@@ -714,7 +932,7 @@ export default function ShopAdmin() {
                         )) : (
                           <tr>
                             <td colSpan={9} className="px-6 py-4 text-center text-gray-500">
-                              هیچ سفارشی یافت نشد
+                               {tr("noOrders")}
                             </td>
                           </tr>
                         )}
@@ -724,7 +942,7 @@ export default function ShopAdmin() {
                   {/* Scroll indicator */}
                   <div className="bg-gray-100 px-4 py-1 text-xs text-gray-500 text-center border-t">
                     {orders.length > 15 && (
-                      <span>Scroll to view all {orders.length} orders</span>
+                       <span>{tr("scrollOrders", { count: orders.length })}</span>
                     )}
                   </div>
                 </div>
@@ -738,7 +956,7 @@ export default function ShopAdmin() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Package className="w-5 h-5" />
-                  Inventory Management
+                   {tr("inventoryManagement")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -747,13 +965,13 @@ export default function ShopAdmin() {
                     <div key={product.id} className="flex items-center justify-between p-4 border rounded-lg">
                       <div className="flex-1">
                         <h3 className="font-medium">{product.name}</h3>
-                        <p className="text-sm text-gray-600">SKU: {product.sku}</p>
-                        <p className="text-sm text-gray-600">Price: ${product.unitPrice}</p>
+                         <p className="text-sm text-gray-600">{tr("sku")}: {product.sku}</p>
+                         <p className="text-sm text-gray-600">{tr("price")}: ${product.unitPrice}</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium">Stock: {product.stockQuantity}</p>
+                         <p className="font-medium">{tr("stock")}: {product.stockQuantity}</p>
                         <Badge variant={product.stockQuantity > 10 ? 'default' : 'destructive'}>
-                          {product.stockQuantity > 10 ? 'In Stock' : 'Low Stock'}
+                           {product.stockQuantity > 10 ? tr("inStock") : tr("lowStock")}
                         </Badge>
                       </div>
                     </div>
@@ -769,7 +987,7 @@ export default function ShopAdmin() {
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
                   <Percent className="w-5 h-5" />
-                  Discount Settings
+                   {tr("discountSettings")}
                 </CardTitle>
                 <Button 
                   onClick={() => {
@@ -779,7 +997,7 @@ export default function ShopAdmin() {
                   className="flex items-center gap-2"
                 >
                   <Plus className="w-4 h-4" />
-                  Create New Discount
+                   {tr("createDiscount")}
                 </Button>
               </CardHeader>
               <CardContent>
@@ -787,8 +1005,8 @@ export default function ShopAdmin() {
                   {discounts.length === 0 ? (
                     <div className="text-center py-8 text-gray-500">
                       <Percent className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                      <p>No discounts created yet</p>
-                      <p className="text-sm">Click "Create New Discount" to get started</p>
+                       <p>{tr("noDiscounts")}</p>
+                       <p className="text-sm">{tr("createDiscountHint")}</p>
                     </div>
                   ) : (
                     discounts.map((discount: any) => (
@@ -800,7 +1018,7 @@ export default function ShopAdmin() {
                         </div>
                         <div className="flex items-center gap-2">
                           <Badge variant={discount.isActive ? 'default' : 'secondary'}>
-                            {discount.isActive ? 'Active' : 'Inactive'}
+                             {discount.isActive ? tr("active") : tr("inactive")}
                           </Badge>
                           <Button
                             size="sm"
@@ -816,7 +1034,7 @@ export default function ShopAdmin() {
                             size="sm"
                             variant="outline"
                             onClick={() => {
-                              if (confirm('آیا از حذف این تخفیف اطمینان دارید؟')) {
+                              if (confirm(tr("confirmDeleteDiscount"))) {
                                 deleteDiscountMutation.mutate(discount.id);
                               }
                             }}
@@ -840,7 +1058,7 @@ export default function ShopAdmin() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Package className="w-5 h-5" />
-                  Bulk Purchase Configuration
+                   {tr("bulkConfiguration")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -848,8 +1066,8 @@ export default function ShopAdmin() {
                   {products.length === 0 ? (
                     <div className="text-center py-8 text-gray-500">
                       <Package className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                      <p>No products available</p>
-                      <p className="text-sm">Add products to configure bulk purchases</p>
+                       <p>{tr("noProducts")}</p>
+                       <p className="text-sm">{tr("bulkHint")}</p>
                     </div>
                   ) : (
                     products.map((product: any) => (
@@ -859,8 +1077,8 @@ export default function ShopAdmin() {
                         onUpdate={() => {
                           queryClient.invalidateQueries({ queryKey: ["/api/shop/products"] });
                           toast({
-                            title: "Success",
-                            description: "Bulk purchase settings updated successfully",
+                            title: tr("success"),
+                            description: tr("updated"),
                           });
                         }}
                       />
@@ -877,20 +1095,20 @@ export default function ShopAdmin() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Calendar className="w-5 h-5" />
-                  Purchase Proforma Deadline Settings
+                   {tr("deadlineSettings")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    This setting applies to all products in the shop and displays in checkout and purchase cards.
+                     {tr("deadlineAlert")}
                   </AlertDescription>
                 </Alert>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="proforma_deadline">Payment Deadline (Days)</Label>
+                     <Label htmlFor="proforma_deadline">{tr("paymentDeadline")}</Label>
                     <Input
                       id="proforma_deadline"
                       type="number"
@@ -901,17 +1119,17 @@ export default function ShopAdmin() {
                       placeholder="3"
                     />
                     <p className="text-sm text-muted-foreground">
-                      Number of days for payment deadline (minimum 1 day, maximum 30 days)
+                       {tr("deadlineHint")}
                     </p>
                   </div>
                   <div className="space-y-2">
-                    <Label>Preview Message</Label>
+                     <Label>{tr("previewMessage")}</Label>
                     <div className="p-3 bg-muted rounded-md">
                       <p className="text-sm">
-                        Payment deadline: <strong>{proformaDeadlineDays} days</strong>
+                         {tr("deadlineDays", { days: proformaDeadlineDays })}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        This message displays in purchase cards and checkout page
+                         {tr("deadlinePreviewHint")}
                       </p>
                     </div>
                   </div>
@@ -928,7 +1146,7 @@ export default function ShopAdmin() {
                     ) : (
                       <Save className="h-4 w-4" />
                     )}
-                    {saveProformaDeadlineMutation.isPending ? 'Saving...' : 'Save Settings'}
+                    {saveProformaDeadlineMutation.isPending ? tr("saving") : tr("saveSettings")}
                   </Button>
                 </div>
 
@@ -938,13 +1156,13 @@ export default function ShopAdmin() {
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold flex items-center gap-2">
                     <Clock className="w-5 h-5" />
-                    جدول زمانی یادآوری مشتریان
+                     {tr("reminderSchedule")}
                   </h3>
                   
                   <div className="space-y-3">
                     <div className="flex items-center space-x-4 space-x-reverse p-3 bg-gray-50 rounded-lg">
                       <div className="flex items-center space-x-2 space-x-reverse">
-                        <Label htmlFor="reminder-days">روز قبل از پایان مهلت:</Label>
+                         <Label htmlFor="reminder-days">{tr("daysBeforeDeadline")}</Label>
                         <Input
                           id="reminder-days"
                           type="number"
@@ -956,7 +1174,7 @@ export default function ShopAdmin() {
                         />
                       </div>
                       <div className="flex items-center space-x-2 space-x-reverse">
-                        <Label htmlFor="reminder-hour">ساعت ارسال:</Label>
+                         <Label htmlFor="reminder-hour">{tr("sendTime")}</Label>
                         <Input
                           id="reminder-hour"
                           type="number"
@@ -968,10 +1186,10 @@ export default function ShopAdmin() {
                         />
                       </div>
                       <div className="flex items-center space-x-2 space-x-reverse">
-                        <Label htmlFor="sms-template">قالب پیامک:</Label>
+                         <Label htmlFor="sms-template">{tr("smsTemplate")}</Label>
                         <Select value={smsTemplateId} onValueChange={setSmsTemplateId}>
                           <SelectTrigger className="w-64">
-                            <SelectValue placeholder="انتخاب قالب پیامک" />
+                             <SelectValue placeholder={tr("chooseSms")} />
                           </SelectTrigger>
                           <SelectContent>
                             {Array.isArray(smsTemplates) && smsTemplates.map((template: any) => (
@@ -984,7 +1202,7 @@ export default function ShopAdmin() {
                                   </TooltipTrigger>
                                   <TooltipContent className="max-w-sm p-3" side="right">
                                     <div className="space-y-1">
-                                      <p className="font-medium text-sm">محتوای پیامک:</p>
+                                       <p className="font-medium text-sm">{tr("smsContent")}</p>
                                       <p className="text-xs text-gray-700 whitespace-pre-wrap">
                                         {getSmsTemplateContent(template.id)}
                                       </p>
@@ -997,10 +1215,10 @@ export default function ShopAdmin() {
                         </Select>
                       </div>
                       <div className="flex items-center space-x-2 space-x-reverse">
-                        <Label htmlFor="email-template">قالب ایمیل:</Label>
+                         <Label htmlFor="email-template">{tr("emailTemplate")}</Label>
                         <Select value={emailTemplateId} onValueChange={setEmailTemplateId}>
                           <SelectTrigger className="w-64">
-                            <SelectValue placeholder="انتخاب قالب ایمیل" />
+                             <SelectValue placeholder={tr("chooseEmail")} />
                           </SelectTrigger>
                           <SelectContent>
                             {Array.isArray(emailTemplates) && emailTemplates.map((template: any) => (
@@ -1013,7 +1231,7 @@ export default function ShopAdmin() {
                                   </TooltipTrigger>
                                   <TooltipContent className="max-w-sm p-3" side="right">
                                     <div className="space-y-1">
-                                      <p className="font-medium text-sm">محتوای کامل قالب:</p>
+                                       <p className="font-medium text-sm">{tr("emailContent")}</p>
                                       <p className="text-xs text-gray-700 whitespace-pre-wrap max-h-32 overflow-y-auto">
                                         {getEmailTemplateContent(template.id)}
                                       </p>
@@ -1032,7 +1250,7 @@ export default function ShopAdmin() {
                         disabled={addReminderMutation.isPending}
                       >
                         {addReminderMutation.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                        افزودن
+                         {tr("add")}
                       </Button>
                     </div>
                     
@@ -1041,9 +1259,9 @@ export default function ShopAdmin() {
                         <div key={schedule.id} className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
                           <div className="flex items-center space-x-4 space-x-reverse">
                             <Badge variant="outline" className="bg-blue-100">
-                              {schedule.days_before === 0 ? 'روز پایان مهلت' : `${schedule.days_before} روز قبل`}
+                               {schedule.days_before === 0 ? tr("daysBeforeDeadline") : `${schedule.days_before} ${tr("daysBeforeDeadline")}`}
                             </Badge>
-                            <span className="text-sm">ساعت {schedule.reminder_hour}:00</span>
+                           <span className="text-sm">{tr("sendTime")} {schedule.reminder_hour}:00</span>
                             <span className="text-sm text-gray-600">{schedule.message_subject}</span>
                             {(schedule.sms_template_id || schedule.email_template_id) && (
                               <div className="flex items-center space-x-1 space-x-reverse text-xs text-blue-600">
@@ -1052,7 +1270,7 @@ export default function ShopAdmin() {
                                     <Tooltip>
                                       <TooltipTrigger asChild>
                                         <span className="bg-blue-100 px-2 py-1 rounded cursor-help">
-                                          پیامک: {(() => {
+                                           {tr("smsTemplate")} {(() => {
                                             const template = Array.isArray(smsTemplates) && smsTemplates.find((t: any) => t.id === schedule.sms_template_id);
                                             return template ? `${template.templateNumber} - ${template.templateName}` : schedule.sms_template_id;
                                           })()}
@@ -1060,11 +1278,11 @@ export default function ShopAdmin() {
                                       </TooltipTrigger>
                                       <TooltipContent className="max-w-sm p-3" side="top">
                                         <div className="space-y-1">
-                                          <p className="font-medium text-sm">محتوای پیامک:</p>
+                                           <p className="font-medium text-sm">{tr("smsContent")}</p>
                                           <p className="text-xs text-gray-700 whitespace-pre-wrap">
                                             {(() => {
                                               const template = Array.isArray(smsTemplates) && smsTemplates.find((t: any) => t.id === schedule.sms_template_id);
-                                              return template?.templateText || 'محتوای پیامک در دسترس نیست';
+                                               return template?.templateText || tr("unavailableSms");
                                             })()}
                                           </p>
                                         </div>
@@ -1077,7 +1295,7 @@ export default function ShopAdmin() {
                                     <Tooltip>
                                       <TooltipTrigger asChild>
                                         <span className="bg-green-100 px-2 py-1 rounded cursor-help">
-                                          ایمیل: {(() => {
+                                   {tr("emailTemplate")} {(() => {
                                             const template = Array.isArray(emailTemplates) && emailTemplates.find((t: any) => t.id === schedule.email_template_id);
                                             return template ? `${template.name} (${template.category})` : schedule.email_template_id;
                                           })()}
@@ -1085,18 +1303,18 @@ export default function ShopAdmin() {
                                       </TooltipTrigger>
                                       <TooltipContent className="max-w-sm p-3" side="top">
                                         <div className="space-y-1">
-                                          <p className="font-medium text-sm">عنوان ایمیل:</p>
+                                           <p className="font-medium text-sm">{tr("emailSubject")}</p>
                                           <p className="text-xs text-gray-700">
                                             {(() => {
                                               const template = Array.isArray(emailTemplates) && emailTemplates.find((t: any) => t.id === schedule.email_template_id);
-                                              return template?.subject || 'عنوان در دسترس نیست';
+                                               return template?.subject || tr("unavailableSubject");
                                             })()}
                                           </p>
-                                          <p className="font-medium text-sm mt-2">محتوای ایمیل:</p>
+                                           <p className="font-medium text-sm mt-2">{tr("emailContent")}</p>
                                           <p className="text-xs text-gray-700 whitespace-pre-wrap max-h-32 overflow-y-auto">
                                             {(() => {
                                               const template = Array.isArray(emailTemplates) && emailTemplates.find((t: any) => t.id === schedule.email_template_id);
-                                              return template?.content || 'محتوای ایمیل در دسترس نیست';
+                                               return template?.content || tr("unavailableEmail");
                                             })()}
                                           </p>
                                         </div>
@@ -1139,14 +1357,14 @@ export default function ShopAdmin() {
                       {(!reminderSchedules?.data || reminderSchedules.data.length === 0) && (
                         <div className="text-center py-4 text-gray-500">
                           <Clock className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                          <p className="text-sm">هیچ یادآوری تنظیم نشده است</p>
+                           <p className="text-sm">{tr("noReminders")}</p>
                         </div>
                       )}
                     </div>
                   </div>
                   
                   <p className="text-xs text-gray-500">
-                    یادآوری‌ها بر اساس ساعت محلی ارسال می‌شوند. مشتریان از طریق ایمیل و پیامک اطلاع‌رسانی خواهند شد.
+                     {tr("reminderNote")}
                   </p>
                 </div>
               </CardContent>
@@ -1158,14 +1376,14 @@ export default function ShopAdmin() {
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2">
                     <Edit className="w-5 h-5" />
-                    ویرایش یادآوری پرداخت
+                     {tr("editReminder")}
                   </DialogTitle>
                 </DialogHeader>
                 
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="edit-reminder-days">روز قبل از پایان مهلت:</Label>
+                       <Label htmlFor="edit-reminder-days">{tr("daysBeforeDeadline")}</Label>
                       <Input
                         id="edit-reminder-days"
                         type="number"
@@ -1176,7 +1394,7 @@ export default function ShopAdmin() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="edit-reminder-hour">ساعت ارسال:</Label>
+                       <Label htmlFor="edit-reminder-hour">{tr("sendTime")}</Label>
                       <Input
                         id="edit-reminder-hour"
                         type="number"
@@ -1189,13 +1407,13 @@ export default function ShopAdmin() {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="edit-sms-template">قالب پیامک:</Label>
+                     <Label htmlFor="edit-sms-template">{tr("smsTemplate")}</Label>
                     <Select value={smsTemplateId} onValueChange={setSmsTemplateId}>
                       <SelectTrigger>
-                        <SelectValue placeholder="انتخاب قالب پیامک" />
+                         <SelectValue placeholder={tr("chooseSms")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">بدون قالب</SelectItem>
+                         <SelectItem value="">{tr("noTemplate")}</SelectItem>
                         {Array.isArray(smsTemplates) && smsTemplates.map((template: any) => (
                           <TooltipProvider key={template.id}>
                             <Tooltip>
@@ -1206,7 +1424,7 @@ export default function ShopAdmin() {
                               </TooltipTrigger>
                               <TooltipContent className="max-w-sm p-3" side="right">
                                 <div className="space-y-1">
-                                  <p className="font-medium text-sm">محتوای پیامک:</p>
+                                   <p className="font-medium text-sm">{tr("smsContent")}</p>
                                   <p className="text-xs text-gray-700 whitespace-pre-wrap">
                                     {getSmsTemplateContent(template.id)}
                                   </p>
@@ -1220,13 +1438,13 @@ export default function ShopAdmin() {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="edit-email-template">قالب ایمیل:</Label>
+                     <Label htmlFor="edit-email-template">{tr("emailTemplate")}</Label>
                     <Select value={emailTemplateId} onValueChange={setEmailTemplateId}>
                       <SelectTrigger>
-                        <SelectValue placeholder="انتخاب قالب ایمیل" />
+                         <SelectValue placeholder={tr("chooseEmail")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">بدون قالب</SelectItem>
+                         <SelectItem value="">{tr("noTemplate")}</SelectItem>
                         {Array.isArray(emailTemplates) && emailTemplates.map((template: any) => (
                           <TooltipProvider key={template.id}>
                             <Tooltip>
@@ -1237,7 +1455,7 @@ export default function ShopAdmin() {
                               </TooltipTrigger>
                               <TooltipContent className="max-w-sm p-3" side="right">
                                 <div className="space-y-1">
-                                  <p className="font-medium text-sm">محتوای کامل قالب:</p>
+                                   <p className="font-medium text-sm">{tr("emailContent")}</p>
                                   <p className="text-xs text-gray-700 whitespace-pre-wrap max-h-32 overflow-y-auto">
                                     {getEmailTemplateContent(template.id)}
                                   </p>
@@ -1262,7 +1480,7 @@ export default function ShopAdmin() {
                         setEmailTemplateId("");
                       }}
                     >
-                      انصراف
+                       {tr("cancel")}
                     </Button>
                     <Button
                       onClick={() => updateReminderMutation.mutate()}
@@ -1272,12 +1490,12 @@ export default function ShopAdmin() {
                       {updateReminderMutation.isPending ? (
                         <>
                           <RefreshCw className="w-4 h-4 animate-spin ml-2" />
-                          در حال بروزرسانی...
+                           {tr("updating")}
                         </>
                       ) : (
                         <>
                           <Save className="w-4 h-4 ml-2" />
-                          بروزرسانی
+                           {tr("update")}
                         </>
                       )}
                     </Button>
@@ -1294,7 +1512,7 @@ export default function ShopAdmin() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Package className="w-5 h-5" />
-                  Inventory Management
+                   {tr("inventoryManagement")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -1303,13 +1521,13 @@ export default function ShopAdmin() {
                     <div key={product.id} className="flex items-center justify-between p-4 border rounded-lg">
                       <div className="flex-1">
                         <h3 className="font-medium">{product.name}</h3>
-                        <p className="text-sm text-gray-600">SKU: {product.sku}</p>
-                        <p className="text-sm text-gray-600">Price: ${product.unitPrice}</p>
+                         <p className="text-sm text-gray-600">{tr("sku")}: {product.sku}</p>
+                         <p className="text-sm text-gray-600">{tr("price")}: ${product.unitPrice}</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium">Stock: {product.stockQuantity}</p>
+                         <p className="font-medium">{tr("stock")}: {product.stockQuantity}</p>
                         <Badge variant={product.stockQuantity > 10 ? 'default' : 'destructive'}>
-                          {product.stockQuantity > 10 ? 'In Stock' : 'Low Stock'}
+                           {product.stockQuantity > 10 ? tr("inStock") : tr("lowStock")}
                         </Badge>
                       </div>
                     </div>
@@ -1328,10 +1546,10 @@ export default function ShopAdmin() {
           <TabsContent value="returns" className="space-y-6">
             <div className="space-y-6">
               <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold">Returned Items Management</h3>
+                 <h3 className="text-lg font-semibold">{tr("returnsManagement")}</h3>
                 <Button onClick={() => setShowReturnForm(true)}>
                   <Plus className="w-4 h-4 mr-1" />
-                  Add New Return
+                   {tr("addReturn")}
                 </Button>
               </div>
 
@@ -1339,7 +1557,7 @@ export default function ShopAdmin() {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm text-center">Total Returns</CardTitle>
+                     <CardTitle className="text-sm text-center">{tr("totalReturns")}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold text-center text-blue-600">
@@ -1349,7 +1567,7 @@ export default function ShopAdmin() {
                 </Card>
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm text-center">Total Return Amount</CardTitle>
+                     <CardTitle className="text-sm text-center">{tr("totalReturnAmount")}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold text-center text-red-600">
@@ -1359,7 +1577,7 @@ export default function ShopAdmin() {
                 </Card>
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm text-center">Pending Returns</CardTitle>
+                     <CardTitle className="text-sm text-center">{tr("pendingReturns")}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold text-center text-orange-600">
@@ -1369,7 +1587,7 @@ export default function ShopAdmin() {
                 </Card>
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm text-center">Approved Returns</CardTitle>
+                     <CardTitle className="text-sm text-center">{tr("approvedReturns")}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold text-center text-green-600">
@@ -1382,7 +1600,7 @@ export default function ShopAdmin() {
               {/* Returns Table */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Returns List</CardTitle>
+                   <CardTitle>{tr("returnsList")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="border rounded-lg overflow-hidden">
@@ -1390,28 +1608,28 @@ export default function ShopAdmin() {
                       <thead className="bg-gray-50">
                         <tr>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                            Product Name
+                             {tr("productName")}
                           </th>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                            Quantity
+                             {tr("quantity")}
                           </th>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                            Customer Name
+                             {tr("customerName")}
                           </th>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                            Phone
+                             {tr("customerPhone")}
                           </th>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                            Return Date
+                             {tr("returnDate")}
                           </th>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                            Amount
+                             {tr("amount")}
                           </th>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                            Status
+                             {tr("status")}
                           </th>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                            Actions
+                             {tr("actions")}
                           </th>
                         </tr>
                       </thead>
@@ -1431,7 +1649,7 @@ export default function ShopAdmin() {
                               {returnItem.customerPhone}
                             </td>
                             <td className="px-4 py-4 text-sm text-gray-900">
-                              {new Date(returnItem.returnDate).toLocaleDateString()}
+                              {new Date(returnItem.returnDate).toLocaleDateString(dateLocale)}
                             </td>
                             <td className="px-4 py-4 text-sm text-gray-900">
                               ${returnItem.totalReturnAmount}
@@ -1442,11 +1660,11 @@ export default function ShopAdmin() {
                                 returnItem.refundStatus === 'pending' ? 'secondary' :
                                 returnItem.refundStatus === 'rejected' ? 'destructive' : 'secondary'
                               }>
-                                {returnItem.refundStatus === 'pending' ? 'Pending' :
-                                 returnItem.refundStatus === 'approved' ? 'Approved' :
-                                 returnItem.refundStatus === 'rejected' ? 'Rejected' :
-                                 returnItem.refundStatus === 'refunded' ? 'Refunded' :
-                                 returnItem.refundStatus}
+                                 {returnItem.refundStatus === 'pending' ? tr("pending") :
+                                  returnItem.refundStatus === 'approved' ? tr("approved") :
+                                  returnItem.refundStatus === 'rejected' ? tr("rejected") :
+                                  returnItem.refundStatus === 'refunded' ? tr("refunded") :
+                                 tr("unknown")}
                               </Badge>
                             </td>
                             <td className="px-4 py-4 text-sm">
@@ -1474,7 +1692,7 @@ export default function ShopAdmin() {
                         )) : (
                           <tr>
                             <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
-                              No returns found
+                               {tr("noReturns")}
                             </td>
                           </tr>
                         )}
@@ -1504,43 +1722,43 @@ export default function ShopAdmin() {
           <DialogContent className="max-w-6xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-xl font-bold text-right">
-                جزئیات سفارش #{selectedOrder.orderNumber || selectedOrder.id}
+                 {tr("orderDetails")} #{selectedOrder.orderNumber || selectedOrder.id}
               </DialogTitle>
             </DialogHeader>
-            <div className="space-y-6" dir="rtl">
+            <div className="space-y-6" dir={direction}>
               {/* Customer Information */}
               <div className="border rounded-lg p-4 bg-blue-50">
                 <h3 className="font-semibold mb-3 flex items-center gap-2">
                   <User className="w-4 h-4" />
-                  اطلاعات مشتری
+                   {tr("customerInfo")}
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <p className="text-sm text-gray-600">نام مشتری</p>
+                     <p className="text-sm text-gray-600">{tr("customerName")}</p>
                     <p className="font-medium">
                       {selectedOrder.customer ? 
                         `${selectedOrder.customer.firstName} ${selectedOrder.customer.lastName}` : 
-                        selectedOrder.customerName || 'نامشخص'
+                        selectedOrder.customerName || tr("unknown")
                       }
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">شماره موبایل</p>
+                     <p className="text-sm text-gray-600">{tr("mobile")}</p>
                     <p className="font-medium flex items-center gap-1">
                       <Phone className="w-4 h-4" />
-                      {selectedOrder.customer?.phone || selectedOrder.mobileNumber || 'نامشخص'}
+                      {selectedOrder.customer?.phone || selectedOrder.mobileNumber || tr("unknown")}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">ایمیل</p>
+                     <p className="text-sm text-gray-600">{tr("email")}</p>
                     <p className="font-medium flex items-center gap-1">
                       <Mail className="w-4 h-4" />
-                      {selectedOrder.customer?.email || selectedOrder.email || 'نامشخص'}
+                      {selectedOrder.customer?.email || selectedOrder.email || tr("unknown")}
                     </p>
                   </div>
                   {selectedOrder.customer?.company && (
                     <div>
-                      <p className="text-sm text-gray-600">شرکت</p>
+                       <p className="text-sm text-gray-600">{tr("company")}</p>
                       <p className="font-medium flex items-center gap-1">
                         <Building className="w-4 h-4" />
                         {selectedOrder.customer.company}
@@ -1549,13 +1767,13 @@ export default function ShopAdmin() {
                   )}
                   {selectedOrder.customer?.city && (
                     <div>
-                      <p className="text-sm text-gray-600">شهر</p>
+                       <p className="text-sm text-gray-600">{tr("city")}</p>
                       <p className="font-medium">{selectedOrder.customer.city}</p>
                     </div>
                   )}
                   {selectedOrder.customer?.address && (
                     <div className="md:col-span-2">
-                      <p className="text-sm text-gray-600">آدرس</p>
+                       <p className="text-sm text-gray-600">{tr("address")}</p>
                       <p className="font-medium">{selectedOrder.customer.address}</p>
                     </div>
                   )}
@@ -1566,33 +1784,33 @@ export default function ShopAdmin() {
               <div className="border rounded-lg p-4 bg-green-50">
                 <h3 className="font-semibold mb-3 flex items-center gap-2">
                   <Receipt className="w-4 h-4" />
-                  خلاصه سفارش
+                   {tr("orderSummary")}
                 </h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
-                    <p className="text-sm text-gray-600">شماره سفارش</p>
+                     <p className="text-sm text-gray-600">{tr("orderNumber")}</p>
                     <p className="font-medium">#{selectedOrder.orderNumber || selectedOrder.id}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">تاریخ سفارش</p>
+                     <p className="text-sm text-gray-600">{tr("orderDate")}</p>
                     <p className="font-medium flex items-center gap-1">
                       <Calendar className="w-4 h-4" />
-                      {new Date(selectedOrder.createdAt).toLocaleDateString('fa-IR')}
+                       {new Date(selectedOrder.createdAt).toLocaleDateString(dateLocale)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">وضعیت سفارش</p>
+                     <p className="text-sm text-gray-600">{tr("orderStatus")}</p>
                     <Badge className="mt-1" variant={selectedOrder.status === 'confirmed' ? 'default' : 'secondary'}>
-                      {selectedOrder.status === 'pending' ? 'در انتظار' :
-                       selectedOrder.status === 'confirmed' ? 'تایید شده' :
-                       selectedOrder.status === 'shipped' ? 'ارسال شده' :
-                       selectedOrder.status === 'delivered' ? 'تحویل داده شده' :
-                       selectedOrder.status === 'cancelled' ? 'لغو شده' :
-                       selectedOrder.status}
+                       {selectedOrder.status === 'pending' ? tr("pending") :
+                        selectedOrder.status === 'confirmed' ? tr("confirmed") :
+                        selectedOrder.status === 'shipped' ? tr("shipped") :
+                        selectedOrder.status === 'delivered' ? tr("delivered") :
+                        selectedOrder.status === 'cancelled' ? tr("cancelled") :
+                       tr("unknown")}
                     </Badge>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">مبلغ کل</p>
+                    <p className="text-sm text-gray-600">{tr("totalAmount")}</p>
                     <p className="font-bold text-lg text-green-600">${selectedOrder.totalAmount}</p>
                   </div>
                 </div>
@@ -1602,19 +1820,19 @@ export default function ShopAdmin() {
               <div className="border rounded-lg p-4">
                 <h3 className="font-semibold mb-3 flex items-center gap-2">
                   <Package className="w-4 h-4" />
-                  اقلام سفارش ({selectedOrder.items?.length || 0} قلم)
+                   {tr("orderItems", { count: selectedOrder.items?.length || 0 })}
                 </h3>
                 <div className="space-y-3">
                   {selectedOrder.items && selectedOrder.items.length > 0 ? (
                     selectedOrder.items.map((item: any, index: number) => (
                       <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border">
                         <div className="flex-1">
-                          <p className="font-medium text-gray-900">{item.productName || item.name || 'نام محصول'}</p>
-                          <p className="text-sm text-gray-600">کد محصول: {item.productSku || item.sku || 'نامشخص'}</p>
-                          <p className="text-sm text-blue-600">قیمت واحد: ${item.price || item.unitPrice || 0}</p>
+                          <p className="font-medium text-gray-900">{item.productName || item.name || tr("productName")}</p>
+                           <p className="text-sm text-gray-600">{tr("productCode")}: {item.productSku || item.sku || tr("unknown")}</p>
+                           <p className="text-sm text-blue-600">{tr("unitPrice")}: ${item.price || item.unitPrice || 0}</p>
                         </div>
                         <div className="text-right">
-                          <p className="font-medium">تعداد: {item.quantity || 1}</p>
+                           <p className="font-medium">{tr("quantity")}: {item.quantity || 1}</p>
                           <p className="text-lg font-bold text-green-600">
                             ${((item.price || item.unitPrice || 0) * (item.quantity || 1)).toFixed(2)}
                           </p>
@@ -1624,7 +1842,7 @@ export default function ShopAdmin() {
                   ) : (
                     <div className="text-center py-6 text-gray-500">
                       <Package className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                      <p>هیچ قلمی برای این سفارش یافت نشد</p>
+                       <p>{tr("noItems")}</p>
                     </div>
                   )}
                 </div>
@@ -1634,33 +1852,36 @@ export default function ShopAdmin() {
               <div className="border rounded-lg p-4 bg-purple-50">
                 <h3 className="font-semibold mb-3 flex items-center gap-2">
                   <CreditCard className="w-4 h-4" />
-                  اطلاعات پرداخت
+                   {tr("paymentInfo")}
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-gray-600">روش پرداخت</p>
-                    <PaymentMethodBadge paymentMethod={selectedOrder.paymentMethod} />
+                     <p className="text-sm text-gray-600">{tr("paymentMethod")}</p>
+                     <Badge variant="secondary" className="flex items-center gap-1 w-fit">
+                       <CreditCard className="w-3 h-3" />
+                       {paymentMethodLabel(selectedOrder.paymentMethod)}
+                     </Badge>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">وضعیت پرداخت</p>
+                     <p className="text-sm text-gray-600">{tr("paymentStatus")}</p>
                     <Badge variant={selectedOrder.paymentStatus === 'paid' ? 'default' : 'secondary'}>
-                      {selectedOrder.paymentStatus === 'paid' ? 'پرداخت شده' :
-                       selectedOrder.paymentStatus === 'pending' ? 'در انتظار پرداخت' :
-                       selectedOrder.paymentStatus === 'failed' ? 'ناموفق' :
-                       selectedOrder.paymentStatus || 'نامشخص'}
+                       {selectedOrder.paymentStatus === 'paid' ? tr("paid") :
+                        selectedOrder.paymentStatus === 'pending' ? tr("pendingPayment") :
+                        selectedOrder.paymentStatus === 'failed' ? tr("failed") :
+                        selectedOrder.paymentStatus || tr("unknown")}
                     </Badge>
                   </div>
                   
                   {/* Payment Source Details */}
                   {(selectedOrder.walletAmountUsed > 0 || selectedOrder.paymentMethod === 'wallet_partial' || selectedOrder.paymentMethod === 'wallet_full') && (
                     <div className="md:col-span-2">
-                      <p className="text-sm text-gray-600 mb-2">جزئیات منابع تامین وجه</p>
+                       <p className="text-sm text-gray-600 mb-2">{tr("fundingSources")}</p>
                       <div className="space-y-2">
                         {selectedOrder.walletAmountUsed > 0 && (
                           <div className="flex justify-between items-center p-2 bg-green-100 rounded-lg border border-green-200">
                             <div className="flex items-center gap-2">
                               <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                              <span className="text-sm font-medium text-green-800">کیف پول</span>
+                               <span className="text-sm font-medium text-green-800">{tr("wallet")}</span>
                             </div>
                             <span className="font-bold text-green-700">
                               ${parseFloat(selectedOrder.walletAmountUsed || 0).toLocaleString()}
@@ -1671,10 +1892,10 @@ export default function ShopAdmin() {
                           <div className="flex justify-between items-center p-2 bg-orange-100 rounded-lg border border-orange-200">
                             <div className="flex items-center gap-2">
                               <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                              <span className="text-sm font-medium text-orange-800">کیف پول (سفارش ناقص)</span>
+                               <span className="text-sm font-medium text-orange-800">{tr("partialWallet")}</span>
                             </div>
                             <span className="font-bold text-orange-700">
-                              پرداخت ناتمام - کیف پول کسر نشده
+                               {tr("incompleteWallet")}
                             </span>
                           </div>
                         )}
@@ -1682,7 +1903,7 @@ export default function ShopAdmin() {
                           <div className="flex justify-between items-center p-2 bg-blue-100 rounded-lg border border-blue-200">
                             <div className="flex items-center gap-2">
                               <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                              <span className="text-sm font-medium text-blue-800">درگاه بانکی</span>
+                               <span className="text-sm font-medium text-blue-800">{tr("bankGateway")}</span>
                             </div>
                             <span className="font-bold text-blue-700">
                               ${(parseFloat(selectedOrder.totalAmount || 0) - parseFloat(selectedOrder.walletAmountUsed || 0)).toLocaleString()}
@@ -1693,7 +1914,7 @@ export default function ShopAdmin() {
                           <div className="flex justify-between items-center p-2 bg-purple-100 rounded-lg border border-purple-200">
                             <div className="flex items-center gap-2">
                               <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-                              <span className="text-sm font-medium text-purple-800">درگاه بانکی (کامل)</span>
+                               <span className="text-sm font-medium text-purple-800">{tr("fullBankGateway")}</span>
                             </div>
                             <span className="font-bold text-purple-700">
                               ${parseFloat(selectedOrder.totalAmount || 0).toLocaleString()}
@@ -1705,13 +1926,13 @@ export default function ShopAdmin() {
                   )}
                   {selectedOrder.discount && selectedOrder.discount > 0 && (
                     <div>
-                      <p className="text-sm text-gray-600">تخفیف</p>
+                       <p className="text-sm text-gray-600">{tr("discount")}</p>
                       <p className="font-medium text-orange-600">${selectedOrder.discount}</p>
                     </div>
                   )}
                   {selectedOrder.tax && selectedOrder.tax > 0 && (
                     <div>
-                      <p className="text-sm text-gray-600">مالیات</p>
+                       <p className="text-sm text-gray-600">{tr("tax")}</p>
                       <p className="font-medium">${selectedOrder.tax}</p>
                     </div>
                   )}
@@ -1723,24 +1944,24 @@ export default function ShopAdmin() {
                 <div className="border rounded-lg p-4 bg-orange-50">
                   <h3 className="font-semibold mb-3 flex items-center gap-2">
                     <Truck className="w-4 h-4" />
-                    اطلاعات ارسال
+                     {tr("shippingInfo")}
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {selectedOrder.carrier && (
                       <div>
-                        <p className="text-sm text-gray-600">شرکت حمل</p>
+                         <p className="text-sm text-gray-600">{tr("carrier")}</p>
                         <p className="font-medium">{selectedOrder.carrier}</p>
                       </div>
                     )}
                     {selectedOrder.trackingNumber && (
                       <div>
-                        <p className="text-sm text-gray-600">کد رهگیری</p>
+                         <p className="text-sm text-gray-600">{tr("tracking")}</p>
                         <p className="font-medium">{selectedOrder.trackingNumber}</p>
                       </div>
                     )}
                     {selectedOrder.shippingAddress && (
                       <div className="md:col-span-2">
-                        <p className="text-sm text-gray-600">آدرس ارسال</p>
+                         <p className="text-sm text-gray-600">{tr("shippingAddress")}</p>
                         <p className="font-medium">
                           {typeof selectedOrder.shippingAddress === 'object' 
                             ? `${selectedOrder.shippingAddress.address || ''} ${selectedOrder.shippingAddress.city || ''} ${selectedOrder.shippingAddress.postalCode || ''}`.trim()
@@ -1758,7 +1979,7 @@ export default function ShopAdmin() {
                   variant="outline"
                   onClick={() => setSelectedOrder(null)}
                 >
-                  بستن
+                   {tr("close")}
                 </Button>
               </div>
             </div>
@@ -1771,7 +1992,7 @@ export default function ShopAdmin() {
         <Dialog open={showReturnForm} onOpenChange={setShowReturnForm}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Add New Return</DialogTitle>
+               <DialogTitle>{tr("addReturn")}</DialogTitle>
             </DialogHeader>
             <ReturnForm onClose={() => setShowReturnForm(false)} />
           </DialogContent>
@@ -1783,37 +2004,37 @@ export default function ShopAdmin() {
         <Dialog open={showReturnDialog} onOpenChange={setShowReturnDialog}>
           <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle>Return Details</DialogTitle>
+               <DialogTitle>{tr("returnDetails")}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium">Product Name</label>
+                 <label className="text-sm font-medium">{tr("productName")}</label>
                 <p className="text-sm bg-gray-50 p-2 rounded">{selectedReturn.productName}</p>
               </div>
               <div>
-                <label className="text-sm font-medium">Customer Name</label>
+                 <label className="text-sm font-medium">{tr("customerName")}</label>
                 <p className="text-sm bg-gray-50 p-2 rounded">{selectedReturn.customerName}</p>
               </div>
               <div>
-                <label className="text-sm font-medium">Return Quantity</label>
+                 <label className="text-sm font-medium">{tr("returnQuantity")}</label>
                 <p className="text-sm bg-gray-50 p-2 rounded">{selectedReturn.returnQuantity}</p>
               </div>
               <div>
-                <label className="text-sm font-medium">Return Amount</label>
+                 <label className="text-sm font-medium">{tr("returnAmount")}</label>
                 <p className="text-sm bg-gray-50 p-2 rounded">${selectedReturn.totalReturnAmount}</p>
               </div>
               <div>
-                <label className="text-sm font-medium">Return Reason</label>
+                 <label className="text-sm font-medium">{tr("returnReason")}</label>
                 <p className="text-sm bg-gray-50 p-2 rounded">{selectedReturn.returnReason}</p>
               </div>
               <div>
-                <label className="text-sm font-medium">Status</label>
+                 <label className="text-sm font-medium">{tr("status")}</label>
                 <Badge variant={
                   selectedReturn.refundStatus === 'approved' ? 'default' :
                   selectedReturn.refundStatus === 'pending' ? 'secondary' :
                   selectedReturn.refundStatus === 'rejected' ? 'destructive' : 'secondary'
                 }>
-                  {selectedReturn.refundStatus}
+                   {selectedReturn.refundStatus === "pending" ? tr("pending") : selectedReturn.refundStatus === "approved" ? tr("approved") : selectedReturn.refundStatus === "rejected" ? tr("rejected") : selectedReturn.refundStatus === "refunded" ? tr("refunded") : tr("unknown")}
                 </Badge>
               </div>
             </div>
@@ -1823,11 +2044,11 @@ export default function ShopAdmin() {
 
       {/* Discount Creation/Edit Dialog */}
       <Dialog open={isDiscountDialogOpen} onOpenChange={setIsDiscountDialogOpen}>
-        <DialogContent className="max-w-lg" dir="rtl">
+         <DialogContent className="max-w-lg" dir={direction}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Percent className="w-5 h-5" />
-              {editingDiscount ? 'ویرایش تخفیف' : 'ایجاد تخفیف جدید'}
+              {editingDiscount ? tr("editDiscount") : tr("createNewDiscount")}
             </DialogTitle>
           </DialogHeader>
           <DiscountForm 
@@ -1857,6 +2078,7 @@ function DiscountForm({ discount, onClose }: { discount?: any; onClose: () => vo
   const [applyToAllProducts, setApplyToAllProducts] = useState(discount?.applyToAllProducts ?? true);
   const [selectedProducts, setSelectedProducts] = useState<number[]>(discount?.applicableProducts || []);
   const { toast } = useToast();
+  const { tr, direction } = useShopTranslations();
   const queryClient = useQueryClient();
 
   // Fetch products for selection
@@ -1875,15 +2097,15 @@ function DiscountForm({ discount, onClose }: { discount?: any; onClose: () => vo
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/shop/discounts'] });
       toast({ 
-        title: "موفقیت", 
-        description: discount ? "تخفیف با موفقیت بروزرسانی شد" : "تخفیف با موفقیت ایجاد شد" 
+        title: tr("success"),
+        description: discount ? tr("discountUpdated") : tr("createDiscount")
       });
       onClose();
     },
     onError: (error: any) => {
       toast({ 
-        title: "خطا", 
-        description: error?.message || "خطا در ذخیره تخفیف", 
+        title: tr("error"),
+        description: error?.message || tr("error"),
         variant: "destructive" 
       });
     }
@@ -1908,8 +2130,8 @@ function DiscountForm({ discount, onClose }: { discount?: any; onClose: () => vo
 
     if (!data.name || !data.discountPercentage) {
       toast({ 
-        title: "خطا", 
-        description: "نام و درصد تخفیف الزامی است", 
+        title: tr("error"),
+        description: tr("requiredFields"),
         variant: "destructive" 
       });
       return;
@@ -1917,8 +2139,8 @@ function DiscountForm({ discount, onClose }: { discount?: any; onClose: () => vo
 
     if (data.discountPercentage < 0 || data.discountPercentage > 100) {
       toast({ 
-        title: "خطا", 
-        description: "درصد تخفیف باید بین 0 و 100 باشد", 
+        title: tr("error"),
+        description: tr("percentageRange"),
         variant: "destructive" 
       });
       return;
@@ -1928,32 +2150,32 @@ function DiscountForm({ discount, onClose }: { discount?: any; onClose: () => vo
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4" dir={direction}>
       <div>
-        <Label htmlFor="name">نام تخفیف *</Label>
+         <Label htmlFor="name">{tr("discountName")} *</Label>
         <Input
           id="name"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="تخفیف ویژه"
+           placeholder={tr("discountName")}
           required
           className="text-right"
         />
       </div>
       
       <div>
-        <Label htmlFor="description">توضیحات</Label>
+         <Label htmlFor="description">{tr("description")}</Label>
         <Input
           id="description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="توضیحات تخفیف..."
+           placeholder={tr("description")}
           className="text-right"
         />
       </div>
       
       <div>
-        <Label htmlFor="discountPercentage">درصد تخفیف (%) *</Label>
+         <Label htmlFor="discountPercentage">{tr("discountPercentage")} *</Label>
         <Input
           id="discountPercentage"
           type="number"
@@ -1970,7 +2192,7 @@ function DiscountForm({ discount, onClose }: { discount?: any; onClose: () => vo
       
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="minOrderAmount">حداقل مبلغ سفارش ($)</Label>
+         <Label htmlFor="minOrderAmount">{tr("minOrderAmount")}</Label>
           <Input
             id="minOrderAmount"
             type="number"
@@ -1984,7 +2206,7 @@ function DiscountForm({ discount, onClose }: { discount?: any; onClose: () => vo
         </div>
         
         <div>
-          <Label htmlFor="maxDiscountAmount">حداکثر مبلغ تخفیف ($)</Label>
+         <Label htmlFor="maxDiscountAmount">{tr("maxDiscountAmount")}</Label>
           <Input
             id="maxDiscountAmount"
             type="number"
@@ -2000,7 +2222,7 @@ function DiscountForm({ discount, onClose }: { discount?: any; onClose: () => vo
       
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="validFrom">تاریخ شروع (میلادی)</Label>
+           <Label htmlFor="validFrom">{tr("startDate")}</Label>
           <Input
             id="validFrom"
             type="date"
@@ -2011,7 +2233,7 @@ function DiscountForm({ discount, onClose }: { discount?: any; onClose: () => vo
         </div>
         
         <div>
-          <Label htmlFor="validTo">تاریخ پایان (میلادی)</Label>
+           <Label htmlFor="validTo">{tr("endDate")}</Label>
           <Input
             id="validTo"
             type="date"
@@ -2023,7 +2245,7 @@ function DiscountForm({ discount, onClose }: { discount?: any; onClose: () => vo
       </div>
       
       <div>
-        <Label htmlFor="usageLimit">محدودیت استفاده</Label>
+         <Label htmlFor="usageLimit">{tr("usageLimit")}</Label>
         <Input
           id="usageLimit"
           type="number"
@@ -2048,12 +2270,12 @@ function DiscountForm({ discount, onClose }: { discount?: any; onClose: () => vo
               }
             }}
           />
-          <Label htmlFor="applyToAllProducts">اعمال روی تمام محصولات</Label>
+           <Label htmlFor="applyToAllProducts">{tr("applyAll")}</Label>
         </div>
         
         {!applyToAllProducts && (
           <div>
-            <Label>انتخاب محصول مشخص:</Label>
+             <Label>{tr("chooseProduct")}</Label>
             <div className="border rounded-lg p-3 max-h-40 overflow-y-auto space-y-2">
               {products.map((product: any) => (
                 <div key={product.id} className="flex items-center space-x-2">
@@ -2076,7 +2298,7 @@ function DiscountForm({ discount, onClose }: { discount?: any; onClose: () => vo
             </div>
             {selectedProducts.length > 0 && (
               <p className="text-sm text-gray-600 mt-2">
-                {selectedProducts.length} محصول انتخاب شده
+                 {tr("selectedProducts", { count: selectedProducts.length })}
               </p>
             )}
           </div>
@@ -2089,12 +2311,12 @@ function DiscountForm({ discount, onClose }: { discount?: any; onClose: () => vo
           checked={isActive}
           onCheckedChange={(checked) => setIsActive(checked as boolean)}
         />
-        <Label htmlFor="isActive">فعال</Label>
+         <Label htmlFor="isActive">{tr("active")}</Label>
       </div>
       
       <div className="flex gap-4 pt-4">
         <Button type="button" variant="outline" onClick={onClose} className="flex-1">
-          انصراف
+           {tr("cancel")}
         </Button>
         <Button 
           type="submit" 
@@ -2102,8 +2324,8 @@ function DiscountForm({ discount, onClose }: { discount?: any; onClose: () => vo
           className="flex-1"
         >
           {saveDiscountMutation.isPending 
-            ? 'در حال ذخیره...' 
-            : (discount ? 'بروزرسانی' : 'ایجاد')
+             ? tr("saving")
+             : (discount ? tr("update") : tr("add"))
           }
         </Button>
       </div>
@@ -2129,6 +2351,8 @@ function ReturnForm({ onClose }: { onClose: () => void }) {
   const [phoneSuggestions, setPhoneSuggestions] = useState<any[]>([]);
   const [showPhoneSuggestions, setShowPhoneSuggestions] = useState(false);
   const { toast } = useToast();
+  const { tr, direction, language } = useShopTranslations();
+  const dateLocale = language === "fa" ? "fa-IR" : language === "ar" ? "ar" : language === "tr" ? "tr-TR" : "en-US";
   const queryClient = useQueryClient();
   
   // Add refs for timeout management
@@ -2171,8 +2395,8 @@ function ReturnForm({ onClose }: { onClose: () => void }) {
     setShowPhoneSuggestions(false);
     
     toast({
-      title: "مشتری انتخاب شد",
-      description: `اطلاعات مشتری ${customer.displayName} بارگذاری شد`,
+      title: tr("selected"),
+      description: `${tr("customerInfo")}: ${customer.displayName}`,
     });
   };
 
@@ -2271,8 +2495,8 @@ function ReturnForm({ onClose }: { onClose: () => void }) {
     }
     
     toast({
-      title: "محصول انتخاب شد",
-      description: `محصول ${product.name} انتخاب شد`,
+      title: tr("selected"),
+      description: `${tr("productName")}: ${product.name}`,
     });
   };
 
@@ -2283,8 +2507,8 @@ function ReturnForm({ onClose }: { onClose: () => void }) {
     },
     onSuccess: () => {
       toast({
-        title: "موفق",
-        description: "برگشت محصول با موفقیت ثبت شد"
+        title: tr("success"),
+        description: tr("createReturn")
       });
       queryClient.invalidateQueries({ queryKey: ["/api/shop/returns"] });
       queryClient.invalidateQueries({ queryKey: ["/api/shop/returns/stats"] });
@@ -2304,8 +2528,8 @@ function ReturnForm({ onClose }: { onClose: () => void }) {
     },
     onError: (error: any) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to create return",
+        title: tr("error"),
+        description: error.message || tr("error"),
         variant: "destructive"
       });
     }
@@ -2316,8 +2540,8 @@ function ReturnForm({ onClose }: { onClose: () => void }) {
     
     if (!productName || !returnQuantity || !customerName || !customerPhone) {
       toast({
-        title: "Error",
-        description: "Please fill in all required fields",
+        title: tr("error"),
+        description: tr("requiredFields"),
         variant: "destructive"
       });
       return;
@@ -2339,26 +2563,26 @@ function ReturnForm({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4" dir={direction}>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="productId">Product ID (Optional)</Label>
+          <Label htmlFor="productId">{tr("productIdOptional")}</Label>
           <Input
             id="productId"
             type="number"
             value={productId}
             onChange={(e) => setProductId(e.target.value)}
-            placeholder="Enter product ID"
+            placeholder={tr("enterProductId")}
           />
         </div>
         
         <div className="relative">
-          <Label htmlFor="productName">Product Name *</Label>
+          <Label htmlFor="productName">{tr("productName")} *</Label>
           <Input
             id="productName"
             value={productName}
             onChange={(e) => handleProductNameChange(e.target.value)}
-            placeholder="Enter product name"
+            placeholder={tr("enterProductName")}
             required
           />
           
@@ -2373,26 +2597,26 @@ function ReturnForm({ onClose }: { onClose: () => void }) {
                   onClick={() => selectProductFromSuggestion(product)}
                 >
                   <div className="font-medium text-gray-900">{product.name}</div>
-                  <div className="text-xs text-gray-500">Product ID: {product.id}</div>
+                  <div className="text-xs text-gray-500">{tr("productIdOptional")}: {product.id}</div>
                 </button>
               ))}
             </div>
           )}
           
           <p className="text-xs text-gray-500 mt-1">
-            حداقل 3 حرف از نام محصول را تایپ کنید تا لیست محصولات نمایش داده شود
+             {tr("productHint")}
           </p>
         </div>
 
         <div>
-          <Label htmlFor="returnQuantity">Return Quantity * {productUnit && `(${productUnit})`}</Label>
+          <Label htmlFor="returnQuantity">{tr("returnQuantity")} * {productUnit && `(${productUnit})`}</Label>
           <div className="flex gap-2">
             <Input
               id="returnQuantity"
               type="number"
               value={returnQuantity}
               onChange={(e) => setReturnQuantity(e.target.value)}
-              placeholder="Enter quantity"
+              placeholder={tr("enterQuantity")}
               required
               className="flex-1"
             />
@@ -2404,41 +2628,41 @@ function ReturnForm({ onClose }: { onClose: () => void }) {
           </div>
           {productId && (
             <p className="text-xs text-gray-500 mt-1">
-              واحد اندازه‌گیری از کاردکس: {productUnit || 'نامشخص'}
+               {tr("unitMeasurement")} {productUnit || tr("unknown")}
             </p>
           )}
         </div>
 
         <div>
-          <Label htmlFor="totalReturnAmount">Return Amount ($)</Label>
+          <Label htmlFor="totalReturnAmount">{tr("returnAmount")} ($)</Label>
           <Input
             id="totalReturnAmount"
             type="number"
             step="0.01"
             value={totalReturnAmount}
             onChange={(e) => setTotalReturnAmount(e.target.value)}
-            placeholder="Enter return amount"
+            placeholder={tr("enterReturnAmount")}
           />
         </div>
 
         <div>
-          <Label htmlFor="customerName">Customer Name *</Label>
+          <Label htmlFor="customerName">{tr("customerName")} *</Label>
           <Input
             id="customerName"
             value={customerName}
             onChange={(e) => setCustomerName(e.target.value)}
-            placeholder="Enter customer name"
+            placeholder={tr("enterCustomerName")}
             required
           />
         </div>
 
         <div className="relative">
-          <Label htmlFor="customerPhone">Customer Phone * {isLoadingCustomer && "(جستجو...)"}</Label>
+          <Label htmlFor="customerPhone">{tr("customerPhone")} * {isLoadingCustomer && `(${tr("searchOrders")})`}</Label>
           <Input
             id="customerPhone"
             value={customerPhone}
             onChange={(e) => handlePhoneChange(e.target.value)}
-            placeholder="Enter phone number"
+            placeholder={tr("enterPhone")}
             required
           />
           
@@ -2460,53 +2684,53 @@ function ReturnForm({ onClose }: { onClose: () => void }) {
           )}
           
           <p className="text-xs text-gray-500 mt-1">
-            حداقل 3 رقم از شماره تلفن را تایپ کنید تا لیست مشتریان نمایش داده شود
+             {tr("phoneHint")}
           </p>
         </div>
 
         <div>
-          <Label htmlFor="customerEmail">Customer Email</Label>
+          <Label htmlFor="customerEmail">{tr("customerEmail")}</Label>
           <Input
             id="customerEmail"
             type="email"
             value={customerEmail}
             onChange={(e) => setCustomerEmail(e.target.value)}
-            placeholder="Enter email address"
+            placeholder={tr("enterEmail")}
           />
         </div>
 
         <div>
-          <Label htmlFor="refundStatus">Refund Status</Label>
+          <Label htmlFor="refundStatus">{tr("refundStatus")}</Label>
           <Select value={refundStatus} onValueChange={setRefundStatus}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="approved">Approved</SelectItem>
-              <SelectItem value="rejected">Rejected</SelectItem>
-              <SelectItem value="refunded">Refunded</SelectItem>
+              <SelectItem value="pending">{tr("pending")}</SelectItem>
+              <SelectItem value="approved">{tr("approved")}</SelectItem>
+              <SelectItem value="rejected">{tr("rejected")}</SelectItem>
+              <SelectItem value="refunded">{tr("refunded")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
 
       <div>
-        <Label htmlFor="returnReason">Return Reason</Label>
+        <Label htmlFor="returnReason">{tr("returnReason")}</Label>
         <Input
           id="returnReason"
           value={returnReason}
           onChange={(e) => setReturnReason(e.target.value)}
-          placeholder="Enter reason for return"
+          placeholder={tr("enterReason")}
         />
       </div>
 
       <div className="flex gap-4 justify-end pt-4">
         <Button type="button" variant="outline" onClick={onClose}>
-          Cancel
+          {tr("cancel")}
         </Button>
         <Button type="submit" disabled={createReturnMutation.isPending}>
-          {createReturnMutation.isPending ? "Creating..." : "Create Return"}
+          {createReturnMutation.isPending ? tr("creating") : tr("createReturn")}
         </Button>
       </div>
     </form>

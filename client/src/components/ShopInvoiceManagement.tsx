@@ -8,7 +8,65 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { FileText, Download, Eye, Search, Filter, Receipt, Calendar, Building, CheckCircle, Printer } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import PaymentMethodBadge from '@/components/PaymentMethodBadge';
+import { useLanguage } from '@/contexts/LanguageContext';
+
+type InvoiceLanguage = 'en' | 'ar' | 'tr' | 'fa';
+type InvoiceTranslation = Partial<Record<InvoiceLanguage, string>>;
+
+const INVOICE_TRANSLATIONS: Record<string, InvoiceTranslation> = {
+  loading: { en: 'Loading invoices...', ar: 'جارٍ تحميل الفواتير...', tr: 'Faturalar yükleniyor...', fa: 'در حال بارگذاری فاکتورها...' },
+  title: { en: 'Sales Invoice Management', ar: 'إدارة فواتير المبيعات', tr: 'Satış Faturası Yönetimi', fa: 'مدیریت فاکتور فروش' },
+  subtitle: { en: 'Invoices for settled orders', ar: 'فواتير الطلبات المسددة', tr: 'Ödemesi tamamlanan siparişlerin faturaları', fa: 'فاکتورهای سفارشات تسویه شده' },
+  downloadCsv: { en: 'Download CSV Report', ar: 'تنزيل تقرير CSV', tr: 'CSV Raporunu İndir', fa: 'دانلود گزارش CSV' },
+  totalInvoices: { en: 'Total Invoices', ar: 'إجمالي الفواتير', tr: 'Toplam Fatura', fa: 'کل فاکتورها' },
+  totalAmount: { en: 'Total Amount', ar: 'المبلغ الإجمالي', tr: 'Toplam Tutar', fa: 'مبلغ کل' },
+  averageOrder: { en: 'Average Order', ar: 'متوسط الطلب', tr: 'Ortalama Sipariş', fa: 'میانگین سفارش' },
+  thisMonth: { en: 'This Month', ar: 'هذا الشهر', tr: 'Bu Ay', fa: 'این ماه' },
+  search: { en: 'Search by order number, customer name, or phone...', ar: 'البحث برقم الطلب أو اسم العميل أو الهاتف...', tr: 'Sipariş numarası, müşteri adı veya telefonla ara...', fa: 'جستجو بر اساس شماره سفارش، نام مشتری یا شماره تماس...' },
+  filterStatus: { en: 'Filter by status', ar: 'تصفية حسب الحالة', tr: 'Duruma göre filtrele', fa: 'فیلتر وضعیت' },
+  allOrders: { en: 'All Orders', ar: 'كل الطلبات', tr: 'Tüm Siparişler', fa: 'همه سفارشات' },
+  completed: { en: 'Completed', ar: 'مكتمل', tr: 'Tamamlandı', fa: 'تکمیل شده' },
+  delivered: { en: 'Delivered', ar: 'تم التسليم', tr: 'Teslim edildi', fa: 'تحویل شده' },
+  issuableInvoices: { en: 'Issuable Invoices', ar: 'الفواتير القابلة للإصدار', tr: 'Düzenlenebilir Faturalar', fa: 'فاکتورهای قابل صدور' },
+  orderNumber: { en: 'Order Number', ar: 'رقم الطلب', tr: 'Sipariş No', fa: 'شماره سفارش' },
+  customer: { en: 'Customer', ar: 'العميل', tr: 'Müşteri', fa: 'مشتری' },
+  amount: { en: 'Amount', ar: 'المبلغ', tr: 'Tutar', fa: 'مبلغ' },
+  paymentMethod: { en: 'Payment Method', ar: 'طريقة الدفع', tr: 'Ödeme Yöntemi', fa: 'روش پرداخت' },
+  paymentDate: { en: 'Payment Date', ar: 'تاريخ الدفع', tr: 'Ödeme Tarihi', fa: 'تاریخ پرداخت' },
+  status: { en: 'Status', ar: 'الحالة', tr: 'Durum', fa: 'وضعیت' },
+  actions: { en: 'Actions', ar: 'الإجراءات', tr: 'İşlemler', fa: 'عملیات' },
+  settled: { en: 'Settled', ar: 'مسدد', tr: 'Ödendi', fa: 'تسویه شده' },
+  preview: { en: 'Preview invoice', ar: 'معاينة الفاتورة', tr: 'Faturayı önizle', fa: 'پیش‌نمایش فاکتور' },
+  print: { en: 'Print invoice', ar: 'طباعة الفاتورة', tr: 'Faturayı yazdır', fa: 'چاپ فاکتور' },
+  download: { en: 'Download invoice', ar: 'تنزيل الفاتورة', tr: 'Faturayı indir', fa: 'دانلود فاکتور' },
+  noInvoices: { en: 'No issuable invoices found', ar: 'لم يتم العثور على فواتير قابلة للإصدار', tr: 'Düzenlenebilir fatura bulunamadı', fa: 'هیچ فاکتور قابل صدوری یافت نشد' },
+  currency: { en: 'IQD', ar: 'دينار عراقي', tr: 'IQD', fa: 'دینار عراقی' },
+  unknownCustomer: { en: 'Dear customer', ar: 'العميل الكريم', tr: 'Değerli müşteri', fa: 'مشتری گرامی' },
+  notProvided: { en: 'Not provided', ar: 'غير متوفر', tr: 'Belirtilmedi', fa: 'ثبت نشده' },
+  walletFull: { en: 'Full wallet', ar: 'المحفظة كاملة', tr: 'Tam cüzdan', fa: 'کیف پول کامل' },
+  wallet: { en: 'Digital wallet', ar: 'المحفظة الرقمية', tr: 'Dijital cüzdan', fa: 'کیف پول دیجیتال' },
+  bankTransfer: { en: 'Bank transfer', ar: 'تحويل مصرفي', tr: 'Banka havalesi', fa: 'انتقال بانکی' },
+  cashOnDelivery: { en: 'Cash on delivery', ar: 'الدفع عند الاستلام', tr: 'Kapıda ödeme', fa: 'پرداخت در محل' },
+  creditCard: { en: 'Credit card', ar: 'بطاقة ائتمانية', tr: 'Kredi kartı', fa: 'کارت اعتباری' },
+  preparingPrint: { en: 'Preparing print', ar: 'جارٍ تجهيز الطباعة', tr: 'Yazdırma hazırlanıyor', fa: 'آماده‌سازی چاپ' },
+  preparingPrintDescription: { en: 'Preparing invoice for printing...', ar: 'جارٍ تجهيز الفاتورة للطباعة...', tr: 'Fatura yazdırma için hazırlanıyor...', fa: 'در حال آماده‌سازی فاکتور برای چاپ...' },
+  readyToPrint: { en: 'Ready to print', ar: 'جاهز للطباعة', tr: 'Yazdırmaya hazır', fa: 'آماده چاپ' },
+  printReadyDescription: { en: 'Invoice {number} is ready to print', ar: 'الفاتورة {number} جاهزة للطباعة', tr: '{number} numaralı fatura yazdırmaya hazır', fa: 'فاکتور {number} آماده چاپ شد' },
+  printError: { en: 'Print error', ar: 'خطأ في الطباعة', tr: 'Yazdırma hatası', fa: 'خطا در چاپ' },
+  printErrorDescription: { en: 'Unable to print invoice', ar: 'تعذر طباعة الفاتورة', tr: 'Fatura yazdırılamadı', fa: 'امکان چاپ فاکتور وجود ندارد' },
+  fileGeneration: { en: 'Generating file', ar: 'جارٍ إنشاء الملف', tr: 'Dosya oluşturuluyor', fa: 'تولید فایل' },
+  fileGenerationDescription: { en: 'Generating invoice file...', ar: 'جارٍ إنشاء ملف الفاتورة...', tr: 'Fatura dosyası oluşturuluyor...', fa: 'در حال تولید فایل فاکتور...' },
+  fileDownloaded: { en: 'File downloaded', ar: 'تم تنزيل الملف', tr: 'Dosya indirildi', fa: 'فایل دانلود شد' },
+  downloadDescription: { en: 'Invoice {number} downloaded', ar: 'تم تنزيل الفاتورة {number}', tr: '{number} numaralı fatura indirildi', fa: 'فاکتور {number} دانلود شد' },
+  downloadError: { en: 'Download error', ar: 'خطأ في التنزيل', tr: 'İndirme hatası', fa: 'خطا در دانلود' },
+  downloadErrorDescription: { en: 'Unable to download invoice', ar: 'تعذر تنزيل الفاتورة', tr: 'Fatura indirilemedi', fa: 'امکان دانلود فاکتور وجود ندارد' },
+  bulkGeneration: { en: 'Generating files', ar: 'جارٍ إنشاء الملفات', tr: 'Dosyalar oluşturuluyor', fa: 'تولید فایل‌های گروهی' },
+  bulkGenerationDescription: { en: 'Generating all invoices...', ar: 'جارٍ إنشاء جميع الفواتير...', tr: 'Tüm faturalar oluşturuluyor...', fa: 'در حال تولید تمامی فاکتورها...' },
+  reportDownloaded: { en: 'Report downloaded', ar: 'تم تنزيل التقرير', tr: 'Rapor indirildi', fa: 'گزارش دانلود شد' },
+  reportDescription: { en: '{count} invoice report downloaded', ar: 'تم تنزيل تقرير {count} فاتورة', tr: '{count} faturalık rapor indirildi', fa: 'گزارش {count} فاکتور دانلود شد' },
+  reportError: { en: 'Report download error', ar: 'خطأ في تنزيل التقرير', tr: 'Rapor indirme hatası', fa: 'خطا در دانلود گزارش' },
+  reportErrorDescription: { en: 'Unable to download report', ar: 'تعذر تنزيل التقرير', tr: 'Rapor indirilemedi', fa: 'امکان دانلود گزارش وجود ندارد' },
+};
 
 interface PaidOrder {
   id: number;
@@ -21,6 +79,7 @@ interface PaidOrder {
   shippingCost: string;
   vatAmount: string;
   surchargeAmount: string;
+  discountAmount?: string;
   vatRate: string;
   currency: string;
   paymentMethod: string;
@@ -44,6 +103,12 @@ interface InvoiceStats {
 
 export default function ShopInvoiceManagement() {
   const { toast } = useToast();
+  const { language, direction } = useLanguage();
+  const tr = (key: string, values: Record<string, string | number> = {}) => {
+    const template = INVOICE_TRANSLATIONS[key]?.[language] || INVOICE_TRANSLATIONS[key]?.en || key;
+    return Object.entries(values).reduce((text, [name, value]) => text.replace(`{${name}}`, String(value)), template);
+  };
+  const locale = language === 'fa' ? 'fa-IR' : language === 'ar' ? 'ar' : language === 'tr' ? 'tr-TR' : 'en-GB';
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -104,12 +169,12 @@ export default function ShopInvoiceManagement() {
   // Format currency for display
   const formatCurrency = (amount: string | number) => {
     const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-    return new Intl.NumberFormat('en-US').format(num) + ' دینار عراقی';
+    return new Intl.NumberFormat(locale).format(num) + ` ${tr('currency')}`;
   };
 
   // Format Gregorian date
   const formatGregorianDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-GB', {
+    return new Date(dateString).toLocaleDateString(locale, {
       day: '2-digit',
       month: '2-digit', 
       year: 'numeric'
@@ -128,7 +193,7 @@ export default function ShopInvoiceManagement() {
     } else if (lastName) {
       return lastName;
     } else {
-      return 'مشتری گرامی';
+      return tr('unknownCustomer');
     }
   };
 
@@ -141,77 +206,138 @@ export default function ShopInvoiceManagement() {
     return parts.length > 0 ? parts.join(', ') : '';
   };
 
+  // Use the localized server PDF for both actions. The server owns logo
+  // selection and bidi-safe PDF rendering, so print and download stay in sync.
+  const requestInvoicePDF = async (order: PaidOrder) => {
+    const response = await fetch('/api/pdf/invoice', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        invoiceType: 'FINAL',
+        invoiceNumber: order.orderNumber,
+        orderNumber: order.orderNumber,
+        invoiceDate: order.createdAt,
+        language,
+        customer: {
+          name: getCustomerDisplayName(order),
+          email: order.customerEmail,
+          phone: order.customerPhone,
+          address: getCustomerAddress(order),
+        },
+        items: (order.items || []).map(item => ({
+          name: item.productName,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          total: item.totalPrice,
+        })),
+        subtotal: Math.round(
+          Number(order.totalAmount || 0) -
+          Number(order.shippingCost || 0) -
+          Number(order.vatAmount || 0) -
+          Number(order.surchargeAmount || 0)
+        ),
+        vatAmount: order.vatAmount || 0,
+        dutiesAmount: order.surchargeAmount || 0,
+        shippingCost: order.shippingCost || 0,
+        discountAmount: order.discountAmount || 0,
+        total: order.totalAmount,
+        currency: order.currency || 'IQD',
+        paymentMethod: order.paymentMethod,
+        paymentStatus: order.status,
+        companyInfo: companyInfo?.data || companyInfo,
+      }),
+    });
+    if (!response.ok) {
+      throw new Error(`Invoice PDF request failed (${response.status})`);
+    }
+    return response.blob();
+  };
+
   // Print invoice
   const handlePrintInvoice = async (order: PaidOrder) => {
     try {
       toast({
-        title: '🖨️ آماده‌سازی چاپ',
-        description: 'در حال آماده‌سازی فاکتور برای چاپ...',
+        title: `🖨️ ${tr('preparingPrint')}`,
+        description: tr('preparingPrintDescription'),
       });
 
-      // Generate invoice HTML content with company info
-      const invoiceHTML = generateInvoiceHTML(order, companyInfo);
-      
-      // Open print window
       const printWindow = window.open('', '_blank');
       if (!printWindow) {
-        throw new Error('امکان باز کردن پنجره چاپ وجود ندارد');
+        throw new Error(tr('printErrorDescription'));
+      }
+      let url: string | undefined;
+      let printed = false;
+      const printWhenReady = () => {
+        if (printed) return;
+        if (printWindow.closed) {
+          printed = true;
+          if (url) URL.revokeObjectURL(url);
+          return;
+        }
+        printed = true;
+        printWindow.focus();
+        printWindow.print();
+        setTimeout(() => {
+          if (!printWindow.closed) printWindow.close();
+          if (url) URL.revokeObjectURL(url);
+        }, 1000);
+      };
+      try {
+        const blob = await requestInvoicePDF(order);
+        url = URL.createObjectURL(blob);
+        // PDF viewers generally fire load after navigation. The timeout is a
+        // fallback for viewers that do not expose that event for blob PDFs.
+        printWindow.onload = () => setTimeout(printWhenReady, 300);
+        printWindow.location.href = url;
+        setTimeout(printWhenReady, 2000);
+      } catch (error) {
+        if (url) URL.revokeObjectURL(url);
+        if (!printWindow.closed) printWindow.close();
+        throw error;
       }
 
-      printWindow.document.write(invoiceHTML);
-      printWindow.document.close();
-      printWindow.focus();
-      
-      setTimeout(() => {
-        printWindow.print();
-        printWindow.close();
-      }, 500);
-
       toast({
-        title: '✅ آماده چاپ',
-        description: `فاکتور سفارش ${order.orderNumber} آماده چاپ شد`,
+        title: `✅ ${tr('readyToPrint')}`,
+        description: tr('printReadyDescription', { number: order.orderNumber }),
       });
     } catch (error) {
-      console.error('خطا در چاپ فاکتور:', error);
+      console.error(tr('printError'), error);
       toast({
-        title: '❌ خطا در چاپ',
-        description: 'امکان چاپ فاکتور وجود ندارد',
+        title: `❌ ${tr('printError')}`,
+        description: tr('printErrorDescription'),
         variant: 'destructive'
       });
     }
   };
 
-  // Download invoice as HTML file
+  // Download invoice as a localized PDF
   const handleDownloadInvoice = async (order: PaidOrder) => {
     try {
       toast({
-        title: '📄 تولید فایل',
-        description: 'در حال تولید فایل فاکتور...',
+        title: `📄 ${tr('fileGeneration')}`,
+        description: tr('fileGenerationDescription'),
       });
 
-      // Generate invoice HTML content with company info
-      const invoiceHTML = generateInvoiceHTML(order, companyInfo);
-      
-      // Create blob and download
-      const blob = new Blob([invoiceHTML], { type: 'text/html;charset=utf-8' });
+      const blob = await requestInvoicePDF(order);
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `invoice-${order.orderNumber}.html`;
+      link.download = `invoice-${order.orderNumber}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
       toast({
-        title: '✅ فایل دانلود شد',
-        description: `فاکتور ${order.orderNumber} دانلود شد`,
+        title: `✅ ${tr('fileDownloaded')}`,
+        description: tr('downloadDescription', { number: order.orderNumber }),
       });
     } catch (error) {
-      console.error('خطا در دانلود فاکتور:', error);
+      console.error(tr('downloadError'), error);
       toast({
-        title: '❌ خطا در دانلود',
-        description: 'امکان دانلود فاکتور وجود ندارد',
+        title: `❌ ${tr('downloadError')}`,
+        description: tr('downloadErrorDescription'),
         variant: 'destructive'
       });
     }
@@ -566,11 +692,11 @@ export default function ShopInvoiceManagement() {
   // Get payment method display name
   const getPaymentMethodName = (method: string) => {
     const methods: Record<string, string> = {
-      'bank_transfer': 'انتقال بانکی',
-      'wallet_full': 'کیف پول کامل',
-      'wallet': 'کیف پول دیجیتال',
-      'cash_on_delivery': 'پرداخت در محل',
-      'credit_card': 'کارت اعتباری'
+      'bank_transfer': tr('bankTransfer'),
+      'wallet_full': tr('walletFull'),
+      'wallet': tr('wallet'),
+      'cash_on_delivery': tr('cashOnDelivery'),
+      'credit_card': tr('creditCard')
     };
     return methods[method] || method;
   };
@@ -585,13 +711,13 @@ export default function ShopInvoiceManagement() {
   const handleDownloadAllInvoices = async () => {
     try {
       toast({
-        title: '📦 تولید فایل‌های گروهی',
-        description: 'در حال تولید تمامی فاکتورها...',
+        title: `📦 ${tr('bulkGeneration')}`,
+        description: tr('bulkGenerationDescription'),
       });
 
       // Create a simple CSV report for now
       const csvContent = [
-        'شماره فاکتور,مشتری,مبلغ,روش پرداخت,تاریخ پرداخت',
+        `${tr('orderNumber')},${tr('customer')},${tr('amount')},${tr('paymentMethod')},${tr('paymentDate')}`,
         ...filteredOrders.map(order => 
           `${order.orderNumber},"${order.customerFirstName} ${order.customerLastName}",${order.totalAmount},${getPaymentMethodName(order.paymentMethod)},${formatGregorianDate(order.paymentDate)}`
         )
@@ -608,14 +734,14 @@ export default function ShopInvoiceManagement() {
       URL.revokeObjectURL(url);
 
       toast({
-        title: '✅ گزارش دانلود شد',
-        description: `گزارش ${filteredOrders.length} فاکتور دانلود شد`,
+        title: `✅ ${tr('reportDownloaded')}`,
+        description: tr('reportDescription', { count: filteredOrders.length }),
       });
     } catch (error) {
-      console.error('خطا در دانلود گزارش:', error);
+      console.error(tr('reportError'), error);
       toast({
-        title: '❌ خطا در دانلود گزارش',
-        description: 'امکان دانلود گزارش وجود ندارد',
+        title: `❌ ${tr('reportError')}`,
+        description: tr('reportErrorDescription'),
         variant: 'destructive'
       });
     }
@@ -623,20 +749,20 @@ export default function ShopInvoiceManagement() {
 
   if (ordersLoading) {
     return (
-      <div className="flex justify-center items-center py-12">
+      <div className="flex justify-center items-center py-12" dir={direction}>
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        <span className="mr-3">در حال بارگذاری فاکتورها...</span>
+        <span className="mr-3">{tr('loading')}</span>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6" dir="rtl">
+    <div className="space-y-6" dir={direction}>
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">مدیریت فاکتور فروش</h2>
-          <p className="text-sm text-gray-600 mt-1">فاکتورهای سفارشات تسویه شده</p>
+          <h2 className="text-2xl font-bold text-gray-900">{tr('title')}</h2>
+          <p className="text-sm text-gray-600 mt-1">{tr('subtitle')}</p>
         </div>
         <div className="flex gap-2">
           <Button
@@ -645,7 +771,7 @@ export default function ShopInvoiceManagement() {
             disabled={filteredOrders.length === 0}
           >
             <Download className="w-4 h-4" />
-            دانلود گزارش CSV ({filteredOrders.length})
+            {tr('downloadCsv')} ({filteredOrders.length})
           </Button>
         </div>
       </div>
@@ -657,7 +783,7 @@ export default function ShopInvoiceManagement() {
             <div className="flex items-center">
               <Receipt className="w-8 h-8 text-green-600" />
               <div className="mr-3">
-                <p className="text-sm font-medium text-gray-600">کل فاکتورها</p>
+                <p className="text-sm font-medium text-gray-600">{tr('totalInvoices')}</p>
                 <p className="text-xl font-bold text-green-600">{stats.totalPaidOrders}</p>
               </div>
             </div>
@@ -669,7 +795,7 @@ export default function ShopInvoiceManagement() {
             <div className="flex items-center">
               <CheckCircle className="w-8 h-8 text-blue-600" />
               <div className="mr-3">
-                <p className="text-sm font-medium text-gray-600">مبلغ کل</p>
+                <p className="text-sm font-medium text-gray-600">{tr('totalAmount')}</p>
                 <p className="text-lg font-bold text-blue-600">{formatCurrency(stats.totalInvoiceAmount)}</p>
               </div>
             </div>
@@ -681,7 +807,7 @@ export default function ShopInvoiceManagement() {
             <div className="flex items-center">
               <Building className="w-8 h-8 text-purple-600" />
               <div className="mr-3">
-                <p className="text-sm font-medium text-gray-600">میانگین سفارش</p>
+                <p className="text-sm font-medium text-gray-600">{tr('averageOrder')}</p>
                 <p className="text-lg font-bold text-purple-600">{formatCurrency(stats.averageOrderValue)}</p>
               </div>
             </div>
@@ -693,7 +819,7 @@ export default function ShopInvoiceManagement() {
             <div className="flex items-center">
               <Calendar className="w-8 h-8 text-orange-600" />
               <div className="mr-3">
-                <p className="text-sm font-medium text-gray-600">این ماه</p>
+                <p className="text-sm font-medium text-gray-600">{tr('thisMonth')}</p>
                 <p className="text-xl font-bold text-orange-600">{stats.thisMonthInvoices}</p>
               </div>
             </div>
@@ -705,23 +831,23 @@ export default function ShopInvoiceManagement() {
       <div className="flex gap-4 items-center bg-gray-50 p-4 rounded-lg">
         <div className="flex-1">
           <div className="relative">
-            <Search className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
+            <Search className={`absolute ${direction === 'rtl' ? 'right-3' : 'left-3'} top-3 h-4 w-4 text-gray-400`} />
             <Input
-              placeholder="جستجو بر اساس شماره سفارش، نام مشتری یا شماره تماس..."
+              placeholder={tr('search')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pr-10"
+              className={direction === 'rtl' ? 'pr-10' : 'pl-10'}
             />
           </div>
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-48">
-            <SelectValue placeholder="فیلتر وضعیت" />
+            <SelectValue placeholder={tr('filterStatus')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">همه سفارشات</SelectItem>
-            <SelectItem value="completed">تکمیل شده</SelectItem>
-            <SelectItem value="delivered">تحویل شده</SelectItem>
+            <SelectItem value="all">{tr('allOrders')}</SelectItem>
+            <SelectItem value="completed">{tr('completed')}</SelectItem>
+            <SelectItem value="delivered">{tr('delivered')}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -731,7 +857,7 @@ export default function ShopInvoiceManagement() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5" />
-            فاکتورهای قابل صدور ({filteredOrders.length})
+            {tr('issuableInvoices')} ({filteredOrders.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -739,13 +865,13 @@ export default function ShopInvoiceManagement() {
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b bg-gray-50">
-                  <th className="text-right p-3 font-semibold">شماره سفارش</th>
-                  <th className="text-right p-3 font-semibold">مشتری</th>
-                  <th className="text-right p-3 font-semibold">مبلغ</th>
-                  <th className="text-right p-3 font-semibold">روش پرداخت</th>
-                  <th className="text-right p-3 font-semibold">تاریخ پرداخت</th>
-                  <th className="text-right p-3 font-semibold">وضعیت</th>
-                  <th className="text-right p-3 font-semibold">عملیات</th>
+                  <th className="text-right p-3 font-semibold">{tr('orderNumber')}</th>
+                  <th className="text-right p-3 font-semibold">{tr('customer')}</th>
+                  <th className="text-right p-3 font-semibold">{tr('amount')}</th>
+                  <th className="text-right p-3 font-semibold">{tr('paymentMethod')}</th>
+                  <th className="text-right p-3 font-semibold">{tr('paymentDate')}</th>
+                  <th className="text-right p-3 font-semibold">{tr('status')}</th>
+                  <th className="text-right p-3 font-semibold">{tr('actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -760,16 +886,14 @@ export default function ShopInvoiceManagement() {
                     </td>
                     <td className="p-3 font-bold text-green-600">{formatCurrency(order.totalAmount)}</td>
                     <td className="p-3">
-                      <PaymentMethodBadge 
-                        paymentMethod={order.paymentMethod}
-                        showIcon={true}
-                        className="text-xs"
-                      />
+                      <Badge variant="secondary" className="text-xs">
+                        {getPaymentMethodName(order.paymentMethod)}
+                      </Badge>
                     </td>
                     <td className="p-3 text-sm">{formatGregorianDate(order.paymentDate)}</td>
                     <td className="p-3">
                       <Badge variant="default" className="bg-green-100 text-green-800">
-                        تسویه شده
+                        {tr('settled')}
                       </Badge>
                     </td>
                     <td className="p-3">
@@ -779,7 +903,7 @@ export default function ShopInvoiceManagement() {
                           variant="outline"
                           onClick={() => handlePreviewInvoice(order)}
                           className="text-blue-600 hover:text-blue-800"
-                          title="پیش‌نمایش فاکتور"
+                          title={tr('preview')}
                         >
                           <Eye className="w-4 h-4" />
                         </Button>
@@ -787,7 +911,7 @@ export default function ShopInvoiceManagement() {
                           size="sm" 
                           onClick={() => handlePrintInvoice(order)}
                           className="bg-purple-600 hover:bg-purple-700 text-white"
-                          title="چاپ فاکتور"
+                           title={tr('print')}
                         >
                           <Printer className="w-4 h-4" />
                         </Button>
@@ -795,7 +919,7 @@ export default function ShopInvoiceManagement() {
                           size="sm" 
                           onClick={() => handleDownloadInvoice(order)}
                           className="bg-green-600 hover:bg-green-700 text-white"
-                          title="دانلود فاکتور"
+                           title={tr('download')}
                         >
                           <Download className="w-4 h-4" />
                         </Button>
@@ -809,7 +933,7 @@ export default function ShopInvoiceManagement() {
             {filteredOrders.length === 0 && (
               <div className="text-center py-8">
                 <Receipt className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                <p className="text-gray-500">هیچ فاکتور قابل صدوری یافت نشد</p>
+                <p className="text-gray-500">{tr('noInvoices')}</p>
               </div>
             )}
           </div>
