@@ -40448,7 +40448,8 @@ momtazchem.com
         .innerJoin(customerOrders, eq(orderItems.orderId, customerOrders.id))
         .where(and(
           eq(orderItems.productId, product.id),
-          gte(customerOrders.createdAt, startDate)
+          gte(customerOrders.createdAt, startDate),
+          sql`COALESCE(${customerOrders.status}, '') NOT IN ('cancelled', 'failed', 'deleted')`
         ));
 
         const sales = salesData[0] || { totalSales: 0, revenue: 0 };
@@ -40475,20 +40476,23 @@ momtazchem.com
           const regionsQuery = await customerDb.execute(sql`
             SELECT 
               COALESCE(
-                (shipping_address->>'country'),
+                NULLIF(co.shipping_address->>'country', ''),
+                NULLIF(c.country, ''),
                 CASE 
-                  WHEN shipping_address::text LIKE '%Iran%' THEN 'Iran'
-                  WHEN shipping_address::text LIKE '%Iraq%' THEN 'Iraq' 
-                  WHEN shipping_address::text LIKE '%Turkey%' THEN 'Turkey'
+                  WHEN co.shipping_address::text LIKE '%Iran%' THEN 'Iran'
+                  WHEN co.shipping_address::text LIKE '%Iraq%' THEN 'Iraq'
+                  WHEN co.shipping_address::text LIKE '%Turkey%' THEN 'Turkey'
                   ELSE 'Unknown'
                 END
               ) as region,
               COALESCE(
-                (shipping_address->>'city'),
+                NULLIF(co.shipping_address->>'city', ''),
+                NULLIF(c.city_region, ''),
+                NULLIF(c.province, ''),
                 CASE 
-                  WHEN shipping_address::text LIKE '%تهران%' OR shipping_address::text LIKE '%Tehran%' THEN 'Tehran'
-                  WHEN shipping_address::text LIKE '%بغداد%' OR shipping_address::text LIKE '%Baghdad%' THEN 'Baghdad'
-                  WHEN shipping_address::text LIKE '%اربیل%' OR shipping_address::text LIKE '%Erbil%' THEN 'Erbil'
+                  WHEN co.shipping_address::text LIKE '%تهران%' OR co.shipping_address::text LIKE '%Tehran%' THEN 'Tehran'
+                  WHEN co.shipping_address::text LIKE '%بغداد%' OR co.shipping_address::text LIKE '%Baghdad%' THEN 'Baghdad'
+                  WHEN co.shipping_address::text LIKE '%اربیل%' OR co.shipping_address::text LIKE '%Erbil%' THEN 'Erbil'
                   ELSE 'Unknown'
                 END
               ) as city,
@@ -40497,25 +40501,29 @@ momtazchem.com
             FROM order_items oi
             INNER JOIN customer_orders co ON oi.order_id = co.id
             INNER JOIN shop_products sp ON oi.product_id = sp.id
+            LEFT JOIN crm_customers c ON c.id = co.customer_id
             WHERE sp.name = ${productInfo.name}
               AND co.created_at >= ${startDate.toISOString()}
-              AND co.shipping_address IS NOT NULL
+              AND COALESCE(co.status, '') NOT IN ('cancelled', 'failed', 'deleted')
             GROUP BY 
               COALESCE(
-                (shipping_address->>'country'),
+                NULLIF(co.shipping_address->>'country', ''),
+                NULLIF(c.country, ''),
                 CASE 
-                  WHEN shipping_address::text LIKE '%Iran%' THEN 'Iran'
-                  WHEN shipping_address::text LIKE '%Iraq%' THEN 'Iraq' 
-                  WHEN shipping_address::text LIKE '%Turkey%' THEN 'Turkey'
+                  WHEN co.shipping_address::text LIKE '%Iran%' THEN 'Iran'
+                  WHEN co.shipping_address::text LIKE '%Iraq%' THEN 'Iraq'
+                  WHEN co.shipping_address::text LIKE '%Turkey%' THEN 'Turkey'
                   ELSE 'Unknown'
                 END
               ),
               COALESCE(
-                (shipping_address->>'city'),
+                NULLIF(co.shipping_address->>'city', ''),
+                NULLIF(c.city_region, ''),
+                NULLIF(c.province, ''),
                 CASE 
-                  WHEN shipping_address::text LIKE '%تهران%' OR shipping_address::text LIKE '%Tehran%' THEN 'Tehran'
-                  WHEN shipping_address::text LIKE '%بغداد%' OR shipping_address::text LIKE '%Baghdad%' THEN 'Baghdad'
-                  WHEN shipping_address::text LIKE '%اربیل%' OR shipping_address::text LIKE '%Erbil%' THEN 'Erbil'
+                  WHEN co.shipping_address::text LIKE '%تهران%' OR co.shipping_address::text LIKE '%Tehran%' THEN 'Tehran'
+                  WHEN co.shipping_address::text LIKE '%بغداد%' OR co.shipping_address::text LIKE '%Baghdad%' THEN 'Baghdad'
+                  WHEN co.shipping_address::text LIKE '%اربیل%' OR co.shipping_address::text LIKE '%Erbil%' THEN 'Erbil'
                   ELSE 'Unknown'
                 END
               )

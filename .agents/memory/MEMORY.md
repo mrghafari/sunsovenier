@@ -4,3 +4,4 @@
 - [Certificate storage](certificate-storage.md) — store new certificate files privately in Amazon S3 and expose only stable app URLs backed by short-lived signed downloads.
 - [Drizzle schema push](drizzle-schema-push.md) — schema introspection can fail on a legacy expression index; keep schema source authoritative and apply additive dev DDL safely.
 - [Blog localization fallback](strict-blog-localization.md) — new posts require four languages; legacy posts temporarily fall back to English instead of returning “not found.”
+- [Sales analytics order status](sales-analytics-order-status.md) — geographic and product sales reports must exclude cancelled, failed, and deleted orders consistently.
