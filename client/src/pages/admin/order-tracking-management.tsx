@@ -28,6 +28,179 @@ import {
   Printer
 } from 'lucide-react';
 import PaymentMethodBadge from '@/components/PaymentMethodBadge';
+import { useLanguage } from '@/contexts/LanguageContext';
+
+type Language = 'en' | 'ar' | 'tr' | 'fa';
+
+const translations: Record<Language, Record<string, string>> = {
+  en: {
+    totalOrders: 'Total orders', pending: 'Pending', completed: 'Completed',
+    totalRevenue: 'Total revenue (30 days)', averageOrder: 'Average order', todaysOrders: "Today's orders",
+    manualStats: 'Statistics — manual refresh', refreshNow: 'Refresh now',
+    searchPlaceholder: 'Search (at least 3 characters): order number, email, delivery code, phone...',
+    minChars: 'Enter at least 3 characters', allStatuses: 'All statuses',
+    problematicOnly: 'Problematic and failed only', orderList: 'Order list',
+    listDescription: 'View and track all orders in the system', orderNumber: 'Order number',
+    customer: 'Customer', amount: 'Amount', statusProblems: 'Status / problem details',
+    createdTime: 'Order time', actions: 'Actions', view: 'View', unknown: 'Unknown',
+    loading: 'Loading...', loadingOrders: 'Loading orders...', loadingLatest: 'Retrieving the latest order statuses',
+    sessionExpired: 'Session expired', signInAgainMessage: 'Please sign in again to view orders', signInAgain: 'Sign in again',
+    orderDetails: 'Order details', print: 'Print', printTitle: 'Print order details',
+    customerInfo: 'Customer information', name: 'Name', email: 'Email', phone: 'Phone',
+    financialInfo: 'Financial information', totalAmount: 'Total amount', paymentMethod: 'Payment method',
+    currentStatus: 'Current status', problemDetails: 'Problem details:', deliveryInfo: 'Delivery information',
+    deliveryCode: 'Delivery code', trackingNumber: 'Tracking number', estimatedDelivery: 'Estimated delivery date',
+    actualDelivery: 'Actual delivery date', deliveryPerson: 'Delivery person', deliveryPhone: 'Delivery person phone',
+    financialNotes: 'Financial notes', warehouseNotes: 'Warehouse notes', logisticsNotes: 'Logistics notes',
+    noNotes: 'No notes', notAssigned: 'Not assigned', notSet: 'Not set', notDelivered: 'Not delivered',
+    timestamps: 'Created and updated times', customerSubmitted: 'Order submitted by customer:',
+    checkoutExactTime: '(Exact time the order was submitted at checkout)', lastStatusUpdate: 'Last status update:',
+    noOrders: 'No orders found', noFilteredOrders: 'No orders match the selected filters',
+    noOrdersYet: 'No orders have been registered yet', loadingMore: 'Loading more orders...',
+    loadedOf: 'loaded out of', orders: 'orders', loadMore: 'Load more',
+    allLoaded: 'All orders loaded', reloadForNew: 'Refresh the page to see new orders',
+    scrollForMore: 'Scroll down to load more orders automatically',
+    unpaid: 'Awaiting payment', customerDept: 'Customer', financeReview: 'Awaiting finance review',
+    finance: 'Finance', confirmed: 'Awaiting preparation', warehouse: 'Warehouse',
+    warehousePending: 'Awaiting warehouse', warehouseApproved: 'Warehouse approved',
+    logistics: 'Logistics', warehouseReady: 'Awaiting delivery', delivered: 'Delivered',
+    complete: 'Complete', deleted: 'Deleted', management: 'Management', cancelled: 'Cancelled',
+    cancellation: 'Cancellation', financialRejected: 'Finance rejected', paymentFailed: 'Payment failed',
+    payment: 'Payment', expired: 'Expired', system: 'System', warehouseRejected: 'Warehouse rejected',
+    logisticsFailed: 'Delivery failed', invalid: 'Invalid',
+    deletedExp: 'The order was deleted by management.',
+    cancelledExp: 'The order was cancelled by the customer, management, or because payment was not completed.',
+    financialRejectedExp: 'The payment receipt was rejected by the finance department.',
+    paymentFailedExp: 'The online payment could not be completed.',
+    expiredExp: 'The order expired because payment was not completed in time.',
+    warehouseRejectedExp: 'The warehouse rejected the order because it could not be fulfilled.',
+    logisticsFailedExp: 'The order delivery could not be completed.',
+    unknownStatusExp: 'This status needs technical review.',
+  },
+  ar: {
+    totalOrders: 'إجمالي الطلبات', pending: 'قيد الانتظار', completed: 'مكتملة',
+    totalRevenue: 'إجمالي الإيرادات (30 يومًا)', averageOrder: 'متوسط الطلب', todaysOrders: 'طلبات اليوم',
+    manualStats: 'الإحصاءات — تحديث يدوي', refreshNow: 'تحديث الآن',
+    searchPlaceholder: 'البحث (3 أحرف على الأقل): رقم الطلب، البريد، رمز التسليم، الهاتف...',
+    minChars: 'أدخل 3 أحرف على الأقل', allStatuses: 'جميع الحالات', problematicOnly: 'المشكلات والطلبات الفاشلة فقط',
+    orderList: 'قائمة الطلبات', listDescription: 'عرض وتتبع جميع الطلبات في النظام',
+    orderNumber: 'رقم الطلب', customer: 'العميل', amount: 'المبلغ', statusProblems: 'الحالة / تفاصيل المشكلة',
+    createdTime: 'وقت الطلب', actions: 'الإجراءات', view: 'عرض', unknown: 'غير معروف',
+    loading: 'جارٍ التحميل...', loadingOrders: 'جارٍ تحميل الطلبات...', loadingLatest: 'جارٍ جلب أحدث حالات الطلبات',
+    sessionExpired: 'انتهت الجلسة', signInAgainMessage: 'يرجى تسجيل الدخول مرة أخرى لعرض الطلبات', signInAgain: 'تسجيل الدخول مجددًا',
+    orderDetails: 'تفاصيل الطلب', print: 'طباعة', printTitle: 'طباعة تفاصيل الطلب',
+    customerInfo: 'معلومات العميل', name: 'الاسم', email: 'البريد الإلكتروني', phone: 'الهاتف',
+    financialInfo: 'المعلومات المالية', totalAmount: 'المبلغ الإجمالي', paymentMethod: 'طريقة الدفع',
+    currentStatus: 'الحالة الحالية', problemDetails: 'تفاصيل المشكلة:', deliveryInfo: 'معلومات التسليم',
+    deliveryCode: 'رمز التسليم', trackingNumber: 'رقم التتبع', estimatedDelivery: 'تاريخ التسليم المتوقع',
+    actualDelivery: 'تاريخ التسليم الفعلي', deliveryPerson: 'اسم مسؤول التسليم', deliveryPhone: 'هاتف مسؤول التسليم',
+    financialNotes: 'ملاحظات المالية', warehouseNotes: 'ملاحظات المستودع', logisticsNotes: 'ملاحظات اللوجستيات',
+    noNotes: 'لا توجد ملاحظات', notAssigned: 'غير معيّن', notSet: 'غير محدد', notDelivered: 'لم يتم التسليم',
+    timestamps: 'أوقات الإنشاء والتحديث', customerSubmitted: 'وقت إرسال العميل للطلب:',
+    checkoutExactTime: '(الوقت الدقيق لإرسال الطلب في صفحة الدفع)', lastStatusUpdate: 'آخر تحديث للحالة:',
+    noOrders: 'لم يتم العثور على طلبات', noFilteredOrders: 'لا توجد طلبات تطابق عوامل التصفية المحددة',
+    noOrdersYet: 'لم تُسجل طلبات بعد', loadingMore: 'جارٍ تحميل المزيد من الطلبات...',
+    loadedOf: 'محمّل من أصل', orders: 'طلب', loadMore: 'تحميل المزيد', allLoaded: 'تم تحميل جميع الطلبات',
+    reloadForNew: 'حدّث الصفحة لرؤية الطلبات الجديدة', scrollForMore: 'مرّر لأسفل لتحميل المزيد تلقائيًا',
+    unpaid: 'بانتظار الدفع', customerDept: 'العميل', financeReview: 'بانتظار مراجعة المالية', finance: 'المالية',
+    confirmed: 'بانتظار التجهيز', warehouse: 'المستودع', warehousePending: 'بانتظار المستودع',
+    warehouseApproved: 'موافقة المستودع', logistics: 'اللوجستيات', warehouseReady: 'بانتظار التسليم',
+    delivered: 'تم التسليم', complete: 'مكتمل', deleted: 'محذوف', management: 'الإدارة',
+    cancelled: 'ملغى', cancellation: 'الإلغاء', financialRejected: 'مرفوض ماليًا',
+    paymentFailed: 'فشل الدفع', payment: 'الدفع', expired: 'منتهي الصلاحية', system: 'النظام',
+    warehouseRejected: 'مرفوض من المستودع', logisticsFailed: 'فشل التسليم', invalid: 'غير صالح',
+    deletedExp: 'حُذف الطلب بواسطة الإدارة.',
+    cancelledExp: 'أُلغي الطلب بواسطة العميل أو الإدارة أو بسبب عدم اكتمال الدفع.',
+    financialRejectedExp: 'رفض القسم المالي إيصال الدفع.',
+    paymentFailedExp: 'تعذر إكمال الدفع الإلكتروني.',
+    expiredExp: 'انتهت صلاحية الطلب لعدم إكمال الدفع في الوقت المحدد.',
+    warehouseRejectedExp: 'رفض المستودع الطلب لتعذر تجهيزه.',
+    logisticsFailedExp: 'تعذر إكمال تسليم الطلب.',
+    unknownStatusExp: 'تحتاج هذه الحالة إلى مراجعة فنية.',
+  },
+  tr: {
+    totalOrders: 'Toplam sipariş', pending: 'Bekleyen', completed: 'Tamamlanan',
+    totalRevenue: 'Toplam gelir (30 gün)', averageOrder: 'Ortalama sipariş', todaysOrders: 'Bugünkü siparişler',
+    manualStats: 'İstatistikler — manuel yenileme', refreshNow: 'Şimdi yenile',
+    searchPlaceholder: 'Ara (en az 3 karakter): sipariş no, e-posta, teslimat kodu, telefon...',
+    minChars: 'En az 3 karakter girin', allStatuses: 'Tüm durumlar', problematicOnly: 'Yalnızca sorunlu ve başarısız',
+    orderList: 'Sipariş listesi', listDescription: 'Sistemdeki tüm siparişleri görüntüleyin ve takip edin',
+    orderNumber: 'Sipariş numarası', customer: 'Müşteri', amount: 'Tutar', statusProblems: 'Durum / sorun ayrıntıları',
+    createdTime: 'Sipariş zamanı', actions: 'İşlemler', view: 'Görüntüle', unknown: 'Bilinmiyor',
+    loading: 'Yükleniyor...', loadingOrders: 'Siparişler yükleniyor...', loadingLatest: 'En güncel sipariş durumları alınıyor',
+    sessionExpired: 'Oturum süresi doldu', signInAgainMessage: 'Siparişleri görmek için yeniden giriş yapın', signInAgain: 'Yeniden giriş yap',
+    orderDetails: 'Sipariş ayrıntıları', print: 'Yazdır', printTitle: 'Sipariş ayrıntılarını yazdır',
+    customerInfo: 'Müşteri bilgileri', name: 'Ad', email: 'E-posta', phone: 'Telefon',
+    financialInfo: 'Finansal bilgiler', totalAmount: 'Toplam tutar', paymentMethod: 'Ödeme yöntemi',
+    currentStatus: 'Geçerli durum', problemDetails: 'Sorun ayrıntıları:', deliveryInfo: 'Teslimat bilgileri',
+    deliveryCode: 'Teslimat kodu', trackingNumber: 'Takip numarası', estimatedDelivery: 'Tahmini teslimat tarihi',
+    actualDelivery: 'Gerçek teslimat tarihi', deliveryPerson: 'Teslimat görevlisi', deliveryPhone: 'Teslimat görevlisi telefonu',
+    financialNotes: 'Finans notları', warehouseNotes: 'Depo notları', logisticsNotes: 'Lojistik notları',
+    noNotes: 'Not yok', notAssigned: 'Atanmadı', notSet: 'Belirlenmedi', notDelivered: 'Teslim edilmedi',
+    timestamps: 'Oluşturma ve güncelleme zamanları', customerSubmitted: 'Müşterinin siparişi gönderdiği zaman:',
+    checkoutExactTime: '(Siparişin ödeme sayfasında gönderildiği kesin zaman)', lastStatusUpdate: 'Son durum güncellemesi:',
+    noOrders: 'Sipariş bulunamadı', noFilteredOrders: 'Seçilen filtrelerle eşleşen sipariş yok',
+    noOrdersYet: 'Henüz sipariş kaydedilmedi', loadingMore: 'Daha fazla sipariş yükleniyor...',
+    loadedOf: 'yüklendi /', orders: 'sipariş', loadMore: 'Daha fazla yükle', allLoaded: 'Tüm siparişler yüklendi',
+    reloadForNew: 'Yeni siparişleri görmek için sayfayı yenileyin', scrollForMore: 'Daha fazlasını otomatik yüklemek için aşağı kaydırın',
+    unpaid: 'Ödeme bekliyor', customerDept: 'Müşteri', financeReview: 'Finans incelemesi bekliyor', finance: 'Finans',
+    confirmed: 'Hazırlanmayı bekliyor', warehouse: 'Depo', warehousePending: 'Depo bekleniyor',
+    warehouseApproved: 'Depo onayladı', logistics: 'Lojistik', warehouseReady: 'Teslimat bekliyor',
+    delivered: 'Teslim edildi', complete: 'Tamamlandı', deleted: 'Silindi', management: 'Yönetim',
+    cancelled: 'İptal edildi', cancellation: 'İptal', financialRejected: 'Finans reddetti',
+    paymentFailed: 'Ödeme başarısız', payment: 'Ödeme', expired: 'Süresi doldu', system: 'Sistem',
+    warehouseRejected: 'Depo reddetti', logisticsFailed: 'Teslimat başarısız', invalid: 'Geçersiz',
+    deletedExp: 'Sipariş yönetim tarafından silindi.',
+    cancelledExp: 'Sipariş müşteri, yönetim veya tamamlanmayan ödeme nedeniyle iptal edildi.',
+    financialRejectedExp: 'Ödeme makbuzu finans departmanı tarafından reddedildi.',
+    paymentFailedExp: 'Çevrimiçi ödeme tamamlanamadı.',
+    expiredExp: 'Ödeme zamanında tamamlanmadığı için siparişin süresi doldu.',
+    warehouseRejectedExp: 'Sipariş hazırlanamadığı için depo tarafından reddedildi.',
+    logisticsFailedExp: 'Sipariş teslimatı tamamlanamadı.',
+    unknownStatusExp: 'Bu durumun teknik olarak incelenmesi gerekiyor.',
+  },
+  fa: {
+    totalOrders: 'کل سفارشات', pending: 'در انتظار', completed: 'تکمیل شده',
+    totalRevenue: 'درآمد کل (۳۰ روز)', averageOrder: 'میانگین سفارش', todaysOrders: 'سفارشات امروز',
+    manualStats: 'آمارها — بروزرسانی دستی', refreshNow: 'به‌روزرسانی فوری',
+    searchPlaceholder: 'جستجو (حداقل ۳ حرف): شماره سفارش، ایمیل، کد تحویل، تلفن...',
+    minChars: 'حداقل ۳ حرف وارد کنید', allStatuses: 'همه وضعیت‌ها', problematicOnly: 'فقط مشکل‌دار و شکست‌خورده',
+    orderList: 'لیست سفارشات', listDescription: 'مشاهده و پیگیری تمامی سفارشات موجود در سیستم',
+    orderNumber: 'شماره سفارش', customer: 'مشتری', amount: 'مبلغ', statusProblems: 'وضعیت / توضیحات مشکلات',
+    createdTime: 'زمان ثبت سفارش', actions: 'عملیات', view: 'مشاهده', unknown: 'نامشخص',
+    loading: 'در حال بارگیری...', loadingOrders: 'بارگیری سفارشات...', loadingLatest: 'در حال دریافت آخرین وضعیت سفارشات',
+    sessionExpired: 'جلسه منقضی شده', signInAgainMessage: 'برای مشاهده سفارشات، لطفاً دوباره وارد شوید', signInAgain: 'ورود مجدد',
+    orderDetails: 'جزئیات سفارش', print: 'چاپ', printTitle: 'چاپ جزئیات سفارش',
+    customerInfo: 'اطلاعات مشتری', name: 'نام', email: 'ایمیل', phone: 'تلفن',
+    financialInfo: 'اطلاعات مالی', totalAmount: 'مبلغ کل', paymentMethod: 'روش پرداخت',
+    currentStatus: 'وضعیت فعلی', problemDetails: 'توضیحات مشکل:', deliveryInfo: 'اطلاعات تحویل',
+    deliveryCode: 'کد تحویل', trackingNumber: 'شماره رهگیری', estimatedDelivery: 'تاریخ تحویل تخمینی',
+    actualDelivery: 'تاریخ تحویل واقعی', deliveryPerson: 'نام تحویل‌دهنده', deliveryPhone: 'تلفن تحویل‌دهنده',
+    financialNotes: 'یادداشت‌های مالی', warehouseNotes: 'یادداشت‌های انبار', logisticsNotes: 'یادداشت‌های لجستیک',
+    noNotes: 'یادداشتی وجود ندارد', notAssigned: 'تخصیص نشده', notSet: 'تعیین نشده', notDelivered: 'تحویل نشده',
+    timestamps: 'زمان‌های ثبت و بروزرسانی', customerSubmitted: 'زمان ثبت سفارش توسط مشتری:',
+    checkoutExactTime: '(زمان دقیق ثبت سفارش در صفحه پرداخت)', lastStatusUpdate: 'آخرین بروزرسانی وضعیت:',
+    noOrders: 'سفارشی یافت نشد', noFilteredOrders: 'هیچ سفارشی با فیلترهای انتخابی یافت نشد',
+    noOrdersYet: 'هنوز سفارشی در سیستم ثبت نشده است', loadingMore: 'در حال بارگیری سفارشات بیشتر...',
+    loadedOf: 'بارگیری شده از', orders: 'سفارش', loadMore: 'بارگیری بیشتر', allLoaded: 'همه سفارشات بارگیری شد',
+    reloadForNew: 'برای مشاهده سفارشات جدید، صفحه را بازخوانی کنید', scrollForMore: 'برای بارگیری خودکار سفارشات بیشتر، به پایین صفحه اسکرول کنید',
+    unpaid: 'در انتظار پرداخت', customerDept: 'مشتری', financeReview: 'در انتظار بررسی مالی', finance: 'مالی',
+    confirmed: 'در انتظار آماده‌سازی', warehouse: 'انبار', warehousePending: 'در انتظار انبار',
+    warehouseApproved: 'تایید انبار', logistics: 'لجستیک', warehouseReady: 'در انتظار تحویل',
+    delivered: 'تحویل شده', complete: 'تکمیل', deleted: 'حذف شده', management: 'مدیریت',
+    cancelled: 'لغو شده', cancellation: 'لغو', financialRejected: 'رد مالی',
+    paymentFailed: 'پرداخت ناموفق', payment: 'پرداخت', expired: 'منقضی شده', system: 'سیستم',
+    warehouseRejected: 'رد انبار', logisticsFailed: 'شکست ارسال', invalid: 'نامعتبر',
+    deletedExp: 'سفارش توسط مدیریت حذف شده است.',
+    cancelledExp: 'سفارش توسط مشتری، مدیریت یا به دلیل تکمیل نشدن پرداخت لغو شده است.',
+    financialRejectedExp: 'فیش پرداخت توسط بخش مالی رد شده است.',
+    paymentFailedExp: 'پرداخت آنلاین تکمیل نشد.',
+    expiredExp: 'سفارش به دلیل تکمیل نشدن پرداخت در زمان مقرر منقضی شده است.',
+    warehouseRejectedExp: 'سفارش به دلیل امکان‌پذیر نبودن آماده‌سازی توسط انبار رد شده است.',
+    logisticsFailedExp: 'تحویل سفارش تکمیل نشد.',
+    unknownStatusExp: 'این وضعیت نیاز به بررسی فنی دارد.',
+  }
+};
 
 // Order interface - Rebuilt to match actual backend database structure
 interface Order {
@@ -77,7 +250,7 @@ interface OrderStats {
 }
 
 // Enhanced status display with detailed explanations for failed/deleted orders
-const getStatusDisplay = (order: Order) => {
+const getStatusDisplay = (order: Order, t: (key: string) => string) => {
   const status = order.status;
   const paymentReceiptUrl = order.paymentReceiptUrl;
   
@@ -86,58 +259,58 @@ const getStatusDisplay = (order: Order) => {
       // Check if payment receipt is uploaded to determine which department
       if (!paymentReceiptUrl) {
         return {
-          label: 'در انتظار پرداخت',
-          department: 'مشتری',
+          label: t('unpaid'),
+          department: t('customerDept'),
           color: 'bg-red-100 text-red-800 border-red-200',
           explanation: 'مشتری هنوز فیش پرداخت را آپلود نکرده است'
         };
       } else {
         return {
-          label: 'در انتظار بررسی مالی',
-          department: 'مالی',
+          label: t('financeReview'),
+          department: t('finance'),
           color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
           explanation: 'فیش پرداخت آپلود شده و در انتظار تایید بخش مالی'
         };
       }
     case 'finance_pending':
       return {
-        label: 'در انتظار بررسی مالی',
-        department: 'مالی',
+        label: t('financeReview'),
+        department: t('finance'),
         color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
         explanation: 'فیش پرداخت آپلود شده و در انتظار تایید بخش مالی'
       };
     case 'confirmed':
       return {
-        label: 'در انتظار آماده‌سازی',
-        department: 'انبار', 
+        label: t('confirmed'),
+        department: t('warehouse'),
         color: 'bg-blue-100 text-blue-800 border-blue-200',
         explanation: 'پرداخت تایید شده و در انتظار آماده‌سازی توسط انبار'
       };
     case 'warehouse_pending':
       return {
-        label: 'در انتظار انبار',
-        department: 'انبار',
+        label: t('warehousePending'),
+        department: t('warehouse'),
         color: 'bg-blue-100 text-blue-800 border-blue-200',
         explanation: 'پرداخت تایید شده و در انتظار پردازش توسط انبار'
       };
     case 'warehouse_approved':
       return {
-        label: 'تایید انبار',
-        department: 'لجستیک',
+        label: t('warehouseApproved'),
+        department: t('logistics'),
         color: 'bg-green-100 text-green-800 border-green-200',
         explanation: 'سفارش توسط انبار تایید شده و آماده ارسال است'
       };
     case 'warehouse_ready':
       return {
-        label: 'در انتظار تحویل',
-        department: 'لجستیک',
+        label: t('warehouseReady'),
+        department: t('logistics'),
         color: 'bg-purple-100 text-purple-800 border-purple-200',
         explanation: 'سفارش آماده شده و در انتظار ارسال توسط لجستیک'
       };
     case 'delivered':
       return {
-        label: 'تحویل شده',
-        department: 'تکمیل',
+        label: t('delivered'),
+        department: t('complete'),
         color: 'bg-green-100 text-green-800 border-green-200',
         explanation: 'سفارش با موفقیت به مشتری تحویل داده شده'
       };
@@ -145,67 +318,67 @@ const getStatusDisplay = (order: Order) => {
     // FAILED & DELETED ORDERS WITH DETAILED EXPLANATIONS
     case 'deleted':
       return {
-        label: '❌ حذف شده',
-        department: 'مدیریت',
+        label: `❌ ${t('deleted')}`,
+        department: t('management'),
         color: 'bg-red-200 text-red-900 border-red-300',
-        explanation: 'سفارش توسط مدیریت حذف شده است (ممکن است به دلیل مشکل در پردازش، درخواست مشتری یا مشکل فنی)',
+        explanation: t('deletedExp'),
         isProblematic: true
       };
     case 'cancelled':
       return {
-        label: '🚫 لغو شده',
-        department: 'لغو',
+        label: `🚫 ${t('cancelled')}`,
+        department: t('cancellation'),
         color: 'bg-orange-200 text-orange-900 border-orange-300',
-        explanation: 'سفارش لغو شده است (ممکن است توسط مشتری، مدیریت یا به دلیل عدم پرداخت)',
+        explanation: t('cancelledExp'),
         isProblematic: true
       };
     case 'financial_rejected':
       return {
-        label: '💳 رد مالی',
-        department: 'مالی',
+        label: `💳 ${t('financialRejected')}`,
+        department: t('finance'),
         color: 'bg-red-200 text-red-900 border-red-300',
-        explanation: 'فیش پرداخت توسط بخش مالی رد شده است (ممکن است نامعتبر، ناکافی یا قابل تشخیص نباشد)',
+        explanation: t('financialRejectedExp'),
         isProblematic: true
       };
     case 'payment_failed':
       return {
-        label: '❌ پرداخت ناموفق',
-        department: 'پرداخت',
+        label: `❌ ${t('paymentFailed')}`,
+        department: t('payment'),
         color: 'bg-red-200 text-red-900 border-red-300',
-        explanation: 'پرداخت آنلاین با شکست مواجه شده است (ممکن است به دلیل مشکل بانکی، عدم موجودی یا خطای فنی)',
+        explanation: t('paymentFailedExp'),
         isProblematic: true
       };
     case 'expired':
       return {
-        label: '⏰ منقضی شده',
-        department: 'سیستم',
+        label: `⏰ ${t('expired')}`,
+        department: t('system'),
         color: 'bg-gray-200 text-gray-900 border-gray-300',
-        explanation: 'سفارش به دلیل عدم پرداخت در زمان مقرر منقضی شده است',
+        explanation: t('expiredExp'),
         isProblematic: true
       };
     case 'warehouse_rejected':
       return {
-        label: '📦 رد انبار',
-        department: 'انبار',
+        label: `📦 ${t('warehouseRejected')}`,
+        department: t('warehouse'),
         color: 'bg-red-200 text-red-900 border-red-300',
-        explanation: 'سفارش توسط انبار رد شده است (ممکن است به دلیل عدم موجودی، مشکل در محصول یا خرابی)',
+        explanation: t('warehouseRejectedExp'),
         isProblematic: true
       };
     case 'logistics_failed':
       return {
-        label: '🚛 شکست ارسال',
-        department: 'لجستیک',
+        label: `🚛 ${t('logisticsFailed')}`,
+        department: t('logistics'),
         color: 'bg-red-200 text-red-900 border-red-300',
-        explanation: 'ارسال سفارش با مشکل مواجه شده است (ممکن است به دلیل آدرس نامعتبر، عدم دسترسی یا مشکل حمل‌ونقل)',
+        explanation: t('logisticsFailedExp'),
         isProblematic: true
       };
     
     default:
       return {
-        label: status || 'نامشخص',
-        department: 'نامعتبر',
+        label: status || t('unknown'),
+        department: t('invalid'),
         color: 'bg-gray-100 text-gray-800 border-gray-200',
-        explanation: `وضعیت نامشخص یا جدید: ${status}. نیاز به بررسی توسط مدیریت فنی`,
+        explanation: `${t('unknownStatusExp')} (${status})`,
         isProblematic: true
       };
   }
@@ -244,16 +417,25 @@ const departmentLabels: { [key: string]: string } = {
 };
 
 // Format date function - Exactly same as financial department
-const formatDate = (dateString: string) => {
-  if (!dateString) return 'نامشخص';  
+const formatDate = (dateString: string, language: Language, unknown: string) => {
+  if (!dateString) return unknown;
   try {
-    return new Date(dateString).toLocaleDateString('en-US');
+    const locale = language === 'fa' ? 'fa-IR-u-ca-persian' :
+      language === 'ar' ? 'ar-u-ca-gregory' :
+      language === 'tr' ? 'tr-TR-u-ca-gregory' : 'en-US-u-ca-gregory';
+    return new Intl.DateTimeFormat(locale, {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit'
+    }).format(new Date(dateString));
   } catch {
-    return 'تاریخ نامعتبر';
+    return unknown;
   }
 };
 
 export default function OrderTrackingManagement() {
+  const { language: contextLanguage, direction } = useLanguage();
+  const language = (contextLanguage in translations ? contextLanguage : 'en') as Language;
+  const t = (key: string) => translations[language][key] || translations.en[key] || key;
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -384,7 +566,7 @@ export default function OrderTrackingManagement() {
     let matchesStatus = true;
     if (selectedStatus === 'problematic') {
       // Filter for problematic/failed orders only
-      const statusInfo = getStatusDisplay(order);
+      const statusInfo = getStatusDisplay(order, t);
       matchesStatus = statusInfo.isProblematic === true;
     } else if (selectedStatus !== 'all') {
       matchesStatus = order.status === selectedStatus;
@@ -436,19 +618,6 @@ export default function OrderTrackingManagement() {
   };
 
   // Format date for display - Show exact checkout submission time in Gregorian
-  const formatDateDetailed = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
-    });
-  };
-
   // Format amount with currency
   const formatAmount = (amount: number | string | null | undefined, currency: string) => {
     if (amount === null || amount === undefined) return `0 ${currency}`;
@@ -461,7 +630,7 @@ export default function OrderTrackingManagement() {
   const handlePrintOrder = () => {
     if (!selectedOrder) return;
     
-    const statusInfo = getStatusDisplay(selectedOrder);
+    const statusInfo = getStatusDisplay(selectedOrder, t);
     
     const printContent = `
       <!DOCTYPE html>
@@ -615,11 +784,11 @@ export default function OrderTrackingManagement() {
             </div>
             <div class="info-item">
               <div class="info-label">تاریخ تحویل تخمینی</div>
-              <div class="info-value">${selectedOrder.estimatedDeliveryDate ? formatDate(selectedOrder.estimatedDeliveryDate) : 'تعیین نشده'}</div>
+              <div class="info-value">${selectedOrder.estimatedDeliveryDate ? formatDate(selectedOrder.estimatedDeliveryDate, language, t('unknown')) : t('notSet')}</div>
             </div>
             <div class="info-item">
               <div class="info-label">تاریخ تحویل واقعی</div>
-              <div class="info-value">${selectedOrder.actualDeliveryDate ? formatDate(selectedOrder.actualDeliveryDate) : 'تحویل نشده'}</div>
+              <div class="info-value">${selectedOrder.actualDeliveryDate ? formatDate(selectedOrder.actualDeliveryDate, language, t('unknown')) : t('notDelivered')}</div>
             </div>
             <div class="info-item">
               <div class="info-label">نام تحویل‌دهنده</div>
@@ -664,11 +833,11 @@ export default function OrderTrackingManagement() {
           <div class="info-grid">
             <div class="info-item">
               <div class="info-label">تاریخ ثبت سفارش</div>
-              <div class="info-value">${formatDate(selectedOrder.createdAt)}</div>
+              <div class="info-value">${formatDate(selectedOrder.createdAt, language, t('unknown'))}</div>
             </div>
             <div class="info-item">
               <div class="info-label">آخرین بروزرسانی</div>
-              <div class="info-value">${formatDate(selectedOrder.updatedAt)}</div>
+              <div class="info-value">${formatDate(selectedOrder.updatedAt, language, t('unknown'))}</div>
             </div>
           </div>
         </div>
@@ -732,16 +901,16 @@ export default function OrderTrackingManagement() {
   // Show login prompt if authentication error
   if (error && error.message.includes('401')) {
     return (
-      <div className="space-y-6 p-6" dir="rtl">
+      <div className="space-y-6 p-6" dir={direction}>
         <div className="text-center py-12">
           <AlertTriangle className="h-16 w-16 text-red-500 mx-auto" />
-          <h2 className="mt-4 text-xl font-bold text-gray-800">جلسه منقضی شده</h2>
-          <p className="mt-2 text-gray-600">برای مشاهده سفارشات، لطفاً دوباره وارد شوید</p>
+          <h2 className="mt-4 text-xl font-bold text-gray-800">{t('sessionExpired')}</h2>
+          <p className="mt-2 text-gray-600">{t('signInAgainMessage')}</p>
           <button 
             onClick={() => window.location.href = '/admin/login'}
             className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
-            ورود مجدد
+            {t('signInAgain')}
           </button>
         </div>
       </div>
@@ -750,20 +919,20 @@ export default function OrderTrackingManagement() {
 
   if (isLoading || isLoadingStats) {
     return (
-      <div className="space-y-6 p-6" dir="rtl">
+      <div className="space-y-6 p-6" dir={direction}>
         <div className="text-center py-12">
           <div className="animate-spin inline-block w-12 h-12 border-4 border-current border-t-transparent text-blue-600 rounded-full" role="status" aria-label="loading">
-            <span className="sr-only">در حال بارگیری...</span>
+            <span className="sr-only">{t('loading')}</span>
           </div>
-          <p className="mt-4 text-gray-700 font-medium">بارگیری سفارشات...</p>
-          <p className="mt-2 text-sm text-gray-500">در حال دریافت آخرین وضعیت سفارشات</p>
+          <p className="mt-4 text-gray-700 font-medium">{t('loadingOrders')}</p>
+          <p className="mt-2 text-sm text-gray-500">{t('loadingLatest')}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 p-6" dir="rtl">
+    <div className="space-y-6 p-6" dir={direction}>
 
       {/* UPDATED Statistics Cards with Real-time Data */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
@@ -772,7 +941,7 @@ export default function OrderTrackingManagement() {
             <div className="flex items-center gap-2">
               <Package className="w-5 h-5 text-blue-500" />
               <div>
-                <p className="text-sm text-gray-600">کل سفارشات</p>
+                <p className="text-sm text-gray-600">{t('totalOrders')}</p>
                 <p className="text-2xl font-bold text-blue-700">
                   {isLoadingStats ? (
                     <span className="animate-pulse">...</span>
@@ -795,7 +964,7 @@ export default function OrderTrackingManagement() {
             <div className="flex items-center gap-2">
               <Clock className="w-5 h-5 text-yellow-500" />
               <div>
-                <p className="text-sm text-gray-600">در انتظار</p>
+                <p className="text-sm text-gray-600">{t('pending')}</p>
                 <p className="text-2xl font-bold text-yellow-700">
                   {isLoadingStats ? (
                     <span className="animate-pulse">...</span>
@@ -818,7 +987,7 @@ export default function OrderTrackingManagement() {
             <div className="flex items-center gap-2">
               <CheckCircle className="w-5 h-5 text-green-500" />
               <div>
-                <p className="text-sm text-gray-600">تکمیل شده</p>
+                <p className="text-sm text-gray-600">{t('completed')}</p>
                 <p className="text-2xl font-bold text-green-700">
                   {isLoadingStats ? (
                     <span className="animate-pulse">...</span>
@@ -841,7 +1010,7 @@ export default function OrderTrackingManagement() {
             <div className="flex items-center gap-2">
               <DollarSign className="w-5 h-5 text-green-600" />
               <div>
-                <p className="text-sm text-gray-600">درآمد کل (30 روز)</p>
+                <p className="text-sm text-gray-600">{t('totalRevenue')}</p>
                 <p className="text-lg font-bold text-green-700">
                   {isLoadingStats ? (
                     <span className="animate-pulse">...</span>
@@ -864,7 +1033,7 @@ export default function OrderTrackingManagement() {
             <div className="flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-purple-500" />
               <div>
-                <p className="text-sm text-gray-600">میانگین سفارش</p>
+                <p className="text-sm text-gray-600">{t('averageOrder')}</p>
                 <p className="text-lg font-bold text-purple-700">
                   {isLoadingStats ? (
                     <span className="animate-pulse">...</span>
@@ -887,7 +1056,7 @@ export default function OrderTrackingManagement() {
             <div className="flex items-center gap-2">
               <Calendar className="w-5 h-5 text-orange-500" />
               <div>
-                <p className="text-sm text-gray-600">سفارشات امروز</p>
+                <p className="text-sm text-gray-600">{t('todaysOrders')}</p>
                 <p className="text-2xl font-bold text-orange-700">
                   {isLoadingStats ? (
                     <span className="animate-pulse">...</span>
@@ -911,7 +1080,7 @@ export default function OrderTrackingManagement() {
         <div className="flex items-center gap-2">
           <Activity className="w-4 h-4 text-blue-600" />
           <span className="text-sm text-blue-800 font-medium">
-            آمارها - بروزرسانی دستی
+            {t('manualStats')}
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -919,7 +1088,7 @@ export default function OrderTrackingManagement() {
             onClick={() => refetchStats()}
             className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
           >
-            به‌روزرسانی فوری
+            {t('refreshNow')}
           </button>
           {isLoadingStats && (
             <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
@@ -931,17 +1100,17 @@ export default function OrderTrackingManagement() {
       {/* Search and Filter */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
-          <Search className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
+          <Search className={`absolute top-3 h-4 w-4 text-gray-400 ${direction === 'rtl' ? 'right-3' : 'left-3'}`} />
           <Input
-            placeholder="جستجو (حداقل ۳ حرف): شماره سفارش، ایمیل، کد تحویل، تلفن..."
+            placeholder={t('searchPlaceholder')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pr-10"
+            className={direction === 'rtl' ? 'pr-10' : 'pl-10'}
             data-testid="input-order-search"
           />
           {searchTerm.length > 0 && searchTerm.length < 3 && (
-            <span className="absolute left-3 top-3 text-xs text-amber-600">
-              حداقل ۳ حرف وارد کنید
+            <span className={`absolute top-3 text-xs text-amber-600 ${direction === 'rtl' ? 'left-3' : 'right-3'}`}>
+              {t('minChars')}
             </span>
           )}
         </div>
@@ -950,19 +1119,19 @@ export default function OrderTrackingManagement() {
           onChange={(e) => setSelectedStatus(e.target.value)}
           className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          <option value="all">همه وضعیت‌ها</option>
-          <option value="problematic" className="text-red-600 font-medium">🚨 فقط مشکل‌دار و شکست خورده</option>
-          <option value="pending">در انتظار</option>
-          <option value="confirmed">تأیید شده</option>
-          <option value="financial_approved">تأیید مالی</option>
-          <option value="delivered">تحویل شده</option>
-          <option value="completed">تکمیل شده</option>
-          <option value="cancelled">لغو شده</option>
-          <option value="deleted">حذف شده</option>
-          <option value="financial_rejected">رد مالی</option>
-          <option value="payment_failed">پرداخت ناموفق</option>
-          <option value="warehouse_rejected">رد انبار</option>
-          <option value="expired">منقضی شده</option>
+          <option value="all">{t('allStatuses')}</option>
+          <option value="problematic" className="text-red-600 font-medium">🚨 {t('problematicOnly')}</option>
+          <option value="pending">{t('pending')}</option>
+          <option value="confirmed">{t('confirmed')}</option>
+          <option value="financial_approved">{t('finance')}</option>
+          <option value="delivered">{t('delivered')}</option>
+          <option value="completed">{t('completed')}</option>
+          <option value="cancelled">{t('cancelled')}</option>
+          <option value="deleted">{t('deleted')}</option>
+          <option value="financial_rejected">{t('financialRejected')}</option>
+          <option value="payment_failed">{t('paymentFailed')}</option>
+          <option value="warehouse_rejected">{t('warehouseRejected')}</option>
+          <option value="expired">{t('expired')}</option>
         </select>
       </div>
 
@@ -971,10 +1140,10 @@ export default function OrderTrackingManagement() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Package className="w-5 h-5" />
-            لیست سفارشات ({filteredOrders.length})
+            {t('orderList')} ({filteredOrders.length})
           </CardTitle>
           <CardDescription>
-            مشاهده و پیگیری تمامی سفارشات موجود در سیستم
+            {t('listDescription')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -982,12 +1151,12 @@ export default function OrderTrackingManagement() {
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b-2 bg-gray-50 dark:bg-gray-800">
-                  <th className="text-right p-4 font-semibold" style={{ width: '140px' }}>
+                  <th className="p-4 font-semibold" style={{ width: '140px', textAlign: direction === 'rtl' ? 'right' : 'left' }}>
                     <button 
                       onClick={() => handleSort('orderNumber')}
-                      className="flex items-center justify-end w-full hover:text-blue-600 transition-colors"
+                      className={`flex items-center w-full hover:text-blue-600 transition-colors ${direction === 'rtl' ? 'justify-end' : 'justify-start'}`}
                     >
-                      شماره سفارش
+                      {t('orderNumber')}
                       {sortField === 'orderNumber' && (
                         <span className="mr-1">
                           {sortDirection === 'asc' ? '↑' : '↓'}
@@ -995,12 +1164,12 @@ export default function OrderTrackingManagement() {
                       )}
                     </button>
                   </th>
-                  <th className="text-right p-4 font-semibold" style={{ width: '200px' }}>
+                  <th className="p-4 font-semibold" style={{ width: '200px', textAlign: direction === 'rtl' ? 'right' : 'left' }}>
                     <button 
                       onClick={() => handleSort('customerName')}
-                      className="flex items-center justify-end w-full hover:text-blue-600 transition-colors"
+                      className={`flex items-center w-full hover:text-blue-600 transition-colors ${direction === 'rtl' ? 'justify-end' : 'justify-start'}`}
                     >
-                      مشتری
+                      {t('customer')}
                       {sortField === 'customerName' && (
                         <span className="mr-1">
                           {sortDirection === 'asc' ? '↑' : '↓'}
@@ -1013,7 +1182,7 @@ export default function OrderTrackingManagement() {
                       onClick={() => handleSort('totalAmount')}
                       className="flex items-center justify-end w-full hover:text-blue-600 transition-colors"
                     >
-                      مبلغ
+                      {t('amount')}
                       {sortField === 'totalAmount' && (
                         <span className="mr-1">
                           {sortDirection === 'asc' ? '↑' : '↓'}
@@ -1026,7 +1195,7 @@ export default function OrderTrackingManagement() {
                       onClick={() => handleSort('status')}
                       className="flex items-center justify-end w-full hover:text-blue-600 transition-colors"
                     >
-                      وضعیت / توضیحات مشکلات
+                      {t('statusProblems')}
                       {sortField === 'status' && (
                         <span className="mr-1">
                           {sortDirection === 'asc' ? '↑' : '↓'}
@@ -1039,7 +1208,7 @@ export default function OrderTrackingManagement() {
                       onClick={() => handleSort('createdAt')}
                       className="flex items-center justify-end w-full hover:text-blue-600 transition-colors"
                     >
-                      زمان ثبت سفارش
+                      {t('createdTime')}
                       {sortField === 'createdAt' && (
                         <span className="mr-1">
                           {sortDirection === 'asc' ? '↑' : '↓'}
@@ -1047,7 +1216,7 @@ export default function OrderTrackingManagement() {
                       )}
                     </button>
                   </th>
-                  <th className="text-center p-4 font-semibold" style={{ width: '100px' }}>عملیات</th>
+                  <th className="text-center p-4 font-semibold" style={{ width: '100px' }}>{t('actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -1060,7 +1229,7 @@ export default function OrderTrackingManagement() {
                     </td>
                     <td className="p-4 text-right" style={{ width: '200px' }}>
                       <div className="space-y-1">
-                        <div className="font-medium">{order.customerName || 'نامشخص'}</div>
+                        <div className="font-medium">{order.customerName || t('unknown')}</div>
                         <div className="text-xs text-gray-600">{order.customerEmail}</div>
                         <div className="text-xs text-gray-600">{order.customerPhone}</div>
                       </div>
@@ -1072,7 +1241,7 @@ export default function OrderTrackingManagement() {
                     </td>
                     <td className="p-4 text-right" style={{ width: '200px' }}>
                       {(() => {
-                        const statusInfo = getStatusDisplay(order);
+                        const statusInfo = getStatusDisplay(order, t);
                         return (
                           <div className="space-y-1">
                             <div className={`px-2 py-1 rounded-full text-xs font-medium border ${statusInfo.color}`}>
@@ -1096,7 +1265,7 @@ export default function OrderTrackingManagement() {
                     </td>
                     <td className="p-4 text-right" style={{ width: '140px' }}>
                       <div className="text-sm">
-                        {order.createdAt ? formatDate(order.createdAt) : 'در حال بارگیری...'}
+                        {order.createdAt ? formatDate(order.createdAt, language, t('unknown')) : t('loading')}
                       </div>
                     </td>
                     <td className="p-4 text-center" style={{ width: '100px' }}>
@@ -1107,23 +1276,23 @@ export default function OrderTrackingManagement() {
                             onClick={() => setSelectedOrder(order)}
                           >
                             <Eye className="w-4 h-4" />
-                            مشاهده
+                            {t('view')}
                           </button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" dir="rtl">
+                        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" dir={direction}>
                           <DialogHeader>
                             <div className="flex items-center justify-between">
                               <DialogTitle className="flex items-center gap-2">
                                 <Package className="w-5 h-5" />
-                                جزئیات سفارش {selectedOrder?.orderNumber || `#${selectedOrder?.customerOrderId}`}
+                                {t('orderDetails')} {selectedOrder?.orderNumber || `#${selectedOrder?.customerOrderId}`}
                               </DialogTitle>
                               <button
                                 onClick={handlePrintOrder}
                                 className="flex items-center gap-2 px-3 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
-                                title="چاپ جزئیات سفارش"
+                                title={t('printTitle')}
                               >
                                 <Printer className="w-4 h-4" />
-                                چاپ
+                                {t('print')}
                               </button>
                             </div>
                           </DialogHeader>
@@ -1136,13 +1305,13 @@ export default function OrderTrackingManagement() {
                                   <CardHeader>
                                     <CardTitle className="text-lg flex items-center gap-2">
                                       <User className="w-5 h-5" />
-                                      اطلاعات مشتری
+                                      {t('customerInfo')}
                                     </CardTitle>
                                   </CardHeader>
                                   <CardContent className="space-y-2">
-                                    <div><strong>نام:</strong> {selectedOrder.customerName || 'نامشخص'}</div>
-                                    <div><strong>ایمیل:</strong> {selectedOrder.customerEmail || 'نامشخص'}</div>
-                                    <div><strong>تلفن:</strong> {selectedOrder.customerPhone || 'نامشخص'}</div>
+                                    <div><strong>{t('name')}:</strong> {selectedOrder.customerName || t('unknown')}</div>
+                                    <div><strong>{t('email')}:</strong> {selectedOrder.customerEmail || t('unknown')}</div>
+                                    <div><strong>{t('phone')}:</strong> {selectedOrder.customerPhone || t('unknown')}</div>
                                   </CardContent>
                                 </Card>
 
@@ -1150,13 +1319,13 @@ export default function OrderTrackingManagement() {
                                   <CardHeader>
                                     <CardTitle className="text-lg flex items-center gap-2">
                                       <CreditCard className="w-5 h-5" />
-                                      اطلاعات مالی
+                                      {t('financialInfo')}
                                     </CardTitle>
                                   </CardHeader>
                                   <CardContent className="space-y-2">
-                                    <div><strong>مبلغ کل:</strong> {formatAmount(selectedOrder.totalAmount, selectedOrder.currency)}</div>
+                                    <div><strong>{t('totalAmount')}:</strong> {formatAmount(selectedOrder.totalAmount, selectedOrder.currency)}</div>
                                     <div className="flex items-center gap-2">
-                                      <strong>روش پرداخت:</strong>
+                                      <strong>{t('paymentMethod')}:</strong>
                                       {selectedOrder.paymentMethod ? (
                                         <PaymentMethodBadge 
                                           paymentMethod={selectedOrder.paymentMethod}
@@ -1164,12 +1333,12 @@ export default function OrderTrackingManagement() {
                                           className="text-xs"
                                         />
                                       ) : (
-                                        <span>نامشخص</span>
+                                        <span>{t('unknown')}</span>
                                       )}
                                     </div>
-                                    <div><strong>وضعیت فعلی:</strong> 
+                                    <div><strong>{t('currentStatus')}:</strong>
                                       {(() => {
-                                        const statusInfo = getStatusDisplay(selectedOrder);
+                                        const statusInfo = getStatusDisplay(selectedOrder, t);
                                         return (
                                           <div className="space-y-2 mt-2">
                                             <div className="inline-flex items-center gap-2">
@@ -1186,7 +1355,7 @@ export default function OrderTrackingManagement() {
                                                 <div className="flex items-start gap-2">
                                                   <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0 text-red-600" />
                                                   <div>
-                                                    <div className="text-sm font-medium text-red-800 mb-1">توضیحات مشکل:</div>
+                                                    <div className="text-sm font-medium text-red-800 mb-1">{t('problemDetails')}</div>
                                                     <div className="text-sm text-red-700">{statusInfo.explanation}</div>
                                                   </div>
                                                 </div>
@@ -1205,16 +1374,16 @@ export default function OrderTrackingManagement() {
                                 <CardHeader>
                                   <CardTitle className="text-lg flex items-center gap-2">
                                     <Truck className="w-5 h-5" />
-                                    اطلاعات تحویل
+                                    {t('deliveryInfo')}
                                   </CardTitle>
                                 </CardHeader>
                                 <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                  <div><strong>کد تحویل:</strong> {selectedOrder.deliveryCode || 'تخصیص نشده'}</div>
-                                  <div><strong>شماره رهگیری:</strong> {selectedOrder.trackingNumber || 'تخصیص نشده'}</div>
-                                  <div><strong>تاریخ تحویل تخمینی:</strong> {selectedOrder.estimatedDeliveryDate ? formatDate(selectedOrder.estimatedDeliveryDate) : 'تعیین نشده'}</div>
-                                  <div><strong>تاریخ تحویل واقعی:</strong> {selectedOrder.actualDeliveryDate ? formatDate(selectedOrder.actualDeliveryDate) : 'تحویل نشده'}</div>
-                                  <div><strong>نام تحویل‌دهنده:</strong> {selectedOrder.deliveryPersonName || 'تخصیص نشده'}</div>
-                                  <div><strong>تلفن تحویل‌دهنده:</strong> {selectedOrder.deliveryPersonPhone || 'تخصیص نشده'}</div>
+                                  <div><strong>{t('deliveryCode')}:</strong> {selectedOrder.deliveryCode || t('notAssigned')}</div>
+                                  <div><strong>{t('trackingNumber')}:</strong> {selectedOrder.trackingNumber || t('notAssigned')}</div>
+                                  <div><strong>{t('estimatedDelivery')}:</strong> {selectedOrder.estimatedDeliveryDate ? formatDate(selectedOrder.estimatedDeliveryDate, language, t('unknown')) : t('notSet')}</div>
+                                  <div><strong>{t('actualDelivery')}:</strong> {selectedOrder.actualDeliveryDate ? formatDate(selectedOrder.actualDeliveryDate, language, t('unknown')) : t('notDelivered')}</div>
+                                  <div><strong>{t('deliveryPerson')}:</strong> {selectedOrder.deliveryPersonName || t('notAssigned')}</div>
+                                  <div><strong>{t('deliveryPhone')}:</strong> {selectedOrder.deliveryPersonPhone || t('notAssigned')}</div>
                                 </CardContent>
                               </Card>
 
@@ -1224,12 +1393,12 @@ export default function OrderTrackingManagement() {
                                   <CardHeader>
                                     <CardTitle className="text-sm flex items-center gap-2">
                                       <FileText className="w-4 h-4" />
-                                      یادداشت‌های مالی
+                                      {t('financialNotes')}
                                     </CardTitle>
                                   </CardHeader>
                                   <CardContent>
                                     <p className="text-sm text-gray-600">
-                                      {selectedOrder.financialNotes || 'یادداشتی وجود ندارد'}
+                                      {selectedOrder.financialNotes || t('noNotes')}
                                     </p>
                                   </CardContent>
                                 </Card>
@@ -1238,12 +1407,12 @@ export default function OrderTrackingManagement() {
                                   <CardHeader>
                                     <CardTitle className="text-sm flex items-center gap-2">
                                       <Package className="w-4 h-4" />
-                                      یادداشت‌های انبار
+                                      {t('warehouseNotes')}
                                     </CardTitle>
                                   </CardHeader>
                                   <CardContent>
                                     <p className="text-sm text-gray-600">
-                                      {selectedOrder.warehouseNotes || 'یادداشتی وجود ندارد'}
+                                      {selectedOrder.warehouseNotes || t('noNotes')}
                                     </p>
                                   </CardContent>
                                 </Card>
@@ -1252,12 +1421,12 @@ export default function OrderTrackingManagement() {
                                   <CardHeader>
                                     <CardTitle className="text-sm flex items-center gap-2">
                                       <Truck className="w-4 h-4" />
-                                      یادداشت‌های لجستیک
+                                      {t('logisticsNotes')}
                                     </CardTitle>
                                   </CardHeader>
                                   <CardContent>
                                     <p className="text-sm text-gray-600">
-                                      {selectedOrder.logisticsNotes || 'یادداشتی وجود ندارد'}
+                                      {selectedOrder.logisticsNotes || t('noNotes')}
                                     </p>
                                   </CardContent>
                                 </Card>
@@ -1268,29 +1437,29 @@ export default function OrderTrackingManagement() {
                                 <CardHeader>
                                   <CardTitle className="text-lg flex items-center gap-2">
                                     <Clock className="w-5 h-5" />
-                                    زمان‌های ثبت و بروزرسانی
+                                    {t('timestamps')}
                                   </CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-3">
                                   <div className="p-3 bg-green-50 rounded-lg">
                                     <div className="flex items-center gap-2 mb-1">
                                       <CheckCircle className="w-4 h-4 text-green-600" />
-                                      <strong className="text-green-800">زمان ثبت سفارش توسط مشتری:</strong>
+                                      <strong className="text-green-800">{t('customerSubmitted')}</strong>
                                     </div>
                                     <div className="text-green-700 text-sm">
-                                      {formatDate(selectedOrder.createdAt)}
+                                      {formatDate(selectedOrder.createdAt, language, t('unknown'))}
                                     </div>
                                     <div className="text-xs text-green-600 mt-1">
-                                      (زمان دقیق submit کردن سفارش در صفحه checkout)
+                                      {t('checkoutExactTime')}
                                     </div>
                                   </div>
                                   <div className="p-3 bg-blue-50 rounded-lg">
                                     <div className="flex items-center gap-2 mb-1">
                                       <Activity className="w-4 h-4 text-blue-600" />
-                                      <strong className="text-blue-800">آخرین بروزرسانی وضعیت:</strong>
+                                      <strong className="text-blue-800">{t('lastStatusUpdate')}</strong>
                                     </div>
                                     <div className="text-blue-700 text-sm">
-                                      {formatDate(selectedOrder.updatedAt)}
+                                      {formatDate(selectedOrder.updatedAt, language, t('unknown'))}
                                     </div>
                                   </div>
                                 </CardContent>
@@ -1309,11 +1478,11 @@ export default function OrderTrackingManagement() {
           {filteredOrders.length === 0 && (
             <div className="text-center py-12">
               <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">سفارشی یافت نشد</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">{t('noOrders')}</h3>
               <p className="text-gray-600">
                 {searchTerm || selectedStatus !== 'all' 
-                  ? 'هیچ سفارشی با فیلترهای انتخابی یافت نشد'
-                  : 'هنوز سفارشی در سیستم ثبت نشده است'}
+                  ? t('noFilteredOrders')
+                  : t('noOrdersYet')}
               </p>
             </div>
           )}
@@ -1324,7 +1493,7 @@ export default function OrderTrackingManagement() {
             {isFetchingNextPage && (
               <div className="flex items-center justify-center py-6 bg-blue-50 border border-blue-200 rounded-lg">
                 <div className="animate-spin inline-block w-6 h-6 border-[3px] border-current border-t-transparent text-blue-600 rounded-full mr-3" role="status" aria-label="loading"></div>
-                <span className="text-blue-800 font-medium">در حال بارگیری سفارشات بیشتر...</span>
+                <span className="text-blue-800 font-medium">{t('loadingMore')}</span>
               </div>
             )}
 
@@ -1335,7 +1504,7 @@ export default function OrderTrackingManagement() {
                   <div className="flex items-center gap-2">
                     <Package className="w-4 h-4 text-gray-600" />
                     <span className="text-sm text-gray-700">
-                      <strong className="text-gray-900">{orders.length}</strong> از <strong className="text-gray-900">{totalCount}</strong> سفارش بارگیری شده
+                      <strong className="text-gray-900">{orders.length}</strong> {t('loadedOf')} <strong className="text-gray-900">{totalCount}</strong> {t('orders')}
                     </span>
                   </div>
                   
@@ -1359,7 +1528,7 @@ export default function OrderTrackingManagement() {
                     className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
                   >
                     <RefreshCw className="w-4 h-4" />
-                    بارگیری بیشتر
+                    {t('loadMore')}
                   </button>
                 )}
               </div>
@@ -1370,10 +1539,10 @@ export default function OrderTrackingManagement() {
               <div className="text-center py-6 bg-green-50 border border-green-200 rounded-lg">
                 <CheckCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
                 <span className="text-green-800 font-medium">
-                  همه سفارشات بارگیری شد ({orders.length} سفارش)
+                  {t('allLoaded')} ({orders.length} {t('orders')})
                 </span>
                 <p className="text-sm text-green-600 mt-1">
-                  برای مشاهده سفارشات جدید، صفحه را بازخوانی کنید
+                  {t('reloadForNew')}
                 </p>
               </div>
             )}
@@ -1383,7 +1552,7 @@ export default function OrderTrackingManagement() {
               <div className="text-center py-3">
                 <p className="text-xs text-gray-500 flex items-center justify-center gap-2">
                   <Activity className="w-3 h-3" />
-                  برای بارگیری خودکار سفارشات بیشتر، به پایین صفحه اسکرول کنید
+                  {t('scrollForMore')}
                 </p>
               </div>
             )}
