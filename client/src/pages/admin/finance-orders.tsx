@@ -88,7 +88,7 @@ const pageTranslations: Record<string, Record<PageLanguage, string>> = {
   details: { en: 'Details', fa: 'جزئیات', ar: 'التفاصيل', tr: 'Ayrıntılar' },
   receipt: { en: 'Receipt', fa: 'رسید', ar: 'الإيصال', tr: 'Makbuz' },
   date: { en: 'Date', fa: 'تاریخ', ar: 'التاريخ', tr: 'Tarih' },
-  transferredToWarehouse: { en: 'Transferred to warehouse', fa: 'ارجاع شده به انبار', ar: 'أحيل إلى المستودع', tr: 'Depoya aktarıldı' },
+  transferredToWarehouse: { en: 'Warehouse', fa: 'انبار', ar: 'المستودع', tr: 'Depo' },
   forceRefresh: { en: 'Force refresh', fa: 'به‌روزرسانی قوی', ar: 'تحديث إجباري', tr: 'Zorla yenile' },
   walletPending: { en: 'Wallet (needs approval)', fa: 'کیف پول (نیاز به تأیید)', ar: 'المحفظة (تحتاج إلى اعتماد)', tr: 'Cüzdan (onay bekliyor)' },
   bankGateway: { en: 'Bank gateway', fa: 'درگاه بانکی', ar: 'بوابة البنك', tr: 'Banka ağ geçidi' },
@@ -1930,12 +1930,16 @@ function FinanceOrders() {
                   <Download className="w-4 h-4 mr-1" />
                   {t('print')}
                 </Button>
-                <Button variant="destructive" onClick={handleRejectOrder}>
-                  {t('reject')}
-                </Button>
-                <Button onClick={handleAcceptOrder}>
-                  {t('approve')}
-                </Button>
+                {['finance_pending', 'payment_uploaded', 'auto_approved'].includes(orderDetails.currentStatus) && (
+                  <>
+                    <Button variant="destructive" onClick={handleRejectOrder}>
+                      {t('reject')}
+                    </Button>
+                    <Button onClick={handleAcceptOrder}>
+                      {t('approve')}
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           )}
