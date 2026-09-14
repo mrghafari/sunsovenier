@@ -180,6 +180,17 @@ const pageTranslations: Record<string, Record<PageLanguage, string>> = {
   cashOnDelivery: { en: 'Cash on delivery', fa: 'پرداخت در محل', ar: 'الدفع عند الاستلام', tr: 'Kapıda ödeme' },
   print: { en: 'Print', fa: 'چاپ', ar: 'طباعة', tr: 'Yazdır' },
   sku: { en: 'SKU', fa: 'شناسه کالا', ar: 'رمز المنتج', tr: 'SKU' },
+  rowNumber: { en: '#', fa: 'ردیف', ar: 'الرقم', tr: 'Sıra' },
+  orderNumber: { en: 'Order number', fa: 'شماره سفارش', ar: 'رقم الطلب', tr: 'Sipariş numarası' },
+  contact: { en: 'Contact', fa: 'اطلاعات تماس', ar: 'جهة الاتصال', tr: 'İletişim' },
+  amountIqd: { en: 'Amount (IQD)', fa: 'مبلغ (دینار)', ar: 'المبلغ (د.ع)', tr: 'Tutar (IQD)' },
+  receiptStatus: { en: 'Receipt', fa: 'رسید', ar: 'الإيصال', tr: 'Makbuz' },
+  receiptAvailable: { en: 'Available', fa: 'موجود', ar: 'متوفر', tr: 'Mevcut' },
+  noReceipt: { en: 'No receipt', fa: 'بدون رسید', ar: 'لا يوجد إيصال', tr: 'Makbuz yok' },
+  financialNote: { en: 'Financial note', fa: 'یادداشت مالی', ar: 'الملاحظة المالية', tr: 'Finans notu' },
+  status: { en: 'Status', fa: 'وضعیت', ar: 'الحالة', tr: 'Durum' },
+  actions: { en: 'Actions', fa: 'عملیات', ar: 'الإجراءات', tr: 'İşlemler' },
+  ordersTable: { en: 'Financial approval orders', fa: 'سفارش‌های تأیید مالی', ar: 'طلبات الموافقة المالية', tr: 'Finansal onay siparişleri' },
 };
 
 const translatePage = (language: PageLanguage, key: string) =>
@@ -1026,80 +1037,117 @@ function FinanceOrders() {
     );
   }
 
-  // Simple OrderCard component
-  const OrderCard = ({ order, onOrderSelect, fetchOrderDetails, readOnly = false }: { 
-    order: OrderManagement; 
-    onOrderSelect?: () => void;
-    fetchOrderDetails?: (orderNumber: string) => void;
+  // Excel-like table shared by pending, transferred, and rejected orders.
+  const OrderTable = ({
+    orders,
+    readOnly = false,
+    transferred = false,
+  }: {
+    orders: OrderManagement[];
     readOnly?: boolean;
-  }) => {
-    const customerInfo = getCustomerInfo(order);
-    
-    return (
-      <Card className="mb-4">
-        <CardContent className="p-6">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <h3 className="font-semibold text-lg">{t('order')} #{order.orderNumber}</h3>
-              <p className="text-sm text-gray-600">
-                {customerInfo.name || [customerInfo.firstName, customerInfo.lastName].filter(Boolean).join(' ') || t('unknown')}
-              </p>
-              <p className="text-sm text-gray-500">{customerInfo.email || t('unknown')}</p>
-            </div>
-            <div className="text-left">
-              <p className="font-bold text-lg">{formatCurrency(parseFloat(order.totalAmount || '0'))}</p>
-              {getStatusBadge(order.currentStatus)}
-            </div>
-          </div>
-          
-          <div className="flex gap-2">
-            {!readOnly && onOrderSelect && (
-              <Button size="sm" onClick={onOrderSelect}>
-                {t('review')}
-              </Button>
-            )}
-            {fetchOrderDetails && (
-              <Button size="sm" variant="outline" onClick={() => fetchOrderDetails(order.orderNumber)}>
-                <Eye className="w-4 h-4 mr-1" />
-                {t('details')}
-              </Button>
-            )}
-            {(order.receipt?.url || order.paymentReceiptUrl) && (
-              <Button size="sm" variant="outline" onClick={() => openImageModal(order.receipt?.url || order.paymentReceiptUrl)}>
-                <FileText className="w-4 h-4 mr-1" />
-                {t('receipt')}
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
+    transferred?: boolean;
+  }) => (
+    <div className="overflow-x-auto rounded-lg border border-slate-300 bg-white shadow-sm">
+      <table className="w-full min-w-[1200px] border-collapse text-sm" aria-label={t('ordersTable')}>
+        <caption className="sr-only">{t('ordersTable')}</caption>
+        <thead className="sticky top-0 z-10 bg-slate-100 text-slate-700 shadow-sm">
+          <tr>
+            <th scope="col" className="border border-slate-300 px-3 py-2 text-center font-semibold">{t('rowNumber')}</th>
+            <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('orderNumber')}</th>
+            <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('customer')}</th>
+            <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('contact')}</th>
+            <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('date')}</th>
+            <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('paymentMethod')}</th>
+            <th scope="col" className="border border-slate-300 px-3 py-2 text-end font-semibold">{t('amountIqd')}</th>
+            <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('status')}</th>
+            <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('receiptStatus')}</th>
+            <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('financialNote')}</th>
+            <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('actions')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {orders.map((order, index) => {
+            const customerInfo = getCustomerInfo(order);
+            const customerName = customerInfo.name ||
+              [customerInfo.firstName, customerInfo.lastName].filter(Boolean).join(' ') ||
+              t('unknown');
+            const receiptUrl = order.receipt?.url || order.paymentReceiptUrl;
 
-  // Simple TransferredOrderCard component
-  const TransferredOrderCard = ({ order }: { order: OrderManagement }) => {
-    const customerInfo = getCustomerInfo(order);
-    
-    return (
-      <Card className="mb-4">
-        <CardContent className="p-6">
-          <div className="flex justify-between items-start">
-            <div>
-              <h3 className="font-semibold text-lg">{t('order')} #{order.orderNumber}</h3>
-              <p className="text-sm text-gray-600">
-                {customerInfo.name || [customerInfo.firstName, customerInfo.lastName].filter(Boolean).join(' ') || t('unknown')}
-              </p>
-              <p className="text-sm text-gray-500">{t('date')}: {formatDate(order.createdAt)}</p>
-            </div>
-            <div className="text-left">
-              <p className="font-bold text-lg">{formatCurrency(parseFloat(order.totalAmount || '0'))}</p>
-              <Badge variant="outline" className="bg-green-50 text-green-700">{t('transferredToWarehouse')}</Badge>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
+            return (
+              <tr key={order.id} className="odd:bg-white even:bg-slate-50 hover:bg-blue-50">
+                <th scope="row" className="border border-slate-200 px-3 py-2 text-center font-medium text-slate-600">{index + 1}</th>
+                <td className="border border-slate-200 px-3 py-2 font-medium whitespace-nowrap">#{order.orderNumber}</td>
+                <td className="border border-slate-200 px-3 py-2">
+                  <span className="font-medium text-slate-800">{customerName}</span>
+                </td>
+                <td className="border border-slate-200 px-3 py-2">
+                  <div className="max-w-[220px] space-y-0.5 break-words">
+                    <div>{customerInfo.email || t('unknown')}</div>
+                    {customerInfo.phone && <div className="text-xs text-slate-500">{customerInfo.phone}</div>}
+                  </div>
+                </td>
+                <td className="border border-slate-200 px-3 py-2 whitespace-nowrap">{formatDate(order.createdAt)}</td>
+                <td className="border border-slate-200 px-3 py-2">{formatPaymentMethod(order.paymentMethod)}</td>
+                <td className="border border-slate-200 px-3 py-2 text-end font-semibold whitespace-nowrap">
+                  {formatCurrency(parseFloat(order.totalAmount || '0'))}
+                </td>
+                <td className="border border-slate-200 px-3 py-2 whitespace-nowrap">
+                  {transferred
+                    ? <Badge variant="outline" className="bg-green-50 text-green-700">{t('transferredToWarehouse')}</Badge>
+                    : getStatusBadge(order.currentStatus)}
+                </td>
+                <td className="border border-slate-200 px-3 py-2">
+                  {receiptUrl ? (
+                    <div className="flex items-center gap-2 whitespace-nowrap">
+                      <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700">
+                        <CheckCircle className="h-3.5 w-3.5" aria-hidden="true" />
+                        {t('receiptAvailable')}
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2"
+                        onClick={() => openImageModal(receiptUrl)}
+                        aria-label={`${t('viewReceipt')}: ${order.orderNumber}`}
+                      >
+                        <FileText className="h-3.5 w-3.5 me-1" aria-hidden="true" />
+                        {t('receipt')}
+                      </Button>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-slate-500">{t('noReceipt')}</span>
+                  )}
+                </td>
+                <td className="border border-slate-200 px-3 py-2">
+                  <span className="block max-w-[220px] truncate" title={order.financialNotes || undefined}>
+                    {order.financialNotes || t('unknown')}
+                  </span>
+                </td>
+                <td className="border border-slate-200 px-3 py-2">
+                  <div className="flex flex-wrap items-center gap-1.5 whitespace-nowrap">
+                    {!readOnly && (
+                      <Button size="sm" className="h-7 px-2" onClick={() => handleOrderReview(order)}>
+                        {t('review')}
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2"
+                      onClick={() => fetchOrderDetails(order.orderNumber)}
+                    >
+                      <Eye className="h-3.5 w-3.5 me-1" aria-hidden="true" />
+                      {t('details')}
+                    </Button>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50" dir={direction}>
@@ -1213,14 +1261,7 @@ function FinanceOrders() {
                       <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                       <h3 className="font-medium text-green-800">{t('walletManual')}</h3>
                     </div>
-                    {walletOrders.map((order) => (
-                      <OrderCard 
-                        key={order.id} 
-                        order={order} 
-                        onOrderSelect={() => handleOrderReview(order)} 
-                        fetchOrderDetails={fetchOrderDetails} 
-                      />
-                    ))}
+                    <OrderTable orders={walletOrders} />
                   </div>
                 )}
 
@@ -1233,14 +1274,7 @@ function FinanceOrders() {
                         <h3 className="font-medium text-blue-800">{t('bankManual')}</h3>
                       </div>
                     )}
-                    {bankOrders.map((order) => (
-                      <OrderCard 
-                        key={order.id} 
-                        order={order} 
-                        onOrderSelect={() => handleOrderReview(order)} 
-                        fetchOrderDetails={fetchOrderDetails} 
-                      />
-                    ))}
+                    <OrderTable orders={bankOrders} />
                   </div>
                 )}
               </div>
@@ -1257,11 +1291,7 @@ function FinanceOrders() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-4">
-                {filteredTransferredOrders.map((order) => (
-                  <TransferredOrderCard key={order.id} order={order} />
-                ))}
-              </div>
+              <OrderTable orders={filteredTransferredOrders} readOnly transferred />
             )}
           </TabsContent>
 
@@ -1274,11 +1304,7 @@ function FinanceOrders() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-4">
-                {rejectedOrders.map((order) => (
-                  <OrderCard key={order.id} order={order} readOnly fetchOrderDetails={fetchOrderDetails} />
-                ))}
-              </div>
+              <OrderTable orders={rejectedOrders} readOnly />
             )}
           </TabsContent>
         </Tabs>

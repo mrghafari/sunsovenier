@@ -41,6 +41,12 @@ const pageTranslations: Record<string, Record<PageLanguage, string>> = {
   phoneNotProvided: { en: "Phone number not provided", fa: "شماره تلفن ثبت نشده", ar: "لم يتم تقديم رقم الهاتف", tr: "Telefon numarası belirtilmedi" },
   dateRegistered: { en: "Date registered", fa: "تاریخ ثبت", ar: "تاريخ التسجيل", tr: "Kayıt tarihi" },
   orderAmount: { en: "Order amount", fa: "مبلغ سفارش", ar: "مبلغ الطلب", tr: "Sipariş tutarı" },
+  tableRow: { en: "Row", fa: "ردیف", ar: "الصف", tr: "Satır" },
+  order: { en: "Order", fa: "سفارش", ar: "الطلب", tr: "Sipariş" },
+  status: { en: "Status", fa: "وضعیت", ar: "الحالة", tr: "Durum" },
+  emailContact: { en: "Email / contact", fa: "ایمیل / تماس", ar: "البريد الإلكتروني / الاتصال", tr: "E-posta / iletişim" },
+  orderAmountIqd: { en: "Order amount (IQD)", fa: "مبلغ سفارش (دینار)", ar: "مبلغ الطلب (د.ع)", tr: "Sipariş tutarı (IQD)" },
+  actions: { en: "Actions", fa: "عملیات", ar: "الإجراءات", tr: "İşlemler" },
   walletImpact: { en: "Customer wallet impact", fa: "تأثیر بر کیف پول مشتری", ar: "تأثير ذلك على محفظة العميل", tr: "Müşteri cüzdanına etkisi" },
   extraDeposit: { en: "Extra deposited amount", fa: "مبلغ اضافی واریزی", ar: "المبلغ الإضافي المودع", tr: "Fazladan yatırılan tutar" },
   approvalOrder: { en: "Order approval", fa: "تأیید سفارش", ar: "اعتماد الطلب", tr: "Sipariş onayı" },
@@ -488,7 +494,7 @@ export default function FinancialDepartment() {
               />
             </div>
 
-            {/* Orders List */}
+            {/* Orders Table */}
             {isLoading ? (
               <div className="text-center py-8">{t("loading")}</div>
             ) : orders.length === 0 ? (
@@ -500,101 +506,105 @@ export default function FinancialDepartment() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-2">
-                {orders.map((order: OrderManagement) => (
-              <Card key={order.id} className="hover:shadow-md transition-shadow border border-gray-200">
-                <CardContent className="p-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge variant="secondary" className="px-2 py-0.5 text-xs">
-                          {order.orderNumber || `${t("orders")} #${formatNumber(order.customerOrderId)}`}
-                        </Badge>
-                        <Badge variant="outline" className="text-orange-600 border-orange-300 text-xs px-1 py-0.5">
-                          {t("pendingFinancialReview")}
-                        </Badge>
-                        {order.paymentReceiptUrl && (
-                          <Badge variant="default" className="bg-blue-100 text-blue-800 text-xs px-1 py-0.5">
-                            <FileText className="w-3 h-3 mr-0.5" />
-                            {t("receipt")}
-                          </Badge>
-                        )}
-                      </div>
-                      
-                      <div className="flex items-center gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-4 text-xs">
-                            <div>
-                              <span className="font-medium text-gray-900">
-                                {order.customerFirstName && order.customerLastName 
-                                  ? `${order.customerFirstName} ${order.customerLastName}`
-                                  : t("unknownCustomer")
-                                }
-                              </span>
-                              <span className="text-gray-500 ml-2">
-                                 {order.customerEmail || t("emailNotProvided")}
-                              </span>
-                            </div>
-                            
-                            <div>
-                              {order.totalAmount && (
-                                <span className="font-bold text-green-600">
-                                  {formatCurrency(order.totalAmount)}
-                                </span>
-                              )}
-                              <span className="text-gray-500 ml-2">
-                                 {formatDate(order.createdAt)}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                          {/* Receipt Thumbnail - Ultra Compact */}
-                          {(order.receipt?.url || order.paymentReceiptUrl) && (
-                            <div 
-                              className="w-8 h-8 rounded border border-gray-200 cursor-pointer hover:border-blue-400 transition-colors overflow-hidden flex items-center justify-center bg-gray-50"
-                              onClick={() => {
-                                const fileUrl = order.receipt?.url || order.paymentReceiptUrl!;
-                                const mimeType = order.receipt?.mimeType;
-                                if (isImageUrl(fileUrl, mimeType) || isPdfUrl(fileUrl, mimeType)) {
-                                  openImageModal(fileUrl, mimeType);
-                                } else {
-                                  window.open(fileUrl, '_blank');
-                                }
-                              }}
-                            >
-                              {isImageUrl(order.receipt?.url || order.paymentReceiptUrl!, order.receipt?.mimeType) ? (
-                                <img 
-                                  src={order.receipt?.url || order.paymentReceiptUrl!}
-                                   alt={t("paymentReceipt")}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <FileText className="w-3 h-3 text-gray-400" />
-                              )}
-                            </div>
-                          )}
-                          
-                          <Button
-                            onClick={() => {
-                              setSelectedOrder(order);
-                              setDialogOpen(true);
-                            }}
-                            size="sm"
-                            className="bg-blue-600 hover:bg-blue-700 text-xs px-2 py-1 h-8"
-                          >
-                            <Eye className="w-3 h-3 mr-1" />
-                             {t("review")}
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
+              <Card className="overflow-hidden border border-gray-300 shadow-sm">
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto" role="region" aria-label={t("pendingOrders")} tabIndex={0}>
+                    <table className="w-full min-w-[980px] border-collapse text-xs">
+                      <caption className="sr-only">{t("pendingOrders")}</caption>
+                      <thead className="sticky top-0 z-10 bg-slate-100 text-left text-[11px] uppercase tracking-wide text-slate-700 shadow-sm">
+                        <tr>
+                          <th scope="col" className="w-14 border border-slate-300 px-3 py-2 font-semibold">{t("tableRow")}</th>
+                          <th scope="col" className="min-w-[150px] border border-slate-300 px-3 py-2 font-semibold">{t("order")}</th>
+                          <th scope="col" className="min-w-[155px] border border-slate-300 px-3 py-2 font-semibold">{t("status")}</th>
+                          <th scope="col" className="w-24 border border-slate-300 px-3 py-2 font-semibold">{t("receipt")}</th>
+                          <th scope="col" className="min-w-[170px] border border-slate-300 px-3 py-2 font-semibold">{t("customer")}</th>
+                          <th scope="col" className="min-w-[210px] border border-slate-300 px-3 py-2 font-semibold">{t("emailContact")}</th>
+                          <th scope="col" className="min-w-[150px] border border-slate-300 px-3 py-2 text-right font-semibold">{t("orderAmountIqd")}</th>
+                          <th scope="col" className="min-w-[145px] border border-slate-300 px-3 py-2 font-semibold">{t("dateRegistered")}</th>
+                          <th scope="col" className="w-28 border border-slate-300 px-3 py-2 text-center font-semibold">{t("actions")}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {orders.map((order: OrderManagement, index: number) => {
+                          const receiptUrl = order.receipt?.url || order.paymentReceiptUrl;
+                          const receiptMimeType = order.receipt?.mimeType;
+                          const customerName = order.customerFirstName && order.customerLastName
+                            ? `${order.customerFirstName} ${order.customerLastName}`
+                            : t("unknownCustomer");
+                          const customerEmail = order.customerEmail || order.customer?.email;
+
+                          return (
+                            <tr key={order.id} className="bg-white even:bg-slate-50 hover:bg-blue-50/60">
+                              <td className="border border-slate-200 px-3 py-2 text-center font-medium text-slate-500">{formatNumber(index + 1)}</td>
+                              <td className="border border-slate-200 px-3 py-2 font-medium text-slate-900">
+                                {order.orderNumber || `${t("orders")} #${formatNumber(order.customerOrderId)}`}
+                              </td>
+                              <td className="border border-slate-200 px-3 py-2">
+                                <Badge variant="outline" className="whitespace-nowrap border-orange-300 px-2 py-0.5 text-[11px] text-orange-700">
+                                  {t("pendingFinancialReview")}
+                                </Badge>
+                              </td>
+                              <td className="border border-slate-200 px-3 py-2">
+                                {receiptUrl ? (
+                                  <button
+                                    type="button"
+                                    className="h-9 w-9 overflow-hidden rounded border border-gray-200 bg-gray-50 transition-colors hover:border-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                                    onClick={() => {
+                                      if (isImageUrl(receiptUrl, receiptMimeType) || isPdfUrl(receiptUrl, receiptMimeType)) {
+                                        openImageModal(receiptUrl, receiptMimeType);
+                                      } else {
+                                        window.open(receiptUrl, '_blank');
+                                      }
+                                    }}
+                                    aria-label={t("paymentReceipt")}
+                                    title={t("paymentReceipt")}
+                                  >
+                                    {isImageUrl(receiptUrl, receiptMimeType) ? (
+                                      <img
+                                        src={receiptUrl}
+                                        alt={t("paymentReceipt")}
+                                        className="h-full w-full object-cover"
+                                      />
+                                    ) : (
+                                      <FileText className="mx-auto h-4 w-4 text-gray-400" />
+                                    )}
+                                  </button>
+                                ) : (
+                                  <span className="text-gray-400">{t("receiptNotSent")}</span>
+                                )}
+                              </td>
+                              <td className="border border-slate-200 px-3 py-2 font-medium text-gray-900">{customerName}</td>
+                              <td className="border border-slate-200 px-3 py-2 text-gray-600">
+                                <div>{customerEmail || t("emailNotProvided")}</div>
+                                {order.customer?.phone && (
+                                  <div className="mt-0.5 text-gray-500">{order.customer.phone}</div>
+                                )}
+                              </td>
+                              <td className="border border-slate-200 px-3 py-2 text-right font-semibold text-green-700">
+                                {order.totalAmount != null ? formatCurrency(order.totalAmount) : "—"}
+                              </td>
+                              <td className="border border-slate-200 px-3 py-2 whitespace-nowrap text-gray-600">{formatDate(order.createdAt)}</td>
+                              <td className="border border-slate-200 px-3 py-2 text-center">
+                                <Button
+                                  onClick={() => {
+                                    setSelectedOrder(order);
+                                    setDialogOpen(true);
+                                  }}
+                                  size="sm"
+                                  className="h-8 bg-blue-600 px-2 text-xs hover:bg-blue-700"
+                                >
+                                  <Eye className="mr-1 h-3 w-3" />
+                                  {t("review")}
+                                </Button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 </CardContent>
               </Card>
-            ))}
-              </div>
             )}
           </TabsContent>
 

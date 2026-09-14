@@ -167,6 +167,19 @@ const pageTranslations = {
     onlinePayment: "Online payment",
     noAuto: "No orders are awaiting automatic approval",
     noGrace: "No orders are currently in the grace period",
+    tableOrder: "Order",
+    tableCustomerContact: "Customer / contact",
+    tableOrderDate: "Order date",
+    tableStatus: "Status",
+    tableRawStatus: "Raw status",
+    tablePaymentSource: "Payment / source",
+    tableTotalWeight: "Total / weight",
+    tableDelivery: "Delivery / address",
+    tableTimer: "Timer",
+    tableApproval: "Approval",
+    tableInvoice: "Invoice",
+    tableAction: "Action",
+    review: "Review",
   },
   fa: {
     dashboardTitle: "داشبورد تأیید مالی",
@@ -266,6 +279,19 @@ const pageTranslations = {
     onlinePayment: "پرداخت آنلاین",
     noAuto: "سفارشی در انتظار تأیید خودکار نیست",
     noGrace: "در حال حاضر سفارشی در مهلت پرداخت نیست",
+    tableOrder: "سفارش",
+    tableCustomerContact: "مشتری / تماس",
+    tableOrderDate: "تاریخ سفارش",
+    tableStatus: "وضعیت",
+    tableRawStatus: "وضعیت خام",
+    tablePaymentSource: "پرداخت / منبع",
+    tableTotalWeight: "مجموع / وزن",
+    tableDelivery: "تحویل / آدرس",
+    tableTimer: "زمان‌سنج",
+    tableApproval: "تأیید",
+    tableInvoice: "فاکتور",
+    tableAction: "عملیات",
+    review: "بررسی",
   },
   ar: {
     dashboardTitle: "لوحة اعتماد الشؤون المالية",
@@ -365,6 +391,19 @@ const pageTranslations = {
     onlinePayment: "دفع عبر الإنترنت",
     noAuto: "لا توجد طلبات بانتظار الاعتماد التلقائي",
     noGrace: "لا توجد حالياً طلبات ضمن فترة السماح",
+    tableOrder: "الطلب",
+    tableCustomerContact: "العميل / الاتصال",
+    tableOrderDate: "تاريخ الطلب",
+    tableStatus: "الحالة",
+    tableRawStatus: "الحالة الخام",
+    tablePaymentSource: "الدفع / المصدر",
+    tableTotalWeight: "الإجمالي / الوزن",
+    tableDelivery: "التسليم / العنوان",
+    tableTimer: "المؤقت",
+    tableApproval: "الاعتماد",
+    tableInvoice: "الفاتورة",
+    tableAction: "الإجراء",
+    review: "مراجعة",
   },
   tr: {
     dashboardTitle: "Mali Onay Panosu",
@@ -464,6 +503,19 @@ const pageTranslations = {
     onlinePayment: "Çevrim içi ödeme",
     noAuto: "Otomatik onay bekleyen sipariş yok",
     noGrace: "Şu anda ek süreli sipariş yok",
+    tableOrder: "Sipariş",
+    tableCustomerContact: "Müşteri / iletişim",
+    tableOrderDate: "Sipariş tarihi",
+    tableStatus: "Durum",
+    tableRawStatus: "Ham durum",
+    tablePaymentSource: "Ödeme / kaynak",
+    tableTotalWeight: "Toplam / ağırlık",
+    tableDelivery: "Teslimat / adres",
+    tableTimer: "Sayaç",
+    tableApproval: "Onay",
+    tableInvoice: "Fatura",
+    tableAction: "İşlem",
+    review: "İncele",
   },
 } as const;
 
@@ -781,9 +833,6 @@ export default function FinancialWorkflowDashboard() {
           <TabsTrigger value="approved" className="text-xs md:text-sm">
             {t("approvedOrders")} ({formatNumber(approvedOrders?.length || 0)})
           </TabsTrigger>
-          <TabsTrigger value="orphaned" className="text-xs md:text-sm">
-            {t("orphanedIncomplete")} ({formatNumber(totalOrphaned || 0)})
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="pending" className="space-y-4">
@@ -800,155 +849,56 @@ export default function FinancialWorkflowDashboard() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2">
-              {orders?.map((order) => (
-                <Card 
-                  key={order.id}
-                  className={`cursor-pointer transition-all duration-200 hover:shadow-md ${
-                    selectedOrder?.id === order.id ? 'ring-2 ring-blue-500 border-blue-300' : ''
-                  }`}
-                  onClick={() => setSelectedOrder(order)}
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">
-                        {t("order")} {order.orderNumber}
-                      </CardTitle>
-                      {getStatusBadge(order.currentStatus)}
-                    </div>
-                  </CardHeader>
-                  
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-gray-500" />
-                      <span className="text-gray-700 font-medium">{order.customerName}</span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm text-gray-600">
-                        {formatDate(order.createdAt, true)}
-                      </span>
-                    </div>
-
-                    {order.shippingAddress && (
-                      <div className="flex items-start gap-2">
-                        <MapPin className="h-4 w-4 text-gray-500 mt-0.5" />
-                        <div className="text-sm text-gray-600">
-                          <div>{order.shippingAddress.city} - {order.shippingAddress.address}</div>
-                          {order.shippingAddress.phone && (
-                            <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
-                              <Phone className="h-3 w-3" />
-                              {order.shippingAddress.phone}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {(order.customerEmail || order.customerPhone) && (
-                      <div className="bg-gray-50 p-2 rounded-lg space-y-1">
-                        {order.customerEmail && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <Mail className="h-3 w-3 text-gray-500" />
-                            <span className="text-gray-600">{order.customerEmail}</span>
-                          </div>
-                        )}
-                        {order.customerPhone && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <Phone className="h-3 w-3 text-gray-500" />
-                            <span className="text-gray-600">{order.customerPhone}</span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="flex items-center gap-2">
-                      {getPaymentMethodIcon(order.paymentMethod)}
-                      <span className="text-sm font-medium text-gray-700">
-                        {getPaymentMethodLabel(order.paymentMethod)}
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600">{t("totalAmount")}:</span>
-                      <span className="font-bold text-lg text-blue-600">
-                        {formatCurrency(order.totalAmount)}
-                      </span>
-                    </div>
-
-                    {order.totalWeight && (
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Weight className="h-4 w-4 text-gray-500" />
-                          <span className="text-gray-600">{t("totalWeight")}:</span>
-                        </div>
-                        <span className="font-medium text-green-600">
-                          {formatDecimal(order.totalWeight)} {order.weightUnit || t("unit")}
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Truck className="h-4 w-4 text-gray-500" />
-                        <span className="text-gray-600">{t("deliveryMethod")}:</span>
-                      </div>
-                      <span className="text-sm text-gray-700">
-                        {order.deliveryMethod === 'courier' ? t("courier") :
-                         order.deliveryMethod === 'pickup' ? t("pickup") :
-                         order.deliveryMethod === 'mail' ? t("mail") : order.deliveryMethod}
-                      </span>
-                    </div>
-
-                    {(parseFloat(order.walletAmountUsed || '0') > 0 || parseFloat(order.bankAmountPaid || '0') > 0) && (
-                      <div className="bg-gray-50 p-3 rounded-lg space-y-2">
-                        {parseFloat(order.walletAmountUsed || '0') > 0 && (
-                          <div className="flex justify-between text-sm">
-                            <span className="text-green-600">{t("wallet")}:</span>
-                            <span className="font-medium">
-                              {formatCurrency(order.walletAmountUsed || "0")}
-                            </span>
-                          </div>
-                        )}
-                        {parseFloat(order.bankAmountPaid || '0') > 0 && (
-                          <div className="flex justify-between text-sm">
-                            <span className="text-blue-600">{t("bankGateway")}:</span>
-                            <span className="font-medium">
-                              {formatCurrency(order.bankAmountPaid || "0")}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {order.financialNotes && (
-                      <div className="bg-blue-50 p-2 rounded text-sm">
-                        <span className="font-medium text-blue-800">{t("note")}: </span>
-                        <span className="text-blue-700">{order.financialNotes}</span>
-                      </div>
-                    )}
-
-                    {parseFloat(order.excessAmountCredited || '0') > 0 && (
-                      <div className="bg-green-50 p-2 rounded text-sm">
-                        <span className="font-medium text-green-800">{t("excessDeposit")}: </span>
-                        <span className="text-green-700">
-                          {formatCurrency(order.excessAmountCredited)} {t("toWallet")}
-                        </span>
-                      </div>
-                    )}
-
-                    {order.isAutoApprovalEnabled && order.autoApprovalScheduledAt && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <Timer className="h-4 w-4 text-orange-500" />
-                        <span className="text-orange-600">
-                          {getRemainingTime(order.autoApprovalScheduledAt)}
-                        </span>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
+            <div className="overflow-x-auto rounded-md border">
+              <table className="w-full min-w-[1180px] text-sm" aria-label={t("pendingOrders")}>
+                <thead className="sticky top-0 z-10 bg-gray-100 text-left text-xs uppercase text-gray-700">
+                  <tr>
+                    <th scope="col" className="border-b px-3 py-2">{t("tableOrder")}</th>
+                    <th scope="col" className="border-b px-3 py-2">{t("tableCustomerContact")}</th>
+                    <th scope="col" className="border-b px-3 py-2">{t("tableOrderDate")}</th>
+                    <th scope="col" className="border-b px-3 py-2">{t("tableStatus")} / {t("tableRawStatus")}</th>
+                    <th scope="col" className="border-b px-3 py-2">{t("tablePaymentSource")}</th>
+                    <th scope="col" className="border-b px-3 py-2">{t("tableTotalWeight")}</th>
+                    <th scope="col" className="border-b px-3 py-2">{t("tableDelivery")}</th>
+                    <th scope="col" className="border-b px-3 py-2">{t("tableTimer")}</th>
+                    <th scope="col" className="border-b px-3 py-2">{t("tableAction")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orders?.map((order) => (
+                    <tr key={order.id} className={`odd:bg-white even:bg-gray-50 hover:bg-blue-50 ${selectedOrder?.id === order.id ? "bg-blue-100" : ""}`}>
+                      <td className="border-b px-3 py-2 font-medium whitespace-nowrap">{t("order")} {order.orderNumber}</td>
+                      <td className="border-b px-3 py-2">
+                        <div className="font-medium">{order.customerName}</div>
+                        <div className="text-xs text-gray-600">{order.customerEmail || "—"}</div>
+                        <div className="text-xs text-gray-600">{order.customerPhone || order.shippingAddress?.phone || "—"}</div>
+                      </td>
+                      <td className="border-b px-3 py-2 whitespace-nowrap">{formatDate(order.createdAt, true)}</td>
+                      <td className="border-b px-3 py-2"><div>{getStatusBadge(order.currentStatus)}</div><div className="text-xs text-gray-500 mt-1">{order.currentStatus}</div></td>
+                      <td className="border-b px-3 py-2">
+                        <div className="flex items-center gap-1">{getPaymentMethodIcon(order.paymentMethod)}{getPaymentMethodLabel(order.paymentMethod)}</div>
+                        <div className="text-xs text-gray-500">{order.paymentSourceLabel || "—"}</div>
+                        {parseFloat(order.walletAmountUsed || "0") > 0 && <div className="text-xs text-green-700">{t("wallet")}: {formatCurrency(order.walletAmountUsed)}</div>}
+                        {parseFloat(order.bankAmountPaid || "0") > 0 && <div className="text-xs text-blue-700">{t("bankGateway")}: {formatCurrency(order.bankAmountPaid)}</div>}
+                      </td>
+                      <td className="border-b px-3 py-2 whitespace-nowrap">
+                        <div className="font-semibold text-blue-600">{formatCurrency(order.totalAmount)}</div>
+                        <div className="text-xs text-green-600">{order.totalWeight ? `${formatDecimal(order.totalWeight)} ${order.weightUnit || t("unit")}` : "—"}</div>
+                        {order.financialNotes && <div className="text-xs text-blue-700">{t("note")}: {order.financialNotes}</div>}
+                        {parseFloat(order.excessAmountCredited || "0") > 0 && <div className="text-xs text-green-700">{t("excessDeposit")}: {formatCurrency(order.excessAmountCredited)}</div>}
+                      </td>
+                      <td className="border-b px-3 py-2 max-w-[240px]">
+                        <div>{order.deliveryMethod === "courier" ? t("courier") : order.deliveryMethod === "pickup" ? t("pickup") : order.deliveryMethod === "mail" ? t("mail") : order.deliveryMethod || "—"}</div>
+                        {order.shippingAddress && <div className="text-xs text-gray-600">{order.shippingAddress.city} - {order.shippingAddress.address}</div>}
+                      </td>
+                      <td className="border-b px-3 py-2 whitespace-nowrap text-orange-600">{order.autoApprovalScheduledAt ? getRemainingTime(order.autoApprovalScheduledAt) : "—"}</td>
+                      <td className="border-b px-3 py-2">
+                        <Button size="sm" variant="outline" onClick={() => setSelectedOrder(order)}>{t("review")}</Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </TabsContent>
@@ -977,312 +927,36 @@ export default function FinancialWorkflowDashboard() {
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-4">
-              {temporaryOrders?.map((order) => (
-                <Card key={order.id} className="border-blue-200 bg-blue-50/50">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Clock className="h-5 w-5 text-blue-600" />
-                        <div>
-                          <Badge className="bg-blue-100 text-blue-800 border-blue-300">
-                            {t("temporaryBadge")}
-                          </Badge>
-                          <p className="text-sm text-gray-600 mt-1">
-                            {t("temporaryDesc")}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <h3 className="font-bold text-lg">
-                          {t("order")} {order.orderNumber}
-                        </h3>
-                        <p className="text-sm text-gray-600">
-                          {formatDate(order.createdAt)}
-                        </p>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center justify-between bg-white p-3 rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-gray-500" />
-                        <span className="text-gray-600">{t("customer")}:</span>
-                      </div>
-                      <div className="text-right">
+            <div className="overflow-x-auto rounded-md border">
+              <table className="w-full min-w-[980px] text-sm" aria-label={t("temporaryOrders")}>
+                <thead className="sticky top-0 z-10 bg-blue-100 text-left text-xs uppercase text-blue-900">
+                  <tr>
+                    <th scope="col" className="border-b px-3 py-2">{t("tableOrder")}</th>
+                    <th scope="col" className="border-b px-3 py-2">{t("tableCustomerContact")}</th>
+                    <th scope="col" className="border-b px-3 py-2">{t("tableOrderDate")}</th>
+                    <th scope="col" className="border-b px-3 py-2">{t("tableStatus")} / {t("tableRawStatus")}</th>
+                    <th scope="col" className="border-b px-3 py-2">{t("tablePaymentSource")}</th>
+                    <th scope="col" className="border-b px-3 py-2">{t("tableTotalWeight")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {temporaryOrders?.map((order) => (
+                    <tr key={order.id} className="odd:bg-white even:bg-blue-50/50 hover:bg-blue-100">
+                      <td className="border-b px-3 py-2 font-medium whitespace-nowrap">{t("order")} {order.orderNumber}</td>
+                      <td className="border-b px-3 py-2">
                         <div className="font-medium">{order.customerName}</div>
-                        {order.customerPhone && (
-                          <div className="text-sm text-gray-600">{order.customerPhone}</div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex justify-between items-center bg-white p-3 rounded-lg">
-                      <span className="text-gray-600">{t("totalAmount")}:</span>
-                      <span className="font-bold text-lg text-blue-600">
-                        {formatCurrency(order.totalAmount)}
-                      </span>
-                    </div>
-
-                    {order.totalWeight && (
-                      <div className="flex items-center justify-between bg-white p-3 rounded-lg">
-                        <div className="flex items-center gap-2">
-                          <Weight className="h-4 w-4 text-gray-500" />
-                          <span className="text-gray-600">{t("totalWeight")}:</span>
-                        </div>
-                        <span className="font-medium text-green-600">
-                          {formatDecimal(order.totalWeight)} {order.weightUnit || t("unit")}
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="bg-blue-100 p-3 rounded-lg">
-                      <div className="flex items-center gap-2 text-blue-800">
-                        <Clock className="h-4 w-4" />
-                        <span className="font-medium">{t("temporaryStatus")}</span>
-                      </div>
-                      <p className="text-sm text-blue-700 mt-1">
-                        {t("temporaryInfo")}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="orphaned" className="space-y-4">
-          {orphanedLoading ? (
-            <Card>
-              <CardContent className="p-6">
-                <div className="animate-pulse space-y-4">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-20 bg-gray-100 rounded"></div>
+                        <div className="text-xs text-gray-600">{order.customerEmail || "—"}</div>
+                        <div className="text-xs text-gray-600">{order.customerPhone || "—"}</div>
+                      </td>
+                      <td className="border-b px-3 py-2 whitespace-nowrap">{formatDate(order.createdAt, true)}</td>
+                      <td className="border-b px-3 py-2"><Badge className="bg-blue-100 text-blue-800 border-blue-300">{t("temporaryBadge")}</Badge><div className="text-xs text-gray-600 mt-1">{t("temporaryStatus")}</div><div className="text-xs text-gray-500">{order.currentStatus}</div></td>
+                        <td className="border-b px-3 py-2"><div>{getPaymentMethodLabel(order.paymentMethod)}</div><div className="text-xs text-gray-500">{order.paymentSourceLabel || t("temporaryDesc")}</div></td>
+                      <td className="border-b px-3 py-2 whitespace-nowrap"><div className="font-semibold text-blue-600">{formatCurrency(order.totalAmount)}</div><div className="text-xs text-green-600">{order.totalWeight ? `${formatDecimal(order.totalWeight)} ${order.weightUnit || t("unit")}` : "—"}</div></td>
+                    </tr>
                   ))}
-                </div>
-              </CardContent>
-            </Card>
-          ) : orphanedOrders?.length === 0 ? (
-            <Card>
-              <CardContent className="text-center py-12">
-                <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  {t("noOrphan")}
-                </h3>
-                <p className="text-gray-600">
-                  {t("orphanSuccess")}
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-4">
-              {orphanedOrders?.map((order) => (
-                <Card key={order.id} className="border-amber-200 bg-amber-50/50">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <AlertTriangle className="h-5 w-5 text-amber-600" />
-                        <div>
-                          <Badge className="bg-amber-100 text-amber-800 border-amber-300">
-                            {t("incompleteBadge")}
-                          </Badge>
-                          <p className="text-sm text-gray-600 mt-1">
-                            {t("incompleteDesc")}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <h3 className="font-bold text-lg">
-                          {t("order")} {order.orderNumber}
-                        </h3>
-                        <p className="text-sm text-gray-600">
-                          {formatDate(order.createdAt)}
-                        </p>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center justify-between bg-white p-3 rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-gray-500" />
-                        <span className="text-gray-600">{t("customer")}:</span>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-medium">{order.customerName}</div>
-                        {order.customerPhone && (
-                          <div className="text-sm text-gray-600">{order.customerPhone}</div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex justify-between items-center bg-white p-3 rounded-lg">
-                      <span className="text-gray-600">{t("totalAmount")}:</span>
-                      <span className="font-bold text-lg text-amber-600">
-                        {formatCurrency(order.totalAmount)}
-                      </span>
-                    </div>
-
-                    {order.shippingAddress && (
-                      <div className="bg-white p-3 rounded-lg">
-                        <div className="flex items-center gap-2 mb-2">
-                          <MapPin className="h-4 w-4 text-gray-500" />
-                          <span className="text-gray-600">{t("deliveryAddress")}:</span>
-                        </div>
-                        <div className="text-sm text-gray-700">
-                          <div>{order.shippingAddress.address}</div>
-                          <div>{order.shippingAddress.city}</div>
-                          <div className="text-gray-600">{order.shippingAddress.phone}</div>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="bg-amber-100 p-3 rounded-lg">
-                      <div className="flex items-center gap-2 text-amber-800">
-                        <AlertTriangle className="h-4 w-4" />
-                        <span className="font-medium">{t("incompleteStatus")}</span>
-                      </div>
-                      <p className="text-sm text-amber-700 mt-1">
-                        {t("incompleteInfo")}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                </tbody>
+              </table>
             </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="orphaned" className="space-y-4">
-          {orphanedLoading ? (
-            <Card>
-              <CardContent className="text-center py-12">
-                <Timer className="h-16 w-16 text-blue-500 mx-auto mb-4 animate-spin" />
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                  {t("loadingOrders")}
-                </h3>
-              </CardContent>
-            </Card>
-          ) : orphanedOrders?.length === 0 ? (
-            <Card>
-              <CardContent className="text-center py-12">
-                <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                  {t("noOrphaned")}
-                </h3>
-                <p className="text-gray-600">
-                  {t("allManaged")}
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <>
-              <Card className="bg-red-50 border-red-200">
-                <CardContent className="py-4">
-                  <div className="flex items-center gap-3">
-                    <AlertTriangle className="h-6 w-6 text-red-600" />
-                    <div>
-                      <h3 className="font-semibold text-red-800">
-                        {t("orphanedTitle")} ({formatNumber(totalOrphaned)} {t("orphanedCount")})
-                      </h3>
-                      <p className="text-sm text-red-600">
-                        {t("orphanedDescription")}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                {orphanedOrders?.map((order) => (
-                  <Card key={order.id} className="border-red-200 bg-red-50">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-lg text-red-800">
-                          {t("order")} {order.orderNumber}
-                        </CardTitle>
-                        <Badge variant="destructive" className="bg-red-600 text-white">
-                          {t("orphanBadge")}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    
-                    <CardContent className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-gray-500" />
-                        <span className="text-gray-700 font-medium">{order.customerName}</span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm text-gray-600">
-                          {formatDate(order.createdAt, true)}
-                        </span>
-                      </div>
-
-                      {(order.customerEmail || order.customerPhone) && (
-                        <div className="bg-white p-2 rounded-lg space-y-1 border border-red-100">
-                          {order.customerEmail && (
-                            <div className="flex items-center gap-2 text-sm">
-                              <Mail className="h-3 w-3 text-gray-500" />
-                              <span className="text-gray-600">{order.customerEmail}</span>
-                            </div>
-                          )}
-                          {order.customerPhone && (
-                            <div className="flex items-center gap-2 text-sm">
-                              <Phone className="h-3 w-3 text-gray-500" />
-                              <span className="text-gray-600">{order.customerPhone}</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      <div className="flex items-center gap-2">
-                        {getPaymentMethodIcon(order.paymentMethod)}
-                        <span className="text-sm font-medium text-gray-700">
-                          {getPaymentMethodLabel(order.paymentMethod)}
-                        </span>
-                      </div>
-
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">{t("totalAmount")}:</span>
-                        <span className="font-bold text-lg text-red-600">
-                          {formatCurrency(order.totalAmount || "0")}
-                        </span>
-                      </div>
-
-                      <div className="bg-yellow-100 p-3 rounded-lg border border-yellow-200">
-                        <div className="flex items-center gap-2 text-yellow-800">
-                          <Settings className="h-4 w-4" />
-                          <span className="font-medium">{t("status")}: {order.status || t("unknown")}</span>
-                        </div>
-                        <p className="text-sm text-yellow-700 mt-1">
-                          {t("orphanInfo")}
-                        </p>
-                      </div>
-
-                      <Button
-                        onClick={() => handleRepairOrphanedOrder(order.id)}
-                        disabled={repairOrphanedOrderMutation.isPending}
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                      >
-                        {repairOrphanedOrderMutation.isPending ? (
-                          <>
-                            <Timer className="h-4 w-4 mr-2 animate-spin" />
-                            {t("repairing")}
-                          </>
-                        ) : (
-                          <>
-                            <Wrench className="h-4 w-4 mr-2" />
-                            {t("repair")}
-                          </>
-                        )}
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </>
           )}
         </TabsContent>
 
@@ -1295,25 +969,33 @@ export default function FinancialWorkflowDashboard() {
               {(orders?.filter(order => order.isAutoApprovalEnabled) || []).length === 0 ? (
                 <p className="py-8 text-center text-gray-600">{t("noAuto")}</p>
               ) : (
-                <div className="space-y-4">
-                  {orders?.filter(order => order.isAutoApprovalEnabled).map((order) => (
-                  <div key={order.id} className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
-                    <div>
-                      <span className="font-medium">{t("order")} {order.orderNumber}</span>
-                      <p className="text-sm text-gray-600">{getPaymentMethodLabel(order.paymentMethod)}</p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-lg font-bold text-blue-600">
-                        {formatCurrency(order.totalAmount)}
-                      </div>
-                      {order.autoApprovalScheduledAt && (
-                        <div className="text-sm text-orange-600">
-                          {getRemainingTime(order.autoApprovalScheduledAt)}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  ))}
+                <div className="overflow-x-auto rounded-md border">
+                  <table className="w-full min-w-[980px] text-sm" aria-label={t("autoTitle")}>
+                    <thead className="sticky top-0 z-10 bg-blue-100 text-left text-xs uppercase text-blue-900">
+                      <tr>
+                        <th scope="col" className="border-b px-3 py-2">{t("tableOrder")}</th>
+                        <th scope="col" className="border-b px-3 py-2">{t("tableCustomerContact")}</th>
+                        <th scope="col" className="border-b px-3 py-2">{t("tableOrderDate")}</th>
+                        <th scope="col" className="border-b px-3 py-2">{t("tableStatus")} / {t("tableRawStatus")}</th>
+                        <th scope="col" className="border-b px-3 py-2">{t("tablePaymentSource")}</th>
+                        <th scope="col" className="border-b px-3 py-2">{t("tableTotalWeight")}</th>
+                        <th scope="col" className="border-b px-3 py-2">{t("tableTimer")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {orders?.filter(order => order.isAutoApprovalEnabled).map((order) => (
+                        <tr key={order.id} className="odd:bg-white even:bg-blue-50/50 hover:bg-blue-100">
+                          <td className="border-b px-3 py-2 font-medium whitespace-nowrap">{t("order")} {order.orderNumber}</td>
+                          <td className="border-b px-3 py-2"><div className="font-medium">{order.customerName}</div><div className="text-xs text-gray-600">{order.customerEmail || "—"}</div><div className="text-xs text-gray-600">{order.customerPhone || "—"}</div></td>
+                          <td className="border-b px-3 py-2 whitespace-nowrap">{formatDate(order.createdAt, true)}</td>
+                          <td className="border-b px-3 py-2"><div>{getStatusBadge(order.currentStatus)}</div><div className="text-xs text-gray-500 mt-1">{order.currentStatus}</div></td>
+                          <td className="border-b px-3 py-2"><div>{getPaymentMethodLabel(order.paymentMethod)}</div><div className="text-xs text-gray-500">{order.paymentSourceLabel || "—"}</div></td>
+                          <td className="border-b px-3 py-2 whitespace-nowrap"><div className="font-semibold text-blue-600">{formatCurrency(order.totalAmount)}</div><div className="text-xs text-green-600">{order.totalWeight ? `${formatDecimal(order.totalWeight)} ${order.weightUnit || t("unit")}` : "—"}</div></td>
+                          <td className="border-b px-3 py-2 whitespace-nowrap text-orange-600">{order.autoApprovalScheduledAt ? getRemainingTime(order.autoApprovalScheduledAt) : "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </CardContent>
@@ -1329,23 +1011,33 @@ export default function FinancialWorkflowDashboard() {
               {(orders?.filter(order => order.currentStatus === 'payment_grace_period') || []).length === 0 ? (
                 <p className="py-8 text-center text-gray-600">{t("noGrace")}</p>
               ) : (
-                <div className="space-y-4">
-                  {orders?.filter(order => order.currentStatus === 'payment_grace_period').map((order) => (
-                  <div key={order.id} className="flex items-center justify-between p-4 bg-orange-50 rounded-lg">
-                    <div>
-                      <span className="font-medium">{t("order")} {order.orderNumber}</span>
-                      <p className="text-sm text-gray-600">{t("graceUpload")}</p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-lg font-bold text-orange-600">
-                        {formatCurrency(order.totalAmount)}
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        {t("deadline")}
-                      </div>
-                    </div>
-                  </div>
-                  ))}
+                <div className="overflow-x-auto rounded-md border">
+                  <table className="w-full min-w-[980px] text-sm" aria-label={t("graceTitle")}>
+                    <thead className="sticky top-0 z-10 bg-orange-100 text-left text-xs uppercase text-orange-900">
+                      <tr>
+                        <th scope="col" className="border-b px-3 py-2">{t("tableOrder")}</th>
+                        <th scope="col" className="border-b px-3 py-2">{t("tableCustomerContact")}</th>
+                        <th scope="col" className="border-b px-3 py-2">{t("tableOrderDate")}</th>
+                        <th scope="col" className="border-b px-3 py-2">{t("tableStatus")} / {t("tableRawStatus")}</th>
+                        <th scope="col" className="border-b px-3 py-2">{t("tablePaymentSource")}</th>
+                        <th scope="col" className="border-b px-3 py-2">{t("tableTotalWeight")}</th>
+                        <th scope="col" className="border-b px-3 py-2">{t("tableTimer")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {orders?.filter(order => order.currentStatus === 'payment_grace_period').map((order) => (
+                        <tr key={order.id} className="odd:bg-white even:bg-orange-50/50 hover:bg-orange-100">
+                          <td className="border-b px-3 py-2 font-medium whitespace-nowrap">{t("order")} {order.orderNumber}</td>
+                          <td className="border-b px-3 py-2"><div className="font-medium">{order.customerName}</div><div className="text-xs text-gray-600">{order.customerEmail || "—"}</div><div className="text-xs text-gray-600">{order.customerPhone || "—"}</div></td>
+                          <td className="border-b px-3 py-2 whitespace-nowrap">{formatDate(order.createdAt, true)}</td>
+                          <td className="border-b px-3 py-2"><Badge className="bg-orange-100 text-orange-800">{getStatusLabel(order.currentStatus)}</Badge><div className="text-xs text-gray-600">{t("graceUpload")}</div><div className="text-xs text-gray-500">{order.currentStatus}</div></td>
+                          <td className="border-b px-3 py-2"><div>{getPaymentMethodLabel(order.paymentMethod)}</div><div className="text-xs text-gray-500">{order.paymentSourceLabel || "—"}</div></td>
+                          <td className="border-b px-3 py-2 whitespace-nowrap"><div className="font-semibold text-orange-600">{formatCurrency(order.totalAmount)}</div><div className="text-xs text-green-600">{order.totalWeight ? `${formatDecimal(order.totalWeight)} ${order.weightUnit || t("unit")}` : "—"}</div></td>
+                          <td className="border-b px-3 py-2 whitespace-nowrap">{t("deadline")}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </CardContent>
@@ -1375,107 +1067,37 @@ export default function FinancialWorkflowDashboard() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2">
-              {approvedOrders?.map((order) => (
-                <Card key={order.id} className="border-green-200 bg-green-50/50">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <CheckCircle className="h-5 w-5 text-green-600" />
-                        <div>
-                          <Badge className="bg-green-100 text-green-800 border-green-300">
-                            {t("approvedBadge")}
-                          </Badge>
-                          <p className="text-sm text-gray-600 mt-1">
-                            {getPaymentMethodLabel(order.paymentMethod)}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <h3 className="font-bold text-lg">
-                          {t("order")} {order.orderNumber}
-                        </h3>
-                        <p className="text-sm text-gray-600">
-                          {formatDate(order.createdAt)}
-                        </p>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center justify-between bg-white p-3 rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-gray-500" />
-                        <span className="text-gray-600">{t("customer")}:</span>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-medium">{order.customerName}</div>
-                        {order.customerPhone && (
-                          <div className="text-sm text-gray-600">{order.customerPhone}</div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex justify-between items-center bg-white p-3 rounded-lg">
-                      <span className="text-gray-600">{t("totalAmount")}:</span>
-                      <span className="font-bold text-lg text-green-600">
-                        {formatCurrency(order.totalAmount)}
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between items-center bg-white p-3 rounded-lg">
-                      <span className="text-gray-600">{t("currentStatus")}:</span>
-                      <span className="font-medium text-blue-600">
-                        {getStatusBadge(order.currentStatus)}
-                      </span>
-                    </div>
-
-                    {order.financialReviewedAt && (
-                      <div className="bg-green-100 p-3 rounded-lg">
-                        <div className="flex items-center gap-2 mb-2">
-                          <CheckCircle className="h-4 w-4 text-green-600" />
-                          <span className="font-medium text-green-800">{t("financialApproval")}:</span>
-                        </div>
-                        <div className="text-sm text-green-700">
-                          <div>{t("approvalDate")}: {formatDate(order.financialReviewedAt)}</div>
-                          <div>{t("approvalTime")}: {formatTime(order.financialReviewedAt)}</div>
-                          {order.financialNotes && (
-                            <div className="mt-1">{t("note")}: {order.financialNotes}</div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {order.invoiceType && (
-                      <div className="bg-blue-100 p-3 rounded-lg">
-                        <div className="flex items-center gap-2 mb-2">
-                          <FileText className="h-4 w-4 text-blue-600" />
-                          <span className="font-medium text-blue-800">{t("invoiceStatus")}:</span>
-                        </div>
-                        <div className="text-sm text-blue-700">
-                          <div>{t("invoiceType")}: {order.invoiceType === 'official_invoice' ? t("officialInvoice") : t("temporaryInvoice")}</div>
-                          {order.invoiceConvertedAt && (
-                            <div>{t("conversionDate")}: {formatDate(order.invoiceConvertedAt)}</div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {order.shippingAddress && (
-                      <div className="bg-white p-3 rounded-lg">
-                        <div className="flex items-center gap-2 mb-2">
-                          <MapPin className="h-4 w-4 text-gray-500" />
-                          <span className="text-gray-600">{t("deliveryAddress")}:</span>
-                        </div>
-                        <div className="text-sm text-gray-700">
-                          <div>{order.shippingAddress.address}</div>
-                          <div>{order.shippingAddress.city}</div>
-                          <div className="text-gray-600">{order.shippingAddress.phone}</div>
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
+            <div className="overflow-x-auto rounded-md border">
+              <table className="w-full min-w-[1280px] text-sm" aria-label={t("approvedOrders")}>
+                <thead className="sticky top-0 z-10 bg-green-100 text-left text-xs uppercase text-green-900">
+                  <tr>
+                    <th scope="col" className="border-b px-3 py-2">{t("tableOrder")}</th>
+                    <th scope="col" className="border-b px-3 py-2">{t("tableCustomerContact")}</th>
+                    <th scope="col" className="border-b px-3 py-2">{t("tableOrderDate")}</th>
+                    <th scope="col" className="border-b px-3 py-2">{t("tableStatus")} / {t("tableRawStatus")}</th>
+                    <th scope="col" className="border-b px-3 py-2">{t("tablePaymentSource")}</th>
+                    <th scope="col" className="border-b px-3 py-2">{t("tableTotalWeight")}</th>
+                    <th scope="col" className="border-b px-3 py-2">{t("tableApproval")}</th>
+                    <th scope="col" className="border-b px-3 py-2">{t("tableInvoice")}</th>
+                    <th scope="col" className="border-b px-3 py-2">{t("tableDelivery")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {approvedOrders?.map((order) => (
+                    <tr key={order.id} className="odd:bg-white even:bg-green-50/50 hover:bg-green-100">
+                      <td className="border-b px-3 py-2 font-medium whitespace-nowrap">{t("order")} {order.orderNumber}</td>
+                      <td className="border-b px-3 py-2"><div className="font-medium">{order.customerName}</div><div className="text-xs text-gray-600">{order.customerEmail || "—"}</div><div className="text-xs text-gray-600">{order.customerPhone || order.shippingAddress?.phone || "—"}</div></td>
+                      <td className="border-b px-3 py-2 whitespace-nowrap">{formatDate(order.createdAt, true)}</td>
+                      <td className="border-b px-3 py-2"><div>{getStatusBadge(order.currentStatus)}</div><div className="text-xs text-gray-500 mt-1">{order.currentStatus}</div></td>
+                      <td className="border-b px-3 py-2"><div>{getPaymentMethodLabel(order.paymentMethod)}</div><div className="text-xs text-gray-500">{order.paymentSourceLabel || "—"}</div></td>
+                      <td className="border-b px-3 py-2 whitespace-nowrap"><div className="font-semibold text-green-600">{formatCurrency(order.totalAmount)}</div><div className="text-xs text-gray-600">{order.totalWeight ? `${formatDecimal(order.totalWeight)} ${order.weightUnit || t("unit")}` : "—"}</div></td>
+                      <td className="border-b px-3 py-2 whitespace-nowrap">{order.financialReviewedAt ? <><div>{formatDate(order.financialReviewedAt)}</div><div className="text-xs text-gray-600">{formatTime(order.financialReviewedAt)}</div>{order.financialNotes && <div className="text-xs text-gray-500">{t("note")}: {order.financialNotes}</div>}</> : "—"}</td>
+                      <td className="border-b px-3 py-2">{order.invoiceType ? <><div>{order.invoiceType === "official_invoice" ? t("officialInvoice") : t("temporaryInvoice")}</div>{order.invoiceConvertedAt && <div className="text-xs text-gray-600">{t("conversionDate")}: {formatDate(order.invoiceConvertedAt)}</div>}</> : "—"}</td>
+                      <td className="border-b px-3 py-2 max-w-[240px]">{order.shippingAddress ? <><div>{order.shippingAddress.city}</div><div className="text-xs text-gray-600">{order.shippingAddress.address}</div></> : "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </TabsContent>
@@ -1561,107 +1183,37 @@ export default function FinancialWorkflowDashboard() {
                     {t("orphanedTitle")} ({formatNumber(totalOrphaned)} {t("orphanedCount")})
                   </h3>
                   
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {orphanedOrders?.map((order) => (
-                      <Card key={order.id} className="border-orange-200 bg-orange-50/50">
-                        <CardHeader className="pb-3">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <AlertTriangle className="h-5 w-5 text-orange-600" />
-                              <div>
-                                <Badge className="bg-orange-100 text-orange-800 border-orange-300">
-                                  {t("orphanBadge")}
-                                </Badge>
-                                <p className="text-sm text-gray-600 mt-1">
-                                  {getPaymentMethodLabel(order.paymentMethod)}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <h3 className="font-bold text-lg">
-                                {t("order")} {order.orderNumber}
-                              </h3>
-                              <p className="text-sm text-gray-600">
-                                {formatDate(order.createdAt)}
-                              </p>
-                            </div>
-                          </div>
-                        </CardHeader>
-                        
-                        <CardContent className="space-y-3">
-                          <div className="flex items-center gap-2">
-                            <User className="h-4 w-4 text-gray-500" />
-                            <span className="text-gray-700 font-medium">{order.customerName}</span>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-gray-500" />
-                            <span className="text-sm text-gray-600">
-                              {formatDate(order.createdAt, true)}
-                            </span>
-                          </div>
-
-                          {(order.customerEmail || order.customerPhone) && (
-                            <div className="bg-white p-2 rounded-lg space-y-1 border border-orange-100">
-                              {order.customerEmail && (
-                                <div className="flex items-center gap-2 text-sm">
-                                  <Mail className="h-3 w-3 text-gray-500" />
-                                  <span className="text-gray-600">{order.customerEmail}</span>
-                                </div>
-                              )}
-                              {order.customerPhone && (
-                                <div className="flex items-center gap-2 text-sm">
-                                  <Phone className="h-3 w-3 text-gray-500" />
-                                  <span className="text-gray-600">{order.customerPhone}</span>
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                          <div className="flex items-center gap-2">
-                            {getPaymentMethodIcon(order.paymentMethod)}
-                            <span className="text-sm font-medium text-gray-700">
-                              {getPaymentMethodLabel(order.paymentMethod)}
-                            </span>
-                          </div>
-
-                          <div className="flex justify-between items-center">
-                            <span className="text-gray-600">{t("totalAmount")}:</span>
-                            <span className="font-bold text-lg text-orange-600">
-                              {formatCurrency(order.totalAmount || "0")}
-                            </span>
-                          </div>
-
-                          <div className="bg-yellow-100 p-3 rounded-lg border border-yellow-200">
-                            <div className="flex items-center gap-2 text-yellow-800">
-                              <Settings className="h-4 w-4" />
-                              <span className="font-medium">{t("status")}: {getStatusLabel(order.currentStatus)}</span>
-                            </div>
-                            <p className="text-sm text-yellow-700 mt-1">
-                              {t("orphanInfo")}
-                            </p>
-                          </div>
-
-                          <Button
-                            onClick={() => handleRepairOrphanedOrder(order.id)}
-                            disabled={repairOrphanedOrderMutation.isPending}
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                          >
-                            {repairOrphanedOrderMutation.isPending ? (
-                              <>
-                                <Timer className="h-4 w-4 mr-2 animate-spin" />
-                                {t("repairing")}
-                              </>
-                            ) : (
-                              <>
-                                <Wrench className="h-4 w-4 mr-2" />
-                                {t("repair")}
-                              </>
-                            )}
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    ))}
+                  <div className="overflow-x-auto rounded-md border">
+                    <table className="w-full min-w-[1180px] text-sm" aria-label={t("orphanedTitle")}>
+                      <thead className="sticky top-0 z-10 bg-orange-100 text-left text-xs uppercase text-orange-900">
+                        <tr>
+                          <th scope="col" className="border-b px-3 py-2">{t("tableOrder")}</th>
+                          <th scope="col" className="border-b px-3 py-2">{t("tableCustomerContact")}</th>
+                          <th scope="col" className="border-b px-3 py-2">{t("tableOrderDate")}</th>
+                          <th scope="col" className="border-b px-3 py-2">{t("tableStatus")} / {t("tableRawStatus")}</th>
+                          <th scope="col" className="border-b px-3 py-2">{t("tablePaymentSource")}</th>
+                          <th scope="col" className="border-b px-3 py-2">{t("tableTotalWeight")}</th>
+                          <th scope="col" className="border-b px-3 py-2">{t("tableAction")}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {orphanedOrders?.map((order) => (
+                          <tr key={order.id} className="odd:bg-white even:bg-orange-50/50 hover:bg-orange-100">
+                            <td className="border-b px-3 py-2 font-medium whitespace-nowrap">{t("order")} {order.orderNumber}<div className="text-xs text-red-700"><Badge variant="destructive">{t("orphanBadge")}</Badge></div></td>
+                            <td className="border-b px-3 py-2"><div className="font-medium">{order.customerName}</div><div className="text-xs text-gray-600">{order.customerEmail || "—"}</div><div className="text-xs text-gray-600">{order.customerPhone || "—"}</div></td>
+                            <td className="border-b px-3 py-2 whitespace-nowrap">{formatDate(order.createdAt, true)}</td>
+                            <td className="border-b px-3 py-2"><div>{getStatusBadge(order.currentStatus)}</div><div className="text-xs text-gray-500 mt-1">{order.currentStatus || order.status || t("unknown")}</div><div className="text-xs text-yellow-700">{t("orphanInfo")}</div></td>
+                            <td className="border-b px-3 py-2"><div>{getPaymentMethodLabel(order.paymentMethod)}</div><div className="text-xs text-gray-500">{order.paymentSourceLabel || "—"}</div></td>
+                            <td className="border-b px-3 py-2 whitespace-nowrap"><div className="font-semibold text-orange-600">{formatCurrency(order.totalAmount || "0")}</div><div className="text-xs text-green-600">{order.totalWeight ? `${formatDecimal(order.totalWeight)} ${order.weightUnit || t("unit")}` : "—"}</div></td>
+                            <td className="border-b px-3 py-2">
+                              <Button size="sm" onClick={() => handleRepairOrphanedOrder(order.id)} disabled={repairOrphanedOrderMutation.isPending} className="bg-blue-600 hover:bg-blue-700 text-white">
+                                {repairOrphanedOrderMutation.isPending ? <><Timer className="h-4 w-4 mr-2 animate-spin" />{t("repairing")}</> : <><Wrench className="h-4 w-4 mr-2" />{t("repair")}</>}
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               )}
