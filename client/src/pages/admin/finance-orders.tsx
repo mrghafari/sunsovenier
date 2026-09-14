@@ -822,60 +822,139 @@ function FinanceOrders() {
   const handlePrintOrder = useCallback(async () => {
     if (!orderDetails) return;
 
-    // Simple print implementation
     try {
       const printWindow = window.open('', '_blank');
       if (printWindow) {
+        const escapeHtml = (value: unknown) => String(value ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+        const customerName = orderDetails.customerName ||
+          `${orderDetails.customer?.firstName || ''} ${orderDetails.customer?.lastName || ''}`.trim() ||
+          t('unknown');
+        const customerEmail = orderDetails.customerEmail || orderDetails.customer?.email || t('unknown');
+        const customerPhone = orderDetails.customerPhone || orderDetails.customer?.phone || t('unknown');
+        const itemsSubtotal = orderDetails.items?.reduce((sum: number, item: any) => (
+          sum + (parseFloat(item.unitPrice || item.price || 0) * parseInt(item.quantity || 1))
+        ), 0) || 0;
+        const renderAddress = (title: string, address: any) => address ? `
+          <section class="section">
+            <h3>${escapeHtml(title)}</h3>
+            <div class="details-grid">
+              <div><strong>${escapeHtml(t('recipientName'))}:</strong> ${escapeHtml(address.name || t('unknown'))}</div>
+              <div><strong>${escapeHtml(t('phone'))}:</strong> ${escapeHtml(address.phone || t('unknown'))}</div>
+              <div class="full-width"><strong>${escapeHtml(t('fullAddress'))}:</strong> ${escapeHtml(address.address || t('unknown'))}</div>
+              <div><strong>${escapeHtml(t('city'))}:</strong> ${escapeHtml(address.city || t('unknown'))}</div>
+              ${address.postalCode ? `<div><strong>${escapeHtml(t('postalCode'))}:</strong> ${escapeHtml(address.postalCode)}</div>` : ''}
+            </div>
+          </section>
+        ` : '';
+
         printWindow.document.write(`
+          <!doctype html>
           <html dir="${direction}" lang="${language}">
             <head>
+              <meta charset="utf-8" />
               <title>${t('details')} ${t('order')} ${orderDetails.orderNumber}</title>
               <style>
-                body { font-family: Arial, sans-serif; direction: ${direction}; padding: 20px; }
-                .header { text-align: center; margin-bottom: 20px; }
-                .info { margin: 10px 0; }
-                table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-                th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-                th { background-color: #f5f5f5; }
+                * { box-sizing: border-box; }
+                body { font-family: Arial, Tahoma, sans-serif; direction: ${direction}; color: #111827; padding: 20px; margin: 0; }
+                .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #2563eb; padding-bottom: 14px; }
+                .header h2 { margin: 0 0 8px; }
+                .section { margin: 16px 0; padding: 14px; border: 1px solid #d1d5db; border-radius: 8px; break-inside: avoid; }
+                .section h3 { margin: 0 0 12px; color: #1d4ed8; font-size: 16px; }
+                .details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 20px; }
+                .full-width { grid-column: 1 / -1; }
+                .note { white-space: pre-wrap; overflow-wrap: anywhere; background: #fffbeb; border-color: #fcd34d; }
+                table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+                th, td { border: 1px solid #9ca3af; padding: 8px; text-align: center; overflow-wrap: anywhere; }
+                th { background-color: #eff6ff; }
+                .totals { width: min(100%, 460px); margin-inline-start: auto; }
+                .totals-row { display: flex; justify-content: space-between; gap: 20px; padding: 6px 0; }
+                .grand-total { border-top: 2px solid #2563eb; margin-top: 6px; padding-top: 10px; font-size: 18px; font-weight: 700; color: #1d4ed8; }
+                @media print {
+                  body { padding: 0; }
+                  .section { break-inside: avoid; }
+                  thead { display: table-header-group; }
+                  tr { break-inside: avoid; }
+                }
               </style>
             </head>
             <body>
               <div class="header">
-                <h2>${t('details')} ${t('order')} ${orderDetails.orderNumber}</h2>
-                <p>${t('date')}: ${formatDate(new Date(), true)}</p>
+                <h2>${escapeHtml(t('details'))} ${escapeHtml(t('order'))} #${escapeHtml(orderDetails.orderNumber)}</h2>
+                <div>${escapeHtml(t('date'))}: ${escapeHtml(formatDate(orderDetails.createdAt || new Date(), true))}</div>
               </div>
-              <div class="info">
-                <strong>${t('customer')}:</strong> ${orderDetails.customerName || t('unknown')}
-              </div>
-              <div class="info">
-                <strong>${t('email')}:</strong> ${orderDetails.customerEmail || t('unknown')}
-              </div>
-              <div class="info">
-                <strong>${t('phone')}:</strong> ${orderDetails.customerPhone || t('unknown')}
-              </div>
-              <table>
-                <thead>
-                  <tr>
-                    <th>${t('orderItems')}</th>
-                    <th>${t('quantity')}</th>
-                    <th>${t('unitPrice')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${orderDetails.items?.map((item: any) => `
+
+              <section class="section">
+                <h3>${escapeHtml(t('customerInfo'))}</h3>
+                <div class="details-grid">
+                  <div><strong>${escapeHtml(t('name'))}:</strong> ${escapeHtml(customerName)}</div>
+                  <div><strong>${escapeHtml(t('email'))}:</strong> ${escapeHtml(customerEmail)}</div>
+                  <div><strong>${escapeHtml(t('phone'))}:</strong> ${escapeHtml(customerPhone)}</div>
+                  <div><strong>${escapeHtml(t('walletCustomer'))}:</strong> ${escapeHtml(formatCurrency(orderDetailsWalletBalance))}</div>
+                </div>
+              </section>
+
+              ${renderAddress(t('deliveryAddress'), orderDetails.shippingAddress)}
+              ${renderAddress(t('billingAddress'), orderDetails.billingAddress)}
+
+              ${(orderDetails.customerNotes || orderDetails.notes) ? `
+                <section class="section note">
+                  <h3>${escapeHtml(t('customerNote'))}</h3>
+                  <div>${escapeHtml(orderDetails.customerNotes || orderDetails.notes)}</div>
+                </section>
+              ` : ''}
+
+              <section class="section">
+                <h3>${escapeHtml(t('orderItems'))}</h3>
+                <table>
+                  <thead>
                     <tr>
-                      <td>${item.productName || t('unknown')}</td>
-                      <td>${formatNumber(Number(item.quantity || 0))}</td>
-                      <td>${formatCurrency(Number(item.price || 0))}</td>
+                      <th>${escapeHtml(t('orderItems'))}</th>
+                      <th>${escapeHtml(t('sku'))}</th>
+                      <th>${escapeHtml(t('quantity'))}</th>
+                      <th>${escapeHtml(t('unitPrice'))}</th>
+                      <th>${escapeHtml(t('total'))}</th>
                     </tr>
-                  `).join('') || `<tr><td colspan="3">${t('orderItems')}: 0</td></tr>`}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    ${orderDetails.items?.map((item: any) => {
+                      const quantity = parseInt(item.quantity || 1);
+                      const unitPrice = parseFloat(item.unitPrice || item.price || 0);
+                      return `
+                        <tr>
+                          <td>${escapeHtml(item.productName || item.name || t('unknown'))}</td>
+                          <td>${escapeHtml(item.sku || '—')}</td>
+                          <td>${escapeHtml(formatNumber(quantity))}</td>
+                          <td>${escapeHtml(formatCurrency(unitPrice))}</td>
+                          <td>${escapeHtml(formatCurrency(unitPrice * quantity))}</td>
+                        </tr>
+                      `;
+                    }).join('') || `<tr><td colspan="5">${escapeHtml(t('orderItems'))}: 0</td></tr>`}
+                  </tbody>
+                </table>
+
+                <div class="totals">
+                  <div class="totals-row"><span>${escapeHtml(t('itemsSubtotal'))}:</span><strong>${escapeHtml(formatCurrency(itemsSubtotal))}</strong></div>
+                  ${orderDetails.shippingCost && parseFloat(orderDetails.shippingCost) > 0 ? `
+                    <div class="totals-row"><span>${escapeHtml(t('shippingCost'))}:</span><strong>${escapeHtml(formatCurrency(parseFloat(orderDetails.shippingCost)))}</strong></div>
+                  ` : ''}
+                  ${orderDetails.vatAmount && parseFloat(orderDetails.vatAmount) > 0 ? `
+                    <div class="totals-row"><span>${escapeHtml(t('vat'))} (${escapeHtml(formatNumber(Number(orderDetails.vatRate || 0)))}%):</span><strong>${escapeHtml(formatCurrency(parseFloat(orderDetails.vatAmount)))}</strong></div>
+                  ` : ''}
+                  <div class="totals-row grand-total"><span>${escapeHtml(t('grandTotal'))}:</span><span>${escapeHtml(formatCurrency(parseFloat(orderDetails.totalAmount || 0)))}</span></div>
+                  <div class="totals-row"><span>${escapeHtml(t('paymentMethod'))}:</span><strong>${escapeHtml(formatPaymentMethod(orderDetails.paymentMethod))}</strong></div>
+                </div>
+              </section>
             </body>
           </html>
         `);
         printWindow.document.close();
-        printWindow.print();
+        printWindow.focus();
+        printWindow.setTimeout(() => printWindow.print(), 250);
       }
     } catch (error) {
       toast({
@@ -884,7 +963,7 @@ function FinanceOrders() {
         variant: "destructive",
       });
     }
-  }, [orderDetails, toast, t, direction, language]);
+  }, [orderDetails, orderDetailsWalletBalance, toast, t, direction, language, formatDate, formatNumber, formatCurrency, formatPaymentMethod]);
 
   const handleAcceptOrder = useCallback(() => {
     if (!orderDetails) return;

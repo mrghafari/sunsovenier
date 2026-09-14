@@ -7807,7 +7807,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       'product_management': 'مدیریت محصولات',
       'payment_management': 'مدیریت پرداخت',
       'accounting_management': 'مدیریت حسابداری',
-      'finance': 'مدیریت مالی',
+      'finance': 'تایید مالی',
       'wallet_management': 'مدیریت کیف پول',
       'geography_analytics': 'آمار جغرافیایی',
       'ai_settings': 'تنظیمات هوش مصنوعی',
@@ -10351,7 +10351,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         'procedures': { name: 'مدیریت روش‌ها', description: 'مدیریت اسناد و روش‌های کاری', category: 'content' },
         'payment_management': { name: 'مدیریت پرداخت', description: 'تنظیمات درگاه پرداخت', category: 'finance' },
         'accounting_management': { name: 'مدیریت حسابداری', description: 'مدیریت فاکتورها و حسابداری کسب‌وکار', category: 'finance' },
-        'finance': { name: 'مدیریت مالی', description: 'بررسی و تایید مالی سفارشات', category: 'finance' },
+        'finance': { name: 'تایید مالی', description: 'بررسی و تایید مالی سفارشات', category: 'finance' },
         'wallet_management': { name: 'مدیریت کیف پول', description: 'مدیریت کیف پول مشتریان', category: 'finance' },
         'geography_analytics': { name: 'آمار جغرافیایی', description: 'تحلیل آمار منطقه‌ای', category: 'analytics' },
         'ai_settings': { name: 'تنظیمات هوش مصنوعی', description: 'پیکربندی AI و SKU', category: 'system' },
@@ -34891,7 +34891,7 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         console.log(`🔍 [CRITICAL DEBUG] Found modules containing 'واتساپ':`, persianModules.filter(m => m.includes('واتساپ')));
         console.log(`🔍 [DEBUG] کیا شاخص‌های عملکرد (KPI) in persianModules?`, persianModules.includes('شاخص‌های عملکرد (KPI)'));
         console.log(`🔍 [DEBUG] داشبورد مدیریتی in persianModules?`, persianModules.includes('داشبورد مدیریتی'));
-        console.log(`🔍 [DEBUG] finance mapping: ${normalizedModules.includes('finance')} → ${persianModules.includes('مدیریت مالی')}`);
+        console.log(`🔍 [DEBUG] finance mapping: ${normalizedModules.includes('finance')} → ${persianModules.includes('تایید مالی')}`);
         console.log(`🔍 [DEBUG] geography_analytics mapping: ${normalizedModules.includes('geography_analytics')} → ${persianModules.includes('آمار جغرافیایی')}`);
 
         return res.json({

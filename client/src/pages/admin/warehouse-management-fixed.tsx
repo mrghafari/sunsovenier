@@ -37,7 +37,12 @@ const pageTranslations: Record<string, Record<PageLanguage, string>> = {
   loadingOrders: { en: 'Loading orders...', fa: 'در حال بارگیری سفارشات...', ar: 'جارٍ تحميل الطلبات...', tr: 'Siparişler yükleniyor...' },
   noOrders: { en: 'No orders found', fa: 'هیچ سفارشی یافت نشد', ar: 'لم يتم العثور على طلبات', tr: 'Sipariş bulunamadı' },
   noOrdersDescription: { en: 'There are currently no approved orders awaiting warehouse processing', fa: 'در حال حاضر هیچ سفارش تایید شده‌ای در انتظار پردازش انبار نیست', ar: 'لا توجد حالياً طلبات معتمدة بانتظار معالجة المستودع', tr: 'Şu anda depo işlemi bekleyen onaylı sipariş yok' },
+  rowNumber: { en: '#', fa: 'ردیف', ar: 'الرقم', tr: 'Sıra' },
   orderNumber: { en: 'Order number', fa: 'شماره سفارش', ar: 'رقم الطلب', tr: 'Sipariş numarası' },
+  contact: { en: 'Contact', fa: 'اطلاعات تماس', ar: 'جهة الاتصال', tr: 'İletişim' },
+  date: { en: 'Date', fa: 'تاریخ', ar: 'التاريخ', tr: 'Tarih' },
+  paymentMethod: { en: 'Payment method', fa: 'روش پرداخت', ar: 'طريقة الدفع', tr: 'Ödeme yöntemi' },
+  ordersTable: { en: 'Warehouse orders', fa: 'سفارش‌های انبار', ar: 'طلبات المستودع', tr: 'Depo siparişleri' },
   customerInfo: { en: 'Customer information', fa: 'اطلاعات مشتری', ar: 'معلومات العميل', tr: 'Müşteri bilgileri' },
   shipmentWeight: { en: 'Shipment weight', fa: 'وزن محموله', ar: 'وزن الشحنة', tr: 'Gönderi ağırlığı' },
   kilogram: { en: 'kg', fa: 'کیلوگرم', ar: 'كغ', tr: 'kg' },
@@ -756,7 +761,7 @@ const WarehouseManagementFixed: React.FC = () => {
     // Build customer name from API response structure
     const customerName = order.customer?.firstName && order.customer?.lastName 
       ? `${order.customer.firstName} ${order.customer.lastName}` 
-      : order.customerFirstName && order.customerLastName 
+                                     : order.customerFirstName && order.customerLastName
         ? `${order.customerFirstName} ${order.customerLastName}`
         : order.customerName || '';
     
@@ -1048,141 +1053,150 @@ const WarehouseManagementFixed: React.FC = () => {
                      <p>{t('noOrdersDescription')}</p>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
-                      <thead>
-                        <tr className="bg-gray-50 border-b border-gray-200">
-                           <th className="text-right p-4 font-semibold text-gray-700" style={{ width: '10%' }}>{t('orderNumber')}</th>
-                           <th className="text-right p-4 font-semibold text-gray-700" style={{ width: '20%' }}>{t('customerInfo')}</th>
-                           <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '10%' }}>{t('shipmentWeight')}</th>
-                           <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '12%' }}>{t('totalAmount')}</th>
-                           <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '12%' }}>{t('status')}</th>
-                           <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '14%' }}>{t('notes')}</th>
-                           <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '22%' }}>{t('actions')}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredOrders.map((order: Order) => (
-                          <tr key={order.id} className="border-b hover:bg-blue-50 transition-colors">
-                            <td className="p-4" style={{ width: '10%' }}>
-                              <div className="font-bold text-blue-600 truncate">{order.orderNumber || `#${order.id}`}</div>
-                            </td>
-                            <td className="p-4" style={{ width: '20%' }}>
-                              <div className="space-y-1">
-                                <div className="font-medium text-gray-900 truncate">{
-                                  order.customer?.firstName && order.customer?.lastName 
-                                    ? `${order.customer.firstName} ${order.customer.lastName}` 
-                                    : order.customerFirstName && order.customerLastName 
-                                      ? `${order.customerFirstName} ${order.customerLastName}`
-                                       : order.customerName || t('unknown')
-                                }</div>
-                                <div className="text-sm text-gray-600 truncate">
-                                   📱 {order.customer?.phone || order.customerPhone || t('unknownPhone')}
-                                </div>
-                                <div className="text-xs text-gray-500 truncate">
-                                   📧 {order.customer?.email || order.customerEmail || t('unknownEmail')}
-                                </div>
-                                <PaymentMethodBadge 
-                                  paymentMethod={order.paymentMethod}
-                                  showIcon={true}
-                                  className="text-xs"
-                                />
-                              </div>
-                            </td>
-                            <td className="p-4 text-center" style={{ width: '10%' }}>
-                              <div className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1">
-                                <Weight className="w-3 h-3" />
-                                 {order.totalWeight ? `${formatNumber(parseFloat(order.totalWeight), 1)} ${t('kilogram')}` : t('calculating')}
-                              </div>
-                            </td>
-                            <td className="p-4 text-center" style={{ width: '12%' }}>
-                              <div className="font-semibold text-green-600 text-sm">
-                                {formatCurrency(parseFloat(order.totalAmount) || 0)}
-                              </div>
-                            </td>
-                            <td className="p-4 text-center" style={{ width: '12%' }}>{getStatusBadge(order.currentStatus || order.status)}</td>
-                            <td className="p-4 text-center" style={{ width: '14%' }}>
-                              {(order as any).customerNotes && (order as any).customerNotes.trim().length > 0 ? (
-                                <div className="bg-amber-100 text-amber-700 px-2 py-1 rounded text-xs font-medium inline-flex items-center gap-1">
-                                  <Edit3 className="w-3 h-3" />
-                                   {t('customerNote')}
-                                </div>
-                              ) : (
-                                <span className="text-gray-400 text-xs">—</span>
-                              )}
-                            </td>
-                            <td className="p-4 text-center" style={{ width: '22%' }}>
-                              <div className="flex items-center justify-center gap-1">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => {
-                                    setSelectedOrder(order);
-                                    setWarehouseNotes(order.warehouseNotes || ''); // Load existing notes
-                                    setShowOrderDetails(true);
-                                    // Fetch complete order details
-                                    fetchOrderDetails(order.customerOrderId);
-                                  }}
-                                  className="text-xs"
-                                >
-                                  <Eye className="w-4 h-4 mr-1" />
-                                   {t('details')}
-                                </Button>
-                                {(order.currentStatus === 'financial_approved' || order.currentStatus === 'warehouse_pending') && (
-                                  <Button
-                                    size="sm"
-                                    variant="default"
-                                    onClick={() => handleOrderAction(order.id, 'warehouse_processing')}
-                                    disabled={loadingOrderId === order.id}
-                                    className="bg-orange-500 hover:bg-orange-600 text-xs"
-                                  >
-                                    <Package className="w-4 h-4 mr-1" />
-                                     {loadingOrderId === order.id ? t('processing') : t('startProcessing')}
-                                  </Button>
-                                )}
-                                {order.currentStatus === 'warehouse_processing' && (
-                                  <Button
-                                    size="sm"
-                                    variant="default"
-                                    onClick={() => handleOrderAction(order.id, 'warehouse_verified')}
-                                    disabled={loadingOrderId === order.id}
-                                    className="bg-blue-500 hover:bg-blue-600 text-xs"
-                                  >
-                                    <CheckCircle className="w-4 h-4 mr-1" />
-                                     {loadingOrderId === order.id ? t('verifying') : t('firstApproval')}
-                                  </Button>
-                                )}
-                                {order.currentStatus === 'warehouse_verified' && (
-                                  <Button
-                                    size="sm"
-                                    variant="default"
-                                    onClick={() => handleOrderAction(order.id, 'warehouse_approved')}
-                                    disabled={loadingOrderId === order.id}
-                                    className="bg-green-500 hover:bg-green-600 text-xs"
-                                  >
-                                    <CheckCircle className="w-4 h-4 mr-1" />
-                                     {loadingOrderId === order.id ? t('verifying') : t('finalApproval')}
-                                  </Button>
-                                )}
-                                {order.currentStatus === 'warehouse_approved' && (
-                                  <Button
-                                    size="sm"
-                                    variant="default"
-                                    onClick={() => handleOrderAction(order.id, 'logistics_dispatched')}
-                                    disabled={loadingOrderId === order.id}
-                                    className="bg-blue-500 hover:bg-blue-600 text-xs"
-                                  >
-                                    <Truck className="w-4 h-4 mr-1" />
-                                     {loadingOrderId === order.id ? t('sending') : t('sendToLogistics')}
-                                  </Button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                   <div className="overflow-x-auto rounded-lg border border-slate-300 bg-white shadow-sm">
+                     <table className="w-full min-w-[1080px] table-fixed border-collapse text-sm" aria-label={t('ordersTable')}>
+                       <caption className="sr-only">{t('ordersTable')}</caption>
+                       <thead className="sticky top-0 z-10 bg-slate-100 text-slate-700 shadow-sm">
+                         <tr>
+                           <th scope="col" className="border border-slate-300 px-3 py-2 text-center font-semibold">{t('rowNumber')}</th>
+                           <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('orderNumber')}</th>
+                           <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('customer')}</th>
+                           <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('contact')}</th>
+                           <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('date')}</th>
+                           <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('paymentMethod')}</th>
+                           <th scope="col" className="border border-slate-300 px-3 py-2 text-center font-semibold">{t('shipmentWeight')}</th>
+                           <th scope="col" className="border border-slate-300 px-3 py-2 text-end font-semibold">{t('totalAmount')}</th>
+                           <th scope="col" className="w-[130px] border border-slate-300 px-3 py-2 text-start font-semibold whitespace-normal break-words">{t('status')}</th>
+                           <th scope="col" className="w-[140px] border border-slate-300 px-3 py-2 text-start font-semibold whitespace-normal break-words">{t('notes')}</th>
+                           <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('actions')}</th>
+                         </tr>
+                       </thead>
+                       <tbody>
+                         {filteredOrders.map((order: Order, index: number) => (
+                           <tr key={order.id} className="odd:bg-white even:bg-slate-50 hover:bg-blue-50">
+                             <th scope="row" className="border border-slate-200 px-3 py-2 text-center font-medium text-slate-600">{index + 1}</th>
+                             <td className="border border-slate-200 px-3 py-2 font-medium whitespace-nowrap">
+                               <div className="font-bold text-blue-600">{order.orderNumber || `#${order.id}`}</div>
+                             </td>
+                             <td className="border border-slate-200 px-3 py-2">
+                               <span className="font-medium text-slate-800 break-words">{
+                                 order.customer?.firstName && order.customer?.lastName
+                                   ? `${order.customer.firstName} ${order.customer.lastName}`
+                                   : order.customerFirstName && order.customerLastName
+                                     ? `${order.customerFirstName} ${order.customerLastName}`
+                                     : order.customerName || t('unknown')
+                               }</span>
+                             </td>
+                             <td className="border border-slate-200 px-3 py-2">
+                               <div className="max-w-[220px] space-y-0.5 break-words">
+                                 <div>📧 {order.customer?.email || order.customerEmail || t('unknownEmail')}</div>
+                                 <div className="text-xs text-slate-500">📱 {order.customer?.phone || order.customerPhone || t('unknownPhone')}</div>
+                               </div>
+                             </td>
+                             <td className="border border-slate-200 px-3 py-2 whitespace-nowrap">{formatDate(order.createdAt)}</td>
+                             <td className="border border-slate-200 px-3 py-2">
+                               <PaymentMethodBadge
+                                 paymentMethod={order.paymentMethod}
+                                 showIcon={true}
+                                 className="max-w-full whitespace-normal break-words"
+                               />
+                             </td>
+                             <td className="border border-slate-200 px-3 py-2 text-center">
+                               <div className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1 whitespace-nowrap">
+                                 <Weight className="w-3 h-3" />
+                                  {order.totalWeight ? `${formatNumber(parseFloat(order.totalWeight), 1)} ${t('kilogram')}` : t('calculating')}
+                               </div>
+                             </td>
+                             <td className="border border-slate-200 px-3 py-2 text-end font-semibold text-green-600 whitespace-nowrap">
+                               {formatCurrency(parseFloat(order.totalAmount) || 0)}
+                             </td>
+                             <td className="w-[130px] border border-slate-200 px-3 py-2 align-top whitespace-normal break-words">
+                               <div className="[&>div]:h-auto [&>div]:max-w-full [&>div]:whitespace-normal [&>div]:break-words [&>div]:text-start [&>div]:leading-5">
+                                 {getStatusBadge(order.currentStatus || order.status)}
+                               </div>
+                             </td>
+                             <td className="w-[140px] border border-slate-200 px-3 py-2 align-top whitespace-normal">
+                               {(order as any).customerNotes && (order as any).customerNotes.trim().length > 0 ? (
+                                 <div className="bg-amber-100 text-amber-700 px-2 py-1 rounded text-xs font-medium inline-flex items-center gap-1 whitespace-normal break-words">
+                                   <Edit3 className="w-3 h-3 shrink-0" />
+                                    {t('customerNote')}
+                                 </div>
+                               ) : (
+                                 <span className="text-gray-400 text-xs">—</span>
+                               )}
+                             </td>
+                             <td className="border border-slate-200 px-3 py-2">
+                               <div className="flex flex-wrap items-center gap-1.5 whitespace-nowrap">
+                                 <Button
+                                   size="sm"
+                                   variant="outline"
+                                   onClick={() => {
+                                     setSelectedOrder(order);
+                                     setWarehouseNotes(order.warehouseNotes || ''); // Load existing notes
+                                     setShowOrderDetails(true);
+                                     // Fetch complete order details
+                                     fetchOrderDetails(order.customerOrderId);
+                                   }}
+                                   className="h-7 px-2 text-xs"
+                                 >
+                                   <Eye className="w-3.5 h-3.5 mr-1" />
+                                    {t('details')}
+                                 </Button>
+                                 {(order.currentStatus === 'financial_approved' || order.currentStatus === 'warehouse_pending') && (
+                                   <Button
+                                     size="sm"
+                                     variant="default"
+                                     onClick={() => handleOrderAction(order.id, 'warehouse_processing')}
+                                     disabled={loadingOrderId === order.id}
+                                     className="h-7 px-2 bg-orange-500 hover:bg-orange-600 text-xs"
+                                   >
+                                     <Package className="w-3.5 h-3.5 mr-1" />
+                                      {loadingOrderId === order.id ? t('processing') : t('startProcessing')}
+                                   </Button>
+                                 )}
+                                 {order.currentStatus === 'warehouse_processing' && (
+                                   <Button
+                                     size="sm"
+                                     variant="default"
+                                     onClick={() => handleOrderAction(order.id, 'warehouse_verified')}
+                                     disabled={loadingOrderId === order.id}
+                                     className="h-7 px-2 bg-blue-500 hover:bg-blue-600 text-xs"
+                                   >
+                                     <CheckCircle className="w-3.5 h-3.5 mr-1" />
+                                      {loadingOrderId === order.id ? t('verifying') : t('firstApproval')}
+                                   </Button>
+                                 )}
+                                 {order.currentStatus === 'warehouse_verified' && (
+                                   <Button
+                                     size="sm"
+                                     variant="default"
+                                     onClick={() => handleOrderAction(order.id, 'warehouse_approved')}
+                                     disabled={loadingOrderId === order.id}
+                                     className="h-7 px-2 bg-green-500 hover:bg-green-600 text-xs"
+                                   >
+                                     <CheckCircle className="w-3.5 h-3.5 mr-1" />
+                                      {loadingOrderId === order.id ? t('verifying') : t('finalApproval')}
+                                   </Button>
+                                 )}
+                                 {order.currentStatus === 'warehouse_approved' && (
+                                   <Button
+                                     size="sm"
+                                     variant="default"
+                                     onClick={() => handleOrderAction(order.id, 'logistics_dispatched')}
+                                     disabled={loadingOrderId === order.id}
+                                     className="h-7 px-2 bg-blue-500 hover:bg-blue-600 text-xs"
+                                   >
+                                     <Truck className="w-3.5 h-3.5 mr-1" />
+                                      {loadingOrderId === order.id ? t('sending') : t('sendToLogistics')}
+                                   </Button>
+                                 )}
+                               </div>
+                             </td>
+                           </tr>
+                         ))}
+                       </tbody>
+                     </table>
+                   </div>
                 )}
               </CardContent>
             </Card>
