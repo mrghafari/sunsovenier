@@ -17,6 +17,142 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import PaymentMethodBadge from '@/components/PaymentMethodBadge';
 import { useToast } from '@/hooks/use-toast';
+import { useLanguage } from '@/contexts/LanguageContext';
+
+type PageLanguage = 'en' | 'fa' | 'ar' | 'tr';
+
+const pageTranslations: Record<string, Record<PageLanguage, string>> = {
+  warehouseManagement: { en: 'Warehouse management', fa: 'مدیریت انبار', ar: 'إدارة المستودع', tr: 'Depo yönetimi' },
+  warehouseDescription: { en: 'Manage orders, inventory, and warehouse operations', fa: 'مدیریت سفارشات، موجودی، و عملیات انبار', ar: 'إدارة الطلبات والمخزون وعمليات المستودع', tr: 'Siparişleri, envanteri ve depo işlemlerini yönetin' },
+  orders: { en: 'Orders', fa: 'سفارشات', ar: 'الطلبات', tr: 'Siparişler' },
+  inventory: { en: 'Warehouse inventory', fa: 'موجودی انبار', ar: 'مخزون المستودع', tr: 'Depo envanteri' },
+  searchOrders: { en: 'Search (at least 3 characters): order number, customer name, phone, email...', fa: 'جستجو (حداقل 3 کاراکتر): شماره سفارش، نام مشتری، تلفن، ایمیل...', ar: 'بحث (3 أحرف على الأقل): رقم الطلب، اسم العميل، الهاتف، البريد الإلكتروني...', tr: 'Ara (en az 3 karakter): sipariş numarası, müşteri adı, telefon, e-posta...' },
+  allStatuses: { en: 'All statuses', fa: 'همه وضعیت‌ها', ar: 'كل الحالات', tr: 'Tüm durumlar' },
+  withNotes: { en: 'With notes', fa: 'دارای یادداشت', ar: 'مع ملاحظات', tr: 'Notlu' },
+  withoutNotes: { en: 'Without notes', fa: 'بدون یادداشت', ar: 'بدون ملاحظات', tr: 'Notsuz' },
+  financialOrders: { en: 'Orders approved by finance', fa: 'سفارشات تایید شده توسط واحد مالی', ar: 'الطلبات المعتمدة من المالية', tr: 'Finans tarafından onaylanan siparişler' },
+  readyForWarehouse: { en: 'Orders ready for warehouse processing and logistics', fa: 'سفارشات آماده برای پردازش انبار و ارسال به بخش لجستیک', ar: 'الطلبات الجاهزة لمعالجة المستودع والإرسال إلى الخدمات اللوجستية', tr: 'Depo işleme ve lojistiğe gönderim için hazır siparişler' },
+  orderCount: { en: 'orders', fa: 'سفارش', ar: 'طلب', tr: 'sipariş' },
+  strongRefresh: { en: 'Force refresh', fa: 'به‌روزرسانی قوی', ar: 'تحديث إجباري', tr: 'Zorla yenile' },
+  loadingOrders: { en: 'Loading orders...', fa: 'در حال بارگیری سفارشات...', ar: 'جارٍ تحميل الطلبات...', tr: 'Siparişler yükleniyor...' },
+  noOrders: { en: 'No orders found', fa: 'هیچ سفارشی یافت نشد', ar: 'لم يتم العثور على طلبات', tr: 'Sipariş bulunamadı' },
+  noOrdersDescription: { en: 'There are currently no approved orders awaiting warehouse processing', fa: 'در حال حاضر هیچ سفارش تایید شده‌ای در انتظار پردازش انبار نیست', ar: 'لا توجد حالياً طلبات معتمدة بانتظار معالجة المستودع', tr: 'Şu anda depo işlemi bekleyen onaylı sipariş yok' },
+  orderNumber: { en: 'Order number', fa: 'شماره سفارش', ar: 'رقم الطلب', tr: 'Sipariş numarası' },
+  customerInfo: { en: 'Customer information', fa: 'اطلاعات مشتری', ar: 'معلومات العميل', tr: 'Müşteri bilgileri' },
+  shipmentWeight: { en: 'Shipment weight', fa: 'وزن محموله', ar: 'وزن الشحنة', tr: 'Gönderi ağırlığı' },
+  kilogram: { en: 'kg', fa: 'کیلوگرم', ar: 'كغ', tr: 'kg' },
+  totalAmount: { en: 'Total amount', fa: 'مبلغ کل', ar: 'المبلغ الإجمالي', tr: 'Toplam tutar' },
+  status: { en: 'Status', fa: 'وضعیت', ar: 'الحالة', tr: 'Durum' },
+  notes: { en: 'Notes', fa: 'یادداشت', ar: 'ملاحظات', tr: 'Notlar' },
+  actions: { en: 'Actions', fa: 'عملیات', ar: 'الإجراءات', tr: 'İşlemler' },
+  unknown: { en: 'Unknown', fa: 'نامشخص', ar: 'غير معروف', tr: 'Bilinmiyor' },
+  unknownPhone: { en: 'Unknown phone', fa: 'شماره نامشخص', ar: 'هاتف غير معروف', tr: 'Bilinmeyen telefon' },
+  unknownEmail: { en: 'Unknown email', fa: 'ایمیل نامشخص', ar: 'بريد إلكتروني غير معروف', tr: 'Bilinmeyen e-posta' },
+  calculating: { en: 'Calculating...', fa: 'محاسبه...', ar: 'جارٍ الحساب...', tr: 'Hesaplanıyor...' },
+  customerNote: { en: 'Customer note', fa: 'دارای یادداشت مشتری', ar: 'ملاحظة العميل', tr: 'Müşteri notu' },
+  details: { en: 'Details', fa: 'جزئیات', ar: 'التفاصيل', tr: 'Ayrıntılar' },
+  processing: { en: 'Processing...', fa: 'در حال پردازش...', ar: 'جارٍ المعالجة...', tr: 'İşleniyor...' },
+  startProcessing: { en: 'Start processing', fa: 'شروع پردازش', ar: 'بدء المعالجة', tr: 'İşlemeyi başlat' },
+  verifying: { en: 'Verifying...', fa: 'در حال تایید...', ar: 'جارٍ التحقق...', tr: 'Doğrulanıyor...' },
+  firstApproval: { en: 'First-stage approval', fa: 'تایید مرحله اول', ar: 'اعتماد المرحلة الأولى', tr: 'İlk aşama onayı' },
+  finalApproval: { en: 'Final approval', fa: 'تایید نهایی', ar: 'الاعتماد النهائي', tr: 'Son onay' },
+  sending: { en: 'Sending...', fa: 'در حال ارسال...', ar: 'جارٍ الإرسال...', tr: 'Gönderiliyor...' },
+  sendToLogistics: { en: 'Send to logistics', fa: 'ارسال به لجستیک', ar: 'إرسال إلى الخدمات اللوجستية', tr: 'Lojistiğe gönder' },
+  products: { en: 'Warehouse products', fa: 'محصولات انبار', ar: 'منتجات المستودع', tr: 'Depo ürünleri' },
+  searchProduct: { en: 'Search product...', fa: 'جستجو محصول...', ar: 'بحث عن منتج...', tr: 'Ürün ara...' },
+  refresh: { en: 'Refresh', fa: 'بروزرسانی', ar: 'تحديث', tr: 'Yenile' },
+  loading: { en: 'Loading...', fa: 'در حال بارگذاری...', ar: 'جارٍ التحميل...', tr: 'Yükleniyor...' },
+  productName: { en: 'Product name', fa: 'نام محصول', ar: 'اسم المنتج', tr: 'Ürün adı' },
+  vendor: { en: 'Vendor', fa: 'فروشنده', ar: 'المورّد', tr: 'Tedarikçi' },
+  productCode: { en: 'Product code', fa: 'کد کالا', ar: 'رمز المنتج', tr: 'Ürün kodu' },
+  stock: { en: 'Stock', fa: 'موجودی', ar: 'المخزون', tr: 'Stok' },
+  minimum: { en: 'Minimum', fa: 'حداقل', ar: 'الحد الأدنى', tr: 'Minimum' },
+  alertThreshold: { en: 'Alert threshold', fa: 'آستانه هشدار', ar: 'حد التنبيه', tr: 'Uyarı eşiği' },
+  noProducts: { en: 'No products found', fa: 'محصولی یافت نشد', ar: 'لم يتم العثور على منتجات', tr: 'Ürün bulunamadı' },
+  defaultVendor: { en: 'Momtaz Chem', fa: 'ممتاز کم', ar: 'ممتاز كيم', tr: 'Momtaz Chem' },
+  outOfStock: { en: 'Out of stock', fa: 'ناموجود', ar: 'غير متوفر', tr: 'Stokta yok' },
+  critical: { en: 'Critical', fa: 'بحرانی', ar: 'حرج', tr: 'Kritik' },
+  low: { en: 'Low', fa: 'کم', ar: 'منخفض', tr: 'Düşük' },
+  available: { en: 'Available', fa: 'موجود', ar: 'متوفر', tr: 'Mevcut' },
+  lowStockSettings: { en: 'Low-stock notification settings', fa: 'تنظیمات اعلان کمبود موجودی', ar: 'إعدادات إشعارات انخفاض المخزون', tr: 'Düşük stok bildirim ayarları' },
+  notificationInterval: { en: 'Notification interval (hours)', fa: 'فاصله زمانی ارسال اعلان (ساعت)', ar: 'الفاصل الزمني للإشعار (ساعات)', tr: 'Bildirim aralığı (saat)' },
+  notificationIntervalHelp: { en: 'Minimum interval between two notifications for a product (1 to 168 hours)', fa: 'حداقل فاصله بین دو اعلان برای یک محصول (1 تا 168 ساعت)', ar: 'الحد الأدنى للفاصل بين إشعارين لمنتج (من 1 إلى 168 ساعة)', tr: 'Bir ürün için iki bildirim arasındaki minimum süre (1-168 saat)' },
+  maxNotifications: { en: 'Maximum notifications', fa: 'حداکثر تعداد اعلان', ar: 'الحد الأقصى للإشعارات', tr: 'Maksimum bildirim' },
+  maxNotificationsHelp: { en: 'Maximum notifications for each product (until stock is corrected)', fa: 'حداکثر تعداد اعلان برای هر محصول (تا زمان اصلاح موجودی)', ar: 'الحد الأقصى للإشعارات لكل منتج (حتى تصحيح المخزون)', tr: 'Her ürün için maksimum bildirim (stok düzeltilene kadar)' },
+  recipients: { en: 'Notification recipients', fa: 'گیرندگان اعلان', ar: 'مستلمو الإشعارات', tr: 'Bildirim alıcıları' },
+  searchAdmins: { en: 'Search and select from admin users (at least 2 characters)', fa: 'جستجو و انتخاب از کاربران مدیریتی (حداقل 2 حرف)', ar: 'البحث والاختيار من مستخدمي الإدارة (حرفان على الأقل)', tr: 'Yönetici kullanıcıları arasında arayın ve seçin (en az 2 karakter)' },
+  usernameEmail: { en: 'Username or email...', fa: 'نام کاربری یا ایمیل...', ar: 'اسم المستخدم أو البريد الإلكتروني...', tr: 'Kullanıcı adı veya e-posta...' },
+  noUser: { en: 'No user found', fa: 'کاربری یافت نشد', ar: 'لم يتم العثور على مستخدم', tr: 'Kullanıcı bulunamadı' },
+  noRecipients: { en: 'No recipients defined', fa: 'هیچ گیرنده‌ای تعریف نشده است', ar: 'لم يتم تحديد مستلمين', tr: 'Tanımlı alıcı yok' },
+  selectRecipients: { en: 'Select recipients from the search above', fa: 'از بخش جستجوی بالا، گیرندگان را انتخاب کنید', ar: 'اختر المستلمين من البحث أعلاه', tr: 'Yukarıdaki aramadan alıcıları seçin' },
+  name: { en: 'Name', fa: 'نام', ar: 'الاسم', tr: 'Ad' },
+  email: { en: 'Email', fa: 'ایمیل', ar: 'البريد الإلكتروني', tr: 'E-posta' },
+  phone: { en: 'Phone', fa: 'تلفن', ar: 'الهاتف', tr: 'Telefon' },
+  sms: { en: 'SMS', fa: 'پیامک', ar: 'رسالة نصية', tr: 'SMS' },
+  whatsapp: { en: 'WhatsApp', fa: 'واتساپ', ar: 'واتساب', tr: 'WhatsApp' },
+  active: { en: 'Active', fa: 'فعال', ar: 'نشط', tr: 'Aktif' },
+  delete: { en: 'Delete', fa: 'حذف', ar: 'حذف', tr: 'Sil' },
+  saving: { en: 'Saving...', fa: 'در حال ذخیره...', ar: 'جارٍ الحفظ...', tr: 'Kaydediliyor...' },
+  saveSettings: { en: 'Save settings', fa: 'ذخیره تنظیمات', ar: 'حفظ الإعدادات', tr: 'Ayarları kaydet' },
+  orderDetails: { en: 'Order details', fa: 'جزئیات سفارش', ar: 'تفاصيل الطلب', tr: 'Sipariş ayrıntıları' },
+  mobile: { en: 'Mobile number', fa: 'شماره موبایل', ar: 'رقم الهاتف المحمول', tr: 'Cep telefonu' },
+  orderSummary: { en: 'Order summary', fa: 'خلاصه سفارش', ar: 'ملخص الطلب', tr: 'Sipariş özeti' },
+  itemCount: { en: 'Items', fa: 'تعداد آیتم‌ها', ar: 'العناصر', tr: 'Ürün sayısı' },
+  grossWeight: { en: 'Gross weight', fa: 'مجموع وزن ناخالص', ar: 'الوزن الإجمالي', tr: 'Brüt ağırlık' },
+  notCalculated: { en: 'Not calculated', fa: 'محاسبه نشده', ar: 'لم يُحسب', tr: 'Hesaplanmadı' },
+  orderDate: { en: 'Order date', fa: 'تاریخ سفارش', ar: 'تاريخ الطلب', tr: 'Sipariş tarihi' },
+  orderItems: { en: 'Order items', fa: 'آیتم‌های سفارش', ar: 'عناصر الطلب', tr: 'Sipariş ürünleri' },
+  quantity: { en: 'Quantity', fa: 'تعداد', ar: 'الكمية', tr: 'Miktar' },
+  unitPrice: { en: 'Unit price', fa: 'قیمت واحد', ar: 'سعر الوحدة', tr: 'Birim fiyat' },
+  totalPrice: { en: 'Total price', fa: 'قیمت کل', ar: 'السعر الإجمالي', tr: 'Toplam fiyat' },
+  orderStatus: { en: 'Order status', fa: 'وضعیت سفارش', ar: 'حالة الطلب', tr: 'Sipariş durumu' },
+  financialApproval: { en: 'Financial approval', fa: 'تایید مالی', ar: 'الاعتماد المالي', tr: 'Mali onay' },
+  warehouseProcessing: { en: 'Warehouse processing', fa: 'پردازش انبار', ar: 'معالجة المستودع', tr: 'Depo işleme' },
+  logisticsProcessing: { en: 'Logistics processing', fa: 'پردازش لجستیک', ar: 'معالجة الخدمات اللوجستية', tr: 'Lojistik işleme' },
+  approved: { en: 'Approved', fa: 'تایید شده', ar: 'تم الاعتماد', tr: 'Onaylandı' },
+  pending: { en: 'Pending', fa: 'در انتظار', ar: 'قيد الانتظار', tr: 'Beklemede' },
+  notesTitle: { en: 'Notes', fa: 'یادداشت‌ها', ar: 'الملاحظات', tr: 'Notlar' },
+  customer: { en: 'Customer', fa: 'مشتری', ar: 'العميل', tr: 'Müşteri' },
+  checkoutNote: { en: 'Checkout note', fa: 'یادداشت چک‌اوت', ar: 'ملاحظة الدفع', tr: 'Ödeme notu' },
+  finance: { en: 'Finance', fa: 'بخش مالی', ar: 'المالية', tr: 'Finans' },
+  paymentNote: { en: 'Payment approval note', fa: 'یادداشت تایید پرداخت', ar: 'ملاحظة اعتماد الدفع', tr: 'Ödeme onay notu' },
+  warehouseNotes: { en: 'Warehouse notes', fa: 'یادداشت انبار', ar: 'ملاحظات المستودع', tr: 'Depo notları' },
+  notePlaceholder: { en: 'Note for this order...', fa: 'یادداشت برای این سفارش...', ar: 'ملاحظة لهذا الطلب...', tr: 'Bu sipariş için not...' },
+  saveNote: { en: 'Save note', fa: 'ذخیره یادداشت', ar: 'حفظ الملاحظة', tr: 'Notu kaydet' },
+  cancel: { en: 'Cancel', fa: 'انصراف', ar: 'إلغاء', tr: 'İptal' },
+  printDetails: { en: 'Print details', fa: 'پرینت جزئیات', ar: 'طباعة التفاصيل', tr: 'Ayrıntıları yazdır' },
+  loadOrderDetails: { en: 'Loading order details...', fa: 'در حال بارگیری جزئیات سفارش...', ar: 'جارٍ تحميل تفاصيل الطلب...', tr: 'Sipariş ayrıntıları yükleniyor...' },
+  loadOrderError: { en: 'Error loading order details', fa: 'خطا در بارگیری جزئیات سفارش', ar: 'خطأ في تحميل تفاصيل الطلب', tr: 'Sipariş ayrıntıları yüklenirken hata oluştu' },
+  printDate: { en: 'Print date', fa: 'تاریخ چاپ', ar: 'تاريخ الطباعة', tr: 'Yazdırma tarihi' },
+  printDateTime: { en: 'Print date and time', fa: 'تاریخ و زمان چاپ', ar: 'تاريخ ووقت الطباعة', tr: 'Yazdırma tarihi ve saati' },
+  printFooter: { en: 'This document was generated by the Momtaz Chemi warehouse management system', fa: 'این سند توسط سیستم مدیریت انبار ممتاز شیمی تولید شده است', ar: 'تم إنشاء هذا المستند بواسطة نظام إدارة مستودع ممتاز كيمي', tr: 'Bu belge Momtaz Chemi depo yönetim sistemi tarafından oluşturulmuştur' },
+  companyName: { en: 'Momtaz Chemi Company', fa: 'شرکت ممتاز شیمی', ar: 'شركة ممتاز شيمي', tr: 'Momtaz Chemi Şirketi' },
+  error: { en: 'Error', fa: 'خطا', ar: 'خطأ', tr: 'Hata' },
+  recipientExists: { en: 'This user has already been added to the recipient list', fa: 'این کاربر قبلاً به لیست گیرندگان اضافه شده است', ar: 'تمت إضافة هذا المستخدم إلى قائمة المستلمين مسبقاً', tr: 'Bu kullanıcı zaten alıcı listesine eklendi' },
+  recipientAdded: { en: 'Recipient added', fa: 'گیرنده اضافه شد', ar: 'تمت إضافة المستلم', tr: 'Alıcı eklendi' },
+  recipientAddedDescription: { en: 'was added to the recipient list', fa: 'به لیست گیرندگان اضافه شد', ar: 'أُضيف إلى قائمة المستلمين', tr: 'alıcı listesine eklendi' },
+  settingsSaved: { en: 'Settings saved', fa: 'تنظیمات ذخیره شد', ar: 'تم حفظ الإعدادات', tr: 'Ayarlar kaydedildi' },
+  settingsSavedDescription: { en: 'Inventory notification settings saved successfully', fa: 'تنظیمات اعلان موجودی با موفقیت ذخیره شد', ar: 'تم حفظ إعدادات إشعارات المخزون بنجاح', tr: 'Stok bildirim ayarları başarıyla kaydedildi' },
+  saveError: { en: 'Save error', fa: 'خطا در ذخیره', ar: 'خطأ في الحفظ', tr: 'Kaydetme hatası' },
+  settingsSaveError: { en: 'An error occurred while saving settings', fa: 'خطایی در ذخیره تنظیمات رخ داد', ar: 'حدث خطأ أثناء حفظ الإعدادات', tr: 'Ayarlar kaydedilirken hata oluştu' },
+  warehousePending: { en: 'Warehouse pending', fa: 'در انتظار انبار', ar: 'بانتظار المستودع', tr: 'Depo bekliyor' },
+  warehouseNotified: { en: 'Warehouse notified', fa: 'اطلاع رسانی انبار', ar: 'تم إخطار المستودع', tr: 'Depo bilgilendirildi' },
+  rejected: { en: 'Rejected', fa: 'رد شده', ar: 'مرفوض', tr: 'Reddedildi' },
+  enterNote: { en: 'Please enter a note', fa: 'لطفاً یادداشت را وارد کنید', ar: 'يرجى إدخال ملاحظة', tr: 'Lütfen bir not girin' },
+  loadOrderErrorDescription: { en: 'An error occurred while loading order details.', fa: 'خطایی در بارگیری جزئیات سفارش رخ داد.', ar: 'حدث خطأ أثناء تحميل تفاصيل الطلب.', tr: 'Sipariş ayrıntıları yüklenirken bir hata oluştu.' },
+  refreshed: { en: 'Refreshed', fa: 'به‌روزرسانی شد', ar: 'تم التحديث', tr: 'Yenilendi' },
+  ordersRefreshed: { en: 'Orders were retrieved from the server', fa: 'لیست سفارشات از سرور بازیابی شد', ar: 'تم استرجاع قائمة الطلبات من الخادم', tr: 'Sipariş listesi sunucudan alındı' },
+  orderUpdated: { en: 'Order status updated', fa: 'وضعیت سفارش به‌روزرسانی شد', ar: 'تم تحديث حالة الطلب', tr: 'Sipariş durumu güncellendi' },
+  orderUpdatedDescription: { en: 'The order was successfully set to', fa: 'سفارش با موفقیت تنظیم شد:', ar: 'تم تعيين الطلب بنجاح إلى', tr: 'Sipariş başarıyla şu duruma getirildi:' },
+  updated: { en: 'updated', fa: 'به‌روزرسانی شده', ar: 'محدث', tr: 'güncellendi' },
+  updateError: { en: 'Update error', fa: 'خطا در به‌روزرسانی', ar: 'خطأ في التحديث', tr: 'Güncelleme hatası' },
+  updateErrorDescription: { en: 'An error occurred while updating order status.', fa: 'خطایی در به‌روزرسانی وضعیت سفارش رخ داد.', ar: 'حدث خطأ أثناء تحديث حالة الطلب.', tr: 'Sipariş durumu güncellenirken bir hata oluştu.' },
+  noteSaved: { en: 'Note saved', fa: 'یادداشت ذخیره شد', ar: 'تم حفظ الملاحظة', tr: 'Not kaydedildi' },
+  noteSavedDescription: { en: 'Warehouse note saved successfully', fa: 'یادداشت انبار با موفقیت ذخیره شد', ar: 'تم حفظ ملاحظة المستودع بنجاح', tr: 'Depo notu başarıyla kaydedildi' },
+  noteSaveError: { en: 'An error occurred while saving the note', fa: 'خطایی در ذخیره یادداشت رخ داد', ar: 'حدث خطأ أثناء حفظ الملاحظة', tr: 'Not kaydedilirken bir hata oluştu' },
+};
+
+const translatePage = (language: PageLanguage, key: string) => pageTranslations[key]?.[language] || pageTranslations[key]?.en || key;
 
 interface InventoryProduct {
   id: number;
@@ -108,6 +244,23 @@ interface Order {
 }
 
 const WarehouseManagementFixed: React.FC = () => {
+  const { language: contextLanguage, direction } = useLanguage();
+  const language = (['en', 'fa', 'ar', 'tr'].includes(contextLanguage) ? contextLanguage : 'en') as PageLanguage;
+  const t = (key: string) => translatePage(language, key);
+  const locale = language === 'fa' ? 'fa-IR-u-ca-persian' : language === 'ar' ? 'ar-IQ-u-ca-gregory' : language === 'tr' ? 'tr-TR-u-ca-gregory' : 'en-IQ-u-ca-gregory';
+  const formatNumber = (value: number, maximumFractionDigits = 0) => new Intl.NumberFormat(locale, { maximumFractionDigits }).format(value);
+  const formatDate = (value: string | Date, withTime = false) => {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return t('unknown');
+    return new Intl.DateTimeFormat(locale, {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      ...(withTime ? { hour: '2-digit', minute: '2-digit' } : {})
+    }).format(date);
+  };
+  const formatCurrencyValue = (amount: number) => new Intl.NumberFormat(locale, {
+    style: 'currency', currency: 'IQD', minimumFractionDigits: 0, maximumFractionDigits: 0
+  }).format(amount);
+
   // All state declarations at the top
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
@@ -135,23 +288,16 @@ const WarehouseManagementFixed: React.FC = () => {
   const handlePrintOrder = () => {
     if (!orderDetails) return;
     
-    const formatCurrencyForPrint = (amount: number) => {
-      return new Intl.NumberFormat('fa-IR', {
-        style: 'currency',
-        currency: 'IQD',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(amount).replace('IQD', 'دینار عراقی');
-    };
+    const formatCurrencyForPrint = (amount: number) => formatCurrencyValue(amount);
 
     const printContent = `
       <!DOCTYPE html>
-      <html dir="rtl" lang="fa">
+      <html dir="${direction}" lang="${language}">
       <head>
         <meta charset="UTF-8">
-        <title>جزئیات سفارش ${orderDetails.orderNumber || `#${selectedOrder?.customerOrderId}`}</title>
+        <title>${t('orderDetails')} ${orderDetails.orderNumber || `#${selectedOrder?.customerOrderId}`}</title>
         <style>
-          body { font-family: 'Tahoma', sans-serif; margin: 20px; direction: rtl; }
+          body { font-family: 'Tahoma', sans-serif; margin: 20px; direction: ${direction}; }
           .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 20px; }
           .company-logo { max-width: 150px; height: auto; margin-bottom: 10px; }
           .company-name { font-size: 24px; font-weight: bold; color: #1a365d; }
@@ -163,7 +309,7 @@ const WarehouseManagementFixed: React.FC = () => {
           .info-label { font-weight: bold; color: #666; font-size: 12px; }
           .info-value { margin-top: 5px; font-size: 14px; }
           .items-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-          .items-table th, .items-table td { border: 1px solid #ddd; padding: 8px; text-align: right; }
+          .items-table th, .items-table td { border: 1px solid #ddd; padding: 8px; text-align: start; }
           .items-table th { background-color: #f5f5f5; font-weight: bold; }
           .summary-box { background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 15px; }
           .status-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 10px; }
@@ -229,64 +375,64 @@ const WarehouseManagementFixed: React.FC = () => {
       </head>
       <body>
         <div class="header">
-          <img src="/uploads/Logo_1753245273579.jpeg" alt="لوگوی شرکت" class="company-logo" />
-          <div class="company-name">شرکت ممتاز شیمی</div>
-          <div class="order-title">جزئیات سفارش ${orderDetails.orderNumber || `#${selectedOrder?.customerOrderId}`}</div>
-          <div style="font-size: 12px; margin-top: 10px;">تاریخ چاپ: ${new Date().toLocaleDateString('en-GB')}</div>
+          <img src="/uploads/Logo_1753245273579.jpeg" alt="${t('warehouseManagement')}" class="company-logo" />
+          <div class="company-name">${t('companyName')}</div>
+          <div class="order-title">${t('orderDetails')} ${orderDetails.orderNumber || `#${selectedOrder?.customerOrderId}`}</div>
+          <div style="font-size: 12px; margin-top: 10px;">${t('printDate') || 'Print date'}: ${formatDate(new Date())}</div>
         </div>
 
         <div class="section">
-          <div class="section-title">اطلاعات مشتری</div>
+          <div class="section-title">${t('customerInfo')}</div>
           <div class="info-grid">
             <div class="info-item">
-              <div class="info-label">نام مشتری</div>
+              <div class="info-label">${t('name')}</div>
               <div class="info-value">${orderDetails.customer?.firstName || ''} ${orderDetails.customer?.lastName || ''}</div>
             </div>
             <div class="info-item">
-              <div class="info-label">شماره تماس</div>
-              <div class="info-value">${orderDetails.customer?.phone || 'نامشخص'}</div>
+              <div class="info-label">${t('phone')}</div>
+              <div class="info-value">${orderDetails.customer?.phone || t('unknown')}</div>
             </div>
             <div class="info-item">
-              <div class="info-label">ایمیل</div>
-              <div class="info-value">${orderDetails.customer?.email || 'نامشخص'}</div>
+              <div class="info-label">${t('email')}</div>
+              <div class="info-value">${orderDetails.customer?.email || t('unknown')}</div>
             </div>
             <div class="info-item">
-              <div class="info-label">مبلغ کل</div>
+              <div class="info-label">${t('totalAmount')}</div>
               <div class="info-value" style="color: #059669; font-weight: bold;">${formatCurrencyForPrint(parseFloat(orderDetails.totalAmount) || 0)}</div>
             </div>
           </div>
         </div>
 
         <div class="section">
-          <div class="section-title">خلاصه سفارش</div>
+          <div class="section-title">${t('orderSummary')}</div>
           <div class="summary-box">
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; text-align: center;">
               <div>
-                <div class="info-label">تعداد آیتم‌ها</div>
-                <div style="font-size: 18px; font-weight: bold; color: #1d4ed8;">${orderDetails.totalItems}</div>
+                <div class="info-label">${t('itemCount')}</div>
+                <div style="font-size: 18px; font-weight: bold; color: #1d4ed8;">${formatNumber(orderDetails.totalItems || 0)}</div>
               </div>
               <div>
-                <div class="info-label">مجموع وزن ناخالص</div>
-                <div style="font-size: 18px; font-weight: bold; color: #1d4ed8;">${orderDetails.totalWeight ? `${parseFloat(orderDetails.totalWeight).toFixed(1)} kg` : 'محاسبه نشده'}</div>
+                <div class="info-label">${t('grossWeight')}</div>
+                <div style="font-size: 18px; font-weight: bold; color: #1d4ed8;">${orderDetails.totalWeight ? `${formatNumber(parseFloat(orderDetails.totalWeight), 1)} ${t('kilogram')}` : t('notCalculated')}</div>
               </div>
               <div>
-                <div class="info-label">تاریخ سفارش</div>
-                <div style="font-size: 14px; font-weight: bold;">${new Date(orderDetails.orderDate).toLocaleDateString('en-GB')}</div>
+                <div class="info-label">${t('orderDate')}</div>
+                <div style="font-size: 14px; font-weight: bold;">${formatDate(orderDetails.orderDate)}</div>
               </div>
             </div>
           </div>
         </div>
 
         <div class="section">
-          <div class="section-title">آیتم‌های سفارش</div>
+          <div class="section-title">${t('orderItems')}</div>
           <table class="items-table">
             <thead>
               <tr>
-                <th style="width: 35%">نام محصول</th>
-                <th style="width: 20%">کد محصول</th>
-                <th style="width: 15%">تعداد</th>
-                <th style="width: 15%">قیمت واحد</th>
-                <th style="width: 15%">قیمت کل</th>
+                <th style="width: 35%">${t('productName')}</th>
+                <th style="width: 20%">${t('productCode')}</th>
+                <th style="width: 15%">${t('quantity')}</th>
+                <th style="width: 15%">${t('unitPrice')}</th>
+                <th style="width: 15%">${t('totalPrice')}</th>
               </tr>
             </thead>
             <tbody>
@@ -304,26 +450,26 @@ const WarehouseManagementFixed: React.FC = () => {
         </div>
 
         <div class="section">
-          <div class="section-title">وضعیت سفارش</div>
+          <div class="section-title">${t('orderStatus')}</div>
           <div class="status-grid">
             <div class="status-item ${orderDetails.financialApproved ? 'status-approved' : 'status-pending'}">
-              <div style="font-weight: bold;">تایید مالی</div>
-              <div>${orderDetails.financialApproved ? '✅ تایید شده' : '⏳ در انتظار'}</div>
+              <div style="font-weight: bold;">${t('financialApproval')}</div>
+              <div>${orderDetails.financialApproved ? `✅ ${t('approved')}` : `⏳ ${t('pending')}`}</div>
             </div>
             <div class="status-item ${orderDetails.warehouseProcessed ? 'status-approved' : 'status-pending'}">
-              <div style="font-weight: bold;">پردازش انبار</div>
-              <div>${orderDetails.warehouseProcessed ? '✅ تایید شده' : '⏳ در انتظار'}</div>
+              <div style="font-weight: bold;">${t('warehouseProcessing')}</div>
+              <div>${orderDetails.warehouseProcessed ? `✅ ${t('approved')}` : `⏳ ${t('pending')}`}</div>
             </div>
             <div class="status-item ${orderDetails.logisticsProcessed ? 'status-approved' : 'status-pending'}">
-              <div style="font-weight: bold;">پردازش لجستیک</div>
-              <div>${orderDetails.logisticsProcessed ? '✅ تایید شده' : '⏳ در انتظار'}</div>
+              <div style="font-weight: bold;">${t('logisticsProcessing')}</div>
+              <div>${orderDetails.logisticsProcessed ? `✅ ${t('approved')}` : `⏳ ${t('pending')}`}</div>
             </div>
           </div>
         </div>
 
         ${orderDetails.warehouseNotes ? `
           <div class="section">
-            <div class="section-title">یادداشت انبار</div>
+            <div class="section-title">${t('warehouseNotes')}</div>
             <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #dee2e6;">
               ${orderDetails.warehouseNotes}
             </div>
@@ -331,14 +477,8 @@ const WarehouseManagementFixed: React.FC = () => {
         ` : ''}
 
         <div class="footer">
-          <p>این سند توسط سیستم مدیریت انبار ممتاز شیمی تولید شده است</p>
-          <p>تاریخ و زمان چاپ: ${new Date().toLocaleString('en-GB', { 
-            year: 'numeric', 
-            month: '2-digit', 
-            day: '2-digit', 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          })}</p>
+          <p>${t('printFooter')}</p>
+          <p>${t('printDateTime')}: ${formatDate(new Date(), true)}</p>
         </div>
       </body>
       </html>
@@ -416,8 +556,8 @@ const WarehouseManagementFixed: React.FC = () => {
     // Then refetch
     await refetchOrders();
     console.log({
-      title: "🔄 به‌روزرسانی شد",
-      description: "لیست سفارشات از سرور بازیابی شد",
+      title: `🔄 ${t('refreshed')}`,
+      description: t('ordersRefreshed'),
     });
   };
 
@@ -478,10 +618,10 @@ const WarehouseManagementFixed: React.FC = () => {
   // Get stock status
   const getStockStatus = (product: InventoryProduct) => {
     const { stockQuantity, lowStockThreshold, minStockLevel } = product;
-    if (stockQuantity <= 0) return { label: "ناموجود", color: "bg-red-500 text-white" };
-    if (stockQuantity <= (lowStockThreshold || 5)) return { label: "بحرانی", color: "bg-red-400 text-white" };
-    if (stockQuantity <= (minStockLevel || 10)) return { label: "کم", color: "bg-yellow-500 text-white" };
-    return { label: "موجود", color: "bg-green-500 text-white" };
+    if (stockQuantity <= 0) return { label: t('outOfStock'), color: "bg-red-500 text-white" };
+    if (stockQuantity <= (lowStockThreshold || 5)) return { label: t('critical'), color: "bg-red-400 text-white" };
+    if (stockQuantity <= (minStockLevel || 10)) return { label: t('low'), color: "bg-yellow-500 text-white" };
+    return { label: t('available'), color: "bg-green-500 text-white" };
   };
 
   // Add recipient from Admin Users
@@ -489,8 +629,8 @@ const WarehouseManagementFixed: React.FC = () => {
     // Check if user already exists in recipients
     if (inventorySettings.recipients.some(r => r.email === user.email)) {
       toast({
-        title: "خطا",
-        description: "این کاربر قبلاً به لیست گیرندگان اضافه شده است",
+        title: t('error'),
+        description: t('recipientExists'),
         variant: "destructive"
       });
       return;
@@ -513,8 +653,8 @@ const WarehouseManagementFixed: React.FC = () => {
     }));
     setAdminSearchTerm("");
     toast({
-      title: "گیرنده اضافه شد",
-      description: `${user.fullName} به لیست گیرندگان اضافه شد`,
+      title: t('recipientAdded'),
+      description: `${user.fullName} ${t('recipientAddedDescription')}`,
     });
   };
 
@@ -547,16 +687,16 @@ const WarehouseManagementFixed: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['/api/order-management/warehouse'] });
       refetchOrders();
       console.log({
-        title: "وضعیت سفارش به‌روزرسانی شد",
-        description: `سفارش با موفقیت ${data.data?.status === 'warehouse_processing' ? 'در حال پردازش' : data.data?.status === 'warehouse_approved' ? 'تایید شده - ارسال به لجستیک' : 'به‌روزرسانی شده'} تنظیم شد.`,
+        title: t('orderUpdated'),
+        description: `${t('orderUpdatedDescription')} ${data.data?.status === 'warehouse_processing' ? t('processing') : data.data?.status === 'warehouse_approved' ? t('sendToLogistics') : t('updated')}.`,
       });
       setShowOrderDetails(false);
       setLoadingOrderId(null); // Clear loading state
     },
     onError: (error: any) => {
       console.log({
-        title: "خطا در به‌روزرسانی",
-        description: error.message || "خطایی در به‌روزرسانی وضعیت سفارش رخ داد.",
+        title: t('updateError'),
+        description: error.message || t('updateErrorDescription'),
         variant: "destructive",
       });
       setLoadingOrderId(null); // Clear loading state on error
@@ -574,14 +714,14 @@ const WarehouseManagementFixed: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/order-management/warehouse'] });
       console.log({
-        title: "✅ یادداشت ذخیره شد",
-        description: "یادداشت انبار با موفقیت ذخیره شد",
+        title: `✅ ${t('noteSaved')}`,
+        description: t('noteSavedDescription'),
       });
     },
     onError: (error: any) => {
       console.log({
-        title: "خطا در ذخیره",
-        description: error.message || "خطایی در ذخیره یادداشت رخ داد",
+        title: t('saveError'),
+        description: error.message || t('noteSaveError'),
         variant: "destructive",
       });
     },
@@ -598,14 +738,14 @@ const WarehouseManagementFixed: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/warehouse/inventory-notification-settings'] });
       toast({
-        title: "تنظیمات ذخیره شد",
-        description: "تنظیمات اعلان موجودی با موفقیت ذخیره شد",
+        title: t('settingsSaved'),
+        description: t('settingsSavedDescription'),
       });
     },
     onError: (error: any) => {
       toast({
-        title: "خطا در ذخیره",
-        description: error.message || "خطایی در ذخیره تنظیمات رخ داد",
+        title: t('saveError'),
+        description: error.message || t('settingsSaveError'),
         variant: "destructive",
       });
     },
@@ -708,12 +848,7 @@ const WarehouseManagementFixed: React.FC = () => {
 
   // Helper functions
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('fa-IR', {
-      style: 'currency',
-      currency: 'IQD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
+    return formatCurrencyValue(amount);
   };
 
   const getStatusBadge = (status: string) => {
@@ -728,13 +863,13 @@ const WarehouseManagementFixed: React.FC = () => {
     };
     
     const statusLabels: Record<string, string> = {
-      'warehouse_pending': 'در انتظار انبار',
-      'financial_approved': 'تایید مالی',
-      'warehouse_notified': 'اطلاع رسانی انبار',
-      'warehouse_processing': 'در حال پردازش',
-      'warehouse_verified': 'تایید مرحله اول',
-      'warehouse_approved': 'تایید نهایی',
-      'warehouse_rejected': 'رد شده'
+      'warehouse_pending': t('warehousePending'),
+      'financial_approved': t('financialApproval'),
+      'warehouse_notified': t('warehouseNotified'),
+      'warehouse_processing': t('processing'),
+      'warehouse_verified': t('firstApproval'),
+      'warehouse_approved': t('finalApproval'),
+      'warehouse_rejected': t('rejected')
     };
     
     return (
@@ -761,8 +896,8 @@ const WarehouseManagementFixed: React.FC = () => {
     if (!selectedOrder || !warehouseNotes.trim()) {
       console.log("❌ [WAREHOUSE NOTES] Validation failed - missing order or notes");
       console.log({
-        title: "خطا",
-        description: "لطفاً یادداشت را وارد کنید",
+        title: t('error'),
+        description: t('enterNote'),
         variant: "destructive",
       });
       return;
@@ -800,8 +935,8 @@ const WarehouseManagementFixed: React.FC = () => {
     } catch (error) {
       console.error('Error fetching order details:', error);
       console.log({
-        title: "خطا در بارگیری جزئیات سفارش",
-        description: "خطایی در بارگیری جزئیات سفارش رخ داد.",
+        title: t('loadOrderError'),
+        description: t('loadOrderErrorDescription'),
         variant: "destructive",
       });
     } finally {
@@ -810,18 +945,18 @@ const WarehouseManagementFixed: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-6" dir={direction} lang={language}>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
             <Package className="w-8 h-8 text-blue-600" />
             <h1 className="text-3xl font-bold text-gray-900">
-              مدیریت انبار
+              {t('warehouseManagement')}
             </h1>
           </div>
           <p className="text-gray-600">
-            مدیریت سفارشات، موجودی، و عملیات انبار
+             {t('warehouseDescription')}
           </p>
         </div>
 
@@ -830,11 +965,11 @@ const WarehouseManagementFixed: React.FC = () => {
           <TabsList className="grid w-full grid-cols-2 mb-6">
             <TabsTrigger value="orders" className="flex items-center gap-2">
               <Package className="w-4 h-4" />
-              سفارشات
+              {t('orders')}
             </TabsTrigger>
             <TabsTrigger value="inventory" className="flex items-center gap-2">
               <Package2 className="w-4 h-4" />
-              موجودی انبار
+              {t('inventory')}
             </TabsTrigger>
           </TabsList>
 
@@ -844,7 +979,7 @@ const WarehouseManagementFixed: React.FC = () => {
               <div className="relative">
                 <Search className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="جستجو (حداقل 3 کاراکتر): شماره سفارش، نام مشتری، تلفن، ایمیل..."
+                  placeholder={t('searchOrders')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pr-10"
@@ -855,15 +990,15 @@ const WarehouseManagementFixed: React.FC = () => {
                 onChange={(e) => setSelectedStatus(e.target.value)}
                 className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="all">همه وضعیت‌ها</option>
-                <option value="warehouse_pending">در انتظار انبار</option>
-                <option value="financial_approved">تایید مالی</option>
-                <option value="warehouse_notified">اطلاع رسانی انبار</option>
-                <option value="warehouse_processing">در حال پردازش</option>
-                <option value="warehouse_approved">ارسال شده به لجستیک</option>
-                <option value="warehouse_rejected">رد شده</option>
-                <option value="with_notes">دارای یادداشت</option>
-                <option value="without_notes">بدون یادداشت</option>
+                <option value="all">{t('allStatuses')}</option>
+                <option value="warehouse_pending">{t('warehousePending')}</option>
+                <option value="financial_approved">{t('financialApproval')}</option>
+                <option value="warehouse_notified">{t('warehouseNotified')}</option>
+                <option value="warehouse_processing">{t('processing')}</option>
+                <option value="warehouse_approved">{t('sendToLogistics')}</option>
+                <option value="warehouse_rejected">{t('rejected')}</option>
+                <option value="with_notes">{t('withNotes')}</option>
+                <option value="without_notes">{t('withoutNotes')}</option>
               </select>
             </div>
 
@@ -876,15 +1011,15 @@ const WarehouseManagementFixed: React.FC = () => {
                       <div className="p-2 bg-blue-100 rounded-lg">
                         <Package className="w-6 h-6 text-blue-600" />
                       </div>
-                      سفارشات تایید شده توسط واحد مالی
+                      {t('financialOrders')}
                     </CardTitle>
                     <p className="text-sm text-gray-600 mt-2 mr-11">
-                      سفارشات آماده برای پردازش انبار و ارسال به بخش لجستیک
+                       {t('readyForWarehouse')}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant="secondary" className="text-sm">
-                      {filteredOrders.length} سفارش
+                       {formatNumber(filteredOrders.length)} {t('orderCount')}
                     </Badge>
                     <Button 
                       variant="outline" 
@@ -893,7 +1028,7 @@ const WarehouseManagementFixed: React.FC = () => {
                       className="flex items-center gap-1 bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
                     >
                       <RefreshCw className="w-4 h-4" />
-                      به‌روزرسانی قوی
+                      {t('strongRefresh')}
                     </Button>
                   </div>
                 </div>
@@ -902,28 +1037,28 @@ const WarehouseManagementFixed: React.FC = () => {
                 {ordersLoading ? (
                   <div className="text-center py-12">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p className="text-gray-500">در حال بارگیری سفارشات...</p>
+                    <p className="text-gray-500">{t('loadingOrders')}</p>
                   </div>
                 ) : filteredOrders.length === 0 ? (
                   <div className="text-center py-12 text-gray-500">
                     <div className="p-4 bg-gray-100 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
                       <Package className="w-10 h-10 text-gray-400" />
                     </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">هیچ سفارشی یافت نشد</h3>
-                    <p>در حال حاضر هیچ سفارش تایید شده‌ای در انتظار پردازش انبار نیست</p>
+                     <h3 className="text-lg font-medium text-gray-900 mb-2">{t('noOrders')}</h3>
+                     <p>{t('noOrdersDescription')}</p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
                       <thead>
                         <tr className="bg-gray-50 border-b border-gray-200">
-                          <th className="text-right p-4 font-semibold text-gray-700" style={{ width: '10%' }}>شماره سفارش</th>
-                          <th className="text-right p-4 font-semibold text-gray-700" style={{ width: '20%' }}>اطلاعات مشتری</th>
-                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '10%' }}>وزن محموله</th>
-                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '12%' }}>مبلغ کل</th>
-                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '12%' }}>وضعیت</th>
-                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '14%' }}>یادداشت</th>
-                          <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '22%' }}>عملیات</th>
+                           <th className="text-right p-4 font-semibold text-gray-700" style={{ width: '10%' }}>{t('orderNumber')}</th>
+                           <th className="text-right p-4 font-semibold text-gray-700" style={{ width: '20%' }}>{t('customerInfo')}</th>
+                           <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '10%' }}>{t('shipmentWeight')}</th>
+                           <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '12%' }}>{t('totalAmount')}</th>
+                           <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '12%' }}>{t('status')}</th>
+                           <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '14%' }}>{t('notes')}</th>
+                           <th className="text-center p-4 font-semibold text-gray-700" style={{ width: '22%' }}>{t('actions')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -939,13 +1074,13 @@ const WarehouseManagementFixed: React.FC = () => {
                                     ? `${order.customer.firstName} ${order.customer.lastName}` 
                                     : order.customerFirstName && order.customerLastName 
                                       ? `${order.customerFirstName} ${order.customerLastName}`
-                                      : order.customerName || 'نامشخص'
+                                       : order.customerName || t('unknown')
                                 }</div>
                                 <div className="text-sm text-gray-600 truncate">
-                                  📱 {order.customer?.phone || order.customerPhone || 'شماره نامشخص'}
+                                   📱 {order.customer?.phone || order.customerPhone || t('unknownPhone')}
                                 </div>
                                 <div className="text-xs text-gray-500 truncate">
-                                  📧 {order.customer?.email || order.customerEmail || 'ایمیل نامشخص'}
+                                   📧 {order.customer?.email || order.customerEmail || t('unknownEmail')}
                                 </div>
                                 <PaymentMethodBadge 
                                   paymentMethod={order.paymentMethod}
@@ -957,7 +1092,7 @@ const WarehouseManagementFixed: React.FC = () => {
                             <td className="p-4 text-center" style={{ width: '10%' }}>
                               <div className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1">
                                 <Weight className="w-3 h-3" />
-                                {order.totalWeight ? `${parseFloat(order.totalWeight).toFixed(1)} kg` : 'محاسبه...'}
+                                 {order.totalWeight ? `${formatNumber(parseFloat(order.totalWeight), 1)} ${t('kilogram')}` : t('calculating')}
                               </div>
                             </td>
                             <td className="p-4 text-center" style={{ width: '12%' }}>
@@ -970,7 +1105,7 @@ const WarehouseManagementFixed: React.FC = () => {
                               {(order as any).customerNotes && (order as any).customerNotes.trim().length > 0 ? (
                                 <div className="bg-amber-100 text-amber-700 px-2 py-1 rounded text-xs font-medium inline-flex items-center gap-1">
                                   <Edit3 className="w-3 h-3" />
-                                  دارای یادداشت مشتری
+                                   {t('customerNote')}
                                 </div>
                               ) : (
                                 <span className="text-gray-400 text-xs">—</span>
@@ -991,7 +1126,7 @@ const WarehouseManagementFixed: React.FC = () => {
                                   className="text-xs"
                                 >
                                   <Eye className="w-4 h-4 mr-1" />
-                                  جزئیات
+                                   {t('details')}
                                 </Button>
                                 {(order.currentStatus === 'financial_approved' || order.currentStatus === 'warehouse_pending') && (
                                   <Button
@@ -1002,7 +1137,7 @@ const WarehouseManagementFixed: React.FC = () => {
                                     className="bg-orange-500 hover:bg-orange-600 text-xs"
                                   >
                                     <Package className="w-4 h-4 mr-1" />
-                                    {loadingOrderId === order.id ? 'در حال پردازش...' : 'شروع پردازش'}
+                                     {loadingOrderId === order.id ? t('processing') : t('startProcessing')}
                                   </Button>
                                 )}
                                 {order.currentStatus === 'warehouse_processing' && (
@@ -1014,7 +1149,7 @@ const WarehouseManagementFixed: React.FC = () => {
                                     className="bg-blue-500 hover:bg-blue-600 text-xs"
                                   >
                                     <CheckCircle className="w-4 h-4 mr-1" />
-                                    {loadingOrderId === order.id ? 'در حال تایید...' : 'تایید مرحله اول'}
+                                     {loadingOrderId === order.id ? t('verifying') : t('firstApproval')}
                                   </Button>
                                 )}
                                 {order.currentStatus === 'warehouse_verified' && (
@@ -1026,7 +1161,7 @@ const WarehouseManagementFixed: React.FC = () => {
                                     className="bg-green-500 hover:bg-green-600 text-xs"
                                   >
                                     <CheckCircle className="w-4 h-4 mr-1" />
-                                    {loadingOrderId === order.id ? 'در حال تایید...' : 'تایید نهایی'}
+                                     {loadingOrderId === order.id ? t('verifying') : t('finalApproval')}
                                   </Button>
                                 )}
                                 {order.currentStatus === 'warehouse_approved' && (
@@ -1038,7 +1173,7 @@ const WarehouseManagementFixed: React.FC = () => {
                                     className="bg-blue-500 hover:bg-blue-600 text-xs"
                                   >
                                     <Truck className="w-4 h-4 mr-1" />
-                                    {loadingOrderId === order.id ? 'در حال ارسال...' : 'ارسال به لجستیک'}
+                                     {loadingOrderId === order.id ? t('sending') : t('sendToLogistics')}
                                   </Button>
                                 )}
                               </div>
@@ -1061,13 +1196,13 @@ const WarehouseManagementFixed: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
                     <Package2 className="w-5 h-5" />
-                    محصولات انبار
+                     {t('products')}
                   </CardTitle>
                   <div className="flex items-center gap-4">
                     <div className="relative">
                       <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                       <Input
-                        placeholder="جستجو محصول..."
+                         placeholder={t('searchProduct')}
                         value={inventorySearchTerm}
                         onChange={(e) => setInventorySearchTerm(e.target.value)}
                         className="pr-10 w-64"
@@ -1075,32 +1210,32 @@ const WarehouseManagementFixed: React.FC = () => {
                     </div>
                     <Button variant="outline" onClick={() => refetchInventoryProducts()}>
                       <RefreshCw className="w-4 h-4 ml-2" />
-                      بروزرسانی
+                       {t('refresh')}
                     </Button>
                   </div>
                 </div>
               </CardHeader>
               <CardContent>
                 {inventoryProductsLoading ? (
-                  <div className="text-center py-8">در حال بارگذاری...</div>
+                   <div className="text-center py-8">{t('loading')}</div>
                 ) : (
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="text-right whitespace-nowrap">نام محصول</TableHead>
-                        <TableHead className="text-right whitespace-nowrap">فروشنده</TableHead>
-                        <TableHead className="text-right whitespace-nowrap">کد کالا</TableHead>
-                        <TableHead className="text-center whitespace-nowrap">موجودی</TableHead>
-                        <TableHead className="text-center whitespace-nowrap">حداقل</TableHead>
-                        <TableHead className="text-center whitespace-nowrap">آستانه هشدار</TableHead>
-                        <TableHead className="text-center whitespace-nowrap">وضعیت</TableHead>
+                         <TableHead className="text-right whitespace-nowrap">{t('productName')}</TableHead>
+                         <TableHead className="text-right whitespace-nowrap">{t('vendor')}</TableHead>
+                         <TableHead className="text-right whitespace-nowrap">{t('productCode')}</TableHead>
+                         <TableHead className="text-center whitespace-nowrap">{t('stock')}</TableHead>
+                         <TableHead className="text-center whitespace-nowrap">{t('minimum')}</TableHead>
+                         <TableHead className="text-center whitespace-nowrap">{t('alertThreshold')}</TableHead>
+                         <TableHead className="text-center whitespace-nowrap">{t('status')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredInventoryProducts.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={7} className="text-center py-8 text-gray-500">
-                            محصولی یافت نشد
+                             {t('noProducts')}
                           </TableCell>
                         </TableRow>
                       ) : (
@@ -1111,13 +1246,13 @@ const WarehouseManagementFixed: React.FC = () => {
                               <TableCell className="font-medium text-right">{product.name}</TableCell>
                               <TableCell className="text-right">
                                 <Badge variant={product.vendorId ? "secondary" : "outline"}>
-                                  {product.vendorName || 'ممتاز کم'}
+                                   {product.vendorName || t('defaultVendor')}
                                 </Badge>
                               </TableCell>
                               <TableCell className="text-right">{product.sku || '-'}</TableCell>
-                              <TableCell className="text-center font-bold">{product.stockQuantity || 0}</TableCell>
-                              <TableCell className="text-center">{product.minStockLevel || 0}</TableCell>
-                              <TableCell className="text-center">{product.lowStockThreshold || 0}</TableCell>
+                               <TableCell className="text-center font-bold">{formatNumber(product.stockQuantity || 0)}</TableCell>
+                               <TableCell className="text-center">{formatNumber(product.minStockLevel || 0)}</TableCell>
+                               <TableCell className="text-center">{formatNumber(product.lowStockThreshold || 0)}</TableCell>
                               <TableCell className="text-center">
                                 <Badge className={stockStatus.color}>
                                   {stockStatus.label}
@@ -1138,7 +1273,7 @@ const WarehouseManagementFixed: React.FC = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Bell className="w-5 h-5" />
-                  تنظیمات اعلان کمبود موجودی
+                   {t('lowStockSettings')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -1147,7 +1282,7 @@ const WarehouseManagementFixed: React.FC = () => {
                   <div className="space-y-2">
                     <Label className="flex items-center gap-2">
                       <Clock className="w-4 h-4" />
-                      فاصله زمانی ارسال اعلان (ساعت)
+                       {t('notificationInterval')}
                     </Label>
                     <Input
                       type="number"
@@ -1157,12 +1292,12 @@ const WarehouseManagementFixed: React.FC = () => {
                       onChange={(e) => setInventorySettings(prev => ({ ...prev, notificationIntervalHours: parseInt(e.target.value) || 24 }))}
                       className="w-full"
                     />
-                    <p className="text-xs text-gray-500">حداقل فاصله بین دو اعلان برای یک محصول (1 تا 168 ساعت)</p>
+                     <p className="text-xs text-gray-500">{t('notificationIntervalHelp')}</p>
                   </div>
                   <div className="space-y-2">
                     <Label className="flex items-center gap-2">
                       <AlertTriangle className="w-4 h-4" />
-                      حداکثر تعداد اعلان
+                       {t('maxNotifications')}
                     </Label>
                     <Input
                       type="number"
@@ -1172,7 +1307,7 @@ const WarehouseManagementFixed: React.FC = () => {
                       onChange={(e) => setInventorySettings(prev => ({ ...prev, maxNotifications: parseInt(e.target.value) || 1 }))}
                       className="w-full"
                     />
-                    <p className="text-xs text-gray-500">حداکثر تعداد اعلان برای هر محصول (تا زمان اصلاح موجودی)</p>
+                     <p className="text-xs text-gray-500">{t('maxNotificationsHelp')}</p>
                   </div>
                 </div>
               </CardContent>
@@ -1184,7 +1319,7 @@ const WarehouseManagementFixed: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
                     <Users className="w-5 h-5" />
-                    گیرندگان اعلان
+                     {t('recipients')}
                   </CardTitle>
                 </div>
               </CardHeader>
@@ -1192,9 +1327,9 @@ const WarehouseManagementFixed: React.FC = () => {
                 {/* Admin Users Search Dropdown */}
                 <div className="flex items-center gap-4 p-4 border rounded-lg bg-gray-50">
                   <div className="flex-1">
-                    <Label className="mb-2 block">جستجو و انتخاب از کاربران مدیریتی (حداقل 2 حرف)</Label>
+                     <Label className="mb-2 block">{t('searchAdmins')}</Label>
                     <Input
-                      placeholder="نام کاربری یا ایمیل..."
+                       placeholder={t('usernameEmail')}
                       value={adminSearchTerm}
                       onChange={(e) => setAdminSearchTerm(e.target.value)}
                       className="w-full"
@@ -1219,7 +1354,7 @@ const WarehouseManagementFixed: React.FC = () => {
                       </div>
                     )}
                     {adminSearchTerm.length >= 2 && filteredAdminUsers.length === 0 && (
-                      <div className="mt-2 text-sm text-gray-500">کاربری یافت نشد</div>
+                       <div className="mt-2 text-sm text-gray-500">{t('noUser')}</div>
                     )}
                   </div>
                 </div>
@@ -1228,21 +1363,21 @@ const WarehouseManagementFixed: React.FC = () => {
                 {inventorySettings.recipients.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                    <p>هیچ گیرنده‌ای تعریف نشده است</p>
-                    <p className="text-sm">از بخش جستجوی بالا، گیرندگان را انتخاب کنید</p>
+                     <p>{t('noRecipients')}</p>
+                     <p className="text-sm">{t('selectRecipients')}</p>
                   </div>
                 ) : (
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="text-right">نام</TableHead>
-                        <TableHead className="text-right">ایمیل</TableHead>
-                        <TableHead className="text-right">تلفن</TableHead>
-                        <TableHead className="text-center">ایمیل</TableHead>
-                        <TableHead className="text-center">پیامک</TableHead>
-                        <TableHead className="text-center">واتساپ</TableHead>
-                        <TableHead className="text-center">فعال</TableHead>
-                        <TableHead className="text-center">حذف</TableHead>
+                         <TableHead className="text-right">{t('name')}</TableHead>
+                         <TableHead className="text-right">{t('email')}</TableHead>
+                         <TableHead className="text-right">{t('phone')}</TableHead>
+                         <TableHead className="text-center">{t('email')}</TableHead>
+                         <TableHead className="text-center">{t('sms')}</TableHead>
+                         <TableHead className="text-center">{t('whatsapp')}</TableHead>
+                         <TableHead className="text-center">{t('active')}</TableHead>
+                         <TableHead className="text-center">{t('delete')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1298,15 +1433,15 @@ const WarehouseManagementFixed: React.FC = () => {
                     disabled={saveInventorySettingsMutation.isPending}
                     className="bg-green-600 hover:bg-green-700"
                   >
-                    {saveInventorySettingsMutation.isPending ? (
+                         {saveInventorySettingsMutation.isPending ? (
                       <>
                         <RefreshCw className="w-4 h-4 ml-2 animate-spin" />
-                        در حال ذخیره...
+                         {t('saving')}
                       </>
                     ) : (
                       <>
                         <Save className="w-4 h-4 ml-2" />
-                        ذخیره تنظیمات
+                         {t('saveSettings')}
                       </>
                     )}
                   </Button>
@@ -1320,39 +1455,39 @@ const WarehouseManagementFixed: React.FC = () => {
         <SafeModal
           isOpen={showOrderDetails}
           onClose={() => setShowOrderDetails(false)}
-          title={`جزئیات سفارش ${selectedOrder?.orderNumber || `#${selectedOrder?.customerOrderId}` || ''}`}
+           title={`${t('orderDetails')} ${selectedOrder?.orderNumber || `#${selectedOrder?.customerOrderId}` || ''}`}
           maxWidth="max-w-4xl"
           maxHeight="max-h-[80vh]"
         >
             {loadingOrderDetails ? (
               <div className="text-center py-8">
                 <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <p className="mt-4 text-gray-600">در حال بارگیری جزئیات سفارش...</p>
+                 <p className="mt-4 text-gray-600">{t('loadOrderDetails')}</p>
               </div>
             ) : orderDetails ? (
               <div className="space-y-6">
                 {/* Customer Information */}
                 <div>
-                  <h3 className="font-semibold mb-3 text-lg">اطلاعات مشتری</h3>
+                   <h3 className="font-semibold mb-3 text-lg">{t('customerInfo')}</h3>
                   <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
                     <div>
-                      <Label className="text-sm font-medium text-gray-700">نام مشتری</Label>
+                       <Label className="text-sm font-medium text-gray-700">{t('name')}</Label>
                       <p className="text-sm mt-1 font-medium">{
                         orderDetails.customer?.firstName && orderDetails.customer?.lastName 
                           ? `${orderDetails.customer.firstName} ${orderDetails.customer.lastName}` 
-                          : 'نامشخص'
+                           : t('unknown')
                       }</p>
                     </div>
                     <div>
-                      <Label className="text-sm font-medium text-gray-700">شماره موبایل</Label>
-                      <p className="text-sm mt-1 font-medium">{orderDetails.customer?.phone || 'شماره نامشخص'}</p>
+                       <Label className="text-sm font-medium text-gray-700">{t('mobile')}</Label>
+                       <p className="text-sm mt-1 font-medium">{orderDetails.customer?.phone || t('unknownPhone')}</p>
                     </div>
                     <div>
-                      <Label className="text-sm font-medium text-gray-700">ایمیل</Label>
-                      <p className="text-sm mt-1 font-medium">{orderDetails.customer?.email || 'ایمیل نامشخص'}</p>
+                       <Label className="text-sm font-medium text-gray-700">{t('email')}</Label>
+                       <p className="text-sm mt-1 font-medium">{orderDetails.customer?.email || t('unknownEmail')}</p>
                     </div>
                     <div>
-                      <Label className="text-sm font-medium text-gray-700">مبلغ کل</Label>
+                       <Label className="text-sm font-medium text-gray-700">{t('totalAmount')}</Label>
                       <p className="text-sm mt-1 font-medium text-green-600">{formatCurrency(parseFloat(orderDetails.totalAmount) || 0)}</p>
                     </div>
                   </div>
@@ -1360,19 +1495,19 @@ const WarehouseManagementFixed: React.FC = () => {
 
                 {/* Order Summary */}
                 <div>
-                  <h3 className="font-semibold mb-3 text-lg">خلاصه سفارش</h3>
+                   <h3 className="font-semibold mb-3 text-lg">{t('orderSummary')}</h3>
                   <div className="grid grid-cols-3 gap-4 bg-blue-50 p-4 rounded-lg">
                     <div className="text-center">
-                      <Label className="text-sm font-medium text-gray-700">تعداد آیتم‌ها</Label>
-                      <p className="text-2xl font-bold text-blue-600">{orderDetails.totalItems}</p>
+                       <Label className="text-sm font-medium text-gray-700">{t('itemCount')}</Label>
+                       <p className="text-2xl font-bold text-blue-600">{formatNumber(orderDetails.totalItems || 0)}</p>
                     </div>
                     <div className="text-center">
-                      <Label className="text-sm font-medium text-gray-700">مجموع وزن ناخالص</Label>
-                      <p className="text-2xl font-bold text-blue-600">{orderDetails.totalWeight ? `${parseFloat(orderDetails.totalWeight).toFixed(1)} kg` : 'محاسبه نشده'}</p>
+                       <Label className="text-sm font-medium text-gray-700">{t('grossWeight')}</Label>
+                       <p className="text-2xl font-bold text-blue-600">{orderDetails.totalWeight ? `${formatNumber(parseFloat(orderDetails.totalWeight), 1)} ${t('kilogram')}` : t('notCalculated')}</p>
                     </div>
                     <div className="text-center">
-                      <Label className="text-sm font-medium text-gray-700">تاریخ سفارش</Label>
-                      <p className="text-sm font-medium text-gray-900">{new Date(orderDetails.orderDate).toLocaleDateString('en-GB')}</p>
+                       <Label className="text-sm font-medium text-gray-700">{t('orderDate')}</Label>
+                       <p className="text-sm font-medium text-gray-900">{formatDate(orderDetails.orderDate)}</p>
                     </div>
                   </div>
                 </div>
@@ -1382,15 +1517,15 @@ const WarehouseManagementFixed: React.FC = () => {
                   <div className="space-y-3">
                     <h3 className="font-semibold text-lg flex items-center gap-2">
                       <FileText className="w-5 h-5" />
-                      یادداشت‌ها
+                      {t('notesTitle')}
                     </h3>
                     
                     {/* یادداشت مشتری از چک‌اوت */}
                     {(orderDetails.customerNotes || orderDetails.notes) && (
                       <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="bg-amber-200 text-amber-800 px-2 py-0.5 rounded text-xs font-medium">مشتری</span>
-                          <span className="text-xs text-amber-600">یادداشت چک‌اوت</span>
+                          <span className="bg-amber-200 text-amber-800 px-2 py-0.5 rounded text-xs font-medium">{t('customer')}</span>
+                          <span className="text-xs text-amber-600">{t('checkoutNote')}</span>
                         </div>
                         <p className="text-amber-900">{orderDetails.customerNotes || orderDetails.notes}</p>
                       </div>
@@ -1400,8 +1535,8 @@ const WarehouseManagementFixed: React.FC = () => {
                     {(orderDetails.financialNotes || orderDetails.orderManagement?.financialNotes) && (
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="bg-blue-200 text-blue-800 px-2 py-0.5 rounded text-xs font-medium">بخش مالی</span>
-                          <span className="text-xs text-blue-600">یادداشت تایید پرداخت</span>
+                          <span className="bg-blue-200 text-blue-800 px-2 py-0.5 rounded text-xs font-medium">{t('finance')}</span>
+                          <span className="text-xs text-blue-600">{t('paymentNote')}</span>
                         </div>
                         <p className="text-blue-900">{orderDetails.financialNotes || orderDetails.orderManagement?.financialNotes}</p>
                       </div>
@@ -1411,16 +1546,16 @@ const WarehouseManagementFixed: React.FC = () => {
 
                 {/* Order Items */}
                 <div>
-                  <h3 className="font-semibold mb-3 text-lg">آیتم‌های سفارش</h3>
+                   <h3 className="font-semibold mb-3 text-lg">{t('orderItems')}</h3>
                   <div className="border rounded-lg overflow-hidden">
                     <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="text-right p-3 text-sm font-medium text-gray-700" style={{ width: '35%' }}>نام محصول</th>
-                          <th className="text-right p-3 text-sm font-medium text-gray-700" style={{ width: '20%' }}>کد محصول</th>
-                          <th className="text-center p-3 text-sm font-medium text-gray-700" style={{ width: '15%' }}>تعداد</th>
-                          <th className="text-right p-3 text-sm font-medium text-gray-700" style={{ width: '15%' }}>قیمت واحد</th>
-                          <th className="text-right p-3 text-sm font-medium text-gray-700" style={{ width: '15%' }}>قیمت کل</th>
+                          <th className="text-right p-3 text-sm font-medium text-gray-700" style={{ width: '35%' }}>{t('productName')}</th>
+                          <th className="text-right p-3 text-sm font-medium text-gray-700" style={{ width: '20%' }}>{t('productCode')}</th>
+                          <th className="text-center p-3 text-sm font-medium text-gray-700" style={{ width: '15%' }}>{t('quantity')}</th>
+                          <th className="text-right p-3 text-sm font-medium text-gray-700" style={{ width: '15%' }}>{t('unitPrice')}</th>
+                          <th className="text-right p-3 text-sm font-medium text-gray-700" style={{ width: '15%' }}>{t('totalPrice')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1449,7 +1584,7 @@ const WarehouseManagementFixed: React.FC = () => {
 
                 {/* Order Status */}
                 <div>
-                  <h3 className="font-semibold mb-3 text-lg">وضعیت سفارش</h3>
+                  <h3 className="font-semibold mb-3 text-lg">{t('orderStatus')}</h3>
                   <div className="grid grid-cols-3 gap-4">
                     <div className={`p-3 rounded-lg border ${orderDetails.financialApproved ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
                       <div className="flex items-center gap-2">
@@ -1459,7 +1594,7 @@ const WarehouseManagementFixed: React.FC = () => {
                           <Clock className="w-5 h-5 text-gray-400" />
                         )}
                         <span className={`text-sm font-medium ${orderDetails.financialApproved ? 'text-green-800' : 'text-gray-600'}`}>
-                          تایید مالی
+                          {t('financialApproval')}
                         </span>
                       </div>
                     </div>
@@ -1471,7 +1606,7 @@ const WarehouseManagementFixed: React.FC = () => {
                           <Clock className="w-5 h-5 text-gray-400" />
                         )}
                         <span className={`text-sm font-medium ${orderDetails.warehouseProcessed ? 'text-green-800' : 'text-gray-600'}`}>
-                          پردازش انبار
+                          {t('warehouseProcessing')}
                         </span>
                       </div>
                     </div>
@@ -1483,7 +1618,7 @@ const WarehouseManagementFixed: React.FC = () => {
                           <Clock className="w-5 h-5 text-gray-400" />
                         )}
                         <span className={`text-sm font-medium ${orderDetails.logisticsProcessed ? 'text-green-800' : 'text-gray-600'}`}>
-                          پردازش لجستیک
+                          {t('logisticsProcessing')}
                         </span>
                       </div>
                     </div>
@@ -1492,12 +1627,12 @@ const WarehouseManagementFixed: React.FC = () => {
 
                 {/* Order Notes */}
                 <div>
-                  <Label htmlFor="warehouseNotes">یادداشت انبار</Label>
+                   <Label htmlFor="warehouseNotes">{t('warehouseNotes')}</Label>
                   <Textarea
                     id="warehouseNotes"
                     value={warehouseNotes}
                     onChange={(e) => setWarehouseNotes(e.target.value)}
-                    placeholder="یادداشت برای این سفارش..."
+                     placeholder={t('notePlaceholder')}
                     className="mt-2"
                   />
                   <div className="flex justify-end mt-2">
@@ -1507,7 +1642,7 @@ const WarehouseManagementFixed: React.FC = () => {
                       disabled={saveNotesMutation.isPending}
                       className="bg-blue-600 hover:bg-blue-700"
                     >
-                      {saveNotesMutation.isPending ? 'در حال ذخیره...' : 'ذخیره یادداشت'}
+                       {saveNotesMutation.isPending ? t('saving') : t('saveNote')}
                     </Button>
                   </div>
                 </div>
@@ -1518,7 +1653,7 @@ const WarehouseManagementFixed: React.FC = () => {
                     variant="outline"
                     onClick={() => setShowOrderDetails(false)}
                   >
-                    انصراف
+                    {t('cancel')}
                   </Button>
                   <Button
                     variant="outline"
@@ -1526,7 +1661,7 @@ const WarehouseManagementFixed: React.FC = () => {
                     className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
                   >
                     <Printer className="w-4 h-4 mr-1" />
-                    پرینت جزئیات
+                     {t('printDetails')}
                   </Button>
                   {selectedOrder?.currentStatus === 'warehouse_approved' && (
                     <Button
@@ -1534,14 +1669,14 @@ const WarehouseManagementFixed: React.FC = () => {
                       disabled={loadingOrderId === selectedOrder.id}
                     >
                       <Truck className="w-4 h-4 mr-1" />
-                      {loadingOrderId === selectedOrder.id ? 'در حال ارسال...' : 'ارسال به لجستیک'}
+                       {loadingOrderId === selectedOrder.id ? t('sending') : t('sendToLogistics')}
                     </Button>
                   )}
                 </div>
               </div>
             ) : (
               <div className="text-center py-8">
-                <p className="text-gray-600">خطا در بارگیری جزئیات سفارش</p>
+                 <p className="text-gray-600">{t('loadOrderError')}</p>
               </div>
             )}
         </SafeModal>
