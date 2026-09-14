@@ -1048,7 +1048,7 @@ function FinanceOrders() {
     transferred?: boolean;
   }) => (
     <div className="overflow-x-auto rounded-lg border border-slate-300 bg-white shadow-sm">
-      <table className="w-full min-w-[1200px] border-collapse text-sm" aria-label={t('ordersTable')}>
+      <table className="w-full min-w-[1080px] table-fixed border-collapse text-sm" aria-label={t('ordersTable')}>
         <caption className="sr-only">{t('ordersTable')}</caption>
         <thead className="sticky top-0 z-10 bg-slate-100 text-slate-700 shadow-sm">
           <tr>
@@ -1059,9 +1059,9 @@ function FinanceOrders() {
             <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('date')}</th>
             <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('paymentMethod')}</th>
             <th scope="col" className="border border-slate-300 px-3 py-2 text-end font-semibold">{t('amountIqd')}</th>
-            <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('status')}</th>
+            <th scope="col" className="w-[120px] border border-slate-300 px-3 py-2 text-start font-semibold whitespace-normal break-words">{t('status')}</th>
             <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('receiptStatus')}</th>
-            <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('financialNote')}</th>
+            <th scope="col" className="w-[150px] border border-slate-300 px-3 py-2 text-start font-semibold whitespace-normal break-words">{t('financialNote')}</th>
             <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('actions')}</th>
           </tr>
         </thead>
@@ -1091,10 +1091,12 @@ function FinanceOrders() {
                 <td className="border border-slate-200 px-3 py-2 text-end font-semibold whitespace-nowrap">
                   {formatCurrency(parseFloat(order.totalAmount || '0'))}
                 </td>
-                <td className="border border-slate-200 px-3 py-2 whitespace-nowrap">
-                  {transferred
-                    ? <Badge variant="outline" className="bg-green-50 text-green-700">{t('transferredToWarehouse')}</Badge>
-                    : getStatusBadge(order.currentStatus)}
+                <td className="w-[120px] border border-slate-200 px-3 py-2 align-top whitespace-normal break-words">
+                  <div className="[&>div]:h-auto [&>div]:max-w-full [&>div]:whitespace-normal [&>div]:break-words [&>div]:text-start [&>div]:leading-5">
+                    {transferred
+                      ? <Badge variant="outline" className="bg-green-50 text-green-700 whitespace-normal break-words">{t('transferredToWarehouse')}</Badge>
+                      : getStatusBadge(order.currentStatus)}
+                  </div>
                 </td>
                 <td className="border border-slate-200 px-3 py-2">
                   {receiptUrl ? (
@@ -1118,8 +1120,8 @@ function FinanceOrders() {
                     <span className="text-xs text-slate-500">{t('noReceipt')}</span>
                   )}
                 </td>
-                <td className="border border-slate-200 px-3 py-2">
-                  <span className="block max-w-[220px] truncate" title={order.financialNotes || undefined}>
+                <td className="w-[150px] border border-slate-200 px-3 py-2 align-top whitespace-normal">
+                  <span className="block max-w-[150px] whitespace-normal break-words leading-5" title={order.financialNotes || undefined}>
                     {order.financialNotes || t('unknown')}
                   </span>
                 </td>

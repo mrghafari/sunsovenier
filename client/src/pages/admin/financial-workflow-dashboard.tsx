@@ -856,7 +856,7 @@ export default function FinancialWorkflowDashboard() {
                     <th scope="col" className="border-b px-3 py-2">{t("tableOrder")}</th>
                     <th scope="col" className="border-b px-3 py-2">{t("tableCustomerContact")}</th>
                     <th scope="col" className="border-b px-3 py-2">{t("tableOrderDate")}</th>
-                    <th scope="col" className="border-b px-3 py-2">{t("tableStatus")} / {t("tableRawStatus")}</th>
+                      <th scope="col" className="w-[150px] border-b px-3 py-2 whitespace-normal break-words">{t("tableStatus")} / {t("tableRawStatus")}</th>
                     <th scope="col" className="border-b px-3 py-2">{t("tablePaymentSource")}</th>
                     <th scope="col" className="border-b px-3 py-2">{t("tableTotalWeight")}</th>
                     <th scope="col" className="border-b px-3 py-2">{t("tableDelivery")}</th>
@@ -874,7 +874,7 @@ export default function FinancialWorkflowDashboard() {
                         <div className="text-xs text-gray-600">{order.customerPhone || order.shippingAddress?.phone || "—"}</div>
                       </td>
                       <td className="border-b px-3 py-2 whitespace-nowrap">{formatDate(order.createdAt, true)}</td>
-                      <td className="border-b px-3 py-2"><div>{getStatusBadge(order.currentStatus)}</div><div className="text-xs text-gray-500 mt-1">{order.currentStatus}</div></td>
+                      <td className="w-[150px] border-b px-3 py-2 align-top whitespace-normal break-words"><div className="[&>div]:h-auto [&>div]:max-w-full [&>div]:whitespace-normal [&>div]:break-words">{getStatusBadge(order.currentStatus)}</div><div className="mt-1 break-all text-xs text-gray-500">{order.currentStatus}</div></td>
                       <td className="border-b px-3 py-2">
                         <div className="flex items-center gap-1">{getPaymentMethodIcon(order.paymentMethod)}{getPaymentMethodLabel(order.paymentMethod)}</div>
                         <div className="text-xs text-gray-500">{order.paymentSourceLabel || "—"}</div>
@@ -1091,7 +1091,7 @@ export default function FinancialWorkflowDashboard() {
                       <td className="border-b px-3 py-2"><div>{getStatusBadge(order.currentStatus)}</div><div className="text-xs text-gray-500 mt-1">{order.currentStatus}</div></td>
                       <td className="border-b px-3 py-2"><div>{getPaymentMethodLabel(order.paymentMethod)}</div><div className="text-xs text-gray-500">{order.paymentSourceLabel || "—"}</div></td>
                       <td className="border-b px-3 py-2 whitespace-nowrap"><div className="font-semibold text-green-600">{formatCurrency(order.totalAmount)}</div><div className="text-xs text-gray-600">{order.totalWeight ? `${formatDecimal(order.totalWeight)} ${order.weightUnit || t("unit")}` : "—"}</div></td>
-                      <td className="border-b px-3 py-2 whitespace-nowrap">{order.financialReviewedAt ? <><div>{formatDate(order.financialReviewedAt)}</div><div className="text-xs text-gray-600">{formatTime(order.financialReviewedAt)}</div>{order.financialNotes && <div className="text-xs text-gray-500">{t("note")}: {order.financialNotes}</div>}</> : "—"}</td>
+                      <td className="w-[170px] border-b px-3 py-2 align-top whitespace-normal break-words">{order.financialReviewedAt ? <><div>{formatDate(order.financialReviewedAt)}</div><div className="text-xs text-gray-600">{formatTime(order.financialReviewedAt)}</div>{order.financialNotes && <div className="mt-1 max-w-[170px] whitespace-normal break-words text-xs leading-5 text-gray-500">{t("note")}: {order.financialNotes}</div>}</> : "—"}</td>
                       <td className="border-b px-3 py-2">{order.invoiceType ? <><div>{order.invoiceType === "official_invoice" ? t("officialInvoice") : t("temporaryInvoice")}</div>{order.invoiceConvertedAt && <div className="text-xs text-gray-600">{t("conversionDate")}: {formatDate(order.invoiceConvertedAt)}</div>}</> : "—"}</td>
                       <td className="border-b px-3 py-2 max-w-[240px]">{order.shippingAddress ? <><div>{order.shippingAddress.city}</div><div className="text-xs text-gray-600">{order.shippingAddress.address}</div></> : "—"}</td>
                     </tr>

@@ -515,7 +515,7 @@ export default function FinancialDepartment() {
                         <tr>
                           <th scope="col" className="w-14 border border-slate-300 px-3 py-2 font-semibold">{t("tableRow")}</th>
                           <th scope="col" className="min-w-[150px] border border-slate-300 px-3 py-2 font-semibold">{t("order")}</th>
-                          <th scope="col" className="min-w-[155px] border border-slate-300 px-3 py-2 font-semibold">{t("status")}</th>
+                          <th scope="col" className="w-[120px] border border-slate-300 px-3 py-2 font-semibold whitespace-normal break-words">{t("status")}</th>
                           <th scope="col" className="w-24 border border-slate-300 px-3 py-2 font-semibold">{t("receipt")}</th>
                           <th scope="col" className="min-w-[170px] border border-slate-300 px-3 py-2 font-semibold">{t("customer")}</th>
                           <th scope="col" className="min-w-[210px] border border-slate-300 px-3 py-2 font-semibold">{t("emailContact")}</th>
@@ -539,8 +539,8 @@ export default function FinancialDepartment() {
                               <td className="border border-slate-200 px-3 py-2 font-medium text-slate-900">
                                 {order.orderNumber || `${t("orders")} #${formatNumber(order.customerOrderId)}`}
                               </td>
-                              <td className="border border-slate-200 px-3 py-2">
-                                <Badge variant="outline" className="whitespace-nowrap border-orange-300 px-2 py-0.5 text-[11px] text-orange-700">
+                              <td className="w-[120px] border border-slate-200 px-3 py-2 align-top whitespace-normal break-words">
+                                <Badge variant="outline" className="h-auto max-w-full whitespace-normal break-words border-orange-300 px-2 py-0.5 text-start text-[11px] leading-5 text-orange-700">
                                   {t("pendingFinancialReview")}
                                 </Badge>
                               </td>
