@@ -11509,50 +11509,80 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
   app.get("/api/management/dashboard", requireAuth, async (req, res) => {
     try {
       const { pool } = await import('./db');
-      
-      // Get comprehensive dashboard metrics
+      const [summaryResult, statusResult, performanceResult, inventoryResult] = await Promise.all([
+        pool.query(`
+          SELECT
+            COALESCE(SUM(total_amount) FILTER (
+              WHERE created_at >= CURRENT_DATE
+                AND status NOT IN ('cancelled', 'failed', 'payment_failed', 'deleted')
+            ), 0)::numeric AS daily_sales,
+            COUNT(*) FILTER (
+              WHERE status NOT IN ('delivered', 'completed', 'cancelled', 'failed', 'payment_failed', 'deleted', 'expired')
+            )::int AS active_orders,
+            (
+              SELECT COUNT(*)::int FROM session
+              WHERE expire > NOW() AND (sess->>'customUserId') IS NOT NULL
+            ) AS online_customers
+          FROM customer_orders
+        `),
+        pool.query(`
+          SELECT
+            COUNT(*) FILTER (WHERE current_status IN ('pending', 'finance_pending', 'payment_uploaded'))::int AS pending,
+            COUNT(*) FILTER (WHERE current_status IN ('financial_approved', 'warehouse_pending', 'warehouse_processing'))::int AS processing,
+            COUNT(*) FILTER (WHERE current_status IN ('warehouse_approved', 'warehouse_ready', 'logistics_assigned', 'logistics_dispatched', 'in_transit'))::int AS ready_to_ship,
+            COUNT(*) FILTER (WHERE current_status IN ('delivered', 'completed'))::int AS delivered,
+            COUNT(*) FILTER (WHERE current_status IN ('financial_rejected', 'payment_failed', 'expired', 'warehouse_rejected', 'logistics_failed'))::int AS alerts
+          FROM order_management
+        `),
+        pool.query(`
+          SELECT
+            COALESCE(ROUND(100.0 * COUNT(*) FILTER (WHERE financial_reviewed_at IS NOT NULL) /
+              NULLIF(COUNT(*) FILTER (WHERE payment_receipt_url IS NOT NULL OR payment_method IS NOT NULL), 0)), 0)::int AS finance,
+            COALESCE(ROUND(100.0 * COUNT(*) FILTER (WHERE warehouse_processed_at IS NOT NULL) /
+              NULLIF(COUNT(*) FILTER (WHERE financial_reviewed_at IS NOT NULL), 0)), 0)::int AS warehouse,
+            COALESCE(ROUND(100.0 * COUNT(*) FILTER (WHERE logistics_processed_at IS NOT NULL OR actual_delivery_date IS NOT NULL) /
+              NULLIF(COUNT(*) FILTER (WHERE warehouse_processed_at IS NOT NULL), 0)), 0)::int AS logistics
+          FROM order_management
+        `),
+        pool.query(`
+          SELECT name, COALESCE(stock_quantity, 0)::int AS stock,
+            CASE
+              WHEN COALESCE(stock_quantity, 0) <= 0 THEN 'critical'
+              WHEN COALESCE(stock_quantity, 0) <= COALESCE(low_stock_threshold, min_stock_level, 0) THEN 'low'
+              ELSE 'warning'
+            END AS status
+          FROM shop_products
+          WHERE is_active = true
+            AND COALESCE(stock_quantity, 0) <= GREATEST(COALESCE(low_stock_threshold, 0), COALESCE(min_stock_level, 0))
+          ORDER BY stock_quantity ASC, name ASC
+          LIMIT 8
+        `)
+      ]);
+
+      const summary = summaryResult.rows[0];
+      const statuses = statusResult.rows[0];
+      const performance = performanceResult.rows[0];
       const dashboardData = {
         summary: {
-          dailySales: 2543000,
-          activeOrders: 47,
-          onlineCustomers: 124,
-          systemAlerts: 3
+          dailySales: Number(summary.daily_sales),
+          activeOrders: summary.active_orders,
+          onlineCustomers: summary.online_customers,
+          systemAlerts: statuses.alerts
         },
         quickStats: {
           orderStatuses: {
-            pending: 8,
-            processing: 15,
-            readyToShip: 23,
-            delivered: 145
+            pending: statuses.pending,
+            processing: statuses.processing,
+            readyToShip: statuses.ready_to_ship,
+            delivered: statuses.delivered
           },
           departmentPerformance: {
-            finance: 85,
-            warehouse: 92,
-            logistics: 78
+            finance: performance.finance,
+            warehouse: performance.warehouse,
+            logistics: performance.logistics
           },
-          criticalInventory: [
-            { name: "سولونت 402", stock: 12, status: "critical" },
-            { name: "تینر PT-300", stock: 8, status: "low" },
-            { name: "NPK Complex", stock: 25, status: "warning" }
-          ]
-        },
-        recentActivities: [
-          {
-            type: "order_delivered",
-            message: "سفارش #ORD-1234 با موفقیت تحویل داده شد",
-            timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString()
-          },
-          {
-            type: "new_customer",
-            message: "مشتری جدید \"شرکت کیمیا پتروشیمی\" ثبت‌نام کرد",
-            timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString()
-          },
-          {
-            type: "low_inventory",
-            message: "محصول \"سولونت 402\" به حد مجاز موجودی رسید",
-            timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString()
-          }
-        ]
+          criticalInventory: inventoryResult.rows
+        }
       };
       
       res.json({
@@ -11568,28 +11598,41 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
   // Get system health data
   app.get("/api/management/system-health", requireAuth, async (req, res) => {
     try {
-      // Get system health metrics
+      const os = await import('node:os');
+      const fs = await import('node:fs');
+      const { pool } = await import('./db');
+      const memory = Math.round((1 - os.freemem() / os.totalmem()) * 100);
+      const cpu = Math.min(100, Math.round((os.loadavg()[0] / Math.max(os.cpus().length, 1)) * 100));
+      let disk = 0;
+      try {
+        const diskStats = fs.statfsSync(process.cwd());
+        disk = Math.round((1 - Number(diskStats.bavail) / Number(diskStats.blocks)) * 100);
+      } catch (error) {
+        console.warn('[SYSTEM HEALTH] Disk usage unavailable:', error);
+      }
+      const dbStarted = Date.now();
+      await pool.query('SELECT 1');
+      const databaseResponseMs = Date.now() - dbStarted;
       const systemHealth = {
         server: {
-          cpu: 45,
-          memory: 68,
-          disk: 32,
+          cpu,
+          memory,
+          disk,
           status: "healthy"
         },
         services: {
           database: "online",
-          email: "online",
-          sms: "limited"
+          email: process.env.SMTP_USER && process.env.SMTP_PASS ? "configured" : "unavailable",
+          sms: "unavailable"
         },
         backup: {
-          lastBackup: "امروز 02:00",
-          status: "success",
-          nextScheduled: "فردا 02:00"
+          lastBackup: null,
+          status: "unavailable",
+          nextScheduled: null
         },
         performance: {
-          responseTime: 245, // ms
-          uptime: 99.8, // percentage
-          errorRate: 0.2 // percentage
+          responseTime: databaseResponseMs,
+          uptime: Math.round(process.uptime())
         }
       };
       
@@ -51495,91 +51538,6 @@ momtazchem.com
       res.status(500).json({
         success: false,
         message: 'خطا در دریافت کارت‌های کسب‌وکار'
-      });
-    }
-  });
-
-  // Get management dashboard data with proper structure
-  app.get("/api/management/dashboard", requireAuth, async (req, res) => {
-    try {
-      console.log('📊 [DASHBOARD] Fetching management dashboard data');
-      
-      const dashboardData = {
-        summary: {
-          dailySales: Math.floor(Math.random() * 100000000), // Random sales for demo
-          activeOrders: Math.floor(Math.random() * 50) + 10,
-          onlineCustomers: Math.floor(Math.random() * 25) + 5,
-          systemAlerts: Math.floor(Math.random() * 5)
-        },
-        quickStats: {
-          orderStatuses: {
-            pending: Math.floor(Math.random() * 20) + 5,
-            processing: Math.floor(Math.random() * 15) + 3,
-            readyToShip: Math.floor(Math.random() * 10) + 2,
-            delivered: Math.floor(Math.random() * 50) + 20
-          },
-          departmentPerformance: {
-            finance: Math.floor(Math.random() * 30) + 70,
-            warehouse: Math.floor(Math.random() * 25) + 75,
-            logistics: Math.floor(Math.random() * 20) + 80
-          },
-          criticalInventory: [
-            { name: 'Solvent 402', stock: 15, status: 'low' },
-            { name: 'NPK Fertilizer', stock: 5, status: 'critical' },
-            { name: 'Paint Thinner', stock: 8, status: 'low' }
-          ]
-        }
-      };
-
-      console.log('📊 [DASHBOARD] Dashboard data prepared');
-      
-      res.json({
-        success: true,
-        data: dashboardData
-      });
-    } catch (error) {
-      console.error('📊 [DASHBOARD] Error fetching dashboard data:', error);
-      res.status(500).json({
-        success: false,
-        message: 'خطا در دریافت داده‌های داشبورد'
-      });
-    }
-  });
-
-  // Get system health data
-  app.get("/api/management/system-health", requireAuth, async (req, res) => {
-    try {
-      console.log('🔧 [SYSTEM] Fetching system health data');
-      
-      const systemHealth = {
-        server: {
-          cpu: Math.floor(Math.random() * 40) + 20, // 20-60%
-          memory: Math.floor(Math.random() * 30) + 40, // 40-70%
-          disk: Math.floor(Math.random() * 25) + 30 // 30-55%
-        },
-        services: {
-          database: 'online',
-          email: 'online',
-          sms: 'limited'
-        },
-        backup: {
-          lastBackup: new Date(Date.now() - 24 * 60 * 60 * 1000).toLocaleDateString('fa-IR'),
-          status: 'success',
-          nextScheduled: new Date(Date.now() + 24 * 60 * 60 * 1000).toLocaleDateString('fa-IR')
-        }
-      };
-
-      console.log('🔧 [SYSTEM] System health data prepared');
-      
-      res.json({
-        success: true,
-        data: systemHealth
-      });
-    } catch (error) {
-      console.error('🔧 [SYSTEM] Error fetching system health:', error);
-      res.status(500).json({
-        success: false,
-        message: 'خطا در دریافت وضعیت سیستم'
       });
     }
   });
