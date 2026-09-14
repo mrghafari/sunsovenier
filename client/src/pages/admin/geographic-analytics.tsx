@@ -91,7 +91,7 @@ interface GpsDeliveryStats {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
 export default function GeographicAnalytics() {
-  const [dateRange, setDateRange] = useState("30d");
+  const [dateRange, setDateRange] = useState("1y");
   const [selectedRegion, setSelectedRegion] = useState("all");
   const [selectedProduct, setSelectedProduct] = useState("all");
   const [sortField, setSortField] = useState<string>('');
@@ -219,7 +219,10 @@ export default function GeographicAnalytics() {
       if (!response.ok) throw new Error('Failed to fetch product data');
       const result = await response.json();
       return result.data || [];
-    }
+    },
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true
   });
 
   // Fetch time series data
