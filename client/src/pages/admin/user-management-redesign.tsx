@@ -90,6 +90,14 @@ import {
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
+import { useLanguage } from '@/contexts/LanguageContext';
+
+const financialApprovalLabels = {
+  en: "Financial Approval",
+  fa: "تایید مالی",
+  ar: "الاعتماد المالي",
+  tr: "Mali onay",
+} as const;
 
 // Schema definitions
 const roleSchema = z.object({
@@ -154,7 +162,7 @@ type Module = {
 };
 
 // Function to extract modules dynamically from Site Management configuration
-const extractSiteManagementModules = (): Module[] => {
+const extractSiteManagementModules = (financialApprovalLabel: string): Module[] => {
   // Complete synchronized list with ALL 35 modules from Site Management - using original English names
   const siteManagementModules = [
     { moduleId: 'kpi_dashboard', label: 'KPI Dashboard', icon: BarChart3, color: 'bg-purple-600' },
@@ -178,7 +186,7 @@ const extractSiteManagementModules = (): Module[] => {
     { moduleId: 'procedures', label: 'Procedures', icon: BookOpen, color: 'bg-zinc-500' },
     { moduleId: 'payment_management', label: 'Payment Management', icon: CreditCard, color: 'bg-green-600' },
     { moduleId: 'accounting_management', label: 'Accounting Management', icon: DollarSign, color: 'bg-blue-600' },
-    { moduleId: 'finance', label: 'Finance Management', icon: DollarSign, color: 'bg-emerald-600' },
+    { moduleId: 'finance', label: financialApprovalLabel, icon: DollarSign, color: 'bg-emerald-600' },
     { moduleId: 'wallet_management', label: 'Wallet Management', icon: Wallet, color: 'bg-yellow-500' },
     { moduleId: 'geography_analytics', label: 'Geography Analytics', icon: MapPin, color: 'bg-teal-500' },
     { moduleId: 'ai_settings', label: 'AI Settings', icon: Zap, color: 'bg-sky-500' },
@@ -213,6 +221,8 @@ function UserManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
+  const { language } = useLanguage();
+  const financialApprovalLabel = financialApprovalLabels[language];
   
   // Dialog states
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
@@ -324,7 +334,7 @@ function UserManagement() {
     if (!modulesData?.modules) return [];
     
     return modulesData.modules.map((module: any) => {
-      const staticModule = extractSiteManagementModules().find(m => m.moduleId === module.id);
+      const staticModule = extractSiteManagementModules(financialApprovalLabel).find(m => m.moduleId === module.id);
       return {
         id: module.id,
         name: module.id, // Use technical English name instead of Persian translation
@@ -337,7 +347,7 @@ function UserManagement() {
         moduleId: module.id
       };
     });
-  }, [modulesData]);
+  }, [modulesData, financialApprovalLabel]);
 
 
   // Mutations

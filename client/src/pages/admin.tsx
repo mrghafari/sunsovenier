@@ -8,6 +8,14 @@ import { getPersonalizedWelcome, getDashboardMotivation } from "@/utils/greeting
 import AuthGuard from "@/components/AuthGuard";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useLanguage } from "@/contexts/LanguageContext";
+
+const financialApprovalLabels = {
+  en: "Financial Approval",
+  fa: "تایید مالی",
+  ar: "الاعتماد المالي",
+  tr: "Mali onay",
+} as const;
 
 // Function to get the actual Site Management modules count
 const getSiteManagementModulesCount = () => {
@@ -61,6 +69,9 @@ export default function AdminPage() {
 }
 
 function AdminDashboardContent({ user, logout, setLocation, moduleCount, getContent, contentLoading }: any) {
+  const { language } = useLanguage();
+  const financialApprovalLabel = financialApprovalLabels[language];
+
   return (
     <div className="container mx-auto p-6 space-y-8 bg-white dark:bg-gray-900 min-h-screen">
       <div className="bg-white dark:bg-gray-900 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
@@ -133,7 +144,7 @@ function AdminDashboardContent({ user, logout, setLocation, moduleCount, getCont
               <div>• <strong>Order Management</strong> - 3-department workflow system</div>
               <div>• <strong>Products</strong> - Showcase & shop catalog management</div>
               <div>• <strong>Payment Settings</strong> - Iraqi banking integration</div>
-              <div>• <strong>Finance</strong> - Financial order management & approvals</div>
+              <div>• <strong>{financialApprovalLabel}</strong> - Financial order management & approvals</div>
               <div>• <strong>Wallet Management</strong> - Digital wallet & recharge system</div>
               <div>• <strong>Geography Analytics</strong> - Regional performance & GPS tracking</div>
               <div>• <strong>AI Settings</strong> - Smart SKU generation & recommendations</div>

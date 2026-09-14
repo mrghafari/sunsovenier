@@ -10,6 +10,14 @@ import { KardexSyncPanel } from "@/components/KardexSyncPanel";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/contexts/LanguageContext";
+
+const financialApprovalLabels = {
+  en: "Financial Approval",
+  fa: "تایید مالی",
+  ar: "الاعتماد المالي",
+  tr: "Mali onay",
+} as const;
 
 // Define the structure for Quick Action buttons
 interface QuickActionButton {
@@ -25,6 +33,8 @@ export default function SiteManagement() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
+  const { language } = useLanguage();
+  const financialApprovalLabel = financialApprovalLabels[language];
   const [showKardexSync, setShowKardexSync] = useState(false);
   const [buttons, setButtons] = useState<QuickActionButton[]>([]);
 
@@ -324,7 +334,7 @@ export default function SiteManagement() {
     },
     {
       id: "financial-department",
-      label: "Financial Department",
+      label: financialApprovalLabel,
       icon: TrendingUp,
       onClick: () => trackButtonClick("financial-department", () => setLocation("/financial-department")),
       className: "border-blue-300 text-blue-600 hover:bg-blue-50",
@@ -479,7 +489,7 @@ export default function SiteManagement() {
         setButtons(filteredButtons);
       }
     }
-  }, [userPermissions]);
+  }, [userPermissions, financialApprovalLabel]);
 
   // Save button order to localStorage whenever it changes
   useEffect(() => {

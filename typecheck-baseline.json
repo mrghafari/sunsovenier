@@ -945,26 +945,6 @@
       "count": 1
     },
     {
-      "key": "[\"client/src/pages/admin/financial-workflow-dashboard.tsx\",2322,\"Type '{ paymentMethod: string; size: string; }' is not assignable to type 'IntrinsicAttributes & PaymentMethodBadgeProps'.\\n  Property 'size' does not exist on type 'IntrinsicAttributes & PaymentMethodBadgeProps'.\",\"<PaymentMethodBadge paymentMethod=\\\"bank_transfer_grace\\\" size=\\\"sm\\\" />\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/admin/financial-workflow-dashboard.tsx\",2322,\"Type '{ paymentMethod: string; size: string; }' is not assignable to type 'IntrinsicAttributes & PaymentMethodBadgeProps'.\\n  Property 'size' does not exist on type 'IntrinsicAttributes & PaymentMethodBadgeProps'.\",\"<PaymentMethodBadge paymentMethod=\\\"wallet_full\\\" size=\\\"sm\\\" />\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/admin/financial-workflow-dashboard.tsx\",2322,\"Type '{ paymentMethod: string; size: string; }' is not assignable to type 'IntrinsicAttributes & PaymentMethodBadgeProps'.\\n  Property 'size' does not exist on type 'IntrinsicAttributes & PaymentMethodBadgeProps'.\",\"<PaymentMethodBadge paymentMethod=\\\"wallet_partial\\\" size=\\\"sm\\\" />\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/admin/financial-workflow-dashboard.tsx\",2339,\"Property 'status' does not exist on type 'FinancialOrder'.\",\"<span className=\\\"font-medium\\\">وضعیت: {order.status || 'نامشخص'}</span>\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/admin/financial-workflow-dashboard.tsx\",2345,\"Argument of type 'string | undefined' is not assignable to parameter of type 'string'.\\n  Type 'undefined' is not assignable to type 'string'.\",\"{parseFloat(order.excessAmountCredited).toLocaleString()} دینار به کیف پول\"]",
-      "count": 1
-    },
-    {
       "key": "[\"client/src/pages/admin/footer-management.tsx\",2554,\"Expected 2 arguments, but got 1.\",\"queryFn: () => apiRequest(`/api/admin/footer-settings?language=${selectedLanguage}`),\"]",
       "count": 1
     },
@@ -1470,30 +1450,6 @@
     },
     {
       "key": "[\"client/src/pages/detailed-inventory.tsx\",7006,\"Parameter 'sum' implicitly has an 'any' type.\",\"{filteredInventory.reduce((sum, item) => sum + item.totalStock, 0)}\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/financial-department.tsx\",2339,\"Property 'customerEmail' does not exist on type 'OrderManagement'.\",\"{order.customerEmail || 'ایمیل ثبت نشده'}\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/financial-department.tsx\",2339,\"Property 'customerFirstName' does not exist on type 'OrderManagement'.\",\"? `${order.customerFirstName} ${order.customerLastName}`\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/financial-department.tsx\",2339,\"Property 'customerFirstName' does not exist on type 'OrderManagement'.\",\"{order.customerFirstName && order.customerLastName\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/financial-department.tsx\",2339,\"Property 'customerLastName' does not exist on type 'OrderManagement'.\",\"? `${order.customerFirstName} ${order.customerLastName}`\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/financial-department.tsx\",2339,\"Property 'customerLastName' does not exist on type 'OrderManagement'.\",\"{order.customerFirstName && order.customerLastName\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/financial-department.tsx\",2339,\"Property 'orderNumber' does not exist on type 'OrderManagement'.\",\"{order.orderNumber || `سفارش #${order.customerOrderId}`}\"]",
       "count": 1
     },
     {

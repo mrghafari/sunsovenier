@@ -9,6 +9,14 @@ import { KardexSyncPanel } from "@/components/KardexSyncPanel";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/contexts/LanguageContext";
+
+const financialApprovalLabels = {
+  en: "Financial Approval",
+  fa: "تایید مالی",
+  ar: "الاعتماد المالي",
+  tr: "Mali onay",
+} as const;
 
 // Define the structure for Quick Action buttons
 interface QuickActionButton {
@@ -27,6 +35,8 @@ export default function SiteManagement() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
+  const { language } = useLanguage();
+  const financialApprovalLabel = financialApprovalLabels[language];
   const [showKardexSync, setShowKardexSync] = useState(false);
   const [buttons, setButtons] = useState<QuickActionButton[]>([]);
 
@@ -81,7 +91,7 @@ export default function SiteManagement() {
         setButtons(sortButtonsByUsage(filteredButtons));
       });
     }
-  }, [userPermissions]);
+  }, [userPermissions, financialApprovalLabel]);
 
   // Helper functions
   const trackButtonClick = (buttonId: string, action: () => void) => {
@@ -183,7 +193,7 @@ export default function SiteManagement() {
 
     {
       id: "finance",
-      label: "Finance",
+      label: financialApprovalLabel,
       icon: DollarSign,
       onClick: () => trackButtonClick("finance", () => setLocation("/admin/finance-orders")),
       className: "border-green-300 text-green-600 hover:bg-green-50 hover:text-green-800",

@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertTriangle, CheckCircle, Clock, CreditCard, DollarSign, RefreshCw, Timer, ChevronRight, XCircle, FileText, Eye, Download, Truck, MapPin, ZoomIn, ZoomOut, RotateCw, Move, X, Wallet, Calculator } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // OrderManagement interface
 interface OrderManagement {
@@ -38,17 +39,154 @@ interface OrderManagement {
   [key: string]: any; // For additional properties
 }
 
-// Temporarily remove SimpleReceiptViewer import - needs to be created
-// 
-// Helper function for safe date formatting - OUTSIDE component
-const formatDateSafe = (dateString: string | undefined, locale: string = 'en-US') => {
-  if (!dateString) return 'نامشخص';
-  try {
-    return new Date(dateString).toLocaleDateString(locale);
-  } catch {
-    return 'نامشخص';
-  }
+type PageLanguage = 'en' | 'fa' | 'ar' | 'tr';
+
+const pageTranslations: Record<string, Record<PageLanguage, string>> = {
+  unknown: { en: 'Unknown', fa: 'نامشخص', ar: 'غير معروف', tr: 'Bilinmiyor' },
+  financialApproval: { en: 'Financial Approval', fa: 'تأیید مالی', ar: 'الموافقة المالية', tr: 'Finansal onay' },
+  paymentReview: { en: 'Payment review and approval', fa: 'بررسی و تأیید پرداخت‌ها', ar: 'مراجعة واعتماد المدفوعات', tr: 'Ödeme inceleme ve onayı' },
+  reminderSent: { en: 'Reminder sent', fa: 'یادآوری ارسال شد', ar: 'تم إرسال التذكير', tr: 'Hatırlatıcı gönderildi' },
+  reminderDescription: { en: 'The reminder message was sent successfully', fa: 'پیام یادآوری با موفقیت ارسال شد', ar: 'تم إرسال رسالة التذكير بنجاح', tr: 'Hatırlatıcı mesajı başarıyla gönderildi' },
+  reminderError: { en: 'Error sending reminder', fa: 'خطا در ارسال یادآوری', ar: 'خطأ في إرسال التذكير', tr: 'Hatırlatıcı gönderme hatası' },
+  reminderErrorDescription: { en: 'Unable to send the reminder', fa: 'امکان ارسال یادآوری وجود ندارد', ar: 'تعذر إرسال التذكير', tr: 'Hatırlatıcı gönderilemedi' },
+  orderApproved: { en: 'Order approved', fa: 'سفارش تأیید شد', ar: 'تم اعتماد الطلب', tr: 'Sipariş onaylandı' },
+  orderApprovedDescription: { en: 'The order was approved and forwarded to the warehouse', fa: 'سفارش با موفقیت تأیید و به انبار ارجاع شد', ar: 'تم اعتماد الطلب وإحالته إلى المستودع', tr: 'Sipariş onaylandı ve depoya iletildi' },
+  approvalError: { en: 'Error approving order', fa: 'خطا در تأیید سفارش', ar: 'خطأ في اعتماد الطلب', tr: 'Sipariş onaylama hatası' },
+  approvalErrorDescription: { en: 'Unable to approve the order', fa: 'امکان تأیید سفارش وجود ندارد', ar: 'تعذر اعتماد الطلب', tr: 'Sipariş onaylanamadı' },
+  orderRejected: { en: 'Order rejected', fa: 'سفارش رد شد', ar: 'تم رفض الطلب', tr: 'Sipariş reddedildi' },
+  orderRejectedDescription: { en: 'The order was rejected successfully', fa: 'سفارش با موفقیت رد شد', ar: 'تم رفض الطلب بنجاح', tr: 'Sipariş başarıyla reddedildi' },
+  rejectionError: { en: 'Error rejecting order', fa: 'خطا در رد سفارش', ar: 'خطأ في رفض الطلب', tr: 'Sipariş reddetme hatası' },
+  rejectionErrorDescription: { en: 'Unable to reject the order', fa: 'امکان رد سفارش وجود ندارد', ar: 'تعذر رفض الطلب', tr: 'Sipariş reddedilemedi' },
+  paymentsFixed: { en: 'Payments corrected', fa: 'تصحیح پرداخت‌ها انجام شد', ar: 'تم تصحيح المدفوعات', tr: 'Ödemeler düzeltildi' },
+  paymentsFixedDescription: { en: '{count} payments corrected', fa: '{count} پرداخت تصحیح شد', ar: 'تم تصحيح {count} دفعة', tr: '{count} ödeme düzeltildi' },
+  paymentsFixError: { en: 'Payment correction error', fa: 'خطا در بهبود پرداخت', ar: 'خطأ في تصحيح المدفوعات', tr: 'Ödeme düzeltme hatası' },
+  paymentsFixErrorDescription: { en: 'Error correcting incomplete payments', fa: 'خطا در تصحیح پرداخت‌های ناتمام', ar: 'خطأ في تصحيح المدفوعات غير المكتملة', tr: 'Tamamlanmamış ödemeler düzeltilemedi' },
+  refreshed: { en: 'Refreshed', fa: 'به‌روزرسانی شد', ar: 'تم التحديث', tr: 'Yenilendi' },
+  refreshedDescription: { en: 'All financial information was retrieved from the server', fa: 'تمام اطلاعات مالی از سرور بازیابی شد', ar: 'تم استرجاع جميع المعلومات المالية من الخادم', tr: 'Tüm finansal bilgiler sunucudan alındı' },
+  error: { en: 'Error', fa: 'خطا', ar: 'خطأ', tr: 'Hata' },
+  orderDetailsError: { en: 'Unable to retrieve order details', fa: 'امکان دریافت جزئیات سفارش وجود ندارد', ar: 'تعذر الحصول على تفاصيل الطلب', tr: 'Sipariş ayrıntıları alınamadı' },
+  paymentUploaded: { en: 'Awaiting financial review', fa: 'در انتظار بررسی مالی', ar: 'بانتظار المراجعة المالية', tr: 'Finansal inceleme bekleniyor' },
+  financialReviewing: { en: 'Under review', fa: 'در حال بررسی', ar: 'قيد المراجعة', tr: 'İnceleniyor' },
+  financialApproved: { en: 'Approved', fa: 'تأیید شده', ar: 'معتمد', tr: 'Onaylandı' },
+  autoApproved: { en: 'Bank gateway approved', fa: 'تأیید درگاه بانکی', ar: 'معتمد من بوابة البنك', tr: 'Banka ağ geçidi onaylı' },
+  receiptViewError: { en: 'Error displaying receipt', fa: 'خطا در نمایش رسید', ar: 'خطأ في عرض الإيصال', tr: 'Makbuz görüntüleme hatası' },
+  receiptViewErrorDescription: { en: 'Unable to display the receipt', fa: 'امکان نمایش رسید وجود ندارد', ar: 'تعذر عرض الإيصال', tr: 'Makbuz görüntülenemedi' },
+  receiptAccessError: { en: 'Error accessing receipt', fa: 'خطا در دسترسی به رسید', ar: 'خطأ في الوصول إلى الإيصال', tr: 'Makbuz erişim hatası' },
+  serverConnectionError: { en: 'A problem occurred while connecting to the server', fa: 'مشکل در اتصال به سرور', ar: 'حدثت مشكلة أثناء الاتصال بالخادم', tr: 'Sunucu bağlantısında sorun oluştu' },
+  orderNotFound: { en: 'Order not found', fa: 'سفارش یافت نشد', ar: 'لم يتم العثور على الطلب', tr: 'Sipariş bulunamadı' },
+  fetchDetailsFailed: { en: 'Failed to fetch order details', fa: 'دریافت جزئیات سفارش ناموفق بود', ar: 'فشل في جلب تفاصيل الطلب', tr: 'Sipariş ayrıntıları alınamadı' },
+  printError: { en: 'Print error', fa: 'خطا در چاپ', ar: 'خطأ في الطباعة', tr: 'Yazdırma hatası' },
+  printErrorDescription: { en: 'Unable to print', fa: 'امکان چاپ وجود ندارد', ar: 'تعذر الطباعة', tr: 'Yazdırılamadı' },
+  authChecking: { en: 'Checking authentication...', fa: 'بررسی احراز هویت...', ar: 'جارٍ التحقق من المصادقة...', tr: 'Kimlik doğrulama denetleniyor...' },
+  restrictedAccess: { en: 'Restricted access', fa: 'دسترسی محدود', ar: 'الوصول مقيد', tr: 'Kısıtlı erişim' },
+  adminLoginRequired: { en: 'Sign in to the administrator account to access financial approval', fa: 'برای دسترسی به تأیید مالی، ابتدا وارد حساب مدیریت شوید', ar: 'سجّل الدخول إلى حساب المسؤول للوصول إلى الموافقة المالية', tr: 'Finansal onaya erişmek için yönetici hesabında oturum açın' },
+  customerAccount: { en: 'You are signed in with a customer account. Please use an administrator account.', fa: 'شما با حساب مشتری وارد شده‌اید. لطفاً از حساب مدیریت استفاده کنید.', ar: 'لقد سجلت الدخول بحساب عميل. يرجى استخدام حساب مسؤول.', tr: 'Müşteri hesabıyla giriş yaptınız. Lütfen yönetici hesabını kullanın.' },
+  adminLogin: { en: 'Sign in to administrator account', fa: 'ورود به حساب مدیریت', ar: 'تسجيل الدخول إلى حساب المسؤول', tr: 'Yönetici hesabında oturum aç' },
+  loading: { en: 'Loading...', fa: 'در حال بارگذاری...', ar: 'جارٍ التحميل...', tr: 'Yükleniyor...' },
+  order: { en: 'Order', fa: 'سفارش', ar: 'الطلب', tr: 'Sipariş' },
+  review: { en: 'Review', fa: 'بررسی', ar: 'مراجعة', tr: 'İncele' },
+  details: { en: 'Details', fa: 'جزئیات', ar: 'التفاصيل', tr: 'Ayrıntılar' },
+  receipt: { en: 'Receipt', fa: 'رسید', ar: 'الإيصال', tr: 'Makbuz' },
+  date: { en: 'Date', fa: 'تاریخ', ar: 'التاريخ', tr: 'Tarih' },
+  transferredToWarehouse: { en: 'Transferred to warehouse', fa: 'ارجاع شده به انبار', ar: 'أحيل إلى المستودع', tr: 'Depoya aktarıldı' },
+  forceRefresh: { en: 'Force refresh', fa: 'به‌روزرسانی قوی', ar: 'تحديث إجباري', tr: 'Zorla yenile' },
+  walletPending: { en: 'Wallet (needs approval)', fa: 'کیف پول (نیاز به تأیید)', ar: 'المحفظة (تحتاج إلى اعتماد)', tr: 'Cüzdan (onay bekliyor)' },
+  bankGateway: { en: 'Bank gateway', fa: 'درگاه بانکی', ar: 'بوابة البنك', tr: 'Banka ağ geçidi' },
+  totalAmounts: { en: 'Total amounts', fa: 'مجموع مبالغ', ar: 'إجمالي المبالغ', tr: 'Toplam tutarlar' },
+  transferredCount: { en: 'Transferred count', fa: 'تعداد ارجاع شده', ar: 'عدد المحال', tr: 'Aktarılan sayı' },
+  pendingReview: { en: 'Awaiting review', fa: 'در انتظار بررسی', ar: 'بانتظار المراجعة', tr: 'İnceleme bekliyor' },
+  transferred: { en: 'Transferred', fa: 'ارجاع شده', ar: 'مُحال', tr: 'Aktarıldı' },
+  rejected: { en: 'Rejected', fa: 'رد شده', ar: 'مرفوض', tr: 'Reddedildi' },
+  allReviewed: { en: 'All orders have been reviewed', fa: 'همه سفارشات بررسی شده', ar: 'تمت مراجعة جميع الطلبات', tr: 'Tüm siparişler incelendi' },
+  noPendingReview: { en: 'There are currently no orders awaiting financial review', fa: 'در حال حاضر سفارشی برای بررسی مالی وجود ندارد', ar: 'لا توجد طلبات حالياً بانتظار المراجعة المالية', tr: 'Şu anda finansal inceleme bekleyen sipariş yok' },
+  walletManual: { en: 'Wallet orders - manual approval required', fa: 'سفارشات کیف پول - نیاز به تأیید دستی', ar: 'طلبات المحفظة - تتطلب اعتماداً يدوياً', tr: 'Cüzdan siparişleri - manuel onay gerekli' },
+  bankManual: { en: 'Bank gateway orders - manual review', fa: 'سفارشات درگاه بانکی - بررسی دستی', ar: 'طلبات بوابة البنك - مراجعة يدوية', tr: 'Banka ağ geçidi siparişleri - manuel inceleme' },
+  noTransferred: { en: 'No orders transferred to the warehouse', fa: 'سفارشی به انبار ارجاع نشده', ar: 'لم تتم إحالة أي طلب إلى المستودع', tr: 'Depoya aktarılan sipariş yok' },
+  noTransferredDescription: { en: 'There are currently no approved orders transferred to the warehouse', fa: 'در حال حاضر سفارش تأیید شده‌ای که به انبار ارجاع شده باشد وجود ندارد', ar: 'لا توجد حالياً طلبات معتمدة أحيلت إلى المستودع', tr: 'Şu anda depoya aktarılmış onaylı sipariş yok' },
+  noRejected: { en: 'There are no rejected orders', fa: 'هیچ سفارش رد شده‌ای وجود ندارد', ar: 'لا توجد طلبات مرفوضة', tr: 'Reddedilen sipariş yok' },
+  customer: { en: 'Customer', fa: 'مشتری', ar: 'العميل', tr: 'Müşteri' },
+  decisionPrompt: { en: 'Please make your decision', fa: 'لطفاً تصمیم خود را اعلام کنید', ar: 'يرجى اتخاذ قرارك', tr: 'Lütfen kararınızı verin' },
+  orderAmount: { en: 'Order amount', fa: 'مبلغ سفارش', ar: 'مبلغ الطلب', tr: 'Sipariş tutarı' },
+  walletBalance: { en: 'Wallet balance', fa: 'موجودی کیف پول', ar: 'رصيد المحفظة', tr: 'Cüzdan bakiyesi' },
+  customerWalletBalance: { en: 'Customer wallet balance', fa: 'موجودی کیف پول مشتری', ar: 'رصيد محفظة العميل', tr: 'Müşteri cüzdan bakiyesi' },
+  receiptViewed: { en: 'Bank receipt viewed', fa: 'فیش بانکی مشاهده شد', ar: 'تم عرض الإيصال البنكي', tr: 'Banka makbuzu görüntülendi' },
+  receiptNotViewed: { en: 'Bank receipt not viewed', fa: 'فیش بانکی مشاهده نشده', ar: 'لم يتم عرض الإيصال البنكي', tr: 'Banka makbuzu görüntülenmedi' },
+  viewReceiptFirst: { en: 'View the receipt first to enable approval', fa: 'برای فعال شدن دکمه تأیید، ابتدا فیش را مشاهده کنید', ar: 'اعرض الإيصال أولاً لتفعيل زر الاعتماد', tr: 'Onayı etkinleştirmek için önce makbuzu görüntüleyin' },
+  viewAgain: { en: 'View again', fa: 'مشاهده مجدد', ar: 'عرض مجدداً', tr: 'Tekrar görüntüle' },
+  viewReceipt: { en: 'View receipt', fa: 'مشاهده فیش', ar: 'عرض الإيصال', tr: 'Makbuzu görüntüle' },
+  walletSufficient: { en: 'Wallet balance is sufficient', fa: 'موجودی کیف پول کافی است', ar: 'رصيد المحفظة كافٍ', tr: 'Cüzdan bakiyesi yeterli' },
+  walletApprovalOnly: { en: 'This order only needs management approval', fa: 'این سفارش فقط نیاز به تأیید مدیریت دارد', ar: 'هذا الطلب يحتاج فقط إلى اعتماد الإدارة', tr: 'Bu sipariş yalnızca yönetici onayı gerektiriyor' },
+  walletPaymentDone: { en: 'Paid from wallet - only management approval remains', fa: 'پرداخت از کیف پول انجام شده - فقط تأیید مدیریت باقی مانده است', ar: 'تم الدفع من المحفظة - يتبقى اعتماد الإدارة فقط', tr: 'Cüzdandan ödendi - yalnızca yönetici onayı kaldı' },
+  liveCalculations: { en: 'Live calculations', fa: 'محاسبات زنده', ar: 'الحسابات المباشرة', tr: 'Canlı hesaplamalar' },
+  receiptAmount: { en: 'Receipt amount', fa: 'مبلغ رسید واریزی', ar: 'مبلغ الإيصال', tr: 'Makbuz tutarı' },
+  shortfall: { en: 'Payment shortfall', fa: 'کسری واریزی', ar: 'عجز الدفع', tr: 'Ödeme eksikliği' },
+  excess: { en: 'Excess payment', fa: 'اضافه واریزی', ar: 'الدفعة الزائدة', tr: 'Fazla ödeme' },
+  walletCoverage: { en: 'Wallet coverage', fa: 'کفایت کیف پول', ar: 'كفاية المحفظة', tr: 'Cüzdan kapsamı' },
+  sufficient: { en: 'Sufficient', fa: 'کافی است', ar: 'كافٍ', tr: 'Yeterli' },
+  insufficient: { en: 'Insufficient', fa: 'ناکافی', ar: 'غير كافٍ', tr: 'Yetersiz' },
+  extraToWallet: { en: 'The excess amount will be added to the customer wallet', fa: 'مبلغ اضافی به کیف پول مشتری اضافه خواهد شد', ar: 'سيُضاف المبلغ الزائد إلى محفظة العميل', tr: 'Fazla tutar müşterinin cüzdanına eklenecek' },
+  approvalStatus: { en: 'Approval status', fa: 'وضعیت تأیید', ar: 'حالة الاعتماد', tr: 'Onay durumu' },
+  approvable: { en: 'Can be approved', fa: 'قابل تأیید', ar: 'قابل للاعتماد', tr: 'Onaylanabilir' },
+  notApprovable: { en: 'Cannot be approved', fa: 'غیرقابل تأیید', ar: 'غير قابل للاعتماد', tr: 'Onaylanamaz' },
+  receiptAmountRequired: { en: 'Receipt amount *', fa: 'مبلغ رسید واریزی *', ar: 'مبلغ الإيصال *', tr: 'Makbuz tutarı *' },
+  receiptAmountPlaceholder: { en: 'Enter the deposited amount (required)', fa: 'مبلغ واریز شده را وارد کنید (اجباری)', ar: 'أدخل المبلغ المودع (مطلوب)', tr: 'Yatırılan tutarı girin (zorunlu)' },
+  receiptAmountHelp: { en: 'For a deferred bank transfer, entering the receipt amount is required', fa: 'برای حواله بانکی مدت‌دار، وارد کردن مبلغ فیش اجباری است', ar: 'بالنسبة للتحويل البنكي المؤجل، إدخال مبلغ الإيصال مطلوب', tr: 'Vadeli banka havalesi için makbuz tutarı zorunludur' },
+  walletFullInfo: { en: 'Fully paid from wallet - no amount required', fa: 'پرداخت کامل از کیف پول - نیازی به وارد کردن مبلغ نیست', ar: 'دفع كامل من المحفظة - لا حاجة لإدخال مبلغ', tr: 'Cüzdandan tam ödeme - tutar girmek gerekmez' },
+  walletPartialInfo: { en: 'Partially paid from wallet - amounts already calculated', fa: 'پرداخت ترکیبی از کیف پول - مبلغ‌ها قبلاً محاسبه شده', ar: 'دفع مختلط من المحفظة - تم حساب المبالغ مسبقاً', tr: 'Cüzdandan kısmi ödeme - tutarlar zaten hesaplandı' },
+  onlinePaymentInfo: { en: 'Online payment - amount received from gateway', fa: 'پرداخت آنلاین - مبلغ از درگاه دریافت شده', ar: 'دفع إلكتروني - تم استلام المبلغ من البوابة', tr: 'Çevrimiçi ödeme - tutar ağ geçidinden alındı' },
+  paymentConfirmedInfo: { en: 'Payment amount has already been confirmed', fa: 'مبلغ پرداخت قبلاً تأیید شده است', ar: 'تم تأكيد مبلغ الدفع مسبقاً', tr: 'Ödeme tutarı zaten onaylandı' },
+  notes: { en: 'Notes', fa: 'یادداشت‌ها', ar: 'الملاحظات', tr: 'Notlar' },
+  notesPlaceholder: { en: 'Enter your notes...', fa: 'یادداشت‌های خود را وارد کنید...', ar: 'أدخل ملاحظاتك...', tr: 'Notlarınızı girin...' },
+  cancel: { en: 'Cancel', fa: 'انصراف', ar: 'إلغاء', tr: 'İptal' },
+  reject: { en: 'Reject', fa: 'رد', ar: 'رفض', tr: 'Reddet' },
+  approve: { en: 'Approve', fa: 'تأیید', ar: 'اعتماد', tr: 'Onayla' },
+  receiptViewer: { en: 'View payment receipt', fa: 'مشاهده فیش پرداخت', ar: 'عرض إيصال الدفع', tr: 'Ödeme makbuzunu görüntüle' },
+  zoomOut: { en: 'Zoom out', fa: 'کوچک‌تر کردن', ar: 'تصغير', tr: 'Uzaklaştır' },
+  zoomIn: { en: 'Zoom in', fa: 'بزرگ‌تر کردن', ar: 'تكبير', tr: 'Yakınlaştır' },
+  rotate: { en: 'Rotate 90 degrees', fa: 'چرخاندن ۹۰ درجه', ar: 'تدوير ٩٠ درجة', tr: '90 derece döndür' },
+  resetView: { en: 'Reset view', fa: 'بازگشت به حالت اولیه', ar: 'إعادة ضبط العرض', tr: 'Görünümü sıfırla' },
+  paymentReceipt: { en: 'Payment receipt', fa: 'فیش پرداخت', ar: 'إيصال الدفع', tr: 'Ödeme makbuzu' },
+  openingPdf: { en: 'Opening PDF in a new tab...', fa: 'در حال باز کردن PDF در تب جدید...', ar: 'جارٍ فتح PDF في علامة تبويب جديدة...', tr: 'PDF yeni sekmede açılıyor...' },
+  unsupportedFile: { en: 'Unsupported file type', fa: 'نوع فایل پشتیبانی نمی‌شود', ar: 'نوع الملف غير مدعوم', tr: 'Desteklenmeyen dosya türü' },
+  openNewTab: { en: 'Open in new tab', fa: 'باز کردن در تب جدید', ar: 'فتح في علامة تبويب جديدة', tr: 'Yeni sekmede aç' },
+  dragImage: { en: 'Drag the image to move it', fa: 'برای جابجایی تصویر آن را بکشید', ar: 'اسحب الصورة لتحريكها', tr: 'Taşımak için resmi sürükleyin' },
+  customerInfo: { en: 'Customer information', fa: 'اطلاعات مشتری', ar: 'معلومات العميل', tr: 'Müşteri bilgileri' },
+  name: { en: 'Name', fa: 'نام', ar: 'الاسم', tr: 'Ad' },
+  email: { en: 'Email', fa: 'ایمیل', ar: 'البريد الإلكتروني', tr: 'E-posta' },
+  phone: { en: 'Phone', fa: 'تلفن', ar: 'الهاتف', tr: 'Telefon' },
+  walletCustomer: { en: 'Customer wallet balance', fa: 'موجودی کیف پول مشتری', ar: 'رصيد محفظة العميل', tr: 'Müşteri cüzdan bakiyesi' },
+  walletFull: { en: 'Full wallet payment', fa: 'پرداخت کامل از کیف پول', ar: 'دفع كامل من المحفظة', tr: 'Tam cüzdan ödemesi' },
+  walletPartial: { en: 'Partial wallet payment', fa: 'پرداخت ترکیبی از کیف پول', ar: 'دفع جزئي من المحفظة', tr: 'Kısmi cüzdan ödemesi' },
+  onlinePayment: { en: 'Online payment', fa: 'پرداخت آنلاین', ar: 'دفع إلكتروني', tr: 'Çevrimiçi ödeme' },
+  deliveryAddress: { en: 'Delivery address', fa: 'آدرس تحویل', ar: 'عنوان التسليم', tr: 'Teslimat adresi' },
+  recipientName: { en: 'Recipient name', fa: 'نام گیرنده', ar: 'اسم المستلم', tr: 'Alıcı adı' },
+  fullAddress: { en: 'Full address', fa: 'آدرس کامل', ar: 'العنوان الكامل', tr: 'Tam adres' },
+  city: { en: 'City', fa: 'شهر', ar: 'المدينة', tr: 'Şehir' },
+  postalCode: { en: 'Postal code', fa: 'کد پستی', ar: 'الرمز البريدي', tr: 'Posta kodu' },
+  billingAddress: { en: 'Billing address', fa: 'آدرس صورتحساب', ar: 'عنوان الفوترة', tr: 'Fatura adresi' },
+  customerNote: { en: 'Customer note', fa: 'یادداشت مشتری', ar: 'ملاحظة العميل', tr: 'Müşteri notu' },
+  checkoutNote: { en: 'Checkout note', fa: 'یادداشت چک‌اوت', ar: 'ملاحظة الدفع', tr: 'Ödeme notu' },
+  orderItems: { en: 'Order items', fa: 'اقلام سفارش', ar: 'عناصر الطلب', tr: 'Sipariş kalemleri' },
+  quantity: { en: 'Quantity', fa: 'تعداد', ar: 'الكمية', tr: 'Miktar' },
+  unitPrice: { en: 'Unit price', fa: 'قیمت واحد', ar: 'سعر الوحدة', tr: 'Birim fiyat' },
+  total: { en: 'Total', fa: 'مجموع', ar: 'الإجمالي', tr: 'Toplam' },
+  itemsSubtotal: { en: 'Items subtotal', fa: 'جمع کالاها', ar: 'المجموع الفرعي للعناصر', tr: 'Ürün ara toplamı' },
+  shippingCost: { en: 'Shipping cost', fa: 'کرایه حمل', ar: 'تكلفة الشحن', tr: 'Kargo ücreti' },
+  vat: { en: 'VAT', fa: 'مالیات بر ارزش افزوده', ar: 'ضريبة القيمة المضافة', tr: 'KDV' },
+  grandTotal: { en: 'Grand total', fa: 'مجموع کل', ar: 'الإجمالي الكلي', tr: 'Genel toplam' },
+  paymentMethod: { en: 'Payment method', fa: 'روش پرداخت', ar: 'طريقة الدفع', tr: 'Ödeme yöntemi' },
+  deferredBankTransfer: { en: 'Deferred bank transfer', fa: 'حواله بانکی (مهلت‌دار)', ar: 'تحويل بنكي مؤجل', tr: 'Vadeli banka havalesi' },
+  bankTransfer: { en: 'Bank transfer', fa: 'حواله بانکی', ar: 'تحويل بنكي', tr: 'Banka havalesi' },
+  cashOnDelivery: { en: 'Cash on delivery', fa: 'پرداخت در محل', ar: 'الدفع عند الاستلام', tr: 'Kapıda ödeme' },
+  print: { en: 'Print', fa: 'چاپ', ar: 'طباعة', tr: 'Yazdır' },
+  sku: { en: 'SKU', fa: 'شناسه کالا', ar: 'رمز المنتج', tr: 'SKU' },
 };
+
+const translatePage = (language: PageLanguage, key: string) =>
+  pageTranslations[key]?.[language] || pageTranslations[key]?.en || key;
+
+// Legacy server value retained for backward-compatible payment matching.
+const legacyDeferredBankTransfer = '\u0648\u0627\u0631\u06cc\u0632\u0020\u0628\u0627\u0646\u06a9\u06cc\u0020\u0628\u0627\u0020\u0645\u0647\u0644\u062a\u0020\u0033\u0020\u0631\u0648\u0632\u0647';
 
 // Helper to get customer info safely
 const getCustomerInfo = (order: any) => {
@@ -107,6 +245,49 @@ const getCustomerInfo = (order: any) => {
 };
 
 function FinanceOrders() {
+  const { language: contextLanguage, direction } = useLanguage();
+  const language = (['en', 'fa', 'ar', 'tr'].includes(contextLanguage) ? contextLanguage : 'en') as PageLanguage;
+  const t = (key: string) => translatePage(language, key);
+  const locale = language === 'fa' ? 'fa-IR-u-ca-persian' : language === 'ar' ? 'ar-IQ-u-ca-gregory' : language === 'tr' ? 'tr-TR-u-ca-gregory' : 'en-IQ-u-ca-gregory';
+  const formatNumber = (value: number, maximumFractionDigits = 0) =>
+    new Intl.NumberFormat(locale, { maximumFractionDigits }).format(value);
+  const formatDate = (value: string | Date, withTime = false) => {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return t('unknown');
+    return new Intl.DateTimeFormat(locale, {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      ...(withTime ? { hour: '2-digit', minute: '2-digit' } : {}),
+    }).format(date);
+  };
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: 'IQD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  const translateWithValue = (key: string, value: number) => t(key).replace('{count}', formatNumber(value));
+  const formatPaymentMethod = (paymentMethod?: string) => {
+    switch (paymentMethod) {
+      case 'bank_transfer_grace':
+      case legacyDeferredBankTransfer:
+        return t('deferredBankTransfer');
+      case 'bank_transfer':
+        return t('bankTransfer');
+      case 'cash_on_delivery':
+        return t('cashOnDelivery');
+      case 'wallet_full':
+        return t('walletFull');
+      case 'wallet_partial':
+        return t('walletPartial');
+      case 'online_payment':
+        return t('onlinePayment');
+      default:
+        return paymentMethod || t('unknown');
+    }
+  };
   const { toast } = useToast();
   const [selectedOrder, setSelectedOrder] = useState<OrderManagement | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -190,14 +371,14 @@ function FinanceOrders() {
     },
     onSuccess: () => {
       toast({
-        title: "یادآوری ارسال شد",
-        description: "پیام یادآوری با موفقیت ارسال شد"
+        title: t('reminderSent'),
+        description: t('reminderDescription')
       });
     },
     onError: (error: any) => {
       toast({
-        title: "خطا در ارسال یادآوری",
-        description: error.message || "امکان ارسال یادآوری وجود ندارد",
+        title: t('reminderError'),
+        description: error.message || t('reminderErrorDescription'),
         variant: "destructive"
       });
     }
@@ -215,8 +396,8 @@ function FinanceOrders() {
     onSuccess: (response) => {
       console.log(`✅ [FINANCE] Order approved successfully:`, response);
       toast({
-        title: "✅ سفارش تأیید شد",
-        description: "سفارش با موفقیت تأیید و به انبار ارجاع شد"
+        title: `✅ ${t('orderApproved')}`,
+        description: t('orderApprovedDescription')
       });
       setDialogOpen(false);
       setSelectedOrder(null);
@@ -234,8 +415,8 @@ function FinanceOrders() {
     onError: (error: any) => {
       console.error(`❌ [FINANCE] Approval error:`, error);
       toast({
-        title: "خطا در تأیید سفارش",
-        description: error.message || "امکان تأیید سفارش وجود ندارد",
+        title: t('approvalError'),
+        description: error.message || t('approvalErrorDescription'),
         variant: "destructive"
       });
     }
@@ -253,8 +434,8 @@ function FinanceOrders() {
     onSuccess: (response) => {
       console.log(`✅ [FINANCE] Order rejected successfully:`, response);
       toast({
-        title: "❌ سفارش رد شد",
-        description: "سفارش با موفقیت رد شد"
+        title: `❌ ${t('orderRejected')}`,
+        description: t('orderRejectedDescription')
       });
       setDialogOpen(false);
       setSelectedOrder(null);
@@ -270,8 +451,8 @@ function FinanceOrders() {
     onError: (error: any) => {
       console.error(`❌ [FINANCE] Rejection error:`, error);
       toast({
-        title: "خطا در رد سفارش",
-        description: error.message || "امکان رد سفارش وجود ندارد",
+        title: t('rejectionError'),
+        description: error.message || t('rejectionErrorDescription'),
         variant: "destructive"
       });
     }
@@ -286,15 +467,15 @@ function FinanceOrders() {
     },
     onSuccess: (response) => {
       toast({
-        title: "تصحیح پرداخت‌ها انجام شد",
-        description: `${response.fixed} پرداخت تصحیح شد`
+        title: t('paymentsFixed'),
+        description: translateWithValue('paymentsFixedDescription', response.fixed)
       });
       refetch();
     },
     onError: (error: any) => {
       toast({
-        title: "خطا در بهبود پرداخت",
-        description: error.message || "خطا در تصحیح پرداخت‌های ناتمام",
+        title: t('paymentsFixError'),
+        description: error.message || t('paymentsFixErrorDescription'),
         variant: "destructive"
       });
     }
@@ -320,8 +501,8 @@ function FinanceOrders() {
     await refetch();
     await refetchApproved();
     toast({
-      title: "🔄 به‌روزرسانی شد",
-      description: "تمام اطلاعات مالی از سرور بازیابی شد",
+      title: `🔄 ${t('refreshed')}`,
+      description: t('refreshedDescription'),
     });
   }, [refetch, refetchApproved, toast]);
 
@@ -334,12 +515,12 @@ function FinanceOrders() {
       });
       
       if (!findOrderResponse.ok) {
-        throw new Error('Order not found');
+        throw new Error(t('orderNotFound'));
       }
       
       const findOrderData = await findOrderResponse.json();
       if (!findOrderData.success) {
-        throw new Error(findOrderData.message || 'Order not found');
+        throw new Error(findOrderData.message || t('orderNotFound'));
       }
       
       // Now get the order details using the customer order ID
@@ -348,7 +529,7 @@ function FinanceOrders() {
       });
       
       if (!detailsResponse.ok) {
-        throw new Error('Failed to fetch order details');
+        throw new Error(t('fetchDetailsFailed'));
       }
       
       const detailsData = await detailsResponse.json();
@@ -381,17 +562,17 @@ function FinanceOrders() {
         
         setOrderDetailsModalOpen(true);
       } else {
-        throw new Error(detailsData.message || 'Failed to get order details');
+        throw new Error(detailsData.message || t('fetchDetailsFailed'));
       }
     } catch (error) {
       console.error('Error fetching order details:', error);
       toast({
         variant: "destructive", 
-        title: "خطا",
-        description: "امکان دریافت جزئیات سفارش وجود ندارد"
+        title: t('error'),
+        description: t('orderDetailsError')
       });
     }
-  }, [toast]);
+  }, [toast, t]);
 
   const loadTrackingCodes = useCallback(async (orderId?: number) => {
     if (!orderId) return;
@@ -413,17 +594,21 @@ function FinanceOrders() {
   const getStatusBadge = useCallback((status: string) => {
     switch (status) {
       case 'payment_uploaded':
-        return <Badge variant="outline" className="bg-yellow-50 text-yellow-700">در انتظار بررسی مالی</Badge>;
+        return <Badge variant="outline" className="bg-yellow-50 text-yellow-700">{t('paymentUploaded')}</Badge>;
+      case 'finance_pending':
+        return <Badge variant="outline" className="bg-yellow-50 text-yellow-700">{t('pendingReview')}</Badge>;
       case 'financial_reviewing':
-        return <Badge variant="outline" className="bg-blue-50 text-blue-700">در حال بررسی</Badge>;
+        return <Badge variant="outline" className="bg-blue-50 text-blue-700">{t('financialReviewing')}</Badge>;
       case 'financial_approved':
-        return <Badge variant="outline" className="bg-green-50 text-green-700">تأیید شده</Badge>;
+        return <Badge variant="outline" className="bg-green-50 text-green-700">{t('financialApproved')}</Badge>;
       case 'auto_approved':
-        return <Badge variant="outline" className="bg-emerald-50 text-emerald-700">تأیید درگاه بانکی</Badge>;
+        return <Badge variant="outline" className="bg-emerald-50 text-emerald-700">{t('autoApproved')}</Badge>;
+      case 'finance_rejected':
+        return <Badge variant="outline" className="bg-red-50 text-red-700">{t('rejected')}</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
-  }, []);
+  }, [t]);
 
   const handleOrderReview = useCallback(async (order: OrderManagement) => {
     setSelectedOrder(order);
@@ -535,8 +720,8 @@ function FinanceOrders() {
       if (!response.ok) {
         console.error('❌ [IMAGE MODAL] Image not accessible:', processedUrl, 'Status:', response.status);
         toast({
-          title: "خطا در نمایش رسید",
-          description: "امکان نمایش رسید وجود ندارد",
+          title: t('receiptViewError'),
+          description: t('receiptViewErrorDescription'),
           variant: "destructive"
         });
         return;
@@ -545,8 +730,8 @@ function FinanceOrders() {
     } catch (error) {
       console.error('❌ [IMAGE MODAL] Failed to verify image:', error);
       toast({
-        title: "خطا در دسترسی به رسید",
-        description: "مشکل در اتصال به سرور",
+        title: t('receiptAccessError'),
+        description: t('serverConnectionError'),
         variant: "destructive"
       });
       return;
@@ -559,7 +744,7 @@ function FinanceOrders() {
     setZoomLevel(1);
     setRotation(0);
     setPanPosition({ x: 0, y: 0 });
-  }, [toast]);
+  }, [toast, t]);
 
   // Function to determine if URL is an image
   const isImageUrl = (url: string, mimeType?: string) => {
@@ -631,11 +816,11 @@ function FinanceOrders() {
       const printWindow = window.open('', '_blank');
       if (printWindow) {
         printWindow.document.write(`
-          <html>
+          <html dir="${direction}" lang="${language}">
             <head>
-              <title>جزئیات سفارش ${orderDetails.orderNumber}</title>
+              <title>${t('details')} ${t('order')} ${orderDetails.orderNumber}</title>
               <style>
-                body { font-family: Arial, sans-serif; direction: rtl; padding: 20px; }
+                body { font-family: Arial, sans-serif; direction: ${direction}; padding: 20px; }
                 .header { text-align: center; margin-bottom: 20px; }
                 .info { margin: 10px 0; }
                 table { width: 100%; border-collapse: collapse; margin: 20px 0; }
@@ -645,34 +830,34 @@ function FinanceOrders() {
             </head>
             <body>
               <div class="header">
-                <h2>جزئیات سفارش ${orderDetails.orderNumber}</h2>
-                <p>تاریخ چاپ: ${new Date().toLocaleDateString('fa-IR')}</p>
+                <h2>${t('details')} ${t('order')} ${orderDetails.orderNumber}</h2>
+                <p>${t('date')}: ${formatDate(new Date(), true)}</p>
               </div>
               <div class="info">
-                <strong>مشتری:</strong> ${orderDetails.customerName || 'نامشخص'}
+                <strong>${t('customer')}:</strong> ${orderDetails.customerName || t('unknown')}
               </div>
               <div class="info">
-                <strong>ایمیل:</strong> ${orderDetails.customerEmail || 'نامشخص'}
+                <strong>${t('email')}:</strong> ${orderDetails.customerEmail || t('unknown')}
               </div>
               <div class="info">
-                <strong>تلفن:</strong> ${orderDetails.customerPhone || 'نامشخص'}
+                <strong>${t('phone')}:</strong> ${orderDetails.customerPhone || t('unknown')}
               </div>
               <table>
                 <thead>
                   <tr>
-                    <th>نام محصول</th>
-                    <th>تعداد</th>
-                    <th>قیمت</th>
+                    <th>${t('orderItems')}</th>
+                    <th>${t('quantity')}</th>
+                    <th>${t('unitPrice')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   ${orderDetails.items?.map((item: any) => `
                     <tr>
-                      <td>${item.productName || 'نامشخص'}</td>
-                      <td>${item.quantity || 0}</td>
-                      <td>${item.price || 0}</td>
+                      <td>${item.productName || t('unknown')}</td>
+                      <td>${formatNumber(Number(item.quantity || 0))}</td>
+                      <td>${formatCurrency(Number(item.price || 0))}</td>
                     </tr>
-                  `).join('') || '<tr><td colspan="3">بدون آیتم</td></tr>'}
+                  `).join('') || `<tr><td colspan="3">${t('orderItems')}: 0</td></tr>`}
                 </tbody>
               </table>
             </body>
@@ -683,12 +868,12 @@ function FinanceOrders() {
       }
     } catch (error) {
       toast({
-        title: "خطا در چاپ",
-        description: "امکان چاپ وجود ندارد",
+        title: t('printError'),
+        description: t('printErrorDescription'),
         variant: "destructive",
       });
     }
-  }, [orderDetails, toast]);
+  }, [orderDetails, toast, t, direction, language]);
 
   const handleAcceptOrder = useCallback(() => {
     if (!orderDetails) return;
@@ -705,11 +890,11 @@ function FinanceOrders() {
     console.log('🔄 [FINANCE] Accepting order from modal - Management ID:', correspondingOrder.id, 'Customer Order ID:', correspondingOrder.customerOrderId);
     approveMutation.mutate({ 
       orderId: correspondingOrder.id, // Use order_management.id to avoid ID collisions
-      notes: `سفارش تأیید شد از طریق مودال جزئیات - ${new Date().toLocaleDateString('en-US')}`,
+      notes: `${t('orderApproved')} - ${formatDate(new Date())}`,
       receiptAmount: receiptAmount 
     });
     // Don't close modal here - let the mutation success handler close it
-  }, [orderDetails, allOrders, approveMutation, receiptAmount]);
+  }, [orderDetails, allOrders, approveMutation, receiptAmount, t, formatDate]);
 
   const handleRejectOrder = useCallback(() => {
     if (!orderDetails) return;
@@ -726,10 +911,10 @@ function FinanceOrders() {
     console.log('🔄 [FINANCE] Rejecting order from modal - Management ID:', correspondingOrder.id, 'Customer Order ID:', correspondingOrder.customerOrderId);
     rejectMutation.mutate({ 
       orderId: correspondingOrder.id, // Use order_management.id to avoid ID collisions
-      notes: `سفارش رد شد از طریق مودال جزئیات - ${new Date().toLocaleDateString('en-US')}` 
+      notes: `${t('orderRejected')} - ${formatDate(new Date())}`
     });
     // Don't close modal here - let the mutation success handler close it
-  }, [orderDetails, allOrders, rejectMutation]);
+  }, [orderDetails, allOrders, rejectMutation, t, formatDate]);
 
   // Early return for loading state - AFTER all hooks are called
   if (isCheckingAuth) {
@@ -737,7 +922,7 @@ function FinanceOrders() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <Clock className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p>بررسی احراز هویت...</p>
+          <p>{t('authChecking')}</p>
         </div>
       </div>
     );
@@ -750,22 +935,22 @@ function FinanceOrders() {
         <Card className="w-full max-w-md mx-4">
           <CardHeader>
             <CardTitle className="text-center text-red-600">
-              دسترسی محدود
+              {t('restrictedAccess')}
             </CardTitle>
             <CardDescription className="text-center">
-              برای دسترسی به بخش مالی، ابتدا وارد حساب مدیریت شوید
+              {t('adminLoginRequired')}
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center space-y-4">
             <AlertTriangle className="h-12 w-12 text-red-500 mx-auto" />
             <p className="text-sm text-gray-600">
-              شما با حساب مشتری وارد شده‌اید. لطفاً از حساب مدیریت استفاده کنید.
+              {t('customerAccount')}
             </p>
             <Button 
               onClick={() => window.location.href = '/admin/login'} 
               className="w-full"
             >
-              ورود به حساب مدیریت
+              {t('adminLogin')}
             </Button>
           </CardContent>
         </Card>
@@ -835,7 +1020,7 @@ function FinanceOrders() {
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-center items-center h-64">
           <RefreshCw className="h-8 w-8 animate-spin" />
-          <span className="ml-2">در حال بارگذاری...</span>
+          <span className="ml-2">{t('loading')}</span>
         </div>
       </div>
     );
@@ -855,14 +1040,14 @@ function FinanceOrders() {
         <CardContent className="p-6">
           <div className="flex justify-between items-start mb-4">
             <div>
-              <h3 className="font-semibold text-lg">سفارش #{order.orderNumber}</h3>
+              <h3 className="font-semibold text-lg">{t('order')} #{order.orderNumber}</h3>
               <p className="text-sm text-gray-600">
-                {customerInfo.firstName} {customerInfo.lastName}
+                {customerInfo.name || [customerInfo.firstName, customerInfo.lastName].filter(Boolean).join(' ') || t('unknown')}
               </p>
-              <p className="text-sm text-gray-500">{customerInfo.email}</p>
+              <p className="text-sm text-gray-500">{customerInfo.email || t('unknown')}</p>
             </div>
             <div className="text-left">
-              <p className="font-bold text-lg">{parseFloat(order.totalAmount || '0').toLocaleString()} IQD</p>
+              <p className="font-bold text-lg">{formatCurrency(parseFloat(order.totalAmount || '0'))}</p>
               {getStatusBadge(order.currentStatus)}
             </div>
           </div>
@@ -870,19 +1055,19 @@ function FinanceOrders() {
           <div className="flex gap-2">
             {!readOnly && onOrderSelect && (
               <Button size="sm" onClick={onOrderSelect}>
-                بررسی
+                {t('review')}
               </Button>
             )}
             {fetchOrderDetails && (
               <Button size="sm" variant="outline" onClick={() => fetchOrderDetails(order.orderNumber)}>
                 <Eye className="w-4 h-4 mr-1" />
-                جزئیات
+                {t('details')}
               </Button>
             )}
             {(order.receipt?.url || order.paymentReceiptUrl) && (
               <Button size="sm" variant="outline" onClick={() => openImageModal(order.receipt?.url || order.paymentReceiptUrl)}>
                 <FileText className="w-4 h-4 mr-1" />
-                رسید
+                {t('receipt')}
               </Button>
             )}
           </div>
@@ -900,15 +1085,15 @@ function FinanceOrders() {
         <CardContent className="p-6">
           <div className="flex justify-between items-start">
             <div>
-              <h3 className="font-semibold text-lg">سفارش #{order.orderNumber}</h3>
+              <h3 className="font-semibold text-lg">{t('order')} #{order.orderNumber}</h3>
               <p className="text-sm text-gray-600">
-                {customerInfo.firstName} {customerInfo.lastName}
+                {customerInfo.name || [customerInfo.firstName, customerInfo.lastName].filter(Boolean).join(' ') || t('unknown')}
               </p>
-              <p className="text-sm text-gray-500">تاریخ: {formatDateSafe(order.createdAt)}</p>
+              <p className="text-sm text-gray-500">{t('date')}: {formatDate(order.createdAt)}</p>
             </div>
             <div className="text-left">
-              <p className="font-bold text-lg">{parseFloat(order.totalAmount || '0').toLocaleString()} IQD</p>
-              <Badge variant="outline" className="bg-green-50 text-green-700">ارجاع شده به انبار</Badge>
+              <p className="font-bold text-lg">{formatCurrency(parseFloat(order.totalAmount || '0'))}</p>
+              <Badge variant="outline" className="bg-green-50 text-green-700">{t('transferredToWarehouse')}</Badge>
             </div>
           </div>
         </CardContent>
@@ -917,7 +1102,7 @@ function FinanceOrders() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50" dir="rtl">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50" dir={direction}>
       {/* Header Section */}
       <div className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-6 py-6">
@@ -928,9 +1113,9 @@ function FinanceOrders() {
               </div>
               <div>
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-700 to-indigo-800 bg-clip-text text-transparent">
-                  واحد مالی
+                   {t('financialApproval')}
                 </h1>
-                <p className="text-gray-600 mt-1">مدیریت پرداخت‌ها</p>
+                <p className="text-gray-600 mt-1">{t('paymentReview')}</p>
               </div>
             </div>
             
@@ -942,7 +1127,7 @@ function FinanceOrders() {
               className="flex items-center gap-1 bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
             >
               <RefreshCw className="w-4 h-4" />
-              به‌روزرسانی قوی
+              {t('forceRefresh')}
             </Button>
           </div>
         </div>
@@ -955,8 +1140,8 @@ function FinanceOrders() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-green-100 text-sm font-medium">کیف پول (نیاز به تایید)</p>
-                  <p className="text-3xl font-bold text-white">{walletOrders.length}</p>
+                  <p className="text-green-100 text-sm font-medium">{t('walletPending')}</p>
+                  <p className="text-3xl font-bold text-white">{formatNumber(walletOrders.length)}</p>
                 </div>
                 <Timer className="h-8 w-8 text-green-200" />
               </div>
@@ -967,8 +1152,8 @@ function FinanceOrders() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-blue-100 text-sm font-medium">درگاه بانکی</p>
-                  <p className="text-3xl font-bold text-white">{bankOrders.length}</p>
+                  <p className="text-blue-100 text-sm font-medium">{t('bankGateway')}</p>
+                  <p className="text-3xl font-bold text-white">{formatNumber(bankOrders.length)}</p>
                 </div>
                 <CreditCard className="h-8 w-8 text-blue-200" />
               </div>
@@ -979,9 +1164,9 @@ function FinanceOrders() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-indigo-100 text-sm font-medium">مجموع مبالغ</p>
+                  <p className="text-indigo-100 text-sm font-medium">{t('totalAmounts')}</p>
                   <p className="text-2xl font-bold text-white">
-                    {totalAmount.toLocaleString()} IQD
+                    {formatCurrency(totalAmount)}
                   </p>
                 </div>
                 <DollarSign className="h-8 w-8 text-indigo-200" />
@@ -993,8 +1178,8 @@ function FinanceOrders() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-purple-100 text-sm font-medium">تعداد ارجاع شده</p>
-                  <p className="text-3xl font-bold text-white">{transferredOrders.length}</p>
+                  <p className="text-purple-100 text-sm font-medium">{t('transferredCount')}</p>
+                  <p className="text-3xl font-bold text-white">{formatNumber(transferredOrders.length)}</p>
                 </div>
                 <Truck className="h-8 w-8 text-purple-200" />
               </div>
@@ -1005,9 +1190,9 @@ function FinanceOrders() {
         {/* Tabs for different order states */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="pending">در انتظار بررسی ({pendingOrders.length})</TabsTrigger>
-            <TabsTrigger value="transferred">ارجاع شده ({transferredOrders.length})</TabsTrigger>
-            <TabsTrigger value="rejected">رد شده ({rejectedOrders.length})</TabsTrigger>
+            <TabsTrigger value="pending">{t('pendingReview')} ({formatNumber(pendingOrders.length)})</TabsTrigger>
+            <TabsTrigger value="transferred">{t('transferred')} ({formatNumber(transferredOrders.length)})</TabsTrigger>
+            <TabsTrigger value="rejected">{t('rejected')} ({formatNumber(rejectedOrders.length)})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="pending" className="space-y-4">
@@ -1015,8 +1200,8 @@ function FinanceOrders() {
               <Card>
                 <CardContent className="p-12 text-center">
                   <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">همه سفارشات بررسی شده</h3>
-                  <p className="text-gray-500">در حال حاضر سفارشی برای بررسی مالی وجود ندارد</p>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">{t('allReviewed')}</h3>
+                  <p className="text-gray-500">{t('noPendingReview')}</p>
                 </CardContent>
               </Card>
             ) : (
@@ -1026,7 +1211,7 @@ function FinanceOrders() {
                   <div className="space-y-4">
                     <div className="flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-lg">
                       <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                      <h3 className="font-medium text-green-800">سفارشات کیف پول - نیاز به تایید دستی</h3>
+                      <h3 className="font-medium text-green-800">{t('walletManual')}</h3>
                     </div>
                     {walletOrders.map((order) => (
                       <OrderCard 
@@ -1045,7 +1230,7 @@ function FinanceOrders() {
                     {walletOrders.length > 0 && (
                       <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg">
                         <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                        <h3 className="font-medium text-blue-800">سفارشات درگاه بانکی - بررسی دستی</h3>
+                        <h3 className="font-medium text-blue-800">{t('bankManual')}</h3>
                       </div>
                     )}
                     {bankOrders.map((order) => (
@@ -1067,8 +1252,8 @@ function FinanceOrders() {
               <Card>
                 <CardContent className="p-12 text-center">
                   <ChevronRight className="h-16 w-16 text-blue-500 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">سفارشی به انبار ارجاع نشده</h3>
-                  <p className="text-gray-500">در حال حاضر سفارش تایید شده‌ای که به انبار ارجاع شده باشد وجود ندارد</p>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">{t('noTransferred')}</h3>
+                  <p className="text-gray-500">{t('noTransferredDescription')}</p>
                 </CardContent>
               </Card>
             ) : (
@@ -1085,7 +1270,7 @@ function FinanceOrders() {
               <Card>
                 <CardContent className="p-12 text-center">
                   <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">هیچ سفارش رد شده‌ای وجود ندارد</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">{t('noRejected')}</h3>
                 </CardContent>
               </Card>
             ) : (
@@ -1103,10 +1288,10 @@ function FinanceOrders() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>بررسی سفارش #{selectedOrder?.orderNumber}</DialogTitle>
+            <DialogTitle>{t('review')} {t('order')} #{selectedOrder?.orderNumber}</DialogTitle>
             {selectedOrder && (
               <div className="mt-2 p-3 bg-blue-50 rounded-lg border">
-                <div className="text-right text-sm text-gray-600 mb-1">مشتری:</div>
+                <div className="text-right text-sm text-gray-600 mb-1">{t('customer')}:</div>
                 <div className="text-right font-medium text-blue-900">
                   {getCustomerInfo(selectedOrder).name}
                 </div>
@@ -1116,7 +1301,7 @@ function FinanceOrders() {
               </div>
             )}
             <DialogDescription>
-              لطفاً تصمیم خود را اعلام کنید
+              {t('decisionPrompt')}
             </DialogDescription>
           </DialogHeader>
           
@@ -1126,26 +1311,26 @@ function FinanceOrders() {
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <DollarSign className="w-4 h-4 text-blue-600" />
-                  <Label className="font-semibold text-blue-700">مبلغ سفارش</Label>
+                  <Label className="font-semibold text-blue-700">{t('orderAmount')}</Label>
                 </div>
                 <div className="text-lg font-bold text-blue-600">
-                  {selectedOrder?.totalAmount ? parseFloat(selectedOrder.totalAmount).toLocaleString() : '0'} IQD
+                  {selectedOrder?.totalAmount ? formatCurrency(parseFloat(selectedOrder.totalAmount)) : formatCurrency(0)}
                 </div>
               </div>
               
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Wallet className="w-4 h-4 text-green-600" />
-                  <Label className="font-semibold text-green-700">موجودی کیف پول</Label>
+                  <Label className="font-semibold text-green-700">{t('walletBalance')}</Label>
                 </div>
                 <div className="text-lg font-bold text-green-600">
                   {walletLoading ? (
                     <div className="flex items-center gap-2">
                       <RefreshCw className="w-4 h-4 animate-spin" />
-                      در حال بارگذاری...
+                      {t('loading')}
                     </div>
                   ) : (
-                    `${walletBalance.toLocaleString()} IQD`
+                     formatCurrency(walletBalance)
                   )}
                 </div>
               </div>
@@ -1158,10 +1343,10 @@ function FinanceOrders() {
                   <FileText className={`w-5 h-5 ${hasViewedReceipt ? 'text-green-600' : 'text-orange-500'}`} />
                   <div>
                     <p className={`text-sm font-semibold ${hasViewedReceipt ? 'text-green-700' : 'text-orange-700'}`}>
-                      {hasViewedReceipt ? '✅ فیش بانکی مشاهده شد' : '⚠️ فیش بانکی مشاهده نشده'}
+                      {hasViewedReceipt ? `✅ ${t('receiptViewed')}` : `⚠️ ${t('receiptNotViewed')}`}
                     </p>
                     {!hasViewedReceipt && (
-                      <p className="text-xs text-orange-600">برای فعال شدن دکمه تایید، ابتدا فیش را مشاهده کنید</p>
+                      <p className="text-xs text-orange-600">{t('viewReceiptFirst')}</p>
                     )}
                   </div>
                 </div>
@@ -1175,7 +1360,7 @@ function FinanceOrders() {
                   }}
                 >
                   <Eye className="w-4 h-4 mr-1" />
-                  {hasViewedReceipt ? 'مشاهده مجدد' : 'مشاهده فیش'}
+                  {hasViewedReceipt ? t('viewAgain') : t('viewReceipt')}
                 </Button>
               </div>
             )}
@@ -1189,77 +1374,77 @@ function FinanceOrders() {
                   </div>
                   <div className="text-center">
                     <h3 className="text-2xl font-bold text-green-700 mb-2">
-                      ✅ موجودی کیف پول کافی است
+                      ✅ {t('walletSufficient')}
                     </h3>
                     <p className="text-lg text-green-600 font-medium">
-                      این سفارش فقط نیاز به تایید مدیریت دارد
+                      {t('walletApprovalOnly')}
                     </p>
                   </div>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4 text-center">
                   <div className="p-4 bg-white rounded-lg border border-green-200">
-                    <p className="text-sm text-gray-600 mb-1">مبلغ سفارش</p>
+                    <p className="text-sm text-gray-600 mb-1">{t('orderAmount')}</p>
                     <p className="text-xl font-bold text-green-700">
-                      {parseFloat(selectedOrder.totalAmount || '0').toLocaleString()} IQD
+                       {formatCurrency(parseFloat(selectedOrder.totalAmount || '0'))}
                     </p>
                   </div>
                   <div className="p-4 bg-white rounded-lg border border-green-200">
-                    <p className="text-sm text-gray-600 mb-1">موجودی کیف پول</p>
+                    <p className="text-sm text-gray-600 mb-1">{t('walletBalance')}</p>
                     <p className="text-xl font-bold text-green-700">
-                      {walletBalance.toLocaleString()} IQD
+                       {formatCurrency(walletBalance)}
                     </p>
                   </div>
                 </div>
                 
                 <div className="mt-4 p-3 bg-green-100 rounded-lg text-center">
                   <p className="text-green-800 font-medium">
-                    💡 پرداخت از کیف پول انجام شده - فقط تایید مدیریت باقی مانده است
+                     💡 {t('walletPaymentDone')}
                   </p>
                 </div>
               </div>
             )}
 
             {/* Live Calculations - Only for bank transfer orders */}
-            {receiptAmount && selectedOrder && (selectedOrder.paymentMethod === 'bank_transfer_grace' || selectedOrder.paymentMethod === 'واریز بانکی با مهلت 3 روزه') && (
+            {receiptAmount && selectedOrder && (selectedOrder.paymentMethod === 'bank_transfer_grace' || selectedOrder.paymentMethod === legacyDeferredBankTransfer) && (
               <div className="p-4 bg-yellow-50 rounded-lg border-l-4 border-yellow-500">
                 <h4 className="font-semibold text-yellow-800 mb-3 flex items-center gap-2">
                   <Calculator className="w-4 h-4" />
-                  محاسبات زنده
+                   {t('liveCalculations')}
                 </h4>
                 {(() => {
                   const orderTotal = parseFloat(selectedOrder.totalAmount || '0');
                   const receiptAmountNum = parseFloat(receiptAmount) || 0;
                   const shortfall = orderTotal - receiptAmountNum;
-                  const excess = receiptAmountNum - orderTotal; // اضافه واریزی
+                  const excess = receiptAmountNum - orderTotal; // Excess payment
                   const canApprove = shortfall <= 0 || shortfall <= walletBalance;
                   
                   return (
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
-                        <span>مبلغ رسید واریزی:</span>
-                        <span className="font-medium">{receiptAmountNum.toLocaleString()} IQD</span>
+                        <span>{t('receiptAmount')}:</span>
+                        <span className="font-medium">{formatCurrency(receiptAmountNum)}</span>
                       </div>
                       
                       {shortfall > 0 && (
                         <div className="flex justify-between">
-                          <span>کسری واریزی:</span>
-                          <span className="font-medium text-red-600">{shortfall.toLocaleString()} IQD</span>
+                          <span>{t('shortfall')}:</span>
+                          <span className="font-medium text-red-600">{formatCurrency(shortfall)}</span>
                         </div>
                       )}
                       
                       {excess > 0 && (
                         <div className="flex justify-between">
-                          <span>اضافه واریزی:</span>
-                          <span className="font-medium text-blue-600">+{excess.toLocaleString()} IQD</span>
+                          <span>{t('excess')}:</span>
+                          <span className="font-medium text-blue-600">+{formatCurrency(excess)}</span>
                         </div>
                       )}
                       
                       {shortfall > 0 && (
                         <div className="flex justify-between">
-                          <span>کفایت کیف پول:</span>
+                          <span>{t('walletCoverage')}:</span>
                           <span className={`font-medium ${canApprove ? 'text-green-600' : 'text-red-600'}`}>
-                            {canApprove ? '✅ کافی است' : '❌ ناکافی'}
+                            {canApprove ? `✅ ${t('sufficient')}` : `❌ ${t('insufficient')}`}
                           </span>
                         </div>
                       )}
@@ -1267,16 +1452,16 @@ function FinanceOrders() {
                       {excess > 0 && (
                         <div className="p-2 bg-blue-50 rounded border-l-4 border-blue-400 mt-2">
                           <p className="text-blue-700 text-xs">
-                            💰 مبلغ اضافی <strong>{excess.toLocaleString()} IQD</strong> به کیف پول مشتری اضافه خواهد شد
+                             💰 <strong>{formatCurrency(excess)}</strong> {t('extraToWallet')}
                           </p>
                         </div>
                       )}
                       
                       <div className="border-t pt-2 mt-2">
                         <div className="flex justify-between font-semibold">
-                          <span>وضعیت تایید:</span>
+                           <span>{t('approvalStatus')}:</span>
                           <span className={canApprove ? 'text-green-600' : 'text-red-600'}>
-                            {canApprove ? '✅ قابل تایید' : '❌ غیرقابل تایید'}
+                            {canApprove ? `✅ ${t('approvable')}` : `❌ ${t('notApprovable')}`}
                           </span>
                         </div>
                       </div>
@@ -1287,53 +1472,53 @@ function FinanceOrders() {
             )}
 
             {/* Receipt Amount Field - ONLY for bank_transfer_grace orders */}
-            {selectedOrder && (selectedOrder.paymentMethod === 'bank_transfer_grace' || selectedOrder.paymentMethod === 'واریز بانکی با مهلت 3 روزه') ? (
+            {selectedOrder && (selectedOrder.paymentMethod === 'bank_transfer_grace' || selectedOrder.paymentMethod === legacyDeferredBankTransfer) ? (
               <div>
                 <Label htmlFor="receiptAmount" className="text-red-600 font-semibold">
-                  مبلغ رسید واریزی *
+                   {t('receiptAmountRequired')}
                 </Label>
                 <Input 
                   id="receiptAmount"
                   type="number"
                   value={receiptAmount}
                   onChange={(e) => setReceiptAmount(e.target.value)}
-                  placeholder="مبلغ واریز شده را وارد کنید (اجباری)"
+                   placeholder={t('receiptAmountPlaceholder')}
                   className="mt-1 border-red-300 focus:border-red-500"
                   required
                 />
                 <p className="text-xs text-red-500 mt-1">
-                  ⚠️ برای حواله بانکی مدت‌دار، وارد کردن مبلغ فیش اجباری است
+                   ⚠️ {t('receiptAmountHelp')}
                 </p>
               </div>
             ) : (
               <div className="p-3 bg-gray-100 rounded-lg border">
                 <p className="text-sm text-gray-600 flex items-center gap-2">
                   <Wallet className="w-4 h-4 text-green-600" />
-                  {selectedOrder?.paymentMethod === 'wallet_full' && 'پرداخت کامل از کیف پول - نیازی به وارد کردن مبلغ نیست'}
-                  {selectedOrder?.paymentMethod === 'wallet_partial' && 'پرداخت ترکیبی از کیف پول - مبلغ‌ها قبلاً محاسبه شده'}
-                  {selectedOrder?.paymentMethod === 'online_payment' && 'پرداخت آنلاین - مبلغ از درگاه دریافت شده'}
-                  {!['wallet_full', 'wallet_partial', 'online_payment', 'bank_transfer_grace', 'واریز بانکی با مهلت 3 روزه'].includes(selectedOrder?.paymentMethod || '') && 'مبلغ پرداخت قبلاً تایید شده است'}
+                   {selectedOrder?.paymentMethod === 'wallet_full' && t('walletFullInfo')}
+                   {selectedOrder?.paymentMethod === 'wallet_partial' && t('walletPartialInfo')}
+                   {selectedOrder?.paymentMethod === 'online_payment' && t('onlinePaymentInfo')}
+                   {!['wallet_full', 'wallet_partial', 'online_payment', 'bank_transfer_grace', legacyDeferredBankTransfer].includes(selectedOrder?.paymentMethod || '') && t('paymentConfirmedInfo')}
                 </p>
               </div>
             )}
             
             <div>
-              <Label htmlFor="notes">یادداشت‌ها</Label>
+              <Label htmlFor="notes">{t('notes')}</Label>
               <Textarea 
                 id="notes"
                 value={reviewNotes}
                 onChange={(e) => setReviewNotes(e.target.value)}
-                placeholder="یادداشت‌های خود را وارد کنید..."
+                placeholder={t('notesPlaceholder')}
               />
             </div>
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              انصراف
+              {t('cancel')}
             </Button>
             <Button variant="destructive" onClick={handleReject}>
-              رد
+              {t('reject')}
             </Button>
             <Button 
               onClick={handleApprove}
@@ -1343,7 +1528,7 @@ function FinanceOrders() {
                 // Must view receipt before approving if one exists
                 if (selectedOrder.paymentReceiptUrl && !hasViewedReceipt) return true;
 
-                const isBankTransfer = selectedOrder.paymentMethod === 'bank_transfer_grace' || selectedOrder.paymentMethod === 'واریز بانکی با مهلت 3 روزه';
+                const isBankTransfer = selectedOrder.paymentMethod === 'bank_transfer_grace' || selectedOrder.paymentMethod === legacyDeferredBankTransfer;
                 
                 // For bank transfer: require receiptAmount (check for actual numeric value)
                 if (isBankTransfer) {
@@ -1361,7 +1546,7 @@ function FinanceOrders() {
               })()}
               className={(() => {
                 if (!selectedOrder) return "bg-green-600 hover:bg-green-700";
-                const isBankTransfer = selectedOrder.paymentMethod === 'bank_transfer_grace' || selectedOrder.paymentMethod === 'واریز بانکی با مهلت 3 روزه';
+                const isBankTransfer = selectedOrder.paymentMethod === 'bank_transfer_grace' || selectedOrder.paymentMethod === legacyDeferredBankTransfer;
                 
                 if (!isBankTransfer) return "bg-green-600 hover:bg-green-700";
                 
@@ -1374,7 +1559,7 @@ function FinanceOrders() {
                 return canApprove ? "bg-green-600 hover:bg-green-700" : "";
               })()}
             >
-              تایید
+              {t('approve')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1387,7 +1572,7 @@ function FinanceOrders() {
             <DialogTitle className="flex items-center justify-between">
               <span className="flex items-center gap-2">
                 <FileText className="w-5 h-5 text-blue-600" />
-                مشاهده فیش پرداخت
+                 {t('receiptViewer')}
               </span>
               <div className="flex items-center gap-2">
                 {/* Zoom Controls */}
@@ -1398,13 +1583,13 @@ function FinanceOrders() {
                     onClick={handleZoomOut}
                     disabled={zoomLevel <= 0.5}
                     className="h-8 w-8 p-0 hover:bg-gray-200"
-                    title="کوچک‌تر کردن"
+                     title={t('zoomOut')}
                   >
                     <ZoomOut className="h-4 w-4" />
                   </Button>
                   
                   <span className="text-xs px-2 font-mono min-w-[50px] text-center">
-                    {Math.round(zoomLevel * 100)}%
+                     {formatNumber(Math.round(zoomLevel * 100))}%
                   </span>
                   
                   <Button
@@ -1413,7 +1598,7 @@ function FinanceOrders() {
                     onClick={handleZoomIn}
                     disabled={zoomLevel >= 5}
                     className="h-8 w-8 p-0 hover:bg-gray-200"
-                    title="بزرگ‌تر کردن"
+                     title={t('zoomIn')}
                   >
                     <ZoomIn className="h-4 w-4" />
                   </Button>
@@ -1426,7 +1611,7 @@ function FinanceOrders() {
                     size="sm"
                     onClick={handleRotate}
                     className="h-8 w-8 p-0 hover:bg-gray-200"
-                    title="چرخاندن ۹۰ درجه"
+                     title={t('rotate')}
                   >
                     <RotateCw className="h-4 w-4" />
                   </Button>
@@ -1436,7 +1621,7 @@ function FinanceOrders() {
                     size="sm"
                     onClick={handleResetView}
                     className="h-8 w-8 p-0 hover:bg-gray-200"
-                    title="بازگشت به حالت اولیه"
+                     title={t('resetView')}
                   >
                     <Move className="h-4 w-4" />
                   </Button>
@@ -1471,7 +1656,7 @@ function FinanceOrders() {
                   >
                     <img
                       src={selectedImageUrl}
-                      alt="فیش پرداخت"
+                      alt={t('paymentReceipt')}
                       className="max-w-none transition-transform duration-200"
                       style={{
                         transform: `scale(${zoomLevel}) rotate(${rotation}deg) translate(${panPosition.x / zoomLevel}px, ${panPosition.y / zoomLevel}px)`,
@@ -1489,7 +1674,7 @@ function FinanceOrders() {
                     <iframe
                       src={selectedImageUrl}
                       className="w-full h-full border-0"
-                      title="فیش پرداخت PDF"
+                       title={`${t('paymentReceipt')} PDF`}
                       style={{
                         transform: `scale(${zoomLevel}) rotate(${rotation}deg)`,
                         transformOrigin: 'center center',
@@ -1505,21 +1690,21 @@ function FinanceOrders() {
                     <div className="w-full h-full flex items-center justify-center">
                       <div className="text-center p-8">
                         <FileText className="w-16 h-16 text-green-400 mx-auto mb-4" />
-                        <p className="text-lg text-gray-600">در حال باز کردن PDF در تب جدید...</p>
+                        <p className="text-lg text-gray-600">{t('openingPdf')}</p>
                       </div>
                     </div>
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <div className="text-center p-8">
                         <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                        <p className="text-lg text-gray-600 mb-4">نوع فایل پشتیبانی نمی‌شود</p>
+                        <p className="text-lg text-gray-600 mb-4">{t('unsupportedFile')}</p>
                         <Button
                           variant="outline"
                           onClick={() => window.open(selectedImageUrl, '_blank')}
                           className="flex items-center gap-2"
                         >
                           <Eye className="w-4 h-4" />
-                          باز کردن در تب جدید
+                          {t('openNewTab')}
                         </Button>
                       </div>
                     </div>
@@ -1531,7 +1716,7 @@ function FinanceOrders() {
             {/* Zoom hint */}
             {zoomLevel > 1 && (
               <div className="absolute bottom-4 left-4 bg-black bg-opacity-75 text-white text-xs px-2 py-1 rounded">
-                برای جابجایی تصویر آن را بکشید
+                 {t('dragImage')}
               </div>
             )}
           </div>
@@ -1542,7 +1727,7 @@ function FinanceOrders() {
       <Dialog open={orderDetailsModalOpen} onOpenChange={setOrderDetailsModalOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>جزئیات سفارش #{orderDetails?.orderNumber}</DialogTitle>
+            <DialogTitle>{t('details')} {t('order')} #{orderDetails?.orderNumber}</DialogTitle>
           </DialogHeader>
           
           {orderDetails && (
@@ -1550,21 +1735,21 @@ function FinanceOrders() {
               {/* Customer Info */}
               <Card>
                 <CardHeader>
-                  <CardTitle>اطلاعات مشتری</CardTitle>
+                  <CardTitle>{t('customerInfo')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <strong>نام:</strong> {orderDetails.customerName || `${orderDetails.customer?.firstName || ''} ${orderDetails.customer?.lastName || ''}`.trim()}
+                      <strong>{t('name')}:</strong> {orderDetails.customerName || `${orderDetails.customer?.firstName || ''} ${orderDetails.customer?.lastName || ''}`.trim() || t('unknown')}
                     </div>
                     <div>
-                      <strong>ایمیل:</strong> {orderDetails.customerEmail || orderDetails.customer?.email}
+                      <strong>{t('email')}:</strong> {orderDetails.customerEmail || orderDetails.customer?.email || t('unknown')}
                     </div>
                     <div>
-                      <strong>تلفن:</strong> {orderDetails.customerPhone || orderDetails.customer?.phone}
+                      <strong>{t('phone')}:</strong> {orderDetails.customerPhone || orderDetails.customer?.phone || t('unknown')}
                     </div>
                     <div>
-                      <strong>تاریخ:</strong> {formatDateSafe(orderDetails.createdAt)}
+                      <strong>{t('date')}:</strong> {formatDate(orderDetails.createdAt)}
                     </div>
                   </div>
                   
@@ -1573,10 +1758,10 @@ function FinanceOrders() {
                     <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border">
                       <div className="flex items-center gap-2">
                         <Wallet className="w-5 h-5 text-green-600" />
-                        <span className="font-semibold text-green-700">موجودی کیف پول مشتری</span>
+                        <span className="font-semibold text-green-700">{t('walletCustomer')}</span>
                       </div>
                       <div className="text-lg font-bold text-green-600">
-                        {orderDetailsWalletBalance.toLocaleString()} IQD
+                        {formatCurrency(orderDetailsWalletBalance)}
                       </div>
                     </div>
                   </div>
@@ -1586,14 +1771,14 @@ function FinanceOrders() {
                     {/* Shipping Address */}
                     {orderDetails.shippingAddress && (
                       <div>
-                        <h4 className="font-semibold mb-2 text-blue-700">📍 آدرس تحویل:</h4>
+                        <h4 className="font-semibold mb-2 text-blue-700">📍 {t('deliveryAddress')}:</h4>
                         <div className="text-sm bg-blue-50 p-3 rounded border-r-4 border-blue-500">
-                          <p><strong>نام گیرنده:</strong> {orderDetails.shippingAddress.name}</p>
-                          <p><strong>تلفن:</strong> {orderDetails.shippingAddress.phone}</p>
-                          <p><strong>آدرس کامل:</strong> {orderDetails.shippingAddress.address}</p>
-                          <p><strong>شهر:</strong> {orderDetails.shippingAddress.city}</p>
+                          <p><strong>{t('recipientName')}:</strong> {orderDetails.shippingAddress.name}</p>
+                          <p><strong>{t('phone')}:</strong> {orderDetails.shippingAddress.phone}</p>
+                          <p><strong>{t('fullAddress')}:</strong> {orderDetails.shippingAddress.address}</p>
+                          <p><strong>{t('city')}:</strong> {orderDetails.shippingAddress.city}</p>
                           {orderDetails.shippingAddress.postalCode && (
-                            <p><strong>کد پستی:</strong> {orderDetails.shippingAddress.postalCode}</p>
+                            <p><strong>{t('postalCode')}:</strong> {orderDetails.shippingAddress.postalCode}</p>
                           )}
                         </div>
                       </div>
@@ -1602,14 +1787,14 @@ function FinanceOrders() {
                     {/* Billing Address */}
                     {orderDetails.billingAddress && (
                       <div>
-                        <h4 className="font-semibold mb-2 text-green-700">🏢 آدرس صورتحساب:</h4>
+                        <h4 className="font-semibold mb-2 text-green-700">🏢 {t('billingAddress')}:</h4>
                         <div className="text-sm bg-green-50 p-3 rounded border-r-4 border-green-500">
-                          <p><strong>نام:</strong> {orderDetails.billingAddress.name}</p>
-                          <p><strong>تلفن:</strong> {orderDetails.billingAddress.phone}</p>
-                          <p><strong>آدرس:</strong> {orderDetails.billingAddress.address}</p>
-                          <p><strong>شهر:</strong> {orderDetails.billingAddress.city}</p>
+                          <p><strong>{t('name')}:</strong> {orderDetails.billingAddress.name}</p>
+                          <p><strong>{t('phone')}:</strong> {orderDetails.billingAddress.phone}</p>
+                          <p><strong>{t('fullAddress')}:</strong> {orderDetails.billingAddress.address}</p>
+                          <p><strong>{t('city')}:</strong> {orderDetails.billingAddress.city}</p>
                           {orderDetails.billingAddress.postalCode && (
-                            <p><strong>کد پستی:</strong> {orderDetails.billingAddress.postalCode}</p>
+                            <p><strong>{t('postalCode')}:</strong> {orderDetails.billingAddress.postalCode}</p>
                           )}
                         </div>
                       </div>
@@ -1618,20 +1803,20 @@ function FinanceOrders() {
                 </CardContent>
               </Card>
 
-              {/* یادداشت مشتری از چک‌اوت - بخش مالی می‌تواند یادداشت مشتری را ببیند */}
+               {/* Customer checkout note remains visible to the financial approval team. */}
               {(orderDetails.customerNotes || orderDetails.notes) && (
                 <Card className="border-amber-200 bg-amber-50">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-amber-800 flex items-center gap-2">
                       <FileText className="w-5 h-5" />
-                      یادداشت مشتری
+                      {t('customerNote')}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="bg-white p-3 rounded border border-amber-200">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="bg-amber-200 text-amber-800 px-2 py-0.5 rounded text-xs font-medium">مشتری</span>
-                        <span className="text-xs text-amber-600">یادداشت چک‌اوت</span>
+                        <span className="bg-amber-200 text-amber-800 px-2 py-0.5 rounded text-xs font-medium">{t('customer')}</span>
+                        <span className="text-xs text-amber-600">{t('checkoutNote')}</span>
                       </div>
                       <p className="text-amber-900">{orderDetails.customerNotes || orderDetails.notes}</p>
                     </div>
@@ -1642,28 +1827,28 @@ function FinanceOrders() {
               {/* Order Items */}
               <Card>
                 <CardHeader>
-                  <CardTitle>اقلام سفارش</CardTitle>
+                  <CardTitle>{t('orderItems')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
                     {orderDetails.items?.map((item: any, index: number) => (
                       <div key={index} className="flex justify-between items-center p-3 border rounded bg-gray-50">
                         <div className="flex-1">
-                          <div className="font-medium">{item.productName || item.name || 'نامشخص'}</div>
-                          {item.sku && <div className="text-sm text-gray-500">SKU: {item.sku}</div>}
+                          <div className="font-medium">{item.productName || item.name || t('unknown')}</div>
+                          {item.sku && <div className="text-sm text-gray-500">{t('sku')}: {item.sku}</div>}
                         </div>
                         <div className="text-center px-4">
-                          <div className="text-sm text-gray-500">تعداد</div>
-                          <div className="font-medium">{item.quantity || 1}</div>
+                          <div className="text-sm text-gray-500">{t('quantity')}</div>
+                          <div className="font-medium">{formatNumber(Number(item.quantity || 1))}</div>
                         </div>
                         <div className="text-center px-4">
-                          <div className="text-sm text-gray-500">قیمت واحد</div>
-                          <div className="font-medium">{parseFloat(item.unitPrice || item.price || 0).toLocaleString()} IQD</div>
+                          <div className="text-sm text-gray-500">{t('unitPrice')}</div>
+                          <div className="font-medium">{formatCurrency(parseFloat(item.unitPrice || item.price || 0))}</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-sm text-gray-500">مجموع</div>
+                          <div className="text-sm text-gray-500">{t('total')}</div>
                           <div className="font-bold text-blue-600">
-                            {(parseFloat(item.unitPrice || item.price || 0) * parseInt(item.quantity || 1)).toLocaleString()} IQD
+                            {formatCurrency(parseFloat(item.unitPrice || item.price || 0) * parseInt(item.quantity || 1))}
                           </div>
                         </div>
                       </div>
@@ -1673,39 +1858,36 @@ function FinanceOrders() {
                     <div className="mt-4 pt-4 border-t bg-blue-50 p-4 rounded">
                       <div className="space-y-2">
                         <div className="flex justify-between">
-                          <span>جمع کالاها:</span>
+                          <span>{t('itemsSubtotal')}:</span>
                           <span className="font-medium">
                             {(() => {
                               const itemsTotal = orderDetails.items?.reduce((sum: number, item: any) => {
                                 return sum + (parseFloat(item.unitPrice || item.price || 0) * parseInt(item.quantity || 1));
                               }, 0) || 0;
-                              return itemsTotal.toLocaleString();
-                            })()} IQD
+                               return formatCurrency(itemsTotal);
+                             })()}
                           </span>
                         </div>
                         {orderDetails.shippingCost && parseFloat(orderDetails.shippingCost) > 0 && (
                           <div className="flex justify-between">
-                            <span>کرایه حمل:</span>
-                            <span className="font-medium">{parseFloat(orderDetails.shippingCost).toLocaleString()} IQD</span>
+                            <span>{t('shippingCost')}:</span>
+                            <span className="font-medium">{formatCurrency(parseFloat(orderDetails.shippingCost))}</span>
                           </div>
                         )}
                         {orderDetails.vatAmount && parseFloat(orderDetails.vatAmount) > 0 && (
                           <div className="flex justify-between">
-                            <span>مالیات بر ارزش افزوده ({orderDetails.vatRate || 0}%):</span>
-                            <span className="font-medium">{parseFloat(orderDetails.vatAmount).toLocaleString()} IQD</span>
+                            <span>{t('vat')} ({formatNumber(Number(orderDetails.vatRate || 0))}%):</span>
+                            <span className="font-medium">{formatCurrency(parseFloat(orderDetails.vatAmount))}</span>
                           </div>
                         )}
                         <div className="flex justify-between text-lg font-bold text-blue-700 border-t pt-2">
-                          <span>مجموع کل:</span>
-                          <span>{parseFloat(orderDetails.totalAmount || 0).toLocaleString()} IQD</span>
+                          <span>{t('grandTotal')}:</span>
+                          <span>{formatCurrency(parseFloat(orderDetails.totalAmount || 0))}</span>
                         </div>
                         <div className="text-sm text-gray-600">
-                          <span>روش پرداخت: </span>
+                           <span>{t('paymentMethod')}: </span>
                           <span className="font-medium">
-                            {orderDetails.paymentMethod === 'bank_transfer_grace' ? 'حواله بانکی (مهلت‌دار)' : 
-                             orderDetails.paymentMethod === 'bank_transfer' ? 'حواله بانکی' :
-                             orderDetails.paymentMethod === 'cash_on_delivery' ? 'پرداخت در محل' :
-                             orderDetails.paymentMethod || 'نامشخص'}
+                            {formatPaymentMethod(orderDetails.paymentMethod)}
                           </span>
                         </div>
                       </div>
@@ -1718,13 +1900,13 @@ function FinanceOrders() {
               <div className="flex gap-2 justify-end">
                 <Button variant="outline" onClick={handlePrintOrder}>
                   <Download className="w-4 h-4 mr-1" />
-                  چاپ
+                  {t('print')}
                 </Button>
                 <Button variant="destructive" onClick={handleRejectOrder}>
-                  رد
+                  {t('reject')}
                 </Button>
                 <Button onClick={handleAcceptOrder}>
-                  تایید
+                  {t('approve')}
                 </Button>
               </div>
             </div>
