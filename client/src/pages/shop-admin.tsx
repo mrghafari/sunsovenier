@@ -85,6 +85,8 @@ const SHOP_TRANSLATIONS: Record<string, ShopTranslation> = {
   shipped: { en: "Shipped", ar: "تم الشحن", tr: "Kargolandı", fa: "ارسال شده" },
   delivered: { en: "Delivered", ar: "تم التسليم", tr: "Teslim Edildi", fa: "تحویل داده شده" },
   cancelled: { en: "Cancelled", ar: "ملغى", tr: "İptal Edildi", fa: "لغو شده" },
+  deleted: { en: "Deleted", ar: "محذوف", tr: "Silindi", fa: "حذف شده" },
+  lastStatusChange: { en: "Last change", ar: "آخر تغيير", tr: "Son değişiklik", fa: "آخرین تغییر" },
   orderNumber: { en: "Order Number", ar: "رقم الطلب", tr: "Sipariş No", fa: "شماره سفارش" },
   customerName: { en: "Customer Name", ar: "اسم العميل", tr: "Müşteri Adı", fa: "نام مشتری" },
   mobile: { en: "Mobile", ar: "الجوال", tr: "Cep Telefonu", fa: "موبایل" },
@@ -295,6 +297,42 @@ export default function ShopAdmin() {
       credit: tr("credit"),
     };
     return labels[method.toLowerCase()] || method;
+  };
+  const orderStatusLabel = (status?: string | null) => {
+    if (!status) return tr("unknown");
+    const labels: Record<string, string> = {
+      pending: tr("pending"),
+      confirmed: tr("confirmed"),
+      processing: tr("processing"),
+      shipped: tr("shipped"),
+      delivered: tr("delivered"),
+      cancelled: tr("cancelled"),
+      deleted: tr("deleted"),
+      failed: tr("failed"),
+    };
+    return labels[status.toLowerCase()] || status.replace(/_/g, " ");
+  };
+  const formatStatusChangedAt = (value?: string | Date | null) => {
+    if (!value) return tr("unknown");
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return tr("unknown");
+
+    const locale =
+      language === "fa"
+        ? "fa-IR-u-ca-persian"
+        : language === "ar"
+          ? "ar-u-ca-gregory"
+          : language === "tr"
+            ? "tr-TR-u-ca-gregory"
+            : "en-US-u-ca-gregory";
+
+    return new Intl.DateTimeFormat(locale, {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(date);
   };
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
@@ -900,16 +938,18 @@ export default function ShopAdmin() {
                                 ${order.totalAmount || 0}
                               </div>
                             </td>
-                            <td className="px-3 py-2 w-32">
-                              <Badge variant={order.status === 'confirmed' ? 'default' : 'secondary'} className="text-xs">
-                                  {order.status === 'pending' ? tr("pending") :
-                                   order.status === 'confirmed' ? tr("confirmed") :
-                                   order.status === 'processing' ? tr("processing") :
-                                  order.status === 'shipped' ? tr("shipped") :
-                                  order.status === 'delivered' ? tr("delivered") :
-                                  order.status === 'cancelled' ? tr("cancelled") :
-                                 tr("unknown")}
-                              </Badge>
+                            <td className="px-3 py-2 w-40">
+                              <div className="flex flex-col items-start gap-1">
+                                <Badge variant={order.status === 'confirmed' ? 'default' : 'secondary'} className="text-xs">
+                                  {orderStatusLabel(order.status)}
+                                </Badge>
+                                <span
+                                  className="text-[11px] leading-4 text-gray-500 whitespace-nowrap"
+                                  title={tr("lastStatusChange")}
+                                >
+                                  {tr("lastStatusChange")}: {formatStatusChangedAt(order.statusChangedAt || order.updatedAt)}
+                                </span>
+                              </div>
                             </td>
                             <td className="px-3 py-2 text-sm text-gray-900 w-24">
                               <Badge 

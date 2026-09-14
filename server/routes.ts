@@ -24251,6 +24251,23 @@ Momtaz Chemical Technical Team`,
         SELECT co.id, co.order_number, co.customer_id, co.total_amount, co.status, 
                co.payment_method, co.created_at, co.updated_at, co.carrier,
                co.shipping_cost, co.vat_amount, co.surcharge_amount, co.vat_rate,
+               COALESCE(
+                 (
+                   SELECT osh.created_at
+                   FROM order_status_history osh
+                   WHERE osh.order_management_id = (
+                     SELECT om.id
+                     FROM order_management om
+                     WHERE om.customer_order_id = co.id
+                     ORDER BY om.id DESC
+                     LIMIT 1
+                   )
+                   ORDER BY osh.created_at DESC
+                   LIMIT 1
+                 ),
+                 co.updated_at,
+                 co.created_at
+               ) AS status_changed_at,
                c.first_name as customer_first_name, c.last_name as customer_last_name, 
                c.email as customer_email, c.phone as customer_phone, c.company as customer_company,
                c.address as customer_address
@@ -24309,6 +24326,7 @@ Momtaz Chemical Technical Team`,
               orderNumber: order.order_number,
               totalAmount: order.total_amount,
               status: order.status,
+              statusChangedAt: order.status_changed_at,
               paymentMethod: order.payment_method,
               carrier: order.carrier,
               createdAt: order.created_at,
@@ -24333,6 +24351,7 @@ Momtaz Chemical Technical Team`,
               orderNumber: order.order_number,
               totalAmount: order.total_amount,
               status: order.status,
+              statusChangedAt: order.status_changed_at,
               paymentMethod: order.payment_method,
               carrier: order.carrier,
               createdAt: order.created_at,
