@@ -40323,6 +40323,7 @@ momtazchem.com
           startDate.setDate(now.getDate() - 30);
           break;
         case '3m':
+        case '90d':
           startDate.setMonth(now.getMonth() - 3);
           break;
         case '1y':
@@ -40420,6 +40421,7 @@ momtazchem.com
           startDate.setDate(now.getDate() - 30);
           break;
         case '3m':
+        case '90d':
           startDate.setMonth(now.getMonth() - 3);
           break;
         case '1y':
@@ -40493,6 +40495,7 @@ momtazchem.com
           startDate.setDate(now.getDate() - 30);
           break;
         case '3m':
+        case '90d':
           startDate.setMonth(now.getMonth() - 3);
           break;
         case '1y':

@@ -429,6 +429,59 @@ export default function GeographicAnalytics() {
 
   const sortedGpsData = getSortedGpsData();
 
+  const handleExport = () => {
+    const escapeCsv = (value: unknown) => {
+      const text = value === null || value === undefined ? '' : String(value);
+      return `"${text.replace(/"/g, '""')}"`;
+    };
+
+    const rows: unknown[][] = [
+      ['Geographic Analytics Report'],
+      ['Period', dateRange],
+      ['Generated At', new Date().toISOString()],
+      [],
+      ['Summary'],
+      ['Total Revenue', summaryStats?.totalRevenue || 0],
+      ['Total Orders', summaryStats?.totalOrders || 0],
+      ['Customers', summaryStats?.totalCustomers || 0],
+      ['Regions', summaryStats?.regionsCount || 0],
+      ['Average Order Value', summaryStats?.avgOrderValue || 0],
+      [],
+      ['Regional Breakdown'],
+      ['Country', 'City', 'Orders', 'Customers', 'Revenue', 'Average Order Value'],
+      ...geoData.map((region) => [
+        region.country,
+        region.city,
+        region.totalOrders,
+        region.customerCount,
+        region.totalRevenue,
+        region.avgOrderValue
+      ]),
+      [],
+      ['Product Sales by Region'],
+      ['Product Name', 'Category', 'Country', 'City', 'Units Sold', 'Revenue'],
+      ...sortedProductRegionData.map((row) => [
+        row.productName,
+        row.category,
+        row.region || '',
+        row.city || '',
+        row.quantity || 0,
+        row.revenue || 0
+      ])
+    ];
+
+    const csv = rows.map((row) => row.map(escapeCsv).join(',')).join('\r\n');
+    const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `geographic-analytics-${dateRange}-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
   if (geoLoading || productLoading || timeLoading || trendsLoading) {
     return (
       <div className="p-6">
@@ -462,7 +515,11 @@ export default function GeographicAnalytics() {
               <SelectItem value="1y">{t.lastYear}</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline">
+          <Button
+            variant="outline"
+            onClick={handleExport}
+            disabled={!geoData.length && !sortedProductRegionData.length}
+          >
             <Download className="w-4 h-4 mr-2" />
             {t.export}
           </Button>
