@@ -20,6 +20,17 @@ type VendorBalance = { id: number; vendorId: number; vendorName: string; current
 type VendorProduct = { id: number; vendorId: number; productName: string; sku: string; price: string; quantity: number; status: boolean; totalSold: number; totalRevenue: string; commissionOverride: string | null };
 type VendorTransaction = { id: number; vendorId: number; vendorName: string; transactionType: string; amount: string; currency: string; saleAmount: string | null; commissionAmount: string | null; netAmount: string | null; paymentMethod: string | null; paymentReference: string | null; balanceBefore: string | null; balanceAfter: string | null; status: string; description: string | null; notes: string | null; createdAt: string };
 
+const localDateInputValue = (date: Date) => {
+  const offset = date.getTimezoneOffset();
+  return new Date(date.getTime() - offset * 60_000).toISOString().slice(0, 10);
+};
+const defaultTransactionRange = () => {
+  const end = new Date();
+  const start = new Date(end);
+  start.setDate(start.getDate() - 6);
+  return { start: localDateInputValue(start), end: localDateInputValue(end) };
+};
+
 const text = {
   en: { title: "Vendor accounting", refresh: "Refresh", vendors: "Vendors", transactions: "Transactions", vendorList: "Vendor balances", vendorDescription: "Review vendor balances, products and settlement activity.", totalVendors: "Total vendors", totalSales: "Total sales", commission: "Commission received", owed: "Balance payable", vendor: "Vendor", status: "Status", rate: "Commission rate", products: "Products", sales: "Sales", paid: "Paid", balance: "Balance", actions: "Actions", active: "Active", inactive: "Inactive", view: "View", pay: "Record payment", loading: "Loading…", empty: "No records found", history: "Transaction history", productList: "Products and sales", date: "Date", type: "Type", amount: "Amount", before: "Before", after: "After", description: "Description", start: "From date", end: "To date", export: "Export Excel", totalSalesLabel: "Total sales", totalPayments: "Total payments", save: "Save", cancel: "Cancel", paymentTitle: "Record payment to", amountLabel: "Payment amount (IQD)", method: "Payment method", bank: "Bank transfer", cash: "Cash", cheque: "Cheque", reference: "Reference / receipt", notes: "Notes", optional: "Optional notes", commissionTitle: "Set vendor commission", productCommissionTitle: "Set product commission", override: "Custom commission (0–100)", default: "Default", confirmPayment: "Record payment", processing: "Processing…", success: "Success", error: "Error", paymentSaved: "Payment recorded successfully.", commissionSaved: "Commission updated successfully.", productCommissionSaved: "Product commission updated successfully.", operationFailed: "Operation failed.", sale: "Sale", commissionType: "Commission", payment: "Payment", refund: "Refund", adjustment: "Adjustment", pending: "Pending", completed: "Completed", noProducts: "No products found", noTransactions: "No transactions found", notSet: "Not set" },
   fa: { title: "حسابداری فروشندگان", refresh: "به‌روزرسانی", vendors: "فروشندگان", transactions: "تراکنش‌ها", vendorList: "مانده فروشندگان", vendorDescription: "بررسی مانده، محصولات و فعالیت تسویه فروشندگان.", totalVendors: "تعداد فروشندگان", totalSales: "کل فروش", commission: "کمیسیون دریافتی", owed: "مانده قابل پرداخت", vendor: "فروشنده", status: "وضعیت", rate: "درصد کمیسیون", products: "محصولات", sales: "فروش", paid: "پرداخت‌شده", balance: "مانده", actions: "عملیات", active: "فعال", inactive: "غیرفعال", view: "مشاهده", pay: "ثبت پرداخت", loading: "در حال بارگذاری…", empty: "رکوردی یافت نشد", history: "تاریخچه تراکنش‌ها", productList: "محصولات و فروش", date: "تاریخ", type: "نوع", amount: "مبلغ", before: "قبل", after: "بعد", description: "توضیحات", start: "از تاریخ", end: "تا تاریخ", export: "خروجی اکسل", totalSalesLabel: "مجموع فروش", totalPayments: "مجموع پرداختی‌ها", save: "ذخیره", cancel: "انصراف", paymentTitle: "ثبت پرداخت به", amountLabel: "مبلغ پرداخت (دینار)", method: "روش پرداخت", bank: "انتقال بانکی", cash: "نقدی", cheque: "چک", reference: "شماره مرجع / فیش", notes: "یادداشت‌ها", optional: "یادداشت اختیاری", commissionTitle: "تنظیم کمیسیون فروشنده", productCommissionTitle: "تنظیم کمیسیون محصول", override: "کمیسیون سفارشی (۰ تا ۱۰۰)", default: "پیش‌فرض", confirmPayment: "ثبت پرداخت", processing: "در حال ثبت…", success: "موفق", error: "خطا", paymentSaved: "پرداخت با موفقیت ثبت شد.", commissionSaved: "کمیسیون به‌روزرسانی شد.", productCommissionSaved: "کمیسیون محصول به‌روزرسانی شد.", operationFailed: "عملیات ناموفق بود.", sale: "فروش", commissionType: "کمیسیون", payment: "پرداخت", refund: "برگشت", adjustment: "تعدیل", pending: "در انتظار", completed: "تکمیل‌شده", noProducts: "محصولی یافت نشد", noTransactions: "تراکنشی یافت نشد", notSet: "ثبت نشده" },
@@ -30,6 +41,12 @@ const text = {
 export default function VendorAccountingTab() {
   const { language, direction } = useLanguage();
   const t = text[language];
+  const filterText = {
+    en: { allTypes: "All types", search: "Search description, reference or amount…", lastWeek: "Last 7 days", allTime: "All time", results: "results" },
+    fa: { allTypes: "همه انواع", search: "جستجو در توضیحات، مرجع یا مبلغ…", lastWeek: "۷ روز اخیر", allTime: "همه زمان‌ها", results: "نتیجه" },
+    ar: { allTypes: "كل الأنواع", search: "البحث في الوصف أو المرجع أو المبلغ…", lastWeek: "آخر 7 أيام", allTime: "كل الفترات", results: "نتيجة" },
+    tr: { allTypes: "Tüm türler", search: "Açıklama, referans veya tutarda ara…", lastWeek: "Son 7 gün", allTime: "Tüm zamanlar", results: "sonuç" },
+  }[language];
   const { toast } = useToast();
   const [selectedVendor, setSelectedVendor] = useState<VendorBalance | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<VendorProduct | null>(null);
@@ -39,8 +56,11 @@ export default function VendorAccountingTab() {
   const [paymentNotes, setPaymentNotes] = useState("");
   const [newCommissionRate, setNewCommissionRate] = useState("");
   const [productCommissionOverride, setProductCommissionOverride] = useState("");
-  const [txFilterStartDate, setTxFilterStartDate] = useState("");
-  const [txFilterEndDate, setTxFilterEndDate] = useState("");
+  const initialTransactionRange = useMemo(defaultTransactionRange, []);
+  const [txFilterStartDate, setTxFilterStartDate] = useState(initialTransactionRange.start);
+  const [txFilterEndDate, setTxFilterEndDate] = useState(initialTransactionRange.end);
+  const [txTypeFilter, setTxTypeFilter] = useState("all");
+  const [txSearchQuery, setTxSearchQuery] = useState("");
   const [dialog, setDialog] = useState<"payment" | "vendor" | "products" | "transactions" | "commission" | "productCommission" | null>(null);
 
   const balances = useQuery<{ vendors: VendorBalance[] }>({ queryKey: ["/api/admin/vendor-accounting/balances"] });
@@ -61,7 +81,15 @@ export default function VendorAccountingTab() {
   const vendors = balances.data?.vendors || [];
   const transactions = allTransactions.data?.transactions || [];
   const selectedTransactions = vendorTransactions.data?.transactions || [];
-  const filteredTransactions = useMemo(() => selectedTransactions.filter((tx) => (!txFilterStartDate || tx.createdAt >= txFilterStartDate) && (!txFilterEndDate || tx.createdAt <= `${txFilterEndDate}T23:59:59`)), [selectedTransactions, txFilterStartDate, txFilterEndDate]);
+  const filteredTransactions = useMemo(() => selectedTransactions.filter((tx) => {
+    const matchesDate = (!txFilterStartDate || tx.createdAt >= txFilterStartDate)
+      && (!txFilterEndDate || tx.createdAt <= `${txFilterEndDate}T23:59:59`);
+    const matchesType = txTypeFilter === "all" || tx.transactionType === txTypeFilter;
+    const query = txSearchQuery.trim().toLowerCase();
+    const matchesSearch = !query || [tx.description, tx.notes, tx.paymentReference, tx.amount]
+      .some((value) => String(value || "").toLowerCase().includes(query));
+    return matchesDate && matchesType && matchesSearch;
+  }), [selectedTransactions, txFilterStartDate, txFilterEndDate, txTypeFilter, txSearchQuery]);
   const totals = { sales: filteredTransactions.filter((tx) => tx.transactionType === "sale").reduce((n, tx) => n + Number(tx.amount || 0), 0), payments: filteredTransactions.filter((tx) => tx.transactionType === "payment").reduce((n, tx) => n + Number(tx.amount || 0), 0) };
   const totalSales = vendors.reduce((n, vendor) => n + Number(vendor.totalSales || 0), 0);
   const totalCommission = vendors.reduce((n, vendor) => n + Number(vendor.totalCommission || 0), 0);
@@ -86,7 +114,57 @@ export default function VendorAccountingTab() {
 
     <Dialog open={dialog === "payment"} onOpenChange={(open) => !open && setDialog(null)}><DialogContent><DialogHeader><DialogTitle>{t.paymentTitle} {selectedVendor?.vendorName}</DialogTitle><DialogDescription>{selectedVendor && currency(selectedVendor.currentBalance)}</DialogDescription></DialogHeader><div className="space-y-4"><div><Label>{t.amountLabel}</Label><Input type="number" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} data-testid="input-payment-amount" /></div><div><Label>{t.method}</Label><Select value={paymentMethod} onValueChange={setPaymentMethod}><SelectTrigger data-testid="select-payment-method"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="bank_transfer">{t.bank}</SelectItem><SelectItem value="cash">{t.cash}</SelectItem><SelectItem value="cheque">{t.cheque}</SelectItem></SelectContent></Select></div><div><Label>{t.reference}</Label><Input value={paymentReference} onChange={(e) => setPaymentReference(e.target.value)} data-testid="input-payment-reference" /></div><div><Label>{t.notes}</Label><Textarea placeholder={t.optional} value={paymentNotes} onChange={(e) => setPaymentNotes(e.target.value)} data-testid="input-payment-notes" /></div></div><DialogFooter><Button variant="outline" onClick={() => setDialog(null)}>{t.cancel}</Button><Button onClick={() => selectedVendor && paymentMutation.mutate({ vendorId: selectedVendor.vendorId, amount: Number(paymentAmount), method: paymentMethod, reference: paymentReference, notes: paymentNotes })} disabled={!paymentAmount || paymentMutation.isPending} data-testid="btn-confirm-payment">{paymentMutation.isPending ? t.processing : t.confirmPayment}</Button></DialogFooter></DialogContent></Dialog>
     <Dialog open={dialog === "products"} onOpenChange={(open) => !open && setDialog(null)}><DialogContent className="max-w-5xl"><DialogHeader><DialogTitle>{t.productList} — {selectedVendor?.vendorName}</DialogTitle></DialogHeader><div className="overflow-x-auto"><Table className="min-w-[900px] text-xs">{head([t.vendor, t.products, "SKU", t.amount, t.rate, t.sales, t.description])}<TableBody>{products.isLoading ? emptyRow(7, t.loading) : !products.data?.products?.length ? emptyRow(7, t.noProducts) : products.data.products.map((product) => <TableRow key={product.id} className="border-slate-200 odd:bg-slate-50 even:bg-white hover:bg-amber-50"><TableCell className="border-e border-slate-200 px-3 py-2">{selectedVendor?.vendorName}</TableCell><TableCell className="border-e border-slate-200 px-3 py-2 font-semibold">{product.productName}</TableCell><TableCell className="border-e border-slate-200 px-3 py-2 font-mono">{product.sku}</TableCell><TableCell className="border-e border-slate-200 px-3 py-2">{currency(product.price)}</TableCell><TableCell className="border-e border-slate-200 px-3 py-2"><button className="rounded border border-slate-300 px-2 py-1" onClick={() => { setSelectedProduct(product); setProductCommissionOverride(product.commissionOverride || ""); setDialog("productCommission"); }} data-testid={`btn-edit-product-commission-${product.id}`}>{product.commissionOverride || `${t.default} (${selectedVendor?.commissionRate || "10.00"}%)`}</button></TableCell><TableCell className="border-e border-slate-200 px-3 py-2">{product.totalSold}</TableCell><TableCell className="px-3 py-2">{currency(product.totalRevenue)}</TableCell></TableRow>)}</TableBody></Table></div></DialogContent></Dialog>
-    <Dialog open={dialog === "transactions"} onOpenChange={(open) => !open && setDialog(null)}><DialogContent className="max-w-5xl"><DialogHeader><DialogTitle>{t.history} — {selectedVendor?.vendorName}</DialogTitle></DialogHeader><div className="flex flex-wrap gap-3 rounded border border-slate-300 bg-slate-50 p-3"><div><Label>{t.start}</Label><Input type="date" value={txFilterStartDate} onChange={(e) => setTxFilterStartDate(e.target.value)} data-testid="input-tx-filter-start" /></div><div><Label>{t.end}</Label><Input type="date" value={txFilterEndDate} onChange={(e) => setTxFilterEndDate(e.target.value)} data-testid="input-tx-filter-end" /></div></div><div className="overflow-x-auto"><Table className="min-w-[900px] text-xs">{head([t.date, t.type, t.amount, t.before, t.after, t.description])}<TableBody>{vendorTransactions.isLoading ? emptyRow(6, t.loading) : !filteredTransactions.length ? emptyRow(6, t.noTransactions) : filteredTransactions.map((tx) => <TableRow key={tx.id} className="border-slate-200 odd:bg-slate-50 even:bg-white hover:bg-amber-50"><TableCell className="border-e border-slate-200 px-3 py-2">{date(tx.createdAt)}</TableCell><TableCell className="border-e border-slate-200 px-3 py-2"><Badge>{typeLabel(tx.transactionType)}</Badge></TableCell><TableCell className="border-e border-slate-200 px-3 py-2 font-mono">{currency(tx.amount)}</TableCell><TableCell className="border-e border-slate-200 px-3 py-2">{currency(tx.balanceBefore)}</TableCell><TableCell className="border-e border-slate-200 px-3 py-2">{currency(tx.balanceAfter)}</TableCell><TableCell className="px-3 py-2">{tx.description || t.notSet}</TableCell></TableRow>)}</TableBody></Table></div><div className="flex flex-wrap items-center justify-between gap-3 rounded border border-slate-300 bg-slate-50 p-3"><span>{t.totalSalesLabel}: <strong>{currency(totals.sales)}</strong></span><span>{t.totalPayments}: <strong>{currency(totals.payments)}</strong></span><Button variant="outline" onClick={() => exportRecordsToXlsx(filteredTransactions.map((tx) => ({ [t.date]: date(tx.createdAt), [t.type]: typeLabel(tx.transactionType), [t.amount]: Number(tx.amount || 0), [t.description]: tx.description || "" })), "vendor-transactions", t.history)}><Download className="me-2 h-4 w-4" />{t.export}</Button></div></DialogContent></Dialog>
+    <Dialog open={dialog === "transactions"} onOpenChange={(open) => !open && setDialog(null)}>
+      <DialogContent className="flex max-h-[90dvh] w-[calc(100vw-2rem)] max-w-6xl flex-col overflow-hidden p-0">
+        <DialogHeader className="shrink-0 border-b border-slate-200 px-5 py-4">
+          <DialogTitle>{t.history} — {selectedVendor?.vendorName}</DialogTitle>
+        </DialogHeader>
+        <div className="shrink-0 space-y-3 border-b border-slate-200 bg-slate-50 px-5 py-3">
+          <div className="flex flex-wrap items-end gap-3">
+            <div><Label>{t.start}</Label><Input type="date" value={txFilterStartDate} onChange={(e) => setTxFilterStartDate(e.target.value)} data-testid="input-tx-filter-start" /></div>
+            <div><Label>{t.end}</Label><Input type="date" value={txFilterEndDate} onChange={(e) => setTxFilterEndDate(e.target.value)} data-testid="input-tx-filter-end" /></div>
+            <div className="min-w-[170px]">
+              <Label>{t.type}</Label>
+              <Select value={txTypeFilter} onValueChange={setTxTypeFilter}>
+                <SelectTrigger data-testid="select-tx-type"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{filterText.allTypes}</SelectItem>
+                  <SelectItem value="sale">{t.sale}</SelectItem>
+                  <SelectItem value="commission">{t.commissionType}</SelectItem>
+                  <SelectItem value="payment">{t.payment}</SelectItem>
+                  <SelectItem value="refund">{t.refund}</SelectItem>
+                  <SelectItem value="adjustment">{t.adjustment}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Input className="min-w-[220px] flex-1" value={txSearchQuery} onChange={(e) => setTxSearchQuery(e.target.value)} placeholder={filterText.search} data-testid="input-tx-search" />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" size="sm" variant="outline" onClick={() => {
+              const range = defaultTransactionRange();
+              setTxFilterStartDate(range.start);
+              setTxFilterEndDate(range.end);
+            }}>{filterText.lastWeek}</Button>
+            <Button type="button" size="sm" variant="outline" onClick={() => {
+              setTxFilterStartDate("");
+              setTxFilterEndDate("");
+            }}>{filterText.allTime}</Button>
+            <Badge variant="secondary">{filteredTransactions.length} {filterText.results}</Badge>
+          </div>
+        </div>
+        <div className="min-h-0 flex-1 overflow-auto">
+          <Table className="min-w-[900px] text-xs">
+            {head([t.date, t.type, t.amount, t.before, t.after, t.description])}
+            <TableBody>{vendorTransactions.isLoading ? emptyRow(6, t.loading) : !filteredTransactions.length ? emptyRow(6, t.noTransactions) : filteredTransactions.map((tx) => <TableRow key={tx.id} className="border-slate-200 odd:bg-slate-50 even:bg-white hover:bg-amber-50"><TableCell className="border-e border-slate-200 px-3 py-2">{date(tx.createdAt)}</TableCell><TableCell className="border-e border-slate-200 px-3 py-2"><Badge>{typeLabel(tx.transactionType)}</Badge></TableCell><TableCell className="border-e border-slate-200 px-3 py-2 font-mono">{currency(tx.amount)}</TableCell><TableCell className="border-e border-slate-200 px-3 py-2">{currency(tx.balanceBefore)}</TableCell><TableCell className="border-e border-slate-200 px-3 py-2">{currency(tx.balanceAfter)}</TableCell><TableCell className="px-3 py-2">{tx.description || t.notSet}</TableCell></TableRow>)}</TableBody>
+          </Table>
+        </div>
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-white px-5 py-3">
+          <span>{t.totalSalesLabel}: <strong>{currency(totals.sales)}</strong></span>
+          <span>{t.totalPayments}: <strong>{currency(totals.payments)}</strong></span>
+          <Button variant="outline" onClick={() => exportRecordsToXlsx(filteredTransactions.map((tx) => ({ [t.date]: date(tx.createdAt), [t.type]: typeLabel(tx.transactionType), [t.amount]: Number(tx.amount || 0), [t.description]: tx.description || "" })), "vendor-transactions", t.history)}><Download className="me-2 h-4 w-4" />{t.export}</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
     <Dialog open={dialog === "commission"} onOpenChange={(open) => !open && setDialog(null)}><DialogContent><DialogHeader><DialogTitle>{t.commissionTitle}</DialogTitle></DialogHeader><Label>{t.rate}</Label><Input type="number" min="0" max="100" value={newCommissionRate} onChange={(e) => setNewCommissionRate(e.target.value)} data-testid="input-commission-rate" /><DialogFooter><Button variant="outline" onClick={() => setDialog(null)}>{t.cancel}</Button><Button onClick={() => selectedVendor && commissionMutation.mutate({ vendorId: selectedVendor.vendorId, commissionRate: Number(newCommissionRate) })} disabled={!newCommissionRate || commissionMutation.isPending} data-testid="btn-confirm-commission">{t.save}</Button></DialogFooter></DialogContent></Dialog>
     <Dialog open={dialog === "productCommission"} onOpenChange={(open) => !open && setDialog(null)}><DialogContent><DialogHeader><DialogTitle>{t.productCommissionTitle}</DialogTitle><DialogDescription>{selectedProduct?.productName}</DialogDescription></DialogHeader><Label>{t.override}</Label><Input type="number" min="0" max="100" value={productCommissionOverride} onChange={(e) => setProductCommissionOverride(e.target.value)} data-testid="input-product-commission" /><DialogFooter><Button variant="outline" onClick={() => setDialog(null)}>{t.cancel}</Button><Button onClick={() => selectedProduct && productCommissionMutation.mutate({ productId: selectedProduct.id, commissionOverride: productCommissionOverride.trim() ? Number(productCommissionOverride) : null })} disabled={productCommissionMutation.isPending} data-testid="btn-confirm-product-commission">{t.save}</Button></DialogFooter></DialogContent></Dialog>
   </div>;
