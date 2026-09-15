@@ -3118,6 +3118,8 @@ const LogisticsManagement = () => {
   };
 
   const OrdersTab = () => {
+    const [ordersSearchQuery, setOrdersSearchQuery] = useState('');
+    const [ordersSortBy, setOrdersSortBy] = useState<'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc' | 'order_number'>('date_desc');
     const customerName = (order: LogisticsOrder) =>
       [order.customerFirstName || order.customer?.firstName, order.customerLastName || order.customer?.lastName].filter(Boolean).join(' ') || t('unknown');
     const checkoutAddress = (order: LogisticsOrder) => {
@@ -3160,6 +3162,18 @@ const LogisticsManagement = () => {
         <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => window.open(`https://www.google.com/maps?q=${order.gpsLatitude},${order.gpsLongitude}`, '_blank')}>{t('route')}</Button>
       </div>
     ) : null;
+    const filteredOrders = mappedLogisticsOrders.filter((order: LogisticsOrder) => {
+      if (ordersSearchQuery.length < 3) return true;
+      const query = ordersSearchQuery.toLowerCase();
+      return [order.orderNumber, order.customerEmail || order.customer?.email, order.customerPhone || order.customer?.phone, order.deliveryCode, order.trackingNumber]
+        .some((value) => String(value || '').toLowerCase().includes(query));
+    }).sort((a: LogisticsOrder, b: LogisticsOrder) => {
+      if (ordersSortBy === 'order_number') return String(a.orderNumber || '').localeCompare(String(b.orderNumber || ''));
+      if (ordersSortBy === 'amount_desc') return Number(b.totalAmount || 0) - Number(a.totalAmount || 0);
+      if (ordersSortBy === 'amount_asc') return Number(a.totalAmount || 0) - Number(b.totalAmount || 0);
+      const delta = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      return ordersSortBy === 'date_asc' ? -delta : delta;
+    });
     return (
       <div className="space-y-4" dir={direction}>
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -3168,16 +3182,31 @@ const LogisticsManagement = () => {
             <p className="text-sm text-slate-500">{t('warehouseApproved')}</p>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="border-slate-300 bg-slate-50 text-slate-700">{mappedLogisticsOrders.length} {t('activeOrders')}</Badge>
+            <Badge variant="outline" className="border-slate-300 bg-slate-50 text-slate-700">{filteredOrders.length} {t('activeOrders')}</Badge>
             <Button variant="outline" size="sm" onClick={forceRefreshLogisticsOrders} className="gap-2 border-slate-300">
               <RefreshCw className="h-4 w-4" />{t('refresh')}
             </Button>
           </div>
         </div>
+        <div className="flex flex-wrap gap-2 rounded-md border border-slate-300 bg-slate-50 p-3">
+          <div className="relative min-w-[260px] flex-1">
+            <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Input value={ordersSearchQuery} onChange={(event) => setOrdersSearchQuery(event.target.value)} placeholder={t('searchDelivered')} className="h-8 border-slate-300 ps-9" />
+          </div>
+          <Select value={ordersSortBy} onValueChange={(value: any) => setOrdersSortBy(value)}>
+            <SelectTrigger className="h-8 w-[190px] border-slate-300"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="date_desc">{t('sortDate')}</SelectItem>
+              <SelectItem value="date_asc">{t('sortOldest')}</SelectItem>
+              <SelectItem value="amount_desc">{t('sortAmount')}</SelectItem>
+              <SelectItem value="order_number">{t('order')}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         {loadingLogisticsOrders ? (
           <Card><CardContent className="py-12 text-center text-slate-500">{t('loading')}</CardContent></Card>
-        ) : mappedLogisticsOrders.length === 0 ? (
-          <Card><CardContent className="py-12 text-center text-slate-500"><Package className="mx-auto mb-3 h-10 w-10 text-slate-300" /><p>{t('empty')}</p></CardContent></Card>
+        ) : filteredOrders.length === 0 ? (
+          <Card><CardContent className="py-12 text-center text-slate-500"><Package className="mx-auto mb-3 h-10 w-10 text-slate-300" /><p>{t('noResults')}</p></CardContent></Card>
         ) : (
           <Card className="overflow-hidden border-slate-300 shadow-sm">
             <CardContent className="p-0">
@@ -3189,7 +3218,7 @@ const LogisticsManagement = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {mappedLogisticsOrders.map((order: LogisticsOrder, index: number) => {
+                    {filteredOrders.map((order: LogisticsOrder, index: number) => {
                       const notes = [ (order as any).customerNotes || (order as any).notes, (order as any).financialNotes, (order as any).warehouseNotes ].filter(Boolean).join(' · ');
                       const vehicle = assignedVehicle(order);
                       const isVehicleExpanded = expandedOrderVehicleId === order.id;
