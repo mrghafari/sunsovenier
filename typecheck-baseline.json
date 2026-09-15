@@ -997,18 +997,6 @@
       "count": 1
     },
     {
-      "key": "[\"client/src/pages/admin/logistics-management.tsx\",2339,\"Property 'city' does not exist on type 'string'.\",\"const orderCity = order.shippingAddress?.city || '';\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/admin/logistics-management.tsx\",2362,\"The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.\",\"const utilizationRate = orderWeight / weightCapacity;\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/admin/logistics-management.tsx\",2363,\"The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.\",\"(parseFloat(matchingTemplate.pricePerKg) * orderWeight);\"]",
-      "count": 1
-    },
-    {
       "key": "[\"client/src/pages/admin/marketing-module.tsx\",2339,\"Property 'data' does not exist on type '{}'.\",\"{loyaltyStats?.data?.tierDistribution?.bronze?.toLocaleString() || '847'}\"]",
       "count": 1
     },
@@ -2037,7 +2025,7 @@
       "count": 1
     },
     {
-      "key": "[\"server/auto-approval-service.ts\",2769,\"No overload matches this call.\\n  Overload 1 of 2, '(value: { customerOrderId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<string, any> | undefined; weightUnit?: string | ... 3 more ... | undefined; ... 62 more ...; transportationType?: string | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.\\n    Object literal may only specify known properties, and 'totalAmount' does not exist in type '{ customerOrderId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<string, any> | undefined; weightUnit?: string | SQL<...> | Placeholder<...> | null | undefined; ... 62 more ...; transportationType?: string | ... 3 more ... | undefined; }'.\\n  Overload 2 of 2, '(values: { customerOrderId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<string, any> | undefined; weightUnit?: string | ... 3 more ... | undefined; ... 62 more ...; transportationType?: string | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.\\n    Object literal may only specify known properties, and 'customerOrderId' does not exist in type '{ customerOrderId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<string, any> | undefined; weightUnit?: string | SQL<...> | Placeholder<...> | null | undefined; ... 62 more ...; transportationType?: string | ... 3 more ... | undefined; }[]'.\",\"await db.insert(orderManagement).values({\"]",
+      "key": "[\"server/auto-approval-service.ts\",2769,\"No overload matches this call.\\n  Overload 1 of 2, '(value: { customerOrderId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<string, any> | undefined; weightUnit?: string | ... 3 more ... | undefined; ... 62 more ...; carrierLocationSource?: string | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.\\n    Object literal may only specify known properties, and 'totalAmount' does not exist in type '{ customerOrderId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<string, any> | undefined; weightUnit?: string | SQL<...> | Placeholder<...> | null | undefined; ... 62 more ...; carrierLocationSource?: string | ... 3 more ... | undefined; }'.\\n  Overload 2 of 2, '(values: { customerOrderId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<string, any> | undefined; weightUnit?: string | ... 3 more ... | undefined; ... 62 more ...; carrierLocationSource?: string | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.\\n    Object literal may only specify known properties, and 'customerOrderId' does not exist in type '{ customerOrderId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<string, any> | undefined; weightUnit?: string | SQL<...> | Placeholder<...> | null | undefined; ... 62 more ...; carrierLocationSource?: string | ... 3 more ... | undefined; }[]'.\",\"await db.insert(orderManagement).values({\"]",
       "count": 1
     },
     {
@@ -2465,7 +2453,7 @@
       "count": 1
     },
     {
-      "key": "[\"server/order-management-storage.ts\",2322,\"Type '{ id: number; customerOrderId: number; currentStatus: string; deliveryCode: string | null; totalAmount: string | null; currency: string | null; orderNumber: string | null; totalWeight: string | null; ... 21 more ...; receipt: { ...; } | null; }[]' is not assignable to type '{ id: number; weightUnit: string | null; createdAt: Date; actualDeliveryDate: Date | null; trackingNumber: string | null; updatedAt: Date; isVerified: boolean | null; ... 58 more ...; transportationType: string | null; }[]'.\\n  Type '{ id: number; customerOrderId: number; currentStatus: string; deliveryCode: string | null; totalAmount: string | null; currency: string | null; orderNumber: string | null; totalWeight: string | null; ... 21 more ...; receipt: { ...; } | null; }' is missing the following properties from type '{ id: number; weightUnit: string | null; createdAt: Date; actualDeliveryDate: Date | null; trackingNumber: string | null; updatedAt: Date; isVerified: boolean | null; ... 58 more ...; transportationType: string | null; }': isVerified, paymentMethod, recipientName, recipientPhone, and 37 more.\",\"return transformedResults;\"]",
+      "key": "[\"server/order-management-storage.ts\",2322,\"Type '{ id: number; customerOrderId: number; currentStatus: string; deliveryCode: string | null; totalAmount: string | null; currency: string | null; orderNumber: string | null; totalWeight: string | null; ... 21 more ...; receipt: { ...; } | null; }[]' is not assignable to type '{ id: number; weightUnit: string | null; createdAt: Date; actualDeliveryDate: Date | null; trackingNumber: string | null; updatedAt: Date; isVerified: boolean | null; ... 58 more ...; carrierLocationSource: string | null; }[]'.\\n  Type '{ id: number; customerOrderId: number; currentStatus: string; deliveryCode: string | null; totalAmount: string | null; currency: string | null; orderNumber: string | null; totalWeight: string | null; ... 21 more ...; receipt: { ...; } | null; }' is missing the following properties from type '{ id: number; weightUnit: string | null; createdAt: Date; actualDeliveryDate: Date | null; trackingNumber: string | null; updatedAt: Date; isVerified: boolean | null; ... 58 more ...; carrierLocationSource: string | null; }': isVerified, paymentMethod, recipientName, recipientPhone, and 37 more.\",\"return transformedResults;\"]",
       "count": 1
     },
     {
@@ -2553,7 +2541,7 @@
       "count": 2
     },
     {
-      "key": "[\"server/payment-workflow.ts\",2353,\"Object literal may only specify known properties, and 'warehouseQueuedAt' does not exist in type '{ customerOrderId?: number | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined; id?: number | SQL<...> | PgColumn<...> | undefined; ... 63 more ...; transportationType?: string | ... 3 more ... | undefined; }'.\",\"warehouseQueuedAt: new Date()\"]",
+      "key": "[\"server/payment-workflow.ts\",2353,\"Object literal may only specify known properties, and 'warehouseQueuedAt' does not exist in type '{ customerOrderId?: number | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined; id?: number | SQL<...> | PgColumn<...> | undefined; ... 63 more ...; carrierLocationSource?: string | ... 3 more ... | undefined; }'.\",\"warehouseQueuedAt: new Date()\"]",
       "count": 1
     },
     {
@@ -3457,15 +3445,15 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'customerFirstName' does not exist on type '{ id: number; weightUnit: string | null; createdAt: Date; actualDeliveryDate: Date | null; trackingNumber: string | null; updatedAt: Date; isVerified: boolean | null; ... 58 more ...; transportationType: string | null; }'.\",\"const customerName = `${orderDetails.customerFirstName} ${orderDetails.customerLastName || ''}`.trim();\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'customerFirstName' does not exist on type '{ id: number; weightUnit: string | null; createdAt: Date; actualDeliveryDate: Date | null; trackingNumber: string | null; updatedAt: Date; isVerified: boolean | null; ... 58 more ...; carrierLocationSource: string | null; }'.\",\"const customerName = `${orderDetails.customerFirstName} ${orderDetails.customerLastName || ''}`.trim();\"]",
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'customerFirstName' does not exist on type '{ id: number; weightUnit: string | null; createdAt: Date; actualDeliveryDate: Date | null; trackingNumber: string | null; updatedAt: Date; isVerified: boolean | null; ... 58 more ...; transportationType: string | null; }'.\",\"if (orderDetails && orderDetails.customerPhone && orderDetails.customerFirstName) {\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'customerFirstName' does not exist on type '{ id: number; weightUnit: string | null; createdAt: Date; actualDeliveryDate: Date | null; trackingNumber: string | null; updatedAt: Date; isVerified: boolean | null; ... 58 more ...; carrierLocationSource: string | null; }'.\",\"if (orderDetails && orderDetails.customerPhone && orderDetails.customerFirstName) {\"]",
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'customerId' does not exist on type '{ id: number; weightUnit: string | null; createdAt: Date; actualDeliveryDate: Date | null; trackingNumber: string | null; updatedAt: Date; isVerified: boolean | null; ... 58 more ...; transportationType: string | null; }'.\",\"const customer = await crmStorage.getCrmCustomerById(order.customerId);\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'customerId' does not exist on type '{ id: number; weightUnit: string | null; createdAt: Date; actualDeliveryDate: Date | null; trackingNumber: string | null; updatedAt: Date; isVerified: boolean | null; ... 58 more ...; carrierLocationSource: string | null; }'.\",\"const customer = await crmStorage.getCrmCustomerById(order.customerId);\"]",
       "count": 1
     },
     {
@@ -3473,7 +3461,7 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'customerLastName' does not exist on type '{ id: number; weightUnit: string | null; createdAt: Date; actualDeliveryDate: Date | null; trackingNumber: string | null; updatedAt: Date; isVerified: boolean | null; ... 58 more ...; transportationType: string | null; }'.\",\"const customerName = `${orderDetails.customerFirstName} ${orderDetails.customerLastName || ''}`.trim();\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'customerLastName' does not exist on type '{ id: number; weightUnit: string | null; createdAt: Date; actualDeliveryDate: Date | null; trackingNumber: string | null; updatedAt: Date; isVerified: boolean | null; ... 58 more ...; carrierLocationSource: string | null; }'.\",\"const customerName = `${orderDetails.customerFirstName} ${orderDetails.customerLastName || ''}`.trim();\"]",
       "count": 1
     },
     {
@@ -3485,15 +3473,15 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'customerPhone' does not exist on type '{ id: number; weightUnit: string | null; createdAt: Date; actualDeliveryDate: Date | null; trackingNumber: string | null; updatedAt: Date; isVerified: boolean | null; ... 58 more ...; transportationType: string | null; }'.\",\"if (orderDetails && orderDetails.customerPhone && orderDetails.customerFirstName) {\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'customerPhone' does not exist on type '{ id: number; weightUnit: string | null; createdAt: Date; actualDeliveryDate: Date | null; trackingNumber: string | null; updatedAt: Date; isVerified: boolean | null; ... 58 more ...; carrierLocationSource: string | null; }'.\",\"if (orderDetails && orderDetails.customerPhone && orderDetails.customerFirstName) {\"]",
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'customerPhone' does not exist on type '{ id: number; weightUnit: string | null; createdAt: Date; actualDeliveryDate: Date | null; trackingNumber: string | null; updatedAt: Date; isVerified: boolean | null; ... 58 more ...; transportationType: string | null; }'.\",\"orderDetails.customerPhone,\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'customerPhone' does not exist on type '{ id: number; weightUnit: string | null; createdAt: Date; actualDeliveryDate: Date | null; trackingNumber: string | null; updatedAt: Date; isVerified: boolean | null; ... 58 more ...; carrierLocationSource: string | null; }'.\",\"orderDetails.customerPhone,\"]",
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'customerPhone' does not exist on type '{ id: number; weightUnit: string | null; createdAt: Date; actualDeliveryDate: Date | null; trackingNumber: string | null; updatedAt: Date; isVerified: boolean | null; ... 58 more ...; transportationType: string | null; }'.\",\"phone: orderDetails.customerPhone,\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'customerPhone' does not exist on type '{ id: number; weightUnit: string | null; createdAt: Date; actualDeliveryDate: Date | null; trackingNumber: string | null; updatedAt: Date; isVerified: boolean | null; ... 58 more ...; carrierLocationSource: string | null; }'.\",\"phone: orderDetails.customerPhone,\"]",
       "count": 1
     },
     {
@@ -4317,11 +4305,11 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2353,\"Object literal may only specify known properties, and 'currentDepartment' does not exist in type '{ customerOrderId?: number | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined; id?: number | SQL<...> | PgColumn<...> | undefined; ... 63 more ...; transportationType?: string | ... 3 more ... | undefined; }'.\",\"currentDepartment: 'finance',\"]",
+      "key": "[\"server/routes.ts\",2353,\"Object literal may only specify known properties, and 'currentDepartment' does not exist in type '{ customerOrderId?: number | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined; id?: number | SQL<...> | PgColumn<...> | undefined; ... 63 more ...; carrierLocationSource?: string | ... 3 more ... | undefined; }'.\",\"currentDepartment: 'finance',\"]",
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2353,\"Object literal may only specify known properties, and 'customerId' does not exist in type '{ customerOrderId: number; weightUnit?: string | null | undefined; actualDeliveryDate?: Date | null | undefined; trackingNumber?: string | null | undefined; isVerified?: boolean | null | undefined; ... 57 more ...; transportationType?: string | ... 1 more ... | undefined; }'.\",\"customerId: finalCrmCustomerId || customerId,\"]",
+      "key": "[\"server/routes.ts\",2353,\"Object literal may only specify known properties, and 'customerId' does not exist in type '{ customerOrderId: number; weightUnit?: string | null | undefined; actualDeliveryDate?: Date | null | undefined; trackingNumber?: string | null | undefined; isVerified?: boolean | null | undefined; ... 57 more ...; carrierLocationSource?: string | ... 1 more ... | undefined; }'.\",\"customerId: finalCrmCustomerId || customerId,\"]",
       "count": 1
     },
     {
@@ -4541,7 +4529,7 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2551,\"Property 'receiptFileName' does not exist on type '{ id: number; weightUnit: string | null; createdAt: Date; actualDeliveryDate: Date | null; trackingNumber: string | null; updatedAt: Date; isVerified: boolean | null; ... 58 more ...; transportationType: string | null; }'. Did you mean 'recipientName'?\",\"fileName: orderMgmt.receiptFileName || 'receipt.png'\"]",
+      "key": "[\"server/routes.ts\",2551,\"Property 'receiptFileName' does not exist on type '{ id: number; weightUnit: string | null; createdAt: Date; actualDeliveryDate: Date | null; trackingNumber: string | null; updatedAt: Date; isVerified: boolean | null; ... 58 more ...; carrierLocationSource: string | null; }'. Did you mean 'recipientName'?\",\"fileName: orderMgmt.receiptFileName || 'receipt.png'\"]",
       "count": 1
     },
     {
@@ -5077,19 +5065,19 @@
       "count": 1
     },
     {
-      "key": "[\"server/transaction-sync.ts\",2353,\"Object literal may only specify known properties, and 'syncNotes' does not exist in type '{ customerOrderId?: number | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined; id?: number | SQL<...> | PgColumn<...> | undefined; ... 63 more ...; transportationType?: string | ... 3 more ... | undefined; }'.\",\"syncNotes: `Fixed inconsistency at ${new Date().toISOString()}`\"]",
+      "key": "[\"server/transaction-sync.ts\",2353,\"Object literal may only specify known properties, and 'syncNotes' does not exist in type '{ customerOrderId?: number | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined; id?: number | SQL<...> | PgColumn<...> | undefined; ... 63 more ...; carrierLocationSource?: string | ... 3 more ... | undefined; }'.\",\"syncNotes: `Fixed inconsistency at ${new Date().toISOString()}`\"]",
       "count": 1
     },
     {
-      "key": "[\"server/transaction-sync.ts\",2353,\"Object literal may only specify known properties, and 'syncNotes' does not exist in type '{ customerOrderId?: number | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined; id?: number | SQL<...> | PgColumn<...> | undefined; ... 63 more ...; transportationType?: string | ... 3 more ... | undefined; }'.\",\"syncNotes: `Transaction sync at ${new Date().toISOString()}`\"]",
+      "key": "[\"server/transaction-sync.ts\",2353,\"Object literal may only specify known properties, and 'syncNotes' does not exist in type '{ customerOrderId?: number | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined; id?: number | SQL<...> | PgColumn<...> | undefined; ... 63 more ...; carrierLocationSource?: string | ... 3 more ... | undefined; }'.\",\"syncNotes: `Transaction sync at ${new Date().toISOString()}`\"]",
       "count": 1
     },
     {
-      "key": "[\"server/transaction-sync.ts\",2769,\"No overload matches this call.\\n  Overload 1 of 2, '(value: { customerOrderId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<string, any> | undefined; weightUnit?: string | ... 3 more ... | undefined; ... 62 more ...; transportationType?: string | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.\\n    Object literal may only specify known properties, and 'syncNotes' does not exist in type '{ customerOrderId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<string, any> | undefined; weightUnit?: string | SQL<...> | Placeholder<...> | null | undefined; ... 62 more ...; transportationType?: string | ... 3 more ... | undefined; }'.\\n  Overload 2 of 2, '(values: { customerOrderId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<string, any> | undefined; weightUnit?: string | ... 3 more ... | undefined; ... 62 more ...; transportationType?: string | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.\\n    Object literal may only specify known properties, and 'customerOrderId' does not exist in type '{ customerOrderId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<string, any> | undefined; weightUnit?: string | SQL<...> | Placeholder<...> | null | undefined; ... 62 more ...; transportationType?: string | ... 3 more ... | undefined; }[]'.\",\"await tx.insert(orderManagement).values({\"]",
+      "key": "[\"server/transaction-sync.ts\",2769,\"No overload matches this call.\\n  Overload 1 of 2, '(value: { customerOrderId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<string, any> | undefined; weightUnit?: string | ... 3 more ... | undefined; ... 62 more ...; carrierLocationSource?: string | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.\\n    Object literal may only specify known properties, and 'syncNotes' does not exist in type '{ customerOrderId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<string, any> | undefined; weightUnit?: string | SQL<...> | Placeholder<...> | null | undefined; ... 62 more ...; carrierLocationSource?: string | ... 3 more ... | undefined; }'.\\n  Overload 2 of 2, '(values: { customerOrderId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<string, any> | undefined; weightUnit?: string | ... 3 more ... | undefined; ... 62 more ...; carrierLocationSource?: string | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.\\n    Object literal may only specify known properties, and 'customerOrderId' does not exist in type '{ customerOrderId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<string, any> | undefined; weightUnit?: string | SQL<...> | Placeholder<...> | null | undefined; ... 62 more ...; carrierLocationSource?: string | ... 3 more ... | undefined; }[]'.\",\"await tx.insert(orderManagement).values({\"]",
       "count": 2
     },
     {
-      "key": "[\"server/transaction-sync.ts\",2769,\"No overload matches this call.\\n  Overload 1 of 2, '(value: { customerOrderId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<string, any> | undefined; weightUnit?: string | ... 3 more ... | undefined; ... 62 more ...; transportationType?: string | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.\\n    Type 'unknown' is not assignable to type 'number | SQL<unknown> | Placeholder<string, any>'.\\n  Overload 2 of 2, '(values: { customerOrderId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<string, any> | undefined; weightUnit?: string | ... 3 more ... | undefined; ... 62 more ...; transportationType?: string | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.\\n    Object literal may only specify known properties, and 'customerOrderId' does not exist in type '{ customerOrderId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<string, any> | undefined; weightUnit?: string | SQL<...> | Placeholder<...> | null | undefined; ... 62 more ...; transportationType?: string | ... 3 more ... | undefined; }[]'.\",\"customerOrderId: row.customer_order_id,\"]",
+      "key": "[\"server/transaction-sync.ts\",2769,\"No overload matches this call.\\n  Overload 1 of 2, '(value: { customerOrderId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<string, any> | undefined; weightUnit?: string | ... 3 more ... | undefined; ... 62 more ...; carrierLocationSource?: string | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.\\n    Type 'unknown' is not assignable to type 'number | SQL<unknown> | Placeholder<string, any>'.\\n  Overload 2 of 2, '(values: { customerOrderId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<string, any> | undefined; weightUnit?: string | ... 3 more ... | undefined; ... 62 more ...; carrierLocationSource?: string | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.\\n    Object literal may only specify known properties, and 'customerOrderId' does not exist in type '{ customerOrderId: number | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<string, any> | undefined; weightUnit?: string | SQL<...> | Placeholder<...> | null | undefined; ... 62 more ...; carrierLocationSource?: string | ... 3 more ... | undefined; }[]'.\",\"customerOrderId: row.customer_order_id,\"]",
       "count": 1
     },
     {
