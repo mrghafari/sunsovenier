@@ -3348,7 +3348,7 @@ const LogisticsManagement = () => {
 
   const LegacyOrdersTab = () => {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6" dir={direction}>
         <div className="flex justify-between items-center">
           <h3 className="text-lg font-semibold">مدیریت سفارشات لجستیک</h3>
           <div className="flex gap-2">
@@ -4430,7 +4430,7 @@ const LogisticsManagement = () => {
           </Card>
         )}
 
-        <div className="grid gap-4">
+        <div>
           {loadingCompanies ? (
             <div className="text-center py-8">{t('loading')}</div>
           ) : companies.length === 0 ? (
@@ -4441,53 +4441,49 @@ const LogisticsManagement = () => {
               </CardContent>
             </Card>
           ) : (
-            companies.map((company: TransportationCompany) => (
-              <Card key={company.id}>
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-semibold">{company.name}</h4>
-                      <p className="text-sm text-gray-600">{company.contactPerson}</p>
-                      <div className="flex items-center gap-4 mt-2 flex-wrap">
-                        <span className="text-sm">📞 {company.phone}</span>
-                        <span className="text-sm">✉️ {company.email}</span>
-                        {company.website && (
-                          <a 
-                            href={company.website} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-sm text-blue-600 hover:underline"
-                          >
-                            🌐 {company.website}
-                          </a>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className="text-sm">⭐ {company.rating || 0}/5</span>
-                        <span className="text-sm">({company.totalDeliveries} {t('deliveries')})</span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      {company.isActive ? (
-                        <Badge className="bg-green-500">{t('active')}</Badge>
-                      ) : (
-                        <Badge className="bg-red-500">{t('inactive')}</Badge>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex gap-2 mt-4">
-                    <Button size="sm" variant="outline">
-                      <Edit className="w-4 h-4 mr-2" />
-                      {t('editAction')}
-                    </Button>
-                    <Button size="sm" variant="outline">
-                      <Eye className="w-4 h-4 mr-2" />
-                      {t('detailsAction')}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
+            <Card className="overflow-hidden border-slate-300 shadow-sm">
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table className="min-w-[1180px] text-xs">
+                    <TableHeader className="sticky top-0 z-10 bg-slate-700">
+                      <TableRow className="border-slate-700 hover:bg-slate-700">
+                        {[t('row'), t('company'), t('contactPerson'), t('phone'), t('email'), t('address'), t('website'), t('rating'), t('deliveries'), t('status'), t('actions')].map((label) => (
+                          <TableHead key={label} className="h-9 border-e border-slate-600 px-3 text-start font-semibold text-slate-50">{label}</TableHead>
+                        ))}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {companies.map((company: TransportationCompany, index: number) => (
+                        <TableRow key={company.id} className="border-slate-200 odd:bg-slate-50 even:bg-white hover:bg-amber-50">
+                          <TableCell className="border-e border-slate-200 px-3 py-2 font-mono text-slate-500">{index + 1}</TableCell>
+                          <TableCell className="border-e border-slate-200 px-3 py-2 font-semibold text-slate-900">{company.name}</TableCell>
+                          <TableCell className="border-e border-slate-200 px-3 py-2">{company.contactPerson || t('unknown')}</TableCell>
+                          <TableCell className="border-e border-slate-200 px-3 py-2 font-mono whitespace-nowrap">{company.phone || t('unknown')}</TableCell>
+                          <TableCell className="border-e border-slate-200 px-3 py-2">{company.email || t('unknown')}</TableCell>
+                          <TableCell className="max-w-[240px] whitespace-normal border-e border-slate-200 px-3 py-2">{company.address || t('noAddress')}</TableCell>
+                          <TableCell className="max-w-[200px] border-e border-slate-200 px-3 py-2">
+                            {company.website ? <a href={company.website} target="_blank" rel="noopener noreferrer" className="break-all text-blue-600 hover:underline">{company.website}</a> : t('unknown')}
+                          </TableCell>
+                          <TableCell className="border-e border-slate-200 px-3 py-2 font-mono whitespace-nowrap">{company.rating || 0}/5</TableCell>
+                          <TableCell className="border-e border-slate-200 px-3 py-2 text-center">{company.totalDeliveries || 0}</TableCell>
+                          <TableCell className="border-e border-slate-200 px-3 py-2">
+                            <Badge variant="outline" className={company.isActive ? 'border-emerald-300 bg-emerald-50 text-emerald-700' : 'border-rose-300 bg-rose-50 text-rose-700'}>
+                              {company.isActive ? t('active') : t('inactive')}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="px-3 py-2">
+                            <div className="flex flex-wrap gap-1">
+                              <Button size="sm" variant="outline" className="h-7 px-2 text-xs"><Edit className="me-1 h-3.5 w-3.5" />{t('editAction')}</Button>
+                              <Button size="sm" variant="outline" className="h-7 px-2 text-xs"><Eye className="me-1 h-3.5 w-3.5" />{t('detailsAction')}</Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
           )}
         </div>
       </div>
