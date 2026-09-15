@@ -307,7 +307,6 @@ const siteManagementTranslations: Record<SiteManagementLanguage, SiteManagementT
 interface QuickActionButton {
   id: string;
   label: string;
-  description?: string;
   icon: React.ComponentType<{ className?: string }>;
   onClick: () => void;
   className: string;
@@ -382,7 +381,6 @@ export default function SiteManagement() {
   // Helper functions
   const getModuleText = (id: SiteManagementModuleId) => ({
     label: siteManagementCopy.modules[id].title,
-    description: siteManagementCopy.modules[id].description,
   });
 
   const trackButtonClick = (buttonId: string, action: () => void) => {
@@ -884,17 +882,12 @@ export default function SiteManagement() {
                   <Button
                     onClick={button.onClick}
                     variant="outline"
-                    className={`w-full min-h-28 h-auto py-3 flex flex-col items-center justify-center space-y-1 transition-all duration-200 hover:scale-105 ${button.className}`}
+                    className={`w-full h-24 flex flex-col items-center justify-center space-y-2 transition-all duration-200 hover:scale-105 ${button.className}`}
                   >
                     <button.icon className="w-6 h-6" />
                     <span className="text-xs font-medium text-center leading-tight">
                       {button.label}
                     </span>
-                    {button.description && (
-                      <span className="text-[10px] font-normal text-center leading-tight opacity-75">
-                        {button.description}
-                      </span>
-                    )}
                   </Button>
                 </div>
               ))}
