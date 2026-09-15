@@ -839,7 +839,7 @@ const LogisticsManagement = () => {
   // Fleet vehicles API integration (previously "ready vehicles")
   const { data: fleetVehiclesData, isLoading: loadingFleetVehicles } = useQuery({
     queryKey: ['/api/logistics/ready-vehicles'],
-    enabled: activeTab === 'orders' || activeTab === 'fleet-vehicles'
+    enabled: activeTab === 'orders' || activeTab === 'delivered' || activeTab === 'fleet-vehicles'
   });
 
   // Vehicle templates API integration
@@ -3801,7 +3801,14 @@ const LogisticsManagement = () => {
     const deliveredOrders = (deliveredOrdersResponse as any)?.orders || [];
     const [deliveredSearchQuery, setDeliveredSearchQuery] = useState('');
     const [deliveredSortBy, setDeliveredSortBy] = useState<'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc' | 'order_number'>('date_desc');
+    const [expandedDeliveredVehicleId, setExpandedDeliveredVehicleId] = useState<number | null>(null);
     const orders = deliveredOrders.map((order: any) => ({ ...order, hasGpsLocation: !!(order.gpsLatitude && order.gpsLongitude) }));
+    const assignedDeliveredVehicle = (order: any) => {
+      const normalizedPlate = order.vehiclePlate?.trim().toLocaleLowerCase();
+      return normalizedPlate
+        ? (fleetVehicles as ReadyVehicle[]).find((vehicle) => vehicle.licensePlate?.trim().toLocaleLowerCase() === normalizedPlate)
+        : undefined;
+    };
     const filtered = orders.filter((order: any) => {
       if (deliveredSearchQuery.length < 3) return true;
       const query = deliveredSearchQuery.toLowerCase();
@@ -3824,20 +3831,75 @@ const LogisticsManagement = () => {
           <Select value={deliveredSortBy} onValueChange={(value: any) => setDeliveredSortBy(value)}><SelectTrigger className="h-8 w-[190px] border-slate-300"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="date_desc">{t('sortDate')}</SelectItem><SelectItem value="date_asc">{t('sortOldest')}</SelectItem><SelectItem value="amount_desc">{t('sortAmount')}</SelectItem><SelectItem value="order_number">{t('order')}</SelectItem></SelectContent></Select>
         </div>
         {loadingDeliveredOrders ? <Card><CardContent className="py-12 text-center text-slate-500">{t('loading')}</CardContent></Card> : filtered.length === 0 ? <Card><CardContent className="py-12 text-center text-slate-500"><Package className="mx-auto mb-3 h-10 w-10 text-slate-300" />{t('noResults')}</CardContent></Card> : (
-          <Card className="overflow-hidden border-slate-300 shadow-sm"><CardContent className="p-0"><div className="overflow-x-auto"><Table className="min-w-[1250px] text-xs">
-            <TableHeader className="bg-slate-700"><TableRow className="border-slate-700 hover:bg-slate-700">{[t('row'), t('order'), t('customer'), t('destination'), t('amount'), t('weight'), t('status'), t('date'), t('codeTracking'), t('actions')].map((label) => <TableHead key={label} className="h-9 border-e border-slate-600 px-3 text-start font-semibold text-slate-50">{label}</TableHead>)}</TableRow></TableHeader>
-            <TableBody>{filtered.map((order: any, index: number) => <TableRow key={order.id} className="border-slate-200 odd:bg-slate-50 even:bg-white hover:bg-emerald-50">
+          <Card className="overflow-hidden border-slate-300 shadow-sm"><CardContent className="p-0"><div className="overflow-x-auto"><Table className="min-w-[1380px] text-xs">
+            <TableHeader className="bg-slate-700"><TableRow className="border-slate-700 hover:bg-slate-700">{[t('row'), t('order'), t('customer'), t('destination'), t('amount'), t('weight'), t('methodVehicle'), t('status'), t('date'), t('codeTracking'), t('actions')].map((label) => <TableHead key={label} className={`h-9 border-e border-slate-600 px-3 text-start font-semibold text-slate-50 ${label === t('codeTracking') ? 'w-[105px] max-w-[105px]' : ''}`}>{label}</TableHead>)}</TableRow></TableHeader>
+            <TableBody>{filtered.map((order: any, index: number) => {
+              const vehicle = assignedDeliveredVehicle(order);
+              const isVehicleExpanded = expandedDeliveredVehicleId === order.id;
+              return <React.Fragment key={order.id}><TableRow className="border-slate-200 odd:bg-slate-50 even:bg-white hover:bg-emerald-50">
               <TableCell className="border-e border-slate-200 px-3 py-2 font-mono text-slate-500">{index + 1}</TableCell>
               <TableCell className="border-e border-slate-200 px-3 py-2 font-semibold">{order.orderNumber || `#${order.customerOrderId}`}<div className="font-normal text-slate-500">{order.actualDeliveryDate ? formatLogisticsDate(order.actualDeliveryDate, true) : formatLogisticsDate(order.createdAt, true)}</div></TableCell>
               <TableCell className="border-e border-slate-200 px-3 py-2"><div className="font-medium">{[order.customerFirstName, order.customerLastName].filter(Boolean).join(' ') || order.customer?.firstName || t('unknown')}</div><div className="text-slate-500">{order.customerPhone || order.customer?.phone || t('unknown')}</div></TableCell>
               <TableCell className="max-w-[220px] whitespace-normal border-e border-slate-200 px-3 py-2 text-slate-600">{order.recipientAddress || order.customerAddress || t('noAddress')}</TableCell>
               <TableCell className="border-e border-slate-200 px-3 py-2 whitespace-nowrap"><span className="font-semibold">{formatLogisticsCurrency(order.totalAmount)}</span><div className="text-slate-500">{order.paymentMethod || t('paymentUnknown')}</div></TableCell>
               <TableCell className="border-e border-slate-200 px-3 py-2 font-mono whitespace-nowrap">{Number(order.calculatedWeight ?? order.totalWeight ?? 0) || 0} {order.weightUnit || 'kg'}</TableCell>
+              <TableCell className="max-w-[180px] whitespace-normal border-e border-slate-200 px-3 py-2">
+                <div className="mb-1 text-slate-600">{order.customerDeliveryMethod || order.deliveryMethod || t('unknown')}</div>
+                {order.vehiclePlate ? (
+                  <button
+                    type="button"
+                    aria-expanded={isVehicleExpanded}
+                    onClick={() => setExpandedDeliveredVehicleId(isVehicleExpanded ? null : order.id)}
+                    className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-blue-300 bg-blue-100 px-2 py-1 font-mono font-semibold text-blue-800 shadow-sm transition-colors hover:border-blue-400 hover:bg-blue-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    title={t('clickVehicleDetails')}
+                  >
+                    <Truck className="h-3.5 w-3.5 shrink-0" />
+                    <span className="break-all">{order.vehiclePlate}</span>
+                    {isVehicleExpanded ? <ChevronUp className="h-3.5 w-3.5 shrink-0" /> : <ChevronDown className="h-3.5 w-3.5 shrink-0" />}
+                  </button>
+                ) : <div className="text-slate-500">{order.selectedVehicleName || t('noVehicle')}</div>}
+              </TableCell>
               <TableCell className="border-e border-slate-200 px-3 py-2"><Badge className="bg-emerald-100 text-emerald-800">{getStatusDisplayName(order.currentStatus || 'delivered', language)}</Badge></TableCell>
               <TableCell className="border-e border-slate-200 px-3 py-2 whitespace-nowrap">{formatLogisticsDate(order.actualDeliveryDate || order.createdAt, true)}</TableCell>
-              <TableCell className="border-e border-slate-200 px-3 py-2 font-mono">{order.deliveryCode || order.trackingNumber || t('noCode')}</TableCell>
+              <TableCell className="w-[105px] max-w-[105px] break-all border-e border-slate-200 px-2 py-2 font-mono text-[11px] leading-4">{order.deliveryCode || order.trackingNumber || t('noCode')}</TableCell>
               <TableCell className="px-3 py-2"><div className="flex flex-wrap gap-1"><Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => { setSelectedOrder(order); setIsOrderDetailsOpen(true); }}><Eye className="me-1 h-3.5 w-3.5" />{t('details')}</Button>{order.hasGpsLocation && <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => window.open(`https://www.google.com/maps?q=${order.gpsLatitude},${order.gpsLongitude}`, '_blank')}><MapPin className="me-1 h-3.5 w-3.5" />{t('location')}</Button>}</div></TableCell>
-            </TableRow>)}</TableBody>
+            </TableRow>
+            {isVehicleExpanded && (
+              <TableRow className="border-b-2 border-blue-200 bg-blue-50/70 hover:bg-blue-50">
+                <TableCell colSpan={11} className="p-0">
+                  <div className="border-s-4 border-blue-500 px-4 py-4">
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-white"><Truck className="h-5 w-5" /></span>
+                        <div>
+                          <div className="font-semibold text-slate-900">{t('assignedVehicleDetails')}</div>
+                          <div className="font-mono text-sm font-bold text-blue-700">{order.vehiclePlate}</div>
+                        </div>
+                      </div>
+                      <Badge className="bg-slate-100 text-slate-700">{t('deliveryCompleted')}</Badge>
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                      {[
+                        [t('vehicleType').replace(' *', ''), vehicle?.vehicleTemplateName || vehicle?.vehicleType || order.vehicleType || order.selectedVehicleName || t('unknown')],
+                        [t('driver'), displayDriverName(vehicle?.driverName || order.driverName) || t('unknownDriver')],
+                        [t('phone'), vehicle?.driverMobile || order.driverPhone || t('unknown')],
+                        [t('capacity'), vehicle ? `${vehicle.loadCapacity} ${t('unitKg')}` : t('unknown')],
+                        [t('location'), vehicle?.currentLocation || t('noLocation')],
+                        [t('flammable'), vehicle?.supportsFlammable ? t('flammableAllowed') : vehicle?.notAllowedFlammable ? t('flammableForbidden') : t('normal')],
+                        [t('lastUpdated'), formatLogisticsDate(vehicle?.updatedAt || order.updatedAt || order.actualDeliveryDate, true)],
+                        [t('notes'), vehicle?.notes || t('noNotes')],
+                      ].map(([label, value]) => (
+                        <div key={label} className="rounded-lg border border-blue-100 bg-white px-3 py-2 shadow-sm">
+                          <div className="mb-0.5 text-[11px] font-medium text-slate-500">{label}</div>
+                          <div className="break-words text-sm font-semibold text-slate-800">{value}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </TableCell>
+              </TableRow>
+            )}
+            </React.Fragment>})}</TableBody>
           </Table></div></CardContent></Card>
         )}
       </div>
