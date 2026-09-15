@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Calculator, Check, Eye, MapPin, Star, Store, X } from "lucide-react";
+import { Calculator, Check, Eye, MapPin, Search, Star, Store, X } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,6 +41,15 @@ export default function MarketplaceManagement() {
   const [rejectionReason, setRejectionReason] = useState("");
   const [dialog, setDialog] = useState<"reject" | "approve" | "toggle" | "details" | null>(null);
   const [toggleAction, setToggleAction] = useState<{ vendorId: number; currentStatus: boolean } | null>(null);
+  const [vendorSearch, setVendorSearch] = useState("");
+  const [vendorStatusFilter, setVendorStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  const [vendorSort, setVendorSort] = useState<"newest" | "oldest" | "sales" | "rating" | "name">("newest");
+  const filterText = {
+    en: { search: "Search vendor, email, phone or address…", allStatuses: "All statuses", newest: "Newest", oldest: "Oldest", sales: "Highest sales", rating: "Highest rating", name: "Vendor name", results: "results" },
+    fa: { search: "جستجوی فروشنده، ایمیل، تلفن یا آدرس…", allStatuses: "همه وضعیت‌ها", newest: "جدیدترین", oldest: "قدیمی‌ترین", sales: "بیشترین فروش", rating: "بیشترین امتیاز", name: "نام فروشنده", results: "نتیجه" },
+    ar: { search: "البحث عن البائع أو البريد أو الهاتف أو العنوان…", allStatuses: "كل الحالات", newest: "الأحدث", oldest: "الأقدم", sales: "الأعلى مبيعاً", rating: "الأعلى تقييماً", name: "اسم البائع", results: "نتيجة" },
+    tr: { search: "Satıcı, e-posta, telefon veya adres ara…", allStatuses: "Tüm durumlar", newest: "En yeni", oldest: "En eski", sales: "En yüksek satış", rating: "En yüksek puan", name: "Satıcı adı", results: "sonuç" },
+  }[language];
 
   const all = useQuery<{ vendors: Vendor[] }>({ queryKey: ["/api/admin/vendors"] });
   const pending = useQuery<{ vendors: Vendor[] }>({ queryKey: ["/api/admin/vendors/pending"] });
@@ -72,10 +83,39 @@ export default function MarketplaceManagement() {
   const TableShell = ({ vendors, loading, error, emptyMessage, testId, kind }: { vendors: Vendor[]; loading: boolean; error: boolean; emptyMessage: string; testId: string; kind: "pending" | "approved" | "rejected" | "all" }) => {
     if (loading) return <Card><CardContent className="py-14 text-center text-slate-500">{t.loading}</CardContent></Card>;
     if (error) return <Card><CardContent className="py-12 text-center text-rose-600"><p>{t.error}</p><Button variant="outline" size="sm" className="mt-3" onClick={refresh}>{t.retry}</Button></CardContent></Card>;
+    const query = vendorSearch.trim().toLowerCase();
+    const filteredVendors = vendors.filter((vendor) => {
+      const matchesSearch = !query || [localizedVendorName(vendor), vendor.vendorName, vendor.vendorNameAr, vendor.vendorNameTr, vendor.contactEmail, vendor.contactPhone, vendor.businessAddress]
+        .some((value) => String(value || "").toLowerCase().includes(query));
+      const matchesStatus = vendorStatusFilter === "all" || (vendorStatusFilter === "active" ? vendor.isActive : !vendor.isActive);
+      return matchesSearch && matchesStatus;
+    }).sort((a, b) => {
+      if (vendorSort === "oldest") return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      if (vendorSort === "sales") return Number(b.totalSales || 0) - Number(a.totalSales || 0);
+      if (vendorSort === "rating") return Number(b.rating || 0) - Number(a.rating || 0);
+      if (vendorSort === "name") return localizedVendorName(a).localeCompare(localizedVendorName(b), language);
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
     if (!vendors.length) return <Empty message={emptyMessage} />;
-    return <Card className="overflow-hidden border-slate-300 shadow-sm" data-testid={testId}><CardContent className="p-0"><div className="overflow-x-auto"><Table className="min-w-[1180px] text-xs">
+    return <div className="space-y-3">
+      <div className="flex flex-wrap gap-2 rounded-md border border-slate-300 bg-slate-50 p-3">
+        <div className="relative min-w-[260px] flex-1">
+          <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Input value={vendorSearch} onChange={(event) => setVendorSearch(event.target.value)} placeholder={filterText.search} className="h-9 border-slate-300 ps-9" data-testid="input-vendor-search" />
+        </div>
+        <Select value={vendorStatusFilter} onValueChange={(value: "all" | "active" | "inactive") => setVendorStatusFilter(value)}>
+          <SelectTrigger className="h-9 w-[170px] border-slate-300" data-testid="select-vendor-status"><SelectValue /></SelectTrigger>
+          <SelectContent><SelectItem value="all">{filterText.allStatuses}</SelectItem><SelectItem value="active">{t.active}</SelectItem><SelectItem value="inactive">{t.inactive}</SelectItem></SelectContent>
+        </Select>
+        <Select value={vendorSort} onValueChange={(value: "newest" | "oldest" | "sales" | "rating" | "name") => setVendorSort(value)}>
+          <SelectTrigger className="h-9 w-[180px] border-slate-300" data-testid="select-vendor-sort"><SelectValue /></SelectTrigger>
+          <SelectContent><SelectItem value="newest">{filterText.newest}</SelectItem><SelectItem value="oldest">{filterText.oldest}</SelectItem><SelectItem value="sales">{filterText.sales}</SelectItem><SelectItem value="rating">{filterText.rating}</SelectItem><SelectItem value="name">{filterText.name}</SelectItem></SelectContent>
+        </Select>
+        <Badge variant="secondary" className="h-9 px-3">{filteredVendors.length} {filterText.results}</Badge>
+      </div>
+      {!filteredVendors.length ? <Empty message={t.empty} /> : <Card className="overflow-hidden border-slate-300 shadow-sm" data-testid={testId}><CardContent className="p-0"><div className="overflow-x-auto"><Table className="min-w-[1180px] text-xs">
       <TableHeader className="sticky top-0 z-10 bg-slate-700"><TableRow className="border-slate-700 hover:bg-slate-700">{[t.name, t.contact, t.address, t.status, t.products, t.sales, t.orders, t.rating, t.created, t.actions].map((h) => <TableHead key={h} className="h-9 border-e border-slate-600 px-3 text-start font-semibold text-slate-50">{h}</TableHead>)}</TableRow></TableHeader>
-      <TableBody>{vendors.map((vendor) => { const s = stats.data?.stats?.[vendor.id]; return <TableRow key={vendor.id} className="border-slate-200 odd:bg-slate-50 even:bg-white hover:bg-amber-50" data-testid={kind === "rejected" ? `rejected-vendor-card-${vendor.id}` : `vendor-card-${vendor.id}`}>
+       <TableBody>{filteredVendors.map((vendor) => { const s = stats.data?.stats?.[vendor.id]; return <TableRow key={vendor.id} className="border-slate-200 odd:bg-slate-50 even:bg-white hover:bg-amber-50" data-testid={kind === "rejected" ? `rejected-vendor-card-${vendor.id}` : `vendor-card-${vendor.id}`}>
         <TableCell className="border-e border-slate-200 px-3 py-2"><div className="flex items-center gap-2.5"><div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-md bg-slate-100">{vendor.logo ? <img src={vendor.logo} alt={localizedVendorName(vendor)} className="h-full w-full object-cover" /> : <Store className="h-4 w-4 text-slate-500" />}</div><div><div className="font-semibold text-slate-900" data-testid={`vendor-name-${vendor.id}`}>{localizedVendorName(vendor)}</div><div className="font-mono text-[10px] text-slate-500">#{vendor.id}</div></div></div></TableCell>
         <TableCell className="border-e border-slate-200 px-3 py-2"><div data-testid={`vendor-email-${vendor.id}`}>{vendor.contactEmail || t.noData}</div><div className="text-slate-500" data-testid={`vendor-phone-${vendor.id}`}>{vendor.contactPhone || t.noData}</div></TableCell>
         <TableCell className="max-w-[190px] border-e border-slate-200 px-3 py-2"><div className="flex items-start gap-1.5"><MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" /><span className="line-clamp-2" data-testid={`vendor-address-${vendor.id}`}>{vendor.businessAddress || t.noData}</span></div></TableCell>
@@ -87,7 +127,7 @@ export default function MarketplaceManagement() {
         <TableCell className="border-e border-slate-200 px-3 py-2 whitespace-nowrap">{date(vendor.createdAt)}</TableCell>
         <TableCell className="px-3 py-2"><div className="flex max-w-[260px] flex-wrap gap-1"><Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => action(vendor, "details")} data-testid={kind === "rejected" ? `button-view-details-rejected-${vendor.id}` : `button-view-details-${vendor.id}`}><Eye className="me-1 h-3.5 w-3.5" />{t.view}</Button>{!vendor.isApproved && <><Button size="sm" className="h-7 bg-emerald-600 px-2 text-xs hover:bg-emerald-700" onClick={() => action(vendor, "approve")} data-testid={kind === "rejected" ? `button-reapprove-${vendor.id}` : `button-approve-${vendor.id}`}><Check className="me-1 h-3.5 w-3.5" />{vendor.rejectionReason ? t.reapprove : t.approve}</Button><Button size="sm" variant="destructive" className="h-7 px-2 text-xs" onClick={() => action(vendor, "reject")} data-testid={`button-reject-${vendor.id}`}><X className="me-1 h-3.5 w-3.5" />{t.reject}</Button></>}{vendor.isApproved && <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => action(vendor, "toggle")} data-testid={`button-toggle-status-${vendor.id}`}>{vendor.isActive ? t.disable : t.enable}</Button>}</div></TableCell>
       </TableRow>; })}</TableBody>
-    </Table></div></CardContent></Card>;
+    </Table></div></CardContent></Card>}</div>;
   };
 
   const listConfig = (kind: "pending" | "approved" | "rejected" | "all") => ({ vendors: kind === "pending" ? pending.data?.vendors || [] : kind === "approved" ? approved.data?.vendors || [] : kind === "rejected" ? rejected.data?.vendors || [] : all.data?.vendors || [], query: kind === "pending" ? pending : kind === "approved" ? approved : kind === "rejected" ? rejected : all, empty: kind === "pending" ? t.emptyPending : kind === "approved" ? t.emptyApproved : kind === "rejected" ? t.emptyRejected : t.empty });
