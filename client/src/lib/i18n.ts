@@ -1107,6 +1107,49 @@ export interface Translation {
     zoom3dModel: string;
     loading3dModel: string;
     error3dModel: string;
+    pageTitle: string;
+    pageSubtitle: string;
+    backToAdmin: string;
+    logout: string;
+    searchPlaceholder: string;
+    allProducts: string;
+    noProductsFound: string;
+    noProductsAvailable: string;
+    noProductsMatch: string;
+    addFirstProduct: string;
+    clearSearch: string;
+    discontinued: string;
+    unknown: string;
+    noBarcode: string;
+    variant: string;
+    companyLabel: string;
+    temperatureLabel: string;
+    temperatureNone: string;
+    temperatureFrozen: string;
+    temperatureChilled: string;
+    temperatureCool: string;
+    temperatureDry: string;
+    assignVendor: string;
+    assignVendorHelp: string;
+    selectVendor: string;
+    noVendor: string;
+    fileTooLargeTitle: string;
+    imageTooLargeDesc: string;
+    invalidImageFormatDesc: string;
+    imageUploadSuccess: string;
+    uploadErrorTitle: string;
+    imageUploadFailed: string;
+    invalidImageFormatsDesc: string;
+    removeImageError: string;
+    imageFileTypes: string;
+    model3dFileTypes: string;
+    removeCatalogError: string;
+    removeMsdsError: string;
+    catalogFilename: string;
+    msdsFilename: string;
+    selected: string;
+    model3dPreview: string;
+    aiGenerate: string;
   };
   
   // Auth & Login
@@ -2236,6 +2279,49 @@ const baseTranslations = {
       zoom3dModel: 'Scroll to zoom',
       loading3dModel: 'Loading 3D model...',
       error3dModel: 'Error loading 3D model',
+      pageTitle: 'Product Management',
+      pageSubtitle: 'Manage products across five categories',
+      backToAdmin: 'Back to Admin',
+      logout: 'Logout',
+      searchPlaceholder: 'Search by name, barcode, or SKU...',
+      allProducts: 'All Products',
+      noProductsFound: 'No products found',
+      noProductsAvailable: 'No products available',
+      noProductsMatch: 'No products match "{query}". Try searching by name, barcode, or SKU.',
+      addFirstProduct: 'Add your first product to get started.',
+      clearSearch: 'Clear Search',
+      discontinued: 'Discontinued',
+      unknown: 'Unknown',
+      noBarcode: 'N/A',
+      variant: 'Variant',
+      companyLabel: 'Company',
+      temperatureLabel: 'Transportation temperature:',
+      temperatureNone: 'No temperature restriction',
+      temperatureFrozen: 'Frozen: -18°C to 0°C',
+      temperatureChilled: 'Chilled: +2°C to +8°C',
+      temperatureCool: 'Cool: +8°C to +15°C',
+      temperatureDry: 'Ambient temperature (Dry): 15°C to 25°C',
+      assignVendor: 'Assign to Vendor (Optional)',
+      assignVendorHelp: 'Optionally assign this product to a marketplace vendor',
+      selectVendor: 'Select vendor (optional)',
+      noVendor: 'No Vendor (Company Product)',
+      fileTooLargeTitle: 'File Too Large',
+      imageTooLargeDesc: 'Image must be less than 2MB. Please compress or resize the image.',
+      invalidImageFormatDesc: 'Only JPEG, PNG, and WebP images are allowed for optimal customer display.',
+      imageUploadSuccess: 'Image uploaded successfully - optimized for customer display',
+      uploadErrorTitle: 'Upload Error',
+      imageUploadFailed: 'Failed to upload image',
+      invalidImageFormatsDesc: 'Only JPEG, PNG, WEBP, and GIF images are allowed.',
+      removeImageError: 'Failed to remove product image',
+      imageFileTypes: 'JPG, PNG, WEBP, GIF',
+      model3dFileTypes: '.glb / .gltf files only',
+      removeCatalogError: 'Failed to remove catalog file',
+      removeMsdsError: 'Failed to remove MSDS file',
+      catalogFilename: 'catalog.pdf',
+      msdsFilename: 'msds.pdf',
+      selected: 'Selected',
+      model3dPreview: '3D Model Preview',
+      aiGenerate: 'AI',
     },
     
     // Batch Management
@@ -3682,6 +3768,49 @@ const baseTranslations = {
       zoom3dModel: 'قم بالتمرير للتكبير',
       loading3dModel: 'جاري تحميل النموذج ثلاثي الأبعاد...',
       error3dModel: 'خطأ في تحميل النموذج ثلاثي الأبعاد',
+      pageTitle: 'إدارة المنتجات',
+      pageSubtitle: 'إدارة المنتجات ضمن خمس فئات',
+      backToAdmin: 'العودة إلى الإدارة',
+      logout: 'تسجيل الخروج',
+      searchPlaceholder: 'البحث بالاسم أو الباركود أو SKU...',
+      allProducts: 'كل المنتجات',
+      noProductsFound: 'لم يتم العثور على منتجات',
+      noProductsAvailable: 'لا توجد منتجات متاحة',
+      noProductsMatch: 'لا توجد منتجات تطابق "{query}". جرّب البحث بالاسم أو الباركود أو SKU.',
+      addFirstProduct: 'أضف منتجك الأول للبدء.',
+      clearSearch: 'مسح البحث',
+      discontinued: 'متوقف',
+      unknown: 'غير معروف',
+      noBarcode: 'غير متوفر',
+      variant: 'متغير',
+      companyLabel: 'الشركة',
+      temperatureLabel: 'درجة حرارة النقل:',
+      temperatureNone: 'بدون قيود حرارية',
+      temperatureFrozen: 'مجمد: ‎-18°C إلى 0°C',
+      temperatureChilled: 'مبرد: ‎+2°C إلى +8°C',
+      temperatureCool: 'بارد: ‎+8°C إلى +15°C',
+      temperatureDry: 'درجة حرارة الغرفة: 15°C إلى 25°C',
+      assignVendor: 'تعيين إلى مورد (اختياري)',
+      assignVendorHelp: 'عيّن هذا المنتج اختيارياً إلى مورد في السوق',
+      selectVendor: 'اختر المورد (اختياري)',
+      noVendor: 'لا يوجد مورد (منتج الشركة)',
+      fileTooLargeTitle: 'الملف كبير جداً',
+      imageTooLargeDesc: 'يجب أن يكون حجم الصورة أقل من 2 ميجابايت. يرجى ضغط الصورة أو تغيير حجمها.',
+      invalidImageFormatDesc: 'يسمح فقط بصور JPEG وPNG وWebP لعرضها الأمثل للعملاء.',
+      imageUploadSuccess: 'تم رفع الصورة بنجاح وتحسينها لعرض العملاء',
+      uploadErrorTitle: 'خطأ في الرفع',
+      imageUploadFailed: 'فشل رفع الصورة',
+      invalidImageFormatsDesc: 'يسمح فقط بصور JPEG وPNG وWEBP وGIF.',
+      removeImageError: 'فشل حذف صورة المنتج',
+      imageFileTypes: 'JPG، PNG، WEBP، GIF',
+      model3dFileTypes: 'ملفات ‎.glb / .gltf فقط',
+      removeCatalogError: 'فشل حذف ملف الكتالوج',
+      removeMsdsError: 'فشل حذف ملف MSDS',
+      catalogFilename: 'catalog.pdf',
+      msdsFilename: 'msds.pdf',
+      selected: 'محدد',
+      model3dPreview: 'معاينة النموذج ثلاثي الأبعاد',
+      aiGenerate: 'الذكاء الاصطناعي',
     },
     
     // Batch Management
@@ -5052,6 +5181,49 @@ const baseTranslations = {
       zoom3dModel: 'Yakınlaştırmak için kaydırın',
       loading3dModel: '3D model yükleniyor...',
       error3dModel: '3D model yükleme hatası',
+      pageTitle: 'Ürün Yönetimi',
+      pageSubtitle: 'Ürünleri beş kategori genelinde yönetin',
+      backToAdmin: 'Yönetime Dön',
+      logout: 'Çıkış Yap',
+      searchPlaceholder: 'İsim, barkod veya SKU ile ara...',
+      allProducts: 'Tüm Ürünler',
+      noProductsFound: 'Ürün bulunamadı',
+      noProductsAvailable: 'Kullanılabilir ürün yok',
+      noProductsMatch: '"{query}" ile eşleşen ürün yok. İsim, barkod veya SKU ile aramayı deneyin.',
+      addFirstProduct: 'Başlamak için ilk ürününüzü ekleyin.',
+      clearSearch: 'Aramayı Temizle',
+      discontinued: 'Üretimden kalktı',
+      unknown: 'Bilinmiyor',
+      noBarcode: 'Yok',
+      variant: 'Varyant',
+      companyLabel: 'Şirket',
+      temperatureLabel: 'Taşıma sıcaklığı:',
+      temperatureNone: 'Sıcaklık sınırlaması yok',
+      temperatureFrozen: 'Dondurulmuş: -18°C ila 0°C',
+      temperatureChilled: 'Soğutulmuş: +2°C ila +8°C',
+      temperatureCool: 'Serin: +8°C ila +15°C',
+      temperatureDry: 'Ortam sıcaklığı (Kuru): 15°C ila 25°C',
+      assignVendor: 'Satıcıya Ata (İsteğe Bağlı)',
+      assignVendorHelp: 'Bu ürünü isteğe bağlı olarak pazar yeri satıcısına atayın',
+      selectVendor: 'Satıcı seçin (isteğe bağlı)',
+      noVendor: 'Satıcı Yok (Şirket Ürünü)',
+      fileTooLargeTitle: 'Dosya Çok Büyük',
+      imageTooLargeDesc: 'Görsel 2 MB\'dan küçük olmalıdır. Lütfen görseli sıkıştırın veya yeniden boyutlandırın.',
+      invalidImageFormatDesc: 'En iyi müşteri görüntülemesi için yalnızca JPEG, PNG ve WebP görsellerine izin verilir.',
+      imageUploadSuccess: 'Görsel başarıyla yüklendi ve müşteri görüntülemesi için optimize edildi',
+      uploadErrorTitle: 'Yükleme Hatası',
+      imageUploadFailed: 'Görsel yüklenemedi',
+      invalidImageFormatsDesc: 'Yalnızca JPEG, PNG, WEBP ve GIF görsellerine izin verilir.',
+      removeImageError: 'Ürün görseli kaldırılamadı',
+      imageFileTypes: 'JPG, PNG, WEBP, GIF',
+      model3dFileTypes: 'Yalnızca .glb / .gltf dosyaları',
+      removeCatalogError: 'Katalog dosyası kaldırılamadı',
+      removeMsdsError: 'MSDS dosyası kaldırılamadı',
+      catalogFilename: 'catalog.pdf',
+      msdsFilename: 'msds.pdf',
+      selected: 'Seçili',
+      model3dPreview: '3D Model Önizlemesi',
+      aiGenerate: 'Yapay Zekâ',
     },
 
     batchManagement: {
@@ -5701,6 +5873,52 @@ export const translations = {
   services: 'خدمات',
   products: 'محصولات',
   contact: 'تماس با ما',
+  productManagement: {
+    ...baseTranslations.en.productManagement,
+    pageTitle: 'مدیریت محصولات',
+    pageSubtitle: 'مدیریت محصولات در پنج دسته',
+    backToAdmin: 'بازگشت به مدیریت',
+    logout: 'خروج',
+    searchPlaceholder: 'جستجو بر اساس نام، بارکد یا SKU...',
+    allProducts: 'همه محصولات',
+    noProductsFound: 'محصولی پیدا نشد',
+    noProductsAvailable: 'محصولی موجود نیست',
+    noProductsMatch: 'محصولی مطابق «{query}» پیدا نشد. جستجو بر اساس نام، بارکد یا SKU را امتحان کنید.',
+    addFirstProduct: 'برای شروع، اولین محصول خود را اضافه کنید.',
+    clearSearch: 'پاک کردن جستجو',
+    discontinued: 'متوقف‌شده',
+    unknown: 'نامشخص',
+    noBarcode: 'ثبت نشده',
+    variant: 'گونه',
+    companyLabel: 'شرکت',
+    temperatureLabel: 'دمای حمل:',
+    temperatureNone: 'بدون محدودیت دمایی',
+    temperatureFrozen: 'منجمد: ‎۱۸- تا ۰ درجه سانتی‌گراد',
+    temperatureChilled: 'سرد: ‎۲+ تا ۸+ درجه سانتی‌گراد',
+    temperatureCool: 'خنک: ‎۸+ تا ۱۵+ درجه سانتی‌گراد',
+    temperatureDry: 'دمای محیط: ۱۵ تا ۲۵ درجه سانتی‌گراد',
+    assignVendor: 'اختصاص به فروشنده (اختیاری)',
+    assignVendorHelp: 'این محصول را به‌صورت اختیاری به فروشنده بازار اختصاص دهید',
+    selectVendor: 'انتخاب فروشنده (اختیاری)',
+    noVendor: 'بدون فروشنده (محصول شرکت)',
+    fileTooLargeTitle: 'فایل بیش از حد بزرگ است',
+    imageTooLargeDesc: 'حجم تصویر باید کمتر از ۲ مگابایت باشد. لطفاً تصویر را فشرده یا کوچک کنید.',
+    invalidImageFormatDesc: 'برای نمایش بهتر به مشتری، فقط تصاویر JPEG، PNG و WebP مجاز هستند.',
+    imageUploadSuccess: 'تصویر با موفقیت بارگذاری و برای نمایش به مشتری بهینه شد',
+    uploadErrorTitle: 'خطا در بارگذاری',
+    imageUploadFailed: 'بارگذاری تصویر ناموفق بود',
+    invalidImageFormatsDesc: 'فقط تصاویر JPEG، PNG، WEBP و GIF مجاز هستند.',
+    removeImageError: 'حذف تصویر محصول ناموفق بود',
+    imageFileTypes: 'JPG، PNG، WEBP، GIF',
+    model3dFileTypes: 'فقط فایل‌های ‎.glb / .gltf',
+    removeCatalogError: 'حذف فایل کاتالوگ ناموفق بود',
+    removeMsdsError: 'حذف فایل MSDS ناموفق بود',
+    catalogFilename: 'catalog.pdf',
+    msdsFilename: 'msds.pdf',
+    selected: 'انتخاب‌شده',
+    model3dPreview: 'پیش‌نمایش مدل سه‌بعدی',
+    aiGenerate: 'هوش مصنوعی',
+  },
   login: 'ورود',
   logout: 'خروج',
   register: 'ثبت‌نام',

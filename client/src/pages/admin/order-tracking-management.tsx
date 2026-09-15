@@ -41,7 +41,8 @@ const translations: Record<Language, Record<string, string>> = {
     minChars: 'Enter at least 3 characters', allStatuses: 'All statuses',
     problematicOnly: 'Problematic and failed only', orderList: 'Order list',
     listDescription: 'View and track all orders in the system', orderNumber: 'Order number',
-    customer: 'Customer', amount: 'Amount', statusProblems: 'Status / problem details',
+    customer: 'Customer', contact: 'Contact', amount: 'Amount',
+    rowNumber: '#', statusProblems: 'Status / problem details',
     createdTime: 'Order time', actions: 'Actions', view: 'View', unknown: 'Unknown',
     loading: 'Loading...', loadingOrders: 'Loading orders...', loadingLatest: 'Retrieving the latest order statuses',
     sessionExpired: 'Session expired', signInAgainMessage: 'Please sign in again to view orders', signInAgain: 'Sign in again',
@@ -84,7 +85,8 @@ const translations: Record<Language, Record<string, string>> = {
     searchPlaceholder: 'البحث (3 أحرف على الأقل): رقم الطلب، البريد، رمز التسليم، الهاتف...',
     minChars: 'أدخل 3 أحرف على الأقل', allStatuses: 'جميع الحالات', problematicOnly: 'المشكلات والطلبات الفاشلة فقط',
     orderList: 'قائمة الطلبات', listDescription: 'عرض وتتبع جميع الطلبات في النظام',
-    orderNumber: 'رقم الطلب', customer: 'العميل', amount: 'المبلغ', statusProblems: 'الحالة / تفاصيل المشكلة',
+    rowNumber: 'الرقم', orderNumber: 'رقم الطلب', customer: 'العميل', contact: 'جهة الاتصال', amount: 'المبلغ',
+    statusProblems: 'الحالة / تفاصيل المشكلة',
     createdTime: 'وقت الطلب', actions: 'الإجراءات', view: 'عرض', unknown: 'غير معروف',
     loading: 'جارٍ التحميل...', loadingOrders: 'جارٍ تحميل الطلبات...', loadingLatest: 'جارٍ جلب أحدث حالات الطلبات',
     sessionExpired: 'انتهت الجلسة', signInAgainMessage: 'يرجى تسجيل الدخول مرة أخرى لعرض الطلبات', signInAgain: 'تسجيل الدخول مجددًا',
@@ -125,7 +127,8 @@ const translations: Record<Language, Record<string, string>> = {
     searchPlaceholder: 'Ara (en az 3 karakter): sipariş no, e-posta, teslimat kodu, telefon...',
     minChars: 'En az 3 karakter girin', allStatuses: 'Tüm durumlar', problematicOnly: 'Yalnızca sorunlu ve başarısız',
     orderList: 'Sipariş listesi', listDescription: 'Sistemdeki tüm siparişleri görüntüleyin ve takip edin',
-    orderNumber: 'Sipariş numarası', customer: 'Müşteri', amount: 'Tutar', statusProblems: 'Durum / sorun ayrıntıları',
+    rowNumber: 'Sıra', orderNumber: 'Sipariş numarası', customer: 'Müşteri', contact: 'İletişim', amount: 'Tutar',
+    statusProblems: 'Durum / sorun ayrıntıları',
     createdTime: 'Sipariş zamanı', actions: 'İşlemler', view: 'Görüntüle', unknown: 'Bilinmiyor',
     loading: 'Yükleniyor...', loadingOrders: 'Siparişler yükleniyor...', loadingLatest: 'En güncel sipariş durumları alınıyor',
     sessionExpired: 'Oturum süresi doldu', signInAgainMessage: 'Siparişleri görmek için yeniden giriş yapın', signInAgain: 'Yeniden giriş yap',
@@ -166,7 +169,8 @@ const translations: Record<Language, Record<string, string>> = {
     searchPlaceholder: 'جستجو (حداقل ۳ حرف): شماره سفارش، ایمیل، کد تحویل، تلفن...',
     minChars: 'حداقل ۳ حرف وارد کنید', allStatuses: 'همه وضعیت‌ها', problematicOnly: 'فقط مشکل‌دار و شکست‌خورده',
     orderList: 'لیست سفارشات', listDescription: 'مشاهده و پیگیری تمامی سفارشات موجود در سیستم',
-    orderNumber: 'شماره سفارش', customer: 'مشتری', amount: 'مبلغ', statusProblems: 'وضعیت / توضیحات مشکلات',
+    rowNumber: 'ردیف', orderNumber: 'شماره سفارش', customer: 'مشتری', contact: 'اطلاعات تماس', amount: 'مبلغ',
+    statusProblems: 'وضعیت / توضیحات مشکلات',
     createdTime: 'زمان ثبت سفارش', actions: 'عملیات', view: 'مشاهده', unknown: 'نامشخص',
     loading: 'در حال بارگیری...', loadingOrders: 'بارگیری سفارشات...', loadingLatest: 'در حال دریافت آخرین وضعیت سفارشات',
     sessionExpired: 'جلسه منقضی شده', signInAgainMessage: 'برای مشاهده سفارشات، لطفاً دوباره وارد شوید', signInAgain: 'ورود مجدد',
@@ -1147,11 +1151,14 @@ export default function OrderTrackingManagement() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b-2 bg-gray-50 dark:bg-gray-800">
-                  <th className="p-4 font-semibold" style={{ width: '140px', textAlign: direction === 'rtl' ? 'right' : 'left' }}>
+          <div className="overflow-x-auto rounded-md border border-slate-300">
+            <table className="w-full min-w-[1180px] table-fixed border-collapse text-sm">
+              <thead className="sticky top-0 z-10">
+                <tr className="border-b-2 border-slate-400 bg-slate-100 text-slate-800">
+                  <th className="w-[52px] border border-slate-300 px-2 py-2.5 text-center font-semibold">
+                    {t('rowNumber')}
+                  </th>
+                  <th className="w-[140px] border border-slate-300 px-3 py-2.5 font-semibold" style={{ textAlign: direction === 'rtl' ? 'right' : 'left' }}>
                     <button 
                       onClick={() => handleSort('orderNumber')}
                       className={`flex items-center w-full hover:text-blue-600 transition-colors ${direction === 'rtl' ? 'justify-end' : 'justify-start'}`}
@@ -1164,7 +1171,7 @@ export default function OrderTrackingManagement() {
                       )}
                     </button>
                   </th>
-                  <th className="p-4 font-semibold" style={{ width: '200px', textAlign: direction === 'rtl' ? 'right' : 'left' }}>
+                  <th className="w-[180px] border border-slate-300 px-3 py-2.5 font-semibold" style={{ textAlign: direction === 'rtl' ? 'right' : 'left' }}>
                     <button 
                       onClick={() => handleSort('customerName')}
                       className={`flex items-center w-full hover:text-blue-600 transition-colors ${direction === 'rtl' ? 'justify-end' : 'justify-start'}`}
@@ -1177,10 +1184,13 @@ export default function OrderTrackingManagement() {
                       )}
                     </button>
                   </th>
-                  <th className="text-right p-4 font-semibold" style={{ width: '120px' }}>
+                  <th className="w-[210px] border border-slate-300 px-3 py-2.5 font-semibold" style={{ textAlign: direction === 'rtl' ? 'right' : 'left' }}>
+                    {t('contact')}
+                  </th>
+                  <th className="w-[120px] border border-slate-300 px-3 py-2.5 font-semibold" style={{ textAlign: direction === 'rtl' ? 'right' : 'left' }}>
                     <button 
                       onClick={() => handleSort('totalAmount')}
-                      className="flex items-center justify-end w-full hover:text-blue-600 transition-colors"
+                      className="flex w-full items-center hover:text-blue-600 transition-colors"
                     >
                       {t('amount')}
                       {sortField === 'totalAmount' && (
@@ -1190,10 +1200,13 @@ export default function OrderTrackingManagement() {
                       )}
                     </button>
                   </th>
-                  <th className="text-right p-4 font-semibold" style={{ width: '200px' }}>
+                  <th className="w-[150px] border border-slate-300 px-3 py-2.5 font-semibold" style={{ textAlign: direction === 'rtl' ? 'right' : 'left' }}>
+                    {t('paymentMethod')}
+                  </th>
+                  <th className="w-[230px] border border-slate-300 px-3 py-2.5 font-semibold" style={{ textAlign: direction === 'rtl' ? 'right' : 'left' }}>
                     <button 
                       onClick={() => handleSort('status')}
-                      className="flex items-center justify-end w-full hover:text-blue-600 transition-colors"
+                      className="flex w-full items-center hover:text-blue-600 transition-colors"
                     >
                       {t('statusProblems')}
                       {sortField === 'status' && (
@@ -1203,10 +1216,10 @@ export default function OrderTrackingManagement() {
                       )}
                     </button>
                   </th>
-                  <th className="text-right p-4 font-semibold" style={{ width: '140px' }}>
+                  <th className="w-[150px] border border-slate-300 px-3 py-2.5 font-semibold" style={{ textAlign: direction === 'rtl' ? 'right' : 'left' }}>
                     <button 
                       onClick={() => handleSort('createdAt')}
-                      className="flex items-center justify-end w-full hover:text-blue-600 transition-colors"
+                      className="flex w-full items-center hover:text-blue-600 transition-colors"
                     >
                       {t('createdTime')}
                       {sortField === 'createdAt' && (
@@ -1216,43 +1229,55 @@ export default function OrderTrackingManagement() {
                       )}
                     </button>
                   </th>
-                  <th className="text-center p-4 font-semibold" style={{ width: '100px' }}>{t('actions')}</th>
+                  <th className="w-[108px] border border-slate-300 px-3 py-2.5 text-center font-semibold">{t('actions')}</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredOrders.map((order) => (
-                  <tr key={order.id} className={`border-b hover:bg-gray-50 dark:hover:bg-gray-800 ${
-                    order.status === 'deleted' ? 'bg-orange-50/50 hover:bg-orange-100/50' : ''
+                {filteredOrders.map((order, index) => (
+                  <tr key={order.id} className={`border-b border-slate-300 align-top odd:bg-white even:bg-slate-50 hover:bg-blue-50 ${
+                    order.status === 'deleted' ? 'bg-orange-50/70 hover:bg-orange-100/70' : ''
                   }`}>
-                    <td className="p-4 text-right" style={{ width: '140px' }}>
-                      <div className="font-medium text-blue-600">#{order.orderNumber || order.customerOrderId}</div>
+                    <td className="border border-slate-300 px-2 py-2.5 text-center text-xs text-slate-500">
+                      {index + 1}
                     </td>
-                    <td className="p-4 text-right" style={{ width: '200px' }}>
-                      <div className="space-y-1">
-                        <div className="font-medium">{order.customerName || t('unknown')}</div>
-                        <div className="text-xs text-gray-600">{order.customerEmail}</div>
-                        <div className="text-xs text-gray-600">{order.customerPhone}</div>
+                    <td className="border border-slate-300 px-3 py-2.5" style={{ width: '140px' }}>
+                      <div className="font-medium text-blue-700">#{order.orderNumber || order.customerOrderId}</div>
+                    </td>
+                    <td className="border border-slate-300 px-3 py-2.5" style={{ width: '180px' }}>
+                      <div className="font-medium">{order.customerName || t('unknown')}</div>
+                    </td>
+                    <td className="border border-slate-300 px-3 py-2.5 text-xs text-slate-600" style={{ width: '210px' }}>
+                      <div className="space-y-0.5 break-words">
+                        <div>{order.customerPhone || t('unknown')}</div>
+                        <div className="break-all">{order.customerEmail || t('unknown')}</div>
                       </div>
                     </td>
-                    <td className="p-4 text-right" style={{ width: '120px' }}>
+                    <td className="border border-slate-300 px-3 py-2.5 text-end" style={{ width: '120px' }}>
                       <div className="font-medium text-sm">
                         {formatAmount(order.totalAmount, order.currency || 'IQD')}
                       </div>
                     </td>
-                    <td className="p-4 text-right" style={{ width: '200px' }}>
+                    <td className="border border-slate-300 px-3 py-2.5" style={{ width: '150px' }}>
+                      {order.paymentMethod ? (
+                        <PaymentMethodBadge paymentMethod={order.paymentMethod} showIcon={false} className="text-xs" />
+                      ) : (
+                        <span className="text-xs text-slate-500">{t('unknown')}</span>
+                      )}
+                    </td>
+                    <td className="border border-slate-300 px-3 py-2.5" style={{ width: '230px' }}>
                       {(() => {
                         const statusInfo = getStatusDisplay(order, t);
                         return (
                           <div className="space-y-1">
-                            <div className={`px-2 py-1 rounded-full text-xs font-medium border ${statusInfo.color}`}>
+                            <div className={`inline-flex max-w-full rounded border px-2 py-1 text-xs font-medium leading-tight ${statusInfo.color}`}>
                               {statusInfo.label}
                             </div>
-                            <div className="text-xs text-gray-600 text-center">
+                            <div className="text-xs text-gray-600">
                               {statusInfo.department}
                             </div>
                             {/* Show detailed explanation for failed/problematic orders */}
                             {statusInfo.isProblematic && statusInfo.explanation && (
-                              <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-800">
+                               <div className="mt-2 rounded border border-red-200 bg-red-50 p-2 text-xs text-red-800">
                                 <div className="flex items-start gap-1">
                                   <AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" />
                                   <span className="leading-tight">{statusInfo.explanation}</span>
@@ -1263,12 +1288,12 @@ export default function OrderTrackingManagement() {
                         );
                       })()}
                     </td>
-                    <td className="p-4 text-right" style={{ width: '140px' }}>
+                    <td className="border border-slate-300 px-3 py-2.5 text-xs text-slate-600" style={{ width: '150px' }}>
                       <div className="text-sm">
                         {order.createdAt ? formatDate(order.createdAt, language, t('unknown')) : t('loading')}
                       </div>
                     </td>
-                    <td className="p-4 text-center" style={{ width: '100px' }}>
+                    <td className="border border-slate-300 px-3 py-2.5 text-center" style={{ width: '108px' }}>
                       <Dialog>
                         <DialogTrigger asChild>
                           <button
