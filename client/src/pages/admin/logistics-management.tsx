@@ -724,6 +724,7 @@ const LogisticsManagement = () => {
   const [availableFleetVehicles, setAvailableFleetVehicles] = useState<any[]>([]);
   const [expandedVehicleIds, setExpandedVehicleIds] = useState<Set<number>>(new Set());
   const [expandedOrderVehicleId, setExpandedOrderVehicleId] = useState<number | null>(null);
+  const [expandedOrderAddressId, setExpandedOrderAddressId] = useState<number | null>(null);
   
   // States for enhanced suitable vehicles display
   const [isSuitableVehiclesOpen, setIsSuitableVehiclesOpen] = useState(false);
@@ -3119,12 +3120,28 @@ const LogisticsManagement = () => {
   const OrdersTab = () => {
     const customerName = (order: LogisticsOrder) =>
       [order.customerFirstName || order.customer?.firstName, order.customerLastName || order.customer?.lastName].filter(Boolean).join(' ') || t('unknown');
-    const address = (order: LogisticsOrder) => {
-      if (typeof order.shippingAddress === 'object' && order.shippingAddress) {
-        const value = order.shippingAddress as any;
-        return [value.address, value.city, value.country].filter(Boolean).join(' · ') || t('noAddress');
+    const checkoutAddress = (order: LogisticsOrder) => {
+      let selectedAddress: any = order.shippingAddress;
+      if (typeof selectedAddress === 'string') {
+        try {
+          selectedAddress = JSON.parse(selectedAddress);
+        } catch {
+          selectedAddress = { address: selectedAddress };
+        }
       }
-      return order.recipientAddress || order.customerAddress || t('noAddress');
+      const city = selectedAddress?.city || selectedAddress?.cityName || selectedAddress?.province || t('unknown');
+      const addressParts = [
+        selectedAddress?.address || selectedAddress?.fullAddress || order.recipientAddress || order.customerAddress,
+        selectedAddress?.district || selectedAddress?.area,
+        selectedAddress?.city || selectedAddress?.cityName,
+        selectedAddress?.province,
+        selectedAddress?.country,
+        selectedAddress?.postalCode,
+      ].filter((value, index, values) => value && values.indexOf(value) === index);
+      return {
+        city,
+        fullAddress: addressParts.join(' · ') || t('noAddress'),
+      };
     };
     const weight = (order: LogisticsOrder) => `${Number(order.calculatedWeight ?? order.totalWeight ?? 0) || 0} ${order.weightUnit || 'kg'}`;
     const assignedVehicle = (order: LogisticsOrder) => {
@@ -3176,13 +3193,27 @@ const LogisticsManagement = () => {
                       const notes = [ (order as any).customerNotes || (order as any).notes, (order as any).financialNotes, (order as any).warehouseNotes ].filter(Boolean).join(' · ');
                       const vehicle = assignedVehicle(order);
                       const isVehicleExpanded = expandedOrderVehicleId === order.id;
+                      const isAddressExpanded = expandedOrderAddressId === order.id;
                       const hasAssignedVehicle = Boolean(order.vehiclePlate);
+                      const deliveryAddress = checkoutAddress(order);
                       return <React.Fragment key={order.id}>
                       <TableRow className="border-slate-200 odd:bg-slate-50 even:bg-white hover:bg-amber-50">
                         <TableCell className="border-e border-slate-200 px-3 py-2 font-mono text-slate-500">{index + 1}</TableCell>
                         <TableCell className="border-e border-slate-200 px-3 py-2 font-semibold text-slate-900">{order.orderNumber || `#${order.customerOrderId}`}<div className="text-[11px] font-normal text-slate-500">{formatLogisticsDate(order.createdAt)}</div></TableCell>
                         <TableCell className="max-w-[190px] border-e border-slate-200 px-3 py-2"><button className="text-start font-medium text-slate-800 underline-offset-2 hover:underline" onClick={() => handleShowOrderDetails(order)}>{customerName(order)}</button><div className="text-slate-500">{order.customerPhone || order.customer?.phone || t('unknown')}</div></TableCell>
-                        <TableCell className="max-w-[220px] whitespace-normal border-e border-slate-200 px-3 py-2 text-slate-600">{address(order)}</TableCell>
+                        <TableCell className="max-w-[220px] whitespace-normal border-e border-slate-200 px-3 py-2">
+                          <button
+                            type="button"
+                            aria-expanded={isAddressExpanded}
+                            onClick={() => setExpandedOrderAddressId(isAddressExpanded ? null : order.id)}
+                            className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-violet-200 bg-violet-50 px-2 py-1 text-start font-semibold text-violet-800 transition-colors hover:border-violet-400 hover:bg-violet-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+                            title={t('clickAddressDetails')}
+                          >
+                            <MapPin className="h-3.5 w-3.5 shrink-0" />
+                            <span className="break-words">{deliveryAddress.city}</span>
+                            {isAddressExpanded ? <ChevronUp className="h-3.5 w-3.5 shrink-0" /> : <ChevronDown className="h-3.5 w-3.5 shrink-0" />}
+                          </button>
+                        </TableCell>
                         <TableCell className="border-e border-slate-200 px-3 py-2 whitespace-nowrap"><span className="font-semibold">{formatLogisticsCurrency(order.totalAmount)}</span><div className="text-slate-500">{order.paymentMethod || t('paymentUnknown')}</div></TableCell>
                         <TableCell className="border-e border-slate-200 px-3 py-2 font-mono whitespace-nowrap">{weight(order)}</TableCell>
                         <TableCell className="max-w-[180px] whitespace-normal border-e border-slate-200 px-3 py-2">
@@ -3214,6 +3245,29 @@ const LogisticsManagement = () => {
                           {gpsActions(order)}
                         </div></TableCell>
                       </TableRow>
+                      {isAddressExpanded && (
+                        <TableRow className="border-b-2 border-violet-200 bg-violet-50/70 hover:bg-violet-50">
+                          <TableCell colSpan={11} className="p-0">
+                            <div className="border-s-4 border-violet-500 px-4 py-4">
+                              <div className="flex items-start gap-3">
+                                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-600 text-white">
+                                  <MapPin className="h-5 w-5" />
+                                </span>
+                                <div className="min-w-0">
+                                  <div className="mb-1 text-xs font-medium text-violet-700">{t('checkoutDeliveryAddress')}</div>
+                                  <div className="break-words text-sm font-semibold leading-6 text-slate-900">{deliveryAddress.fullAddress}</div>
+                                  {(order.recipientName || order.recipientPhone) && (
+                                    <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs text-slate-600">
+                                      {order.recipientName && <span><strong>{t('recipientName')}:</strong> {order.recipientName}</span>}
+                                      {order.recipientPhone && <span><strong>{t('phone')}:</strong> <span className="font-mono">{order.recipientPhone}</span></span>}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
                       {isVehicleExpanded && (
                         <TableRow className="border-b-2 border-blue-200 bg-blue-50/70 hover:bg-blue-50">
                           <TableCell colSpan={11} className="p-0">

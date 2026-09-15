@@ -35,6 +35,8 @@ export const logisticsTranslations: Record<string, Record<LogisticsLanguage, str
   clickVehicleDetails: { en: 'Click to view vehicle and driver details', fa: 'برای مشاهده مشخصات خودرو و راننده کلیک کنید', ar: 'انقر لعرض تفاصيل المركبة والسائق', tr: 'Araç ve sürücü ayrıntılarını görmek için tıklayın' },
   assignedVehicleDetails: { en: 'Assigned vehicle and driver details', fa: 'مشخصات خودروی تخصیص‌یافته و راننده', ar: 'تفاصيل المركبة المعيّنة والسائق', tr: 'Atanan araç ve sürücü ayrıntıları' },
   noNotes: { en: 'No notes', fa: 'بدون یادداشت', ar: 'لا توجد ملاحظات', tr: 'Not yok' },
+  clickAddressDetails: { en: 'Click to view the full checkout delivery address', fa: 'برای مشاهده آدرس کامل انتخاب‌شده در چک‌اوت کلیک کنید', ar: 'انقر لعرض عنوان التسليم الكامل المحدد عند الدفع', tr: 'Ödeme sırasında seçilen tam teslimat adresini görmek için tıklayın' },
+  checkoutDeliveryAddress: { en: 'Checkout delivery address', fa: 'آدرس تحویل انتخاب‌شده در چک‌اوت', ar: 'عنوان التسليم المحدد عند الدفع', tr: 'Ödeme sırasında seçilen teslimat adresi' },
   noResults: { en: 'No delivered orders match your search', fa: 'سفارش تحویل‌شده‌ای با جستجو یافت نشد', ar: 'لا توجد طلبات مسلّمة تطابق البحث', tr: 'Aramayla eşleşen teslim edilmiş sipariş yok' },
   searchDelivered: { en: 'Search by order, email, phone…', fa: 'جستجو بر اساس سفارش، ایمیل، تلفن…', ar: 'البحث برقم الطلب أو البريد أو الهاتف…', tr: 'Sipariş, e-posta veya telefonla ara…' },
   sortDate: { en: 'Newest first', fa: 'جدیدترین ابتدا', ar: 'الأحدث أولاً', tr: 'Yeniden eskiye' },
