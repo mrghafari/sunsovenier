@@ -36,6 +36,49 @@ import { AutoInvoiceConverter } from "./auto-invoice-converter";
 import { orderConsolidationService } from "./order-consolidation-service";
 import { sequenceSyncService } from "./sequence-sync";
 
+export type OrderWeightItem = {
+  quantity: string | number | null;
+  shopGrossWeight: string | number | null;
+  shopWeight: string | number | null;
+  shopBarcode: string | null;
+};
+
+type ProductWeight = {
+  grossWeight: string | number | null;
+  weight: string | number | null;
+};
+
+function positiveNumber(value: string | number | null | undefined): number | undefined {
+  if (value === null || value === undefined || value === '') return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+export async function calculateTotalOrderWeight(
+  items: OrderWeightItem[],
+  findKardexWeightByBarcode: (barcode: string) => Promise<ProductWeight | undefined>,
+): Promise<number> {
+  let totalWeight = 0;
+
+  for (const item of items) {
+    const quantity = positiveNumber(item.quantity) ?? 1;
+    let productWeight =
+      positiveNumber(item.shopGrossWeight) ??
+      positiveNumber(item.shopWeight);
+
+    if (productWeight === undefined && item.shopBarcode) {
+      const kardexWeight = await findKardexWeightByBarcode(item.shopBarcode);
+      productWeight =
+        positiveNumber(kardexWeight?.grossWeight) ??
+        positiveNumber(kardexWeight?.weight);
+    }
+
+    totalWeight += (productWeight ?? 0) * quantity;
+  }
+
+  return Math.round(totalWeight * 100) / 100;
+}
+
 // Helper function to get logistics notification settings
 async function getLogisticsNotificationSettings(): Promise<{email: boolean, sms: boolean, whatsapp: boolean}> {
   try {
@@ -1880,53 +1923,23 @@ export class OrderManagementStorage implements IOrderManagementStorage {
 
       console.log(`📊 [WEIGHT] Found ${items.length} items for order ${customerOrderId}`);
 
-      // Calculate total weight using gross weight (وزن ناخالص) for logistics calculations
-      let totalWeight = 0;
-      
-      for (const item of items) {
-        let productWeight = 0;
-        const quantity = parseFloat(item.quantity?.toString() || '1');
-        
-        console.log(`🏷️ [WEIGHT] Processing item: ${item.productName} (ID: ${item.productId}) x${quantity}`);
-        
-        // First try to get weight from shop_products
-        if (item.shopGrossWeight) {
-          productWeight = parseFloat(item.shopGrossWeight.toString());
-          console.log(`⚖️ [WEIGHT] Using shop gross weight: ${productWeight} kg`);
-        } else if (item.shopWeight) {
-          productWeight = parseFloat(item.shopWeight.toString());
-          console.log(`⚖️ [WEIGHT] Using shop legacy weight: ${productWeight} kg`);
-        } else if (item.shopBarcode) {
-          // If no weight in shop, try to get from showcase_products by barcode
-          console.log(`🔍 [WEIGHT] No weight in shop, searching Kardex by barcode: ${item.shopBarcode}`);
-          
-          const { showcaseProducts } = await import('../shared/showcase-schema');
+      const finalWeight = await calculateTotalOrderWeight(
+        items,
+        async (barcode) => {
+          console.log(`🔍 [WEIGHT] No weight in shop, searching Kardex by barcode: ${barcode}`);
+
           const showcaseWeight = await db
             .select({
-              grossWeight: showcaseProducts.grossWeight,
-              netWeight: showcaseProducts.netWeight,
-              weight: showcaseProducts.weight
+              grossWeight: products.grossWeight,
+              weight: products.weight
             })
-            .from(showcaseProducts)
-            .where(eq(showcaseProducts.barcode, item.shopBarcode))
+            .from(products)
+            .where(eq(products.barcode, barcode))
             .limit(1);
 
-          if (showcaseWeight.length > 0 && showcaseWeight[0].grossWeight) {
-            productWeight = parseFloat(showcaseWeight[0].grossWeight.toString());
-            console.log(`⚖️ [WEIGHT] Using Kardex gross weight: ${productWeight} kg`);
-          } else if (showcaseWeight.length > 0 && showcaseWeight[0].weight) {
-            productWeight = parseFloat(showcaseWeight[0].weight.toString());
-            console.log(`⚖️ [WEIGHT] Using Kardex legacy weight: ${productWeight} kg`);
-          }
-        }
-        
-        const itemTotalWeight = productWeight * quantity;
-        totalWeight += itemTotalWeight;
-        
-        console.log(`📦 [WEIGHT] Item total: ${productWeight} kg x ${quantity} = ${itemTotalWeight} kg`);
-      }
-
-      const finalWeight = Math.round(totalWeight * 100) / 100; // Round to 2 decimal places
+          return showcaseWeight[0];
+        },
+      );
       console.log(`🎯 [WEIGHT] Final calculated weight for order ${customerOrderId}: ${finalWeight} kg`);
       
       return finalWeight;
