@@ -16,6 +16,55 @@ import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import EmailSetupProgress from "@/components/ui/email-setup-progress";
+import { useLanguage } from "@/contexts/LanguageContext";
+import type { Language } from "@/lib/i18n";
+
+type EmailCopy = {
+  back: string; title: string; subtitle: string; loading: string; empty: string;
+  initTitle: string; initDescription: string; initAction: string; categories: string;
+  categoriesDescription: string; addCategory: string; deleteCategory: string; deleting: string;
+  smtp: string; recipients: string; assignment: string; control: string; smtpHost: string;
+  port: string; ssl: string; username: string; password: string; fromName: string; fromEmail: string;
+  otp: string; otpDescription: string; validate: string; validating: string; save: string;
+  test: string; testConnection: string; validationSuccess: string; validationFailed: string;
+  errors: string; suggestions: string; hostReachable: string; authentication: string;
+  status: string; quickAdd: string; ccEmail: string; bccEmail: string; addBoth: string;
+  quickAddHint: string; addRecipient: string; email: string; optionalName: string; primary: string;
+  recipientType: string; to: string; cc: string; bcc: string; distribution: string; none: string;
+  configured: string; notConfigured: string; recipientsCount: string; selectCategory: string;
+  selectCategoryDescription: string; cancel: string; create: string; creating: string; key: string;
+  name: string; description: string; categoryStatus: string; ready: string; failed: string;
+  incomplete: string; untested: string; emailManager: string; progress: string; templates: string;
+  logs: string; systemStatus: string; active: string; enabled: string; emailTypes: string;
+  routing: string; mapping: string; smartFeatures: string; quickActions: string; currentConfig: string;
+  enterEmail: string;
+};
+
+const emailCopy: Record<Language, EmailCopy> = {
+  en: {
+    back: "Back to Admin", title: "Advanced Email Management", subtitle: "Configure independent SMTP settings for each product category", loading: "Loading email settings...", empty: "Choose an email category from the left to configure its settings",
+    initTitle: "Initialize Email Categories", initDescription: "Set up the default email categories for your chemical products", initAction: "Initialize Categories", categories: "Email Categories", categoriesDescription: "Configure SMTP settings and recipients for each category", addCategory: "Add category", deleteCategory: "Delete category", deleting: "Deleting...", smtp: "SMTP Settings", recipients: "Email Recipients", assignment: "Category Assignment", control: "Email Control Panel", smtpHost: "SMTP Host", port: "Port", ssl: "Use SSL/TLS", username: "Username", password: "Password", fromName: "From Name", fromEmail: "From Email", otp: "Use for OTP delivery", otpDescription: "Use this SMTP for sending customer OTP verification codes", validate: "Validate SMTP", validating: "Validating...", save: "Save settings", test: "Test connection", testConnection: "Test SMTP Configuration", validationSuccess: "SMTP validation successful. You can now save the settings.", validationFailed: "SMTP validation failed", errors: "Errors:", suggestions: "Suggestions:", hostReachable: "Host reachable", authentication: "Authentication", status: "Current status:", quickAdd: "Quick add CC/BCC recipients", ccEmail: "CC email", bccEmail: "BCC email", addBoth: "Add both", quickAddHint: "Press Enter in a field or click “Add both” to add recipients", addRecipient: "Add new recipient (advanced)", email: "Email", optionalName: "Name (optional)", primary: "Primary recipient", recipientType: "Recipient type", to: "To (direct)", cc: "CC (copy)", bcc: "BCC (blind copy)", distribution: "Current email distribution", none: "None", configured: "SMTP configured", notConfigured: "No SMTP", recipientsCount: "recipients", selectCategory: "Select a category", selectCategoryDescription: "Choose an email category from the left to configure its settings", cancel: "Cancel", create: "Create category", creating: "Creating...", key: "Category key", name: "Category name", description: "Description", categoryStatus: "Category status", ready: "Ready", failed: "Failed", incomplete: "Incomplete", untested: "Not tested", emailManager: "Email Address Manager", progress: "Email Configuration Progress", templates: "Central Email Templates", logs: "Automated Email Logs", systemStatus: "System status", active: "Active", enabled: "Enabled", emailTypes: "Email types covered", routing: "Intelligent routing active", mapping: "Product category → department mapping", smartFeatures: "Smart features", quickActions: "Quick actions", currentConfig: "Current configuration", enterEmail: "Enter email address"
+  },
+  fa: {
+    back: "بازگشت به مدیریت", title: "مدیریت پیشرفته ایمیل", subtitle: "تنظیم SMTP مستقل برای هر دسته‌بندی محصول", loading: "در حال بارگذاری تنظیمات ایمیل...", empty: "برای تنظیمات، یک دسته‌بندی ایمیل از سمت راست انتخاب کنید",
+    initTitle: "راه‌اندازی دسته‌بندی‌های ایمیل", initDescription: "دسته‌بندی‌های پیش‌فرض ایمیل محصولات شیمیایی را ایجاد کنید", initAction: "راه‌اندازی دسته‌بندی‌ها", categories: "دسته‌بندی‌های ایمیل", categoriesDescription: "تنظیم SMTP و گیرندگان برای هر دسته‌بندی", addCategory: "افزودن دسته‌بندی", deleteCategory: "حذف دسته‌بندی", deleting: "در حال حذف...", smtp: "تنظیمات SMTP", recipients: "گیرندگان ایمیل", assignment: "تخصیص دسته‌بندی", control: "پنل کنترل ایمیل", smtpHost: "میزبان SMTP", port: "پورت", ssl: "استفاده از SSL/TLS", username: "نام کاربری", password: "رمز عبور", fromName: "نام فرستنده", fromEmail: "ایمیل فرستنده", otp: "استفاده برای ارسال OTP", otpDescription: "از این SMTP برای ارسال کدهای تأیید OTP مشتریان استفاده شود", validate: "اعتبارسنجی SMTP", validating: "در حال اعتبارسنجی...", save: "ذخیره تنظیمات", test: "آزمون اتصال", testConnection: "آزمون تنظیمات SMTP", validationSuccess: "اعتبارسنجی SMTP موفق بود؛ اکنون می‌توانید تنظیمات را ذخیره کنید.", validationFailed: "اعتبارسنجی SMTP ناموفق بود", errors: "خطاها:", suggestions: "پیشنهادها:", hostReachable: "دسترسی به میزبان", authentication: "احراز هویت", status: "وضعیت فعلی:", quickAdd: "افزودن سریع گیرندگان CC/BCC", ccEmail: "ایمیل CC", bccEmail: "ایمیل BCC", addBoth: "افزودن هر دو", quickAddHint: "در فیلد Enter بزنید یا برای افزودن گیرندگان روی «افزودن هر دو» کلیک کنید", addRecipient: "افزودن گیرنده جدید (پیشرفته)", email: "ایمیل", optionalName: "نام (اختیاری)", primary: "گیرنده اصلی", recipientType: "نوع گیرنده", to: "To (مستقیم)", cc: "CC (رونوشت)", bcc: "BCC (رونوشت مخفی)", distribution: "توزیع فعلی ایمیل", none: "هیچ‌کدام", configured: "SMTP تنظیم شده", notConfigured: "بدون SMTP", recipientsCount: "گیرنده", selectCategory: "انتخاب دسته‌بندی", selectCategoryDescription: "برای تنظیمات، یک دسته‌بندی ایمیل از فهرست انتخاب کنید", cancel: "انصراف", create: "ایجاد دسته‌بندی", creating: "در حال ایجاد...", key: "کلید دسته‌بندی", name: "نام دسته‌بندی", description: "توضیحات", categoryStatus: "وضعیت دسته‌بندی", ready: "آماده", failed: "خرابی", incomplete: "ناقص", untested: "تست نشده", emailManager: "مدیریت آدرس‌های ایمیل", progress: "پیشرفت تنظیمات ایمیل", templates: "مرکز قالب‌های ایمیل", logs: "گزارش ایمیل‌های خودکار", systemStatus: "وضعیت سیستم", active: "فعال", enabled: "فعال", emailTypes: "انواع ایمیل پوشش‌داده‌شده", routing: "مسیریابی هوشمند فعال است", mapping: "تطبیق دسته‌بندی محصول با واحد", smartFeatures: "قابلیت‌های هوشمند", quickActions: "عملیات سریع", currentConfig: "پیکربندی فعلی", enterEmail: "آدرس ایمیل را وارد کنید"
+  },
+  ar: {
+    back: "العودة إلى الإدارة", title: "إدارة البريد الإلكتروني المتقدمة", subtitle: "تهيئة SMTP مستقل لكل فئة من المنتجات", loading: "جار تحميل إعدادات البريد الإلكتروني...", empty: "اختر فئة بريد إلكتروني من الجانب لتهيئة إعداداتها",
+    initTitle: "تهيئة فئات البريد الإلكتروني", initDescription: "إعداد فئات البريد الإلكتروني الافتراضية لمنتجاتك الكيميائية", initAction: "تهيئة الفئات", categories: "فئات البريد الإلكتروني", categoriesDescription: "تهيئة SMTP والمستلمين لكل فئة", addCategory: "إضافة فئة", deleteCategory: "حذف الفئة", deleting: "جار الحذف...", smtp: "إعدادات SMTP", recipients: "مستلمو البريد الإلكتروني", assignment: "تعيين الفئة", control: "لوحة تحكم البريد الإلكتروني", smtpHost: "مضيف SMTP", port: "المنفذ", ssl: "استخدام SSL/TLS", username: "اسم المستخدم", password: "كلمة المرور", fromName: "اسم المرسل", fromEmail: "بريد المرسل", otp: "الاستخدام لإرسال OTP", otpDescription: "استخدم SMTP هذا لإرسال رموز تحقق OTP للعملاء", validate: "التحقق من SMTP", validating: "جار التحقق...", save: "حفظ الإعدادات", test: "اختبار الاتصال", testConnection: "اختبار إعدادات SMTP", validationSuccess: "نجح التحقق من SMTP. يمكنك الآن حفظ الإعدادات.", validationFailed: "فشل التحقق من SMTP", errors: "الأخطاء:", suggestions: "الاقتراحات:", hostReachable: "الوصول إلى المضيف", authentication: "المصادقة", status: "الحالة الحالية:", quickAdd: "إضافة مستلمي CC/BCC سريعًا", ccEmail: "بريد CC", bccEmail: "بريد BCC", addBoth: "إضافة كليهما", quickAddHint: "اضغط Enter في الحقل أو انقر «إضافة كليهما» لإضافة المستلمين", addRecipient: "إضافة مستلم جديد (متقدم)", email: "البريد الإلكتروني", optionalName: "الاسم (اختياري)", primary: "المستلم الأساسي", recipientType: "نوع المستلم", to: "To (مباشر)", cc: "CC (نسخة)", bcc: "BCC (نسخة مخفية)", distribution: "توزيع البريد الحالي", none: "لا يوجد", configured: "تم تهيئة SMTP", notConfigured: "لا يوجد SMTP", recipientsCount: "مستلمون", selectCategory: "اختر فئة", selectCategoryDescription: "اختر فئة بريد إلكتروني من الجانب لتهيئة إعداداتها", cancel: "إلغاء", create: "إنشاء فئة", creating: "جار الإنشاء...", key: "مفتاح الفئة", name: "اسم الفئة", description: "الوصف", categoryStatus: "حالة الفئة", ready: "جاهز", failed: "فشل", incomplete: "غير مكتمل", untested: "لم يُختبر", emailManager: "مدير عناوين البريد", progress: "تقدم تهيئة البريد", templates: "مركز قوالب البريد", logs: "سجلات البريد الآلي", systemStatus: "حالة النظام", active: "نشط", enabled: "مفعّل", emailTypes: "أنواع البريد المشمولة", routing: "التوجيه الذكي نشط", mapping: "تعيين فئة المنتج إلى القسم", smartFeatures: "الميزات الذكية", quickActions: "إجراءات سريعة", currentConfig: "التهيئة الحالية", enterEmail: "أدخل عنوان البريد"
+  },
+  tr: {
+    back: "Yönetime dön", title: "Gelişmiş e-posta yönetimi", subtitle: "Her ürün kategorisi için bağımsız SMTP ayarlayın", loading: "E-posta ayarları yükleniyor...", empty: "Ayarlarını yapmak için soldan bir e-posta kategorisi seçin",
+    initTitle: "E-posta kategorilerini başlat", initDescription: "Kimyasal ürünleriniz için varsayılan e-posta kategorilerini oluşturun", initAction: "Kategorileri başlat", categories: "E-posta kategorileri", categoriesDescription: "Her kategori için SMTP ve alıcıları ayarlayın", addCategory: "Kategori ekle", deleteCategory: "Kategoriyi sil", deleting: "Siliniyor...", smtp: "SMTP ayarları", recipients: "E-posta alıcıları", assignment: "Kategori ataması", control: "E-posta kontrol paneli", smtpHost: "SMTP sunucusu", port: "Port", ssl: "SSL/TLS kullan", username: "Kullanıcı adı", password: "Şifre", fromName: "Gönderen adı", fromEmail: "Gönderen e-postası", otp: "OTP gönderimi için kullan", otpDescription: "Müşteri OTP doğrulama kodlarını göndermek için bu SMTP'yi kullanın", validate: "SMTP'yi doğrula", validating: "Doğrulanıyor...", save: "Ayarları kaydet", test: "Bağlantıyı test et", testConnection: "SMTP yapılandırmasını test et", validationSuccess: "SMTP doğrulaması başarılı. Ayarları şimdi kaydedebilirsiniz.", validationFailed: "SMTP doğrulaması başarısız", errors: "Hatalar:", suggestions: "Öneriler:", hostReachable: "Sunucuya erişilebilir", authentication: "Kimlik doğrulama", status: "Mevcut durum:", quickAdd: "CC/BCC alıcılarını hızlı ekle", ccEmail: "CC e-postası", bccEmail: "BCC e-postası", addBoth: "İkisini de ekle", quickAddHint: "Alana Enter'a basın veya alıcı eklemek için “İkisini de ekle”ye tıklayın", addRecipient: "Yeni alıcı ekle (gelişmiş)", email: "E-posta", optionalName: "Ad (isteğe bağlı)", primary: "Birincil alıcı", recipientType: "Alıcı türü", to: "To (doğrudan)", cc: "CC (kopya)", bcc: "BCC (gizli kopya)", distribution: "Mevcut e-posta dağıtımı", none: "Yok", configured: "SMTP yapılandırıldı", notConfigured: "SMTP yok", recipientsCount: "alıcı", selectCategory: "Kategori seçin", selectCategoryDescription: "Ayarlarını yapmak için soldan bir e-posta kategorisi seçin", cancel: "İptal", create: "Kategori oluştur", creating: "Oluşturuluyor...", key: "Kategori anahtarı", name: "Kategori adı", description: "Açıklama", categoryStatus: "Kategori durumu", ready: "Hazır", failed: "Başarısız", incomplete: "Eksik", untested: "Test edilmedi", emailManager: "E-posta adresi yöneticisi", progress: "E-posta yapılandırma ilerlemesi", templates: "Merkezi e-posta şablonları", logs: "Otomatik e-posta günlükleri", systemStatus: "Sistem durumu", active: "Etkin", enabled: "Etkin", emailTypes: "Kapsanan e-posta türleri", routing: "Akıllı yönlendirme etkin", mapping: "Ürün kategorisi → departman eşlemesi", smartFeatures: "Akıllı özellikler", quickActions: "Hızlı işlemler", currentConfig: "Mevcut yapılandırma", enterEmail: "E-posta adresini girin"
+  }
+};
+
+const zohoHints: Record<Language, string> = {
+  en: "For Zoho Mail: use an App Password (not your regular password)",
+  fa: "برای Zoho Mail: از رمز برنامه استفاده کنید (نه رمز معمولی)",
+  ar: "لبريد Zoho: استخدم كلمة مرور التطبيق (وليس كلمة المرور العادية)",
+  tr: "Zoho Mail için uygulama şifresi kullanın (normal şifre değil)",
+};
 
 interface EmailCategory {
   id: number;
@@ -72,6 +121,8 @@ interface SMTPForm {
 }
 
 export default function AdvancedEmailSettingsPage() {
+  const { language, direction } = useLanguage();
+  const copy = emailCopy[language];
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   
@@ -137,7 +188,7 @@ export default function AdvancedEmailSettingsPage() {
     mutationFn: () => fetch("/api/admin/email/init-categories", { method: "POST" }).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/email/categories"] });
-      toast({ title: "Categories initialized successfully" });
+      toast({ title: copy.initAction });
     }
   });
 
@@ -201,10 +252,10 @@ export default function AdvancedEmailSettingsPage() {
       }).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/email/global-settings"] });
-      toast({ title: "Global setting updated successfully" });
+      toast({ title: copy.save });
     },
     onError: () => {
-      toast({ title: "Failed to update global setting", variant: "destructive" });
+      toast({ title: copy.validationFailed, variant: "destructive" });
     }
   });
 
@@ -213,7 +264,7 @@ export default function AdvancedEmailSettingsPage() {
     if (!newCcAddress.trim()) return;
     
     if (!newCcAddress.includes('@')) {
-      toast({ title: "Please enter a valid email address", variant: "destructive" });
+      toast({ title: copy.enterEmail, variant: "destructive" });
       return;
     }
 
@@ -264,21 +315,21 @@ export default function AdvancedEmailSettingsPage() {
     onSuccess: (data) => {
       console.log("SMTP save success:", data);
       queryClient.invalidateQueries({ queryKey: ["/api/admin/email/categories"] });
-      toast({ title: "SMTP settings saved successfully" });
+      toast({ title: copy.save });
       // Force reload the categories to get updated SMTP data
       setTimeout(() => {
         queryClient.refetchQueries({ queryKey: ["/api/admin/email/categories"] });
       }, 100);
     },
     onError: () => {
-      toast({ title: "Failed to save SMTP settings", variant: "destructive" });
+      toast({ title: copy.validationFailed, variant: "destructive" });
     }
   });
 
   // Validate SMTP settings (before saving)
   const validateSmtp = async () => {
     if (!smtpForm.username || !smtpForm.password) {
-      toast({ title: "Please enter email and password for validation", variant: "destructive" });
+      toast({ title: `${copy.email} / ${copy.password}`, variant: "destructive" });
       return;
     }
 
@@ -301,18 +352,18 @@ export default function AdvancedEmailSettingsPage() {
       setValidationResult(result);
       
       if (result.isValid) {
-        toast({ title: "SMTP validation successful! You can now save the settings." });
+        toast({ title: copy.validationSuccess });
       } else {
         toast({ 
-          title: "SMTP validation failed", 
-          description: result.errors?.[0] || "Unknown error",
+          title: copy.validationFailed,
+          description: result.errors?.[0] || copy.validationFailed,
           variant: "destructive" 
         });
       }
     } catch (error: any) {
       setValidationResult({
         isValid: false,
-        errors: [`Validation failed: ${error.message}`],
+        errors: [`${copy.validationFailed}: ${error.message}`],
         warnings: [],
         suggestions: [],
         configurationStatus: {
@@ -322,7 +373,7 @@ export default function AdvancedEmailSettingsPage() {
           authenticationWorking: false,
         },
       });
-      toast({ title: "Validation failed", variant: "destructive" });
+      toast({ title: copy.validationFailed, variant: "destructive" });
     } finally {
       setIsValidating(false);
     }
@@ -331,7 +382,7 @@ export default function AdvancedEmailSettingsPage() {
   // Test SMTP connection (using proper validation)
   const testSmtpConnection = async () => {
     if (!smtpForm.username || !smtpForm.password) {
-      toast({ title: "Please enter email and password for testing", variant: "destructive" });
+      toast({ title: `${copy.email} / ${copy.password}`, variant: "destructive" });
       return;
     }
 
@@ -354,15 +405,15 @@ export default function AdvancedEmailSettingsPage() {
       
       if (result.isValid) {
         toast({ 
-          title: "SMTP Connection Successful!", 
+          title: copy.validationSuccess,
           description: "Your email settings are working correctly." 
         });
         // Refresh categories to show updated status
         queryClient.invalidateQueries({ queryKey: ["/api/admin/email/categories"] });
       } else {
         toast({ 
-          title: "SMTP Connection Failed", 
-          description: result.errors?.[0] || "Connection test failed",
+          title: copy.validationFailed,
+          description: result.errors?.[0] || copy.validationFailed,
           variant: "destructive" 
         });
         // Refresh categories to show updated status
@@ -370,7 +421,7 @@ export default function AdvancedEmailSettingsPage() {
       }
     } catch (error: any) {
       toast({ 
-        title: "Connection Test Failed", 
+        title: copy.validationFailed,
         description: `Error: ${error.message}`,
         variant: "destructive" 
       });
@@ -401,12 +452,12 @@ export default function AdvancedEmailSettingsPage() {
       return response.json();
     },
     onSuccess: () => {
-      toast({ title: "تخصیص ایمیل با موفقیت ذخیره شد" });
+      toast({ title: copy.save });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/email/category-assignments"] });
     },
     onError: (error: any) => {
       toast({
-        title: "خطا در ذخیره تخصیص ایمیل",
+        title: copy.validationFailed,
         description: error.message,
         variant: "destructive"
       });
@@ -423,11 +474,11 @@ export default function AdvancedEmailSettingsPage() {
       }).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/email/categories"] });
-      toast({ title: "Recipients updated successfully" });
+      toast({ title: copy.save });
     },
     onError: (error: any) => {
       console.error("Failed to save recipients:", error);
-      toast({ title: "Failed to save recipients", variant: "destructive" });
+      toast({ title: copy.validationFailed, variant: "destructive" });
     }
   });
 
@@ -449,13 +500,13 @@ export default function AdvancedEmailSettingsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/email/categories"] });
-      toast({ title: "دسته‌بندی با موفقیت ایجاد شد" });
+       toast({ title: copy.create });
       setShowAddCategory(false);
       setNewCategory({ categoryKey: "", categoryName: "", description: "" });
     },
     onError: (error: any) => {
       toast({
-        title: "خطا در ایجاد دسته‌بندی",
+        title: copy.validationFailed,
         description: error.message,
         variant: "destructive"
       });
@@ -478,14 +529,14 @@ export default function AdvancedEmailSettingsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/email/categories"] });
-      toast({ title: "دسته‌بندی با موفقیت حذف شد" });
+      toast({ title: copy.deleteCategory });
       if (selectedCategory) {
         setSelectedCategory(null);
       }
     },
     onError: (error: any) => {
       toast({
-        title: "خطا در حذف دسته‌بندی",
+        title: copy.validationFailed,
         description: error.message,
         variant: "destructive"
       });
@@ -574,13 +625,13 @@ export default function AdvancedEmailSettingsPage() {
     console.log("getTestStatusIcon called with status:", status);
     switch (status) {
       case "success":
-        return <div className="w-3 h-3 bg-green-500 rounded-full shadow-lg border-2 border-green-300" title="ایمیل به درستی کار می‌کند" />;
+        return <div className="w-3 h-3 bg-green-500 rounded-full shadow-lg border-2 border-green-300" title={copy.ready} />;
       case "failed":
-        return <div className="w-3 h-3 bg-red-500 rounded-full shadow-lg border-2 border-red-300" title="تنظیمات ایمیل اشتباه است" />;
+        return <div className="w-3 h-3 bg-red-500 rounded-full shadow-lg border-2 border-red-300" title={copy.failed} />;
       case "untested":
-        return <div className="w-3 h-3 bg-orange-500 rounded-full shadow-lg border-2 border-orange-300" title="تست نشده" />;
+        return <div className="w-3 h-3 bg-orange-500 rounded-full shadow-lg border-2 border-orange-300" title={copy.untested} />;
       default:
-        return <div className="w-3 h-3 bg-gray-400 rounded-full shadow-sm border-2 border-gray-300" title={`وضعیت نامشخص: ${status}`} />;
+        return <div className="w-3 h-3 bg-gray-400 rounded-full shadow-sm border-2 border-gray-300" title={`${copy.status} ${status}`} />;
     }
   }
 
@@ -590,7 +641,7 @@ export default function AdvancedEmailSettingsPage() {
     
     if (!category.smtp) {
       console.log("No SMTP data for category:", category.categoryName);
-      return <div className="w-3 h-3 bg-gray-400 rounded-full shadow-sm border-2 border-gray-300" title="SMTP تنظیم نشده" />;
+      return <div className="w-3 h-3 bg-gray-400 rounded-full shadow-sm border-2 border-gray-300" title={copy.notConfigured} />;
     }
     
     // Check if all required SMTP fields are configured
@@ -610,7 +661,7 @@ export default function AdvancedEmailSettingsPage() {
     });
     
     if (!isFullyConfigured) {
-      return <div className="w-3 h-3 bg-yellow-500 rounded-full shadow-lg border-2 border-yellow-300 animate-pulse" title="تنظیمات SMTP ناکامل" />;
+      return <div className="w-3 h-3 bg-yellow-500 rounded-full shadow-lg border-2 border-yellow-300 animate-pulse" title={copy.incomplete} />;
     }
     
     // Return status based on test result
@@ -644,16 +695,16 @@ export default function AdvancedEmailSettingsPage() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div dir={direction} className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-center h-64">
-          <div className="text-lg">Loading email settings...</div>
+          <div className="text-lg">{copy.loading}</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
+    <div dir={direction} className="container mx-auto px-4 py-8 max-w-7xl">
       <div className="flex items-center gap-4 mb-8">
         {user?.id === 1 && (
           <Button
@@ -661,27 +712,27 @@ export default function AdvancedEmailSettingsPage() {
             onClick={() => setLocation("/admin")}
             className="flex items-center gap-2"
           >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Admin
+            <ArrowLeft className={`w-4 h-4 ${direction === "rtl" ? "rotate-180" : ""}`} />
+            {copy.back}
           </Button>
         )}
         <div>
-          <h1 className="text-3xl font-bold">Advanced Email Management</h1>
-          <p className="text-gray-600 mt-1">Configure independent SMTP settings for each product category</p>
+          <h1 className="text-3xl font-bold">{copy.title}</h1>
+          <p className="text-gray-600 mt-1">{copy.subtitle}</p>
         </div>
       </div>
 
       {categories.length === 0 && (
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Initialize Email Categories</CardTitle>
+            <CardTitle>{copy.initTitle}</CardTitle>
             <CardDescription>
-              Set up the default email categories for your chemical products
+              {copy.initDescription}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Button onClick={() => initCategoriesMutation.mutate()}>
-              Initialize Categories
+              {copy.initAction}
             </Button>
           </CardContent>
         </Card>
@@ -690,7 +741,7 @@ export default function AdvancedEmailSettingsPage() {
       {/* Sub-modules section */}
       <div className="mb-6">
         <div className="flex items-center gap-4 mb-4">
-          <h2 className="text-xl font-semibold text-gray-800">زیرماژول‌های تنظیمات ایمیل</h2>
+          <h2 className="text-xl font-semibold text-gray-800">{copy.control}</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setLocation("/admin/email-address-manager")}>
@@ -700,11 +751,11 @@ export default function AdvancedEmailSettingsPage() {
                   <Edit className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">مدیریت آدرس‌های ایمیل</h3>
-                  <p className="text-sm text-gray-600">Email Address Manager</p>
+                  <h3 className="font-semibold text-gray-900">{copy.emailManager}</h3>
+                  <p className="text-sm text-gray-600">{copy.emailManager}</p>
                 </div>
               </div>
-              <p className="text-sm text-gray-500">تنظیم آدرس‌های ایمیل برای هر نوع نوتیفیکیشن و کاربرد سیستم</p>
+              <p className="text-sm text-gray-500">{copy.categoriesDescription}</p>
             </div>
           </Card>
 
@@ -717,11 +768,11 @@ export default function AdvancedEmailSettingsPage() {
                   <BarChart3 className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">Progress Tracker</h3>
-                  <p className="text-sm text-gray-600">Email Configuration Progress</p>
+                  <h3 className="font-semibold text-gray-900">{copy.progress}</h3>
+                  <p className="text-sm text-gray-600">{copy.progress}</p>
                 </div>
               </div>
-              <p className="text-sm text-gray-500">نمایش پیشرفت تنظیمات SMTP و وضعیت دسته‌بندی‌های ایمیل</p>
+              <p className="text-sm text-gray-500">{copy.progress}</p>
             </div>
           </Card>
 
@@ -732,11 +783,11 @@ export default function AdvancedEmailSettingsPage() {
                   <Mail className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">📧 مرکز قالب‌های ایمیل</h3>
-                  <p className="text-sm text-gray-600">Central Email Templates</p>
+                  <h3 className="font-semibold text-gray-900">{copy.templates}</h3>
+                  <p className="text-sm text-gray-600">{copy.templates}</p>
                 </div>
               </div>
-              <p className="text-sm text-gray-500">مدیریت یکپارچه همه قالب‌های ایمیل سیستم با دسته‌بندی کامل</p>
+              <p className="text-sm text-gray-500">{copy.templates}</p>
             </div>
           </Card>
 
@@ -747,11 +798,11 @@ export default function AdvancedEmailSettingsPage() {
                   <Clock className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">📋 گزارش ایمیل‌های خودکار</h3>
-                  <p className="text-sm text-gray-600">Automated Email Logs</p>
+                  <h3 className="font-semibold text-gray-900">{copy.logs}</h3>
+                  <p className="text-sm text-gray-600">{copy.logs}</p>
                 </div>
               </div>
-              <p className="text-sm text-gray-500">مشاهده تمامی ایمیل‌های ارسال شده توسط سیستم و محتوای آن‌ها</p>
+              <p className="text-sm text-gray-500">{copy.logs}</p>
             </div>
           </Card>
         </div>
@@ -759,16 +810,16 @@ export default function AdvancedEmailSettingsPage() {
 
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-2xl font-semibold">Email Categories</h2>
-          <p className="text-gray-600">Configure SMTP settings and recipients for each category</p>
+          <h2 className="text-2xl font-semibold">{copy.categories}</h2>
+          <p className="text-gray-600">{copy.categoriesDescription}</p>
         </div>
         <div className="flex gap-2">
           <Button
             onClick={() => setShowAddCategory(true)}
             className="bg-green-600 hover:bg-green-700"
           >
-            <Plus className="w-4 h-4 mr-2" />
-            افزودن دسته‌بندی
+            <Plus className="w-4 h-4 me-2" />
+            {copy.addCategory}
           </Button>
           {selectedCategory && (
             <Button
@@ -776,8 +827,8 @@ export default function AdvancedEmailSettingsPage() {
               variant="destructive"
               disabled={deleteCategoryMutation.isPending}
             >
-              <Trash2 className="w-4 h-4 mr-2" />
-              {deleteCategoryMutation.isPending ? "در حال حذف..." : "حذف دسته‌بندی"}
+              <Trash2 className="w-4 h-4 me-2" />
+              {deleteCategoryMutation.isPending ? copy.deleting : copy.deleteCategory}
             </Button>
           )}
         </div>
@@ -809,9 +860,9 @@ export default function AdvancedEmailSettingsPage() {
                     <div className="flex items-center gap-2">
                       {getEmailStatusLight(category)}
                       <span className="text-xs text-gray-500">
-                        {category.smtp?.testStatus === "success" ? "آماده" : 
-                         category.smtp?.testStatus === "failed" ? "خرابی" : 
-                         category.smtp ? "ناکامل" : "تنظیم نشده"}
+                        {category.smtp?.testStatus === "success" ? copy.ready :
+                         category.smtp?.testStatus === "failed" ? copy.failed :
+                         category.smtp ? copy.incomplete : copy.notConfigured}
                       </span>
                     </div>
                   </div>
@@ -824,10 +875,10 @@ export default function AdvancedEmailSettingsPage() {
                   <p className="text-sm text-gray-600">{category.description}</p>
                   <div className="mt-2 flex gap-2">
                     <Badge variant="outline" className="text-xs">
-                      {category.recipients?.length || 0} recipients
+                      {category.recipients?.length || 0} {copy.recipientsCount}
                     </Badge>
                     <Badge variant="outline" className="text-xs">
-                      {category.smtp ? "SMTP configured" : "No SMTP"}
+                      {category.smtp ? copy.configured : copy.notConfigured}
                     </Badge>
                   </div>
                 </div>
@@ -839,12 +890,12 @@ export default function AdvancedEmailSettingsPage() {
         {/* Configuration Panel */}
         <div className="lg:col-span-2">
           {selectedCategory ? (
-            <Tabs defaultValue="smtp" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="smtp">SMTP Settings</TabsTrigger>
-                <TabsTrigger value="recipients">Email Recipients</TabsTrigger>
-                <TabsTrigger value="category-assignment">Category Assignment</TabsTrigger>
-                <TabsTrigger value="control">Email Control Panel</TabsTrigger>
+            <Tabs defaultValue="smtp" className="space-y-6 overflow-x-auto">
+              <TabsList className="grid w-full min-w-[42rem] grid-cols-4">
+                <TabsTrigger value="smtp">{copy.smtp}</TabsTrigger>
+                <TabsTrigger value="recipients">{copy.recipients}</TabsTrigger>
+                <TabsTrigger value="category-assignment">{copy.assignment}</TabsTrigger>
+                <TabsTrigger value="control">{copy.control}</TabsTrigger>
               </TabsList>
 
               <TabsContent value="smtp">
@@ -852,16 +903,16 @@ export default function AdvancedEmailSettingsPage() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Settings className="w-5 h-5" />
-                      SMTP Configuration - {selectedCategory.categoryName}
+                      {copy.smtp} - {selectedCategory.categoryName}
                     </CardTitle>
                     <CardDescription>
-                      Configure independent SMTP settings for this category
+                      {copy.categoriesDescription}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="host">SMTP Host</Label>
+                        <Label htmlFor="host">{copy.smtpHost}</Label>
                         <Input
                           id="host"
                           value={smtpForm.host}
@@ -870,7 +921,7 @@ export default function AdvancedEmailSettingsPage() {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="port">Port</Label>
+                        <Label htmlFor="port">{copy.port}</Label>
                         <Input
                           id="port"
                           type="number"
@@ -886,12 +937,12 @@ export default function AdvancedEmailSettingsPage() {
                         checked={smtpForm.secure}
                         onCheckedChange={(checked) => setSmtpForm({ ...smtpForm, secure: checked })}
                       />
-                      <Label htmlFor="secure">Use SSL/TLS</Label>
+                      <Label htmlFor="secure">{copy.ssl}</Label>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="username">Username</Label>
+                        <Label htmlFor="username">{copy.username}</Label>
                         <Input
                           id="username"
                           value={smtpForm.username}
@@ -907,9 +958,9 @@ export default function AdvancedEmailSettingsPage() {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="password">Password</Label>
+                        <Label htmlFor="password">{copy.password}</Label>
                         <p className="text-sm text-muted-foreground mb-2">
-                          For Zoho Mail: Use App Password (not regular password)
+                          {zohoHints[language]}
                         </p>
                         <div className="relative">
                           <Input
@@ -917,7 +968,7 @@ export default function AdvancedEmailSettingsPage() {
                             type={showPassword ? "text" : "password"}
                             value={smtpForm.password}
                             onChange={(e) => setSmtpForm({ ...smtpForm, password: e.target.value })}
-                            placeholder="Enter App Password for Zoho"
+                            placeholder={zohoHints[language]}
                             className="pr-10"
                           />
                           <Button
@@ -939,7 +990,7 @@ export default function AdvancedEmailSettingsPage() {
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="fromName">From Name</Label>
+                        <Label htmlFor="fromName">{copy.fromName}</Label>
                         <Input
                           id="fromName"
                           value={smtpForm.fromName}
@@ -948,7 +999,7 @@ export default function AdvancedEmailSettingsPage() {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="fromEmail">From Email</Label>
+                        <Label htmlFor="fromEmail">{copy.fromEmail}</Label>
                         <Input
                           id="fromEmail"
                           value={smtpForm.fromEmail}
@@ -966,8 +1017,8 @@ export default function AdvancedEmailSettingsPage() {
                       />
                       <div className="flex-1">
                         <Label htmlFor="useForOtp" className="cursor-pointer">
-                          <div className="font-semibold text-blue-900">استفاده برای ارسال کد OTP</div>
-                          <div className="text-sm text-blue-700">Use this SMTP for sending customer OTP verification codes</div>
+                          <div className="font-semibold text-blue-900">{copy.otp}</div>
+                          <div className="text-sm text-blue-700">{copy.otpDescription}</div>
                         </Label>
                       </div>
                     </div>
@@ -986,12 +1037,12 @@ export default function AdvancedEmailSettingsPage() {
                           {isValidating ? (
                             <>
                               <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-blue-700 border-t-transparent" />
-                              Validating...
+                              {copy.validating}
                             </>
                           ) : (
                             <>
                               <CheckCircle className="w-4 h-4 mr-2" />
-                              Validate SMTP
+                              {copy.validate}
                             </>
                           )}
                         </Button>
@@ -1000,8 +1051,8 @@ export default function AdvancedEmailSettingsPage() {
                           onClick={handleSaveSmtp}
                           disabled={saveSmtpMutation.isPending || (validationResult && !validationResult.isValid)}
                         >
-                          <Save className="w-4 h-4 mr-2" />
-                          Save SMTP Settings
+                          <Save className="w-4 h-4 me-2" />
+                          {copy.save}
                         </Button>
                         
                         <Button
@@ -1034,19 +1085,19 @@ export default function AdvancedEmailSettingsPage() {
                             {validationResult.isValid ? (
                               <>
                                 <CheckCircle className="w-5 h-5 text-green-600" />
-                                <span className="font-medium text-green-800">SMTP Validation Successful</span>
+                                <span className="font-medium text-green-800">{copy.validationSuccess}</span>
                               </>
                             ) : (
                               <>
                                 <AlertCircle className="w-5 h-5 text-red-600" />
-                                <span className="font-medium text-red-800">SMTP Validation Failed</span>
+                                <span className="font-medium text-red-800">{copy.validationFailed}</span>
                               </>
                             )}
                           </div>
                           
                           {validationResult.errors && validationResult.errors.length > 0 && (
                             <div className="mb-2">
-                              <div className="text-sm font-medium text-red-700 mb-1">Errors:</div>
+                              <div className="text-sm font-medium text-red-700 mb-1">{copy.errors}</div>
                               <ul className="text-sm text-red-600 list-disc list-inside">
                                 {validationResult.errors.map((error: string, idx: number) => (
                                   <li key={idx}>{error}</li>
@@ -1057,7 +1108,7 @@ export default function AdvancedEmailSettingsPage() {
                           
                           {validationResult.suggestions && validationResult.suggestions.length > 0 && (
                             <div className="mb-2">
-                              <div className="text-sm font-medium text-orange-700 mb-1">Suggestions:</div>
+                              <div className="text-sm font-medium text-orange-700 mb-1">{copy.suggestions}</div>
                               <ul className="text-sm text-orange-600 list-disc list-inside">
                                 {validationResult.suggestions.map((suggestion: string, idx: number) => (
                                   <li key={idx}>{suggestion}</li>
@@ -1074,7 +1125,7 @@ export default function AdvancedEmailSettingsPage() {
                                 ) : (
                                   <XCircle className="w-4 h-4 text-red-500" />
                                 )}
-                                <span>Host Reachable</span>
+                                <span>{copy.hostReachable}</span>
                               </div>
                               <div className="flex items-center gap-1">
                                 {validationResult.configurationStatus.authenticationWorking ? (
@@ -1082,7 +1133,7 @@ export default function AdvancedEmailSettingsPage() {
                                 ) : (
                                   <XCircle className="w-4 h-4 text-red-500" />
                                 )}
-                                <span>Authentication</span>
+                                <span>{copy.authentication}</span>
                               </div>
                             </div>
                           )}
@@ -1093,13 +1144,13 @@ export default function AdvancedEmailSettingsPage() {
                     {selectedCategory.smtp && (
                       <div className="p-3 bg-gray-50 rounded-lg">
                         <div className="flex items-center gap-2 mb-2">
-                          <strong>Current Status:</strong>
+                              <strong>{copy.status}</strong>
                           {getTestStatusIcon(selectedCategory.smtp.testStatus)}
                           <span className="capitalize">{selectedCategory.smtp.testStatus}</span>
                         </div>
                         {selectedCategory.smtp.lastTested && (
                           <p className="text-sm text-gray-600">
-                            Last tested: {new Date(selectedCategory.smtp.lastTested).toLocaleString()}
+                            {copy.status} {new Date(selectedCategory.smtp.lastTested).toLocaleString()}
                           </p>
                         )}
                       </div>
@@ -1111,21 +1162,21 @@ export default function AdvancedEmailSettingsPage() {
               <TabsContent value="recipients">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Email Recipients - {selectedCategory.categoryName}</CardTitle>
+                    <CardTitle>{copy.recipients} - {selectedCategory.categoryName}</CardTitle>
                     <CardDescription>
-                      Manage who receives emails for this category
+                      {copy.recipients} — {copy.categoriesDescription}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
                     {/* Quick Add CC/BCC Section */}
                     <div className="border rounded-lg p-4 bg-blue-50 border-blue-200">
-                      <h4 className="font-medium mb-3 text-blue-800">Quick Add CC/BCC Recipients</h4>
+                      <h4 className="font-medium mb-3 text-blue-800">{copy.quickAdd}</h4>
                       <p className="text-sm text-blue-600 mb-3">
-                        Add independent email addresses for carbon copy (CC) or blind carbon copy (BCC) notifications
+                        {copy.quickAddHint}
                       </p>
                       <div className="grid grid-cols-3 gap-3">
                         <div>
-                          <Label htmlFor="quickCCEmail">CC Email</Label>
+                          <Label htmlFor="quickCCEmail">{copy.ccEmail}</Label>
                           <Input
                             id="quickCCEmail"
                             placeholder="cc@company.com"
@@ -1145,7 +1196,7 @@ export default function AdvancedEmailSettingsPage() {
                           />
                         </div>
                         <div>
-                          <Label htmlFor="quickBCCEmail">BCC Email</Label>
+                          <Label htmlFor="quickBCCEmail">{copy.bccEmail}</Label>
                           <Input
                             id="quickBCCEmail"
                             placeholder="bcc@company.com"
@@ -1198,21 +1249,21 @@ export default function AdvancedEmailSettingsPage() {
                             }}
                           >
                             <Plus className="w-4 h-4 mr-1" />
-                            Add Both
+                            {copy.addBoth}
                           </Button>
                         </div>
                       </div>
                       <p className="text-xs text-blue-500 mt-2">
-                        Press Enter in the field or click "Add Both" to quickly add recipients
+                        {copy.quickAddHint}
                       </p>
                     </div>
 
                     {/* Add New Recipient */}
                     <div className="border rounded-lg p-4 bg-gray-50">
-                      <h4 className="font-medium mb-3">Add New Recipient (Advanced)</h4>
+                      <h4 className="font-medium mb-3">{copy.addRecipient}</h4>
                       <div className="grid grid-cols-2 gap-4 mb-3">
                         <div>
-                          <Label htmlFor="newEmail">Email</Label>
+                          <Label htmlFor="newEmail">{copy.email}</Label>
                           <Input
                             id="newEmail"
                             value={newRecipient.email}
@@ -1221,12 +1272,12 @@ export default function AdvancedEmailSettingsPage() {
                           />
                         </div>
                         <div>
-                          <Label htmlFor="newName">Name (Optional)</Label>
+                          <Label htmlFor="newName">{copy.optionalName}</Label>
                           <Input
                             id="newName"
                             value={newRecipient.name}
                             onChange={(e) => setNewRecipient({ ...newRecipient, name: e.target.value })}
-                            placeholder="Recipient Name"
+                            placeholder={copy.optionalName}
                           />
                         </div>
                       </div>
@@ -1237,10 +1288,10 @@ export default function AdvancedEmailSettingsPage() {
                             checked={newRecipient.isPrimary}
                             onCheckedChange={(checked) => setNewRecipient({ ...newRecipient, isPrimary: checked })}
                           />
-                          <Label htmlFor="newPrimary">Primary recipient</Label>
+                          <Label htmlFor="newPrimary">{copy.primary}</Label>
                         </div>
                         <div>
-                          <Label htmlFor="recipientType">Recipient Type</Label>
+                          <Label htmlFor="recipientType">{copy.recipientType}</Label>
                           <Select
                             value={newRecipient.recipientType || 'to'}
                             onValueChange={(value) => setNewRecipient({ ...newRecipient, recipientType: value as 'to' | 'cc' | 'bcc' })}
@@ -1249,9 +1300,9 @@ export default function AdvancedEmailSettingsPage() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="to">To (Direct)</SelectItem>
-                              <SelectItem value="cc">CC (Copy)</SelectItem>
-                              <SelectItem value="bcc">BCC (Blind Copy)</SelectItem>
+                              <SelectItem value="to">{copy.to}</SelectItem>
+                              <SelectItem value="cc">{copy.cc}</SelectItem>
+                              <SelectItem value="bcc">{copy.bcc}</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -1265,10 +1316,10 @@ export default function AdvancedEmailSettingsPage() {
                     {/* Recipient Distribution Summary */}
                     {recipients.length > 0 && (
                       <div className="border rounded-lg p-4 bg-green-50 border-green-200">
-                        <h4 className="font-medium mb-3 text-green-800">Current Email Distribution</h4>
+                        <h4 className="font-medium mb-3 text-green-800">{copy.distribution}</h4>
                         <div className="grid grid-cols-3 gap-4 text-sm">
                           <div>
-                            <h5 className="font-medium text-green-700 mb-1">TO Recipients ({recipients.filter(r => !r.recipientType || r.recipientType === 'to').length})</h5>
+                            <h5 className="font-medium text-green-700 mb-1">{copy.to} ({recipients.filter(r => !r.recipientType || r.recipientType === 'to').length})</h5>
                             <div className="space-y-1">
                               {recipients
                                 .filter(r => !r.recipientType || r.recipientType === 'to')
@@ -1278,7 +1329,7 @@ export default function AdvancedEmailSettingsPage() {
                             </div>
                           </div>
                           <div>
-                            <h5 className="font-medium text-blue-700 mb-1">CC Recipients ({recipients.filter(r => r.recipientType === 'cc').length})</h5>
+                            <h5 className="font-medium text-blue-700 mb-1">{copy.cc} ({recipients.filter(r => r.recipientType === 'cc').length})</h5>
                             <div className="space-y-1">
                               {recipients
                                 .filter(r => r.recipientType === 'cc')
@@ -1291,7 +1342,7 @@ export default function AdvancedEmailSettingsPage() {
                             </div>
                           </div>
                           <div>
-                            <h5 className="font-medium text-purple-700 mb-1">BCC Recipients ({recipients.filter(r => r.recipientType === 'bcc').length})</h5>
+                            <h5 className="font-medium text-purple-700 mb-1">{copy.bcc} ({recipients.filter(r => r.recipientType === 'bcc').length})</h5>
                             <div className="space-y-1">
                               {recipients
                                 .filter(r => r.recipientType === 'bcc')
@@ -1299,7 +1350,7 @@ export default function AdvancedEmailSettingsPage() {
                                   <div key={i} className="text-purple-600">{r.email}</div>
                                 ))}
                               {recipients.filter(r => r.recipientType === 'bcc').length === 0 && (
-                                <div className="text-gray-500 italic">None</div>
+                                <div className="text-gray-500 italic">{copy.none}</div>
                               )}
                             </div>
                           </div>
@@ -1319,7 +1370,7 @@ export default function AdvancedEmailSettingsPage() {
                               <div className="flex items-center gap-2">
                                 <strong>{recipient.email}</strong>
                                 {recipient.isPrimary && (
-                                  <Badge variant="default">Primary</Badge>
+                                  <Badge variant="default">{copy.primary}</Badge>
                                 )}
                                 <Badge variant={
                                   recipient.recipientType === 'cc' ? 'secondary' : 
@@ -1350,8 +1401,8 @@ export default function AdvancedEmailSettingsPage() {
                       disabled={saveRecipientsMutation.isPending}
                       className="w-full"
                     >
-                      <Save className="w-4 h-4 mr-2" />
-                      Save Recipients
+                      <Save className="w-4 h-4 me-2" />
+                      {copy.save} — {copy.recipients}
                     </Button>
                   </CardContent>
                 </Card>
@@ -1362,20 +1413,20 @@ export default function AdvancedEmailSettingsPage() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Mail className="w-5 h-5" />
-                      Category Email Assignment
+                      {copy.assignment}
                     </CardTitle>
                     <CardDescription>
-                      تخصیص ایمیل برای هر دسته‌بندی محصولات - درخواست‌های خرید بر اساس دسته‌بندی به ایمیل مربوطه ارسال می‌شود
+                      {copy.categoriesDescription}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                       <div className="flex items-center gap-2 mb-2">
                         <AlertCircle className="w-5 h-5 text-blue-600" />
-                        <span className="font-medium text-blue-900">توضیحات سیستم</span>
+                        <span className="font-medium text-blue-900">{copy.systemStatus}</span>
                       </div>
                       <p className="text-blue-700 text-sm">
-                        هنگامی که مشتری درخواست خرید محصولی می‌دهد، بر اساس دسته‌بندی محصول، ایمیل به آدرس مخصوص همان دسته‌بندی ارسال خواهد شد.
+                        {copy.categoriesDescription}
                       </p>
                     </div>
 
@@ -1385,7 +1436,7 @@ export default function AdvancedEmailSettingsPage() {
                         <div className="border rounded-lg p-4">
                           <h4 className="font-medium mb-3 flex items-center gap-2">
                             <Mail className="w-4 h-4" />
-                            تخصیص ایمیل دسته‌بندی‌ها
+                            {copy.assignment}
                           </h4>
                           <div className="space-y-3">
                             {Array.isArray(categoryAssignments) && categoryAssignments.map((assignment: any) => (
@@ -1399,7 +1450,7 @@ export default function AdvancedEmailSettingsPage() {
                                   </Badge>
                                 </div>
                                 <div className="space-y-2">
-                                  <Label className="text-sm">آدرس ایمیل تخصیص یافته</Label>
+                                    <Label className="text-sm">{copy.email}</Label>
                                   <Input 
                                     value={assignmentForm[assignment.categoryKey] || assignment.assignedEmail || ''}
                                     onChange={(e) => setAssignmentForm({
@@ -1424,7 +1475,7 @@ export default function AdvancedEmailSettingsPage() {
                                   disabled={!assignmentForm[assignment.categoryKey] || saveCategoryAssignmentMutation.isPending}
                                 >
                                   <Check className="w-4 h-4" />
-                                  Save
+                                  {copy.save}
                                 </Button>
                               </div>
                             ))}
@@ -1436,10 +1487,10 @@ export default function AdvancedEmailSettingsPage() {
                       <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                         <div className="flex items-center gap-2 mb-2">
                           <CheckCircle className="w-5 h-5 text-green-600" />
-                          <span className="font-medium text-green-900">وضعیت سیستم</span>
+                          <span className="font-medium text-green-900">{copy.systemStatus}</span>
                         </div>
                         <p className="text-green-700 text-sm">
-                          تنظیمات تخصیص ایمیل فعال است. درخواست‌های خرید بر اساس دسته‌بندی محصول به آدرس ایمیل مربوطه ارسال می‌شود.
+                          {copy.assignment} — {copy.active}
                         </p>
                       </div>
                     </div>
@@ -1454,41 +1505,39 @@ export default function AdvancedEmailSettingsPage() {
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Mail className="w-5 h-5" />
-                        Centralized Email Monitoring (CC Configuration)
+                        {copy.control} (CC/BCC)
                       </CardTitle>
                       <CardDescription>
-                        Configure automatic CC for all outgoing emails to ensure centralized oversight
+                        {copy.quickAdd}
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                         <div className="flex items-center gap-2 mb-2">
                           <CheckCircle className="w-5 h-5 text-blue-600" />
-                          <span className="font-medium text-blue-900">Configurable CC System Active</span>
+                          <span className="font-medium text-blue-900">{copy.quickAdd} — {copy.active}</span>
                         </div>
                         <p className="text-blue-700 text-sm">
-                          All emails (contact forms, product inquiries, password resets, quote requests) 
-                          automatically CC the configured email addresses below for comprehensive monitoring. 
-                          You can add or remove CC addresses as needed.
+                          {copy.emailTypes}. {copy.quickAdd}.
                         </p>
                       </div>
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="border rounded-lg p-4">
                           <div className="flex items-center justify-between mb-2">
-                            <h4 className="font-medium">{recipientType.toUpperCase()} Email Addresses</h4>
+                            <h4 className="font-medium">{recipientType === "cc" ? copy.cc : copy.bcc} {copy.email}</h4>
                             <Select value={recipientType} onValueChange={updateRecipientType}>
                               <SelectTrigger className="w-20">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="cc">CC</SelectItem>
-                                <SelectItem value="bcc">BCC</SelectItem>
+                                <SelectItem value="cc">{copy.cc}</SelectItem>
+                                <SelectItem value="bcc">{copy.bcc}</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
                           <p className="text-sm text-gray-600 mb-3">
-                            These emails receive a {recipientType === 'cc' ? 'copy' : 'blind copy'} of every outgoing email
+                            {copy.emailTypes} ({recipientType === "cc" ? copy.cc : copy.bcc})
                           </p>
                           
                           {/* Display current CC addresses */}
@@ -1509,7 +1558,7 @@ export default function AdvancedEmailSettingsPage() {
                               ))
                             ) : (
                               <div className="bg-gray-50 p-3 rounded border text-center text-gray-500">
-                                No CC addresses configured
+                                {copy.notConfigured}
                               </div>
                             )}
                           </div>
@@ -1517,7 +1566,7 @@ export default function AdvancedEmailSettingsPage() {
                           {/* Add new CC address */}
                           <div className="flex gap-2">
                             <Input
-                              placeholder="Enter email address"
+                          placeholder={copy.enterEmail}
                               value={newCcAddress}
                               onChange={(e) => setNewCcAddress(e.target.value)}
                               onKeyPress={(e) => e.key === 'Enter' && addCcAddress()}
@@ -1532,7 +1581,7 @@ export default function AdvancedEmailSettingsPage() {
                         </div>
                         
                         <div className="border rounded-lg p-4">
-                          <h4 className="font-medium mb-2">Email Types Covered</h4>
+                        <h4 className="font-medium mb-2">{copy.emailTypes}</h4>
                           <ul className="text-sm space-y-1">
                             <li className="flex items-center gap-2">
                               <CheckCircle className="w-4 h-4 text-green-600" />
@@ -1565,79 +1614,79 @@ export default function AdvancedEmailSettingsPage() {
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Settings className="w-5 h-5" />
-                        Intelligent Email Routing Configuration
+                        {copy.routing}
                       </CardTitle>
                       <CardDescription>
-                        Manage automatic routing of contact forms to appropriate departments based on product categories
+                        {copy.routing} — {copy.mapping}
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                         <div className="flex items-center gap-2 mb-2">
                           <CheckCircle className="w-5 h-5 text-green-600" />
-                          <span className="font-medium text-green-900">Intelligent Routing Active</span>
+                        <span className="font-medium text-green-900">{copy.routing} — {copy.active}</span>
                         </div>
                         <p className="text-green-700 text-sm">
-                          Contact forms are automatically routed to appropriate departments based on product interest selection.
+                          {copy.routing} — {copy.categoriesDescription}
                         </p>
                       </div>
 
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         <div className="border rounded-lg p-4">
-                          <h4 className="font-medium mb-3">Product Category → Department Mapping</h4>
+                      <h4 className="font-medium mb-3">{copy.mapping}</h4>
                           <div className="space-y-2 text-sm">
                             <div className="flex justify-between items-center py-1 border-b">
                               <span className="text-gray-600">fuel-additives</span>
-                              <span className="font-medium">Fuel Additives Dept</span>
+                        <span className="font-medium">{copy.mapping}</span>
                             </div>
                             <div className="flex justify-between items-center py-1 border-b">
                               <span className="text-gray-600">water-treatment</span>
-                              <span className="font-medium">Water Treatment Dept</span>
+                        <span className="font-medium">{copy.mapping}</span>
                             </div>
                             <div className="flex justify-between items-center py-1 border-b">
                               <span className="text-gray-600">paint-thinner</span>
-                              <span className="font-medium">Paint & Thinner Dept</span>
+                        <span className="font-medium">{copy.mapping}</span>
                             </div>
                             <div className="flex justify-between items-center py-1 border-b">
                               <span className="text-gray-600">agricultural-fertilizers</span>
-                              <span className="font-medium">Agricultural Dept</span>
+                        <span className="font-medium">{copy.mapping}</span>
                             </div>
                             <div className="flex justify-between items-center py-1 border-b">
                               <span className="text-gray-600">other</span>
-                              <span className="font-medium">Support Dept</span>
+                        <span className="font-medium">{copy.mapping}</span>
                             </div>
                             <div className="flex justify-between items-center py-1">
                               <span className="text-gray-600">custom-solutions</span>
-                              <span className="font-medium">Sales Dept</span>
+                        <span className="font-medium">{copy.mapping}</span>
                             </div>
                           </div>
                         </div>
 
                         <div className="border rounded-lg p-4">
-                          <h4 className="font-medium mb-3">Smart Features</h4>
+                      <h4 className="font-medium mb-3">{copy.smartFeatures}</h4>
                           <ul className="text-sm space-y-2">
                             <li className="flex items-start gap-2">
                               <CheckCircle className="w-4 h-4 text-green-600 mt-0.5" />
                               <div>
-                                <strong>Automatic Detection:</strong> Reads product interest from contact forms
+                        <strong>{copy.smartFeatures}:</strong> {copy.categoriesDescription}
                               </div>
                             </li>
                             <li className="flex items-start gap-2">
                               <CheckCircle className="w-4 h-4 text-green-600 mt-0.5" />
                               <div>
-                                <strong>Fallback System:</strong> Routes to admin when departments lack recipients
+                        <strong>{copy.systemStatus}:</strong> {copy.routing}
                               </div>
                             </li>
                             <li className="flex items-start gap-2">
                               <CheckCircle className="w-4 h-4 text-green-600 mt-0.5" />
                               <div>
-                                <strong>Professional Confirmations:</strong> Department-specific confirmation emails
+                        <strong>{copy.validationSuccess}</strong>
                               </div>
                             </li>
                             <li className="flex items-start gap-2">
                               <CheckCircle className="w-4 h-4 text-green-600 mt-0.5" />
                               <div>
-                                <strong>Complete Logging:</strong> All routing decisions tracked for analytics
+                        <strong>{copy.emailTypes}:</strong> {copy.currentConfig}
                               </div>
                             </li>
                           </ul>
@@ -1651,30 +1700,30 @@ export default function AdvancedEmailSettingsPage() {
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <AlertCircle className="w-5 h-5" />
-                        Email System Status & Control
+                        {copy.control}
                       </CardTitle>
                       <CardDescription>
-                        Monitor and control the overall email system functionality
+                        {copy.control}
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="text-center p-4 bg-green-50 border border-green-200 rounded-lg">
                           <CheckCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
-                          <div className="font-medium text-green-900">CC Monitoring</div>
-                          <div className="text-sm text-green-700">Active</div>
+                          <div className="font-medium text-green-900">{copy.cc} {copy.currentConfig}</div>
+                          <div className="text-sm text-green-700">{copy.active}</div>
                         </div>
                         
                         <div className="text-center p-4 bg-green-50 border border-green-200 rounded-lg">
                           <CheckCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
-                          <div className="font-medium text-green-900">Smart Routing</div>
-                          <div className="text-sm text-green-700">Active</div>
+                          <div className="font-medium text-green-900">{copy.routing}</div>
+                          <div className="text-sm text-green-700">{copy.active}</div>
                         </div>
                         
                         <div className="text-center p-4 bg-blue-50 border border-blue-200 rounded-lg">
                           <Settings className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                          <div className="font-medium text-blue-900">Email Logging</div>
-                          <div className="text-sm text-blue-700">Enabled</div>
+                          <div className="font-medium text-blue-900">{copy.email} — {copy.currentConfig}</div>
+                          <div className="text-sm text-blue-700">{copy.enabled}</div>
                         </div>
                       </div>
 
@@ -1682,18 +1731,18 @@ export default function AdvancedEmailSettingsPage() {
                         <div className="flex items-start gap-2">
                           <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
                           <div>
-                            <h4 className="font-medium text-yellow-900 mb-1">Email System Administration</h4>
+                            <h4 className="font-medium text-yellow-900 mb-1">{copy.control}</h4>
                             <p className="text-yellow-700 text-sm mb-3">
-                              The email system is configured with centralized monitoring and intelligent routing. 
-                              All changes to CC settings and routing logic require code-level modifications for security.
+                              {copy.currentConfig}. {copy.routing}.
+                              {copy.status}.
                             </p>
                             <div className="text-sm">
-                              <strong>Current Configuration:</strong>
+                              <strong>{copy.currentConfig}:</strong>
                               <ul className="list-disc list-inside mt-1 space-y-1 text-yellow-700">
-                                <li>CC Email: info@momtazchem.com (hardcoded for security)</li>
-                                <li>Routing Logic: Based on product category mapping</li>
-                                <li>Fallback: Automatic admin routing when departments unavailable</li>
-                                <li>Logging: All email activities tracked in database</li>
+                                <li>{copy.cc} {copy.email}: info@momtazchem.com</li>
+                                <li>{copy.routing}: {copy.mapping}</li>
+                                <li>{copy.systemStatus}: {copy.routing}</li>
+                                <li>{copy.emailTypes}: {copy.currentConfig}</li>
                               </ul>
                             </div>
                           </div>
@@ -1705,9 +1754,9 @@ export default function AdvancedEmailSettingsPage() {
                   {/* Quick Actions */}
                   <Card>
                     <CardHeader>
-                      <CardTitle>Quick Actions</CardTitle>
+                      <CardTitle>{copy.quickActions}</CardTitle>
                       <CardDescription>
-                        Common email system administration tasks
+                        {copy.quickActions}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -1719,21 +1768,21 @@ export default function AdvancedEmailSettingsPage() {
                         >
                           <div className="flex items-center gap-2">
                             <Settings className="w-4 h-4" />
-                            View Email Routing Statistics
+                            {copy.routing}
                           </div>
-                          <div className="text-xs text-gray-500">Monitor routing performance</div>
+                          <div className="text-xs text-gray-500">{copy.routing}</div>
                         </Button>
                         
                         <Button 
-                          onClick={() => toast({ title: "SMTP Test", description: "SMTP testing functionality has been integrated into Email Settings." })}
+                          onClick={() => toast({ title: copy.test, description: copy.testConnection })}
                           variant="outline" 
                           className="h-16 flex-col space-y-1"
                         >
                           <div className="flex items-center gap-2">
                             <TestTube className="w-4 h-4" />
-                            Test SMTP Configuration
+                            {copy.testConnection}
                           </div>
-                          <div className="text-xs text-gray-500">Validate email settings</div>
+                          <div className="text-xs text-gray-500">{copy.validate}</div>
                         </Button>
                       </div>
                     </CardContent>
@@ -1746,8 +1795,8 @@ export default function AdvancedEmailSettingsPage() {
               <CardContent className="flex items-center justify-center h-64">
                 <div className="text-center">
                   <Mail className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Select a Category</h3>
-                  <p className="text-gray-600">Choose an email category from the left to configure its settings</p>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">{copy.selectCategory}</h3>
+                  <p className="text-gray-600">{copy.selectCategoryDescription}</p>
                 </div>
               </CardContent>
             </Card>
@@ -1759,36 +1808,36 @@ export default function AdvancedEmailSettingsPage() {
       {showAddCategory && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
-            <h3 className="text-lg font-semibold mb-4">افزودن دسته‌بندی جدید</h3>
+            <h3 className="text-lg font-semibold mb-4">{copy.addCategory}</h3>
             
             <div className="space-y-4">
               <div>
-                <Label htmlFor="category-key">کلید دسته‌بندی</Label>
+                <Label htmlFor="category-key">{copy.key}</Label>
                 <Input
                   id="category-key"
                   value={newCategory.categoryKey}
                   onChange={(e) => setNewCategory({ ...newCategory, categoryKey: e.target.value })}
-                  placeholder="مثال: marketing"
+                  placeholder="marketing"
                 />
               </div>
               
               <div>
-                <Label htmlFor="category-name">نام دسته‌بندی</Label>
+                <Label htmlFor="category-name">{copy.name}</Label>
                 <Input
                   id="category-name"
                   value={newCategory.categoryName}
                   onChange={(e) => setNewCategory({ ...newCategory, categoryName: e.target.value })}
-                  placeholder="مثال: Marketing Department"
+                  placeholder="Marketing Department"
                 />
               </div>
               
               <div>
-                <Label htmlFor="category-description">توضیحات</Label>
+                <Label htmlFor="category-description">{copy.description}</Label>
                 <Textarea
                   id="category-description"
                   value={newCategory.description}
                   onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
-                  placeholder="توضیح مختصری از دسته‌بندی..."
+                  placeholder={copy.description}
                   rows={3}
                 />
               </div>
@@ -1802,14 +1851,14 @@ export default function AdvancedEmailSettingsPage() {
                   setNewCategory({ categoryKey: "", categoryName: "", description: "" });
                 }}
               >
-                انصراف
+                {copy.cancel}
               </Button>
               <Button
                 onClick={() => createCategoryMutation.mutate(newCategory)}
                 disabled={!newCategory.categoryKey || !newCategory.categoryName || createCategoryMutation.isPending}
                 className="bg-green-600 hover:bg-green-700"
               >
-                {createCategoryMutation.isPending ? "در حال ایجاد..." : "ایجاد دسته‌بندی"}
+                {createCategoryMutation.isPending ? copy.creating : copy.create}
               </Button>
             </div>
           </div>

@@ -765,10 +765,6 @@
       "count": 1
     },
     {
-      "key": "[\"client/src/pages/admin/barcode-inventory.tsx\",2322,\"Type '{ onProductScanned: (product: Product) => void; }' is not assignable to type 'IntrinsicAttributes & BarcodeScannerProps'.\\n  Property 'onProductScanned' does not exist on type 'IntrinsicAttributes & BarcodeScannerProps'.\",\"<BarcodeScanner onProductScanned={handleProductScan} />\"]",
-      "count": 1
-    },
-    {
       "key": "[\"client/src/pages/admin/barcode-inventory.tsx\",2345,\"Argument of type 'string' is not assignable to parameter of type '{ method: string; body?: unknown; }'.\",\"mutationFn: () => apiRequest(\\\"/api/barcode/generate-iraq-format\\\", \\\"POST\\\"),\"]",
       "count": 1
     },
