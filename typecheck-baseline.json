@@ -1405,10 +1405,6 @@
       "count": 1
     },
     {
-      "key": "[\"client/src/pages/customer-profile.tsx\",2322,\"Type '{ readonly deadlineExpired: \\\"Deadline has expired\\\"; readonly deadlineExpiredWarning: \\\"⚠️ Bank transfer deadline has expired\\\"; readonly uploadToAvoidCancellation: \\\"Upload transfer to avoid auto-cancellation\\\"; ... 105 more ...; readonly statusCancelled: \\\"Cancelled\\\"; } | { ...; } | { ...; } | { ...; }' is not assignable to type '{ readonly deadlineExpired: \\\"Deadline has expired\\\"; readonly deadlineExpiredWarning: \\\"⚠️ Bank transfer deadline has expired\\\"; readonly uploadToAvoidCancellation: \\\"Upload transfer to avoid auto-cancellation\\\"; ... 105 more ...; readonly statusCancelled: \\\"Cancelled\\\"; }'.\\n  Type '{ readonly deadlineExpired: \\\"انتهى الموعد النهائي\\\"; readonly deadlineExpiredWarning: \\\"⚠️ انتهت مهلة التحويل البنكي\\\"; readonly uploadToAvoidCancellation: \\\"أرسل الحوالة لتجنب الإلغاء التلقائي\\\"; ... 105 more ...; readonly statusCancelled: \\\"ملغي\\\"; }' is not assignable to type '{ readonly deadlineExpired: \\\"Deadline has expired\\\"; readonly deadlineExpiredWarning: \\\"⚠️ Bank transfer deadline has expired\\\"; readonly uploadToAvoidCancellation: \\\"Upload transfer to avoid auto-cancellation\\\"; ... 105 more ...; readonly statusCancelled: \\\"Cancelled\\\"; }'.\\n    Types of property 'deadlineExpired' are incompatible.\\n      Type '\\\"انتهى الموعد النهائي\\\"' is not assignable to type '\\\"Deadline has expired\\\"'.\",\"const pt: ProfileT = PROFILE_T_WITH_FA[language as keyof typeof PROFILE_T_WITH_FA] ?? PROFILE_T.en;\"]",
-      "count": 1
-    },
-    {
       "key": "[\"client/src/pages/customer-reset-password.tsx\",2345,\"Argument of type 'string | null' is not assignable to parameter of type 'string | number | boolean'.\\n  Type 'null' is not assignable to type 'string | number | boolean'.\",\"const response = await fetch(`/api/customers/password-reset-verify?token=${encodeURIComponent(tokenParam)}`);\"]",
       "count": 1
     },
