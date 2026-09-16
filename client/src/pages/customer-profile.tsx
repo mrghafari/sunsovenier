@@ -1482,8 +1482,19 @@ const CustomerProfile = () => {
                                   </div>
                                 )}
                               {(() => {
-                                const subtotalAmount = (order.items || []).reduce(
-                                  (sum: number, item: any) => sum + parseFloat(item.totalPrice || 0), 0,
+                                const normalizedItems = (order.items || []).map((item: any) => {
+                                  const quantity = parseFloat(item.quantity ?? 0);
+                                  const unitPrice = parseFloat(item.unitPrice ?? item.unit_price ?? 0);
+                                  const storedTotal = parseFloat(item.totalPrice ?? item.total_price ?? "");
+                                  return {
+                                    ...item,
+                                    productName: item.productName ?? item.product_name,
+                                    quantity,
+                                    totalPrice: Number.isFinite(storedTotal) ? storedTotal : quantity * unitPrice,
+                                  };
+                                });
+                                const subtotalAmount = normalizedItems.reduce(
+                                  (sum: number, item: any) => sum + item.totalPrice, 0,
                                 );
                                 const shippingCost = parseFloat(order.shippingCost || "0");
                                 const vatAmount = parseFloat(order.vatAmount || "0");
@@ -1500,12 +1511,12 @@ const CustomerProfile = () => {
                                         </tr>
                                       </thead>
                                       <tbody>
-                                        {(order.items || []).map((item: any, index: number) => (
+                                        {normalizedItems.map((item: any, index: number) => (
                                           <tr key={item.id || index} className="odd:bg-emerald-50 even:bg-white">
                                             <td className="border border-slate-300 px-2 py-2 font-mono text-slate-500">{index + 1}</td>
                                             <td className="border border-slate-300 px-3 py-2 text-slate-800">{item.productName || pt.unknownProduct}</td>
-                                            <td className="border border-slate-300 px-3 py-2 text-slate-700">{Math.floor(parseFloat(item.quantity || 0))}</td>
-                                            <td className="border border-slate-300 px-3 py-2 font-medium text-slate-800">{Math.floor(parseFloat(item.totalPrice || 0))} IQD</td>
+                                            <td className="border border-slate-300 px-3 py-2 text-slate-700">{item.quantity}</td>
+                                            <td className="border border-slate-300 px-3 py-2 font-medium text-slate-800">{Math.floor(item.totalPrice)} IQD</td>
                                           </tr>
                                         ))}
                                         <tr className="bg-slate-100">

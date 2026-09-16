@@ -20061,7 +20061,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
             oi.quantity,
             oi.unit_price,
             oi.total_price,
-            p.name as product_name,
+            COALESCE(oi.product_name, p.name) as product_name,
             p.sku,
             p.category
           FROM order_items oi
@@ -20074,7 +20074,17 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           if (!allItemsMap[item.order_id]) {
             allItemsMap[item.order_id] = [];
           }
-          allItemsMap[item.order_id].push(item);
+          allItemsMap[item.order_id].push({
+            id: item.id,
+            orderId: item.order_id,
+            productId: item.product_id,
+            productName: item.product_name,
+            quantity: item.quantity,
+            unitPrice: item.unit_price,
+            totalPrice: item.total_price,
+            sku: item.sku,
+            category: item.category
+          });
         });
       }
       

@@ -191,6 +191,14 @@ const pageTranslations: Record<string, Record<PageLanguage, string>> = {
   status: { en: 'Status', fa: 'وضعیت', ar: 'الحالة', tr: 'Durum' },
   actions: { en: 'Actions', fa: 'عملیات', ar: 'الإجراءات', tr: 'İşlemler' },
   ordersTable: { en: 'Financial approval orders', fa: 'سفارش‌های تأیید مالی', ar: 'طلبات الموافقة المالية', tr: 'Finansal onay siparişleri' },
+  searchOrders: { en: 'Search order or customer', fa: 'جست‌وجوی سفارش یا مشتری', ar: 'البحث عن طلب أو عميل', tr: 'Sipariş veya müşteri ara' },
+  allPaymentMethods: { en: 'All payment methods', fa: 'همه روش‌های پرداخت', ar: 'جميع طرق الدفع', tr: 'Tüm ödeme yöntemleri' },
+  allStatuses: { en: 'All statuses', fa: 'همه وضعیت‌ها', ar: 'جميع الحالات', tr: 'Tüm durumlar' },
+  fromDate: { en: 'From date', fa: 'از تاریخ', ar: 'من تاريخ', tr: 'Başlangıç tarihi' },
+  toDate: { en: 'To date', fa: 'تا تاریخ', ar: 'إلى تاريخ', tr: 'Bitiş tarihi' },
+  minimumAmount: { en: 'Minimum amount', fa: 'حداقل مبلغ', ar: 'الحد الأدنى للمبلغ', tr: 'Minimum tutar' },
+  maximumAmount: { en: 'Maximum amount', fa: 'حداکثر مبلغ', ar: 'الحد الأقصى للمبلغ', tr: 'Maksimum tutar' },
+  clearFilters: { en: 'Clear filters', fa: 'پاک‌کردن فیلترها', ar: 'مسح عوامل التصفية', tr: 'Filtreleri temizle' },
 };
 
 const translatePage = (language: PageLanguage, key: string) =>
@@ -310,6 +318,11 @@ function FinanceOrders() {
   const [selectedImageUrl, setSelectedImageUrl] = useState("");
   const [selectedFileMimeType, setSelectedFileMimeType] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState("all");
+  const [fromDateFilter, setFromDateFilter] = useState("");
+  const [toDateFilter, setToDateFilter] = useState("");
+  const [minimumAmountFilter, setMinimumAmountFilter] = useState("");
+  const [maximumAmountFilter, setMaximumAmountFilter] = useState("");
   
   // Enhanced image viewer states
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -1049,17 +1062,29 @@ function FinanceOrders() {
   }
 
   // Filter and search functionality
-  const filteredOrders = allOrders.filter(order => {
+  const matchesFilters = (order: OrderManagement) => {
+    const customerInfo = getCustomerInfo(order);
+    const normalizedSearch = searchTerm.trim().toLocaleLowerCase();
     const searchMatch = !searchTerm || 
-      order.customer?.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customer?.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customer?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customerOrderId?.toString().includes(searchTerm);
-    
+      order.orderNumber?.toString().toLocaleLowerCase().includes(normalizedSearch) ||
+      order.customerOrderId?.toString().includes(normalizedSearch) ||
+      customerInfo.name?.toLocaleLowerCase().includes(normalizedSearch) ||
+      customerInfo.email?.toLocaleLowerCase().includes(normalizedSearch) ||
+      customerInfo.phone?.toLocaleLowerCase().includes(normalizedSearch);
     const statusMatch = statusFilter === "all" || order.currentStatus === statusFilter;
-    
-    return searchMatch && statusMatch;
-  }).sort((a, b) => {
+    const paymentMethodMatch = paymentMethodFilter === "all" || order.paymentMethod === paymentMethodFilter;
+    const createdAt = new Date(order.createdAt);
+    const fromDateMatch = !fromDateFilter || createdAt >= new Date(`${fromDateFilter}T00:00:00`);
+    const toDateMatch = !toDateFilter || createdAt <= new Date(`${toDateFilter}T23:59:59.999`);
+    const amount = parseFloat(order.totalAmount || "0");
+    const minimumAmountMatch = !minimumAmountFilter || amount >= Number(minimumAmountFilter);
+    const maximumAmountMatch = !maximumAmountFilter || amount <= Number(maximumAmountFilter);
+
+    return searchMatch && statusMatch && paymentMethodMatch && fromDateMatch && toDateMatch &&
+      minimumAmountMatch && maximumAmountMatch;
+  };
+
+  const filteredOrders = allOrders.filter(matchesFilters).sort((a, b) => {
     // Show older orders first (ascending order by creation date)
     return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
   });
@@ -1078,22 +1103,14 @@ function FinanceOrders() {
   );
 
   // Filter transferred orders (chronological order: older first)
-  const filteredTransferredOrders = transferredOrders.filter(order => {
-    const searchMatch = !searchTerm || 
-      order.customer?.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customer?.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customer?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customerOrderId?.toString().includes(searchTerm);
-    
-    return searchMatch;
-  }).sort((a, b) => {
+  const filteredTransferredOrders = transferredOrders.filter(matchesFilters).sort((a, b) => {
     // Show older orders first (ascending order by creation date)
     return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
   });
 
   // Rejected orders
   const rejectedOrders = allOrders.filter(order => 
-    order.currentStatus === 'finance_rejected'
+    order.currentStatus === 'finance_rejected' && matchesFilters(order)
   );
 
   // Statistics - Only calculate total for approved/transferred orders
@@ -1315,6 +1332,92 @@ function FinanceOrders() {
             </CardContent>
           </Card>
         </div>
+
+        <Card className="mb-6 border-slate-300">
+          <CardContent className="p-4">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <Input
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder={t('searchOrders')}
+              />
+              <select
+                value={paymentMethodFilter}
+                onChange={(event) => setPaymentMethodFilter(event.target.value)}
+                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                aria-label={t('paymentMethod')}
+              >
+                <option value="all">{t('allPaymentMethods')}</option>
+                <option value="bank_transfer_grace">{t('deferredBankTransfer')}</option>
+                <option value={legacyDeferredBankTransfer}>{t('deferredBankTransfer')}</option>
+                <option value="bank_transfer">{t('bankTransfer')}</option>
+                <option value="wallet_full">{t('walletFull')}</option>
+                <option value="wallet_partial">{t('walletPartial')}</option>
+                <option value="online_payment">{t('onlinePayment')}</option>
+                <option value="cash_on_delivery">{t('cashOnDelivery')}</option>
+              </select>
+              <select
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value)}
+                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                aria-label={t('status')}
+              >
+                <option value="all">{t('allStatuses')}</option>
+                <option value="finance_pending">{t('pendingReview')}</option>
+                <option value="payment_uploaded">{t('paymentUploaded')}</option>
+                <option value="auto_approved">{t('autoApproved')}</option>
+                <option value="finance_rejected">{t('rejected')}</option>
+                <option value="warehouse_pending">{t('transferredToWarehouse')}</option>
+              </select>
+              <div className="grid grid-cols-2 gap-2">
+                <Input
+                  type="date"
+                  value={fromDateFilter}
+                  onChange={(event) => setFromDateFilter(event.target.value)}
+                  aria-label={t('fromDate')}
+                  title={t('fromDate')}
+                />
+                <Input
+                  type="date"
+                  value={toDateFilter}
+                  onChange={(event) => setToDateFilter(event.target.value)}
+                  aria-label={t('toDate')}
+                  title={t('toDate')}
+                />
+              </div>
+              <Input
+                type="number"
+                min="0"
+                value={minimumAmountFilter}
+                onChange={(event) => setMinimumAmountFilter(event.target.value)}
+                placeholder={t('minimumAmount')}
+              />
+              <Input
+                type="number"
+                min="0"
+                value={maximumAmountFilter}
+                onChange={(event) => setMaximumAmountFilter(event.target.value)}
+                placeholder={t('maximumAmount')}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setSearchTerm("");
+                  setPaymentMethodFilter("all");
+                  setStatusFilter("all");
+                  setFromDateFilter("");
+                  setToDateFilter("");
+                  setMinimumAmountFilter("");
+                  setMaximumAmountFilter("");
+                }}
+              >
+                <X className="me-2 h-4 w-4" />
+                {t('clearFilters')}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Tabs for different order states */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
