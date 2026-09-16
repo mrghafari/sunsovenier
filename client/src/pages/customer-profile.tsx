@@ -813,10 +813,15 @@ const CustomerProfile = () => {
   // ── Loading / Error states ──
   if (customerLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">{pt.loadingProfile}</p>
+      <div className="min-h-[70dvh] bg-slate-100 px-4 py-10">
+        <div className="mx-auto max-w-6xl space-y-3">
+          <div className="h-8 w-52 animate-pulse rounded bg-slate-200" />
+          <div className="h-4 w-72 animate-pulse rounded bg-slate-200" />
+          <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
+            <div className="h-48 animate-pulse rounded border border-slate-300 bg-slate-50" />
+            <div className="h-80 animate-pulse rounded border border-slate-300 bg-slate-50" />
+          </div>
+          <p className="sr-only">{pt.loadingProfile}</p>
         </div>
       </div>
     );
@@ -824,8 +829,8 @@ const CustomerProfile = () => {
 
   if (customerError || !customerData?.success) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Card className="max-w-md">
+      <div className="min-h-[70dvh] bg-slate-100 px-4 py-10">
+        <Card className="mx-auto max-w-md border-slate-300 shadow-sm">
           <CardContent className="p-6 text-center">
             <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
             <h2 className="text-lg font-semibold text-gray-900 mb-2">{pt.accessError}</h2>
@@ -841,69 +846,74 @@ const CustomerProfile = () => {
 
   return (
     <>
-      <div className="min-h-screen bg-gray-50 p-4">
-        <div className="max-w-6xl mx-auto space-y-6">
+      <div className="min-h-screen bg-slate-100 px-3 py-4 sm:px-5">
+        <div className="mx-auto max-w-[1440px] space-y-4">
           {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <div className="flex flex-wrap items-end justify-between gap-3 border-b border-slate-300 pb-3">
+            <div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
               {pt.welcomeGreeting(customerData?.customer?.firstName || "")}
             </h1>
-            <p className="text-gray-600">{pt.welcomeToPanel}</p>
+            <p className="mt-1 text-sm text-slate-500">{pt.welcomeToPanel}</p>
+            </div>
+            <Badge variant="outline" className="border-slate-300 bg-slate-50 text-slate-600">
+              {pt.ordersCount(orders.length)}
+            </Badge>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
             {/* Customer Info */}
             <div className="lg:col-span-1">
-              <Card>
-                <CardHeader>
+              <Card className="border-slate-300 shadow-sm">
+                <CardHeader className="border-b border-slate-300 bg-slate-50 px-4 py-3">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <User className="w-5 h-5" />
+                    <CardTitle className="flex items-center gap-2 text-base text-slate-800">
+                      <User className="h-4 w-4 text-slate-500" />
                       {pt.accountInformation}
                     </CardTitle>
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => setLocation("/customer/profile/edit")}
-                      className="flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200"
+                      className="h-8 gap-1.5 border-slate-300 px-2.5 text-xs text-slate-700 hover:bg-slate-100"
                     >
                       <Edit className="w-4 h-4" />
                       {pt.editProfile}
                     </Button>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <User className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm font-medium">
+                <CardContent className="space-y-3 p-0">
+                  <div className="divide-y divide-slate-200 border-b border-slate-200">
+                    <div className="flex items-center gap-3 px-4 py-2.5">
+                      <User className="h-4 w-4 shrink-0 text-slate-400" />
+                      <span className="text-sm font-semibold text-slate-800">
                         {customerData.customer.firstName} {customerData.customer.lastName}
                       </span>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <Mail className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm">{customerData.customer.email}</span>
+                    <div className="flex items-center gap-3 px-4 py-2.5">
+                      <Mail className="h-4 w-4 shrink-0 text-slate-400" />
+                      <span className="break-all text-xs text-slate-700">{customerData.customer.email}</span>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <Phone className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm">{customerData.customer.phone}</span>
+                    <div className="flex items-center gap-3 px-4 py-2.5">
+                      <Phone className="h-4 w-4 shrink-0 text-slate-400" />
+                      <span className="text-sm text-slate-700">{customerData.customer.phone}</span>
                     </div>
                     {customerData.customer.company && (
-                      <div className="flex items-center gap-3">
-                        <Building className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm">{customerData.customer.company}</span>
+                      <div className="flex items-center gap-3 px-4 py-2.5">
+                        <Building className="h-4 w-4 shrink-0 text-slate-400" />
+                        <span className="text-sm text-slate-700">{customerData.customer.company}</span>
                       </div>
                     )}
                     {customerData.customer.address && (
-                      <div className="flex items-center gap-3">
-                        <MapPin className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm">{customerData.customer.address}</span>
+                      <div className="flex items-center gap-3 px-4 py-2.5">
+                        <MapPin className="h-4 w-4 shrink-0 text-slate-400" />
+                        <span className="text-sm text-slate-700">{customerData.customer.address}</span>
                       </div>
                     )}
                     {(customerData.customer.city || customerData.customer.province) && (
-                      <div className="flex items-center gap-3">
-                        <MapPin className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm">
+                      <div className="flex items-center gap-3 px-4 py-2.5">
+                        <MapPin className="h-4 w-4 shrink-0 text-slate-400" />
+                        <span className="text-sm text-slate-700">
                           {customerData.customer.city && customerData.customer.province
                             ? `${customerData.customer.city}, ${customerData.customer.province}`
                             : customerData.customer.city || customerData.customer.province}
@@ -911,13 +921,13 @@ const CustomerProfile = () => {
                       </div>
                     )}
                   </div>
-                  <Separator />
+                  <Separator className="hidden" />
                   <Button
                     onClick={handleLogout}
                     variant="outline"
-                    className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                    className="mx-4 mb-4 h-8 w-[calc(100%-2rem)] border-slate-300 text-xs text-slate-700 hover:bg-rose-50 hover:text-rose-700"
                   >
-                    <LogOut className="w-4 h-4 mr-2" />
+                    <LogOut className="me-2 h-4 w-4" />
                     {pt.logout}
                   </Button>
                 </CardContent>
@@ -926,11 +936,11 @@ const CustomerProfile = () => {
 
             {/* Orders */}
             <div className="lg:col-span-2">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
+              <Card className="overflow-hidden border-slate-300 shadow-sm">
+                <CardHeader className="flex flex-row items-start justify-between border-b border-slate-300 bg-slate-50 px-4 py-3">
                   <div className="flex flex-col gap-3">
-                    <CardTitle className="flex items-center gap-2">
-                      <Package className="w-5 h-5" />
+                    <CardTitle className="flex items-center gap-2 text-base text-slate-800">
+                      <Package className="h-4 w-4 text-slate-500" />
                       {pt.yourOrders}
                       {orders.length > 0 && (
                         <Badge variant="secondary">{pt.ordersCount(orders.length)}</Badge>
@@ -939,7 +949,7 @@ const CustomerProfile = () => {
 
                     {/* Order Status Indicators */}
                     {(orders.length > 0 || completeHistory.length > 0) && (
-                      <div className="flex items-center gap-3 text-xs">
+                      <div className="flex flex-wrap items-center gap-1.5 text-xs">
                         {(() => {
                           const statusCounts = allOrdersForCounting.reduce((acc: any, order: any) => {
                             const category = getOrderCategory(order);
@@ -1107,7 +1117,7 @@ const CustomerProfile = () => {
                   </div>
                 </CardHeader>
 
-                <CardContent>
+                 <CardContent className="p-0">
                   {ordersLoading ? (
                     <div className="text-center py-8">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -1121,7 +1131,17 @@ const CustomerProfile = () => {
                       <Button onClick={() => setLocation("/shop")}>{pt.startShopping}</Button>
                     </div>
                   ) : (
-                    <div className="space-y-4">
+                    <div className="overflow-x-auto">
+                      <div className="min-w-[920px]">
+                       <div className="sticky top-0 z-10 grid grid-cols-[44px_1.4fr_1fr_1fr_1fr_1.7fr] border-b border-slate-700 bg-slate-700 text-[11px] font-semibold uppercase tracking-wide text-slate-50">
+                         <div className="border-e border-slate-600 px-3 py-2">#</div>
+                         <div className="border-e border-slate-600 px-3 py-2">{pt.orderLabel("order")}</div>
+                         <div className="border-e border-slate-600 px-3 py-2">{pt.orderItems}</div>
+                         <div className="border-e border-slate-600 px-3 py-2">{pt.statusConfirmed}</div>
+                         <div className="border-e border-slate-600 px-3 py-2">{pt.totalAmount}</div>
+                         <div className="px-3 py-2">{pt.downloadProforma}</div>
+                       </div>
+                       <div className="space-y-0">
                       {orders.map((order: any) => {
                         const is3DayBankTransfer =
                           order.paymentMethod === "واریز بانکی با مهلت 3 روزه" ||
@@ -1130,18 +1150,19 @@ const CustomerProfile = () => {
                         return (
                           <div
                             key={order.id}
-                            className={`border rounded-lg p-4 ${
+                            className={`grid grid-cols-[44px_1.4fr_1fr_1fr_1fr_1.7fr] gap-0 border-b border-x-0 border-slate-200 p-3 text-xs ${
                               is3DayBankTransfer
                                 ? "border-orange-300 bg-orange-50"
                                 : order.status === "pending" || order.status === "payment_grace_period"
                                 ? "border-amber-200 bg-amber-50"
-                                : ""
+                                : "odd:bg-slate-50 even:bg-white"
                             }`}
                           >
-                            <div className="flex justify-between items-start mb-3">
+                            <div className="border-e border-slate-200 px-2 py-1 font-mono text-slate-500">{orders.indexOf(order) + 1}</div>
+                            <div className="border-e border-slate-200 px-3 py-1">
                               <div>
-                                <div className="flex items-center gap-2 mb-1">
-                                  <h4 className="font-semibold text-gray-900">{order.orderNumber}</h4>
+                                <div className="mb-1 flex items-center gap-2">
+                                  <h4 className="font-semibold text-slate-900">{order.orderNumber}</h4>
                                   {(order.status === "pending" || order.status === "payment_grace_period") && (
                                     <Badge className="bg-orange-100 text-orange-800">
                                       <Clock className="w-3 h-3 mr-1" />
@@ -1149,7 +1170,7 @@ const CustomerProfile = () => {
                                     </Badge>
                                   )}
                                 </div>
-                                <p className="text-sm text-gray-500 flex items-center gap-1">
+                                <p className="flex items-center gap-1 text-[11px] text-slate-500">
                                   <Calendar className="w-4 h-4" />
                                   {formatDate(order.createdAt)}
                                 </p>
@@ -1198,8 +1219,13 @@ const CustomerProfile = () => {
                                   </div>
                                 )}
                               </div>
+                            </div>
 
-                              <div className="text-right">
+                              <div className="col-start-3 row-start-1 border-e border-slate-200 px-3 py-1">
+                                <p className="font-medium text-slate-700">{order.items?.length || 0} {pt.orderItems}</p>
+                                {order.items?.slice(0, 2).map((item: any, index: number) => <p key={item.id || index} className="truncate text-[11px] text-slate-500">{item.productName || pt.unknownProduct}</p>)}
+                              </div>
+                              <div className="col-start-4 row-start-1 border-e border-slate-200 px-3 py-1">
                                 {(() => {
                                   const subtotalAmount = order.items
                                     ? order.items.reduce((sum: number, item: any) => sum + parseFloat(item.totalPrice || 0), 0)
@@ -1209,12 +1235,10 @@ const CustomerProfile = () => {
                                   const surchargeAmount = parseFloat(order.surchargeAmount || "0");
                                   const correctTotal = subtotalAmount + vatAmount + shippingCost + surchargeAmount;
                                   return (
-                                    <p className="font-semibold text-lg">{Math.floor(correctTotal)} {order.currency || "IQD"}</p>
+                                     <p className="font-semibold text-slate-900">{getStatusLabel(order.status, order.paymentStatus, order)}</p>
                                   );
                                 })()}
-                                <Badge className={getStatusColor(order.status, order.paymentStatus)}>
-                                  {getStatusLabel(order.status, order.paymentStatus, order)}
-                                </Badge>
+                                <Badge className={`mt-1 text-[10px] ${getStatusColor(order.status, order.paymentStatus)}`}>{getStatusLabel(order.status, order.paymentStatus, order)}</Badge>
 
                                 {order.invoiceType && (
                                   <div className="mt-2">
@@ -1247,10 +1271,15 @@ const CustomerProfile = () => {
                                   </div>
                                 )}
                               </div>
-                            </div>
-
+                              <div className="col-start-5 row-start-1 border-e border-slate-200 px-3 py-1">
+                                {(() => {
+                                  const subtotalAmount = order.items ? order.items.reduce((sum: number, item: any) => sum + parseFloat(item.totalPrice || 0), 0) : 0;
+                                  const total = subtotalAmount + parseFloat(order.vatAmount || "0") + parseFloat(order.shippingCost || "0") + parseFloat(order.surchargeAmount || "0");
+                                  return <span className="font-semibold text-slate-900">{Math.floor(total)} {order.currency || "IQD"}</span>;
+                                })()}
+                              </div>
                             {order.items && order.items.length > 0 && (
-                              <div>
+                              <div className="col-span-6 border-t border-slate-200 px-3 pt-2">
                                 <Separator className="mb-3" />
                                 <div className="space-y-2">
                                   <h5 className="font-medium text-gray-700">{pt.orderItems}</h5>
@@ -1315,7 +1344,7 @@ const CustomerProfile = () => {
                             )}
 
                             {/* Actions */}
-                            <div className="mt-4 pt-3 border-t border-gray-200 flex gap-2 flex-wrap">
+                            <div className="col-span-6 mt-2 flex flex-wrap gap-2 border-t border-slate-200 pt-3">
                               {(order.status === "pending" || order.status === "payment_grace_period") &&
                                 (order.paymentMethod === "واریز بانکی با مهلت 3 روزه" || order.paymentMethod === "bank_transfer_grace") &&
                                 !order.receiptPath && (
@@ -1392,6 +1421,8 @@ const CustomerProfile = () => {
                           </div>
                         );
                       })}
+                       </div>
+                     </div>
                     </div>
                   )}
                 </CardContent>
