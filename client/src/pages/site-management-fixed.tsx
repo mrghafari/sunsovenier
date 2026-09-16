@@ -1,10 +1,11 @@
-import React, { useState, useEffect, startTransition } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, Settings, Globe, Users, Database, Monitor, Shield, Package, RefreshCw, BarChart3, QrCode, Mail, MessageSquare, Factory, UserCog, DollarSign, BookOpen, Truck, Box, CreditCard, Wallet, MapPin, Barcode, Edit3, Calculator, Ticket, ShoppingCart, Warehouse, Smartphone, Brain, Monitor as RemoteMonitor, FileText, Server, MessageCircle, Cloud, PenTool, Store } from "lucide-react";
+import { ArrowLeft, Settings, Globe, Users, Database, Monitor, Shield, Package, RefreshCw, BarChart3, QrCode, Mail, MessageSquare, Factory, UserCog, DollarSign, BookOpen, Truck, Box, CreditCard, Wallet, MapPin, Barcode, Edit3, Calculator, Ticket, ShoppingCart, Warehouse, Smartphone, Brain, Monitor as RemoteMonitor, FileText, Server, MessageCircle, Cloud, PenTool, Store, GripVertical } from "lucide-react";
 import { KardexSyncPanel } from "@/components/KardexSyncPanel";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
@@ -12,6 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 type SiteManagementLanguage = "en" | "fa" | "ar" | "tr";
+const QUICK_ACTION_ORDER_KEY = "site-management-quick-action-order";
 
 type SiteManagementModuleId =
   | "kpi-dashboard"
@@ -63,7 +65,9 @@ interface SiteManagementModuleCopy {
 interface SiteManagementTranslation {
   backToHome: string;
   title: string;
-  resetUsageStats: string;
+  resetOrder: string;
+  dragInstruction: string;
+  dragHandleLabel: string;
   welcome: (username: string) => string;
   quickActions: string;
   modulesAvailable: (count: number) => string;
@@ -71,7 +75,7 @@ interface SiteManagementTranslation {
   redirectingToLogin: string;
   loadingModules: string;
   success: string;
-  usageStatsReset: string;
+  orderReset: string;
   syncingShop: string;
   modules: Record<SiteManagementModuleId, SiteManagementModuleCopy>;
 }
@@ -80,7 +84,9 @@ const siteManagementTranslations: Record<SiteManagementLanguage, SiteManagementT
   en: {
     backToHome: "Back to Home",
     title: "Site Management",
-    resetUsageStats: "Reset Usage Stats",
+    resetOrder: "Reset order",
+    dragInstruction: "Drag the handle to arrange your quick actions.",
+    dragHandleLabel: "Drag to reorder",
     welcome: (username) => `Welcome, ${username}`,
     quickActions: "Quick Actions",
     modulesAvailable: (count) => `${count} modules available`,
@@ -88,7 +94,7 @@ const siteManagementTranslations: Record<SiteManagementLanguage, SiteManagementT
     redirectingToLogin: "Redirecting to login...",
     loadingModules: "Loading modules...",
     success: "Success",
-    usageStatsReset: "Usage statistics have been reset",
+    orderReset: "Quick action order has been reset",
     syncingShop: "Syncing Shop",
     modules: {
       "kpi-dashboard": { title: "KPI Dashboard", description: "Monitor key performance indicators." },
@@ -136,7 +142,9 @@ const siteManagementTranslations: Record<SiteManagementLanguage, SiteManagementT
   fa: {
     backToHome: "بازگشت به خانه",
     title: "مدیریت سایت",
-    resetUsageStats: "بازنشانی آمار استفاده",
+    resetOrder: "بازنشانی ترتیب",
+    dragInstruction: "برای مرتب‌سازی، دستگیره را بکشید.",
+    dragHandleLabel: "کشیدن برای مرتب‌سازی",
     welcome: (username) => `خوش آمدید، ${username}`,
     quickActions: "عملیات سریع",
     modulesAvailable: (count) => `${count} ماژول در دسترس است`,
@@ -144,7 +152,7 @@ const siteManagementTranslations: Record<SiteManagementLanguage, SiteManagementT
     redirectingToLogin: "در حال انتقال به صفحه ورود...",
     loadingModules: "در حال بارگذاری ماژول‌ها...",
     success: "موفق",
-    usageStatsReset: "آمار استفاده بازنشانی شد",
+    orderReset: "ترتیب عملیات سریع بازنشانی شد",
     syncingShop: "همگام‌سازی فروشگاه",
     modules: {
       "kpi-dashboard": { title: "داشبورد شاخص‌ها", description: "شاخص‌های کلیدی عملکرد را پایش کنید." },
@@ -192,7 +200,9 @@ const siteManagementTranslations: Record<SiteManagementLanguage, SiteManagementT
   ar: {
     backToHome: "العودة إلى الرئيسية",
     title: "إدارة الموقع",
-    resetUsageStats: "إعادة ضبط إحصاءات الاستخدام",
+    resetOrder: "إعادة ضبط الترتيب",
+    dragInstruction: "اسحب المقبض لترتيب الإجراءات السريعة.",
+    dragHandleLabel: "اسحب لإعادة الترتيب",
     welcome: (username) => `مرحباً، ${username}`,
     quickActions: "إجراءات سريعة",
     modulesAvailable: (count) => `${count} وحدة متاحة`,
@@ -200,7 +210,7 @@ const siteManagementTranslations: Record<SiteManagementLanguage, SiteManagementT
     redirectingToLogin: "جارٍ التحويل إلى تسجيل الدخول...",
     loadingModules: "جارٍ تحميل الوحدات...",
     success: "نجاح",
-    usageStatsReset: "تمت إعادة ضبط إحصاءات الاستخدام",
+    orderReset: "تمت إعادة ضبط ترتيب الإجراءات السريعة",
     syncingShop: "مزامنة المتجر",
     modules: {
       "kpi-dashboard": { title: "لوحة مؤشرات الأداء", description: "راقب مؤشرات الأداء الرئيسية." },
@@ -248,7 +258,9 @@ const siteManagementTranslations: Record<SiteManagementLanguage, SiteManagementT
   tr: {
     backToHome: "Ana Sayfaya Dön",
     title: "Site Yönetimi",
-    resetUsageStats: "Kullanım İstatistiklerini Sıfırla",
+    resetOrder: "Sırayı Sıfırla",
+    dragInstruction: "Hızlı işlemleri düzenlemek için tutamacı sürükleyin.",
+    dragHandleLabel: "Yeniden sıralamak için sürükle",
     welcome: (username) => `Hoş geldiniz, ${username}`,
     quickActions: "Hızlı İşlemler",
     modulesAvailable: (count) => `${count} modül kullanılabilir`,
@@ -256,7 +268,7 @@ const siteManagementTranslations: Record<SiteManagementLanguage, SiteManagementT
     redirectingToLogin: "Giriş sayfasına yönlendiriliyor...",
     loadingModules: "Modüller yükleniyor...",
     success: "Başarılı",
-    usageStatsReset: "Kullanım istatistikleri sıfırlandı",
+    orderReset: "Hızlı işlem sırası sıfırlandı",
     syncingShop: "Mağazayı Senkronize Et",
     modules: {
       "kpi-dashboard": { title: "KPI Paneli", description: "Temel performans göstergelerini izleyin." },
@@ -362,19 +374,9 @@ export default function SiteManagement() {
   }, [isAuthenticated]); // Only depend on authentication status
 
   useEffect(() => {
-    console.log('🔍 [DEBUG] useEffect triggered, userPermissions:', userPermissions);
     if (userPermissions && typeof userPermissions === 'object' && 'success' in userPermissions && userPermissions.success) {
-      startTransition(() => {
-        console.log('🔍 [DEBUG] userPermissions modules:', (userPermissions as any).modules);
-        const filteredButtons = getFilteredButtons();
-        console.log('🔍 [DEBUG] filtered buttons count:', filteredButtons.length);
-        console.log('🔍 [DEBUG] First 5 filtered buttons:', filteredButtons.slice(0, 5).map(b => ({ id: b.id, label: b.label, moduleId: b.moduleId })));
-        console.log('🔍 [DEBUG] AI Control button in filtered:', filteredButtons.find(b => b.id === 'ai-settings'));
-        console.log('🔍 [DEBUG] Content Management button in filtered:', filteredButtons.find(b => b.id === 'content-management'));
-        
-        // Always sort by usage, ignore saved order
-        setButtons(sortButtonsByUsage(filteredButtons));
-      });
+      const filteredButtons = getFilteredButtons();
+      setButtons(mergeSavedOrder(filteredButtons));
     }
   }, [userPermissions, language]);
 
@@ -383,26 +385,7 @@ export default function SiteManagement() {
     label: siteManagementCopy.modules[id].title,
   });
 
-  const trackButtonClick = (buttonId: string, action: () => void) => {
-    const clickCounts = JSON.parse(localStorage.getItem('site-management-click-counts') || '{}');
-    clickCounts[buttonId] = (clickCounts[buttonId] || 0) + 1;
-    localStorage.setItem('site-management-click-counts', JSON.stringify(clickCounts));
-    action();
-    // Immediately re-sort by usage after click
-    setTimeout(() => {
-      const filteredButtons = getFilteredButtons();
-      setButtons(sortButtonsByUsage(filteredButtons));
-    }, 100);
-  };
-
-  const sortButtonsByUsage = (initialButtons: QuickActionButton[]): QuickActionButton[] => {
-    const clickCounts = JSON.parse(localStorage.getItem('site-management-click-counts') || '{}');
-    return [...initialButtons].sort((a, b) => {
-      const aClicks = clickCounts[a.id] || 0;
-      const bClicks = clickCounts[b.id] || 0;
-      return bClicks - aClicks;
-    });
-  };
+  const trackButtonClick = (_buttonId: string, action: () => void) => action();
 
   const getInitialButtons = (): QuickActionButton[] => [
     {
@@ -781,11 +764,37 @@ export default function SiteManagement() {
     return filtered;
   };
 
+  const mergeSavedOrder = (allowedButtons: QuickActionButton[]) => {
+    try {
+      const savedIds = JSON.parse(localStorage.getItem(QUICK_ACTION_ORDER_KEY) || "[]");
+      if (!Array.isArray(savedIds)) return allowedButtons;
+      const byId = new Map(allowedButtons.map((button) => [button.id, button]));
+      const savedAllowed = savedIds
+        .filter((id): id is string => typeof id === "string" && byId.has(id))
+        .map((id) => byId.get(id)!);
+      const savedSet = new Set(savedAllowed.map((button) => button.id));
+      return [...savedAllowed, ...allowedButtons.filter((button) => !savedSet.has(button.id))];
+    } catch {
+      return allowedButtons;
+    }
+  };
+
+  const handleDragEnd = (result: DropResult) => {
+    if (!result.destination || result.destination.index === result.source.index) return;
+    setButtons((currentButtons) => {
+      const nextButtons = [...currentButtons];
+      const [movedButton] = nextButtons.splice(result.source.index, 1);
+      nextButtons.splice(result.destination!.index, 0, movedButton);
+      localStorage.setItem(QUICK_ACTION_ORDER_KEY, JSON.stringify(nextButtons.map((button) => button.id)));
+      return nextButtons;
+    });
+  };
+
   const resetButtonOrder = () => {
-    localStorage.removeItem('site-management-click-counts');
+    localStorage.removeItem(QUICK_ACTION_ORDER_KEY);
     const filteredButtons = getFilteredButtons();
     setButtons(filteredButtons);
-    toast({ title: siteManagementCopy.success, description: siteManagementCopy.usageStatsReset });
+    toast({ title: siteManagementCopy.success, description: siteManagementCopy.orderReset });
   };
 
   // Show loading while authenticating
@@ -850,7 +859,7 @@ export default function SiteManagement() {
               size="sm"
               className="text-gray-600 border-gray-300 hover:bg-gray-50"
             >
-              {siteManagementCopy.resetUsageStats}
+               {siteManagementCopy.resetOrder}
             </Button>
             <div className="text-sm text-gray-500 dark:text-gray-400">
                {siteManagementCopy.welcome(user?.username || "")}
@@ -858,16 +867,17 @@ export default function SiteManagement() {
           </div>
         </div>
 
-        {/* Quick Actions Grid */}
+         {/* Quick Actions Grid */}
         <Card className="p-6 bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm border-slate-200 dark:border-slate-700">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold text-gray-800 dark:text-white flex items-center">
               <Settings className="w-5 h-5 mr-2" />
               {siteManagementCopy.quickActions}
             </h2>
-            <div className="text-sm text-gray-500 dark:text-gray-400">
-              {siteManagementCopy.modulesAvailable(buttons.length)}
-            </div>
+             <div className="text-sm text-gray-500 dark:text-gray-400 text-right">
+               <div>{siteManagementCopy.modulesAvailable(buttons.length)}</div>
+               <div className="text-xs mt-1">{siteManagementCopy.dragInstruction}</div>
+             </div>
           </div>
 
           {isLoadingPermissions ? (
@@ -876,22 +886,50 @@ export default function SiteManagement() {
               <p className="text-gray-600 dark:text-gray-300">{siteManagementCopy.loadingModules}</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-              {buttons.map((button, index) => (
-                <div key={button.id} className="relative group">
-                  <Button
-                    onClick={button.onClick}
-                    variant="outline"
-                    className={`w-full h-24 flex flex-col items-center justify-center space-y-2 transition-all duration-200 hover:scale-105 ${button.className}`}
-                  >
-                    <button.icon className="w-6 h-6" />
-                    <span className="text-xs font-medium text-center leading-tight">
-                      {button.label}
-                    </span>
-                  </Button>
-                </div>
-              ))}
-            </div>
+             <DragDropContext onDragEnd={handleDragEnd}>
+               <Droppable droppableId="quick-actions" direction="horizontal">
+                 {(dropProvided) => (
+                   <div
+                     ref={dropProvided.innerRef}
+                     {...dropProvided.droppableProps}
+                     className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4"
+                   >
+                     {buttons.map((button, index) => (
+                       <Draggable key={button.id} draggableId={button.id} index={index}>
+                         {(dragProvided, snapshot) => (
+                           <div
+                             ref={dragProvided.innerRef}
+                             {...dragProvided.draggableProps}
+                             className={`relative flex min-w-0 items-stretch ${snapshot.isDragging ? "z-10" : ""}`}
+                           >
+                             <Button
+                               onClick={button.onClick}
+                               variant="outline"
+                               className={`min-w-0 flex-1 h-24 rounded-e-none flex flex-col items-center justify-center space-y-2 transition-transform duration-200 hover:scale-[1.02] ${button.className}`}
+                             >
+                               <button.icon className="w-6 h-6" />
+                               <span className="text-xs font-medium text-center leading-tight">
+                                 {button.label}
+                               </span>
+                             </Button>
+                             <button
+                               type="button"
+                               aria-label={siteManagementCopy.dragHandleLabel}
+                               title={siteManagementCopy.dragHandleLabel}
+                               {...dragProvided.dragHandleProps}
+                               className={`flex w-8 shrink-0 cursor-grab touch-none items-center justify-center rounded-e-md border border-s-0 border-current/20 bg-slate-100/80 text-slate-500 transition-colors hover:bg-slate-200 active:cursor-grabbing dark:bg-slate-700/80 dark:text-slate-300 dark:hover:bg-slate-600 ${button.className}`}
+                             >
+                               <GripVertical className="h-4 w-4" aria-hidden="true" />
+                             </button>
+                           </div>
+                         )}
+                       </Draggable>
+                     ))}
+                     {dropProvided.placeholder}
+                   </div>
+                 )}
+               </Droppable>
+             </DragDropContext>
           )}
         </Card>
 

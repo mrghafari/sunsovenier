@@ -1,829 +1,353 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import {
+  AlertCircle, AlertTriangle, BarChart3, Calendar, CheckCircle, Clock,
+  Eye, FileText, Plus, Send, Tag, Ticket, User, UserCheck, XCircle,
+} from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { 
-  Ticket, 
-  AlertTriangle, 
-  Plus, 
-  Search, 
-  Filter, 
-  MessageSquare, 
-  User, 
-  Clock, 
-  CheckCircle,
-  XCircle,
-  BarChart3,
-  Calendar,
-  Tag,
-  FileText,
-  Send,
-  Eye,
-  UserCheck,
-  AlertCircle
-} from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
-// Form schemas
-const createTicketSchema = z.object({
-  title: z.string().min(1, "عنوان الزامی است"),
-  description: z.string().min(10, "توضیحات باید حداقل ۱۰ کاراکتر باشد"),
-  category: z.string().min(1, "انتخاب دسته‌بندی الزامی است"),
-  priority: z.string().min(1, "انتخاب اولویت الزامی است"),
-  department: z.string().optional(),
+type Language = "en" | "fa" | "ar" | "tr";
+type Catalog = {
+  [key: string]: string;
+};
+
+const catalog: Record<Language, Catalog> = {
+  en: {
+    title: "Ticketing system", pageDescription: "Manage technical support tickets and communicate with administrators",
+    current: "Current user", admin: "Administrator", customer: "Customer", new: "New ticket",
+    create: "Create new support ticket", titleLabel: "Title", titlePh: "Describe the issue briefly...",
+    category: "Category", selectCategory: "Select a category", priority: "Priority",
+    selectPriority: "Select a priority", department: "Related department", departmentPh: "Department or module name...",
+    details: "Details", description: "Description", descriptionPh: "Include the issue, reproduction steps, and relevant information...",
+    creating: "Creating…", createTicket: "Create ticket", cancel: "Cancel", success: "Success", error: "Error",
+    created: "Support ticket created successfully", createError: "Unable to create ticket",
+    statusUpdated: "Ticket status updated", responseAdded: "Response added",
+    adminRequired: "You must be signed in as an administrator to change ticket status",
+    open: "Open", in_progress: "In progress", resolved: "Resolved", closed: "Closed", on_hold: "On hold",
+     total: "All tickets", my: "My tickets", all: "All tickets", urgentBadge: "Urgent", start: "Start",
+    resolve: "Resolve", adminSuffix: "(administrator)", needAdmin: "Administrator sign-in required",
+    search: "Search tickets…", responses: "Responses and comments", addResponse: "Add a response",
+    adminResponse: "Administrator response", responsePh: "Write your response…",
+    internal: "Internal response (visible only to administrators)", send: "Send response",
+    loading: "Loading tickets…", loadError: "Tickets could not be loaded.", retry: "Try again",
+    empty: "No tickets found", emptyHint: "Tickets matching the current view will appear here.",
+    noResponses: "No responses yet.", senderAdmin: "Administrator", senderCustomer: "Site manager",
+    internalBadge: "Internal", ticketDetails: "Ticket details", submittedBy: "Submitted by",
+     date: "Date", departmentLabel: "Department", tableCaption: "Support tickets", statusFilterPlaceholder: "Filter by status",
+     rowNumber: "No.", ticketNumber: "Ticket number", submitter: "Submitter", actions: "Actions", notProvided: "Not provided",
+     validationTitle: "Title is required",
+    validationDesc: "Description must be at least 10 characters", validationCat: "Category is required",
+    validationPriority: "Priority is required", validationMessage: "Message is required",
+     technical_issue: "Technical issue", bug_report: "Bug report", feature_request: "Feature request",
+    system_error: "System error", user_access: "User access", performance_issue: "Performance issue",
+    security_concern: "Security concern", data_issue: "Data issue", integration_problem: "Integration problem",
+     other: "Other", low: "Low", normal: "Normal", high: "High", urgent: "Urgent", critical: "Critical",
+     unknownStatus: "Unknown status", unknownPriority: "Unspecified priority", unknownCategory: "Unspecified category",
+     unknownSender: "Unknown sender", responsesError: "Responses could not be loaded.", createFailure: "Unable to create the ticket.",
+     statusFailure: "Unable to update the ticket status.", responseFailure: "Unable to add the response.",
+  },
+  fa: {
+    title: "سیستم تیکتینگ", pageDescription: "مدیریت تیکت‌های پشتیبانی فنی و ارتباط با ادمین",
+    current: "کاربر فعلی", admin: "مدیر سیستم", customer: "مشتری", new: "تیکت جدید",
+    create: "ایجاد تیکت پشتیبانی جدید", titleLabel: "عنوان", titlePh: "شرح کوتاه مشکل...",
+    category: "دسته‌بندی", selectCategory: "انتخاب دسته‌بندی", priority: "اولویت",
+    selectPriority: "انتخاب اولویت", department: "بخش مربوطه", departmentPh: "نام بخش یا ماژول...",
+    details: "جزئیات", description: "توضیحات", descriptionPh: "شرح کامل مشکل، مراحل تکرار و اطلاعات مرتبط را وارد کنید...",
+    creating: "در حال ایجاد…", createTicket: "ایجاد تیکت", cancel: "انصراف", success: "موفقیت", error: "خطا",
+    created: "تیکت پشتیبانی با موفقیت ایجاد شد", createError: "ایجاد تیکت ناموفق بود",
+    statusUpdated: "وضعیت تیکت به‌روزرسانی شد", responseAdded: "پاسخ اضافه شد",
+    adminRequired: "برای تغییر وضعیت باید به عنوان ادمین وارد شوید",
+    open: "باز", in_progress: "در حال بررسی", resolved: "حل‌شده", closed: "بسته‌شده", on_hold: "متوقف‌شده",
+    total: "همه تیکت‌ها", my: "تیکت‌های من", all: "همه تیکت‌ها", urgentBadge: "فوری", start: "شروع",
+    resolve: "حل شد", adminSuffix: "(ادمین)", needAdmin: "ورود ادمین لازم است", search: "جست‌وجوی تیکت…",
+    responses: "پاسخ‌ها و نظرات", addResponse: "افزودن پاسخ", adminResponse: "پاسخ ادمین",
+    responsePh: "پاسخ خود را بنویسید...", internal: "پاسخ داخلی (فقط برای ادمین‌ها قابل مشاهده)",
+    send: "ارسال پاسخ", loading: "در حال بارگذاری تیکت‌ها…", loadError: "بارگذاری تیکت‌ها ممکن نیست.",
+    retry: "تلاش دوباره", empty: "تیکتی پیدا نشد", emptyHint: "تیکت‌های مطابق این نما در اینجا نمایش داده می‌شوند.",
+    noResponses: "هنوز پاسخی ثبت نشده است.", senderAdmin: "ادمین", senderCustomer: "مدیر سایت",
+    internalBadge: "داخلی", ticketDetails: "جزئیات تیکت", submittedBy: "ثبت‌کننده", date: "تاریخ",
+     departmentLabel: "بخش", tableCaption: "تیکت‌های پشتیبانی", statusFilterPlaceholder: "فیلتر وضعیت",
+     rowNumber: "ردیف", ticketNumber: "شماره تیکت", submitter: "ثبت‌کننده", actions: "عملیات", notProvided: "ارائه نشده",
+     validationTitle: "عنوان الزامی است", validationDesc: "توضیحات باید حداقل ۱۰ کاراکتر باشد",
+    validationCat: "انتخاب دسته‌بندی الزامی است", validationPriority: "انتخاب اولویت الزامی است",
+    validationMessage: "متن پیام الزامی است", technical_issue: "مشکل فنی", bug_report: "گزارش باگ",
+    feature_request: "درخواست ویژگی", system_error: "خطای سیستم", user_access: "دسترسی کاربر",
+    performance_issue: "مشکل عملکرد", security_concern: "نگرانی امنیتی", data_issue: "مشکل داده",
+    integration_problem: "مشکل یکپارچه‌سازی", other: "سایر", low: "کم", normal: "معمولی", high: "زیاد",
+     urgent: "فوری", critical: "بحرانی", unknownStatus: "وضعیت نامشخص", unknownPriority: "اولویت تعیین‌نشده",
+     unknownCategory: "دسته‌بندی تعیین‌نشده", unknownSender: "فرستنده نامشخص", responsesError: "بارگذاری پاسخ‌ها ممکن نیست.",
+     createFailure: "ایجاد تیکت ممکن نبود.", statusFailure: "به‌روزرسانی وضعیت ممکن نبود.", responseFailure: "افزودن پاسخ ممکن نبود.",
+  },
+  ar: {
+    title: "نظام التذاكر", pageDescription: "إدارة تذاكر الدعم الفني والتواصل مع المسؤولين",
+    current: "المستخدم الحالي", admin: "المسؤول", customer: "العميل", new: "تذكرة جديدة",
+    create: "إنشاء تذكرة دعم جديدة", titleLabel: "العنوان", titlePh: "اكتب وصفاً موجزاً للمشكلة...",
+    category: "الفئة", selectCategory: "اختر الفئة", priority: "الأولوية", selectPriority: "اختر الأولوية",
+    department: "القسم المعني", departmentPh: "اسم القسم أو الوحدة...", details: "التفاصيل",
+    description: "الوصف", descriptionPh: "اذكر المشكلة وخطوات تكرارها والمعلومات ذات الصلة...",
+    creating: "جارٍ الإنشاء…", createTicket: "إنشاء التذكرة", cancel: "إلغاء", success: "نجاح", error: "خطأ",
+    created: "تم إنشاء تذكرة الدعم بنجاح", createError: "تعذر إنشاء التذكرة", statusUpdated: "تم تحديث حالة التذكرة",
+    responseAdded: "تمت إضافة الرد", adminRequired: "يجب تسجيل الدخول كمسؤول لتغيير الحالة",
+    open: "مفتوحة", in_progress: "قيد المعالجة", resolved: "تم الحل", closed: "مغلقة", on_hold: "معلّقة",
+    total: "كل التذاكر", my: "تذاكري", all: "كل التذاكر", urgentBadge: "عاجل", start: "بدء", resolve: "حل",
+    adminSuffix: "(مسؤول)", needAdmin: "يلزم تسجيل دخول المسؤول", search: "البحث في التذاكر…",
+    responses: "الردود والتعليقات", addResponse: "إضافة رد", adminResponse: "رد المسؤول", responsePh: "اكتب ردك...",
+    internal: "رد داخلي (يظهر للمسؤولين فقط)", send: "إرسال الرد", loading: "جارٍ تحميل التذاكر…",
+    loadError: "تعذر تحميل التذاكر.", retry: "إعادة المحاولة", empty: "لم يتم العثور على تذاكر",
+    emptyHint: "ستظهر هنا التذاكر المطابقة للعرض الحالي.", noResponses: "لا توجد ردود بعد.",
+    senderAdmin: "المسؤول", senderCustomer: "مدير الموقع", internalBadge: "داخلي", ticketDetails: "تفاصيل التذكرة",
+     submittedBy: "مقدم الطلب", date: "التاريخ", departmentLabel: "القسم", tableCaption: "تذاكر الدعم",
+     statusFilterPlaceholder: "تصفية حسب الحالة", rowNumber: "الرقم", ticketNumber: "رقم التذكرة",
+     submitter: "مقدم الطلب", actions: "الإجراءات", notProvided: "غير متوفر", validationTitle: "العنوان مطلوب",
+    validationDesc: "يجب ألا يقل الوصف عن 10 أحرف", validationCat: "الفئة مطلوبة",
+    validationPriority: "الأولوية مطلوبة", validationMessage: "نص الرسالة مطلوب", technical_issue: "مشكلة تقنية",
+    bug_report: "تقرير خطأ", feature_request: "طلب ميزة", system_error: "خطأ في النظام", user_access: "صلاحية المستخدم",
+    performance_issue: "مشكلة أداء", security_concern: "مخاوف أمنية", data_issue: "مشكلة بيانات",
+    integration_problem: "مشكلة تكامل", other: "أخرى", low: "منخفضة", normal: "عادية", high: "مرتفعة",
+     urgent: "عاجلة", critical: "حرجة", unknownStatus: "حالة غير معروفة", unknownPriority: "أولوية غير محددة",
+     unknownCategory: "فئة غير محددة", unknownSender: "مرسل غير معروف", responsesError: "تعذر تحميل الردود.",
+     createFailure: "تعذر إنشاء التذكرة.", statusFailure: "تعذر تحديث حالة التذكرة.", responseFailure: "تعذر إضافة الرد.",
+  },
+  tr: {
+    title: "Talep sistemi", pageDescription: "Teknik destek taleplerini yönetin ve yöneticilerle iletişim kurun",
+    current: "Mevcut kullanıcı", admin: "Yönetici", customer: "Müşteri", new: "Yeni talep",
+    create: "Yeni destek talebi oluştur", titleLabel: "Başlık", titlePh: "Sorunu kısaca açıklayın...",
+    category: "Kategori", selectCategory: "Kategori seçin", priority: "Öncelik", selectPriority: "Öncelik seçin",
+    department: "İlgili departman", departmentPh: "Departman veya modül adı...", details: "Ayrıntılar",
+    description: "Açıklama", descriptionPh: "Sorunu, tekrarlama adımlarını ve ilgili bilgileri yazın...",
+    creating: "Oluşturuluyor…", createTicket: "Talep oluştur", cancel: "İptal", success: "Başarılı", error: "Hata",
+    created: "Destek talebi başarıyla oluşturuldu", createError: "Talep oluşturulamadı",
+    statusUpdated: "Talep durumu güncellendi", responseAdded: "Yanıt eklendi",
+    adminRequired: "Durumu değiştirmek için yönetici olarak giriş yapmalısınız",
+    open: "Açık", in_progress: "İşlemde", resolved: "Çözüldü", closed: "Kapalı", on_hold: "Beklemede",
+    total: "Tüm talepler", my: "Taleplerim", all: "Tüm talepler", urgentBadge: "Acil", start: "Başlat", resolve: "Çöz",
+    adminSuffix: "(yönetici)", needAdmin: "Yönetici girişi gerekli", search: "Taleplerde ara…",
+    responses: "Yanıtlar ve yorumlar", addResponse: "Yanıt ekle", adminResponse: "Yönetici yanıtı",
+    responsePh: "Yanıtınızı yazın...", internal: "Dahili yanıt (yalnızca yöneticiler görür)",
+    send: "Yanıt gönder", loading: "Talepler yükleniyor…", loadError: "Talepler yüklenemedi.",
+    retry: "Tekrar dene", empty: "Talep bulunamadı", emptyHint: "Geçerli görünüme uyan talepler burada görünür.",
+    noResponses: "Henüz yanıt yok.", senderAdmin: "Yönetici", senderCustomer: "Site yöneticisi",
+    internalBadge: "Dahili", ticketDetails: "Talep ayrıntıları", submittedBy: "Gönderen", date: "Tarih",
+     departmentLabel: "Departman", tableCaption: "Destek talepleri", statusFilterPlaceholder: "Duruma göre filtrele",
+     rowNumber: "Sıra", ticketNumber: "Talep numarası", submitter: "Gönderen", actions: "İşlemler",
+     notProvided: "Belirtilmemiş", validationTitle: "Başlık gerekli", validationDesc: "Açıklama en az 10 karakter olmalı",
+    validationCat: "Kategori gerekli", validationPriority: "Öncelik gerekli", validationMessage: "Mesaj gerekli",
+    technical_issue: "Teknik sorun", bug_report: "Hata bildirimi", feature_request: "Özellik isteği",
+    system_error: "Sistem hatası", user_access: "Kullanıcı erişimi", performance_issue: "Performans sorunu",
+    security_concern: "Güvenlik endişesi", data_issue: "Veri sorunu", integration_problem: "Entegrasyon sorunu",
+     other: "Diğer", low: "Düşük", normal: "Normal", high: "Yüksek", urgent: "Acil", critical: "Kritik",
+     unknownStatus: "Bilinmeyen durum", unknownPriority: "Belirtilmemiş öncelik", unknownCategory: "Belirtilmemiş kategori",
+     unknownSender: "Bilinmeyen gönderen", responsesError: "Yanıtlar yüklenemedi.", createFailure: "Talep oluşturulamadı.",
+     statusFailure: "Talep durumu güncellenemedi.", responseFailure: "Yanıt eklenemedi.",
+  },
+};
+
+const categories = ["technical_issue", "bug_report", "feature_request", "system_error", "user_access", "performance_issue", "security_concern", "data_issue", "integration_problem", "other"] as const;
+const priorities = ["low", "normal", "high", "urgent", "critical"] as const;
+const statuses = ["open", "in_progress", "resolved", "closed", "on_hold"] as const;
+type Category = typeof categories[number];
+type Priority = typeof priorities[number];
+type Status = typeof statuses[number];
+type SenderType = "admin" | "customer";
+type CatalogKey = keyof typeof catalog.en;
+const categoryKeys: Record<Category, CatalogKey> = {
+  technical_issue: "technical_issue", bug_report: "bug_report", feature_request: "feature_request",
+  system_error: "system_error", user_access: "user_access", performance_issue: "performance_issue",
+  security_concern: "security_concern", data_issue: "data_issue", integration_problem: "integration_problem", other: "other",
+};
+const priorityKeys: Record<Priority, CatalogKey> = {
+  low: "low", normal: "normal", high: "high", urgent: "urgent", critical: "critical",
+};
+const statusKeys: Record<Status, CatalogKey> = {
+  open: "open", in_progress: "in_progress", resolved: "resolved", closed: "closed", on_hold: "on_hold",
+};
+const senderKeys: Record<SenderType, CatalogKey> = { admin: "senderAdmin", customer: "senderCustomer" };
+const categoryIcon = (value: string) => value === "technical_issue" ? <AlertTriangle className="h-4 w-4" /> : value === "bug_report" ? <XCircle className="h-4 w-4" /> : value === "feature_request" ? <Plus className="h-4 w-4" /> : value === "user_access" ? <UserCheck className="h-4 w-4" /> : value === "system_error" ? <AlertCircle className="h-4 w-4" /> : <FileText className="h-4 w-4" />;
+const priorityClass = (value: string) => ({ critical: "bg-red-500 text-white", urgent: "bg-orange-500 text-white", high: "bg-yellow-500 text-black", normal: "bg-blue-500 text-white", low: "bg-gray-500 text-white" } satisfies Record<Priority, string>)[value as Priority] || "bg-gray-500 text-white";
+const statusClass = (value: string) => ({ open: "bg-green-500 text-white", in_progress: "bg-blue-500 text-white", resolved: "bg-purple-500 text-white", closed: "bg-gray-500 text-white", on_hold: "bg-yellow-500 text-black" } satisfies Record<Status, string>)[value as Status] || "bg-gray-500 text-white";
+const locale = (language: Language) => ({ en: "en-US", fa: "fa-IR", ar: "ar-IQ", tr: "tr-TR" }[language]);
+const formatNumber = (value: unknown, dateLocale: string) => {
+  const stringValue = String(value ?? "");
+  return /^\d+$/.test(stringValue) ? Number(stringValue).toLocaleString(dateLocale) : stringValue;
+};
+const text = (c: Catalog, key: CatalogKey) => c[key];
+const categoryLabel = (c: Catalog, value: string) => value in categoryKeys ? text(c, categoryKeys[value as Category]) : c.unknownCategory;
+const statusLabel = (c: Catalog, value: string) => value in statusKeys ? text(c, statusKeys[value as Status]) : c.unknownStatus;
+const priorityLabel = (c: Catalog, value: string) => value in priorityKeys ? text(c, priorityKeys[value as Priority]) : c.unknownPriority;
+const senderLabel = (c: Catalog, value: string) => value in senderKeys ? text(c, senderKeys[value as SenderType]) : c.unknownSender;
+const schema = (c: Catalog) => z.object({
+  title: z.string().min(1, c.validationTitle), description: z.string().min(10, c.validationDesc),
+  category: z.string().min(1, c.validationCat), priority: z.string().min(1, c.validationPriority), department: z.string().optional(),
 });
-
-const responseSchema = z.object({
-  message: z.string().min(1, "متن پیام الزامی است"),
-  isInternal: z.boolean().default(false),
+const responseSchema = (c: Catalog) => z.object({
+  message: z.string().min(1, c.validationMessage), isInternal: z.boolean().default(false),
 });
+type CreateTicketData = z.infer<ReturnType<typeof schema>>;
+type ResponseData = z.infer<ReturnType<typeof responseSchema>>;
 
-type CreateTicketData = z.infer<typeof createTicketSchema>;
-type ResponseData = z.infer<typeof responseSchema>;
-
-// Helper functions for styling
-const getPriorityColor = (priority: string) => {
-  switch (priority) {
-    case 'critical': return 'bg-red-500 text-white';
-    case 'urgent': return 'bg-orange-500 text-white';
-    case 'high': return 'bg-yellow-500 text-black';
-    case 'normal': return 'bg-blue-500 text-white';
-    case 'low': return 'bg-gray-500 text-white';
-    default: return 'bg-gray-500 text-white';
-  }
-};
-
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'open': return 'bg-green-500 text-white';
-    case 'in_progress': return 'bg-blue-500 text-white';
-    case 'resolved': return 'bg-purple-500 text-white';
-    case 'closed': return 'bg-gray-500 text-white';
-    case 'on_hold': return 'bg-yellow-500 text-black';
-    default: return 'bg-gray-500 text-white';
-  }
-};
-
-const getCategoryIcon = (category: string) => {
-  switch (category) {
-    case 'technical_issue': return <AlertTriangle className="w-4 h-4" />;
-    case 'bug_report': return <XCircle className="w-4 h-4" />;
-    case 'feature_request': return <Plus className="w-4 h-4" />;
-    case 'system_error': return <AlertCircle className="w-4 h-4" />;
-    case 'user_access': return <UserCheck className="w-4 h-4" />;
-    default: return <FileText className="w-4 h-4" />;
-  }
-};
-
-// Main component
 export default function TicketingSystemFixed() {
-  const { t, direction } = useLanguage();
-  
-  // Fallback function in case t is undefined
-  const translate = (key: string, fallback: string) => {
-    return typeof t === 'function' ? t(key, fallback) : fallback;
-  };
-  
-  // State declarations
+  const { language, direction } = useLanguage();
+  const lang = (language as Language) || "en";
+  const c = catalog[lang];
+  const dateLocale = locale(lang);
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("my-tickets");
   const [selectedTicket, setSelectedTicket] = useState<any>(null);
-  const [createTicketOpen, setCreateTicketOpen] = useState(false);
-  const [ticketDetailOpen, setTicketDetailOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState("");
   const [filterPriority, setFilterPriority] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
-  
-  const queryClient = useQueryClient();
+  const [search, setSearch] = useState("");
 
-  // Queries
-  const { data: myTickets } = useQuery({
-    queryKey: ['/api/tickets/my-tickets'],
-  });
-
-  const { data: allTickets } = useQuery({
-    queryKey: ['/api/tickets'],
-  });
-
-  const { data: ticketStats } = useQuery({
-    queryKey: ['/api/tickets/stats/overview'],
-  });
-
-  const { data: userStats } = useQuery({
-    queryKey: ['/api/tickets/stats/user'],
-  });
-
-  // Get ticket responses for selected ticket
-  const { data: ticketResponses } = useQuery({
-    queryKey: ['/api/tickets', selectedTicket?.id, 'responses'],
-    queryFn: () => selectedTicket ? 
-      fetch(`/api/tickets/${selectedTicket.id}/responses`, { credentials: 'include' }).then(res => res.json()) : 
-      null,
-    enabled: !!selectedTicket,
-  });
-
-  // Check both customer and admin authentication
-  const { data: currentUser } = useQuery({
-    queryKey: ['/api/customers/me'],
-    retry: false,
-  });
-  
-  const { data: adminUser } = useQuery({
-    queryKey: ['/api/admin/me'],
-    retry: false,
-  });
-  
-  // Determine if user is admin - check both admin session and email patterns
-  const isAdmin = Boolean(adminUser?.user) || currentUser?.customer?.email?.includes('admin') || false;
-  
-  // Get current authenticated user info (admin takes precedence)
-  const currentUserInfo = adminUser?.user ? {
-    name: adminUser.user.username || 'Admin User',
-    email: adminUser.user.email || 'admin@momtazchem.com',
-    type: 'admin'
-  } : currentUser?.customer ? {
-    name: `${currentUser.customer.firstName} ${currentUser.customer.lastName}`.trim() || 'Customer',
-    email: currentUser.customer.email,
-    type: 'customer'
-  } : null;
-
-  // Mutations
-  const createTicketMutation = useMutation({
-    mutationFn: (data: CreateTicketData) => {
-      console.log('Creating ticket with data:', data);
-      return apiRequest('/api/tickets', {
-        method: 'POST',
-        body: data,
-      });
+  const myTickets = useQuery({ queryKey: ["/api/tickets/my-tickets"] });
+  const allTickets = useQuery({ queryKey: ["/api/tickets"] });
+  const ticketStats = useQuery({ queryKey: ["/api/tickets/stats/overview"] });
+  const userStats = useQuery({ queryKey: ["/api/tickets/stats/user"] });
+  const responses = useQuery({
+    queryKey: ["/api/tickets", selectedTicket?.id, "responses"],
+    queryFn: async () => {
+      if (!selectedTicket) return null;
+      const response = await fetch(`/api/tickets/${selectedTicket.id}/responses`, { credentials: "include" });
+      if (!response.ok) throw new Error("responses");
+      return response.json();
     },
-    onSuccess: (response) => {
-      console.log('Ticket created successfully:', response);
-      queryClient.invalidateQueries({ queryKey: ['/api/tickets'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/tickets/my-tickets'] });
-      queryClient.refetchQueries({ queryKey: ['/api/tickets/stats/overview'] });
-      queryClient.refetchQueries({ queryKey: ['/api/tickets/stats/user'] });
-      setCreateTicketOpen(false);
-      createForm.reset();
-      toast({
-        title: "موفقیت",
-        description: "تیکت پشتیبانی با موفقیت ایجاد شد",
-      });
-    },
-    onError: (error: any) => {
-      console.error('Error creating ticket:', error);
-      toast({
-        title: "خطا",
-        description: error.message || "خطا در ایجاد تیکت",
-        variant: "destructive",
-      });
-    },
+    enabled: Boolean(selectedTicket),
   });
-
-  const updateStatusMutation = useMutation({
-    mutationFn: ({ ticketId, status, reason }: { ticketId: number; status: string; reason?: string }) =>
-      apiRequest(`/api/tickets/${ticketId}/status`, {
-        method: 'PATCH',
-        body: { status, reason },
-      }),
-    onSuccess: () => {
-      // Invalidate cache and refetch stats immediately
-      queryClient.invalidateQueries({ queryKey: ['/api/tickets'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/tickets/my-tickets'] });
-      queryClient.refetchQueries({ queryKey: ['/api/tickets/stats/overview'] });
-      queryClient.refetchQueries({ queryKey: ['/api/tickets/stats/user'] });
-      toast({
-        title: "موفقیت",
-        description: "وضعیت تیکت به‌روزرسانی شد",
-      });
-    },
+  const customer = useQuery({ queryKey: ["/api/customers/me"], retry: false });
+  const admin = useQuery({ queryKey: ["/api/admin/me"], retry: false });
+  const adminData = admin.data as any;
+  const customerData = customer.data as any;
+  const isAdmin = Boolean(adminData?.user) || Boolean(customerData?.customer?.email?.includes("admin"));
+  const currentUser = adminData?.user ? { name: adminData.user.username || c.admin, type: "admin" } : customerData?.customer ? { name: `${customerData.customer.firstName} ${customerData.customer.lastName}`.trim() || c.customer, type: "customer" } : null;
+  const createForm = useForm<CreateTicketData>({ resolver: zodResolver(schema(c)), defaultValues: { title: "", description: "", category: "", priority: "normal", department: "" } });
+  const responseForm = useForm<ResponseData>({ resolver: zodResolver(responseSchema(c)), defaultValues: { message: "", isInternal: false } });
+  const createMutation = useMutation({
+    mutationFn: (data: CreateTicketData) => apiRequest("/api/tickets", { method: "POST", body: data }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/tickets"] }); queryClient.invalidateQueries({ queryKey: ["/api/tickets/my-tickets"] }); void Promise.all([ticketStats.refetch(), userStats.refetch()]); setCreateOpen(false); createForm.reset(); toast({ title: c.success, description: c.created }); },
+    onError: () => toast({ title: c.error, description: c.createFailure, variant: "destructive" }),
   });
-
-  const addResponseMutation = useMutation({
-    mutationFn: ({ ticketId, message, isInternal }: { ticketId: number; message: string; isInternal: boolean }) =>
-      apiRequest(`/api/tickets/${ticketId}/responses`, {
-        method: 'POST',
-        body: { message, isInternal },
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/tickets'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/tickets/my-tickets'] });
-      queryClient.refetchQueries({ queryKey: ['/api/tickets/stats/overview'] });
-      queryClient.refetchQueries({ queryKey: ['/api/tickets/stats/user'] });
-      if (selectedTicket) {
-        queryClient.invalidateQueries({ queryKey: ['/api/tickets', selectedTicket.id, 'responses'] });
-      }
-      // Reset the form after successful response
-      responseForm.reset();
-      toast({
-        title: "موفقیت",
-        description: "پاسخ اضافه شد",
-      });
-    },
+  const statusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: number; status: string }) => apiRequest(`/api/tickets/${id}/status`, { method: "PATCH", body: { status } }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/tickets"] }); queryClient.invalidateQueries({ queryKey: ["/api/tickets/my-tickets"] }); void Promise.all([ticketStats.refetch(), userStats.refetch()]); toast({ title: c.success, description: c.statusUpdated }); },
+    onError: () => toast({ title: c.error, description: c.statusFailure, variant: "destructive" }),
   });
-
-  // Forms
-  const createForm = useForm<CreateTicketData>({
-    resolver: zodResolver(createTicketSchema),
-    defaultValues: {
-      title: "",
-      description: "",
-      category: "",
-      priority: "normal",
-      department: "",
-    },
+  const responseMutation = useMutation({
+    mutationFn: ({ id, message, isInternal }: { id: number; message: string; isInternal: boolean }) => apiRequest(`/api/tickets/${id}/responses`, { method: "POST", body: { message, isInternal } }),
+    onSuccess: () => { if (selectedTicket) queryClient.invalidateQueries({ queryKey: ["/api/tickets", selectedTicket.id, "responses"] }); void Promise.all([ticketStats.refetch(), userStats.refetch()]); responseForm.reset(); toast({ title: c.success, description: c.responseAdded }); },
+    onError: () => toast({ title: c.error, description: c.responseFailure, variant: "destructive" }),
   });
-
-  const responseForm = useForm<ResponseData>({
-    resolver: zodResolver(responseSchema),
-    defaultValues: {
-      message: "",
-      isInternal: false,
-    },
-  });
-
-  // Event handlers
-  const handleCreateTicket = (data: CreateTicketData) => {
-    createTicketMutation.mutate(data);
-  };
-
-  const handleAddResponse = (data: ResponseData) => {
-    if (selectedTicket) {
-      addResponseMutation.mutate({
-        ticketId: selectedTicket.id,
-        message: data.message,
-        isInternal: data.isInternal,
-      });
-      // Form reset is now handled in onSuccess callback
-    }
-  };
-
-  const handleStatusChange = (ticketId: number, newStatus: string) => {
-    if (!isAdmin) {
-      toast({
-        title: "خطا",
-        description: "برای تغییر وضعیت تیکت باید به عنوان ادمین وارد شوید",
-        variant: "destructive",
-      });
-      return;
-    }
-    updateStatusMutation.mutate({ ticketId, status: newStatus });
-  };
-
-  const handleTicketSelect = (ticket: any) => {
-    setSelectedTicket(ticket);
-    setTicketDetailOpen(true);
-  };
-
-  const filteredTickets = (tickets: any[]) => {
-    if (!tickets) return [];
-    
-    return tickets.filter(ticket => {
-      const matchesStatus = !filterStatus || filterStatus === 'all' || ticket.status === filterStatus;
-      const matchesPriority = !filterPriority || filterPriority === 'all' || ticket.priority === filterPriority;
-      const matchesSearch = !searchQuery || 
-        ticket.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        ticket.ticketNumber.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      return matchesStatus && matchesPriority && matchesSearch;
-    });
-  };
+  const filter = (items: any[] | undefined) => (items || []).filter((ticket) => (!filterStatus || filterStatus === "all" || ticket.status === filterStatus) && (!filterPriority || filterPriority === "all" || ticket.priority === filterPriority) && (!search || `${ticket.title} ${ticket.ticketNumber}`.toLowerCase().includes(search.toLowerCase())));
+  const stats = (ticketStats.data as any)?.data || (userStats.data as any)?.data || {};
+  const selectTicket = (ticket: any) => { setSelectedTicket(ticket); setDetailOpen(true); };
+  const changeStatus = (id: number, status: string) => { if (!isAdmin) { toast({ title: c.error, description: c.adminRequired, variant: "destructive" }); return; } statusMutation.mutate({ id, status }); };
 
   return (
-    <div className="container mx-auto p-6 space-y-6" dir={direction}>
-      {/* Header */}
-      <div className="flex justify-between items-center">
+    <main className="container mx-auto space-y-6 p-6" lang={dateLocale} dir={direction}>
+      <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Ticket className="w-8 h-8 text-blue-600" />
-            {translate('ticketing.title', 'سیستم تیکتینگ')}
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            {translate('ticketing.description', 'مدیریت تیکت‌های پشتیبانی فنی و ارتباط با ادمین')}
-          </p>
-          {currentUserInfo && (
-            <div className="mt-2 text-sm">
-              <span className="text-gray-600">کاربر فعلی: </span>
-              <span className="font-medium text-blue-600">
-                {currentUserInfo.name} ({currentUserInfo.type === 'admin' ? 'مدیر سیستم' : 'مشتری'})
-              </span>
-            </div>
-          )}
+          <h1 className="flex items-center gap-2 text-3xl font-bold"><Ticket className="h-8 w-8 text-blue-600" />{c.title}</h1>
+          <p className="mt-1 text-muted-foreground">{c.pageDescription}</p>
+          {currentUser && <p className="mt-2 text-sm text-muted-foreground">{c.current}: <span className="font-medium text-blue-600">{currentUser.name} ({currentUser.type === "admin" ? c.admin : c.customer})</span></p>}
         </div>
-        
-        <Dialog open={createTicketOpen} onOpenChange={setCreateTicketOpen}>
-          <DialogTrigger asChild>
-            <Button className="flex items-center gap-2">
-              <Plus className="w-4 h-4" />
-              {translate('ticketing.newTicket', 'تیکت جدید')}
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md" dir={direction}>
-            <DialogHeader>
-              <DialogTitle>{translate('ticketing.createNewTicket', 'ایجاد تیکت پشتیبانی جدید')}</DialogTitle>
-            </DialogHeader>
-            <Form {...createForm}>
-              <form onSubmit={createForm.handleSubmit(handleCreateTicket)} className="space-y-4">
-                <FormField
-                  control={createForm.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{translate('ticketing.title', 'عنوان')} *</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder={translate('ticketing.titlePlaceholder', 'عنوان مشکل را بنویسید...')} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={createForm.control}
-                  name="category"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{translate('ticketing.category', 'دسته‌بندی')} *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder={translate('ticketing.selectCategory', 'انتخاب دسته‌بندی')} />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="technical_issue">{translate('ticketing.categories.technical', 'مشکل فنی')}</SelectItem>
-                          <SelectItem value="bug_report">{translate('ticketing.categories.bug', 'گزارش باگ')}</SelectItem>
-                          <SelectItem value="feature_request">{translate('ticketing.categories.feature', 'درخواست ویژگی')}</SelectItem>
-                          <SelectItem value="system_error">{translate('ticketing.categories.system', 'خطای سیستم')}</SelectItem>
-                          <SelectItem value="user_access">{translate('ticketing.categories.access', 'دسترسی کاربر')}</SelectItem>
-                          <SelectItem value="performance_issue">{translate('ticketing.categories.performance', 'مشکل عملکرد')}</SelectItem>
-                          <SelectItem value="security_concern">{translate('ticketing.categories.security', 'نگرانی امنیتی')}</SelectItem>
-                          <SelectItem value="data_issue">{translate('ticketing.categories.data', 'مشکل داده')}</SelectItem>
-                          <SelectItem value="integration_problem">{translate('ticketing.categories.integration', 'مشکل یکپارچه‌سازی')}</SelectItem>
-                          <SelectItem value="other">{translate('ticketing.categories.other', 'سایر')}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={createForm.control}
-                  name="priority"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{translate('ticketing.priority', 'اولویت')} *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder={translate('ticketing.selectPriority', 'انتخاب اولویت')} />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="low">{translate('ticketing.priorities.low', 'کم')}</SelectItem>
-                          <SelectItem value="normal">{translate('ticketing.priorities.normal', 'معمولی')}</SelectItem>
-                          <SelectItem value="high">{translate('ticketing.priorities.high', 'زیاد')}</SelectItem>
-                          <SelectItem value="urgent">{translate('ticketing.priorities.urgent', 'فوری')}</SelectItem>
-                          <SelectItem value="critical">{translate('ticketing.priorities.critical', 'بحرانی')}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={createForm.control}
-                  name="department"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{translate('ticketing.department', 'بخش مربوطه')}</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder={translate('ticketing.departmentPlaceholder', 'نام بخش یا ماژول مربوطه...')} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={createForm.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{translate('ticketing.description', 'توضیحات')} *</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          {...field} 
-                          placeholder={translate('ticketing.descriptionPlaceholder', 'توضیح کاملی از مشکل، مراحل تکرار، و اطلاعات مرتبط ارائه دهید...')}
-                          rows={4}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <div className="flex gap-2">
-                  <Button 
-                    type="submit" 
-                    disabled={createTicketMutation.isPending}
-                    className="flex-1"
-                  >
-                    {createTicketMutation.isPending 
-                      ? translate('ticketing.creating', 'در حال ایجاد...') 
-                      : translate('ticketing.createTicket', 'ایجاد تیکت')
-                    }
-                  </Button>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => setCreateTicketOpen(false)}
-                  >
-                    {translate('common.cancel', 'انصراف')}
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
+      <CreateTicketDialog open={createOpen} setOpen={setCreateOpen} form={createForm} c={c} lang={dateLocale} direction={direction} pending={createMutation.isPending} onSubmit={(data: CreateTicketData) => createMutation.mutate(data)} />
+      </header>
+      <Stats stats={stats} c={c} dateLocale={dateLocale} />
+      <div className="flex flex-wrap gap-2">
+        <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={c.search} aria-label={c.search} className="max-w-xs" />
+       <Select value={filterStatus} onValueChange={setFilterStatus}><SelectTrigger className="w-44"><SelectValue placeholder={c.statusFilterPlaceholder} /></SelectTrigger><SelectContent><SelectItem value="all">{c.all}</SelectItem>{statuses.map((value) => <SelectItem key={value} value={value}>{statusLabel(c, value)}</SelectItem>)}</SelectContent></Select>
+      <Select value={filterPriority} onValueChange={setFilterPriority}><SelectTrigger className="w-44"><SelectValue placeholder={c.priority} /></SelectTrigger><SelectContent><SelectItem value="all">{c.all}</SelectItem>{priorities.map((value) => <SelectItem key={value} value={value}>{priorityLabel(c, value)}</SelectItem>)}</SelectContent></Select>
       </div>
-
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <AlertCircle className="w-5 h-5 text-orange-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{translate('ticketing.stats.open', 'باز')}</p>
-                <p className="text-2xl font-bold">{ticketStats?.data?.openTickets || 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{translate('ticketing.stats.resolved', 'حل شده')}</p>
-                <p className="text-2xl font-bold">{ticketStats?.data?.resolvedTickets || 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <Clock className="w-5 h-5 text-yellow-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{translate('ticketing.stats.pending', 'در انتظار')}</p>
-                <p className="text-2xl font-bold">{ticketStats?.data?.inProgressTickets || 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <BarChart3 className="w-5 h-5 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{translate('ticketing.stats.total', 'کل تیکت‌ها')}</p>
-                <p className="text-2xl font-bold">{ticketStats?.data?.totalTickets || 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <XCircle className="w-5 h-5 text-red-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{translate('ticketing.stats.closed', 'بسته شده')}</p>
-                <p className="text-2xl font-bold">{ticketStats?.data?.closedTickets || 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Main Content */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="my-tickets">{translate('ticketing.myTickets', 'تیکت‌های من')}</TabsTrigger>
-          <TabsTrigger value="all-tickets">{translate('ticketing.allTickets', 'همه تیکت‌ها')}</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="my-tickets" className="space-y-4">
-          <TicketList 
-            tickets={filteredTickets(myTickets?.data || [])}
-            onTicketSelect={handleTicketSelect}
-            onStatusChange={handleStatusChange}
-            isAdmin={isAdmin}
-            translate={translate}
-          />
-        </TabsContent>
-        
-        <TabsContent value="all-tickets" className="space-y-4">
-          <TicketList 
-            tickets={filteredTickets(allTickets?.data || [])}
-            onTicketSelect={handleTicketSelect}
-            onStatusChange={handleStatusChange}
-            isAdmin={isAdmin}
-            translate={translate}
-          />
-        </TabsContent>
+      <Tabs value={activeTab} onValueChange={setActiveTab}><TabsList className="grid w-full grid-cols-2"><TabsTrigger value="my-tickets">{c.my}</TabsTrigger><TabsTrigger value="all-tickets">{c.all}</TabsTrigger></TabsList>
+        <TabsContent value="my-tickets"><TicketList query={myTickets} tickets={filter((myTickets.data as any)?.data)} c={c} dateLocale={dateLocale} isAdmin={isAdmin} onSelect={selectTicket} onStatus={changeStatus} /></TabsContent>
+        <TabsContent value="all-tickets"><TicketList query={allTickets} tickets={filter((allTickets.data as any)?.data)} c={c} dateLocale={dateLocale} isAdmin={isAdmin} onSelect={selectTicket} onStatus={changeStatus} /></TabsContent>
       </Tabs>
-
-      {/* Ticket Detail Dialog */}
-      {selectedTicket && (
-        <Dialog open={ticketDetailOpen} onOpenChange={setTicketDetailOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col" dir={direction}>
-            <DialogHeader className="flex-shrink-0">
-              <DialogTitle>جزئیات تیکت #{selectedTicket.ticketNumber}</DialogTitle>
-            </DialogHeader>
-            <div className="flex-1 overflow-y-auto pr-2">
-              <TicketDetail 
-                ticket={selectedTicket}
-                responses={ticketResponses?.data || []}
-                onAddResponse={handleAddResponse}
-                responseForm={responseForm}
-                isAdmin={isAdmin}
-                translate={translate}
-              />
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
-    </div>
+      {selectedTicket && <Dialog open={detailOpen} onOpenChange={setDetailOpen}><DialogContent className="flex max-h-[90vh] max-w-4xl flex-col overflow-hidden" lang={dateLocale} dir={direction}><DialogHeader><DialogTitle>{c.ticketDetails} #{formatNumber(selectedTicket.ticketNumber, dateLocale)}</DialogTitle></DialogHeader><div className="flex-1 overflow-y-auto"><TicketDetail ticket={selectedTicket} responses={(responses.data as any)?.data || []} loading={responses.isLoading} error={responses.isError} retry={responses.refetch} c={c} dateLocale={dateLocale} isAdmin={isAdmin} form={responseForm} pending={responseMutation.isPending} onSubmit={(data: ResponseData) => responseMutation.mutate({ id: selectedTicket.id, ...data })} /></div></DialogContent></Dialog>}
+    </main>
   );
 }
 
-// Ticket List Component
-function TicketList({ 
-  tickets, 
-  onTicketSelect, 
-  onStatusChange, 
-  isAdmin, 
-  translate 
-}: { 
-  tickets: any[], 
-  onTicketSelect: (ticket: any) => void, 
-  onStatusChange: (ticketId: number, status: string) => void, 
-  isAdmin: boolean, 
-  translate: (key: string, fallback: string) => string 
-}) {
-  return (
-    <div className="space-y-4">
-      {tickets?.map((ticket: any) => (
-        <Card key={ticket.id} className="hover:shadow-md transition-shadow">
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1 space-y-2">
-                <div className="flex items-center gap-2">
-                  <Badge className={getStatusColor(ticket.status)}>
-                    {ticket.status}
-                  </Badge>
-                  <Badge className={getPriorityColor(ticket.priority)}>
-                    {ticket.priority}
-                  </Badge>
-                  {ticket.category && (
-                    <div className="flex items-center gap-1">
-                      {getCategoryIcon(ticket.category)}
-                      <span className="text-sm text-muted-foreground">{ticket.category}</span>
-                    </div>
-                  )}
-                  {(ticket.priority === 'urgent' || ticket.priority === 'critical') && (
-                    <Badge variant="destructive">{translate('ticketing.urgent', 'فوری')}</Badge>
-                  )}
-                </div>
-                
-                <h3 className="font-semibold text-lg">{ticket.title}</h3>
-                
-                <p className="text-muted-foreground text-sm line-clamp-2">
-                  {ticket.description}
-                </p>
-                
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <User className="w-4 h-4" />
-                    {ticket.submitterName}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Calendar className="w-4 h-4" />
-                    {new Date(ticket.createdAt).toLocaleDateString('en-US')}
-                  </div>
-                  {ticket.department && (
-                    <div className="flex items-center gap-1">
-                      <Tag className="w-4 h-4" />
-                      {ticket.department}
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div className="flex flex-col gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onTicketSelect(ticket)}
-                  className="flex items-center gap-1"
-                >
-                  <Eye className="w-4 h-4" />
-                  {translate('ticketing.details', 'جزئیات')}
-                </Button>
-                
-                {ticket.status === 'open' && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onStatusChange(ticket.id, 'in_progress')}
-                    className="flex items-center gap-1"
-                    disabled={!isAdmin}
-                    title={!isAdmin ? "نیاز به ورود ادمین" : ""}
-                  >
-                    <Clock className="w-4 h-4" />
-                    {translate('ticketing.start', 'شروع')} {isAdmin ? '' : '(ادمین)'}
-                  </Button>
-                )}
-                
-                {ticket.status === 'in_progress' && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onStatusChange(ticket.id, 'resolved')}
-                    className="flex items-center gap-1"
-                    disabled={!isAdmin}
-                    title={!isAdmin ? "نیاز به ورود ادمین" : ""}
-                  >
-                    <CheckCircle className="w-4 h-4" />
-                    {translate('ticketing.resolve', 'حل شد')} {isAdmin ? '' : '(ادمین)'}
-                  </Button>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
+function CreateTicketDialog({ open, setOpen, form, c, lang, direction, pending, onSubmit }: any) {
+  return <Dialog open={open} onOpenChange={setOpen}><DialogTrigger asChild><Button className="flex items-center gap-2" aria-label={c.new}><Plus className="h-4 w-4" />{c.new}</Button></DialogTrigger><DialogContent className="max-w-md" lang={lang} dir={direction}><DialogHeader><DialogTitle>{c.create}</DialogTitle></DialogHeader><Form {...form}><form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4"><Field form={form} name="title" label={`${c.titleLabel} *`} placeholder={c.titlePh} /><Field form={form} name="category" label={`${c.category} *`} placeholder={c.selectCategory} options={categories.map((value) => ({ value, label: categoryLabel(c, value) }))} /><Field form={form} name="priority" label={`${c.priority} *`} placeholder={c.selectPriority} options={priorities.map((value) => ({ value, label: priorityLabel(c, value) }))} /><Field form={form} name="department" label={c.department} placeholder={c.departmentPh} /><Field form={form} name="description" label={`${c.description} *`} placeholder={c.descriptionPh} textarea /><div className="flex gap-2"><Button type="submit" disabled={pending} className="flex-1">{pending ? c.creating : c.createTicket}</Button><Button type="button" variant="outline" onClick={() => setOpen(false)}>{c.cancel}</Button></div></form></Form></DialogContent></Dialog>;
 }
 
-// Ticket Detail Component
-function TicketDetail({ 
-  ticket, 
-  responses,
-  onAddResponse, 
-  responseForm, 
-  isAdmin, 
-  translate 
-}: { 
-  ticket: any, 
-  responses: any[],
-  onAddResponse: (data: ResponseData) => void, 
-  responseForm: any, 
-  isAdmin: boolean, 
-  translate: (key: string, fallback: string) => string 
-}) {
-  return (
-    <div className="space-y-4">
-      <div className="p-4 bg-muted rounded-lg">
-        <div className="flex items-center gap-2 mb-2">
-          <Badge className={getStatusColor(ticket.status)}>
-            {ticket.status}
-          </Badge>
-          <Badge className={getPriorityColor(ticket.priority)}>
-            {ticket.priority}
-          </Badge>
-        </div>
-        <h3 className="font-semibold text-lg mb-2">{ticket.title}</h3>
-        <p className="text-muted-foreground">{ticket.description}</p>
-        
-        <div className="mt-4 text-sm text-muted-foreground">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1">
-              <User className="w-4 h-4" />
-              {ticket.submitterName}
-            </div>
-            <div className="flex items-center gap-1">
-              <Calendar className="w-4 h-4" />
-              {new Date(ticket.createdAt).toLocaleDateString('en-US')}
-            </div>
-            {ticket.department && (
-              <div className="flex items-center gap-1">
-                <Tag className="w-4 h-4" />
-                {ticket.department}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+function Field({ form, name, label, placeholder, options, textarea }: any) {
+  return <FormField control={form.control} name={name} render={({ field }: any) => <FormItem><FormLabel>{label}</FormLabel><FormControl>{options ? <Select value={field.value} onValueChange={field.onChange}><SelectTrigger><SelectValue placeholder={placeholder} /></SelectTrigger><SelectContent>{options.map((option: any) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent></Select> : textarea ? <Textarea {...field} placeholder={placeholder} rows={4} /> : <Input {...field} placeholder={placeholder} />}</FormControl><FormMessage /></FormItem>} />;
+}
 
-      {/* Responses Section */}
-      {responses && responses.length > 0 && (
-        <div className="space-y-3">
-          <h4 className="font-medium text-sm text-muted-foreground">پاسخ‌ها و نظرات ({responses.length}):</h4>
-          <div className="max-h-[300px] overflow-y-auto space-y-3 border rounded-lg p-3 bg-gray-50/50">
-            {responses.map((response: any) => (
-              <div key={response.id} className="p-3 bg-white border rounded-lg shadow-sm">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Badge variant={response.senderType === 'admin' ? 'default' : 'secondary'}>
-                      {response.senderName}
-                    </Badge>
-                    {response.senderType === 'admin' && (
-                      <Badge variant="outline" className="text-xs">ادمین</Badge>
-                    )}
-                    {response.isInternal && (
-                      <Badge variant="destructive" className="text-xs">داخلی</Badge>
-                    )}
-                  </div>
-                  <span className="text-xs text-muted-foreground">
-                    {new Date(response.createdAt).toLocaleDateString('en-US')} - {new Date(response.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                </div>
-                <p className="text-sm leading-relaxed">{response.message}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-      
-      {isAdmin && (
-        <div className="border-t pt-4 mt-4 bg-gray-50/30 rounded-lg p-4">
-          <h4 className="font-medium text-sm mb-3 text-muted-foreground">افزودن پاسخ جدید:</h4>
-          <Form {...responseForm}>
-            <form onSubmit={responseForm.handleSubmit(onAddResponse)} className="space-y-4">
-              <FormField
-                control={responseForm.control}
-                name="message"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>پاسخ ادمین</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} placeholder="پاسخ خود را بنویسید..." rows={3} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+function Stats({ stats, c, dateLocale }: { stats: any; c: Catalog; dateLocale: string }) {
+  const cards = [[AlertCircle, c.open, stats.openTickets, "text-orange-600"], [CheckCircle, c.resolved, stats.resolvedTickets, "text-green-600"], [Clock, c.in_progress, stats.inProgressTickets, "text-yellow-600"], [BarChart3, c.total, stats.totalTickets, "text-purple-600"], [XCircle, c.closed, stats.closedTickets, "text-red-600"]] as const;
+  return <section className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">{cards.map(([Icon, label, value, color]) => <Card key={label}><CardContent className="flex items-center gap-3 p-4"><Icon className={`h-5 w-5 ${color}`} /><div><p className="text-sm text-muted-foreground">{label}</p><p className="text-2xl font-bold">{Number(value || 0).toLocaleString(dateLocale)}</p></div></CardContent></Card>)}</section>;
+}
 
-              <FormField
-                control={responseForm.control}
-                name="isInternal"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                    <FormControl>
-                      <input
-                        type="checkbox"
-                        checked={field.value}
-                        onChange={field.onChange}
-                        className="rounded border-gray-300"
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel className="text-sm font-normal">
-                        پاسخ داخلی (فقط برای ادمین‌ها قابل مشاهده)
-                      </FormLabel>
-                    </div>
-                  </FormItem>
-                )}
-              />
-              
-              <Button type="submit" className="flex items-center gap-2 w-full">
-                <Send className="w-4 h-4" />
-                ارسال پاسخ
-              </Button>
-            </form>
-          </Form>
-        </div>
-      )}
-    </div>
-  );
+function TicketList({ query, tickets, c, dateLocale, isAdmin, onSelect, onStatus }: any) {
+  if (query.isLoading) return <div className="rounded-lg border p-8 text-center text-muted-foreground" role="status">{c.loading}</div>;
+  if (query.isError) return <div className="rounded-lg border border-destructive/40 p-8 text-center"><p className="text-destructive">{c.loadError}</p><Button variant="outline" className="mt-3" onClick={() => query.refetch()}>{c.retry}</Button></div>;
+  if (!tickets.length) return <div className="rounded-lg border border-dashed p-10 text-center"><FileText className="mx-auto mb-3 h-8 w-8 text-muted-foreground" /><p className="font-medium">{c.empty}</p><p className="mt-1 text-sm text-muted-foreground">{c.emptyHint}</p></div>;
+  return <div className="overflow-x-auto rounded-lg border bg-white">
+    <table className="min-w-[1080px] w-full border-collapse text-sm">
+      <caption className="sr-only">{c.tableCaption}</caption>
+      <thead className="sticky top-0 z-10 bg-slate-100 text-slate-700">
+        <tr className="border-b border-slate-200">
+          {[c.rowNumber, c.ticketNumber, c.submitter, c.category, c.departmentLabel, c.date, c.priority, c.status, c.actions].map((heading: string) => <th key={heading} scope="col" className="border-e border-slate-200 px-3 py-2.5 text-start align-middle font-semibold last:border-e-0">{heading}</th>)}
+        </tr>
+      </thead>
+      <tbody>
+        {tickets.map((ticket: any, index: number) => {
+          const submitter = ticket.submitterName || c.notProvided;
+          const department = ticket.department || c.notProvided;
+          const ticketNumber = ticket.ticketNumber ? formatNumber(ticket.ticketNumber, dateLocale) : c.notProvided;
+          const date = ticket.createdAt ? new Date(ticket.createdAt).toLocaleDateString(dateLocale) : c.notProvided;
+          return <tr key={ticket.id} className="border-b border-slate-200 odd:bg-slate-50/70 hover:bg-slate-100/80">
+            <td className="border-e border-slate-200 px-3 py-2.5 text-start align-top tabular-nums">{formatNumber(index + 1, dateLocale)}</td>
+            <td className="max-w-[250px] border-e border-slate-200 px-3 py-2.5 text-start align-top">
+              <div className="truncate font-semibold" title={ticket.title || undefined}>{ticketNumber}</div>
+              {ticket.title && <div className="line-clamp-1 truncate text-xs text-muted-foreground" title={ticket.description || ticket.title}>{ticket.title}</div>}
+            </td>
+            <td className="max-w-[180px] border-e border-slate-200 px-3 py-2.5 text-start align-top">
+              <div className="truncate" title={submitter === c.notProvided ? undefined : submitter}>{submitter}</div>
+              {ticket.description && <div className="line-clamp-1 truncate text-xs text-muted-foreground" title={ticket.description}>{ticket.description}</div>}
+            </td>
+            <td className="border-e border-slate-200 px-3 py-2.5 text-start align-top"><span className="flex min-w-[125px] items-center gap-1.5">{categoryIcon(ticket.category)}{ticket.category ? categoryLabel(c, ticket.category) : c.notProvided}</span></td>
+            <td className="border-e border-slate-200 px-3 py-2.5 text-start align-top">{department}</td>
+            <td className="border-e border-slate-200 px-3 py-2.5 text-start align-top whitespace-nowrap">{date}</td>
+            <td className="border-e border-slate-200 px-3 py-2.5 text-start align-top"><Badge className={priorityClass(ticket.priority)}>{priorityLabel(c, ticket.priority)}</Badge></td>
+            <td className="border-e border-slate-200 px-3 py-2.5 text-start align-top"><div className="flex flex-wrap gap-1.5"><Badge className={statusClass(ticket.status)}>{statusLabel(c, ticket.status)}</Badge>{["urgent", "critical"].includes(ticket.priority) && <Badge variant="destructive">{c.urgentBadge}</Badge>}</div></td>
+            <td className="px-3 py-2.5 text-start align-top">
+              <div className="flex min-w-[190px] flex-wrap gap-1.5">
+                <Button type="button" variant="outline" size="sm" className="h-8 gap-1 px-2" onClick={(event) => { event.stopPropagation(); onSelect(ticket); }} title={c.details}><Eye className="h-3.5 w-3.5" />{c.details}</Button>
+                {ticket.status === "open" && <Button type="button" variant="outline" size="sm" className="h-8 gap-1 px-2" disabled={!isAdmin} onClick={(event) => { event.stopPropagation(); onStatus(ticket.id, "in_progress"); }} title={!isAdmin ? c.needAdmin : undefined}><Clock className="h-3.5 w-3.5" />{c.start}</Button>}
+                {ticket.status === "in_progress" && <Button type="button" variant="outline" size="sm" className="h-8 gap-1 px-2" disabled={!isAdmin} onClick={(event) => { event.stopPropagation(); onStatus(ticket.id, "resolved"); }} title={!isAdmin ? c.needAdmin : undefined}><CheckCircle className="h-3.5 w-3.5" />{c.resolve}</Button>}
+              </div>
+            </td>
+          </tr>;
+        })}
+      </tbody>
+    </table>
+  </div>;
+}
+
+function TicketDetail({ ticket, responses, loading, error, retry, c, dateLocale, isAdmin, form, pending, onSubmit }: any) {
+  return <div className="space-y-4"><div className="rounded-lg bg-muted p-4"><div className="mb-2 flex gap-2"><Badge className={statusClass(ticket.status)}>{statusLabel(c, ticket.status)}</Badge><Badge className={priorityClass(ticket.priority)}>{priorityLabel(c, ticket.priority)}</Badge></div><h3 className="mb-2 text-lg font-semibold">{ticket.title}</h3><p className="text-muted-foreground">{ticket.description}</p><div className="mt-4 flex flex-wrap gap-4 text-sm text-muted-foreground"><span className="flex items-center gap-1"><User className="inline h-4 w-4" />{c.submittedBy}: {ticket.submitterName}</span><span className="flex items-center gap-1"><Calendar className="inline h-4 w-4" />{c.date}: {new Date(ticket.createdAt).toLocaleDateString(dateLocale)}</span>{ticket.department && <span className="flex items-center gap-1"><Tag className="inline h-4 w-4" />{c.departmentLabel}: {ticket.department}</span>}</div></div>{loading ? <div className="rounded-lg border p-6 text-center text-muted-foreground">{c.loading}</div> : error ? <div className="rounded-lg border border-destructive/40 p-6 text-center"><p className="text-destructive">{c.responsesError}</p><Button variant="outline" className="mt-3" onClick={() => retry()}>{c.retry}</Button></div> : <ResponseList responses={responses} c={c} dateLocale={dateLocale} />}{isAdmin && <ResponseForm form={form} c={c} pending={pending} onSubmit={onSubmit} />}</div>;
+}
+
+function ResponseList({ responses, c, dateLocale }: any) {
+  return <div className="space-y-3"><h4 className="text-sm font-medium text-muted-foreground">{c.responses} ({responses.length.toLocaleString(dateLocale)}):</h4>{responses.length ? <div className="max-h-[300px] space-y-3 overflow-y-auto rounded-lg border p-3">{responses.map((response: any) => <div key={response.id} className="rounded-lg border p-3"><div className="mb-2 flex flex-wrap items-center justify-between gap-2"><div className="flex items-center gap-2"><Badge variant={response.senderType === "admin" ? "default" : "secondary"}>{response.senderName}</Badge><span className="text-xs text-muted-foreground">{senderLabel(c, response.senderType)}</span>{response.isInternal && <Badge variant="destructive">{c.internalBadge}</Badge>}</div><span className="text-xs text-muted-foreground">{new Date(response.createdAt).toLocaleDateString(dateLocale)} - {new Date(response.createdAt).toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit" })}</span></div><p className="text-sm leading-relaxed">{response.message}</p></div>)}</div> : <p className="rounded-lg border border-dashed p-5 text-center text-sm text-muted-foreground">{c.noResponses}</p>}</div>;
+}
+
+function ResponseForm({ form, c, pending, onSubmit }: any) {
+  return <div className="rounded-lg border-t bg-muted/20 p-4"><h4 className="mb-3 text-sm font-medium text-muted-foreground">{c.addResponse}</h4><Form {...form}><form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4"><FormField control={form.control} name="message" render={({ field }: any) => <FormItem><FormLabel>{c.adminResponse}</FormLabel><FormControl><Textarea {...field} placeholder={c.responsePh} rows={3} /></FormControl><FormMessage /></FormItem>} /><FormField control={form.control} name="isInternal" render={({ field }: any) => <FormItem className="flex items-center gap-3 space-y-0"><FormControl><input type="checkbox" checked={field.value} onChange={field.onChange} aria-label={c.internal} /></FormControl><FormLabel className="text-sm font-normal">{c.internal}</FormLabel></FormItem>} /><Button type="submit" disabled={pending} className="flex w-full items-center gap-2"><Send className="h-4 w-4" />{pending ? c.creating : c.send}</Button></form></Form></div>;
 }

@@ -18,6 +18,8 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { seoText, seoLocale, seoValue } from "@/lib/seo-management-localization";
 
 // Types
 interface SeoSetting {
@@ -95,12 +97,12 @@ interface Redirect {
 }
 
 // Form schemas
-const seoSettingFormSchema = z.object({
-  pageType: z.string().min(1, "Page type is required"),
+const createSeoSettingFormSchema = (l: (value: string) => string) => z.object({
+  pageType: z.string().min(1, l("Page type is required")),
   pageIdentifier: z.string().optional(),
-  language: z.string().min(1, "Language is required"),
-  title: z.string().min(10, "Title must be at least 10 characters").max(60, "Title should not exceed 60 characters"),
-  description: z.string().min(50, "Description must be at least 50 characters").max(160, "Description should not exceed 160 characters"),
+  language: z.string().min(1, l("Language is required")),
+  title: z.string().min(10, l("Title must be at least 10 characters")).max(60, l("Title should not exceed 60 characters")),
+  description: z.string().min(50, l("Description must be at least 50 characters")).max(160, l("Description should not exceed 160 characters")),
   keywords: z.string().optional(),
   ogTitle: z.string().optional(),
   ogDescription: z.string().optional(),
@@ -115,24 +117,33 @@ const seoSettingFormSchema = z.object({
   priority: z.number().min(0).max(100).default(0),
 });
 
-const keywordFormSchema = z.object({
-  seoSettingId: z.number().min(1, "SEO setting is required"),
-  keyword: z.string().min(1, "Keyword is required"),
-  language: z.string().min(1, "Language is required"),
+const createKeywordFormSchema = (l: (value: string) => string) => z.object({
+  seoSettingId: z.number().min(1, l("SEO setting is required")),
+  keyword: z.string().min(1, l("Keyword is required")),
+  language: z.string().min(1, l("Language is required")),
   searchVolume: z.number().min(0).default(0),
   difficulty: z.number().min(0).max(100).default(0),
   targetPosition: z.number().min(1).max(100).default(1),
   isTracking: z.boolean().default(true),
 });
 
-const redirectFormSchema = z.object({
-  fromUrl: z.string().min(1, "From URL is required"),
-  toUrl: z.string().url("To URL must be a valid URL"),
+const createRedirectFormSchema = (l: (value: string) => string) => z.object({
+  fromUrl: z.string().min(1, l("From URL is required")),
+  toUrl: z.string().url(l("To URL must be a valid URL")),
   statusCode: z.number().min(300).max(399).default(301),
   isActive: z.boolean().default(true),
 });
 
 export default function SeoManagement() {
+  const { language, direction } = useLanguage();
+  const l = (value: string) => seoText(language, value);
+  const locale = seoLocale(language);
+  const number = (value: number) => new Intl.NumberFormat(locale).format(value);
+  const date = (value: string | Date) => new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(value));
+  const localizedBlogField = (post: any, field: "title" | "excerpt" | "tags") => {
+    const suffix = language === "fa" ? "Fa" : language === "ar" ? "Ar" : language === "tr" ? "Tr" : "En";
+    return post[`${field}${suffix}`] ?? post[`${field}En`] ?? post[`${field}Ar`] ?? post[field];
+  };
   const [activeTab, setActiveTab] = useState("settings");
   const [selectedSetting, setSelectedSetting] = useState<SeoSetting | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -245,6 +256,9 @@ export default function SeoManagement() {
   });
 
   // Forms
+  const seoSettingFormSchema = createSeoSettingFormSchema(l);
+  const keywordFormSchema = createKeywordFormSchema(l);
+  const redirectFormSchema = createRedirectFormSchema(l);
   const seoForm = useForm<z.infer<typeof seoSettingFormSchema>>({
     resolver: zodResolver(seoSettingFormSchema),
     defaultValues: {
@@ -289,12 +303,12 @@ export default function SeoManagement() {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/seo/settings"] });
       setIsDialogOpen(false);
       seoForm.reset();
-      toast({ title: "SEO setting created successfully" });
+      toast({ title: l("SEO setting created successfully") });
     },
     onError: (error: any) => {
       toast({
-        title: "Error creating SEO setting",
-        description: error.message || "An error occurred",
+        title: l("Error creating SEO setting"),
+        description: error.message || l("An error occurred"),
         variant: "destructive",
       });
     },
@@ -308,12 +322,12 @@ export default function SeoManagement() {
       setIsDialogOpen(false);
       setSelectedSetting(null);
       seoForm.reset();
-      toast({ title: "SEO setting updated successfully" });
+      toast({ title: l("SEO setting updated successfully") });
     },
     onError: (error: any) => {
       toast({
-        title: "Error updating SEO setting",
-        description: error.message || "An error occurred",
+        title: l("Error updating SEO setting"),
+        description: error.message || l("An error occurred"),
         variant: "destructive",
       });
     },
@@ -323,12 +337,12 @@ export default function SeoManagement() {
     mutationFn: (id: number) => apiRequest(`/api/admin/seo/settings/${id}`, "DELETE"),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/seo/settings"] });
-      toast({ title: "SEO setting deleted successfully" });
+      toast({ title: l("SEO setting deleted successfully") });
     },
     onError: (error: any) => {
       toast({
-        title: "Error deleting SEO setting",
-        description: error.message || "An error occurred",
+        title: l("Error deleting SEO setting"),
+        description: error.message || l("An error occurred"),
         variant: "destructive",
       });
     },
@@ -340,12 +354,12 @@ export default function SeoManagement() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/seo/redirects"] });
       redirectForm.reset();
-      toast({ title: "Redirect created successfully" });
+      toast({ title: l("Redirect created successfully") });
     },
     onError: (error: any) => {
       toast({
-        title: "Error creating redirect",
-        description: error.message || "An error occurred",
+        title: l("Error creating redirect"),
+        description: error.message || l("An error occurred"),
         variant: "destructive",
       });
     },
@@ -370,14 +384,14 @@ export default function SeoManagement() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/seo/api-keys'] });
       toast({
-        title: "✅ کلید ذخیره شد",
-        description: "کلید API با موفقیت ذخیره شد"
+        title: l("API key saved"),
+        description: l("The API key was saved successfully")
       });
     },
     onError: () => {
       toast({
-        title: "خطا در ذخیره",
-        description: "خطا در ذخیره کلید API",
+        title: l("Save failed"),
+        description: l("Could not save the API key"),
         variant: "destructive"
       });
     }
@@ -392,15 +406,15 @@ export default function SeoManagement() {
     },
     onSuccess: (data) => {
       toast({
-        title: data.success ? "✅ کلید معتبر است" : "❌ کلید نامعتبر",
+        title: data.success ? l("API key is valid") : l("API key is invalid"),
         description: data.message,
         variant: data.success ? "default" : "destructive"
       });
     },
     onError: () => {
       toast({
-        title: "خطا در تست",
-        description: "خطا در تست کلید API",
+        title: l("Test failed"),
+        description: l("Could not test the API key"),
         variant: "destructive"
       });
     }
@@ -412,14 +426,14 @@ export default function SeoManagement() {
     onSuccess: (result) => {
       setAiResults({ type: 'generate', data: result.data });
       toast({ 
-        title: "✨ AI Content Generated", 
-        description: "SEO content has been generated successfully" 
+        title: l("AI content generated"),
+        description: l("SEO content has been generated successfully")
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Error generating AI content",
-        description: error.message || "Failed to generate content",
+        title: l("Error generating AI content"),
+        description: error.message || l("Failed to generate content"),
         variant: "destructive",
       });
     },
@@ -430,14 +444,14 @@ export default function SeoManagement() {
     onSuccess: (result) => {
       setAiResults({ type: 'keywords', data: result.data });
       toast({ 
-        title: "🔍 Keywords Researched", 
-        description: "Keyword suggestions have been generated" 
+        title: l("Keywords researched"),
+        description: l("Keyword suggestions have been generated")
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Error researching keywords",
-        description: error.message || "Failed to research keywords",
+        title: l("Error researching keywords"),
+        description: error.message || l("Failed to research keywords"),
         variant: "destructive",
       });
     },
@@ -448,14 +462,14 @@ export default function SeoManagement() {
     onSuccess: (result) => {
       setAiResults({ type: 'optimize', data: result.data });
       toast({ 
-        title: "⚡ Content Optimized", 
-        description: "Content has been optimized for SEO" 
+        title: l("Content optimized"),
+        description: l("Content has been optimized for SEO")
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Error optimizing content",
-        description: error.message || "Failed to optimize content",
+        title: l("Error optimizing content"),
+        description: error.message || l("Failed to optimize content"),
         variant: "destructive",
       });
     },
@@ -466,14 +480,14 @@ export default function SeoManagement() {
     onSuccess: (result) => {
       setAiResults({ type: 'analyze', data: result.data });
       toast({ 
-        title: "📊 Analysis Complete", 
-        description: "SEO performance analysis completed" 
+        title: l("Analysis complete"),
+        description: l("SEO performance analysis completed")
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Error analyzing performance",
-        description: error.message || "Failed to analyze performance",
+        title: l("Error analyzing performance"),
+        description: error.message || l("Failed to analyze performance"),
         variant: "destructive",
       });
     },
@@ -520,8 +534,8 @@ export default function SeoManagement() {
   const handleGenerateAiContent = () => {
     if (!aiPageType || !aiLanguage) {
       toast({
-        title: "Missing required fields",
-        description: "Please select page type and language",
+        title: l("Missing required fields"),
+        description: l("Please select page type and language"),
         variant: "destructive",
       });
       return;
@@ -540,8 +554,8 @@ export default function SeoManagement() {
   const handleResearchKeywords = () => {
     if (!aiSeedKeywords) {
       toast({
-        title: "Missing seed keywords",
-        description: "Please enter seed keywords",
+        title: l("Missing seed keywords"),
+        description: l("Please enter seed keywords"),
         variant: "destructive",
       });
       return;
@@ -559,8 +573,8 @@ export default function SeoManagement() {
   const handleOptimizeContent = () => {
     if (!aiContentToOptimize || !aiOptimizeKeywords) {
       toast({
-        title: "Missing required fields",
-        description: "Please enter content and target keywords",
+        title: l("Missing required fields"),
+        description: l("Please enter content and target keywords"),
         variant: "destructive",
       });
       return;
@@ -578,8 +592,8 @@ export default function SeoManagement() {
   const handleAnalyzePerformance = () => {
     if (!aiAnalyzeUrl || !aiAnalyzeKeywords) {
       toast({
-        title: "Missing required fields",
-        description: "Please enter URL and target keywords",
+        title: l("Missing required fields"),
+        description: l("Please enter URL and target keywords"),
         variant: "destructive",
       });
       return;
@@ -596,8 +610,8 @@ export default function SeoManagement() {
   const handleKeywordResearch = async () => {
     if (!aiIndustry || !aiSeedKeywords) {
       toast({
-        title: "فیلدهای مورد نیاز ناقص",
-        description: "لطفاً نوع کسب‌وکار و کلیدواژه‌های اولیه را وارد کنید",
+        title: l("Required fields are missing"),
+        description: l("Enter the industry and seed keywords"),
         variant: "destructive",
       });
       return;
@@ -616,14 +630,14 @@ export default function SeoManagement() {
       
       setAiResults(response);
       toast({
-        title: "✨ کلیدواژه‌ها تولید شد",
-        description: "کلیدواژه‌های هوشمند با موفقیت تولید شدند",
+        title: l("Keywords generated"),
+        description: l("Smart keyword suggestions were generated successfully"),
       });
     } catch (error: any) {
       console.error("Error generating keywords:", error);
       toast({
-        title: "خطا در تولید کلیدواژه",
-        description: error.message || "تولید کلیدواژه‌ها ناموفق بود",
+        title: l("Keyword generation failed"),
+        description: error.message || l("Could not generate keyword suggestions"),
         variant: "destructive",
       });
     } finally {
@@ -638,17 +652,17 @@ export default function SeoManagement() {
     ) : [];
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div dir={direction} lang={language} className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">SEO Management</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{l('SEO Management')}</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Manage your website's search engine optimization settings
+            {l("Manage your website's search engine optimization settings")}
           </p>
         </div>
         <Button onClick={() => setIsDialogOpen(true)} className="flex items-center gap-2">
           <Plus className="h-4 w-4" />
-          Add SEO Setting
+          {l("Add SEO Setting")}
         </Button>
       </div>
 
@@ -656,15 +670,15 @@ export default function SeoManagement() {
         <TabsList className="grid w-full grid-cols-9">
           <TabsTrigger value="settings" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
-            SEO Settings
+            {l("SEO Settings")}
           </TabsTrigger>
           <TabsTrigger value="blog" className="flex items-center gap-2">
             <BookOpen className="h-4 w-4" />
-            Blog
+            {l("Blog")}
           </TabsTrigger>
           <TabsTrigger value="ai-seo" className="flex items-center gap-2">
             <Bot className="h-4 w-4" />
-            AI SEO
+            {l("AI SEO")}
           </TabsTrigger>
           <TabsTrigger value="api-config" className="flex items-center gap-2">
             <Key className="h-4 w-4" />
@@ -672,51 +686,51 @@ export default function SeoManagement() {
           </TabsTrigger>
           <TabsTrigger value="languages" className="flex items-center gap-2">
             <Languages className="h-4 w-4" />
-            Languages
+            {l("Languages")}
           </TabsTrigger>
           <TabsTrigger value="keywords" className="flex items-center gap-2">
             <Target className="h-4 w-4" />
-            Keywords
+            {l("Keywords")}
           </TabsTrigger>
           <TabsTrigger value="analytics" className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
-            Analytics
+            {l("Analytics")}
           </TabsTrigger>
           <TabsTrigger value="sitemap" className="flex items-center gap-2">
             <Globe className="h-4 w-4" />
-            Sitemap
+            {l("Sitemap")}
           </TabsTrigger>
           <TabsTrigger value="redirects" className="flex items-center gap-2">
             <Link className="h-4 w-4" />
-            Redirects
+            {l("Redirects")}
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="settings" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Multilingual SEO Settings</CardTitle>
+              <CardTitle>{l('Multilingual SEO Settings')}</CardTitle>
               <CardDescription>
-                Configure meta tags, Open Graph data, and SEO settings for different languages and pages
+                {l("Configure meta tags, Open Graph data, and SEO settings for different languages and pages")}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="mb-4 flex gap-4">
                 <div className="relative flex-1">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute start-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search SEO settings..."
+                    placeholder={l('Search SEO settings...')}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-8"
+                    className="ps-8"
                   />
                 </div>
                 <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
                   <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="Select Language" />
+                    <SelectValue placeholder={l('Select Language')} />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Languages</SelectItem>
+                  <SelectContent dir={direction}>
+                    <SelectItem value="all">{l('All Languages')}</SelectItem>
                     {supportedLanguages.map((lang) => (
                       <SelectItem key={lang.code} value={lang.code}>
                         {lang.nativeName} ({lang.code})
@@ -727,7 +741,7 @@ export default function SeoManagement() {
               </div>
 
               {isLoadingSettings ? (
-                <div className="text-center py-8">Loading SEO settings...</div>
+                <div className="text-center py-8">{l('Loading SEO settings...')}</div>
               ) : (
                 <div className="space-y-4">
                   {filteredSettings.map((setting: SeoSetting) => (
@@ -739,15 +753,15 @@ export default function SeoManagement() {
                             <Badge variant={setting.isActive ? "default" : "secondary"}>
                               {setting.isActive ? "Active" : "Inactive"}
                             </Badge>
-                            <Badge variant="outline">{setting.pageType}</Badge>
-                            <Badge variant="secondary">{setting.language}</Badge>
+                            <Badge variant="outline">{seoValue(language, setting.pageType)}</Badge>
+                            <Badge variant="secondary">{seoValue(language, setting.language)}</Badge>
                           </div>
                           <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                             {setting.description}
                           </p>
                           {setting.keywords && (
                             <p className="text-xs text-gray-500">
-                              Keywords: {setting.keywords}
+                              {l("Keywords")}: {setting.keywords}
                             </p>
                           )}
                         </div>
@@ -755,6 +769,7 @@ export default function SeoManagement() {
                           <Button
                             variant="outline"
                             size="sm"
+                            aria-label={l("Edit")}
                             onClick={() => handleEditSetting(setting)}
                           >
                             <Edit2 className="h-4 w-4" />
@@ -762,6 +777,7 @@ export default function SeoManagement() {
                           <Button
                             variant="outline"
                             size="sm"
+                            aria-label={l("Delete")}
                             onClick={() => deleteSeoSetting.mutate(setting.id)}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -773,7 +789,7 @@ export default function SeoManagement() {
 
                   {filteredSettings.length === 0 && (
                     <div className="text-center py-8 text-gray-500">
-                      No SEO settings found. Create your first SEO setting to get started.
+                      {l("No SEO settings found. Create your first SEO setting to get started.")}
                     </div>
                   )}
                 </div>
@@ -786,29 +802,29 @@ export default function SeoManagement() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">Total Blog Posts</CardTitle>
+                <CardTitle className="text-sm font-medium text-gray-600">{l('Total Blog Posts')}</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{blogStats?.total || 0}</div>
-                <p className="text-xs text-gray-500 mt-1">All blog posts</p>
+                <div className="text-2xl font-bold">{number(blogStats?.total || 0)}</div>
+                <p className="text-xs text-gray-500 mt-1">{l('All blog posts')}</p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">Published Posts</CardTitle>
+                <CardTitle className="text-sm font-medium text-gray-600">{l('Published Posts')}</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">{blogStats?.published || 0}</div>
-                <p className="text-xs text-gray-500 mt-1">Live on website</p>
+                <div className="text-2xl font-bold text-green-600">{number(blogStats?.published || 0)}</div>
+                <p className="text-xs text-gray-500 mt-1">{l('Live on website')}</p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">Total Views</CardTitle>
+                <CardTitle className="text-sm font-medium text-gray-600">{l('Total Views')}</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-blue-600">{blogStats?.totalViews || 0}</div>
-                <p className="text-xs text-gray-500 mt-1">Across all posts</p>
+                <div className="text-2xl font-bold text-blue-600">{number(blogStats?.totalViews || 0)}</div>
+                <p className="text-xs text-gray-500 mt-1">{l('Across all posts')}</p>
               </CardContent>
             </Card>
           </div>
@@ -817,25 +833,25 @@ export default function SeoManagement() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Blog Posts Management</CardTitle>
+                  <CardTitle>{l('Blog Posts Management')}</CardTitle>
                   <CardDescription>
-                    Recent blog posts with quick actions
+                    {l("Recent blog posts with quick actions")}
                   </CardDescription>
                 </div>
                 <Button asChild>
                   <a href="/admin/blog-management" className="flex items-center gap-2">
                     <BookOpen className="h-4 w-4" />
-                    Full Blog Management
+                    {l("Full Blog Management")}
                   </a>
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
               {isLoadingBlogPosts ? (
-                <div className="text-center py-8">Loading blog posts...</div>
+                <div className="text-center py-8">{l('Loading blog posts...')}</div>
               ) : blogPosts.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
-                  No blog posts found. Create your first blog post to get started.
+                  {l("No blog posts found. Create your first blog post to get started.")}
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -845,13 +861,13 @@ export default function SeoManagement() {
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">
-                              <h3 className="font-semibold text-lg">{post.titleEn || post.titleAr}</h3>
+                              <h3 className="font-semibold text-lg">{localizedBlogField(post, "title")}</h3>
                               <Badge variant={post.status === 'published' ? 'default' : 'secondary'}>
                                 {post.status}
                               </Badge>
                             </div>
                             <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                              {post.excerptEn || post.excerptAr}
+                              {localizedBlogField(post, "excerpt")}
                             </p>
                             <div className="flex items-center gap-4 text-xs text-gray-500">
                               <span className="flex items-center gap-1">
@@ -860,11 +876,11 @@ export default function SeoManagement() {
                               </span>
                               <span className="flex items-center gap-1">
                                 <Clock className="h-3 w-3" />
-                                {new Date(post.createdAt).toLocaleDateString()}
+                                {date(post.createdAt)}
                               </span>
-                              {post.tagsEn && (
+                              {localizedBlogField(post, "tags") && (
                                 <span className="flex gap-1">
-                                  {post.tagsEn.slice(0, 3).map((tag: string, i: number) => (
+                                  {localizedBlogField(post, "tags").slice(0, 3).map((tag: string, i: number) => (
                                     <Badge key={i} variant="outline" className="text-xs">
                                       {tag}
                                     </Badge>
@@ -910,21 +926,21 @@ export default function SeoManagement() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Wand2 className="h-5 w-5 text-purple-600" />
-                  AI Content Generator
+                  {l("AI Content Generator")}
                 </CardTitle>
                 <CardDescription>
-                  Generate optimized titles, descriptions, and keywords using AI
+                  {l("Generate optimized titles, descriptions, and keywords using AI")}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* AI Provider Selection */}
                 <div className="space-y-2">
-                  <Label>🤖 انتخاب هوش مصنوعی</Label>
+                  <Label>{l('🤖 انتخاب هوش مصنوعی')}</Label>
                   <Select value={selectedAiProvider} onValueChange={setSelectedAiProvider}>
                     <SelectTrigger>
-                      <SelectValue placeholder="انتخاب ارائه‌دهنده AI" />
+                      <SelectValue placeholder={l('انتخاب ارائه\u200cدهنده AI')} />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent dir={direction}>
                       <SelectItem value="openai">
                         OpenAI GPT-5 (پیشرفته)
                       </SelectItem>
@@ -943,50 +959,50 @@ export default function SeoManagement() {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="pageType">Page Type</Label>
+                    <Label htmlFor="pageType">{l('Page Type')}</Label>
                     <Select value={aiPageType} onValueChange={setAiPageType}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select page type" />
+                        <SelectValue placeholder={l('Select page type')} />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="home">Home Page</SelectItem>
-                        <SelectItem value="product">Product Page</SelectItem>
-                        <SelectItem value="category">Category Page</SelectItem>
-                        <SelectItem value="about">About Page</SelectItem>
-                        <SelectItem value="contact">Contact Page</SelectItem>
-                        <SelectItem value="blog">Blog Post</SelectItem>
+                      <SelectContent dir={direction}>
+                        <SelectItem value="home">{l('Home Page')}</SelectItem>
+                        <SelectItem value="product">{l('Product Page')}</SelectItem>
+                        <SelectItem value="category">{l('Category Page')}</SelectItem>
+                        <SelectItem value="about">{l('About Page')}</SelectItem>
+                        <SelectItem value="contact">{l('Contact Page')}</SelectItem>
+                        <SelectItem value="blog">{l('Blog Post')}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="language">Language</Label>
+                    <Label htmlFor="language">{l('Language')}</Label>
                     <Select value={aiLanguage} onValueChange={setAiLanguage}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select language" />
+                        <SelectValue placeholder={l('Select language')} />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="fa">Persian</SelectItem>
-                        <SelectItem value="ar">Arabic</SelectItem>
-                        <SelectItem value="ku">Kurdish</SelectItem>
-                        <SelectItem value="en">English</SelectItem>
+                      <SelectContent dir={direction}>
+                        <SelectItem value="fa">{l('Persian')}</SelectItem>
+                        <SelectItem value="ar">{l('Arabic')}</SelectItem>
+                        <SelectItem value="ku">{l('Kurdish')}</SelectItem>
+                        <SelectItem value="en">{l('English')}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
                 
                 <div>
-                  <Label htmlFor="targetKeywords">Target Keywords (comma-separated)</Label>
+                  <Label htmlFor="targetKeywords">{l('Target Keywords (comma-separated)')}</Label>
                   <Input 
-                    placeholder="chemical products, water treatment, industrial solutions"
+                    placeholder={l('chemical products, water treatment, industrial solutions')}
                     value={aiTargetKeywords}
                     onChange={(e) => setAiTargetKeywords(e.target.value)}
                   />
                 </div>
                 
                 <div>
-                  <Label htmlFor="businessContext">Business Context (optional)</Label>
+                  <Label htmlFor="businessContext">{l('Business Context (optional)')}</Label>
                   <Textarea 
-                    placeholder="Brief description of your business, products, or services..."
+                    placeholder={l('Brief description of your business, products, or services...')}
                     rows={3}
                     value={aiBusinessContext}
                     onChange={(e) => setAiBusinessContext(e.target.value)}
@@ -1009,17 +1025,17 @@ export default function SeoManagement() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Target className="h-5 w-5 text-blue-600" />
-                  AI Keyword Research
+                  {l("AI Keyword Research")}
                 </CardTitle>
                 <CardDescription>
-                  Discover high-performing keywords for your industry
+                  {l("Discover high-performing keywords for your industry")}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="seedKeywords">Seed Keywords</Label>
+                  <Label htmlFor="seedKeywords">{l('Seed Keywords')}</Label>
                   <Input 
-                    placeholder="chemical, industrial, water treatment"
+                    placeholder={l('chemical, industrial, water treatment')}
                     value={aiSeedKeywords}
                     onChange={(e) => setAiSeedKeywords(e.target.value)}
                   />
@@ -1027,30 +1043,30 @@ export default function SeoManagement() {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="industry">Industry</Label>
+                    <Label htmlFor="industry">{l('Industry')}</Label>
                     <Select value={aiIndustry} onValueChange={setAiIndustry}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select industry" />
+                        <SelectValue placeholder={l('Select industry')} />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="chemical">Chemical Industry</SelectItem>
-                        <SelectItem value="manufacturing">Manufacturing</SelectItem>
-                        <SelectItem value="agricultural">Agricultural</SelectItem>
-                        <SelectItem value="industrial">Industrial Supplies</SelectItem>
+                      <SelectContent dir={direction}>
+                        <SelectItem value="chemical">{l('Chemical Industry')}</SelectItem>
+                        <SelectItem value="manufacturing">{l('Manufacturing')}</SelectItem>
+                        <SelectItem value="agricultural">{l('Agricultural')}</SelectItem>
+                        <SelectItem value="industrial">{l('Industrial Supplies')}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="keywordLanguage">Language</Label>
+                    <Label htmlFor="keywordLanguage">{l('Language')}</Label>
                     <Select value={aiLanguage} onValueChange={setAiLanguage}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select language" />
+                        <SelectValue placeholder={l('Select language')} />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="fa">Persian</SelectItem>
-                        <SelectItem value="ar">Arabic</SelectItem>
-                        <SelectItem value="ku">Kurdish</SelectItem>
-                        <SelectItem value="en">English</SelectItem>
+                      <SelectContent dir={direction}>
+                        <SelectItem value="fa">{l('Persian')}</SelectItem>
+                        <SelectItem value="ar">{l('Arabic')}</SelectItem>
+                        <SelectItem value="ku">{l('Kurdish')}</SelectItem>
+                        <SelectItem value="en">{l('English')}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1073,44 +1089,44 @@ export default function SeoManagement() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Zap className="h-5 w-5 text-yellow-600" />
-                Content Optimizer
+                {l("Content Optimizer")}
               </CardTitle>
               <CardDescription>
-                Optimize existing content for better SEO performance
+                {l("Optimize existing content for better SEO performance")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <div className="lg:col-span-2">
-                  <Label htmlFor="content">Content to Optimize</Label>
+                  <Label htmlFor="content">{l('Content to Optimize')}</Label>
                   <Textarea 
-                    placeholder="Paste your content here to optimize for SEO..."
+                    placeholder={l('Paste your content here to optimize for SEO...')}
                     rows={6}
                     className="min-h-[150px]"
                   />
                 </div>
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="optimizeKeywords">Target Keywords</Label>
-                    <Input placeholder="primary, secondary, keywords" />
+                    <Label htmlFor="optimizeKeywords">{l('Target Keywords')}</Label>
+                    <Input placeholder={l('primary, secondary, keywords')} />
                   </div>
                   <div>
-                    <Label htmlFor="contentLanguage">Language</Label>
+                    <Label htmlFor="contentLanguage">{l('Language')}</Label>
                     <Select>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select language" />
+                        <SelectValue placeholder={l('Select language')} />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="fa">Persian</SelectItem>
-                        <SelectItem value="ar">Arabic</SelectItem>
-                        <SelectItem value="ku">Kurdish</SelectItem>
-                        <SelectItem value="en">English</SelectItem>
+                      <SelectContent dir={direction}>
+                        <SelectItem value="fa">{l('Persian')}</SelectItem>
+                        <SelectItem value="ar">{l('Arabic')}</SelectItem>
+                        <SelectItem value="ku">{l('Kurdish')}</SelectItem>
+                        <SelectItem value="en">{l('English')}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <Button className="w-full bg-yellow-600 hover:bg-yellow-700">
                     <FileText className="h-4 w-4 mr-2" />
-                    Optimize Content
+                    {l("Optimize Content")}
                   </Button>
                 </div>
               </div>
@@ -1122,41 +1138,41 @@ export default function SeoManagement() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <BarChart3 className="h-5 w-5 text-green-600" />
-                AI SEO Analysis
+                {l("AI SEO Analysis")}
               </CardTitle>
               <CardDescription>
-                Analyze your pages for SEO performance and get recommendations
+                {l("Analyze your pages for SEO performance and get recommendations")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="analyzeUrl">Page URL</Label>
+                  <Label htmlFor="analyzeUrl">{l('Page URL')}</Label>
                   <Input placeholder="https://example.com/page" />
                 </div>
                 <div>
-                  <Label htmlFor="analyzeKeywords">Target Keywords</Label>
-                  <Input placeholder="keyword1, keyword2, keyword3" />
+                  <Label htmlFor="analyzeKeywords">{l('Target Keywords')}</Label>
+                  <Input placeholder={l('keyword1, keyword2, keyword3')} />
                 </div>
               </div>
               
               <Button className="w-full bg-green-600 hover:bg-green-700">
                 <BarChart3 className="h-4 w-4 mr-2" />
-                Analyze SEO Performance
+                {l("Analyze SEO Performance")}
               </Button>
               
               {/* Results placeholder */}
               <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                <h4 className="font-semibold mb-2">Analysis Results</h4>
+                <h4 className="font-semibold mb-2">{l('Analysis Results')}</h4>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   Click "Analyze SEO Performance" to see detailed analysis results including:
                 </p>
                 <ul className="text-sm text-gray-600 dark:text-gray-400 mt-2 space-y-1">
-                  <li>• Title optimization score</li>
-                  <li>• Meta description effectiveness</li>
-                  <li>• Keyword density analysis</li>
-                  <li>• Content structure recommendations</li>
-                  <li>• Technical SEO suggestions</li>
+                  <li>{l('• Title optimization score')}</li>
+                  <li>{l('• Meta description effectiveness')}</li>
+                  <li>{l('• Keyword density analysis')}</li>
+                  <li>{l('• Content structure recommendations')}</li>
+                  <li>{l('• Technical SEO suggestions')}</li>
                 </ul>
               </div>
             </CardContent>
@@ -1179,12 +1195,12 @@ export default function SeoManagement() {
               <div className="border rounded-lg p-4 space-y-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Bot className="h-5 w-5 text-blue-600" />
-                  <h3 className="text-lg font-semibold">OpenAI GPT-5</h3>
-                  <Badge variant="secondary">محتوا و تحلیل</Badge>
+                  <h3 className="text-lg font-semibold">{l('OpenAI GPT-5')}</h3>
+                  <Badge variant="secondary">{l('محتوا و تحلیل')}</Badge>
                 </div>
                 
                 <div className="space-y-3">
-                  <Label htmlFor="openai-key">کلید API OpenAI:</Label>
+                  <Label htmlFor="openai-key">{l('کلید API OpenAI:')}</Label>
                   <div className="flex gap-2">
                     <div className="relative flex-1">
                       <Input
@@ -1193,16 +1209,17 @@ export default function SeoManagement() {
                         placeholder="sk-..."
                         value={openaiApiKey}
                         onChange={(e) => setOpenaiApiKey(e.target.value)}
-                        className="pr-10"
+                        className="pe-10"
                       />
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="absolute right-0 top-0 h-full px-3"
+                        className="absolute end-0 top-0 h-full px-3"
+                        aria-label={l(showOpenaiKey ? "Hide password" : "Show password")}
                         onClick={() => setShowOpenaiKey(!showOpenaiKey)}
                       >
-                        {showOpenaiKey ? "🙈" : "👁️"}
+                        <Eye className="h-4 w-4" />
                       </Button>
                     </div>
                     <Button 
@@ -1232,12 +1249,12 @@ export default function SeoManagement() {
               <div className="border rounded-lg p-4 space-y-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Brain className="h-5 w-5 text-purple-600" />
-                  <h3 className="text-lg font-semibold">DeepSeek AI</h3>
-                  <Badge variant="secondary">تحقیق و تجزیه‌وتحلیل</Badge>
+                  <h3 className="text-lg font-semibold">{l('DeepSeek AI')}</h3>
+                  <Badge variant="secondary">{l('تحقیق و تجزیه\u200cوتحلیل')}</Badge>
                 </div>
                 
                 <div className="space-y-3">
-                  <Label htmlFor="deepseek-key">کلید API DeepSeek:</Label>
+                  <Label htmlFor="deepseek-key">{l('کلید API DeepSeek:')}</Label>
                   <div className="flex gap-2">
                     <div className="relative flex-1">
                       <Input
@@ -1246,16 +1263,17 @@ export default function SeoManagement() {
                         placeholder="sk-..."
                         value={deepseekApiKey}
                         onChange={(e) => setDeepseekApiKey(e.target.value)}
-                        className="pr-10"
+                        className="pe-10"
                       />
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="absolute right-0 top-0 h-full px-3"
+                        className="absolute end-0 top-0 h-full px-3"
+                        aria-label={l(showDeepseekKey ? "Hide password" : "Show password")}
                         onClick={() => setShowDeepseekKey(!showDeepseekKey)}
                       >
-                        {showDeepseekKey ? "🙈" : "👁️"}
+                        <Eye className="h-4 w-4" />
                       </Button>
                     </div>
                     <Button 
@@ -1289,8 +1307,8 @@ export default function SeoManagement() {
                     setOpenaiApiKey('');
                     setDeepseekApiKey('');
                     toast({
-                      title: "فیلدها پاک شدند",
-                      description: "فیلدهای ورودی پاک شدند"
+                      title: l("Fields cleared"),
+                      description: l("Input fields were cleared")
                     });
                   }}
                 >
@@ -1343,14 +1361,14 @@ export default function SeoManagement() {
               {/* Current Stored Keys */}
               {apiKeysData?.data && apiKeysData.data.length > 0 && (
                 <div className="bg-gray-50 border rounded-lg p-4 mt-6">
-                  <h4 className="font-semibold text-gray-900 mb-3">🔑 کلیدهای ذخیره شده</h4>
+                  <h4 className="font-semibold text-gray-900 mb-3">{l('🔑 کلیدهای ذخیره شده')}</h4>
                   <div className="space-y-2">
                     {apiKeysData.data.map((key: any) => (
                       <div key={key.id} className="flex justify-between items-center p-2 bg-white rounded border">
                         <div>
                           <span className="font-medium">{key.provider}</span>
                           <span className="text-sm text-gray-500 ml-2">
-                            {new Date(key.createdAt).toLocaleDateString('fa-IR')}
+                            {date(key.createdAt)}
                           </span>
                         </div>
                         <Badge variant={key.isActive ? "default" : "secondary"}>
@@ -1364,13 +1382,13 @@ export default function SeoManagement() {
 
               {/* API Usage Information */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
-                <h4 className="font-semibold text-blue-900 mb-2">ℹ️ اطلاعات مهم</h4>
+                <h4 className="font-semibold text-blue-900 mb-2">{l('ℹ️ اطلاعات مهم')}</h4>
                 <ul className="text-sm text-blue-800 space-y-1">
-                  <li>• <strong>امنیت:</strong> کلیدها به‌صورت رمزگذاری شده در دیتابیس ذخیره می‌شوند</li>
-                  <li>• <strong>قابلیت انتقال:</strong> سیستم در هر سروری قابل اجرا است</li>
-                  <li>• <strong>OpenAI GPT-5:</strong> بهترین برای تولید محتوا و تحلیل</li>
-                  <li>• <strong>DeepSeek AI:</strong> مناسب برای تحقیق و تحلیل عمیق</li>
-                  <li>• <strong>تست:</strong> همیشه قبل از ذخیره، کلیدها را تست کنید</li>
+                  <li>• <strong>{l('امنیت:')}</strong> {l('کلیدها به\u200cصورت رمزگذاری شده در دیتابیس ذخیره می\u200cشوند')}</li>
+                  <li>• <strong>{l('قابلیت انتقال:')}</strong> {l('سیستم در هر سروری قابل اجرا است')}</li>
+                  <li>• <strong>{l('OpenAI GPT-5:')}</strong> {l('بهترین برای تولید محتوا و تحلیل')}</li>
+                  <li>• <strong>{l('DeepSeek AI:')}</strong> {l('مناسب برای تحقیق و تحلیل عمیق')}</li>
+                  <li>• <strong>{l('تست:')}</strong> {l('همیشه قبل از ذخیره، کلیدها را تست کنید')}</li>
                 </ul>
               </div>
             </CardContent>
@@ -1393,34 +1411,34 @@ export default function SeoManagement() {
               <CardContent className="space-y-4">
                 <div className="space-y-3">
                   <div>
-                    <Label htmlFor="businessType" className="text-right">نوع کسب‌وکار</Label>
+                    <Label htmlFor="businessType" className="text-right">{l('نوع کسب\u200cوکار')}</Label>
                     <Input
                       id="businessType"
                       value={aiIndustry}
                       onChange={(e) => setAiIndustry(e.target.value)}
-                      placeholder="مثال: فروش مواد شیمیایی، صنایع نفت‌وگاز"
+                      placeholder={l('مثال: فروش مواد شیمیایی، صنایع نفت\u200cوگاز')}
                       className="text-right"
                     />
                   </div>
                   
                   <div>
-                    <Label htmlFor="targetMarket" className="text-right">بازار هدف</Label>
+                    <Label htmlFor="targetMarket" className="text-right">{l('بازار هدف')}</Label>
                     <Input
                       id="targetMarket"
                       value={aiBusinessContext}
                       onChange={(e) => setAiBusinessContext(e.target.value)}
-                      placeholder="مثال: عراق، خاورمیانه، مشتریان صنعتی"
+                      placeholder={l('مثال: عراق، خاورمیانه، مشتریان صنعتی')}
                       className="text-right"
                     />
                   </div>
                   
                   <div>
-                    <Label htmlFor="seedKeywords" className="text-right">کلیدواژه‌های اولیه</Label>
+                    <Label htmlFor="seedKeywords" className="text-right">{l('کلیدواژه\u200cهای اولیه')}</Label>
                     <Textarea
                       id="seedKeywords"
                       value={aiSeedKeywords}
                       onChange={(e) => setAiSeedKeywords(e.target.value)}
-                      placeholder="مثال: مواد شیمیایی، حلال، کود، پتروشیمی"
+                      placeholder={l('مثال: مواد شیمیایی، حلال، کود، پتروشیمی')}
                       rows={3}
                       className="text-right"
                     />
@@ -1428,33 +1446,33 @@ export default function SeoManagement() {
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                      <Label htmlFor="language" className="text-right">زبان</Label>
+                      <Label htmlFor="language" className="text-right">{l('زبان')}</Label>
                       <Select value={aiLanguage} onValueChange={setAiLanguage}>
                         <SelectTrigger>
-                          <SelectValue placeholder="انتخاب زبان" />
+                          <SelectValue placeholder={l('انتخاب زبان')} />
                         </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="fa">فارسی</SelectItem>
-                          <SelectItem value="ar">عربی</SelectItem>
-                          <SelectItem value="en">انگلیسی</SelectItem>
-                          <SelectItem value="ku">کردی</SelectItem>
+                        <SelectContent dir={direction}>
+                          <SelectItem value="fa">{l('فارسی')}</SelectItem>
+                          <SelectItem value="ar">{l('عربی')}</SelectItem>
+                          <SelectItem value="en">{l('انگلیسی')}</SelectItem>
+                          <SelectItem value="ku">{l('کردی')}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     
                     <div>
-                      <Label htmlFor="pageType" className="text-right">نوع صفحه</Label>
+                      <Label htmlFor="pageType" className="text-right">{l('نوع صفحه')}</Label>
                       <Select value={aiPageType} onValueChange={setAiPageType}>
                         <SelectTrigger>
-                          <SelectValue placeholder="انتخاب نوع صفحه" />
+                          <SelectValue placeholder={l('انتخاب نوع صفحه')} />
                         </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="homepage">صفحه اصلی</SelectItem>
-                          <SelectItem value="product">صفحه محصول</SelectItem>
-                          <SelectItem value="category">دسته‌بندی</SelectItem>
-                          <SelectItem value="about">درباره ما</SelectItem>
-                          <SelectItem value="service">خدمات</SelectItem>
-                          <SelectItem value="blog">وبلاگ</SelectItem>
+                        <SelectContent dir={direction}>
+                          <SelectItem value="homepage">{l('صفحه اصلی')}</SelectItem>
+                          <SelectItem value="product">{l('صفحه محصول')}</SelectItem>
+                          <SelectItem value="category">{l('دسته\u200cبندی')}</SelectItem>
+                          <SelectItem value="about">{l('درباره ما')}</SelectItem>
+                          <SelectItem value="service">{l('خدمات')}</SelectItem>
+                          <SelectItem value="blog">{l('وبلاگ')}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -1496,7 +1514,7 @@ export default function SeoManagement() {
                 {isLoadingKeywordPerformance ? (
                   <div className="text-center py-8">
                     <Loader2 className="h-8 w-8 mx-auto mb-4 animate-spin text-blue-600" />
-                    <p className="text-gray-600">در حال بارگذاری آمار کلیدواژه‌ها...</p>
+                    <p className="text-gray-600">{l('در حال بارگذاری آمار کلیدواژه\u200cها...')}</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -1505,20 +1523,20 @@ export default function SeoManagement() {
                         <div className="text-2xl font-bold text-blue-600">
                           {keywordPerformance?.totalKeywords || 0}
                         </div>
-                        <div className="text-sm text-gray-600">کل کلیدواژه‌ها</div>
+                        <div className="text-sm text-gray-600">{l('کل کلیدواژه\u200cها')}</div>
                       </div>
                       <div className="text-center p-4 bg-green-50 rounded-lg">
                         <div className="text-2xl font-bold text-green-600">
                           {keywordPerformance?.averagePosition ? 
-                            keywordPerformance.averagePosition.toFixed(1) : 'N/A'}
+                            number(keywordPerformance.averagePosition) : l('N/A')}
                         </div>
-                        <div className="text-sm text-gray-600">میانگین رتبه</div>
+                        <div className="text-sm text-gray-600">{l('میانگین رتبه')}</div>
                       </div>
                     </div>
                     
                     {keywordPerformance?.topKeywords && keywordPerformance.topKeywords.length > 0 ? (
                       <div className="space-y-2">
-                        <h4 className="font-semibold text-right">برترین کلیدواژه‌ها</h4>
+                        <h4 className="font-semibold text-right">{l('برترین کلیدواژه\u200cها')}</h4>
                         {keywordPerformance.topKeywords.map((keyword: any, index: number) => (
                           <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded">
                             <div className="flex items-center gap-2">
@@ -1526,7 +1544,7 @@ export default function SeoManagement() {
                                 رتبه {keyword.position}
                               </Badge>
                               <span className="text-sm text-gray-600">
-                                {keyword.clicks} کلیک
+                                {number(keyword.clicks)} {l('Clicks')}
                               </span>
                             </div>
                             <span className="font-medium text-right">{keyword.keyword}</span>
@@ -1536,8 +1554,8 @@ export default function SeoManagement() {
                     ) : (
                       <div className="text-center py-6 text-gray-500">
                         <Target className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                        <p>هنوز کلیدواژه‌ای ثبت نشده است</p>
-                        <p className="text-sm mt-1">از بخش تولید کلیدواژه استفاده کنید</p>
+                        <p>{l('هنوز کلیدواژه\u200cای ثبت نشده است')}</p>
+                        <p className="text-sm mt-1">{l('از بخش تولید کلیدواژه استفاده کنید')}</p>
                       </div>
                     )}
                   </div>
@@ -1559,7 +1577,7 @@ export default function SeoManagement() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {aiResults.data.primary && (
                     <div className="space-y-2">
-                      <h4 className="font-semibold text-purple-600 text-right">کلیدواژه‌های اصلی</h4>
+                      <h4 className="font-semibold text-purple-600 text-right">{l('کلیدواژه\u200cهای اصلی')}</h4>
                       <div className="space-y-1">
                         {aiResults.data.primary.map((keyword: string, index: number) => (
                           <Badge key={index} variant="default" className="mr-1 mb-1">
@@ -1572,7 +1590,7 @@ export default function SeoManagement() {
                   
                   {aiResults.data.longTail && (
                     <div className="space-y-2">
-                      <h4 className="font-semibold text-blue-600 text-right">کلیدواژه‌های طولانی</h4>
+                      <h4 className="font-semibold text-blue-600 text-right">{l('کلیدواژه\u200cهای طولانی')}</h4>
                       <div className="space-y-1">
                         {aiResults.data.longTail.map((keyword: string, index: number) => (
                           <Badge key={index} variant="secondary" className="mr-1 mb-1">
@@ -1585,7 +1603,7 @@ export default function SeoManagement() {
                   
                   {aiResults.data.semantic && (
                     <div className="space-y-2">
-                      <h4 className="font-semibold text-green-600 text-right">کلیدواژه‌های مرتبط</h4>
+                      <h4 className="font-semibold text-green-600 text-right">{l('کلیدواژه\u200cهای مرتبط')}</h4>
                       <div className="space-y-1">
                         {aiResults.data.semantic.map((keyword: string, index: number) => (
                           <Badge key={index} variant="outline" className="mr-1 mb-1">
@@ -1617,19 +1635,19 @@ export default function SeoManagement() {
         <TabsContent value="analytics" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Multilingual SEO Analytics</CardTitle>
+              <CardTitle>{l('Multilingual SEO Analytics')}</CardTitle>
               <CardDescription>
                 Track your website's search engine performance across different languages and countries
               </CardDescription>
             </CardHeader>
             <CardContent>
               {isLoadingMultilingualAnalytics ? (
-                <div className="text-center py-8">Loading multilingual analytics...</div>
+                <div className="text-center py-8">{l('Loading multilingual analytics...')}</div>
               ) : multilingualAnalytics ? (
                 <div className="space-y-6">
                   {multilingualAnalytics?.byLanguage && multilingualAnalytics.byLanguage.length > 0 && (
                     <div>
-                      <h4 className="font-semibold mb-3">Performance by Language</h4>
+                      <h4 className="font-semibold mb-3">{l('Performance by Language')}</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {multilingualAnalytics.byLanguage.map((lang: any) => (
                           <div key={lang.language} className="border rounded-lg p-4">
@@ -1639,16 +1657,16 @@ export default function SeoManagement() {
                             </div>
                             <div className="space-y-1 text-sm">
                               <div className="flex justify-between">
-                                <span>Impressions:</span>
+                                <span>{l('Impressions:')}</span>
                                 <span className="font-medium">{lang.totalImpressions.toLocaleString()}</span>
                               </div>
                               <div className="flex justify-between">
-                                <span>Clicks:</span>
+                                <span>{l('Clicks:')}</span>
                                 <span className="font-medium">{lang.totalClicks.toLocaleString()}</span>
                               </div>
                               <div className="flex justify-between">
-                                <span>Avg Position:</span>
-                                <span className="font-medium">{lang.averagePosition.toFixed(1)}</span>
+                                <span>{l('Avg Position:')}</span>
+                                <span className="font-medium">{number(lang.averagePosition)}</span>
                               </div>
                             </div>
                           </div>
@@ -1659,18 +1677,18 @@ export default function SeoManagement() {
 
                   {multilingualAnalytics?.byCountry && multilingualAnalytics.byCountry.length > 0 && (
                     <div>
-                      <h4 className="font-semibold mb-3">Performance by Country</h4>
+                      <h4 className="font-semibold mb-3">{l('Performance by Country')}</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         {multilingualAnalytics.byCountry.slice(0, 8).map((country: any) => (
                           <div key={country.country} className="border rounded-lg p-4">
                             <h5 className="font-medium mb-2">{country.country}</h5>
                             <div className="space-y-1 text-sm">
                               <div className="flex justify-between">
-                                <span>Impressions:</span>
+                                <span>{l('Impressions:')}</span>
                                 <span className="font-medium">{country.totalImpressions.toLocaleString()}</span>
                               </div>
                               <div className="flex justify-between">
-                                <span>Clicks:</span>
+                                <span>{l('Clicks:')}</span>
                                 <span className="font-medium">{country.totalClicks.toLocaleString()}</span>
                               </div>
                             </div>
@@ -1699,7 +1717,7 @@ export default function SeoManagement() {
         <TabsContent value="sitemap" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Sitemap Management</CardTitle>
+              <CardTitle>{l('Sitemap Management')}</CardTitle>
               <CardDescription>
                 Manage your website's XML sitemap entries
               </CardDescription>
@@ -1708,13 +1726,13 @@ export default function SeoManagement() {
               <div className="mb-4">
                 <Button asChild>
                   <a href="/sitemap.xml" target="_blank" rel="noopener noreferrer">
-                    View XML Sitemap
+                    {l("View XML Sitemap")}
                   </a>
                 </Button>
               </div>
 
               {isLoadingSitemap ? (
-                <div className="text-center py-8">Loading sitemap entries...</div>
+                <div className="text-center py-8">{l('Loading sitemap entries...')}</div>
               ) : (
                 <div className="space-y-2">
                   {(sitemapEntries as SitemapEntry[]).map((entry: SitemapEntry) => (
@@ -1722,7 +1740,7 @@ export default function SeoManagement() {
                       <div>
                         <p className="font-medium">{entry.url}</p>
                         <p className="text-sm text-gray-500">
-                          Priority: {entry.priority} | Frequency: {entry.changeFreq}
+                          {l('Priority')}: {number(entry.priority)} | {l('Frequency')}: {l(entry.changeFreq)}
                         </p>
                       </div>
                       <Badge variant={entry.isActive ? "default" : "secondary"}>
@@ -1745,9 +1763,9 @@ export default function SeoManagement() {
         <TabsContent value="redirects" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>URL Redirects</CardTitle>
+              <CardTitle>{l('URL Redirects')}</CardTitle>
               <CardDescription>
-                Manage URL redirects for better SEO and user experience
+                {l("Manage URL redirects for better SEO and user experience")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -1759,7 +1777,7 @@ export default function SeoManagement() {
                       name="fromUrl"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>From URL</FormLabel>
+                          <FormLabel>{l('From URL')}</FormLabel>
                           <FormControl>
                             <Input {...field} placeholder="/old-page" />
                           </FormControl>
@@ -1772,7 +1790,7 @@ export default function SeoManagement() {
                       name="toUrl"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>To URL</FormLabel>
+                          <FormLabel>{l('To URL')}</FormLabel>
                           <FormControl>
                             <Input {...field} placeholder="https://example.com/new-page" />
                           </FormControl>
@@ -1785,16 +1803,16 @@ export default function SeoManagement() {
                       name="statusCode"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Status Code</FormLabel>
+                          <FormLabel>{l('Status Code')}</FormLabel>
                           <Select value={field.value.toString()} onValueChange={(value) => field.onChange(parseInt(value))}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue />
                               </SelectTrigger>
                             </FormControl>
-                            <SelectContent>
-                              <SelectItem value="301">301 - Permanent</SelectItem>
-                              <SelectItem value="302">302 - Temporary</SelectItem>
+                            <SelectContent dir={direction}>
+                              <SelectItem value="301">{l('301 - Permanent')}</SelectItem>
+                              <SelectItem value="302">{l('302 - Temporary')}</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -1803,13 +1821,13 @@ export default function SeoManagement() {
                     />
                   </div>
                   <Button type="submit" disabled={createRedirect.isPending}>
-                    {createRedirect.isPending ? "Creating..." : "Add Redirect"}
+                    {createRedirect.isPending ? l("Creating...") : l("Add Redirect")}
                   </Button>
                 </form>
               </Form>
 
               {isLoadingRedirects ? (
-                <div className="text-center py-8">Loading redirects...</div>
+                <div className="text-center py-8">{l('Loading redirects...')}</div>
               ) : (
                 <div className="space-y-2">
                   {(redirects as Redirect[]).map((redirect: Redirect) => (
@@ -1817,7 +1835,7 @@ export default function SeoManagement() {
                       <div>
                         <p className="font-medium">{redirect.fromUrl} → {redirect.toUrl}</p>
                         <p className="text-sm text-gray-500">
-                          Status: {redirect.statusCode} | Hits: {redirect.hitCount}
+                          {l('Status')}: {number(redirect.statusCode)} | {l('Hits')}: {number(redirect.hitCount)}
                         </p>
                       </div>
                       <Badge variant={redirect.isActive ? "default" : "secondary"}>
@@ -1840,13 +1858,13 @@ export default function SeoManagement() {
 
       {/* SEO Setting Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent dir={direction} lang={language} className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {selectedSetting ? "Edit SEO Setting" : "Create SEO Setting"}
             </DialogTitle>
             <DialogDescription>
-              Configure SEO metadata for your website pages
+              {l("Configure SEO metadata for your website pages")}
             </DialogDescription>
           </DialogHeader>
 
@@ -1858,21 +1876,21 @@ export default function SeoManagement() {
                   name="pageType"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Page Type</FormLabel>
+                      <FormLabel>{l('Page Type')}</FormLabel>
                       <Select value={field.value} onValueChange={field.onChange}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select page type" />
+                            <SelectValue placeholder={l('Select page type')} />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="global">Global</SelectItem>
-                          <SelectItem value="home">Home</SelectItem>
-                          <SelectItem value="products">Products</SelectItem>
-                          <SelectItem value="category">Category</SelectItem>
-                          <SelectItem value="about">About</SelectItem>
-                          <SelectItem value="contact">Contact</SelectItem>
-                          <SelectItem value="blog">Blog</SelectItem>
+                        <SelectContent dir={direction}>
+                          <SelectItem value="global">{l('Global')}</SelectItem>
+                          <SelectItem value="home">{l('Home')}</SelectItem>
+                          <SelectItem value="products">{l('Products')}</SelectItem>
+                          <SelectItem value="category">{l('Category')}</SelectItem>
+                          <SelectItem value="about">{l('About')}</SelectItem>
+                          <SelectItem value="contact">{l('Contact')}</SelectItem>
+                          <SelectItem value="blog">{l('Blog')}</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -1884,12 +1902,12 @@ export default function SeoManagement() {
                   name="pageIdentifier"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Page Identifier (Optional)</FormLabel>
+                      <FormLabel>{l('Page Identifier (Optional)')}</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="e.g., category-1, product-123" />
+                        <Input {...field} placeholder={l('e.g., category-1, product-123')} />
                       </FormControl>
                       <FormDescription>
-                        Use for specific pages like categories or products
+                        {l("Use for specific pages like categories or products")}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -1902,12 +1920,12 @@ export default function SeoManagement() {
                 name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Title</FormLabel>
+                    <FormLabel>{l('Title')}</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Page title for search engines" />
+                      <Input {...field} placeholder={l('Page title for search engines')} />
                     </FormControl>
                     <FormDescription>
-                      {field.value?.length || 0}/60 characters. Keep under 60 for best results.
+                      {number(field.value?.length || 0)}/{number(60)} {l("characters. Keep under 60 for best results.")}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -1919,12 +1937,12 @@ export default function SeoManagement() {
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description</FormLabel>
+                    <FormLabel>{l('Description')}</FormLabel>
                     <FormControl>
-                      <Textarea {...field} placeholder="Meta description for search engines" rows={3} />
+                      <Textarea {...field} placeholder={l('Meta description for search engines')} rows={3} />
                     </FormControl>
                     <FormDescription>
-                      {field.value?.length || 0}/160 characters. Keep under 160 for best results.
+                      {number(field.value?.length || 0)}/{number(160)} {l("characters. Keep under 160 for best results.")}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -1937,12 +1955,12 @@ export default function SeoManagement() {
                   name="keywords"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Keywords</FormLabel>
+                      <FormLabel>{l('Keywords')}</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="keyword1, keyword2, keyword3" />
+                        <Input {...field} placeholder={l('keyword1, keyword2, keyword3')} />
                       </FormControl>
                       <FormDescription>
-                        Comma-separated keywords (optional, less important for modern SEO)
+                        {l("Comma-separated keywords (optional, less important for modern SEO)")}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -1953,12 +1971,12 @@ export default function SeoManagement() {
                   name="hreflangUrl"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Hreflang URL</FormLabel>
+                      <FormLabel>{l('Hreflang URL')}</FormLabel>
                       <FormControl>
                         <Input {...field} placeholder="https://example.com/page" />
                       </FormControl>
                       <FormDescription>
-                        URL for this language version (for hreflang tags)
+                        {l("URL for this language version (for hreflang tags)")}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -1972,9 +1990,9 @@ export default function SeoManagement() {
                   name="ogTitle"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Open Graph Title</FormLabel>
+                      <FormLabel>{l('Open Graph Title')}</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="Title for social media sharing" />
+                        <Input {...field} placeholder={l('Title for social media sharing')} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -1985,7 +2003,7 @@ export default function SeoManagement() {
                   name="ogImage"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Open Graph Image</FormLabel>
+                      <FormLabel>{l('Open Graph Image')}</FormLabel>
                       <FormControl>
                         <Input {...field} placeholder="https://example.com/image.jpg" />
                       </FormControl>
@@ -2000,9 +2018,9 @@ export default function SeoManagement() {
                 name="ogDescription"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Open Graph Description</FormLabel>
+                    <FormLabel>{l('Open Graph Description')}</FormLabel>
                     <FormControl>
-                      <Textarea {...field} placeholder="Description for social media sharing" rows={2} />
+                      <Textarea {...field} placeholder={l('Description for social media sharing')} rows={2} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -2015,18 +2033,18 @@ export default function SeoManagement() {
                   name="robots"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Robots</FormLabel>
+                      <FormLabel>{l('Robots')}</FormLabel>
                       <Select value={field.value} onValueChange={field.onChange}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="index,follow">Index, Follow</SelectItem>
-                          <SelectItem value="noindex,nofollow">No Index, No Follow</SelectItem>
-                          <SelectItem value="index,nofollow">Index, No Follow</SelectItem>
-                          <SelectItem value="noindex,follow">No Index, Follow</SelectItem>
+                        <SelectContent dir={direction}>
+                          <SelectItem value="index,follow">{l('Index, Follow')}</SelectItem>
+                          <SelectItem value="noindex,nofollow">{l('No Index, No Follow')}</SelectItem>
+                          <SelectItem value="index,nofollow">{l('Index, No Follow')}</SelectItem>
+                          <SelectItem value="noindex,follow">{l('No Index, Follow')}</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -2038,7 +2056,7 @@ export default function SeoManagement() {
                   name="priority"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Priority</FormLabel>
+                      <FormLabel>{l('Priority')}</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -2058,9 +2076,9 @@ export default function SeoManagement() {
                   render={({ field }) => (
                     <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
                       <div className="space-y-0.5">
-                        <FormLabel>Active</FormLabel>
+                        <FormLabel>{l('Active')}</FormLabel>
                         <FormDescription>
-                          Enable this SEO setting
+                          {l("Enable this SEO setting")}
                         </FormDescription>
                       </div>
                       <FormControl>
@@ -2076,14 +2094,14 @@ export default function SeoManagement() {
 
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancel
+                  {l("Cancel")}
                 </Button>
                 <Button type="submit" disabled={createSeoSetting.isPending || updateSeoSetting.isPending}>
                   {createSeoSetting.isPending || updateSeoSetting.isPending
-                    ? "Saving..."
+                    ? l("Saving...")
                     : selectedSetting
-                    ? "Update Setting"
-                    : "Create Setting"}
+                    ? l("Update Setting")
+                    : l("Create Setting")}
                 </Button>
               </DialogFooter>
             </form>
