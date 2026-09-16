@@ -90,6 +90,7 @@ const PROFILE_T = {
     orderRejectionReason: "Order rejection reason:",
     orderCancellationReason: "Order cancellation reason:",
     orderItems: "Order Items:",
+    quantity: "Quantity",
     unknownProduct: "Unknown",
     itemsSubtotal: "Items Subtotal:",
     shippingCost: "Shipping Cost:",
@@ -104,6 +105,7 @@ const PROFILE_T = {
     orderUnderWarehouseProcessing: "Your order has been financially approved and is being processed in the warehouse",
     downloadOfficialInvoice: "Download Official Invoice",
     downloadProforma: "Download Proforma",
+    invoice: "Invoice",
     status: "Status",
     details: "Details",
     // buttons
@@ -218,6 +220,7 @@ const PROFILE_T = {
     orderRejectionReason: "سبب رفض الطلب:",
     orderCancellationReason: "سبب إلغاء الطلب:",
     orderItems: "عناصر الطلب:",
+    quantity: "الكمية",
     unknownProduct: "غير معروف",
     itemsSubtotal: "مجموع العناصر:",
     shippingCost: "تكلفة الشحن:",
@@ -232,6 +235,7 @@ const PROFILE_T = {
     orderUnderWarehouseProcessing: "تمت الموافقة المالية على طلبك وهو قيد المعالجة في المستودع",
     downloadOfficialInvoice: "تنزيل الفاتورة الرسمية",
     downloadProforma: "تنزيل الفاتورة المبدئية",
+    invoice: "الفاتورة",
     status: "الحالة",
     details: "التفاصيل",
     viewFullPurchaseHistory: "عرض سجل المشتريات الكامل",
@@ -342,6 +346,7 @@ const PROFILE_T = {
     orderRejectionReason: "Sipariş red nedeni:",
     orderCancellationReason: "Sipariş iptal nedeni:",
     orderItems: "Sipariş Kalemleri:",
+    quantity: "Miktar",
     unknownProduct: "Bilinmiyor",
     itemsSubtotal: "Kalemler Toplamı:",
     shippingCost: "Kargo Ücreti:",
@@ -356,6 +361,7 @@ const PROFILE_T = {
     orderUnderWarehouseProcessing: "Siparişiniz finansal olarak onaylandı ve depoda işleniyor",
     downloadOfficialInvoice: "Resmi Fatura İndir",
     downloadProforma: "Proforma Fatura İndir",
+    invoice: "Fatura",
     status: "Durum",
     details: "Detaylar",
     viewFullPurchaseHistory: "Tam Satın Alma Geçmişini Görüntüle",
@@ -473,6 +479,7 @@ const PROFILE_T_WITH_FA = {
     orderRejectionReason: "دلیل رد سفارش:",
     orderCancellationReason: "دلیل لغو سفارش:",
     orderItems: "اقلام سفارش:",
+    quantity: "تعداد",
     unknownProduct: "نامشخص",
     itemsSubtotal: "جمع اقلام:",
     shippingCost: "هزینه ارسال:",
@@ -487,6 +494,7 @@ const PROFILE_T_WITH_FA = {
     orderUnderWarehouseProcessing: "سفارش شما از نظر مالی تأیید شده و در انبار در حال پردازش است",
     downloadOfficialInvoice: "دانلود فاکتور رسمی",
     downloadProforma: "دانلود پیش‌فاکتور",
+    invoice: "فاکتور",
     status: "وضعیت",
     details: "جزئیات",
     viewFullPurchaseHistory: "مشاهده کامل سابقه خرید",
@@ -1324,13 +1332,14 @@ const CustomerProfile = () => {
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
-                      <div className="min-w-[920px]">
-                       <div className="sticky top-0 z-10 grid grid-cols-[44px_1.4fr_1fr_1fr_1fr_1.7fr] border-b border-slate-700 bg-slate-700 text-[11px] font-semibold uppercase tracking-wide text-slate-50">
+                       <div className="min-w-[1040px]">
+                        <div className="sticky top-0 z-10 grid grid-cols-[44px_1.4fr_1fr_1fr_1fr_1fr_1.7fr] border-b border-slate-700 bg-slate-700 text-[11px] font-semibold uppercase tracking-wide text-slate-50">
                          <div className="border-e border-slate-600 px-3 py-2">#</div>
                          <div className="border-e border-slate-600 px-3 py-2">{pt.orderLabel("order")}</div>
                          <div className="border-e border-slate-600 px-3 py-2">{pt.orderItems}</div>
                          <div className="border-e border-slate-600 px-3 py-2">{pt.status}</div>
                          <div className="border-e border-slate-600 px-3 py-2">{pt.totalAmount}</div>
+                         <div className="border-e border-slate-600 px-3 py-2">{pt.invoice}</div>
                          <div className="px-3 py-2">{pt.details}</div>
                        </div>
                        <div className="space-y-0">
@@ -1342,7 +1351,7 @@ const CustomerProfile = () => {
                         return (
                           <div
                             key={order.id}
-                            className={`grid grid-cols-[44px_1.4fr_1fr_1fr_1fr_1.7fr] gap-0 border-b border-x-0 border-slate-200 p-3 text-xs ${
+                             className={`grid grid-cols-[44px_1.4fr_1fr_1fr_1fr_1fr_1.7fr] gap-0 border-b border-x-0 border-slate-200 p-3 text-xs ${
                               is3DayBankTransfer
                                 ? "border-orange-300 bg-orange-50"
                                 : order.status === "pending" || order.status === "payment_grace_period"
@@ -1375,49 +1384,6 @@ const CustomerProfile = () => {
                                   {formatDate(order.createdAt)}
                                 </p>
 
-                                {expandedOrderId === order.id && is3DayBankTransfer && (order.status === "pending" || order.status === "payment_grace_period") && (
-                                  <div className="bg-orange-100 border border-orange-300 rounded-lg p-3 mt-2 text-right">
-                                    <div className="flex items-center justify-between mb-2">
-                                      <p className="text-sm text-orange-900 font-bold flex items-center gap-1">
-                                        <AlertCircle className="w-4 h-4" />
-                                        {pt.paymentDeadlineOrder(gracePeriodDays)}
-                                      </p>
-                                      <Badge className="bg-orange-200 text-orange-800 text-xs">{pt.specialDeadline}</Badge>
-                                    </div>
-
-                                    {!order.receiptPath ? (
-                                      <>
-                                        <p className="text-xs text-orange-800 mb-2">{pt.waitingForTransfer}</p>
-                                        <div className="flex items-center gap-2 mb-2">
-                                          <Button
-                                            size="sm"
-                                            className="bg-orange-600 hover:bg-orange-700 text-white text-xs"
-                                            onClick={() => handleOpenBankReceiptModal(order.orderNumber)}
-                                          >
-                                            <Upload className="w-3 h-3 mr-1" />
-                                            {pt.uploadBankTransfer}
-                                          </Button>
-                                          <span className="text-xs text-orange-700">
-                                            {pt.paymentDeadlineHours(gracePeriodDays * 24)}
-                                          </span>
-                                        </div>
-                                      </>
-                                    ) : (
-                                      <div className="flex items-center gap-2 mb-2">
-                                        <Badge className="bg-green-100 text-green-800 text-xs">{pt.transferUploaded}</Badge>
-                                        <span className="text-xs text-orange-700">{pt.waitingFinancialReview}</span>
-                                      </div>
-                                    )}
-
-                                    <div className="mt-2">
-                                      <BankTransferCountdown
-                                        orderDate={order.createdAt}
-                                        gracePeriodHours={gracePeriodDays * 24}
-                                        pt={pt}
-                                      />
-                                    </div>
-                                  </div>
-                                )}
                               </div>
                             </div>
 
@@ -1458,22 +1424,38 @@ const CustomerProfile = () => {
                                   </div>
                                 )}
 
-                                {expandedOrderId === order.id && (order.status === "financial_rejected" || order.status === "rejected") && order.financialNotes && (
-                                  <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-                                    <div className="flex items-start gap-2">
-                                      <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
-                                      <div>
-                                        <h6 className="text-sm font-medium text-red-800 mb-1">{pt.orderRejectionReason}</h6>
-                                        <p className="text-sm text-red-700">{order.financialNotes}</p>
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
                               </div>
                               <div className="col-start-5 row-start-1 border-e border-slate-200 px-3 py-1">
                                 <span className="font-semibold text-slate-900">{Math.floor(getOrderTotal(order))} IQD</span>
                               </div>
-                              <div className="col-start-6 row-start-1 px-3 py-1">
+                              <div className="col-start-6 row-start-1 border-e border-slate-200 px-3 py-1">
+                                {order.status !== "cancelled" &&
+                                  order.status !== "financial_rejected" &&
+                                  order.status !== "rejected" ? (
+                                  order.invoiceType === "official_invoice" ? (
+                                    <Button
+                                      size="sm"
+                                      onClick={() => window.open(`/download-invoice/${order.id}?lang=${encodeURIComponent(language)}`, "_blank")}
+                                      className="bg-green-600 hover:bg-green-700"
+                                    >
+                                      <Download className="h-4 w-4 mr-1" />
+                                      {pt.downloadOfficialInvoice}
+                                    </Button>
+                                  ) : (
+                                    <Button
+                                      size="sm"
+                                      onClick={() => window.open(`/download-proforma-invoice/${order.id}?lang=${encodeURIComponent(language)}`, "_blank")}
+                                      className="bg-blue-600 hover:bg-blue-700"
+                                    >
+                                      <Download className="h-4 w-4 mr-1" />
+                                      {pt.downloadProforma}
+                                    </Button>
+                                  )
+                                ) : (
+                                  <span className="text-slate-400" aria-label={pt.invoice}>—</span>
+                                )}
+                              </div>
+                              <div className="col-start-7 row-start-1 px-3 py-1">
                                 <button
                                   type="button"
                                   aria-expanded={expandedOrderId === order.id}
@@ -1486,71 +1468,112 @@ const CustomerProfile = () => {
                                 </button>
                               </div>
                             {expandedOrderId === order.id && (
-                              <div id={`order-details-${order.id}`} className="col-span-6 contents">
-                              {order.items && order.items.length > 0 && (
-                              <div className="border-t border-slate-200 px-3 pt-2">
-                                <Separator className="mb-3" />
-                                <div className="space-y-2">
-                                  <h5 className="font-medium text-gray-700">{pt.orderItems}</h5>
-                                  {order.items.map((item: any, index: number) => {
-                                    const productName = item.productName || pt.unknownProduct;
-                                    const quantity = parseFloat(item.quantity || 0);
-                                    const totalPrice = parseFloat(item.totalPrice || 0);
-                                    return (
-                                      <div key={item.id || index} className="flex justify-between text-sm">
-                                        <span>{productName} × {Math.floor(quantity)}</span>
-                                        <span>{Math.floor(totalPrice)} IQD</span>
+                              <div id={`order-details-${order.id}`} className="col-span-7 min-w-0 border-t border-slate-300 bg-slate-50 p-3">
+                                {is3DayBankTransfer && (order.status === "pending" || order.status === "payment_grace_period") && (
+                                  <div className="mb-3 rounded border border-orange-300 bg-orange-100 p-3">
+                                    <div className="mb-2 flex items-center justify-between">
+                                      <p className="flex items-center gap-1 text-sm font-bold text-orange-900">
+                                        <AlertCircle className="h-4 w-4" />
+                                        {pt.paymentDeadlineOrder(gracePeriodDays)}
+                                      </p>
+                                      <Badge className="bg-orange-200 text-xs text-orange-800">{pt.specialDeadline}</Badge>
+                                    </div>
+                                    {!order.receiptPath ? (
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <p className="text-xs text-orange-800">{pt.waitingForTransfer}</p>
+                                        <Button size="sm" className="bg-orange-600 text-xs text-white hover:bg-orange-700" onClick={() => handleOpenBankReceiptModal(order.orderNumber)}>
+                                          <Upload className="mr-1 h-3 w-3" />
+                                          {pt.uploadBankTransfer}
+                                        </Button>
+                                        <span className="text-xs text-orange-700">{pt.paymentDeadlineHours(gracePeriodDays * 24)}</span>
                                       </div>
-                                    );
-                                  })}
-
-                                  <div className="mt-3 pt-2 border-t border-gray-200 space-y-1">
-                                    {(() => {
-                                      const totalAmount = parseFloat(order.totalAmount || "0");
-                                      const vatAmount = parseFloat(order.vatAmount || "0");
-                                      const shippingCost = parseFloat(order.shippingCost || "0");
-                                      const surchargeAmount = parseFloat(order.surchargeAmount || "0");
-                                      const subtotalAmount = order.items
-                                        ? order.items.reduce((sum: number, item: any) => sum + parseFloat(item.totalPrice || 0), 0)
-                                        : 0;
-                                      return (
-                                        <>
-                                          {subtotalAmount > 0 && (
-                                            <div className="flex justify-between text-sm text-gray-600">
-                                              <span>{pt.itemsSubtotal}</span>
-                                              <span>{Math.floor(subtotalAmount)} IQD</span>
-                                            </div>
-                                          )}
-                                          {shippingCost > 0 && (
-                                            <div className="flex justify-between text-sm text-blue-700">
-                                              <span>{pt.shippingCost}</span>
-                                              <span>{Math.floor(shippingCost)} IQD</span>
-                                            </div>
-                                          )}
-                                          {vatAmount > 0 && (
-                                            <div className="flex justify-between text-sm text-green-700 font-medium">
-                                              <span>{pt.vat}</span>
-                                              <span>{Math.floor(vatAmount)} IQD</span>
-                                            </div>
-                                          )}
-                                          {surchargeAmount > 0 && (
-                                            <div className="flex justify-between text-sm text-orange-700">
-                                              <span>{pt.surcharge}</span>
-                                              <span>{Math.floor(surchargeAmount)} IQD</span>
-                                            </div>
-                                          )}
-                                          <div className="border-t border-gray-300 my-2"></div>
-                                          <div className="flex justify-between text-sm font-bold text-gray-800">
-                                            <span>{pt.totalAmount}</span>
-                                            <span>{Math.floor(totalAmount)} IQD</span>
-                                          </div>
-                                        </>
-                                      );
-                                    })()}
+                                    ) : (
+                                      <div className="flex items-center gap-2">
+                                        <Badge className="bg-green-100 text-xs text-green-800">{pt.transferUploaded}</Badge>
+                                        <span className="text-xs text-orange-700">{pt.waitingFinancialReview}</span>
+                                      </div>
+                                    )}
+                                    <div className="mt-2">
+                                      <BankTransferCountdown orderDate={order.createdAt} gracePeriodHours={gracePeriodDays * 24} pt={pt} />
+                                    </div>
                                   </div>
-                                </div>
-                              </div>
-                            )}
+                                )}
+                                {order.status !== "cancelled" && (order.paymentMethod === "واریز بانکی با مهلت 3 روزه" || order.paymentMethod === "bank_transfer_grace") && order.receiptPath && (
+                                  <div className="mb-3 space-y-2">
+                                    {(order.status === "payment_uploaded" || order.status === "pending" || order.status === "payment_grace_period") && (
+                                      <div className="rounded border border-blue-200 bg-blue-50 p-3">
+                                        <p className="flex items-center gap-1 text-sm font-medium text-blue-800"><Clock className="h-4 w-4" />{pt.bankTransferUnderReview}</p>
+                                        <p className="mt-1 text-xs text-blue-700">{pt.waitingFinancialApproval}</p>
+                                      </div>
+                                    )}
+                                    {order.status === "confirmed" && (
+                                      <div className="rounded border border-green-200 bg-green-50 p-3">
+                                        <p className="flex items-center gap-1 text-sm font-medium text-green-800"><AlertCircle className="h-4 w-4" />{pt.bankTransferApproved}</p>
+                                        <p className="mt-1 text-xs text-green-700">{pt.orderUnderWarehouseProcessing}</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                                {(order.status === "financial_rejected" || order.status === "rejected") && order.financialNotes && (
+                                  <div className="mb-3 rounded border border-red-200 bg-red-50 p-3">
+                                    <div className="flex items-start gap-2">
+                                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
+                                      <div><h6 className="mb-1 text-sm font-medium text-red-800">{pt.orderRejectionReason}</h6><p className="text-sm text-red-700">{order.financialNotes}</p></div>
+                                    </div>
+                                  </div>
+                                )}
+                              {(() => {
+                                const subtotalAmount = (order.items || []).reduce(
+                                  (sum: number, item: any) => sum + parseFloat(item.totalPrice || 0), 0,
+                                );
+                                const shippingCost = parseFloat(order.shippingCost || "0");
+                                const vatAmount = parseFloat(order.vatAmount || "0");
+                                const surchargeAmount = parseFloat(order.surchargeAmount || "0");
+                                return (
+                                  <div className="overflow-x-auto border border-emerald-900">
+                                    <table className="w-full min-w-[620px] border-collapse text-xs">
+                                      <thead className="bg-emerald-800 text-left text-[11px] font-semibold uppercase tracking-wide text-white">
+                                        <tr>
+                                          <th className="w-12 border border-emerald-700 px-2 py-2">#</th>
+                                          <th className="border border-emerald-700 px-3 py-2">{pt.orderItems}</th>
+                                          <th className="border border-emerald-700 px-3 py-2">{pt.quantity}</th>
+                                          <th className="border border-emerald-700 px-3 py-2">{pt.totalAmount}</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {(order.items || []).map((item: any, index: number) => (
+                                          <tr key={item.id || index} className="odd:bg-emerald-50 even:bg-white">
+                                            <td className="border border-slate-300 px-2 py-2 font-mono text-slate-500">{index + 1}</td>
+                                            <td className="border border-slate-300 px-3 py-2 text-slate-800">{item.productName || pt.unknownProduct}</td>
+                                            <td className="border border-slate-300 px-3 py-2 text-slate-700">{Math.floor(parseFloat(item.quantity || 0))}</td>
+                                            <td className="border border-slate-300 px-3 py-2 font-medium text-slate-800">{Math.floor(parseFloat(item.totalPrice || 0))} IQD</td>
+                                          </tr>
+                                        ))}
+                                        <tr className="bg-slate-100">
+                                          <th colSpan={3} className="border border-slate-300 px-3 py-2 text-start font-medium">{pt.itemsSubtotal}</th>
+                                          <td className="border border-slate-300 px-3 py-2 font-medium">{Math.floor(subtotalAmount)} IQD</td>
+                                        </tr>
+                                        <tr className="bg-white">
+                                          <th colSpan={3} className="border border-slate-300 px-3 py-2 text-start font-medium">{pt.shippingCost}</th>
+                                          <td className="border border-slate-300 px-3 py-2">{Math.floor(shippingCost)} IQD</td>
+                                        </tr>
+                                        <tr className="bg-slate-100">
+                                          <th colSpan={3} className="border border-slate-300 px-3 py-2 text-start font-medium">{pt.vat}</th>
+                                          <td className="border border-slate-300 px-3 py-2">{Math.floor(vatAmount)} IQD</td>
+                                        </tr>
+                                        <tr className="bg-white">
+                                          <th colSpan={3} className="border border-slate-300 px-3 py-2 text-start font-medium">{pt.surcharge}</th>
+                                          <td className="border border-slate-300 px-3 py-2">{Math.floor(surchargeAmount)} IQD</td>
+                                        </tr>
+                                        <tr className="bg-emerald-100 font-bold text-emerald-950">
+                                          <th colSpan={3} className="border border-slate-300 px-3 py-2 text-start">{pt.totalAmount}</th>
+                                          <td className="border border-slate-300 px-3 py-2">{Math.floor(getOrderTotal(order))} IQD</td>
+                                        </tr>
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                );
+                              })()}
 
                             {/* Actions */}
                             <div className="mt-2 flex flex-wrap gap-2 border-t border-slate-200 pt-3">
@@ -1580,52 +1603,6 @@ const CustomerProfile = () => {
                                   </>
                                 )}
 
-                              {(order.paymentMethod === "واریز بانکی با مهلت 3 روزه" || order.paymentMethod === "bank_transfer_grace") &&
-                                order.receiptPath && (
-                                  <>
-                                    {(order.status === "payment_uploaded" || order.status === "pending" || order.status === "payment_grace_period") && (
-                                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                                        <p className="text-sm text-blue-800 font-medium flex items-center gap-1">
-                                          <Clock className="w-4 h-4" />
-                                          {pt.bankTransferUnderReview}
-                                        </p>
-                                        <p className="text-xs text-blue-700 mt-1">{pt.waitingFinancialApproval}</p>
-                                      </div>
-                                    )}
-                                    {order.status === "confirmed" && (
-                                      <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                                        <p className="text-sm text-green-800 font-medium flex items-center gap-1">
-                                          <AlertCircle className="w-4 h-4" />
-                                          {pt.bankTransferApproved}
-                                        </p>
-                                        <p className="text-xs text-green-700 mt-1">{pt.orderUnderWarehouseProcessing}</p>
-                                      </div>
-                                    )}
-                                  </>
-                                )}
-
-                              {order.status !== "cancelled" &&
-                                order.status !== "financial_rejected" &&
-                                order.status !== "rejected" &&
-                                (order.invoiceType === "official_invoice" ? (
-                                  <Button
-                                    size="sm"
-                                    onClick={() => window.open(`/download-invoice/${order.id}?lang=${encodeURIComponent(language)}`, "_blank")}
-                                    className="bg-green-600 hover:bg-green-700"
-                                  >
-                                    <Download className="w-4 h-4 mr-2" />
-                                    {pt.downloadOfficialInvoice}
-                                  </Button>
-                                ) : (
-                                  <Button
-                                    size="sm"
-                                    onClick={() => window.open(`/download-proforma-invoice/${order.id}?lang=${encodeURIComponent(language)}`, "_blank")}
-                                    className="bg-blue-600 hover:bg-blue-700"
-                                  >
-                                    <Download className="w-4 h-4 mr-2" />
-                                    {pt.downloadProforma}
-                                  </Button>
-                                ))}
                             </div>
                               </div>
                             )}
