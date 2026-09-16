@@ -104,6 +104,8 @@ const PROFILE_T = {
     orderUnderWarehouseProcessing: "Your order has been financially approved and is being processed in the warehouse",
     downloadOfficialInvoice: "Download Official Invoice",
     downloadProforma: "Download Proforma",
+    status: "Status",
+    details: "Details",
     // buttons
     viewFullPurchaseHistory: "View Full Purchase History",
     viewRecentOrders: "View Recent Orders",
@@ -230,6 +232,8 @@ const PROFILE_T = {
     orderUnderWarehouseProcessing: "تمت الموافقة المالية على طلبك وهو قيد المعالجة في المستودع",
     downloadOfficialInvoice: "تنزيل الفاتورة الرسمية",
     downloadProforma: "تنزيل الفاتورة المبدئية",
+    status: "الحالة",
+    details: "التفاصيل",
     viewFullPurchaseHistory: "عرض سجل المشتريات الكامل",
     viewRecentOrders: "عرض الطلبات الأخيرة",
     productFilter: "المنتج",
@@ -352,6 +356,8 @@ const PROFILE_T = {
     orderUnderWarehouseProcessing: "Siparişiniz finansal olarak onaylandı ve depoda işleniyor",
     downloadOfficialInvoice: "Resmi Fatura İndir",
     downloadProforma: "Proforma Fatura İndir",
+    status: "Durum",
+    details: "Detaylar",
     viewFullPurchaseHistory: "Tam Satın Alma Geçmişini Görüntüle",
     viewRecentOrders: "Son Siparişleri Görüntüle",
     productFilter: "Ürün",
@@ -481,6 +487,8 @@ const PROFILE_T_WITH_FA = {
     orderUnderWarehouseProcessing: "سفارش شما از نظر مالی تأیید شده و در انبار در حال پردازش است",
     downloadOfficialInvoice: "دانلود فاکتور رسمی",
     downloadProforma: "دانلود پیش‌فاکتور",
+    status: "وضعیت",
+    details: "جزئیات",
     viewFullPurchaseHistory: "مشاهده کامل سابقه خرید",
     viewRecentOrders: "مشاهده سفارش‌های اخیر",
     productFilter: "کالا",
@@ -1321,9 +1329,9 @@ const CustomerProfile = () => {
                          <div className="border-e border-slate-600 px-3 py-2">#</div>
                          <div className="border-e border-slate-600 px-3 py-2">{pt.orderLabel("order")}</div>
                          <div className="border-e border-slate-600 px-3 py-2">{pt.orderItems}</div>
-                         <div className="border-e border-slate-600 px-3 py-2">{pt.statusConfirmed}</div>
+                         <div className="border-e border-slate-600 px-3 py-2">{pt.status}</div>
                          <div className="border-e border-slate-600 px-3 py-2">{pt.totalAmount}</div>
-                         <div className="px-3 py-2">{pt.downloadProforma}</div>
+                         <div className="px-3 py-2">{pt.details}</div>
                        </div>
                        <div className="space-y-0">
                       {visibleOrders.map((order: any, orderIndex: number) => {
@@ -1463,7 +1471,19 @@ const CustomerProfile = () => {
                                 )}
                               </div>
                               <div className="col-start-5 row-start-1 border-e border-slate-200 px-3 py-1">
-                                <span className="text-slate-400" aria-hidden="true">—</span>
+                                <span className="font-semibold text-slate-900">{Math.floor(getOrderTotal(order))} IQD</span>
+                              </div>
+                              <div className="col-start-6 row-start-1 px-3 py-1">
+                                <button
+                                  type="button"
+                                  aria-expanded={expandedOrderId === order.id}
+                                  aria-controls={`order-details-${order.id}`}
+                                  onClick={() => setExpandedOrderId(expandedOrderId === order.id ? null : order.id)}
+                                  className="inline-flex items-center gap-1 rounded-sm px-2 py-1 text-xs font-semibold text-slate-700 underline decoration-slate-300 underline-offset-2 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
+                                >
+                                  {pt.details}
+                                  <span aria-hidden="true">{expandedOrderId === order.id ? "▲" : "▼"}</span>
+                                </button>
                               </div>
                             {expandedOrderId === order.id && (
                               <div id={`order-details-${order.id}`} className="col-span-6 contents">
