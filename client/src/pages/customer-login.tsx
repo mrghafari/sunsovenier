@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -107,6 +108,7 @@ const loginCopy = {
 
 export default function CustomerLogin() {
   const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const { language, direction } = useLanguage();
   const copy = loginCopy[language];
@@ -133,10 +135,11 @@ export default function CustomerLogin() {
     try {
       const response = await apiRequest('/api/customers/login', {
         method: 'POST',
-        body: JSON.stringify(data),
+        body: data,
       });
 
       if (response.success) {
+        queryClient.setQueryData(['/api/customers/me'], response);
         toast({
           title: copy.success,
           description: copy.successDescription,
