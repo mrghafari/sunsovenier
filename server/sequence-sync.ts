@@ -16,6 +16,7 @@ const CRITICAL_SEQUENCES: SequenceInfo[] = [
   { tableName: 'wallet_transactions', sequenceName: 'wallet_transactions_id_seq', idColumn: 'id' },
   { tableName: 'fib_payments', sequenceName: 'fib_payments_id_seq', idColumn: 'id' },
   { tableName: 'order_items', sequenceName: 'order_items_id_seq', idColumn: 'id' },
+  { tableName: 'contacts', sequenceName: 'contacts_id_seq', idColumn: 'id' },
 ];
 
 export async function syncSequence(tableName: string, sequenceName: string, idColumn: string = 'id'): Promise<number> {
