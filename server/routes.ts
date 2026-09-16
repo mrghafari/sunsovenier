@@ -20128,12 +20128,26 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         recipientAddress: row.recipient_address
       }));
 
+      const managementByOrderId = new Map(
+        allOrdersResult.rows.map((row: any) => [row.id, row])
+      );
+      const enrichedDetailedOrders = detailedOrders.map((order: any) => {
+        const management = managementByOrderId.get(order.id);
+        return {
+          ...order,
+          financialReviewedAt: management?.financial_reviewed_at ?? null,
+          financiallyApproved: management?.financial_reviewed_at != null,
+          currentStatus: management?.current_status ?? order.status,
+          managementStatus: management?.current_status ?? order.status,
+        };
+      });
+
       // Get abandoned orders and carts information from enhanced profile data
       const profileData = await customerStorage.getOrdersForProfile(finalCustomerId);
       
       res.json({
         success: true,
-        orders: detailedOrders,
+        orders: enrichedDetailedOrders,
         totalOrders: totalOrders, // Total number of orders from new method
         hiddenOrders: hiddenOrders, // Number of hidden orders as purchase history
         abandonedOrders: profileData.abandonedOrders,
@@ -20143,9 +20157,9 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         hasAbandonedCarts: profileData.hasAbandonedCarts,
         abandonedCartsCount: profileData.abandonedCarts.length,
         displayInfo: {
-          totalDisplayed: detailedOrders.length,
-          hasTemporaryOrder: detailedOrders.some(order => order.orderType === 'temporary'),
-          hasRegularOrder: detailedOrders.some(order => order.orderType === 'regular'),
+          totalDisplayed: enrichedDetailedOrders.length,
+          hasTemporaryOrder: enrichedDetailedOrders.some(order => order.orderType === 'temporary'),
+          hasRegularOrder: enrichedDetailedOrders.some(order => order.orderType === 'regular'),
           message: hiddenOrders > 0 ? `${hiddenOrders} سفارش دیگر در سوابق خرید مخفی است` : 'همه سفارشات نمایش داده شده'
         }
       });
@@ -20318,13 +20332,39 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       
       // Use customerStorage to get complete order history
       const orders = await customerStorage.getCompleteOrderHistory(customerId);
+      const orderIds = orders.map((order: any) => order.id);
+      let managementByOrderId = new Map<number, any>();
+
+      if (orderIds.length > 0) {
+        const { pool } = await import('./db');
+        const managementResult = await pool.query(`
+          SELECT customer_order_id, current_status, financial_reviewed_at, financial_notes
+          FROM order_management
+          WHERE customer_order_id = ANY($1)
+        `, [orderIds]);
+        managementByOrderId = new Map(
+          managementResult.rows.map((row: any) => [row.customer_order_id, row])
+        );
+      }
+
+      const enrichedOrders = orders.map((order: any) => {
+        const management = managementByOrderId.get(order.id);
+        return {
+          ...order,
+          financialReviewedAt: management?.financial_reviewed_at ?? null,
+          financiallyApproved: management?.financial_reviewed_at != null,
+          currentStatus: management?.current_status ?? order.status,
+          managementStatus: management?.current_status ?? order.status,
+          financialNotes: management?.financial_notes ?? order.financialNotes,
+        };
+      });
       
       console.log(`✅ [COMPLETE HISTORY API] Successfully loaded ${orders.length} orders for customer ${customerId}`);
       
       res.json({
         success: true,
-        orders: orders,
-        totalCount: orders.length
+        orders: enrichedOrders,
+        totalCount: enrichedOrders.length
       });
 
     } catch (error) {

@@ -370,9 +370,13 @@ export class CustomerStorage implements ICustomerStorage {
       (order.status === 'payment_grace_period' || order.status === 'pending')
     );
     
-    const regularOrders = activeOrders.filter(order => 
-      order.paymentMethod !== 'bank_transfer_grace' && order.paymentMethod !== 'واریز بانکی با مهلت 3 روزه'
-    );
+    const regularOrders = activeOrders.filter(order => {
+      const isGracePeriod = order.paymentMethod === 'bank_transfer_grace' ||
+        order.paymentMethod === 'واریز بانکی با مهلت 3 روزه';
+      const isStillTemporary = isGracePeriod &&
+        (order.status === 'payment_grace_period' || order.status === 'pending');
+      return !isStillTemporary;
+    });
 
     let displayOrders: CustomerOrder[] = [];
 

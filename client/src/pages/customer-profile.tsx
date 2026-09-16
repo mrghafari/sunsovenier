@@ -665,6 +665,8 @@ const CustomerProfile = () => {
     queryKey: ["/api/customers/orders"],
     retry: 1,
     enabled: !!customerData?.success,
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
   const { data: abandonedCartsData, isLoading: abandonedCartsLoading } = useQuery<any>({
@@ -689,12 +691,15 @@ const CustomerProfile = () => {
     return 3;
   }, [publicShopSettings]);
 
+  const isFinanciallyReviewed = (order: any) =>
+    Boolean(order?.financialReviewedAt || order?.financiallyApproved);
+
   const getOrderCategory = (order: any) => {
     const status = order.status?.toLowerCase();
     const paymentStatus = order.paymentStatus?.toLowerCase();
     const paymentMethod = order.paymentMethod;
     const managementStatus = order.managementStatus?.toLowerCase();
-    const hasFinancialReview = order.financialReviewedAt;
+    const hasFinancialReview = isFinanciallyReviewed(order);
 
     if (status === "cancelled" || status === "financial_rejected" || status === "rejected") return "cancelled";
     if (paymentStatus === "receipt_uploaded" && !hasFinancialReview) return "processing";
@@ -721,9 +726,9 @@ const CustomerProfile = () => {
     return "pending";
   };
   const getLocalizedStatusForSearch = (order: any) => {
-    if (order.paymentStatus?.toLowerCase() === "receipt_uploaded" && !order.financialReviewedAt) return pt.statusWaitingFinancial;
-    if (order.managementStatus?.toLowerCase() === "warehouse_pending" && order.financialReviewedAt) return pt.statusProcessingWarehouse;
-    if (order.managementStatus?.toLowerCase() === "warehouse_approved" && order.financialReviewedAt) return pt.statusApprovedReady;
+    if (order.paymentStatus?.toLowerCase() === "receipt_uploaded" && !isFinanciallyReviewed(order)) return pt.statusWaitingFinancial;
+    if (order.managementStatus?.toLowerCase() === "warehouse_pending" && isFinanciallyReviewed(order)) return pt.statusProcessingWarehouse;
+    if (order.managementStatus?.toLowerCase() === "warehouse_approved" && isFinanciallyReviewed(order)) return pt.statusApprovedReady;
     return getOrderCategory(order) === "completed" ? pt.statusConfirmed
       : getOrderCategory(order) === "cancelled" ? pt.statusCancelled
       : getOrderCategory(order) === "processing" ? pt.statusProcessingWarehouse
@@ -912,7 +917,7 @@ const CustomerProfile = () => {
   };
 
   const getStatusColor = (status: string, paymentStatus?: string, order?: any) => {
-    if (paymentStatus === "receipt_uploaded" && !order?.financialReviewedAt) return "bg-blue-100 text-blue-800";
+    if (paymentStatus === "receipt_uploaded" && !isFinanciallyReviewed(order)) return "bg-blue-100 text-blue-800";
     switch (status) {
       case "confirmed": return "bg-green-100 text-green-800";
       case "pending":
@@ -923,10 +928,10 @@ const CustomerProfile = () => {
   };
 
   const getStatusLabel = (status: string, paymentStatus?: string, order?: any) => {
-    if (paymentStatus === "receipt_uploaded" && !order?.financialReviewedAt) return pt.statusWaitingFinancial;
+    if (paymentStatus === "receipt_uploaded" && !isFinanciallyReviewed(order)) return pt.statusWaitingFinancial;
     const paymentMethod = order?.paymentMethod;
     const managementStatus = order?.managementStatus?.toLowerCase();
-    const hasFinancialReview = order?.financialReviewedAt;
+    const hasFinancialReview = isFinanciallyReviewed(order);
 
     if ((paymentMethod === "wallet_full" || paymentMethod === "wallet_partial" || paymentMethod === "wallet_combined") && hasFinancialReview) {
       if (managementStatus === "warehouse_pending") return pt.statusProcessingWarehouse;
@@ -1402,7 +1407,7 @@ const CustomerProfile = () => {
                                 {order.status !== "cancelled" &&
                                   order.status !== "financial_rejected" &&
                                   order.status !== "rejected" &&
-                                  !(order.paymentStatus?.toLowerCase() === "receipt_uploaded" && !order.financialReviewedAt) ? (
+                                  !(order.paymentStatus?.toLowerCase() === "receipt_uploaded" && !isFinanciallyReviewed(order)) ? (
                                   order.invoiceType === "official_invoice" ? (
                                     <Button
                                       size="sm"
