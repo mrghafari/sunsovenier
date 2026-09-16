@@ -182,6 +182,7 @@ function ProvinceSelect({ editingCustomer, setEditingCustomer }: {
   editingCustomer: CrmCustomer | null;
   setEditingCustomer: (customer: CrmCustomer | null) => void;
 }) {
+  const { language } = useLanguage();
   const [selectedProvinceId, setSelectedProvinceId] = useState<number | null>(null);
   
   // Fetch provinces data only if country is Iraq
@@ -196,10 +197,10 @@ function ProvinceSelect({ editingCustomer, setEditingCustomer }: {
   if (editingCustomer?.country !== "Iraq") {
     return (
       <div>
-        <Label htmlFor="editProvince">Province/State *</Label>
+        <Label htmlFor="editProvince">{crmText(language, "provinceState")}</Label>
         <Input
           id="editProvince"
-          placeholder="Enter province"
+          placeholder={crmText(language, "enterProvince")}
           value={editingCustomer?.province || ""}
           onChange={(e) => setEditingCustomer({ ...editingCustomer!, province: e.target.value })}
         />
@@ -209,7 +210,7 @@ function ProvinceSelect({ editingCustomer, setEditingCustomer }: {
 
   return (
     <div>
-      <Label htmlFor="editProvince">Province/محافظة *</Label>
+      <Label htmlFor="editProvince">{crmText(language, "province")}</Label>
       <Select 
         value={editingCustomer?.province || ""} 
         onValueChange={(value) => {
@@ -222,7 +223,7 @@ function ProvinceSelect({ editingCustomer, setEditingCustomer }: {
         }}
       >
         <SelectTrigger>
-          <SelectValue placeholder="Select province / اختر المحافظة" />
+          <SelectValue placeholder={crmText(language, "selectProvince")} />
         </SelectTrigger>
         <SelectContent>
           {(provinces as any[]).map((province: any) => (
@@ -240,6 +241,7 @@ function CitySelect({ editingCustomer, setEditingCustomer }: {
   editingCustomer: CrmCustomer | null;
   setEditingCustomer: (customer: CrmCustomer | null) => void;
 }) {
+  const { language } = useLanguage();
   const [selectedProvinceId, setSelectedProvinceId] = useState<number | null>(null);
   
   // Get province ID when province changes
@@ -281,10 +283,10 @@ function CitySelect({ editingCustomer, setEditingCustomer }: {
   if (editingCustomer?.country !== "Iraq") {
     return (
       <div>
-        <Label htmlFor="editCity">City *</Label>
+        <Label htmlFor="editCity">{crmText(language, "cityRequired")}</Label>
         <Input
           id="editCity"
-          placeholder="Enter city"
+          placeholder={crmText(language, "enterCity")}
           value={editingCustomer?.cityRegion || ""}
           onChange={(e) => setEditingCustomer({ ...editingCustomer!, cityRegion: e.target.value })}
         />
@@ -294,13 +296,13 @@ function CitySelect({ editingCustomer, setEditingCustomer }: {
 
   return (
     <div>
-      <Label htmlFor="editCityRegion">شهر/منطقه / City/Region *</Label>
+      <Label htmlFor="editCityRegion">{crmText(language, "cityRegion")}</Label>
       <Select 
         value={editingCustomer?.cityRegion || ""} 
         onValueChange={(value) => setEditingCustomer({ ...editingCustomer!, cityRegion: value })}
       >
         <SelectTrigger>
-          <SelectValue placeholder="Select city / اختر المدينة" />
+          <SelectValue placeholder={crmText(language, "selectCity")} />
         </SelectTrigger>
         <SelectContent>
           {cities.map((city: any) => (
@@ -553,7 +555,7 @@ export default function CRM() {
       return response.json();
     },
     onSuccess: () => {
-      toast({ title: "Success", description: "New customer created successfully" });
+      toast({ title: crmText(language, "success"), description: crmText(language, "customerCreated") });
       queryClient.invalidateQueries({ queryKey: ["/api/crm/customers"] });
       queryClient.invalidateQueries({ queryKey: ["/api/crm/dashboard"] });
       setIsNewCustomerDialogOpen(false);
@@ -582,7 +584,7 @@ export default function CRM() {
       const errorMessage = error?.response?.data?.message || error?.message || "خطا در ایجاد مشتری جدید";
       
       toast({ 
-        title: "خطا", 
+        title: crmText(language, "error"),
         description: errorMessage,
         variant: "destructive" 
       });
@@ -608,7 +610,7 @@ export default function CRM() {
     },
     onSuccess: (data) => {
       console.log("🔧 [FRONTEND UPDATE SUCCESS] Response data:", data);
-      toast({ title: "Success", description: "Customer information updated successfully" });
+      toast({ title: crmText(language, "success"), description: crmText(language, "customerUpdated") });
       
       // AGGRESSIVE CACHE CLEARING - Clear all related caches
       queryClient.clear(); // Nuclear option - clear all cache
@@ -633,7 +635,7 @@ export default function CRM() {
       const errorMessage = error?.response?.data?.message || error?.message || "خطا در به‌روزرسانی اطلاعات مشتری";
       
       toast({ 
-        title: "خطا", 
+        title: crmText(language, "error"),
         description: errorMessage,
         variant: "destructive" 
       });
@@ -653,14 +655,14 @@ export default function CRM() {
       return response.json();
     },
     onSuccess: () => {
-      toast({ title: "Success", description: "Customer deleted successfully" });
+      toast({ title: crmText(language, "success"), description: crmText(language, "customerDeleted") });
       queryClient.invalidateQueries({ queryKey: ["/api/crm/customers"] });
       queryClient.invalidateQueries({ queryKey: ["/api/crm/dashboard"] });
     },
     onError: (error) => {
       toast({ 
-        title: "Error", 
-        description: "Failed to delete customer",
+        title: crmText(language, "error"),
+        description: crmText(language, "failedDeleteCustomer"),
         variant: "destructive" 
       });
     }
@@ -669,8 +671,8 @@ export default function CRM() {
   const handleCreateCustomer = () => {
     if (!newCustomer.email || !newCustomer.firstName || !newCustomer.lastName) {
       toast({
-        title: "Error",
-        description: "Please fill in all required fields",
+        title: crmText(language, "error"),
+        description: crmText(language, "requiredFields"),
         variant: "destructive"
       });
       return;
@@ -687,8 +689,8 @@ export default function CRM() {
   const handleUpdateCustomer = () => {
     if (!editingCustomer || !editingCustomer.firstName || !editingCustomer.lastName) {
       toast({
-        title: "Error",
-        description: "Please fill in all required fields",
+        title: crmText(language, "error"),
+        description: crmText(language, "requiredFields"),
         variant: "destructive"
       });
       return;
@@ -747,7 +749,7 @@ export default function CRM() {
   };
 
   const handleDeleteCustomer = (id: number) => {
-    if (confirm("Are you sure you want to delete this customer?")) {
+    if (confirm(crmText(language, "confirmDelete"))) {
       deleteCustomerMutation.mutate(id);
     }
   };
@@ -780,13 +782,13 @@ export default function CRM() {
       const typeText = type === 'sms' ? 'SMS' : 'ایمیل';
       
       toast({
-        title: "موفقیت",
+        title: crmText(language, "success"),
         description: `ارسال کد تایید ${typeText} برای ${result.updatedCount} مشتری ${actionText} شد`,
       });
     } catch (error) {
       console.error('Error bulk toggling verification:', error);
       toast({
-        title: "خطا",
+        title: crmText(language, "error"),
         description: error instanceof Error ? error.message : "خطا در تغییر تنظیمات",
         variant: "destructive"
       });
@@ -817,13 +819,13 @@ export default function CRM() {
       window.URL.revokeObjectURL(url);
       
       toast({
-        title: "Success",
-        description: "Customer analytics PDF downloaded successfully"
+        title: crmText(language, "success"),
+        description: crmText(language, "exportAnalytics")
       });
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to export analytics to PDF",
+        title: crmText(language, "error"),
+        description: crmText(language, "failedExport"),
         variant: "destructive"
       });
     }
@@ -851,13 +853,13 @@ export default function CRM() {
       window.URL.revokeObjectURL(url);
       
       toast({
-        title: "Success",
-        description: "Customer report PDF downloaded successfully"
+        title: crmText(language, "success"),
+        description: crmText(language, "exportReport"),
       });
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to export customer report to PDF",
+        title: crmText(language, "error"),
+        description: crmText(language, "failedExport"),
         variant: "destructive"
       });
     }
@@ -890,7 +892,7 @@ export default function CRM() {
       }
 
       toast({
-        title: "موفقیت",
+        title: crmText(language, "success"),
         description: `کد احراز هویت ${authMethod === 'sms' ? 'SMS' : 'ایمیل'} برای ${selectedCustomerForAuth.firstName} ${selectedCustomerForAuth.lastName} ارسال شد`,
       });
 
@@ -902,7 +904,7 @@ export default function CRM() {
     } catch (error) {
       console.error('Error sending authentication:', error);
       toast({
-        title: "خطا",
+        title: crmText(language, "error"),
         description: error instanceof Error ? error.message : "خطا در ارسال کد احراز هویت",
         variant: "destructive"
       });
@@ -1026,17 +1028,17 @@ export default function CRM() {
               {/* Top Customers Card - Full Width */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Top Customers</CardTitle>
-                  <CardDescription>Customers with highest purchase amounts</CardDescription>
+                  <CardTitle>{crmText(language, "topCustomers")}</CardTitle>
+                  <CardDescription>{crmText(language, "highestPurchase")}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Total Spent</TableHead>
-                        <TableHead>Orders</TableHead>
+                        <TableHead>{crmText(language, "name")}</TableHead>
+                        <TableHead>{crmText(language, "email")}</TableHead>
+                        <TableHead>{crmText(language, "totalSpent")}</TableHead>
+                        <TableHead>{crmText(language, "orders")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1062,7 +1064,7 @@ export default function CRM() {
             <div className="relative flex-1">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by name, email, company, or phone..."
+                placeholder={crmText(language, "search")}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-8"
@@ -1171,7 +1173,7 @@ export default function CRM() {
                           {getSortIcon("company")}
                         </div>
                       </TableHead>
-                      <TableHead className="py-2 px-3">Type</TableHead>
+                      <TableHead className="py-2 px-3">{crmText(language, "type")}</TableHead>
                       <TableHead 
                         className="cursor-pointer hover:bg-gray-50 select-none py-2 px-3"
                         onClick={() => handleSort("customerStatus")}
@@ -1199,7 +1201,7 @@ export default function CRM() {
                           {getSortIcon("createdAt")}
                         </div>
                       </TableHead>
-                      <TableHead className="min-w-[140px] py-2 px-3">Actions</TableHead>
+                      <TableHead className="min-w-[140px] py-2 px-3">{crmText(language, "actions")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1246,7 +1248,7 @@ export default function CRM() {
                               variant="outline"
                               size="sm"
                               onClick={() => handleEditCustomer(customer)}
-                              title="Edit customer"
+                              title={crmText(language, "editCustomer")}
                               className="h-8 w-8 p-0"
                             >
                               <Edit className="h-3 w-3" />
@@ -1258,7 +1260,7 @@ export default function CRM() {
                                 setSelectedCustomer(customer);
                                 setIsCustomerDetailDialogOpen(true);
                               }}
-                              title="Manage customer password"
+                              title={crmText(language, "manageCustomerPassword")}
                               className="text-blue-600 hover:text-blue-700 h-8 w-8 p-0"
                             >
                               <Shield className="h-3 w-3" />
@@ -1279,7 +1281,7 @@ export default function CRM() {
                               variant="outline"
                               size="sm"
                               onClick={() => handleExportCustomer(customer.id)}
-                              title="Export customer report to PDF"
+                              title={crmText(language, "exportCustomerReport")}
                               className="h-8 w-8 p-0"
                             >
                               <FileText className="h-3 w-3" />
@@ -1289,7 +1291,7 @@ export default function CRM() {
                               size="sm"
                               onClick={() => handleDeleteCustomer(customer.id)}
                               className="text-red-600 hover:text-red-700 h-8 w-8 p-0"
-                              title="Delete customer"
+                              title={crmText(language, "deleteCustomer")}
                             >
                               <Trash2 className="h-3 w-3" />
                             </Button>
@@ -1342,10 +1344,10 @@ export default function CRM() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Settings className="w-5 h-5" />
-                Customer Verification Settings
+                {crmText(language, "customerVerificationSettings")}
               </CardTitle>
               <CardDescription>
-                Configure which verification methods are enabled for customer registration
+                {crmText(language, "verificationMethodsDescription")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -1359,13 +1361,13 @@ export default function CRM() {
       <Dialog open={isNewCustomerDialogOpen} onOpenChange={setIsNewCustomerDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>New Customer</DialogTitle>
-            <DialogDescription>Enter new customer information</DialogDescription>
+            <DialogTitle>{crmText(language, "newCustomer")}</DialogTitle>
+            <DialogDescription>{crmText(language, "enterCustomer")}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="firstName">First Name</Label>
+                <Label htmlFor="firstName">{crmText(language, "firstName")}</Label>
                 <Input
                   id="firstName"
                   value={newCustomer.firstName}
@@ -1373,7 +1375,7 @@ export default function CRM() {
                 />
               </div>
               <div>
-                <Label htmlFor="lastName">Last Name</Label>
+                <Label htmlFor="lastName">{crmText(language, "lastName")}</Label>
                 <Input
                   id="lastName"
                   value={newCustomer.lastName}
@@ -1383,7 +1385,7 @@ export default function CRM() {
             </div>
             
             <div>
-              <Label htmlFor="email">Email *</Label>
+              <Label htmlFor="email">{crmText(language, "email")} *</Label>
               <Input
                 id="email"
                 type="email"
@@ -1394,7 +1396,7 @@ export default function CRM() {
             </div>
 
             <div>
-              <Label htmlFor="company">Company</Label>
+              <Label htmlFor="company">{crmText(language, "company")}</Label>
               <Input
                 id="company"
                 value={newCustomer.company}
@@ -1403,7 +1405,7 @@ export default function CRM() {
             </div>
 
             <div>
-              <Label htmlFor="phone">Mobile Phone *</Label>
+              <Label htmlFor="phone">{crmText(language, "mobilePhone")} *</Label>
               <Input
                 id="phone"
                 value={newCustomer.phone}
@@ -1414,32 +1416,25 @@ export default function CRM() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="customerType">Customer Type</Label>
+                <Label htmlFor="customerType">{crmText(language, "customerType")}</Label>
                 <Select value={newCustomer.customerType} onValueChange={(value) => setNewCustomer({ ...newCustomer, customerType: value })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="retail">Retail</SelectItem>
-                    <SelectItem value="wholesale">Wholesale</SelectItem>
-                    <SelectItem value="b2b">B2B</SelectItem>
-                    <SelectItem value="distributor">Distributor</SelectItem>
+                    {["retail", "wholesale", "b2b", "distributor"].map((value) => <SelectItem key={value} value={value}>{crmEnum(value, language)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               
               <div>
-                <Label htmlFor="customerSource">Customer Source</Label>
+                <Label htmlFor="customerSource">{crmText(language, "source")}</Label>
                 <Select value={newCustomer.customerSource} onValueChange={(value) => setNewCustomer({ ...newCustomer, customerSource: value })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="website">Website</SelectItem>
-                    <SelectItem value="referral">Referral</SelectItem>
-                    <SelectItem value="marketing">Marketing</SelectItem>
-                    <SelectItem value="cold_call">Cold Call</SelectItem>
-                    <SelectItem value="trade_show">Trade Show</SelectItem>
+                    {["website", "referral", "marketing", "cold_call", "trade_show"].map((value) => <SelectItem key={value} value={value}>{crmEnum(value, language)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -1447,32 +1442,25 @@ export default function CRM() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="preferredLanguage">Preferred Language</Label>
+                <Label htmlFor="preferredLanguage">{crmText(language, "preferredLanguage")}</Label>
                 <Select value={newCustomer.preferredLanguage} onValueChange={(value) => setNewCustomer({ ...newCustomer, preferredLanguage: value })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="fa">فارسی (Persian)</SelectItem>
-                    <SelectItem value="en">English</SelectItem>
-                    <SelectItem value="ar">العربية (Arabic)</SelectItem>
-                    <SelectItem value="ku">کوردی (Kurdish)</SelectItem>
-                    <SelectItem value="tr">Türkçe (Turkish)</SelectItem>
+                    {["fa", "en", "ar", "ku", "tr"].map((value) => <SelectItem key={value} value={value}>{crmEnum(value, language)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               
               <div>
-                <Label htmlFor="communicationPreference">Communication Preference</Label>
+                <Label htmlFor="communicationPreference">{crmText(language, "communicationPreference")}</Label>
                 <Select value={newCustomer.communicationPreference} onValueChange={(value) => setNewCustomer({ ...newCustomer, communicationPreference: value })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="email">Email</SelectItem>
-                    <SelectItem value="sms">SMS</SelectItem>
-                    <SelectItem value="phone">Phone</SelectItem>
-                    <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                    {["email", "sms", "phone", "whatsapp"].map((value) => <SelectItem key={value} value={value}>{crmEnum(value, language)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -1480,21 +1468,21 @@ export default function CRM() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="country">Country *</Label>
+              <Label htmlFor="country">{crmText(language, "countryRequired")}</Label>
                 <Input
                   id="country"
                   required
-                  placeholder="Customer's country"
+                  placeholder={crmText(language, "country")}
                   value={newCustomer.country}
                   onChange={(e) => setNewCustomer({ ...newCustomer, country: e.target.value })}
                 />
               </div>
               <div>
-                <Label htmlFor="cityRegion">شهر/منطقه / City/Region *</Label>
+              <Label htmlFor="cityRegion">{crmText(language, "cityRegion")}</Label>
                 <Input
                   id="cityRegion"
                   required
-                  placeholder="Customer's city/region"
+                  placeholder={crmText(language, "cityRegion")}
                   value={newCustomer.cityRegion}
                   onChange={(e) => setNewCustomer({ ...newCustomer, cityRegion: e.target.value })}
                 />
@@ -1502,11 +1490,11 @@ export default function CRM() {
             </div>
 
             <div>
-              <Label htmlFor="address">Address *</Label>
+              <Label htmlFor="address">{crmText(language, "streetAddressRequired")}</Label>
               <Input
                 id="address"
                 required
-                placeholder="Full address"
+                placeholder={crmText(language, "streetAddressRequired")}
                 value={newCustomer.address || ""}
                 onChange={(e) => setNewCustomer({ ...newCustomer, address: e.target.value })}
               />
@@ -1514,19 +1502,19 @@ export default function CRM() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="secondaryAddress">Secondary Address</Label>
+                <Label htmlFor="secondaryAddress">{crmText(language, "secondaryAddress")}</Label>
                 <Input
                   id="secondaryAddress"
-                  placeholder="Optional secondary address"
+                  placeholder={crmText(language, "secondaryAddress")}
                   value={newCustomer.secondaryAddress || ""}
                   onChange={(e) => setNewCustomer({ ...newCustomer, secondaryAddress: e.target.value })}
                 />
               </div>
               <div>
-                <Label htmlFor="postalCode">Postal Code</Label>
+                <Label htmlFor="postalCode">{crmText(language, "postalCode")}</Label>
                 <Input
                   id="postalCode"
-                  placeholder="Postal code"
+                  placeholder={crmText(language, "postalCode")}
                   value={newCustomer.postalCode || ""}
                   onChange={(e) => setNewCustomer({ ...newCustomer, postalCode: e.target.value })}
                 />
@@ -1534,18 +1522,18 @@ export default function CRM() {
             </div>
 
             <div>
-              <Label htmlFor="password">Password (Optional)</Label>
+              <Label htmlFor="password">{crmText(language, "password")}</Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="Leave empty if creating from admin"
+                placeholder={crmText(language, "optional")}
                 value={newCustomer.password || ""}
                 onChange={(e) => setNewCustomer({ ...newCustomer, password: e.target.value })}
               />
             </div>
 
             <div>
-              <Label htmlFor="internalNotes">Internal Notes</Label>
+              <Label htmlFor="internalNotes">{crmText(language, "internalNotes")}</Label>
               <Textarea
                 id="internalNotes"
                 value={newCustomer.internalNotes}
@@ -1570,49 +1558,49 @@ export default function CRM() {
       <Dialog open={isCustomerDetailDialogOpen} onOpenChange={setIsCustomerDetailDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Customer Details</DialogTitle>
-            <DialogDescription>Complete customer information and management</DialogDescription>
+            <DialogTitle>{crmText(language, "customerDetails")}</DialogTitle>
+            <DialogDescription>{crmText(language, "customerInformation")}</DialogDescription>
           </DialogHeader>
           {selectedCustomer && (
             <Tabs defaultValue="details" className="w-full">
               <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="details">Customer Details</TabsTrigger>
-                <TabsTrigger value="password">Password Management</TabsTrigger>
-                <TabsTrigger value="profile">Unified Profile</TabsTrigger>
+                <TabsTrigger value="details">{crmText(language, "customerDetails")}</TabsTrigger>
+                <TabsTrigger value="password">{crmText(language, "passwordManagement")}</TabsTrigger>
+                <TabsTrigger value="profile">{crmText(language, "overview")}</TabsTrigger>
               </TabsList>
               
               <TabsContent value="details" className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>Full Name</Label>
+                    <Label>{crmText(language, "name")}</Label>
                     <p className="font-medium">{selectedCustomer.firstName} {selectedCustomer.lastName}</p>
                   </div>
                   <div>
-                    <Label>Email</Label>
+                    <Label>{crmText(language, "email")}</Label>
                     <p className="font-medium">{selectedCustomer.email}</p>
                   </div>
                   <div>
-                    <Label>Company</Label>
+                    <Label>{crmText(language, "company")}</Label>
                     <p className="font-medium">{selectedCustomer.company || '-'}</p>
                   </div>
                   <div>
-                    <Label>Phone</Label>
+                    <Label>{crmText(language, "phone")}</Label>
                     <p className="font-medium">{selectedCustomer.phone || '-'}</p>
                   </div>
                   <div>
-                    <Label>Total Purchases</Label>
+                    <Label>{crmText(language, "totalPurchases")}</Label>
                     <p className="font-medium">{formatCurrency(selectedCustomer.totalSpent)}</p>
                   </div>
                   <div>
-                    <Label>Number of Orders</Label>
+                    <Label>{crmText(language, "orders")}</Label>
                     <p className="font-medium">{selectedCustomer.totalOrdersCount}</p>
                   </div>
                   <div>
-                    <Label>Average Order Value</Label>
+                    <Label>{crmText(language, "avgOrderValue")}</Label>
                     <p className="font-medium">{formatCurrency(selectedCustomer.averageOrderValue)}</p>
                   </div>
                   <div>
-                    <Label>Join Date</Label>
+                    <Label>{crmText(language, "registrationDate")}</Label>
                     <p className="font-medium">{formatDate(selectedCustomer.createdAt)}</p>
                   </div>
                 </div>
@@ -1639,8 +1627,8 @@ export default function CRM() {
       <Dialog open={isEditCustomerDialogOpen} onOpenChange={setIsEditCustomerDialogOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit Customer</DialogTitle>
-            <DialogDescription>Edit customer information - matching registration form fields</DialogDescription>
+            <DialogTitle>{crmText(language, "editCustomer")}</DialogTitle>
+            <DialogDescription>{crmText(language, "editDescription")}</DialogDescription>
           </DialogHeader>
           {editingCustomer && (
             <div className="space-y-6">
@@ -1652,19 +1640,19 @@ export default function CRM() {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="editFirstName">First Name *</Label>
+                    <Label htmlFor="editFirstName">{crmText(language, "firstNameRequired")}</Label>
                     <Input
                       id="editFirstName"
-                      placeholder="Enter first name"
+                      placeholder={crmText(language, "firstName")}
                       value={editingCustomer.firstName}
                       onChange={(e) => setEditingCustomer({ ...editingCustomer, firstName: e.target.value })}
                     />
                   </div>
                   <div>
-                    <Label htmlFor="editLastName">Last Name *</Label>
+                    <Label htmlFor="editLastName">{crmText(language, "lastNameRequired")}</Label>
                     <Input
                       id="editLastName"
-                      placeholder="Enter last name"
+                      placeholder={crmText(language, "lastName")}
                       value={editingCustomer.lastName}
                       onChange={(e) => setEditingCustomer({ ...editingCustomer, lastName: e.target.value })}
                     />
@@ -1672,7 +1660,7 @@ export default function CRM() {
                 </div>
 
                 <div>
-                  <Label htmlFor="editEmail">Email Address * (Read Only)</Label>
+                  <Label htmlFor="editEmail">{crmText(language, "emailAddressRequired")}</Label>
                   <Input
                     id="editEmail"
                     type="email"
@@ -1683,10 +1671,10 @@ export default function CRM() {
                 </div>
 
                 <div>
-                  <Label htmlFor="editCompany">Company</Label>
+                  <Label htmlFor="editCompany">{crmText(language, "company")}</Label>
                   <Input
                     id="editCompany"
-                    placeholder="Enter company name"
+                    placeholder={crmText(language, "companyNamePlaceholder")}
                     value={editingCustomer.company || ""}
                     onChange={(e) => setEditingCustomer({ ...editingCustomer, company: e.target.value })}
                   />
@@ -1696,11 +1684,11 @@ export default function CRM() {
               {/* Contact Information */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
-                  Contact Information
+                  {crmText(language, "contactInformation")}
                 </h3>
 
                 <div>
-                  <Label htmlFor="editPhone">Phone Number * (Read Only)</Label>
+                  <Label htmlFor="editPhone">{crmText(language, "primaryPhoneRequired")}</Label>
                   <Input
                     id="editPhone"
                     placeholder="+964 XXX XXX XXXX"
@@ -1712,22 +1700,15 @@ export default function CRM() {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <Label htmlFor="editCountry">Country *</Label>
+                  <Label htmlFor="editCountry">{crmText(language, "countryRequired")}</Label>
                     <Select value={editingCustomer.country || ""} onValueChange={(value) => setEditingCustomer({ ...editingCustomer, country: value })}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select country" />
+                        <SelectValue placeholder={crmText(language, "selectCountry")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Iraq">Iraq</SelectItem>
-                        <SelectItem value="Iran">Iran</SelectItem>
-                        <SelectItem value="Turkey">Turkey</SelectItem>
-                        <SelectItem value="Syria">Syria</SelectItem>
-                        <SelectItem value="Jordan">Jordan</SelectItem>
-                        <SelectItem value="Lebanon">Lebanon</SelectItem>
-                        <SelectItem value="Kuwait">Kuwait</SelectItem>
-                        <SelectItem value="Saudi Arabia">Saudi Arabia</SelectItem>
-                        <SelectItem value="UAE">UAE</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
+                         {["Iraq", "Iran", "Turkey", "Syria", "Jordan", "Lebanon", "Kuwait", "Saudi Arabia", "UAE", "Other"].map((value) => (
+                           <SelectItem key={value} value={value}>{crmEnum(value, language)}</SelectItem>
+                         ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -1744,10 +1725,10 @@ export default function CRM() {
                 </div>
 
                 <div>
-                  <Label htmlFor="editAddress">Address *</Label>
+                  <Label htmlFor="editAddress">{crmText(language, "streetAddressRequired")}</Label>
                   <Input
                     id="editAddress"
-                    placeholder="Enter full address"
+                    placeholder={crmText(language, "fullAddress")}
                     value={editingCustomer.address || ""}
                     onChange={(e) => setEditingCustomer({ ...editingCustomer, address: e.target.value })}
                   />
@@ -1755,20 +1736,20 @@ export default function CRM() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="editSecondaryAddress">Secondary Address</Label>
+                    <Label htmlFor="editSecondaryAddress">{crmText(language, "secondaryAddress")}</Label>
                     <Input
                       id="editSecondaryAddress"
-                      placeholder="Secondary address or workplace"
+                      placeholder={crmText(language, "secondaryAddressPlaceholder")}
                       value={editingCustomer.secondaryAddress || ""}
                       onChange={(e) => setEditingCustomer({ ...editingCustomer, secondaryAddress: e.target.value })}
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="editPostalCode">Postal Code</Label>
+                    <Label htmlFor="editPostalCode">{crmText(language, "postalCode")}</Label>
                     <Input
                       id="editPostalCode"
-                      placeholder="Enter postal code"
+                      placeholder={crmText(language, "postalCodePlaceholder")}
                       value={editingCustomer.postalCode || ""}
                       onChange={(e) => setEditingCustomer({ ...editingCustomer, postalCode: e.target.value })}
                     />
@@ -1779,14 +1760,14 @@ export default function CRM() {
               {/* Additional Contact Information */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
-                  Additional Contact Information
+                  {crmText(language, "additionalContactInformation")}
                 </h3>
                 
                 <div>
-                  <Label htmlFor="editAlternatePhone">Alternate Phone</Label>
+                  <Label htmlFor="editAlternatePhone">{crmText(language, "alternatePhone")}</Label>
                   <Input
                     id="editAlternatePhone"
-                    placeholder="Secondary phone number"
+                    placeholder={crmText(language, "secondaryPhonePlaceholder")}
                     value={editingCustomer.alternatePhone || ""}
                     onChange={(e) => setEditingCustomer({ ...editingCustomer, alternatePhone: e.target.value })}
                   />
@@ -1796,34 +1777,30 @@ export default function CRM() {
               {/* Communication Preferences */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
-                  Communication Preferences
+                  {crmText(language, "communicationPreferences")}
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="editCommunicationPreference">Preferred Communication</Label>
+                    <Label htmlFor="editCommunicationPreference">{crmText(language, "communicationPreference")}</Label>
                     <Select value={editingCustomer.communicationPreference || "email"} onValueChange={(value) => setEditingCustomer({ ...editingCustomer, communicationPreference: value })}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="email">Email</SelectItem>
-                        <SelectItem value="phone">Phone</SelectItem>
-                        <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                        {["email", "phone", "whatsapp"].map((value) => <SelectItem key={value} value={value}>{crmEnum(value, language)}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div>
-                    <Label htmlFor="editPreferredLanguage">Preferred Language</Label>
+                    <Label htmlFor="editPreferredLanguage">{crmText(language, "preferredLanguage")}</Label>
                     <Select value={editingCustomer.preferredLanguage || "en"} onValueChange={(value) => setEditingCustomer({ ...editingCustomer, preferredLanguage: value })}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="en">English</SelectItem>
-                        <SelectItem value="fa">Persian</SelectItem>
-                        <SelectItem value="ar">Arabic</SelectItem>
+                        {["en", "fa", "ar"].map((value) => <SelectItem key={value} value={value}>{crmEnum(value, language)}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -1833,46 +1810,30 @@ export default function CRM() {
               {/* Business Information */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
-                  Business Information
+                  {crmText(language, "businessInformation")}
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="editIndustry">Industry</Label>
+                    <Label htmlFor="editIndustry">{crmText(language, "industry")}</Label>
                     <Select value={editingCustomer.industry || ""} onValueChange={(value) => setEditingCustomer({ ...editingCustomer, industry: value })}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select industry" />
+                        <SelectValue placeholder={crmText(language, "selectIndustry")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="chemical">Chemical</SelectItem>
-                        <SelectItem value="petrochemical">Petrochemical</SelectItem>
-                        <SelectItem value="pharmaceutical">Pharmaceutical</SelectItem>
-                        <SelectItem value="agriculture">Agriculture</SelectItem>
-                        <SelectItem value="construction">Construction</SelectItem>
-                        <SelectItem value="automotive">Automotive</SelectItem>
-                        <SelectItem value="textile">Textile</SelectItem>
-                        <SelectItem value="food">Food</SelectItem>
-                        <SelectItem value="water_treatment">Water Treatment</SelectItem>
-                        <SelectItem value="paint">Paint & Resin</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
+                        {["chemical", "petrochemical", "pharmaceutical", "agriculture", "construction", "automotive", "textile", "food", "water_treatment", "paint", "other"].map((value) => <SelectItem key={value} value={value}>{crmEnum(value, language)}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div>
-                    <Label htmlFor="editBusinessType">Business Type</Label>
+                    <Label htmlFor="editBusinessType">{crmText(language, "businessType")}</Label>
                     <Select value={editingCustomer.businessType || ""} onValueChange={(value) => setEditingCustomer({ ...editingCustomer, businessType: value })}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select business type" />
+                        <SelectValue placeholder={crmText(language, "selectBusinessType")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="manufacturer">Manufacturer</SelectItem>
-                        <SelectItem value="distributor">Distributor</SelectItem>
-                        <SelectItem value="retailer">Retailer</SelectItem>
-                        <SelectItem value="service_provider">Service Provider</SelectItem>
-                        <SelectItem value="research">Research & Development</SelectItem>
-                        <SelectItem value="consultant">Consultant</SelectItem>
-                        <SelectItem value="end_user">End User</SelectItem>
+                        {["manufacturer", "distributor", "retailer", "service_provider", "research", "consultant", "end_user"].map((value) => <SelectItem key={value} value={value}>{crmEnum(value, language)}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -1880,23 +1841,21 @@ export default function CRM() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="editCompanySize">Company Size</Label>
+                    <Label htmlFor="editCompanySize">{crmText(language, "companySize")}</Label>
                     <Select value={editingCustomer.companySize || ""} onValueChange={(value) => setEditingCustomer({ ...editingCustomer, companySize: value })}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select company size" />
+                        <SelectValue placeholder={crmText(language, "selectCompanySize")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="1-10">1-10 employees</SelectItem>
-                        <SelectItem value="11-50">11-50 employees</SelectItem>
-                        <SelectItem value="51-200">51-200 employees</SelectItem>
-                        <SelectItem value="201-500">201-500 employees</SelectItem>
-                        <SelectItem value="500+">500+ employees</SelectItem>
+                        {["1-10", "11-50", "51-200", "201-500", "500+"].map((value) => (
+                          <SelectItem key={value} value={value}>{crmEnum(value, language)}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div>
-                    <Label htmlFor="editWebsite">Website</Label>
+                    <Label htmlFor="editWebsite">{crmText(language, "website")}</Label>
                     <Input
                       id="editWebsite"
                       placeholder="https://www.example.com"
@@ -1908,20 +1867,20 @@ export default function CRM() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="editTaxId">Tax ID</Label>
+                    <Label htmlFor="editTaxId">{crmText(language, "taxId")}</Label>
                     <Input
                       id="editTaxId"
-                      placeholder="Tax identification number"
+                      placeholder={crmText(language, "taxIdPlaceholder")}
                       value={editingCustomer.taxId || ""}
                       onChange={(e) => setEditingCustomer({ ...editingCustomer, taxId: e.target.value })}
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="editRegistrationNumber">Registration Number</Label>
+                    <Label htmlFor="editRegistrationNumber">{crmText(language, "registrationNumber")}</Label>
                     <Input
                       id="editRegistrationNumber"
-                      placeholder="Company registration number"
+                      placeholder={crmText(language, "registrationNumberPlaceholder")}
                       value={editingCustomer.registrationNumber || ""}
                       onChange={(e) => setEditingCustomer({ ...editingCustomer, registrationNumber: e.target.value })}
                     />
@@ -1932,38 +1891,30 @@ export default function CRM() {
               {/* Customer Management */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
-                  Customer Management
+                  {crmText(language, "customerManagement")}
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="editCustomerType">Customer Type</Label>
+                    <Label htmlFor="editCustomerType">{crmText(language, "customerType")}</Label>
                     <Select value={editingCustomer.customerType || ""} onValueChange={(value) => setEditingCustomer({ ...editingCustomer, customerType: value })}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select customer type" />
+                        <SelectValue placeholder={crmText(language, "selectCustomerType")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="regular">Regular</SelectItem>
-                        <SelectItem value="vip">VIP</SelectItem>
-                        <SelectItem value="wholesale">Wholesale</SelectItem>
-                        <SelectItem value="retail">Retail</SelectItem>
-                        <SelectItem value="industrial">Industrial</SelectItem>
+                        {["regular", "vip", "wholesale", "retail", "industrial"].map((value) => <SelectItem key={value} value={value}>{crmEnum(value, language)}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div>
-                    <Label htmlFor="editPreferredPaymentMethod">Payment Method</Label>
+                    <Label htmlFor="editPreferredPaymentMethod">{crmText(language, "paymentMethod")}</Label>
                     <Select value={editingCustomer.preferredPaymentMethod || ""} onValueChange={(value) => setEditingCustomer({ ...editingCustomer, preferredPaymentMethod: value })}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select payment method" />
+                        <SelectValue placeholder={crmText(language, "selectPaymentMethod")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="cash">Cash</SelectItem>
-                        <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                        <SelectItem value="check">Check</SelectItem>
-                        <SelectItem value="credit">Credit</SelectItem>
-                        <SelectItem value="installments">Installments</SelectItem>
+                        {["cash", "bank_transfer", "check", "credit", "installments"].map((value) => <SelectItem key={value} value={value}>{crmEnum(value, language)}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -1971,45 +1922,36 @@ export default function CRM() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="editCreditLimit">Credit Limit (IQD)</Label>
+                  <Label htmlFor="editCreditLimit">{crmText(language, "creditLimit")}</Label>
                     <Input
                       id="editCreditLimit"
-                      placeholder="Enter credit limit"
+                      placeholder={crmText(language, "creditLimitPlaceholder")}
                       value={editingCustomer.creditLimit || ""}
                       onChange={(e) => setEditingCustomer({ ...editingCustomer, creditLimit: e.target.value })}
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="editLeadSource">Lead Source</Label>
+                  <Label htmlFor="editLeadSource">{crmText(language, "source")}</Label>
                     <Select value={editingCustomer.leadSource || ""} onValueChange={(value) => setEditingCustomer({ ...editingCustomer, leadSource: value })}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select lead source" />
+                        <SelectValue placeholder={crmText(language, "selectLeadSource")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="website">Website</SelectItem>
-                        <SelectItem value="referral">Referral</SelectItem>
-                        <SelectItem value="social_media">Social Media</SelectItem>
-                        <SelectItem value="advertising">Advertising</SelectItem>
-                        <SelectItem value="trade_show">Trade Show</SelectItem>
-                        <SelectItem value="cold_call">Cold Call</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
+                        {["website", "referral", "social_media", "advertising", "trade_show", "cold_call", "other"].map((value) => <SelectItem key={value} value={value}>{crmEnum(value, language)}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
 
                 <div>
-                  <Label htmlFor="editCustomerStatus">Customer Status</Label>
+                  <Label htmlFor="editCustomerStatus">{crmText(language, "status")}</Label>
                   <Select value={editingCustomer.customerStatus || ""} onValueChange={(value) => setEditingCustomer({ ...editingCustomer, customerStatus: value })}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select status" />
+                      <SelectValue placeholder={crmText(language, "selectStatus")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="inactive">Inactive</SelectItem>
-                      <SelectItem value="vip">VIP</SelectItem>
-                      <SelectItem value="blacklisted">Blacklisted</SelectItem>
+                        {["active", "inactive", "vip", "blacklisted"].map((value) => <SelectItem key={value} value={value}>{crmEnum(value, language)}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -2018,37 +1960,34 @@ export default function CRM() {
               {/* CRM Fields */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
-                  CRM Information
+                  {crmText(language, "crmInformation")}
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="editAnnualRevenue">Annual Revenue (IQD)</Label>
+                    <Label htmlFor="editAnnualRevenue">{crmText(language, "annualRevenue")}</Label>
                     <Select value={editingCustomer.annualRevenue || ""} onValueChange={(value) => setEditingCustomer({ ...editingCustomer, annualRevenue: value })}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select annual revenue" />
+                        <SelectValue placeholder={crmText(language, "selectAnnualRevenue")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="under_100m">Under 100M IQD</SelectItem>
-                        <SelectItem value="100m_500m">100M - 500M IQD</SelectItem>
-                        <SelectItem value="500m_1b">500M - 1B IQD</SelectItem>
-                        <SelectItem value="1b_5b">1B - 5B IQD</SelectItem>
-                        <SelectItem value="over_5b">Over 5B IQD</SelectItem>
+                        {["under_100m", "100m_500m", "500m_1b", "1b_5b", "over_5b"].map((value) => (
+                          <SelectItem key={value} value={value}>{crmEnum(value, language)}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div>
-                    <Label htmlFor="editPriceRange">Price Range</Label>
+                    <Label htmlFor="editPriceRange">{crmText(language, "priceRange")}</Label>
                     <Select value={editingCustomer.priceRange || ""} onValueChange={(value) => setEditingCustomer({ ...editingCustomer, priceRange: value })}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select price range" />
+                        <SelectValue placeholder={crmText(language, "selectPriceRange")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="budget">Budget (&lt; 50K IQD)</SelectItem>
-                        <SelectItem value="mid_range">Mid-range (50K - 500K IQD)</SelectItem>
-                        <SelectItem value="premium">Premium (500K - 2M IQD)</SelectItem>
-                        <SelectItem value="enterprise">Enterprise (&gt; 2M IQD)</SelectItem>
+                        {["budget", "mid_range", "premium", "enterprise"].map((value) => (
+                          <SelectItem key={value} value={value}>{crmEnum(value, language)}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -2056,45 +1995,35 @@ export default function CRM() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="editOrderFrequency">Order Frequency</Label>
+                    <Label htmlFor="editOrderFrequency">{crmText(language, "orderFrequency")}</Label>
                     <Select value={editingCustomer.orderFrequency || ""} onValueChange={(value) => setEditingCustomer({ ...editingCustomer, orderFrequency: value })}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select order frequency" />
+                        <SelectValue placeholder={crmText(language, "selectOrderFrequency")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="weekly">Weekly</SelectItem>
-                        <SelectItem value="monthly">Monthly</SelectItem>
-                        <SelectItem value="quarterly">Quarterly</SelectItem>
-                        <SelectItem value="yearly">Yearly</SelectItem>
-                        <SelectItem value="as_needed">As Needed</SelectItem>
-                        <SelectItem value="seasonal">Seasonal</SelectItem>
+                        {["weekly", "monthly", "quarterly", "yearly", "as_needed", "seasonal"].map((value) => <SelectItem key={value} value={value}>{crmEnum(value, language)}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div>
-                    <Label htmlFor="editCreditStatus">Credit Status</Label>
+                    <Label htmlFor="editCreditStatus">{crmText(language, "creditStatus")}</Label>
                     <Select value={editingCustomer.creditStatus || ""} onValueChange={(value) => setEditingCustomer({ ...editingCustomer, creditStatus: value })}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select credit status" />
+                        <SelectValue placeholder={crmText(language, "selectCreditStatus")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="excellent">Excellent</SelectItem>
-                        <SelectItem value="good">Good</SelectItem>
-                        <SelectItem value="fair">Fair</SelectItem>
-                        <SelectItem value="poor">Poor</SelectItem>
-                        <SelectItem value="no_credit">No Credit</SelectItem>
-                        <SelectItem value="pending">Pending Review</SelectItem>
+                        {["excellent", "good", "fair", "poor", "no_credit", "pending"].map((value) => <SelectItem key={value} value={value}>{crmEnum(value, language)}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
 
                 <div>
-                  <Label htmlFor="editNotes">Notes</Label>
+                    <Label htmlFor="editNotes">{crmText(language, "notes")}</Label>
                   <Input
                     id="editNotes"
-                    placeholder="Additional notes about the customer"
+                    placeholder={crmText(language, "additionalNotes")}
                     value={editingCustomer.notes || ""}
                     onChange={(e) => setEditingCustomer({ ...editingCustomer, notes: e.target.value })}
                   />
@@ -2109,7 +2038,7 @@ export default function CRM() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="flex items-center justify-between p-4 border rounded-lg">
                     <div>
-                      <Label htmlFor="sms-auth" className="font-medium">SMS Authentication</Label>
+                      <Label htmlFor="sms-auth" className="font-medium">{crmText(language, "smsAuth")}</Label>
                       <p className="text-sm text-muted-foreground">
                         Enable SMS verification for this customer
                       </p>
@@ -2123,7 +2052,7 @@ export default function CRM() {
                   
                   <div className="flex items-center justify-between p-4 border rounded-lg">
                     <div>
-                      <Label htmlFor="email-auth" className="font-medium">Email Authentication</Label>
+                      <Label htmlFor="email-auth" className="font-medium">{crmText(language, "emailAuth")}</Label>
                       <p className="text-sm text-muted-foreground">
                         Enable email verification for this customer
                       </p>
@@ -2139,13 +2068,13 @@ export default function CRM() {
 
               <div className="flex justify-end gap-2 pt-4">
                 <Button variant="outline" onClick={() => setIsEditCustomerDialogOpen(false)}>
-                  Cancel
+                  {crmText(language, "cancel")}
                 </Button>
                 <Button 
                   onClick={handleUpdateCustomer}
                   disabled={updateCustomerMutation.isPending}
                 >
-                  {updateCustomerMutation.isPending ? "Saving..." : "Save Changes"}
+                  {updateCustomerMutation.isPending ? crmText(language, "saving") : crmText(language, "saveChanges")}
                 </Button>
               </div>
             </div>
@@ -2157,14 +2086,14 @@ export default function CRM() {
       <Dialog open={isAuthDialogOpen} onOpenChange={setIsAuthDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-right">احراز هویت مشتری</DialogTitle>
+            <DialogTitle className="text-right">{crmText(language, "authenticateCustomer")}</DialogTitle>
             <DialogDescription className="text-right">
               احراز هویت برای: {selectedCustomerForAuth?.firstName} {selectedCustomerForAuth?.lastName}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4" dir="rtl">
             <div>
-              <Label className="text-right">انتخاب روش احراز هویت</Label>
+              <Label className="text-right">{crmText(language, "chooseAuthMethod")}</Label>
               <Select value={authMethod} onValueChange={(value: "sms" | "email") => setAuthMethod(value)}>
                 <SelectTrigger>
                   <SelectValue />
@@ -2173,13 +2102,13 @@ export default function CRM() {
                   <SelectItem value="email">
                     <div className="flex items-center gap-2">
                       <Mail className="h-4 w-4" />
-                      احراز هویت از طریق ایمیل
+                      {crmText(language, "authByEmail")}
                     </div>
                   </SelectItem>
                   <SelectItem value="sms">
                     <div className="flex items-center gap-2">
                       <MessageCircle className="h-4 w-4" />
-                      احراز هویت از طریق SMS
+                      {crmText(language, "authBySms")}
                     </div>
                   </SelectItem>
                 </SelectContent>
@@ -2187,21 +2116,21 @@ export default function CRM() {
             </div>
             
             <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-md">
-              <p className="font-medium">اطلاعات مشتری:</p>
-              <p>ایمیل: {selectedCustomerForAuth?.email}</p>
-              <p>تلفن: {selectedCustomerForAuth?.phone}</p>
+              <p className="font-medium">{crmText(language, "customerInformation")}:</p>
+              <p>{crmText(language, "email")}: {selectedCustomerForAuth?.email}</p>
+              <p>{crmText(language, "phone")}: {selectedCustomerForAuth?.phone}</p>
             </div>
 
             <div className="flex justify-end space-x-2 space-x-reverse">
               <Button variant="outline" onClick={() => setIsAuthDialogOpen(false)}>
-                انصراف
+                {crmText(language, "cancel")}
               </Button>
               <Button 
                 onClick={handleCustomerAuthentication}
                 disabled={isAuthenticating}
                 className="bg-green-600 hover:bg-green-700"
               >
-                {isAuthenticating ? "در حال ارسال..." : `ارسال کد ${authMethod === 'sms' ? 'SMS' : 'ایمیل'}`}
+                {isAuthenticating ? crmText(language, "sending") : crmText(language, "sendCode", { channel: crmEnum(authMethod, language) })}
               </Button>
             </div>
           </div>

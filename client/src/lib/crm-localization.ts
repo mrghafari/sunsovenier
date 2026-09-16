@@ -123,14 +123,85 @@ const supplemental: Record<Language, CrmCopy> = {
 
 Object.keys(copy).forEach((language) => Object.assign(copy[language as Language], supplemental[language as Language]));
 
+const formCopy: Record<Language, CrmCopy> = {
+  en: {
+    contactInformation: "Contact Information", selectCountry: "Select country", fullAddress: "Enter full address",
+    secondaryAddressPlaceholder: "Secondary address or workplace", postalCodePlaceholder: "Enter postal code",
+    additionalContactInformation: "Additional Contact Information", secondaryPhonePlaceholder: "Secondary phone number",
+    businessInformation: "Business Information", selectIndustry: "Select industry", selectBusinessType: "Select business type",
+    selectCompanySize: "Select company size", taxId: "Tax ID", taxIdPlaceholder: "Tax identification number",
+    registrationNumber: "Registration Number", registrationNumberPlaceholder: "Company registration number",
+    crmInformation: "CRM Information", annualRevenue: "Annual Revenue (IQD)", selectAnnualRevenue: "Select annual revenue",
+    priceRange: "Price Range", selectPriceRange: "Select price range", orderFrequency: "Order Frequency",
+    selectOrderFrequency: "Select order frequency", creditStatus: "Credit Status", selectCreditStatus: "Select credit status",
+    selectLeadSource: "Select lead source", selectStatus: "Select status", creditLimitPlaceholder: "Enter credit limit",
+    manageCustomerPassword: "Manage customer password", exportCustomerReport: "Export customer report to PDF",
+    deleteCustomer: "Delete customer", companyNamePlaceholder: "Enter company name",
+  },
+  fa: {
+    contactInformation: "اطلاعات تماس", selectCountry: "انتخاب کشور", fullAddress: "نشانی کامل را وارد کنید",
+    secondaryAddressPlaceholder: "نشانی دوم یا محل کار", postalCodePlaceholder: "کد پستی را وارد کنید",
+    additionalContactInformation: "اطلاعات تماس تکمیلی", secondaryPhonePlaceholder: "شماره تلفن دوم",
+    businessInformation: "اطلاعات تجاری", selectIndustry: "انتخاب صنعت", selectBusinessType: "انتخاب نوع کسب‌وکار",
+    selectCompanySize: "انتخاب اندازه شرکت", taxId: "شناسه مالیاتی", taxIdPlaceholder: "شماره شناسایی مالیاتی",
+    registrationNumber: "شماره ثبت", registrationNumberPlaceholder: "شماره ثبت شرکت",
+    crmInformation: "اطلاعات CRM", annualRevenue: "درآمد سالانه (دینار عراق)", selectAnnualRevenue: "انتخاب درآمد سالانه",
+    priceRange: "بازه قیمت", selectPriceRange: "انتخاب بازه قیمت", orderFrequency: "تناوب سفارش",
+    selectOrderFrequency: "انتخاب تناوب سفارش", creditStatus: "وضعیت اعتبار", selectCreditStatus: "انتخاب وضعیت اعتبار",
+    selectLeadSource: "انتخاب منبع مشتری", selectStatus: "انتخاب وضعیت", creditLimitPlaceholder: "سقف اعتبار را وارد کنید",
+    manageCustomerPassword: "مدیریت رمز عبور مشتری", exportCustomerReport: "خروجی PDF گزارش مشتری",
+    deleteCustomer: "حذف مشتری", companyNamePlaceholder: "نام شرکت را وارد کنید",
+  },
+  ar: {
+    contactInformation: "معلومات الاتصال", selectCountry: "اختر البلد", fullAddress: "أدخل العنوان الكامل",
+    secondaryAddressPlaceholder: "العنوان الثانوي أو مكان العمل", postalCodePlaceholder: "أدخل الرمز البريدي",
+    additionalContactInformation: "معلومات اتصال إضافية", secondaryPhonePlaceholder: "رقم الهاتف الثانوي",
+    businessInformation: "معلومات العمل", selectIndustry: "اختر القطاع", selectBusinessType: "اختر نوع العمل",
+    selectCompanySize: "اختر حجم الشركة", taxId: "الرقم الضريبي", taxIdPlaceholder: "رقم التعريف الضريبي",
+    registrationNumber: "رقم التسجيل", registrationNumberPlaceholder: "رقم تسجيل الشركة",
+    crmInformation: "معلومات CRM", annualRevenue: "الإيرادات السنوية (دينار عراقي)", selectAnnualRevenue: "اختر الإيرادات السنوية",
+    priceRange: "نطاق السعر", selectPriceRange: "اختر نطاق السعر", orderFrequency: "تكرار الطلب",
+    selectOrderFrequency: "اختر تكرار الطلب", creditStatus: "حالة الائتمان", selectCreditStatus: "اختر حالة الائتمان",
+    selectLeadSource: "اختر مصدر العميل", selectStatus: "اختر الحالة", creditLimitPlaceholder: "أدخل حد الائتمان",
+    manageCustomerPassword: "إدارة كلمة مرور العميل", exportCustomerReport: "تصدير تقرير العميل بصيغة PDF",
+    deleteCustomer: "حذف العميل", companyNamePlaceholder: "أدخل اسم الشركة",
+  },
+  tr: {
+    contactInformation: "İletişim Bilgileri", selectCountry: "Ülke seçin", fullAddress: "Tam adresi girin",
+    secondaryAddressPlaceholder: "İkinci adres veya iş yeri", postalCodePlaceholder: "Posta kodunu girin",
+    additionalContactInformation: "Ek İletişim Bilgileri", secondaryPhonePlaceholder: "İkinci telefon numarası",
+    businessInformation: "İşletme Bilgileri", selectIndustry: "Sektör seçin", selectBusinessType: "İşletme türü seçin",
+    selectCompanySize: "Şirket büyüklüğü seçin", taxId: "Vergi Numarası", taxIdPlaceholder: "Vergi kimlik numarası",
+    registrationNumber: "Kayıt Numarası", registrationNumberPlaceholder: "Şirket kayıt numarası",
+    crmInformation: "CRM Bilgileri", annualRevenue: "Yıllık Gelir (IQD)", selectAnnualRevenue: "Yıllık gelir seçin",
+    priceRange: "Fiyat Aralığı", selectPriceRange: "Fiyat aralığı seçin", orderFrequency: "Sipariş Sıklığı",
+    selectOrderFrequency: "Sipariş sıklığı seçin", creditStatus: "Kredi Durumu", selectCreditStatus: "Kredi durumu seçin",
+    selectLeadSource: "Müşteri kaynağı seçin", selectStatus: "Durum seçin", creditLimitPlaceholder: "Kredi limitini girin",
+    manageCustomerPassword: "Müşteri parolasını yönet", exportCustomerReport: "Müşteri raporunu PDF olarak dışa aktar",
+    deleteCustomer: "Müşteriyi sil", companyNamePlaceholder: "Şirket adını girin",
+  },
+};
+
+Object.keys(copy).forEach((language) => Object.assign(copy[language as Language], formCopy[language as Language]));
+
 export function crmText(language: Language, key: string, vars?: Record<string, string>) {
   const extra: Record<Language, CrmCopy> = {
-    en: { profileUpdated: "Customer profile updated successfully", profileUpdateFailed: "Failed to update customer profile", notAvailable: "N/A", notSpecified: "Not specified" },
-    fa: { profileUpdated: "پروفایل مشتری با موفقیت به‌روزرسانی شد", profileUpdateFailed: "به‌روزرسانی پروفایل مشتری ناموفق بود", notAvailable: "موجود نیست", notSpecified: "مشخص نشده" },
-    ar: { profileUpdated: "تم تحديث ملف العميل بنجاح", profileUpdateFailed: "فشل تحديث ملف العميل", notAvailable: "غير متوفر", notSpecified: "غير محدد" },
-    tr: { profileUpdated: "Müşteri profili başarıyla güncellendi", profileUpdateFailed: "Müşteri profili güncellenemedi", notAvailable: "Mevcut değil", notSpecified: "Belirtilmedi" },
+    en: { profileUpdated: "Customer profile updated successfully", profileUpdateFailed: "Failed to update customer profile", notAvailable: "N/A", notSpecified: "Not specified", customerSince: "Customer Since", lastOrder: "Last Order", source: "Source", paymentTerms: "Payment Terms", firstNameRequired: "First Name *", lastNameRequired: "Last Name *", emailAddressRequired: "Email Address *", primaryPhoneRequired: "Primary Phone *", alternatePhone: "Alternate Phone", communicationPreference: "Communication Preference", streetAddressRequired: "Street Address *", cityRequired: "City *", stateProvince: "State/Province", countryRequired: "Country *", postalCode: "Postal Code", companyName: "Company Name", industry: "Industry", businessType: "Business Type", companySize: "Company Size", creditLimit: "Credit Limit", preferredPaymentMethod: "Preferred Payment Method", notes: "Notes", selectType: "Select type", selectSize: "Select size", enterProvince: "Enter province", enterCity: "Enter city", selectProvince: "Select province", selectCity: "Select city", cityRegion: "City/Region *", province: "Province/State *", customerVerificationSettings: "Customer Verification Settings", verificationMethodsDescription: "Configure which verification methods are enabled for customer registration", requiredFields: "Please fill in all required fields", confirmDelete: "Are you sure you want to delete this customer?", customerCreated: "New customer created successfully", customerUpdated: "Customer information updated successfully", customerDeleted: "Customer deleted successfully", failedCreateCustomer: "Failed to create customer", failedUpdateCustomer: "Failed to update customer", failedDeleteCustomer: "Failed to delete customer", failedBulkUpdate: "Failed to update verification settings", enabled: "enabled", disabled: "disabled", bulkUpdated: "{channel} verification code sending {state} for {count} customers", smsAuth: "SMS Authentication", emailAuth: "Email Authentication", enableSmsForCustomer: "Enable SMS verification for this customer", enableEmailForCustomer: "Enable email verification for this customer", additionalNotes: "Additional notes about the customer", authenticateCustomer: "Customer Authentication", chooseAuthMethod: "Choose authentication method", authByEmail: "Authenticate via email", authBySms: "Authenticate via SMS", customerInformation: "Customer information", sendCode: "Send {channel} code", sending: "Sending…" },
+    fa: { profileUpdated: "پروفایل مشتری با موفقیت به‌روزرسانی شد", profileUpdateFailed: "به‌روزرسانی پروفایل مشتری ناموفق بود", notAvailable: "موجود نیست", notSpecified: "مشخص نشده", customerSince: "از زمان عضویت", lastOrder: "آخرین سفارش", source: "منبع", paymentTerms: "شرایط پرداخت", firstNameRequired: "نام *", lastNameRequired: "نام خانوادگی *", emailAddressRequired: "آدرس ایمیل *", primaryPhoneRequired: "تلفن اصلی *", alternatePhone: "تلفن جایگزین", communicationPreference: "روش ارتباط", streetAddressRequired: "نشانی خیابان *", cityRequired: "شهر *", stateProvince: "استان", countryRequired: "کشور *", postalCode: "کد پستی", companyName: "نام شرکت", industry: "صنعت", businessType: "نوع کسب‌وکار", companySize: "اندازه شرکت", creditLimit: "حد اعتبار", preferredPaymentMethod: "روش پرداخت ترجیحی", notes: "یادداشت‌ها", selectType: "انتخاب نوع", selectSize: "انتخاب اندازه", enterProvince: "استان را وارد کنید", enterCity: "شهر را وارد کنید", selectProvince: "انتخاب استان", selectCity: "انتخاب شهر", cityRegion: "شهر/منطقه *", province: "استان *", customerVerificationSettings: "تنظیمات تأیید مشتری", verificationMethodsDescription: "روش‌های فعال تأیید هنگام ثبت‌نام مشتری را تنظیم کنید", requiredFields: "لطفاً همه فیلدهای الزامی را تکمیل کنید", confirmDelete: "آیا از حذف این مشتری مطمئن هستید؟", customerCreated: "مشتری جدید با موفقیت ایجاد شد", customerUpdated: "اطلاعات مشتری با موفقیت به‌روزرسانی شد", customerDeleted: "مشتری با موفقیت حذف شد", failedCreateCustomer: "ایجاد مشتری ناموفق بود", failedUpdateCustomer: "به‌روزرسانی مشتری ناموفق بود", failedDeleteCustomer: "حذف مشتری ناموفق بود", failedBulkUpdate: "به‌روزرسانی تنظیمات تأیید ناموفق بود", enabled: "فعال", disabled: "غیرفعال", bulkUpdated: "ارسال کد تأیید {channel} برای {count} مشتری {state} شد", smsAuth: "احراز هویت پیامکی", emailAuth: "احراز هویت ایمیلی", enableSmsForCustomer: "فعال‌سازی تأیید پیامکی برای این مشتری", enableEmailForCustomer: "فعال‌سازی تأیید ایمیلی برای این مشتری", additionalNotes: "یادداشت‌های تکمیلی مشتری", authenticateCustomer: "احراز هویت مشتری", chooseAuthMethod: "روش احراز هویت را انتخاب کنید", authByEmail: "احراز هویت از طریق ایمیل", authBySms: "احراز هویت از طریق پیامک", customerInformation: "اطلاعات مشتری", sendCode: "ارسال کد {channel}", sending: "در حال ارسال…" },
+    ar: { profileUpdated: "تم تحديث ملف العميل بنجاح", profileUpdateFailed: "فشل تحديث ملف العميل", notAvailable: "غير متوفر", notSpecified: "غير محدد", customerSince: "العميل منذ", lastOrder: "آخر طلب", source: "المصدر", paymentTerms: "شروط الدفع", firstNameRequired: "الاسم الأول *", lastNameRequired: "اسم العائلة *", emailAddressRequired: "البريد الإلكتروني *", primaryPhoneRequired: "الهاتف الأساسي *", alternatePhone: "هاتف بديل", communicationPreference: "طريقة التواصل", streetAddressRequired: "عنوان الشارع *", cityRequired: "المدينة *", stateProvince: "الولاية/المحافظة", countryRequired: "الدولة *", postalCode: "الرمز البريدي", companyName: "اسم الشركة", industry: "مجال النشاط", businessType: "نوع العمل", companySize: "حجم الشركة", creditLimit: "حد الائتمان", preferredPaymentMethod: "طريقة الدفع المفضلة", notes: "ملاحظات", selectType: "اختر النوع", selectSize: "اختر الحجم", enterProvince: "أدخل المحافظة", enterCity: "أدخل المدينة", selectProvince: "اختر المحافظة", selectCity: "اختر المدينة", cityRegion: "المدينة/المنطقة *", province: "المحافظة *", customerVerificationSettings: "إعدادات التحقق من العميل", verificationMethodsDescription: "تكوين طرق التحقق المفعلة لتسجيل العملاء", requiredFields: "يرجى ملء جميع الحقول المطلوبة", confirmDelete: "هل تريد حذف هذا العميل؟", customerCreated: "تم إنشاء العميل الجديد بنجاح", customerUpdated: "تم تحديث معلومات العميل بنجاح", customerDeleted: "تم حذف العميل بنجاح", failedCreateCustomer: "فشل إنشاء العميل", failedUpdateCustomer: "فشل تحديث العميل", failedDeleteCustomer: "فشل حذف العميل", failedBulkUpdate: "فشل تحديث إعدادات التحقق", enabled: "مفعّل", disabled: "معطّل", bulkUpdated: "تم {state} إرسال رمز التحقق {channel} إلى {count} عميلاً", smsAuth: "المصادقة عبر الرسائل", emailAuth: "المصادقة عبر البريد", enableSmsForCustomer: "تفعيل التحقق عبر الرسائل لهذا العميل", enableEmailForCustomer: "تفعيل التحقق عبر البريد لهذا العميل", additionalNotes: "ملاحظات إضافية عن العميل", authenticateCustomer: "مصادقة العميل", chooseAuthMethod: "اختر طريقة المصادقة", authByEmail: "المصادقة عبر البريد", authBySms: "المصادقة عبر الرسائل", customerInformation: "معلومات العميل", sendCode: "إرسال رمز {channel}", sending: "جار الإرسال…" },
+    tr: { profileUpdated: "Müşteri profili başarıyla güncellendi", profileUpdateFailed: "Müşteri profili güncellenemedi", notAvailable: "Mevcut değil", notSpecified: "Belirtilmedi", customerSince: "Müşteri olma tarihi", lastOrder: "Son Sipariş", source: "Kaynak", paymentTerms: "Ödeme Koşulları", firstNameRequired: "Ad *", lastNameRequired: "Soyad *", emailAddressRequired: "E-posta *", primaryPhoneRequired: "Birincil Telefon *", alternatePhone: "Alternatif Telefon", communicationPreference: "İletişim Tercihi", streetAddressRequired: "Sokak Adresi *", cityRequired: "Şehir *", stateProvince: "İl/Eyalet", countryRequired: "Ülke *", postalCode: "Posta Kodu", companyName: "Şirket Adı", industry: "Sektör", businessType: "İşletme Türü", companySize: "Şirket Büyüklüğü", creditLimit: "Kredi Limiti", preferredPaymentMethod: "Tercih Edilen Ödeme Yöntemi", notes: "Notlar", selectType: "Tür seçin", selectSize: "Boyut seçin", enterProvince: "İl girin", enterCity: "Şehir girin", selectProvince: "İl seçin", selectCity: "Şehir seçin", cityRegion: "Şehir/Bölge *", province: "İl *", customerVerificationSettings: "Müşteri Doğrulama Ayarları", verificationMethodsDescription: "Müşteri kaydı için etkin doğrulama yöntemlerini yapılandırın", requiredFields: "Lütfen tüm gerekli alanları doldurun", confirmDelete: "Bu müşteriyi silmek istediğinizden emin misiniz?", customerCreated: "Yeni müşteri başarıyla oluşturuldu", customerUpdated: "Müşteri bilgileri başarıyla güncellendi", customerDeleted: "Müşteri başarıyla silindi", failedCreateCustomer: "Müşteri oluşturulamadı", failedUpdateCustomer: "Müşteri güncellenemedi", failedDeleteCustomer: "Müşteri silinemedi", failedBulkUpdate: "Doğrulama ayarları güncellenemedi", enabled: "etkinleştirildi", disabled: "devre dışı bırakıldı", bulkUpdated: "{count} müşteri için {channel} doğrulama kodu gönderimi {state}", smsAuth: "SMS Kimlik Doğrulama", emailAuth: "E-posta Kimlik Doğrulama", enableSmsForCustomer: "Bu müşteri için SMS doğrulamasını etkinleştir", enableEmailForCustomer: "Bu müşteri için e-posta doğrulamasını etkinleştir", additionalNotes: "Müşteri hakkında ek notlar", authenticateCustomer: "Müşteri Kimlik Doğrulaması", chooseAuthMethod: "Kimlik doğrulama yöntemini seçin", authByEmail: "E-posta ile doğrula", authBySms: "SMS ile doğrula", customerInformation: "Müşteri bilgileri", sendCode: "{channel} kodu gönder", sending: "Gönderiliyor…" },
   };
-  let value = copy[language][key] || extra[language][key] || copy.en[key] || key;
+  const aliases: Record<Language, CrmCopy> = {
+    en: { customerType: "Customer Type", preferredLanguage: "Preferred Language", editCustomer: "Edit Customer", editDescription: "Edit customer information", customerManagement: "Customer Management", communicationPreferences: "Communication Preferences", paymentMethod: "Payment Method", cancel: "Cancel", saving: "Saving…", saveChanges: "Save Changes", companyRegistration: "Company registration number", selectCustomerType: "Select customer type", selectPaymentMethod: "Select payment method", firstName: "First Name", lastName: "Last Name", country: "Country", secondaryAddress: "Secondary address", optional: "Optional" },
+    fa: { customerType: "نوع مشتری", preferredLanguage: "زبان ترجیحی", editCustomer: "ویرایش مشتری", editDescription: "ویرایش اطلاعات مشتری", customerManagement: "مدیریت مشتری", communicationPreferences: "تنظیمات ارتباطی", paymentMethod: "روش پرداخت", cancel: "انصراف", saving: "در حال ذخیره…", saveChanges: "ذخیره تغییرات", companyRegistration: "شماره ثبت شرکت", selectCustomerType: "انتخاب نوع مشتری", selectPaymentMethod: "انتخاب روش پرداخت", firstName: "نام", lastName: "نام خانوادگی", country: "کشور", secondaryAddress: "آدرس دوم", optional: "اختیاری" },
+    ar: { customerType: "نوع العميل", preferredLanguage: "اللغة المفضلة", editCustomer: "تعديل العميل", editDescription: "تعديل معلومات العميل", customerManagement: "إدارة العميل", communicationPreferences: "تفضيلات التواصل", paymentMethod: "طريقة الدفع", cancel: "إلغاء", saving: "جار الحفظ…", saveChanges: "حفظ التغييرات", companyRegistration: "رقم تسجيل الشركة", selectCustomerType: "اختر نوع العميل", selectPaymentMethod: "اختر طريقة الدفع", firstName: "الاسم الأول", lastName: "اسم العائلة", country: "الدولة", secondaryAddress: "العنوان الثاني", optional: "اختياري" },
+    tr: { customerType: "Müşteri Türü", preferredLanguage: "Tercih Edilen Dil", editCustomer: "Müşteriyi Düzenle", editDescription: "Müşteri bilgilerini düzenleyin", customerManagement: "Müşteri Yönetimi", communicationPreferences: "İletişim Tercihleri", paymentMethod: "Ödeme Yöntemi", cancel: "İptal", saving: "Kaydediliyor…", saveChanges: "Değişiklikleri Kaydet", companyRegistration: "Şirket sicil numarası", selectCustomerType: "Müşteri türü seçin", selectPaymentMethod: "Ödeme yöntemi seçin", firstName: "Ad", lastName: "Soyad", country: "Ülke", secondaryAddress: "İkinci adres", optional: "İsteğe bağlı" },
+  };
+  Object.assign(aliases.en, { password: "Password (Optional)", internalNotes: "Internal Notes", secondaryAddress: "Secondary Address" });
+  Object.assign(aliases.fa, { password: "رمز عبور (اختیاری)", internalNotes: "یادداشت داخلی", secondaryAddress: "آدرس دوم" });
+  Object.assign(aliases.ar, { password: "كلمة المرور (اختياري)", internalNotes: "ملاحظات داخلية", secondaryAddress: "العنوان الثاني" });
+  Object.assign(aliases.tr, { password: "Parola (İsteğe bağlı)", internalNotes: "Dahili Notlar", secondaryAddress: "İkinci Adres" });
+  let value = copy[language][key] || extra[language][key] || aliases[language][key] || copy.en[key] || aliases.en[key] || key;
   Object.entries(vars || {}).forEach(([name, replacement]) => { value = value.replace(`{${name}}`, replacement); });
   return value;
 }
@@ -161,7 +232,6 @@ export function crmEnum(value: string | undefined | null, language: Language) {
     referral: { en: "Referral", fa: "معرفی", ar: "إحالة", tr: "Referans" },
     marketing: { en: "Marketing", fa: "بازاریابی", ar: "تسويق", tr: "Pazarlama" },
     cold_call: { en: "Cold Call", fa: "تماس سرد", ar: "اتصال بارد", tr: "Soğuk arama" },
-    trade_show: { en: "Trade Show", fa: "نمایشگاه", ar: "معرض تجاري", tr: "Ticaret fuarı" },
     email: { en: "Email", fa: "ایمیل", ar: "البريد الإلكتروني", tr: "E-posta" },
     phone: { en: "Phone", fa: "تلفن", ar: "الهاتف", tr: "Telefon" },
     sms: { en: "SMS", fa: "پیامک", ar: "رسائل نصية", tr: "SMS" },
@@ -175,6 +245,43 @@ export function crmEnum(value: string | undefined | null, language: Language) {
     net_30: { en: "Net 30", fa: "خالص ۳۰", ar: "صافي 30", tr: "Net 30" },
     net_60: { en: "Net 60", fa: "خالص ۶۰", ar: "صافي 60", tr: "Net 60" },
     net_90: { en: "Net 90", fa: "خالص ۹۰", ar: "صافي 90", tr: "Net 90" },
+    small: { en: "Small (1–50 employees)", fa: "کوچک (۱ تا ۵۰ نفر)", ar: "صغيرة (1–50 موظف)", tr: "Küçük (1–50 çalışan)" },
+    medium: { en: "Medium (51–250 employees)", fa: "متوسط (۵۱ تا ۲۵۰ نفر)", ar: "متوسطة (51–250 موظف)", tr: "Orta (51–250 çalışan)" },
+    large: { en: "Large (251–1000 employees)", fa: "بزرگ (۲۵۱ تا ۱۰۰۰ نفر)", ar: "كبيرة (251–1000 موظف)", tr: "Büyük (251–1000 çalışan)" },
+    enterprise: { en: "Enterprise (1000+ employees)", fa: "سازمانی (بیش از ۱۰۰۰ نفر)", ar: "مؤسسية (1000+ موظف)", tr: "Kurumsal (1000+ çalışan)" },
+    social_media: { en: "Social Media", fa: "شبکه‌های اجتماعی", ar: "التواصل الاجتماعي", tr: "Sosyal medya" },
+    trade_show: { en: "Trade Show", fa: "نمایشگاه", ar: "معرض تجاري", tr: "Ticaret fuarı" },
+    other: { en: "Other", fa: "سایر", ar: "أخرى", tr: "Diğer" },
+    no_credit: { en: "No Credit", fa: "بدون اعتبار", ar: "بدون ائتمان", tr: "Kredi yok" },
+    pending_review: { en: "Pending Review", fa: "در انتظار بررسی", ar: "قيد المراجعة", tr: "İnceleme bekliyor" },
+    under_100m: { en: "Under 100M IQD", fa: "کمتر از ۱۰۰ میلیون دینار", ar: "أقل من 100 مليون دينار", tr: "100 milyon IQD'den az" },
+    over_5b: { en: "Over 5B IQD", fa: "بیش از ۵ میلیارد دینار", ar: "أكثر من 5 مليارات دينار", tr: "5 milyar IQD'den fazla" },
+    mid_range: { en: "Mid-range", fa: "متوسط", ar: "متوسط", tr: "Orta" },
+    as_needed: { en: "As Needed", fa: "بر اساس نیاز", ar: "حسب الحاجة", tr: "İhtiyaca göre" },
+    regular: { en: "Regular", fa: "عادی", ar: "عادي", tr: "Standart" },
+    industrial: { en: "Industrial", fa: "صنعتی", ar: "صناعي", tr: "Endüstriyel" },
+    cash: { en: "Cash", fa: "نقدی", ar: "نقدي", tr: "Nakit" },
+    bank_transfer: { en: "Bank Transfer", fa: "حواله بانکی", ar: "تحويل بنكي", tr: "Banka havalesi" },
+    check: { en: "Check", fa: "چک", ar: "شيك", tr: "Çek" },
+    installments: { en: "Installments", fa: "اقساط", ar: "تقسيط", tr: "Taksit" },
+    advertising: { en: "Advertising", fa: "تبلیغات", ar: "إعلان", tr: "Reklam" },
+    chemical: { en: "Chemical", fa: "شیمیایی", ar: "كيميائي", tr: "Kimya" },
+    petrochemical: { en: "Petrochemical", fa: "پتروشیمی", ar: "بتروكيماويات", tr: "Petrokimya" },
+    pharmaceutical: { en: "Pharmaceutical", fa: "دارویی", ar: "دوائي", tr: "İlaç" },
+    agriculture: { en: "Agriculture", fa: "کشاورزی", ar: "زراعي", tr: "Tarım" },
+    construction: { en: "Construction", fa: "ساختمان", ar: "إنشاءات", tr: "İnşaat" },
+    automotive: { en: "Automotive", fa: "خودرویی", ar: "سيارات", tr: "Otomotiv" },
+    textile: { en: "Textile", fa: "نساجی", ar: "نسيج", tr: "Tekstil" },
+    food: { en: "Food", fa: "غذایی", ar: "غذائي", tr: "Gıda" },
+    water_treatment: { en: "Water Treatment", fa: "تصفیه آب", ar: "معالجة المياه", tr: "Su arıtma" },
+    en: { en: "English", fa: "انگلیسی", ar: "الإنجليزية", tr: "İngilizce" },
+    fa: { en: "Persian", fa: "فارسی", ar: "الفارسية", tr: "Farsça" },
+    ar: { en: "Arabic", fa: "عربی", ar: "العربية", tr: "Arapça" },
+    ku: { en: "Kurdish", fa: "کردی", ar: "الكردية", tr: "Kürtçe" },
+    paint: { en: "Paint & Resin", fa: "رنگ و رزین", ar: "دهانات وراتنجات", tr: "Boya ve reçine" },
+    service_provider: { en: "Service Provider", fa: "ارائه‌دهنده خدمات", ar: "مقدم خدمات", tr: "Hizmet sağlayıcı" },
+    research: { en: "Research & Development", fa: "تحقیق و توسعه", ar: "بحث وتطوير", tr: "Araştırma ve geliştirme" },
+    consultant: { en: "Consultant", fa: "مشاور", ar: "استشاري", tr: "Danışman" },
     pending: { en: "Pending", fa: "در انتظار", ar: "قيد الانتظار", tr: "Beklemede" },
     confirmed: { en: "Confirmed", fa: "تأییدشده", ar: "مؤكد", tr: "Onaylandı" },
     shipped: { en: "Shipped", fa: "ارسال‌شده", ar: "تم الشحن", tr: "Kargolandı" },
@@ -197,6 +304,27 @@ export function crmEnum(value: string | undefined | null, language: Language) {
     admin: { en: "Admin", fa: "مدیر", ar: "المشرف", tr: "Yönetici" },
     system: { en: "System", fa: "سامانه", ar: "النظام", tr: "Sistem" },
     customer: { en: "Customer", fa: "مشتری", ar: "العميل", tr: "Müşteri" },
+    Iraq: { en: "Iraq", fa: "عراق", ar: "العراق", tr: "Irak" },
+    Iran: { en: "Iran", fa: "ایران", ar: "إيران", tr: "İran" },
+    Turkey: { en: "Turkey", fa: "ترکیه", ar: "تركيا", tr: "Türkiye" },
+    Syria: { en: "Syria", fa: "سوریه", ar: "سوريا", tr: "Suriye" },
+    Jordan: { en: "Jordan", fa: "اردن", ar: "الأردن", tr: "Ürdün" },
+    Lebanon: { en: "Lebanon", fa: "لبنان", ar: "لبنان", tr: "Lübnan" },
+    Kuwait: { en: "Kuwait", fa: "کویت", ar: "الكويت", tr: "Kuveyt" },
+    "Saudi Arabia": { en: "Saudi Arabia", fa: "عربستان سعودی", ar: "المملكة العربية السعودية", tr: "Suudi Arabistan" },
+    UAE: { en: "UAE", fa: "امارات متحده عربی", ar: "الإمارات العربية المتحدة", tr: "BAE" },
+    Other: { en: "Other", fa: "سایر", ar: "أخرى", tr: "Diğer" },
+    "1-10": { en: "1–10 employees", fa: "۱ تا ۱۰ کارمند", ar: "1–10 موظفين", tr: "1–10 çalışan" },
+    "11-50": { en: "11–50 employees", fa: "۱۱ تا ۵۰ کارمند", ar: "11–50 موظفاً", tr: "11–50 çalışan" },
+    "51-200": { en: "51–200 employees", fa: "۵۱ تا ۲۰۰ کارمند", ar: "51–200 موظف", tr: "51–200 çalışan" },
+    "201-500": { en: "201–500 employees", fa: "۲۰۱ تا ۵۰۰ کارمند", ar: "201–500 موظف", tr: "201–500 çalışan" },
+    "500+": { en: "500+ employees", fa: "بیش از ۵۰۰ کارمند", ar: "أكثر من 500 موظف", tr: "500+ çalışan" },
+    "100m_500m": { en: "100M–500M IQD", fa: "۱۰۰ تا ۵۰۰ میلیون دینار", ar: "100–500 مليون دينار", tr: "100–500 milyon IQD" },
+    "500m_1b": { en: "500M–1B IQD", fa: "۵۰۰ میلیون تا ۱ میلیارد دینار", ar: "500 مليون–1 مليار دينار", tr: "500 milyon–1 milyar IQD" },
+    "1b_5b": { en: "1B–5B IQD", fa: "۱ تا ۵ میلیارد دینار", ar: "1–5 مليارات دينار", tr: "1–5 milyar IQD" },
+    budget: { en: "Budget (< 50K IQD)", fa: "اقتصادی (کمتر از ۵۰ هزار دینار)", ar: "اقتصادي (أقل من 50 ألف دينار)", tr: "Ekonomik (< 50 bin IQD)" },
+    premium: { en: "Premium (500K–2M IQD)", fa: "ویژه (۵۰۰ هزار تا ۲ میلیون دینار)", ar: "مميز (500 ألف–2 مليون دينار)", tr: "Premium (500 bin–2 milyon IQD)" },
   };
-  return labels[value.toLowerCase()]?.[language] || value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+  return labels[value]?.[language] || labels[value.toLowerCase()]?.[language] ||
+    value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
