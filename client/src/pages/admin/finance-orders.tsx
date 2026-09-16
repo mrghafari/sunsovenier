@@ -94,9 +94,9 @@ const pageTranslations: Record<string, Record<PageLanguage, string>> = {
   walletPending: { en: 'Wallet (needs approval)', fa: 'کیف پول (نیاز به تأیید)', ar: 'المحفظة (تحتاج إلى اعتماد)', tr: 'Cüzdan (onay bekliyor)' },
   bankGateway: { en: 'Bank gateway', fa: 'درگاه بانکی', ar: 'بوابة البنك', tr: 'Banka ağ geçidi' },
   totalAmounts: { en: 'Total amounts', fa: 'مجموع مبالغ', ar: 'إجمالي المبالغ', tr: 'Toplam tutarlar' },
-  transferredCount: { en: 'Transferred count', fa: 'تعداد ارجاع شده', ar: 'عدد المحال', tr: 'Aktarılan sayı' },
+  transferredCount: { en: 'Financially reviewed', fa: 'بررسی‌شده مالی', ar: 'تمت مراجعته مالياً', tr: 'Finansal olarak incelendi' },
   pendingReview: { en: 'Awaiting review', fa: 'در انتظار بررسی', ar: 'بانتظار المراجعة', tr: 'İnceleme bekliyor' },
-  transferred: { en: 'Transferred', fa: 'ارجاع شده', ar: 'مُحال', tr: 'Aktarıldı' },
+  transferred: { en: 'Financially reviewed', fa: 'بررسی‌شده مالی', ar: 'تمت مراجعته مالياً', tr: 'Finansal olarak incelendi' },
   rejected: { en: 'Rejected', fa: 'رد شده', ar: 'مرفوض', tr: 'Reddedildi' },
   allReviewed: { en: 'All orders have been reviewed', fa: 'همه سفارشات بررسی شده', ar: 'تمت مراجعة جميع الطلبات', tr: 'Tüm siparişler incelendi' },
   noPendingReview: { en: 'There are currently no orders awaiting financial review', fa: 'در حال حاضر سفارشی برای بررسی مالی وجود ندارد', ar: 'لا توجد طلبات حالياً بانتظار المراجعة المالية', tr: 'Şu anda finansal inceleme bekleyen sipariş yok' },
@@ -1187,9 +1187,7 @@ function FinanceOrders() {
                 </td>
                 <td className="w-[120px] border border-slate-200 px-3 py-2 align-top whitespace-normal break-words">
                   <div className="[&>div]:h-auto [&>div]:max-w-full [&>div]:whitespace-normal [&>div]:break-words [&>div]:text-start [&>div]:leading-5">
-                    {transferred
-                      ? <Badge variant="outline" className="bg-green-50 text-green-700 whitespace-normal break-words">{t('transferredToWarehouse')}</Badge>
-                      : getStatusBadge(order.currentStatus)}
+                    {getStatusBadge(order.currentStatus)}
                   </div>
                 </td>
                 <td className="border border-slate-200 px-3 py-2">

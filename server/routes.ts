@@ -33695,30 +33695,42 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         }
       }
       
-      const mappedOrders = result.rows.map(row => ({
-        id: row.id,
-        customerOrderId: row.customer_order_id,
-        orderNumber: row.order_number,
-        currentStatus: row.current_status,
-        paymentMethod: row.payment_method || 'نامشخص',
-        paymentSourceLabel: getPaymentSourceLabel(row.payment_method),
-        totalAmount: row.total_amount || '0',
-        customerName: row.customer_name || row.guest_email || 'مشتری ناشناس',
-        customerEmail: row.customer_email || row.guest_email,
-        customerPhone: row.customer_phone || null,
-        createdAt: row.created_at,
-        financialNotes: row.financial_notes,
-        financialReviewedAt: row.financial_reviewed_at,
-        invoiceType: row.invoice_type,
-        invoiceConvertedAt: row.invoice_converted_at,
-        shippingAddress: {
-          name: row.customer_name || 'نام نامشخص',
-          phone: row.customer_phone || '',
-          address: row.customer_address || '',
-          city: row.customer_city_region || '',
-          postalCode: ''
-        }
-      }));
+      const mappedOrders = result.rows.map(row => {
+        const statusProjection = resolveOrderStatus({
+          workflowStatus: row.current_status,
+          orderStatus: row.customer_status,
+          paymentStatus: row.payment_status,
+          paymentMethod: row.payment_method,
+          financialReviewedAt: row.financial_reviewed_at,
+        });
+        return {
+          id: row.id,
+          customerOrderId: row.customer_order_id,
+          orderNumber: row.order_number,
+          currentStatus: row.current_status,
+          status: row.customer_status,
+          paymentStatus: row.payment_status,
+          statusProjection,
+          paymentMethod: row.payment_method || 'نامشخص',
+          paymentSourceLabel: getPaymentSourceLabel(row.payment_method),
+          totalAmount: row.total_amount || '0',
+          customerName: row.customer_name || row.guest_email || 'مشتری ناشناس',
+          customerEmail: row.customer_email || row.guest_email,
+          customerPhone: row.customer_phone || null,
+          createdAt: row.created_at,
+          financialNotes: row.financial_notes,
+          financialReviewedAt: row.financial_reviewed_at,
+          invoiceType: row.invoice_type,
+          invoiceConvertedAt: row.invoice_converted_at,
+          shippingAddress: {
+            name: row.customer_name || 'نام نامشخص',
+            phone: row.customer_phone || '',
+            address: row.customer_address || '',
+            city: row.customer_city_region || '',
+            postalCode: ''
+          }
+        };
+      });
       
       console.log(`✅ [APPROVED ORDERS] Found ${mappedOrders.length} approved orders`);
       
