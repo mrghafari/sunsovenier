@@ -19,11 +19,14 @@ import UnifiedCustomerProfile from "@/components/unified-customer-profile";
 import { PasswordManagement } from "@/components/PasswordManagement";
 
 import { apiRequest } from "@/lib/queryClient";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { crmCurrency, crmDate, crmEnum, crmText } from "@/lib/crm-localization";
 
 // Province and City components for Iraq geographical data
 
 // Verification Settings Panel Component
 function VerificationSettingsPanel() {
+  const { language, direction } = useLanguage();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -48,15 +51,15 @@ function VerificationSettingsPanel() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/customer/verification-settings"] });
       toast({
-        title: "Success",
-        description: "Verification settings updated successfully",
+        title: crmText(language, "success"),
+        description: crmText(language, "verificationUpdated"),
       });
     },
     onError: (error: any) => {
       toast({
         variant: "destructive",
-        title: "Error",
-        description: error.message || "Failed to update settings",
+        title: crmText(language, "error"),
+        description: error.message || crmText(language, "failedUpdateSettings"),
       });
     },
   });
@@ -91,19 +94,19 @@ function VerificationSettingsPanel() {
   };
 
   if (settingsLoading) {
-    return <div className="text-center py-4">Loading settings...</div>;
+    return <div className="text-center py-4" dir={direction}>{crmText(language, "loadingSettings")}</div>;
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" dir={direction}>
       <div className="flex items-center justify-between p-4 border rounded-lg">
         <div>
           <Label htmlFor="email-verification" className="font-medium flex items-center gap-2">
             <Mail className="w-4 h-4" />
-            Email Verification
+            {crmText(language, "emailVerification")}
           </Label>
           <p className="text-sm text-muted-foreground">
-            Send verification code via email during registration
+            {crmText(language, "emailVerificationDesc")}
           </p>
         </div>
         <Switch
@@ -118,10 +121,10 @@ function VerificationSettingsPanel() {
         <div>
           <Label htmlFor="sms-verification" className="font-medium flex items-center gap-2">
             <MessageCircle className="w-4 h-4" />
-            SMS Verification
+            {crmText(language, "smsVerification")}
           </Label>
           <p className="text-sm text-muted-foreground">
-            Send verification code via SMS during registration
+            {crmText(language, "smsVerificationDesc")}
           </p>
         </div>
         <Switch
@@ -136,10 +139,10 @@ function VerificationSettingsPanel() {
         <div>
           <Label htmlFor="whatsapp-verification" className="font-medium flex items-center gap-2">
             <MessageCircle className="w-4 h-4" />
-            WhatsApp Verification
+            {crmText(language, "whatsappVerification")}
           </Label>
           <p className="text-sm text-muted-foreground">
-            Send verification code via WhatsApp during registration
+            {crmText(language, "whatsappVerificationDesc")}
           </p>
         </div>
         <Switch
@@ -154,10 +157,10 @@ function VerificationSettingsPanel() {
         <div>
           <Label htmlFor="skip-verification" className="font-medium flex items-center gap-2">
             <Shield className="w-4 h-4" />
-            Allow Skip Verification
+            {crmText(language, "allowSkip")}
           </Label>
           <p className="text-sm text-muted-foreground">
-            Allow customers to skip verification if no channels are enabled (not recommended)
+            {crmText(language, "allowSkipDesc")}
           </p>
         </div>
         <Switch
@@ -169,7 +172,7 @@ function VerificationSettingsPanel() {
       </div>
 
       {updateSettingsMutation.isPending && (
-        <p className="text-sm text-muted-foreground text-center">Saving changes...</p>
+        <p className="text-sm text-muted-foreground text-center">{crmText(language, "saving")}</p>
       )}
     </div>
   );
@@ -426,6 +429,7 @@ export default function CRM() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { language, direction } = useLanguage();
   const [, setLocation] = useLocation();
 
   useEffect(() => {
@@ -909,24 +913,11 @@ export default function CRM() {
 
   const formatCurrency = (amount: string | number, currency: string = 'IQD') => {
     const validCurrencies = ['USD', 'EUR', 'IQD'];
-    const currencyCode = validCurrencies.includes(currency) ? currency : 'IQD';
-    const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-    
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currencyCode,
-      minimumFractionDigits: 2
-    }).format(num);
+    return crmCurrency(amount, language, validCurrencies.includes(currency) ? currency : 'IQD');
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return crmDate(dateString, language);
   };
 
   const getStatusBadgeColor = (status: string) => {
@@ -950,7 +941,7 @@ export default function CRM() {
   };
 
   if (authLoading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return <div className="flex items-center justify-center min-h-screen" dir={direction}>{crmText(language, "loading")}</div>;
   }
 
   if (!isAuthenticated) {
@@ -958,15 +949,15 @@ export default function CRM() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto p-6 space-y-6" dir={direction}>
       <div className="flex justify-between items-center">
         <div>
           <div className="mb-4">
             <h1 className="text-3xl font-bold text-gray-900">
-              CRM Dashboard
+              {crmText(language, "crmTitle")}
             </h1>
             <p className="text-lg text-blue-600 mt-1">
-              Customer Relationship Management System
+              {crmText(language, "crmSubtitle")}
             </p>
           </div>
         </div>
@@ -977,33 +968,33 @@ export default function CRM() {
             className="flex items-center gap-2"
           >
             <Download className="h-4 w-4" />
-            Export Analytics
+            {crmText(language, "exportAnalytics")}
           </Button>
           <Button onClick={() => setLocation('/customer-profile-edit?mode=create')}>
             <Plus className="h-4 w-4 mr-2" />
-            New Customer
+            {crmText(language, "newCustomer")}
           </Button>
         </div>
       </div>
 
       <Tabs defaultValue="dashboard" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-          <TabsTrigger value="customers">Customers</TabsTrigger>
-          <TabsTrigger value="activities">Activities</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
+          <TabsTrigger value="dashboard">{crmText(language, "dashboard")}</TabsTrigger>
+          <TabsTrigger value="customers">{crmText(language, "customers")}</TabsTrigger>
+          <TabsTrigger value="activities">{crmText(language, "activities")}</TabsTrigger>
+          <TabsTrigger value="settings">{crmText(language, "settings")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard" className="space-y-4">
           {statsLoading ? (
-            <div className="text-center py-8">Loading statistics...</div>
+            <div className="text-center py-8">{crmText(language, "loadingStats")}</div>
           ) : (
             <>
               {/* Overview Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
+                    <CardTitle className="text-sm font-medium">{crmText(language, "totalCustomers")}</CardTitle>
                     <Users className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
@@ -1013,7 +1004,7 @@ export default function CRM() {
 
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Active Customers</CardTitle>
+                    <CardTitle className="text-sm font-medium">{crmText(language, "activeCustomers")}</CardTitle>
                     <TrendingUp className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
@@ -1023,7 +1014,7 @@ export default function CRM() {
 
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">New This Month</CardTitle>
+                    <CardTitle className="text-sm font-medium">{crmText(language, "newThisMonth")}</CardTitle>
                     <Users className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
@@ -1143,12 +1134,12 @@ export default function CRM() {
           {/* Customers Table */}
           <Card>
             <CardHeader>
-              <CardTitle>Customer List</CardTitle>
-              <CardDescription>Manage store customer information</CardDescription>
+              <CardTitle>{crmText(language, "customerList")}</CardTitle>
+              <CardDescription>{crmText(language, "manageCustomers")}</CardDescription>
             </CardHeader>
             <CardContent>
               {customersLoading ? (
-                <div className="text-center py-8">Loading...</div>
+                <div className="text-center py-8">{crmText(language, "loading")}</div>
               ) : (
                 <Table>
                   <TableHeader>
@@ -1231,12 +1222,12 @@ export default function CRM() {
                         </TableCell>
                         <TableCell className="py-2 px-3">
                           <Badge className={`${getTypeBadgeColor(customer.customerType)} text-xs px-2 py-1`}>
-                            {customer.customerType}
+                            {crmEnum(customer.customerType, language)}
                           </Badge>
                         </TableCell>
                         <TableCell className="py-2 px-3">
                           <Badge className={`${getStatusBadgeColor(customer.customerStatus)} text-xs px-2 py-1`}>
-                            {customer.customerStatus}
+                            {crmEnum(customer.customerStatus, language)}
                           </Badge>
                         </TableCell>
                         <TableCell className="py-2 px-3">
