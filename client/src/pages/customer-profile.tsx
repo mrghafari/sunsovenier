@@ -1359,8 +1359,8 @@ const CustomerProfile = () => {
                                 : "odd:bg-slate-50 even:bg-white"
                             }`}
                           >
-                            <div className="border-e border-slate-200 px-2 py-1 font-mono text-slate-500">{orderIndex + 1}</div>
-                            <div className="border-e border-slate-200 px-3 py-1">
+                            <div className="col-start-1 row-start-1 flex min-w-0 items-center border-e border-slate-200 px-3 py-2 font-mono text-slate-500">{orderIndex + 1}</div>
+                            <div className="col-start-2 row-start-1 flex min-w-0 items-center border-e border-slate-200 px-3 py-2">
                               <div>
                                 <div className="mb-1 flex items-center gap-2">
                                   <button
@@ -1381,24 +1381,24 @@ const CustomerProfile = () => {
                               </div>
                             </div>
 
-                              <div className="col-start-3 row-start-1 border-e border-slate-200 px-3 py-1">
+                              <div className="col-start-3 row-start-1 flex min-w-0 items-center border-e border-slate-200 px-3 py-2">
                                 <p className="font-medium text-slate-700">{order.items?.length || 0} {pt.orderItems}</p>
                               </div>
-                              <div className="col-start-4 row-start-1 border-e border-slate-200 px-3 py-1">
+                              <div className="col-start-4 row-start-1 flex min-w-0 flex-col items-start justify-center border-e border-slate-200 px-3 py-2">
                                 <Badge className={`text-[10px] ${getStatusColor(order.status, order.paymentStatus)}`}>
                                   {getStatusLabel(order.status, order.paymentStatus, order)}
                                 </Badge>
                                 {(order.status === "pending" || order.status === "payment_grace_period") && (
-                                  <Badge className="mt-1 block w-fit bg-orange-100 text-[10px] text-orange-800">
-                                    <Clock className="me-1 inline h-3 w-3" />
+                                  <Badge className="mt-1 w-fit bg-orange-100 text-[10px] text-orange-800">
+                                    <Clock className="me-1 h-3 w-3" />
                                     {pt.temporaryOrder}
                                   </Badge>
                                 )}
                               </div>
-                              <div className="col-start-5 row-start-1 border-e border-slate-200 px-3 py-1">
+                              <div className="col-start-5 row-start-1 flex min-w-0 items-center border-e border-slate-200 px-3 py-2">
                                 <span className="font-semibold text-slate-900">{Math.floor(getOrderTotal(order))} IQD</span>
                               </div>
-                              <div className="col-start-6 row-start-1 border-e border-slate-200 px-3 py-1">
+                              <div className="col-start-6 row-start-1 flex min-w-0 items-center border-e border-slate-200 px-3 py-2">
                                 {order.status !== "cancelled" &&
                                   order.status !== "financial_rejected" &&
                                   order.status !== "rejected" ? (
@@ -1425,7 +1425,7 @@ const CustomerProfile = () => {
                                   <span className="text-slate-400" aria-label={pt.invoice}>—</span>
                                 )}
                               </div>
-                              <div className="col-start-7 row-start-1 px-3 py-1">
+                              <div className="col-start-7 row-start-1 flex min-w-0 items-center px-3 py-2">
                                 <button
                                   type="button"
                                   aria-expanded={expandedOrderId === order.id}
