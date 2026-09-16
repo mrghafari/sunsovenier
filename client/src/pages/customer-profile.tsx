@@ -697,7 +697,7 @@ const CustomerProfile = () => {
     const hasFinancialReview = order.financialReviewedAt;
 
     if (status === "cancelled" || status === "financial_rejected" || status === "rejected") return "cancelled";
-    if (status === "confirmed" || status === "delivered" || paymentStatus === "paid") return "completed";
+    if (status === "confirmed" || status === "delivered") return "completed";
     if (
       (paymentMethod === "wallet_full" || paymentMethod === "wallet_partial" || paymentMethod === "wallet_combined") &&
       hasFinancialReview
