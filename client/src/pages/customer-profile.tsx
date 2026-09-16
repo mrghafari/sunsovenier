@@ -697,6 +697,7 @@ const CustomerProfile = () => {
     const hasFinancialReview = order.financialReviewedAt;
 
     if (status === "cancelled" || status === "financial_rejected" || status === "rejected") return "cancelled";
+    if (paymentStatus === "receipt_uploaded" && !hasFinancialReview) return "processing";
     if (status === "confirmed" || status === "delivered") return "completed";
     if (
       (paymentMethod === "wallet_full" || paymentMethod === "wallet_partial" || paymentMethod === "wallet_combined") &&
@@ -720,7 +721,7 @@ const CustomerProfile = () => {
     return "pending";
   };
   const getLocalizedStatusForSearch = (order: any) => {
-    if (order.paymentStatus?.toLowerCase() === "receipt_uploaded") return pt.statusWaitingFinancial;
+    if (order.paymentStatus?.toLowerCase() === "receipt_uploaded" && !order.financialReviewedAt) return pt.statusWaitingFinancial;
     if (order.managementStatus?.toLowerCase() === "warehouse_pending" && order.financialReviewedAt) return pt.statusProcessingWarehouse;
     if (order.managementStatus?.toLowerCase() === "warehouse_approved" && order.financialReviewedAt) return pt.statusApprovedReady;
     return getOrderCategory(order) === "completed" ? pt.statusConfirmed
@@ -910,8 +911,8 @@ const CustomerProfile = () => {
     queryClient.invalidateQueries({ queryKey: ["/api/customers/orders"] });
   };
 
-  const getStatusColor = (status: string, paymentStatus?: string) => {
-    if (paymentStatus === "receipt_uploaded") return "bg-blue-100 text-blue-800";
+  const getStatusColor = (status: string, paymentStatus?: string, order?: any) => {
+    if (paymentStatus === "receipt_uploaded" && !order?.financialReviewedAt) return "bg-blue-100 text-blue-800";
     switch (status) {
       case "confirmed": return "bg-green-100 text-green-800";
       case "pending":
@@ -922,7 +923,7 @@ const CustomerProfile = () => {
   };
 
   const getStatusLabel = (status: string, paymentStatus?: string, order?: any) => {
-    if (paymentStatus === "receipt_uploaded") return pt.statusWaitingFinancial;
+    if (paymentStatus === "receipt_uploaded" && !order?.financialReviewedAt) return pt.statusWaitingFinancial;
     const paymentMethod = order?.paymentMethod;
     const managementStatus = order?.managementStatus?.toLowerCase();
     const hasFinancialReview = order?.financialReviewedAt;
@@ -1333,14 +1334,13 @@ const CustomerProfile = () => {
                   ) : (
                     <div className="overflow-x-auto">
                        <div className="min-w-[1040px]">
-                        <div className="sticky top-0 z-10 grid grid-cols-[44px_1.4fr_1fr_1fr_1fr_1fr_1.7fr] border-b border-slate-700 bg-slate-700 text-[11px] font-semibold uppercase tracking-wide text-slate-50">
+                        <div className="sticky top-0 z-10 grid grid-cols-[44px_1.4fr_1fr_1fr_1fr_1.7fr] border-b border-slate-700 bg-slate-700 text-[11px] font-semibold uppercase tracking-wide text-slate-50">
                          <div className="border-e border-slate-600 px-3 py-2">#</div>
                          <div className="border-e border-slate-600 px-3 py-2">{pt.orderLabel("order")}</div>
                          <div className="border-e border-slate-600 px-3 py-2">{pt.orderItems}</div>
                          <div className="border-e border-slate-600 px-3 py-2">{pt.status}</div>
                          <div className="border-e border-slate-600 px-3 py-2">{pt.totalAmount}</div>
-                         <div className="border-e border-slate-600 px-3 py-2">{pt.invoice}</div>
-                         <div className="px-3 py-2">{pt.details}</div>
+                         <div className="px-3 py-2">{pt.invoice}</div>
                        </div>
                        <div className="space-y-0">
                       {visibleOrders.map((order: any, orderIndex: number) => {
@@ -1351,7 +1351,7 @@ const CustomerProfile = () => {
                         return (
                           <div
                             key={order.id}
-                            className={`grid grid-cols-[44px_1.4fr_1fr_1fr_1fr_1fr_1.7fr] gap-0 border-b border-x-0 border-slate-200 text-xs ${
+                            className={`grid grid-cols-[44px_1.4fr_1fr_1fr_1fr_1.7fr] gap-0 border-b border-x-0 border-slate-200 text-xs ${
                               is3DayBankTransfer
                                 ? "border-orange-300 bg-orange-50"
                                 : order.status === "pending" || order.status === "payment_grace_period"
@@ -1385,7 +1385,7 @@ const CustomerProfile = () => {
                                 <p className="font-medium text-slate-700">{order.items?.length || 0} {pt.orderItems}</p>
                               </div>
                               <div className="col-start-4 row-start-1 flex min-w-0 flex-col items-start justify-center border-e border-slate-200 px-3 py-2">
-                                <Badge className={`text-[10px] ${getStatusColor(order.status, order.paymentStatus)}`}>
+                                <Badge className={`text-[10px] ${getStatusColor(order.status, order.paymentStatus, order)}`}>
                                   {getStatusLabel(order.status, order.paymentStatus, order)}
                                 </Badge>
                                 {(order.status === "pending" || order.status === "payment_grace_period") && (
@@ -1398,10 +1398,11 @@ const CustomerProfile = () => {
                               <div className="col-start-5 row-start-1 flex min-w-0 items-center border-e border-slate-200 px-3 py-2">
                                 <span className="font-semibold text-slate-900">{Math.floor(getOrderTotal(order))} IQD</span>
                               </div>
-                              <div className="col-start-6 row-start-1 flex min-w-0 items-center border-e border-slate-200 px-3 py-2">
+                              <div className="col-start-6 row-start-1 flex min-w-0 items-center px-3 py-2">
                                 {order.status !== "cancelled" &&
                                   order.status !== "financial_rejected" &&
-                                  order.status !== "rejected" ? (
+                                  order.status !== "rejected" &&
+                                  !(order.paymentStatus?.toLowerCase() === "receipt_uploaded" && !order.financialReviewedAt) ? (
                                   order.invoiceType === "official_invoice" ? (
                                     <Button
                                       size="sm"
@@ -1425,20 +1426,8 @@ const CustomerProfile = () => {
                                   <span className="text-slate-400" aria-label={pt.invoice}>—</span>
                                 )}
                               </div>
-                              <div className="col-start-7 row-start-1 flex min-w-0 items-center px-3 py-2">
-                                <button
-                                  type="button"
-                                  aria-expanded={expandedOrderId === order.id}
-                                  aria-controls={`order-details-${order.id}`}
-                                  onClick={() => setExpandedOrderId(expandedOrderId === order.id ? null : order.id)}
-                                  className="inline-flex items-center gap-1 rounded-sm px-2 py-1 text-xs font-semibold text-slate-700 underline decoration-slate-300 underline-offset-2 hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
-                                >
-                                  {pt.details}
-                                  <span aria-hidden="true">{expandedOrderId === order.id ? "▲" : "▼"}</span>
-                                </button>
-                              </div>
                             {expandedOrderId === order.id && (
-                              <div id={`order-details-${order.id}`} className="col-span-7 min-w-0 border-t border-slate-300 bg-slate-50 p-3">
+                              <div id={`order-details-${order.id}`} className="col-span-6 min-w-0 border-t border-slate-300 bg-slate-50 p-3">
                                 {is3DayBankTransfer && (order.status === "pending" || order.status === "payment_grace_period") && (
                                   <div className="mb-3 rounded border border-orange-300 bg-orange-100 p-3">
                                     <div className="mb-2 flex items-center justify-between">

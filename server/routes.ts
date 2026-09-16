@@ -1095,6 +1095,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           currency: customerOrders.currency,
           paymentMethod: customerOrders.paymentMethod,
            paymentStatus: customerOrders.paymentStatus,
+          financialReviewedAt: orderManagement.financialReviewedAt,
           status: customerOrders.status,
           createdAt: customerOrders.createdAt,
           vatAmount: customerOrders.vatAmount, // Frozen VAT amount from order creation
@@ -1108,6 +1109,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         })
         .from(customerOrders)
         .leftJoin(crmCustomers, eq(customerOrders.customerId, crmCustomers.id))
+        .leftJoin(orderManagement, eq(orderManagement.customerOrderId, customerOrders.id))
         .where(eq(customerOrders.id, orderId));
 
       if (!orderResult.length) {
@@ -1117,6 +1119,12 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       const order = orderResult[0];
       if (order.customerId !== req.session.customerId) {
         return res.status(403).json({ success: false, message: 'دسترسی به این سفارش مجاز نیست' });
+      }
+      if (order.paymentStatus === 'receipt_uploaded' && !order.financialReviewedAt) {
+        return res.status(400).json({
+          success: false,
+          message: 'فاکتور نهایی پس از تأیید واحد مالی قابل دانلود است'
+        });
       }
       const requestedLanguage = parseInvoiceLanguage(req.query.lang || 'en');
       if (!requestedLanguage) {
