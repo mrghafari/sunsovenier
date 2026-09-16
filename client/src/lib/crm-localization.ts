@@ -184,6 +184,19 @@ export function crmEnum(value: string | undefined | null, language: Language) {
     logout: { en: "Logout", fa: "خروج", ar: "تسجيل الخروج", tr: "Çıkış" },
     payment_received: { en: "Payment Received", fa: "پرداخت دریافت شد", ar: "تم استلام الدفع", tr: "Ödeme alındı" },
     payment_pending: { en: "Payment Pending", fa: "پرداخت در انتظار", ar: "الدفع قيد الانتظار", tr: "Ödeme beklemede" },
+    created: { en: "Customer Created", fa: "مشتری ایجاد شد", ar: "تم إنشاء العميل", tr: "Müşteri oluşturuldu" },
+    registration: { en: "Customer Registered", fa: "مشتری ثبت‌نام کرد", ar: "تم تسجيل العميل", tr: "Müşteri kaydoldu" },
+    profile_updated: { en: "Profile Updated", fa: "پروفایل به‌روزرسانی شد", ar: "تم تحديث الملف", tr: "Profil güncellendi" },
+    authentication_request: { en: "Authentication Requested", fa: "درخواست احراز هویت", ar: "تم طلب المصادقة", tr: "Kimlik doğrulama istendi" },
+    order_placed: { en: "Order Placed", fa: "سفارش ثبت شد", ar: "تم تقديم الطلب", tr: "Sipariş verildi" },
+    password_change: { en: "Password Changed", fa: "رمز عبور تغییر کرد", ar: "تم تغيير كلمة المرور", tr: "Parola değiştirildi" },
+    password_changed: { en: "Password Changed", fa: "رمز عبور تغییر کرد", ar: "تم تغيير كلمة المرور", tr: "Parola değiştirildi" },
+    password_reset_requested: { en: "Password Reset Requested", fa: "درخواست بازنشانی رمز عبور", ar: "تم طلب إعادة تعيين كلمة المرور", tr: "Parola sıfırlama istendi" },
+    sms_sent: { en: "SMS Sent", fa: "پیامک ارسال شد", ar: "تم إرسال الرسالة النصية", tr: "SMS gönderildi" },
+    sms_verification_completed: { en: "SMS Verification Completed", fa: "تأیید پیامکی تکمیل شد", ar: "اكتمل التحقق عبر الرسائل", tr: "SMS doğrulaması tamamlandı" },
+    admin: { en: "Admin", fa: "مدیر", ar: "المشرف", tr: "Yönetici" },
+    system: { en: "System", fa: "سامانه", ar: "النظام", tr: "Sistem" },
+    customer: { en: "Customer", fa: "مشتری", ar: "العميل", tr: "Müşteri" },
   };
   return labels[value.toLowerCase()]?.[language] || value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }

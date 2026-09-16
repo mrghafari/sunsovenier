@@ -1307,8 +1307,8 @@ export default function CRM() {
         <TabsContent value="activities" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Recent Activities</CardTitle>
-              <CardDescription>Latest CRM system activities</CardDescription>
+              <CardTitle>{crmText(language, "recentActivities")}</CardTitle>
+              <CardDescription>{crmText(language, "latestActivities")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -1316,16 +1316,22 @@ export default function CRM() {
                   <div key={activity.id} className="flex items-start space-x-3 p-3 border rounded-lg">
                     <Activity className="h-5 w-5 text-blue-500 mt-0.5" />
                     <div className="flex-1">
-                      <p className="font-medium">{activity.description}</p>
+                      <p className="font-medium">{crmEnum(activity.activityType, language)}</p>
                       <p className="text-sm text-muted-foreground">
                         {activity.customerName && (
                           <span className="font-medium text-blue-600">{activity.customerName} - </span>
                         )}
-                        By {activity.performedBy} on {formatDate(activity.createdAt)}
+                        {crmText(language, "by")} {crmEnum(activity.performedBy, language)}{" "}
+                        {crmText(language, "on")} {formatDate(activity.createdAt)}
                       </p>
                     </div>
                   </div>
                 ))}
+                {(!dashboardStats?.recentActivities || dashboardStats.recentActivities.length === 0) && (
+                  <div className="py-6 text-center text-muted-foreground">
+                    {crmText(language, "noActivities")}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
