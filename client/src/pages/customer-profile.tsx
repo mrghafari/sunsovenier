@@ -1351,7 +1351,7 @@ const CustomerProfile = () => {
                         return (
                           <div
                             key={order.id}
-                             className={`grid grid-cols-[44px_1.4fr_1fr_1fr_1fr_1fr_1.7fr] gap-0 border-b border-x-0 border-slate-200 p-3 text-xs ${
+                            className={`grid grid-cols-[44px_1.4fr_1fr_1fr_1fr_1fr_1.7fr] gap-0 border-b border-x-0 border-slate-200 text-xs ${
                               is3DayBankTransfer
                                 ? "border-orange-300 bg-orange-50"
                                 : order.status === "pending" || order.status === "payment_grace_period"
@@ -1372,12 +1372,6 @@ const CustomerProfile = () => {
                                   >
                                     {order.orderNumber}
                                   </button>
-                                  {(order.status === "pending" || order.status === "payment_grace_period") && (
-                                    <Badge className="bg-orange-100 text-orange-800">
-                                      <Clock className="w-3 h-3 mr-1" />
-                                      {pt.temporaryOrder}
-                                    </Badge>
-                                  )}
                                 </div>
                                 <p className="flex items-center gap-1 text-[11px] text-slate-500">
                                   <Calendar className="w-4 h-4" />
@@ -1394,6 +1388,12 @@ const CustomerProfile = () => {
                                 <Badge className={`text-[10px] ${getStatusColor(order.status, order.paymentStatus)}`}>
                                   {getStatusLabel(order.status, order.paymentStatus, order)}
                                 </Badge>
+                                {(order.status === "pending" || order.status === "payment_grace_period") && (
+                                  <Badge className="mt-1 block w-fit bg-orange-100 text-[10px] text-orange-800">
+                                    <Clock className="me-1 inline h-3 w-3" />
+                                    {pt.temporaryOrder}
+                                  </Badge>
+                                )}
                               </div>
                               <div className="col-start-5 row-start-1 border-e border-slate-200 px-3 py-1">
                                 <span className="font-semibold text-slate-900">{Math.floor(getOrderTotal(order))} IQD</span>
