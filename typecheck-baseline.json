@@ -201,22 +201,6 @@
       "count": 1
     },
     {
-      "key": "[\"client/src/components/KardexSyncPanel.tsx\",2558,\"Expected 0 type arguments, but got 1.\",\"mutationFn: () => apiRequest<{ data: { deletedCount: number; deletedProducts: string[] } }>('/api/kardex-sync/cleanup-extra', {\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/components/KardexSyncPanel.tsx\",2558,\"Expected 0 type arguments, but got 1.\",\"mutationFn: () => apiRequest<{ data: { deletedCount: number; duplicates: Array<{sku: string; deletedProduct: string; keptProduct: string}> } }>('/api/kardex-sync/cleanup-duplicates', {\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/components/KardexSyncPanel.tsx\",2558,\"Expected 0 type arguments, but got 1.\",\"mutationFn: () => apiRequest<{ data: SyncResult }>('/api/kardex-sync/full-rebuild', {\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/components/KardexSyncPanel.tsx\",2558,\"Expected 0 type arguments, but got 1.\",\"mutationFn: () => apiRequest<{ data: SyncResult }>('/api/kardex-sync/smart-sync', {\"]",
-      "count": 1
-    },
-    {
       "key": "[\"client/src/components/KardexSyncPanel.tsx\",2558,\"Expected 0 type arguments, but got 1.\",\"queryFn: () => apiRequest<{ data: SyncStatus }>('/api/kardex-sync/status'),\"]",
       "count": 1
     },

@@ -1077,21 +1077,21 @@ export default function CRM() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Settings className="h-5 w-5" />
-                تنظیمات کلی ارسال کد تایید
+                {crmText(language, "bulkVerificationTitle")}
               </CardTitle>
               <CardDescription>
-                فعال/غیرفعال کردن ارسال کد تایید ثبت‌نام اولیه برای همه مشتریان
+                {crmText(language, "bulkVerificationDescription")}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-4">
+              <div className="flex flex-wrap items-center gap-4">
                 <Button
                   onClick={() => handleBulkToggleVerification('sms', true)}
                   className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
                   disabled={bulkActionsLoading}
                 >
                   <MessageCircle className="h-4 w-4" />
-                  فعال کردن SMS برای همه
+                  {crmText(language, "enableForAll", { channel: crmEnum("sms", language) })}
                 </Button>
                 
                 <Button
@@ -1101,7 +1101,7 @@ export default function CRM() {
                   disabled={bulkActionsLoading}
                 >
                   <MessageCircle className="h-4 w-4" />
-                  غیرفعال کردن SMS برای همه
+                  {crmText(language, "disableForAll", { channel: crmEnum("sms", language) })}
                 </Button>
                 
                 <Button
@@ -1110,7 +1110,7 @@ export default function CRM() {
                   disabled={bulkActionsLoading}
                 >
                   <Mail className="h-4 w-4" />
-                  فعال کردن ایمیل برای همه
+                  {crmText(language, "enableForAll", { channel: crmEnum("email", language) })}
                 </Button>
                 
                 <Button
@@ -1120,13 +1120,13 @@ export default function CRM() {
                   disabled={bulkActionsLoading}
                 >
                   <Mail className="h-4 w-4" />
-                  غیرفعال کردن ایمیل برای همه
+                  {crmText(language, "disableForAll", { channel: crmEnum("email", language) })}
                 </Button>
                 
                 {bulkActionsLoading && (
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                    در حال پردازش...
+                    {crmText(language, "processing")}
                   </div>
                 )}
               </div>

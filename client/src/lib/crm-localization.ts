@@ -32,6 +32,8 @@ const copy: Record<Language, CrmCopy> = {
     saving: "Saving changes…", emailVerification: "Email Verification", smsVerification: "SMS Verification",
     whatsappVerification: "WhatsApp Verification", allowSkip: "Allow Skip Verification", enableForAll: "Enable {channel} for everyone",
     disableForAll: "Disable {channel} for everyone", processing: "Processing…",
+    bulkVerificationTitle: "Global Verification Code Settings",
+    bulkVerificationDescription: "Enable or disable initial registration verification codes for all customers",
   },
   fa: {
     loading: "در حال بارگذاری…", error: "خطا", success: "موفقیت", cancel: "انصراف", save: "ذخیره",
@@ -51,6 +53,8 @@ const copy: Record<Language, CrmCopy> = {
     loadingSettings: "در حال بارگذاری تنظیمات…", saving: "در حال ذخیره تغییرات…", emailVerification: "تأیید ایمیل",
     smsVerification: "تأیید پیامک", whatsappVerification: "تأیید واتساپ", allowSkip: "اجازه رد کردن تأیید",
     enableForAll: "فعال‌سازی {channel} برای همه", disableForAll: "غیرفعال‌سازی {channel} برای همه", processing: "در حال پردازش…",
+    bulkVerificationTitle: "تنظیمات عمومی ارسال کد تأیید",
+    bulkVerificationDescription: "فعال یا غیرفعال‌کردن کد تأیید ثبت‌نام اولیه برای همه مشتریان",
   },
   ar: {
     loading: "جار التحميل…", error: "خطأ", success: "نجاح", cancel: "إلغاء", save: "حفظ", edit: "تعديل",
@@ -69,6 +73,8 @@ const copy: Record<Language, CrmCopy> = {
     activityTimeline: "الخط الزمني لجميع تفاعلات وأنشطة العميل", loadingSettings: "جار تحميل الإعدادات…", saving: "جار حفظ التغييرات…",
     emailVerification: "التحقق من البريد", smsVerification: "التحقق عبر الرسائل", whatsappVerification: "التحقق عبر واتساب",
     allowSkip: "السماح بتخطي التحقق", enableForAll: "تفعيل {channel} للجميع", disableForAll: "تعطيل {channel} للجميع", processing: "جار المعالجة…",
+    bulkVerificationTitle: "إعدادات رمز التحقق العامة",
+    bulkVerificationDescription: "تفعيل أو تعطيل رمز التحقق عند التسجيل الأولي لجميع العملاء",
   },
   tr: {
     loading: "Yükleniyor…", error: "Hata", success: "Başarılı", cancel: "İptal", save: "Kaydet", edit: "Düzenle",
@@ -87,6 +93,8 @@ const copy: Record<Language, CrmCopy> = {
     activityTimeline: "Tüm müşteri etkileşimleri ve etkinliklerinin zaman çizelgesi", loadingSettings: "Ayarlar yükleniyor…", saving: "Değişiklikler kaydediliyor…",
     emailVerification: "E-posta Doğrulama", smsVerification: "SMS Doğrulama", whatsappVerification: "WhatsApp Doğrulama",
     allowSkip: "Doğrulamayı Atlamaya İzin Ver", enableForAll: "{channel} herkese açılsın", disableForAll: "{channel} herkese kapatılsın", processing: "İşleniyor…",
+    bulkVerificationTitle: "Genel Doğrulama Kodu Ayarları",
+    bulkVerificationDescription: "Tüm müşteriler için ilk kayıt doğrulama kodlarını etkinleştirin veya devre dışı bırakın",
   },
 };
 
