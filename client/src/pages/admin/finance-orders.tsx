@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AlertTriangle, CheckCircle, Clock, CreditCard, DollarSign, RefreshCw, Timer, ChevronRight, XCircle, FileText, Eye, Download, Truck, MapPin, ZoomIn, ZoomOut, RotateCw, Move, X, Wallet, Calculator } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { getOrderStatusLabel, resolveOrderStatus } from "@shared/order-status";
 
 // OrderManagement interface
 interface OrderManagement {
@@ -616,23 +617,13 @@ function FinanceOrders() {
   }, []);
 
   const getStatusBadge = useCallback((status: string) => {
-    switch (status) {
-      case 'payment_uploaded':
-        return <Badge variant="outline" className="bg-yellow-50 text-yellow-700">{t('paymentUploaded')}</Badge>;
-      case 'finance_pending':
-        return <Badge variant="outline" className="bg-yellow-50 text-yellow-700">{t('pendingReview')}</Badge>;
-      case 'financial_reviewing':
-        return <Badge variant="outline" className="bg-blue-50 text-blue-700">{t('financialReviewing')}</Badge>;
-      case 'financial_approved':
-        return <Badge variant="outline" className="bg-green-50 text-green-700">{t('financialApproved')}</Badge>;
-      case 'auto_approved':
-        return <Badge variant="outline" className="bg-emerald-50 text-emerald-700">{t('autoApproved')}</Badge>;
-      case 'finance_rejected':
-        return <Badge variant="outline" className="bg-red-50 text-red-700">{t('rejected')}</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  }, [t]);
+    const resolved = resolveOrderStatus({ workflowStatus: status });
+    return (
+      <Badge variant="outline" className={resolved.badgeClass}>
+        {getOrderStatusLabel(resolved, language)}
+      </Badge>
+    );
+  }, [language]);
 
   const handleOrderReview = useCallback(async (order: OrderManagement) => {
     setSelectedOrder(order);
@@ -1071,7 +1062,13 @@ function FinanceOrders() {
       customerInfo.name?.toLocaleLowerCase().includes(normalizedSearch) ||
       customerInfo.email?.toLocaleLowerCase().includes(normalizedSearch) ||
       customerInfo.phone?.toLocaleLowerCase().includes(normalizedSearch);
-    const statusMatch = statusFilter === "all" || order.currentStatus === statusFilter;
+    const resolvedStatus = resolveOrderStatus({
+      workflowStatus: order.currentStatus,
+      orderStatus: order.status,
+      paymentStatus: order.paymentStatus,
+      financialReviewedAt: order.financialReviewedAt,
+    });
+    const statusMatch = statusFilter === "all" || resolvedStatus.status === statusFilter;
     const paymentMethodMatch = paymentMethodFilter === "all" || order.paymentMethod === paymentMethodFilter;
     const createdAt = new Date(order.createdAt);
     const fromDateMatch = !fromDateFilter || createdAt >= new Date(`${fromDateFilter}T00:00:00`);
@@ -1090,9 +1087,10 @@ function FinanceOrders() {
   });
 
   // Separate pending orders by type for better organization
-  const pendingOrders = filteredOrders.filter(order => 
-    ['finance_pending', 'payment_uploaded', 'auto_approved'].includes(order.currentStatus)
-  );
+  const pendingOrders = filteredOrders.filter(order => {
+    const status = resolveOrderStatus({ workflowStatus: order.currentStatus }).status;
+    return status === 'financial_reviewing' || status === 'payment_uploaded' || status === 'financial_auto_approved';
+  });
   
   const walletOrders = pendingOrders.filter(order => 
     order.paymentMethod === 'wallet_full' || order.paymentMethod === 'wallet_partial'
@@ -1109,8 +1107,8 @@ function FinanceOrders() {
   });
 
   // Rejected orders
-  const rejectedOrders = allOrders.filter(order => 
-    order.currentStatus === 'finance_rejected' && matchesFilters(order)
+  const rejectedOrders = allOrders.filter(order =>
+    resolveOrderStatus({ workflowStatus: order.currentStatus }).status === 'financial_rejected' && matchesFilters(order)
   );
 
   // Statistics - Only calculate total for approved/transferred orders
@@ -1363,10 +1361,10 @@ function FinanceOrders() {
                 aria-label={t('status')}
               >
                 <option value="all">{t('allStatuses')}</option>
-                <option value="finance_pending">{t('pendingReview')}</option>
+                <option value="financial_reviewing">{t('pendingReview')}</option>
                 <option value="payment_uploaded">{t('paymentUploaded')}</option>
-                <option value="auto_approved">{t('autoApproved')}</option>
-                <option value="finance_rejected">{t('rejected')}</option>
+                <option value="financial_auto_approved">{t('autoApproved')}</option>
+                <option value="financial_rejected">{t('rejected')}</option>
                 <option value="warehouse_pending">{t('transferredToWarehouse')}</option>
               </select>
               <div className="grid grid-cols-2 gap-2">

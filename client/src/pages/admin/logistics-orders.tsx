@@ -22,6 +22,7 @@ import {
 import GlobalRefreshControl from "@/components/GlobalRefreshControl";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/utils";
+import { getOrderStatusLabel, resolveOrderStatus } from "@shared/order-status";
 
 interface Order {
   id: number;
@@ -152,16 +153,12 @@ export default function LogisticsOrders() {
   });
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'warehouse_approved':
-        return <Badge variant="outline" className="bg-green-50 text-green-700">آماده ارسال</Badge>;
-      case 'logistics_processing':
-        return <Badge variant="outline" className="bg-blue-50 text-blue-700">در حال پردازش</Badge>;
-      case 'logistics_dispatched':
-        return <Badge variant="outline" className="bg-purple-50 text-purple-700">ارسال شده</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
+    const resolved = resolveOrderStatus({ workflowStatus: status });
+    return (
+      <Badge variant="outline" className={resolved.badgeClass}>
+        {getOrderStatusLabel(resolved, 'fa')}
+      </Badge>
+    );
   };
 
   const resetForm = () => {

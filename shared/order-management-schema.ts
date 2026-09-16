@@ -30,6 +30,8 @@ export const orderStatuses = {
   WAREHOUSE_PENDING: 'warehouse_pending',
   WAREHOUSE_NOTIFIED: 'warehouse_notified',
   WAREHOUSE_PROCESSING: 'warehouse_processing',
+  WAREHOUSE_VERIFIED: 'warehouse_verified',
+  WAREHOUSE_FULFILLED: 'warehouse_fulfilled',
   WAREHOUSE_APPROVED: 'warehouse_approved',
   WAREHOUSE_REJECTED: 'warehouse_rejected',
   

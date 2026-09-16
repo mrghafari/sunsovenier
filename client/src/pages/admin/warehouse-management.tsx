@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
+import { getOrderStatusLabel, resolveOrderStatus } from '@shared/order-status';
 // CRITICAL: All Dialog imports completely removed to eliminate React Portal removeChild errors
 // Using SafeModal instead - NO PORTALS, NO REMOVECHILD ERRORS
 import SafeModal from '@/components/SafeModal';
@@ -955,17 +956,8 @@ const WarehouseManagement: React.FC = () => {
   }, [isClosingRef, showOrderItems, handleCloseDialog]);
 
   const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      'warehouse_pending': { color: 'bg-orange-100 text-orange-800', label: '⏳ مرحله ۱: در انتظار بررسی' },
-      'financial_approved': { color: 'bg-yellow-100 text-yellow-800', label: '⏳ مرحله ۱: تأیید مالی - آماده بررسی' },
-      'warehouse_processing': { color: 'bg-blue-100 text-blue-800', label: '⏳ مرحله ۱: در حال بررسی موجودی' },
-      'warehouse_verified': { color: 'bg-purple-100 text-purple-800', label: '✓ مرحله ۲: تأیید موجودی - آماده ارسال' },
-      'warehouse_fulfilled': { color: 'bg-green-100 text-green-800', label: '✓ آماده ارسال' },
-      'warehouse_approved': { color: 'bg-green-600 text-white', label: '✅ ارسال شده به لجستیک' },
-    };
-    
-    const config = statusConfig[status as keyof typeof statusConfig] || { color: 'bg-gray-100 text-gray-800', label: status };
-    return <Badge className={config.color}>{config.label}</Badge>;
+    const resolved = resolveOrderStatus({ workflowStatus: status });
+    return <Badge className={resolved.badgeClass}>{getOrderStatusLabel(resolved, 'fa')}</Badge>;
   };
 
   const formatCurrency = (amount: number) => {

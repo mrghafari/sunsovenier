@@ -56,6 +56,7 @@ import { fileSecurityService, productImageSecurityService } from "./fileSecurity
 import { ObjectStorageService } from "./objectStorage";
 import { getAwsS3Service } from './aws-s3-service';
 import { sendOrderConfirmationEmail } from "./order-confirmation-email";
+import { resolveOrderStatus } from "@shared/order-status";
 
 const INVOICE_LANGUAGES = ['en', 'ar', 'tr', 'fa'] as const;
 type InvoiceLanguage = typeof INVOICE_LANGUAGES[number];
@@ -20133,12 +20134,22 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       );
       const enrichedDetailedOrders = detailedOrders.map((order: any) => {
         const management = managementByOrderId.get(order.id);
-        return {
+        const enrichedOrder = {
           ...order,
           financialReviewedAt: management?.financial_reviewed_at ?? null,
           financiallyApproved: management?.financial_reviewed_at != null,
           currentStatus: management?.current_status ?? order.status,
           managementStatus: management?.current_status ?? order.status,
+        };
+        return {
+          ...enrichedOrder,
+          statusProjection: resolveOrderStatus({
+            workflowStatus: enrichedOrder.currentStatus,
+            orderStatus: enrichedOrder.status,
+            paymentStatus: enrichedOrder.paymentStatus,
+            paymentMethod: enrichedOrder.paymentMethod,
+            financialReviewedAt: enrichedOrder.financialReviewedAt,
+          }),
         };
       });
 
@@ -20349,13 +20360,23 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
 
       const enrichedOrders = orders.map((order: any) => {
         const management = managementByOrderId.get(order.id);
-        return {
+        const enrichedOrder = {
           ...order,
           financialReviewedAt: management?.financial_reviewed_at ?? null,
           financiallyApproved: management?.financial_reviewed_at != null,
           currentStatus: management?.current_status ?? order.status,
           managementStatus: management?.current_status ?? order.status,
           financialNotes: management?.financial_notes ?? order.financialNotes,
+        };
+        return {
+          ...enrichedOrder,
+          statusProjection: resolveOrderStatus({
+            workflowStatus: enrichedOrder.currentStatus,
+            orderStatus: enrichedOrder.status,
+            paymentStatus: enrichedOrder.paymentStatus,
+            paymentMethod: enrichedOrder.paymentMethod,
+            financialReviewedAt: enrichedOrder.financialReviewedAt,
+          }),
         };
       });
       

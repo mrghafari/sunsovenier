@@ -13,6 +13,7 @@ import { apiRequest } from "@/lib/queryClient";
 import PaymentMethodBadge from "@/components/PaymentMethodBadge";
 import { BankReceiptUploadModal } from "@/components/BankReceiptUploadModal";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { getOrderStatusLabel, resolveOrderStatus, type OrderStatusLanguage } from "@shared/order-status";
 
 // ─── Local profile translations ───────────────────────────────────────────────
 const PROFILE_T = {
@@ -694,46 +695,28 @@ const CustomerProfile = () => {
   const isFinanciallyReviewed = (order: any) =>
     Boolean(order?.financialReviewedAt || order?.financiallyApproved);
 
-  const getOrderCategory = (order: any) => {
-    const status = order.status?.toLowerCase();
-    const paymentStatus = order.paymentStatus?.toLowerCase();
-    const paymentMethod = order.paymentMethod;
-    const managementStatus = order.managementStatus?.toLowerCase();
-    const hasFinancialReview = isFinanciallyReviewed(order);
+  const resolveCustomerOrderStatus = (order: any) => order?.statusProjection || resolveOrderStatus({
+      workflowStatus: order?.currentStatus || order?.managementStatus,
+      orderStatus: order?.status,
+      paymentStatus: order?.paymentStatus,
+      paymentMethod: order?.paymentMethod,
+      financialReviewedAt: order?.financialReviewedAt,
+      financiallyApproved: order?.financiallyApproved,
+    });
 
-    if (status === "cancelled" || status === "financial_rejected" || status === "rejected") return "cancelled";
-    if (paymentStatus === "receipt_uploaded" && !hasFinancialReview) return "processing";
-    if (status === "confirmed" || status === "delivered") return "completed";
+  const getOrderCategory = (order: any) => {
+    const resolved = resolveCustomerOrderStatus(order);
+    if (resolved.customerState === "cancelled") return "cancelled";
+    if (resolved.customerState === "completed") return "completed";
+    if (resolved.customerState === "awaiting_financial" || resolved.customerState === "processing") return "processing";
     if (
-      (paymentMethod === "wallet_full" || paymentMethod === "wallet_partial" || paymentMethod === "wallet_combined") &&
-      hasFinancialReview
-    )
-      return "processing";
-    if (
-      status === "processing" ||
-      status === "shipped" ||
-      status === "ready_for_delivery" ||
-      managementStatus === "warehouse_pending" ||
-      managementStatus === "warehouse_approved" ||
-      managementStatus === "warehouse_ready"
-    )
-      return "processing";
-    if (paymentStatus === "partial" && hasFinancialReview) return "processing";
-    if (
-      paymentMethod === "واریز بانکی با مهلت 3 روزه" ||
-      paymentMethod === "bank_transfer_grace"
+      resolved.customerState === "payment_pending" &&
+      (order.paymentMethod === "واریز بانکی با مهلت 3 روزه" || order.paymentMethod === "bank_transfer_grace")
     ) return "bank_transfer";
     return "pending";
   };
   const getLocalizedStatusForSearch = (order: any) => {
-    if (order.paymentStatus?.toLowerCase() === "receipt_uploaded" && !isFinanciallyReviewed(order)) return pt.statusWaitingFinancial;
-    if (order.managementStatus?.toLowerCase() === "warehouse_pending" && isFinanciallyReviewed(order)) return pt.statusProcessingWarehouse;
-    if (order.managementStatus?.toLowerCase() === "warehouse_approved" && isFinanciallyReviewed(order)) return pt.statusApprovedReady;
-    return getOrderCategory(order) === "completed" ? pt.statusConfirmed
-      : getOrderCategory(order) === "cancelled" ? pt.statusCancelled
-      : getOrderCategory(order) === "processing" ? pt.statusProcessingWarehouse
-      : getOrderCategory(order) === "bank_transfer" ? pt.statusPaymentGrace
-      : pt.statusPending;
+    return getOrderStatusLabel(resolveCustomerOrderStatus(order), language as OrderStatusLanguage);
   };
 
   const dedupeOrders = (source: any[]) => Array.from(
@@ -917,36 +900,14 @@ const CustomerProfile = () => {
   };
 
   const getStatusColor = (status: string, paymentStatus?: string, order?: any) => {
-    if (paymentStatus === "receipt_uploaded" && !isFinanciallyReviewed(order)) return "bg-blue-100 text-blue-800";
-    switch (status) {
-      case "confirmed": return "bg-green-100 text-green-800";
-      case "pending":
-      case "payment_grace_period": return "bg-orange-100 text-orange-800";
-      case "cancelled": return "bg-red-100 text-red-800";
-      default: return "bg-gray-100 text-gray-800";
-    }
+    return resolveCustomerOrderStatus({ ...order, status, paymentStatus }).badgeClass;
   };
 
   const getStatusLabel = (status: string, paymentStatus?: string, order?: any) => {
-    if (paymentStatus === "receipt_uploaded" && !isFinanciallyReviewed(order)) return pt.statusWaitingFinancial;
-    const paymentMethod = order?.paymentMethod;
-    const managementStatus = order?.managementStatus?.toLowerCase();
-    const hasFinancialReview = isFinanciallyReviewed(order);
-
-    if ((paymentMethod === "wallet_full" || paymentMethod === "wallet_partial" || paymentMethod === "wallet_combined") && hasFinancialReview) {
-      if (managementStatus === "warehouse_pending") return pt.statusProcessingWarehouse;
-      if (managementStatus === "warehouse_approved") return pt.statusApprovedReady;
-    }
-    if (paymentStatus === "partial" && hasFinancialReview) {
-      if (managementStatus === "warehouse_pending") return pt.statusProcessingWarehouse;
-    }
-    switch (status) {
-      case "confirmed": return pt.statusConfirmed;
-      case "pending": return pt.statusPending;
-      case "payment_grace_period": return pt.statusPaymentGrace;
-      case "cancelled": return pt.statusCancelled;
-      default: return status;
-    }
+    return getOrderStatusLabel(
+      resolveCustomerOrderStatus({ ...order, status, paymentStatus }),
+      language as OrderStatusLanguage,
+    );
   };
 
   // ── Loading / Error states ──

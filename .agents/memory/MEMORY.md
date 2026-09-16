@@ -8,3 +8,4 @@
 - [Type-check baseline fingerprints](typecheck-baseline-fingerprints.md) — Drizzle schema growth can reword existing diagnostics; review new/resolved pairs before refreshing the baseline.
 - [Serial sequence safety](serial-sequence-safety.md) — include externally submitted tables in sequence synchronization when imports or restores can leave sequences behind row IDs.
 - [Order item snapshots](order-item-snapshots.md) — customer and admin views must use the stored order-item snapshot, not current catalog data, and expose one normalized item shape.
+- [Canonical order status](canonical-order-status.md) — derive labels, phases, aliases, colors, and department visibility from one shared resolver while preserving raw workflow history.

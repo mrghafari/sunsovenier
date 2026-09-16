@@ -2493,10 +2493,6 @@
       "count": 2
     },
     {
-      "key": "[\"server/order-management-storage.ts\",2367,\"This comparison appears to be unintentional because the types '\\\"completed\\\" | \\\"cancelled\\\" | \\\"financial_rejected\\\" | \\\"warehouse_pending\\\" | \\\"warehouse_approved\\\" | \\\"payment_grace_period\\\" | \\\"payment_uploaded\\\" | \\\"pending_payment\\\" | \\\"financial_reviewing\\\" | ... 6 more ... | \\\"financial_auto_approved\\\"' and '\\\"warehouse_verified\\\"' have no overlap.\",\"if (currentStatus === 'warehouse_verified') {\"]",
-      "count": 1
-    },
-    {
       "key": "[\"server/order-management-storage.ts\",2551,\"Property 'customerEmail' does not exist on type '{ id: number; customerId: number; orderNumber: string; status: string; priority: string; totalAmount: string; shippingCost: string | null; currency: string; paymentStatus: string; paymentMethod: string | null; ... 36 more ...; updatedAt: Date; }'. Did you mean 'customerId'?\",\"customerEmail: customerOrder.customerEmail,\"]",
       "count": 1
     },
@@ -4089,10 +4085,6 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2345,\"Argument of type '(\\\"warehouse_pending\\\" | \\\"finance_pending\\\" | \\\"financial_approved\\\" | \\\"warehouse_processing\\\" | \\\"logistics_assigned\\\")[]' is not assignable to parameter of type 'OrderStatus | OrderStatus[]'.\\n  Type '(\\\"warehouse_pending\\\" | \\\"finance_pending\\\" | \\\"financial_approved\\\" | \\\"warehouse_processing\\\" | \\\"logistics_assigned\\\")[]' is not assignable to type 'OrderStatus[]'.\\n    Type '\\\"warehouse_pending\\\" | \\\"finance_pending\\\" | \\\"financial_approved\\\" | \\\"warehouse_processing\\\" | \\\"logistics_assigned\\\"' is not assignable to type 'OrderStatus'.\\n      Type '\\\"finance_pending\\\"' is not assignable to type 'OrderStatus'.\",\"const orderMgmtResult = await orderManagementStorage.getOrdersByStatus(['finance_pending', 'financial_approved', 'warehouse_pending', 'warehouse_processing', 'logistics_assigned']);\"]",
-      "count": 2
-    },
-    {
       "key": "[\"server/routes.ts\",2345,\"Argument of type '{ carrier: string; recipientName: any; recipientPhone: any; recipientAddress: any; vehicleType: any; guestEmail?: any; guestName?: string | undefined; orderNumber: string | null; customerId: any; ... 9 more ...; notes: any; }' is not assignable to parameter of type '{ customerId: number; orderNumber: string; totalAmount: string; shippingAddress: Json; currency?: string | undefined; status?: string | undefined; weightUnit?: string | null | undefined; ... 36 more ...; additionalDocumentsNote?: string | ... 1 more ... | undefined; }'.\\n  Types of property 'orderNumber' are incompatible.\\n    Type 'string | null' is not assignable to type 'string'.\\n      Type 'null' is not assignable to type 'string'.\",\"const order = await customerStorage.createOrder(orderData);\"]",
       "count": 1
     },
@@ -4254,14 +4246,6 @@
     },
     {
       "key": "[\"server/routes.ts\",2345,\"Argument of type 'string' is not assignable to parameter of type 'OrderStatus'.\",\"targetStatus,\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2345,\"Argument of type 'string[]' is not assignable to parameter of type 'OrderStatus | OrderStatus[]'.\\n  Type 'string[]' is not assignable to type 'OrderStatus[]'.\\n    Type 'string' is not assignable to type 'OrderStatus'.\",\"const orders = await orderManagementStorage.getOrdersByStatus(approvedStatuses);\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2345,\"Argument of type 'string[]' is not assignable to parameter of type 'OrderStatus | OrderStatus[]'.\\n  Type 'string[]' is not assignable to type 'OrderStatus[]'.\\n    Type 'string' is not assignable to type 'OrderStatus'.\",\"const orders = await orderManagementStorage.getOrdersByStatus(sentStatuses);\"]",
       "count": 1
     },
     {

@@ -35,6 +35,12 @@ import ProformaInvoiceConverter from "./proforma-invoice-converter";
 import { AutoInvoiceConverter } from "./auto-invoice-converter";
 import { orderConsolidationService } from "./order-consolidation-service";
 import { sequenceSyncService } from "./sequence-sync";
+import {
+  FINANCIAL_VISIBLE_STATUSES,
+  LOGISTICS_VISIBLE_STATUSES,
+  WAREHOUSE_VISIBLE_STATUSES,
+  resolveOrderStatus,
+} from "@shared/order-status";
 
 export type OrderWeightItem = {
   quantity: string | number | null;
@@ -128,7 +134,7 @@ export interface IOrderManagementStorage {
   
   // Department filtering (respects sequence)
   getOrdersByDepartment(department: Department, status?: OrderStatus[]): Promise<OrderManagement[]>;
-  getOrdersByStatus(status: OrderStatus | OrderStatus[]): Promise<OrderManagement[]>;
+  getOrdersByStatus(status: OrderStatus | string | Array<OrderStatus | string>): Promise<OrderManagement[]>;
   getFinancialPendingOrders(): Promise<OrderManagement[]>;
   getFinancialApprovedOrders(): Promise<any[]>;
   getWarehousePendingOrders(): Promise<OrderManagement[]>;
@@ -595,7 +601,7 @@ export class OrderManagementStorage implements IOrderManagementStorage {
         if (currentStatus === orderStatuses.WAREHOUSE_PROCESSING) {
           return ['warehouse_verified' as OrderStatus, orderStatuses.WAREHOUSE_REJECTED];
         }
-        if (currentStatus === 'warehouse_verified') {
+        if (currentStatus === orderStatuses.WAREHOUSE_VERIFIED) {
           return [orderStatuses.WAREHOUSE_APPROVED, orderStatuses.WAREHOUSE_REJECTED];
         }
         break;
@@ -694,6 +700,8 @@ export class OrderManagementStorage implements IOrderManagementStorage {
       currency: customerOrders.currency,
       orderNumber: customerOrders.orderNumber, // شماره سفارش M[YY][NNNNN]
       paymentMethod: customerOrders.paymentMethod, // نوع تسویه حساب
+      customerOrderStatus: customerOrders.status,
+      paymentStatus: customerOrders.paymentStatus,
       customerDeliveryMethod: customerOrders.deliveryMethod, // روش ارسال انتخابی مشتری در چک‌اوت
       customerVehicleType: customerOrders.vehicleType, // نوع خودروی انتخابی مشتری در ارسال هوشمند
       customerOrderTotalWeight: customerOrders.totalWeight, // وزن ذخیره شده در جدول سفارشات مشتری
@@ -732,15 +740,7 @@ export class OrderManagementStorage implements IOrderManagementStorage {
     
     if (department === 'financial') {
       // بخش مالی فقط سفارشات در مراحل مالی را می‌بیند - جلوگیری از تکرار
-      const financialStatuses = statuses || [
-        'pending', // سفارشات در انتظار - مهم: این status در ابتدای سفارش ست می‌شود
-        'finance_pending', // سفارشات آماده بررسی مالی - CRITICAL: اضافه شد برای M2511214
-        orderStatuses.PENDING_PAYMENT,
-        orderStatuses.PAYMENT_UPLOADED, 
-        orderStatuses.FINANCIAL_REVIEWING,
-        orderStatuses.FINANCIAL_APPROVED, // نمایش سفارشات تایید شده برای visibility
-        orderStatuses.FINANCIAL_REJECTED // فقط سفارشات رد شده در مالی باقی می‌مانند
-      ];
+      const financialStatuses = statuses || [...FINANCIAL_VISIBLE_STATUSES] as OrderStatus[];
       
       console.log('🔍 [FINANCIAL] Searching for orders with statuses (financial stage only):', financialStatuses);
       console.log('🚫 [DUPLICATION FIX] Financial department shows only financial-stage orders to prevent duplication');
@@ -748,30 +748,13 @@ export class OrderManagementStorage implements IOrderManagementStorage {
       query = query.where(inArray(orderManagement.currentStatus, financialStatuses));
     } else if (department === 'warehouse') {
       // انبار فقط سفارشات در مراحل انبار را می‌بیند - جلوگیری از تکرار
-      const warehouseStatuses = statuses || [
-        orderStatuses.WAREHOUSE_PENDING, // سفارشات منتظر انبار
-        orderStatuses.FINANCIAL_APPROVED, // تایید شده توسط مالی و آماده ورود به انبار
-        orderStatuses.WAREHOUSE_NOTIFIED,
-        orderStatuses.WAREHOUSE_PROCESSING,
-        'warehouse_verified', // مرحله اول تایید انبار
-        orderStatuses.WAREHOUSE_APPROVED, // تایید نهایی انبار
-        orderStatuses.WAREHOUSE_REJECTED // رد شده توسط انبار
-      ];
+      const warehouseStatuses = statuses || [...WAREHOUSE_VISIBLE_STATUSES] as OrderStatus[];
       console.log('🔍 [WAREHOUSE] Searching for orders with statuses (warehouse stage only):', warehouseStatuses);
       console.log('🚫 [DUPLICATION FIX] Warehouse department shows only warehouse-stage orders to prevent duplication');
       query = query.where(inArray(orderManagement.currentStatus, warehouseStatuses));
     } else if (department === 'logistics') {
       // لجستیک فقط سفارشات در مراحل لجستیک را می‌بیند - جلوگیری از تکرار
-      const logisticsStatuses = statuses || [
-        orderStatuses.WAREHOUSE_APPROVED, // تایید شده توسط انبار و آماده ورود به لجستیک
-        'in_transit', // در حال ارسال
-        'shipped', // ارسال شده
-        // 'delivered' حذف شده - در تب تحویل شده‌ها نشان داده می‌شود
-        // 'logistics_delivered' حذف شده - در تب تحویل شده‌ها نشان داده می‌شود
-        orderStatuses.LOGISTICS_ASSIGNED,
-        orderStatuses.LOGISTICS_PROCESSING,
-        orderStatuses.LOGISTICS_DISPATCHED
-      ];
+      const logisticsStatuses = statuses || [...LOGISTICS_VISIBLE_STATUSES] as OrderStatus[];
       console.log('🔍 [LOGISTICS] Searching for orders with statuses (logistics stage only):', logisticsStatuses);
       console.log('🚫 [DUPLICATION FIX] Logistics department shows only logistics-stage orders to prevent duplication');
       query = query.where(inArray(orderManagement.currentStatus, logisticsStatuses));
@@ -813,6 +796,15 @@ export class OrderManagementStorage implements IOrderManagementStorage {
         currency: row.currency,
         orderNumber: row.orderNumber, // شماره سفارش M[YY][NNNNN] یا فرمت قدیمی
         paymentMethod: row.paymentMethod, // 🔥 CRITICAL: Include payment method from database
+        status: row.customerOrderStatus,
+        paymentStatus: row.paymentStatus,
+        statusProjection: resolveOrderStatus({
+          workflowStatus: row.currentStatus,
+          orderStatus: row.customerOrderStatus,
+          paymentStatus: row.paymentStatus,
+          paymentMethod: row.paymentMethod,
+          financialReviewedAt: row.financialReviewedAt,
+        }),
         
         // Weight and delivery information - with fallback to customer_orders weight
         totalWeight: calculatedWeight || row.customerOrderTotalWeight || 0,
@@ -1071,7 +1063,7 @@ export class OrderManagementStorage implements IOrderManagementStorage {
     return this.getOrdersByDepartment('warehouse');
   }
   
-  async getOrdersByStatus(status: OrderStatus | OrderStatus[]): Promise<OrderManagement[]> {
+  async getOrdersByStatus(status: OrderStatus | string | Array<OrderStatus | string>): Promise<OrderManagement[]> {
     const statuses = Array.isArray(status) ? status : [status];
     
     const query = db.select({
