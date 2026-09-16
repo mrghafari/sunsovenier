@@ -1391,39 +1391,9 @@ const CustomerProfile = () => {
                                 <p className="font-medium text-slate-700">{order.items?.length || 0} {pt.orderItems}</p>
                               </div>
                               <div className="col-start-4 row-start-1 border-e border-slate-200 px-3 py-1">
-                                {(() => {
-                                  const subtotalAmount = order.items
-                                    ? order.items.reduce((sum: number, item: any) => sum + parseFloat(item.totalPrice || 0), 0)
-                                    : 0;
-                                  const vatAmount = parseFloat(order.vatAmount || "0");
-                                  const shippingCost = parseFloat(order.shippingCost || "0");
-                                  const surchargeAmount = parseFloat(order.surchargeAmount || "0");
-                                  const correctTotal = subtotalAmount + vatAmount + shippingCost + surchargeAmount;
-                                  return (
-                                     <p className="font-semibold text-slate-900">{getStatusLabel(order.status, order.paymentStatus, order)}</p>
-                                  );
-                                })()}
-                                <Badge className={`mt-1 text-[10px] ${getStatusColor(order.status, order.paymentStatus)}`}>{getStatusLabel(order.status, order.paymentStatus, order)}</Badge>
-
-                                {order.invoiceType && (
-                                  <div className="mt-2">
-                                    <Badge
-                                      className={
-                                        order.invoiceType === "official_invoice"
-                                          ? "bg-green-100 text-green-800 border-green-200"
-                                          : "bg-blue-100 text-blue-800 border-blue-200"
-                                      }
-                                    >
-                                      {order.invoiceType === "official_invoice" ? pt.officialInvoice : pt.proformaInvoice}
-                                    </Badge>
-                                    {order.invoiceType === "official_invoice" && order.invoiceConvertedAt && (
-                                      <p className="text-xs text-green-600 mt-1">
-                                        {pt.convertedAt} {new Date(order.invoiceConvertedAt).toLocaleDateString("en-US")}
-                                      </p>
-                                    )}
-                                  </div>
-                                )}
-
+                                <Badge className={`text-[10px] ${getStatusColor(order.status, order.paymentStatus)}`}>
+                                  {getStatusLabel(order.status, order.paymentStatus, order)}
+                                </Badge>
                               </div>
                               <div className="col-start-5 row-start-1 border-e border-slate-200 px-3 py-1">
                                 <span className="font-semibold text-slate-900">{Math.floor(getOrderTotal(order))} IQD</span>
