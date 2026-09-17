@@ -174,6 +174,8 @@ const SHOP_TRANSLATIONS: Record<string, ShopTranslation> = {
   paid: { en: "Paid", ar: "مدفوع", tr: "Ödendi", fa: "پرداخت شده" },
   pendingPayment: { en: "Pending Payment", ar: "في انتظار الدفع", tr: "Ödeme Bekliyor", fa: "در انتظار پرداخت" },
   failed: { en: "Failed", ar: "فشل", tr: "Başarısız", fa: "ناموفق" },
+  partialPayment: { en: "Partially paid", ar: "مدفوع جزئياً", tr: "Kısmi ödeme", fa: "پرداخت جزئی" },
+  refundedPayment: { en: "Refunded", ar: "تم الاسترداد", tr: "İade edildi", fa: "بازپرداخت شده" },
   unknown: { en: "Unknown", ar: "غير معروف", tr: "Bilinmiyor", fa: "نامشخص" },
   fundingSources: { en: "Funding Sources", ar: "مصادر التمويل", tr: "Finansman Kaynakları", fa: "جزئیات منابع تامین وجه" },
   wallet: { en: "Wallet", ar: "المحفظة", tr: "Cüzdan", fa: "کیف پول" },
@@ -289,6 +291,8 @@ export default function ShopAdmin() {
     const labels: Record<string, string> = {
       wallet_full: tr("wallet"),
       wallet_partial: tr("partialWallet"),
+      wallet: tr("wallet"),
+      wallet_combined: tr("hybridPayment"),
       online_payment: tr("onlinePayment"),
       bank_transfer: tr("bankTransfer"),
       bank_transfer_grace: tr("graceBankTransfer"),
@@ -297,6 +301,26 @@ export default function ShopAdmin() {
       credit: tr("credit"),
     };
     return labels[method.toLowerCase()] || method;
+  };
+  const paymentStatusLabel = (status?: string | null) => {
+    const labels: Record<string, string> = {
+      paid: tr("paid"),
+      confirmed: tr("paid"),
+      pending: tr("pendingPayment"),
+      pending_payment: tr("pendingPayment"),
+      failed: tr("failed"),
+      refunded: tr("refundedPayment"),
+      partial: tr("partialPayment"),
+    };
+    return labels[String(status ?? "").toLowerCase()] ?? tr("unknown");
+  };
+  const formatOrderMoney = (value: unknown, currency?: unknown) => {
+    const amount = Number(value ?? 0);
+    const code = String(currency ?? "USD").toUpperCase();
+    return new Intl.NumberFormat(
+      language === "fa" ? "fa-IR" : language === "ar" ? "ar" : language === "tr" ? "tr-TR" : "en-US",
+      { style: "currency", currency: code, currencyDisplay: "symbol", maximumFractionDigits: 2 },
+    ).format(Number.isFinite(amount) ? amount : 0);
   };
   const orderStatusLabel = (status?: string | null) => {
     if (!status) return tr("unknown");
@@ -1848,7 +1872,7 @@ export default function ShopAdmin() {
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">{tr("totalAmount")}</p>
-                    <p className="font-bold text-lg text-green-600">${selectedOrder.totalAmount}</p>
+                    <p className="font-bold text-lg text-green-600">{formatOrderMoney(selectedOrder.totalAmount, selectedOrder.currency ?? selectedOrder.currency_code)}</p>
                   </div>
                 </div>
               </div>
@@ -1861,21 +1885,27 @@ export default function ShopAdmin() {
                 </h3>
                 <div className="space-y-3">
                   {selectedOrder.items && selectedOrder.items.length > 0 ? (
-                    selectedOrder.items.map((item: any, index: number) => (
-                      <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border">
+                    selectedOrder.items.map((item: any, index: number) => {
+                      const productName = item.productName ?? item.product_name ?? item.name;
+                      const productSku = item.productSku ?? item.product_sku ?? item.sku;
+                      const quantity = Number(item.quantity ?? 1);
+                      const unitPrice = Number(item.unitPrice ?? item.unit_price ?? item.price ?? 0);
+                      const storedTotal = item.totalPrice ?? item.total_price;
+                      const totalPrice = storedTotal == null ? quantity * unitPrice : Number(storedTotal);
+                      return <div key={item.id ?? index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border">
                         <div className="flex-1">
-                          <p className="font-medium text-gray-900">{item.productName || item.name || tr("productName")}</p>
-                           <p className="text-sm text-gray-600">{tr("productCode")}: {item.productSku || item.sku || tr("unknown")}</p>
-                           <p className="text-sm text-blue-600">{tr("unitPrice")}: ${item.price || item.unitPrice || 0}</p>
+                          <p className="font-medium text-gray-900">{productName ?? tr("unknown")}</p>
+                           <p className="text-sm text-gray-600">{tr("productCode")}: {productSku ?? tr("unknown")}</p>
+                           <p className="text-sm text-blue-600">{tr("unitPrice")}: {formatOrderMoney(unitPrice, selectedOrder.currency ?? selectedOrder.currency_code)}</p>
                         </div>
                         <div className="text-right">
-                           <p className="font-medium">{tr("quantity")}: {item.quantity || 1}</p>
+                           <p className="font-medium">{tr("quantity")}: {Number.isFinite(quantity) ? quantity : 0}{item.unit ?? item.unit_measurement ? ` ${item.unit ?? item.unit_measurement}` : ""}</p>
                           <p className="text-lg font-bold text-green-600">
-                            ${((item.price || item.unitPrice || 0) * (item.quantity || 1)).toFixed(2)}
+                            {formatOrderMoney(totalPrice, selectedOrder.currency ?? selectedOrder.currency_code)}
                           </p>
                         </div>
-                      </div>
-                    ))
+                      </div>;
+                    })
                   ) : (
                     <div className="text-center py-6 text-gray-500">
                       <Package className="w-8 h-8 mx-auto mb-2 text-gray-400" />
@@ -1896,36 +1926,37 @@ export default function ShopAdmin() {
                      <p className="text-sm text-gray-600">{tr("paymentMethod")}</p>
                      <Badge variant="secondary" className="flex items-center gap-1 w-fit">
                        <CreditCard className="w-3 h-3" />
-                       {paymentMethodLabel(selectedOrder.paymentMethod)}
+                       {paymentMethodLabel(selectedOrder.paymentMethod ?? selectedOrder.payment_method)}
                      </Badge>
                   </div>
                   <div>
                      <p className="text-sm text-gray-600">{tr("paymentStatus")}</p>
-                    <Badge variant={selectedOrder.paymentStatus === 'paid' ? 'default' : 'secondary'}>
-                       {selectedOrder.paymentStatus === 'paid' ? tr("paid") :
-                        selectedOrder.paymentStatus === 'pending' ? tr("pendingPayment") :
-                        selectedOrder.paymentStatus === 'failed' ? tr("failed") :
-                        selectedOrder.paymentStatus || tr("unknown")}
+                    <Badge variant={["paid", "confirmed"].includes(String(selectedOrder.paymentStatus ?? selectedOrder.payment_status ?? "").toLowerCase()) ? 'default' : 'secondary'}>
+                       {paymentStatusLabel(selectedOrder.paymentStatus ?? selectedOrder.payment_status)}
                     </Badge>
                   </div>
                   
                   {/* Payment Source Details */}
-                  {(selectedOrder.walletAmountUsed > 0 || selectedOrder.paymentMethod === 'wallet_partial' || selectedOrder.paymentMethod === 'wallet_full') && (
+                  {((Number(selectedOrder.walletAmountUsed ?? selectedOrder.wallet_amount_used ?? 0) > 0) ||
+                    (selectedOrder.paymentMethod ?? selectedOrder.payment_method) === 'wallet_partial' ||
+                    (selectedOrder.paymentMethod ?? selectedOrder.payment_method) === 'wallet_full' ||
+                    (selectedOrder.paymentMethod ?? selectedOrder.payment_method) === 'wallet_combined') && (
                     <div className="md:col-span-2">
                        <p className="text-sm text-gray-600 mb-2">{tr("fundingSources")}</p>
                       <div className="space-y-2">
-                        {selectedOrder.walletAmountUsed > 0 && (
+                        {Number(selectedOrder.walletAmountUsed ?? selectedOrder.wallet_amount_used ?? 0) > 0 && (
                           <div className="flex justify-between items-center p-2 bg-green-100 rounded-lg border border-green-200">
                             <div className="flex items-center gap-2">
                               <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                                <span className="text-sm font-medium text-green-800">{tr("wallet")}</span>
                             </div>
                             <span className="font-bold text-green-700">
-                              ${parseFloat(selectedOrder.walletAmountUsed || 0).toLocaleString()}
+                              {formatOrderMoney(selectedOrder.walletAmountUsed ?? selectedOrder.wallet_amount_used ?? 0, selectedOrder.currency ?? selectedOrder.currency_code)}
                             </span>
                           </div>
                         )}
-                        {selectedOrder.paymentMethod === 'wallet_partial' && selectedOrder.walletAmountUsed === 0 && (
+                        {(selectedOrder.paymentMethod ?? selectedOrder.payment_method) === 'wallet_partial' &&
+                          Number(selectedOrder.walletAmountUsed ?? selectedOrder.wallet_amount_used ?? 0) === 0 && (
                           <div className="flex justify-between items-center p-2 bg-orange-100 rounded-lg border border-orange-200">
                             <div className="flex items-center gap-2">
                               <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
@@ -1936,25 +1967,28 @@ export default function ShopAdmin() {
                             </span>
                           </div>
                         )}
-                        {selectedOrder.paymentMethod === 'wallet_partial' && selectedOrder.walletAmountUsed > 0 && (
+                        {["wallet_partial", "wallet_combined"].includes(selectedOrder.paymentMethod ?? selectedOrder.payment_method) &&
+                          Number(selectedOrder.bankAmountPaid ?? selectedOrder.bank_amount_paid ?? 0) > 0 && (
                           <div className="flex justify-between items-center p-2 bg-blue-100 rounded-lg border border-blue-200">
                             <div className="flex items-center gap-2">
                               <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
                                <span className="text-sm font-medium text-blue-800">{tr("bankGateway")}</span>
                             </div>
                             <span className="font-bold text-blue-700">
-                              ${(parseFloat(selectedOrder.totalAmount || 0) - parseFloat(selectedOrder.walletAmountUsed || 0)).toLocaleString()}
+                              {formatOrderMoney(selectedOrder.bankAmountPaid ?? selectedOrder.bank_amount_paid ?? 0, selectedOrder.currency ?? selectedOrder.currency_code)}
                             </span>
                           </div>
                         )}
-                        {selectedOrder.paymentMethod === 'bank_transfer' && !selectedOrder.walletAmountUsed && (
+                        {(selectedOrder.paymentMethod ?? selectedOrder.payment_method) === 'bank_transfer' &&
+                          Number(selectedOrder.walletAmountUsed ?? selectedOrder.wallet_amount_used ?? 0) === 0 &&
+                          Number(selectedOrder.bankAmountPaid ?? selectedOrder.bank_amount_paid ?? 0) > 0 && (
                           <div className="flex justify-between items-center p-2 bg-purple-100 rounded-lg border border-purple-200">
                             <div className="flex items-center gap-2">
                               <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
                                <span className="text-sm font-medium text-purple-800">{tr("fullBankGateway")}</span>
                             </div>
                             <span className="font-bold text-purple-700">
-                              ${parseFloat(selectedOrder.totalAmount || 0).toLocaleString()}
+                              {formatOrderMoney(selectedOrder.bankAmountPaid ?? selectedOrder.bank_amount_paid ?? 0, selectedOrder.currency ?? selectedOrder.currency_code)}
                             </span>
                           </div>
                         )}

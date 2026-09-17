@@ -2757,10 +2757,6 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'AbandonedOrder'.\",\"const sendAbandonedOrderReminder = async (order: AbandonedOrder, reminderType: 'first' | 'second' | 'final') => {\"]",
-      "count": 1
-    },
-    {
       "key": "[\"server/routes.ts\",2304,\"Cannot find name 'adminId'.\",\".where(eq(schema.users.id, adminId))\"]",
       "count": 1
     },
@@ -2777,104 +2773,8 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'emailTemplates'.\",\".where(eq(emailTemplates.id, templateId))\"]",
-      "count": 2
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'emailTemplates'.\",\"const [newTemplate] = await db.insert(emailTemplates).values({\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'emailTemplates'.\",\"const [updatedTemplate] = await db.update(emailTemplates)\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'emailTemplates'.\",\"const deletedTemplate = await db.delete(emailTemplates)\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'emailTemplates'.\",\"const templateCount = await db.select({ count: sql<number>`count(*)` }).from(emailTemplates);\"]",
-      "count": 1
-    },
-    {
       "key": "[\"server/routes.ts\",2304,\"Cannot find name 'finalPaymentMethod'.\",\"paymentMethod: finalPaymentMethod,\"]",
       "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'id'.\",\"console.error(`Error fetching product ${id}:`, error);\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'incomingCorrespondence'.\",\".from(incomingCorrespondence)\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'incomingCorrespondence'.\",\".insert(incomingCorrespondence)\"]",
-      "count": 2
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'incomingCorrespondence'.\",\".orderBy(desc(incomingCorrespondence.dateReceived))\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'incomingCorrespondence'.\",\".orderBy(desc(incomingCorrespondence.receivedDate));\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'incomingCorrespondence'.\",\".update(incomingCorrespondence)\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'incomingCorrespondence'.\",\".where(eq(incomingCorrespondence.id, Number(id)))\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'incomingCorrespondence'.\",\"let query = db.select().from(incomingCorrespondence);\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'incomingCorrespondence'.\",\"query = query.where(eq(incomingCorrespondence.priority, priority as string));\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'incomingCorrespondence'.\",\"query = query.where(eq(incomingCorrespondence.status, status as string));\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'insertBusinessCardSchema'.\",\"const cardData = insertBusinessCardSchema.parse(req.body);\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'insertBusinessCardSchema'.\",\"const validatedData = insertBusinessCardSchema.parse(req.body);\"]",
-      "count": 2
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'insertCompanyDocumentSchema'.\",\"const documentData = insertCompanyDocumentSchema.parse(req.body);\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'insertCompanyDocumentSchema'.\",\"const validatedData = insertCompanyDocumentSchema.parse(req.body);\"]",
-      "count": 2
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'insertCompanyImageSchema'.\",\"const imageData = insertCompanyImageSchema.parse(req.body);\"]",
-      "count": 2
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'insertIncomingCorrespondenceSchema'.\",\"const correspondenceData = insertIncomingCorrespondenceSchema.parse(req.body);\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'insertIncomingCorrespondenceSchema'.\",\"const validatedData = insertIncomingCorrespondenceSchema.parse(req.body);\"]",
-      "count": 2
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'insertOutgoingCorrespondenceSchema'.\",\"const correspondenceData = insertOutgoingCorrespondenceSchema.parse(req.body);\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'insertOutgoingCorrespondenceSchema'.\",\"const validatedData = insertOutgoingCorrespondenceSchema.parse(req.body);\"]",
-      "count": 2
     },
     {
       "key": "[\"server/routes.ts\",2304,\"Cannot find name 'orderManagementDb'.\",\"await orderManagementDb\"]",
@@ -2938,114 +2838,6 @@
     },
     {
       "key": "[\"server/routes.ts\",2304,\"Cannot find name 'orderNumber'.\",\"throw new Error(`سفارش با شماره ${orderNumber} یافت نشد`);\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'orders'.\",\".from(orders)\"]",
-      "count": 2
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'orders'.\",\".orderBy(desc(orders.createdAt));\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'orders'.\",\".update(orders)\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'orders'.\",\".where(eq(orders.id, customerOrderId));\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'orders'.\",\".where(eq(orders.id, orderId))\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'orders'.\",\".where(eq(orders.paymentStatus, 'pending'))\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'orders'.\",\"createdAt: orders.createdAt\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'orders'.\",\"customerId: orders.customerId,\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'orders'.\",\"orderId: orders.id,\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'orders'.\",\"orderNumber: orders.orderNumber,\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'orders'.\",\"paymentGatewayId: orders.paymentGatewayId,\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'orders'.\",\"paymentMethod: orders.paymentMethod,\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'orders'.\",\"totalAmount: orders.totalAmount,\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'outgoingCorrespondence'.\",\".from(outgoingCorrespondence)\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'outgoingCorrespondence'.\",\".insert(outgoingCorrespondence)\"]",
-      "count": 2
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'outgoingCorrespondence'.\",\".orderBy(desc(outgoingCorrespondence.dateSent))\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'outgoingCorrespondence'.\",\".orderBy(desc(outgoingCorrespondence.sentDate));\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'outgoingCorrespondence'.\",\".update(outgoingCorrespondence)\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'outgoingCorrespondence'.\",\".where(eq(outgoingCorrespondence.id, Number(id)))\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'outgoingCorrespondence'.\",\"let query = db.select().from(outgoingCorrespondence);\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'outgoingCorrespondence'.\",\"query = query.where(eq(outgoingCorrespondence.priority, priority as string));\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'outgoingCorrespondence'.\",\"query = query.where(eq(outgoingCorrespondence.status, status as string));\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'pool'.\",\"await pool.query(`\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'pool'.\",\"const [customer] = await pool.query(\"]",
-      "count": 2
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'pool'.\",\"const [order] = await pool.query(`\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'pool'.\",\"const customers = await pool.query(`\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2304,\"Cannot find name 'SessionData'.\",\"const session = req.session as SessionData;\"]",
       "count": 1
     },
     {
@@ -3381,6 +3173,14 @@
       "count": 1
     },
     {
+      "key": "[\"server/routes.ts\",2339,\"Property 'customerPhone' does not exist on type '{ id: number; orderNumber: string; customerId: number; status: string; paymentStatus: string; paymentMethod: string | null; paymentGatewayId: number | null; subtotal: string; taxAmount: string | null; ... 16 more ...; updatedAt: Date; }'.\",\"order.phone || order.customerPhone || '',\"]",
+      "count": 1
+    },
+    {
+      "key": "[\"server/routes.ts\",2339,\"Property 'customerPhone' does not exist on type '{ id: number; orderNumber: string; customerId: number; status: string; paymentStatus: string; paymentMethod: string | null; paymentGatewayId: number | null; subtotal: string; taxAmount: string | null; ... 16 more ...; updatedAt: Date; }'.\",\"order.phone || order.customerPhone || ''\"]",
+      "count": 1
+    },
+    {
       "key": "[\"server/routes.ts\",2339,\"Property 'customerPhone' does not exist on type '{ id: number; weightUnit: string | null; createdAt: Date; actualDeliveryDate: Date | null; trackingNumber: string | null; updatedAt: Date; isVerified: boolean | null; ... 58 more ...; carrierLocationSource: string | null; }'.\",\"if (orderDetails && orderDetails.customerPhone && orderDetails.customerFirstName) {\"]",
       "count": 1
     },
@@ -3463,6 +3263,10 @@
     {
       "key": "[\"server/routes.ts\",2339,\"Property 'filter' does not exist on type '{ displayOrders: { currency: string; id: number; status: string; weightUnit: string | null; customerId: number; notes: string | null; createdAt: Date; trackingNumber: string | null; ... 38 more ...; additionalDocumentsNote: string | null; }[]; ... 5 more ...; hasAbandonedCarts: boolean; }'.\",\"const completedOrders = allOrders.filter(order =>\"]",
       "count": 2
+    },
+    {
+      "key": "[\"server/routes.ts\",2339,\"Property 'firstName' does not exist on type '{ id: number; orderNumber: string; customerId: number; status: string; paymentStatus: string; paymentMethod: string | null; paymentGatewayId: number | null; subtotal: string; taxAmount: string | null; ... 16 more ...; updatedAt: Date; }'.\",\"order.firstName || 'مشتری',\"]",
+      "count": 1
     },
     {
       "key": "[\"server/routes.ts\",2339,\"Property 'firstName' does not exist on type 'User'.\",\"customerName: `${customerInfo.firstName || ''} ${customerInfo.lastName || ''}`.trim(),\"]",
@@ -3677,6 +3481,14 @@
       "count": 1
     },
     {
+      "key": "[\"server/routes.ts\",2339,\"Property 'phone' does not exist on type '{ id: number; orderNumber: string; customerId: number; status: string; paymentStatus: string; paymentMethod: string | null; paymentGatewayId: number | null; subtotal: string; taxAmount: string | null; ... 16 more ...; updatedAt: Date; }'.\",\"order.phone || order.customerPhone || '',\"]",
+      "count": 1
+    },
+    {
+      "key": "[\"server/routes.ts\",2339,\"Property 'phone' does not exist on type '{ id: number; orderNumber: string; customerId: number; status: string; paymentStatus: string; paymentMethod: string | null; paymentGatewayId: number | null; subtotal: string; taxAmount: string | null; ... 16 more ...; updatedAt: Date; }'.\",\"order.phone || order.customerPhone || ''\"]",
+      "count": 1
+    },
+    {
       "key": "[\"server/routes.ts\",2339,\"Property 'phone' does not exist on type '{}'.\",\"phone: customerInfo?.phone || activityData.phone || '',\"]",
       "count": 1
     },
@@ -3734,6 +3546,10 @@
     },
     {
       "key": "[\"server/routes.ts\",2339,\"Property 'receiptUrl' does not exist on type '{ currency: string; id: number; status: string; weightUnit: string | null; customerId: number; notes: string | null; createdAt: Date; trackingNumber: string | null; updatedAt: Date; ... 37 more ...; additionalDocumentsNote: string | null; }'.\",\"receiptUrl: order.receiptUrl,\"]",
+      "count": 1
+    },
+    {
+      "key": "[\"server/routes.ts\",2339,\"Property 'receivedDate' does not exist on type 'PgTableWithColumns<{ name: \\\"incoming_correspondence\\\"; schema: undefined; columns: { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"incoming_correspondence\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; ... 8 more ...; generated: undefined; }, {}, {}>; ... 18 more ...; updatedAt: PgColumn<.....'.\",\".orderBy(desc(incomingCorrespondence.receivedDate));\"]",
       "count": 1
     },
     {
@@ -3814,6 +3630,10 @@
     },
     {
       "key": "[\"server/routes.ts\",2339,\"Property 'sendTemplateEmail' does not exist on type 'typeof UniversalEmailService'.\",\"const emailResult = await UniversalEmailService.sendTemplateEmail({\"]",
+      "count": 1
+    },
+    {
+      "key": "[\"server/routes.ts\",2339,\"Property 'sentDate' does not exist on type 'PgTableWithColumns<{ name: \\\"outgoing_correspondence\\\"; schema: undefined; columns: { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"outgoing_correspondence\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; ... 8 more ...; generated: undefined; }, {}, {}>; ... 20 more ...; updatedAt: PgColumn<.....'.\",\".orderBy(desc(outgoingCorrespondence.sentDate));\"]",
       "count": 1
     },
     {
@@ -4065,6 +3885,18 @@
       "count": 1
     },
     {
+      "key": "[\"server/routes.ts\",2345,\"Argument of type '{ updatedAt: Date; documentName: string; documentType: string; fileUrl: string; status?: string | null | undefined; description?: string | null | undefined; tags?: string | null | undefined; ... 4 more ...; uploadedBy?: number | ... 1 more ... | undefined; }' is not assignable to parameter of type '{ issueDate?: Date | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined; documentName?: string | ... 2 more ... | undefined; ... 13 more ...; uploadedBy?: number | ... 3 more ... | undefined; }'.\\n  Types of property 'issueDate' are incompatible.\\n    Type 'Date | null | undefined' is not assignable to type 'Date | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined'.\\n      Type 'null' is not assignable to type 'Date | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined'.\",\".set({ ...validatedData, updatedAt: new Date() })\"]",
+      "count": 1
+    },
+    {
+      "key": "[\"server/routes.ts\",2345,\"Argument of type '{ updatedAt: Date; employeeName: string; jobTitle: string; email?: string | null | undefined; createdBy?: number | null | undefined; isActive?: boolean | null | undefined; whatsappNumber?: string | ... 1 more ... | undefined; ... 17 more ...; cardStatus?: string | ... 1 more ... | undefined; }' is not assignable to parameter of type '{ employeeName?: string | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined; jobTitle?: string | SQL<...> | PgColumn<...> | undefined; ... 25 more ...; cardStatus?: string | ... 2 more ... | undefined; }'.\\n  Types of property 'cardDesign' are incompatible.\\n    Type 'string | null | undefined' is not assignable to type 'string | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined'.\\n      Type 'null' is not assignable to type 'string | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined'.\",\".set({ ...validatedData, updatedAt: new Date() })\"]",
+      "count": 1
+    },
+    {
+      "key": "[\"server/routes.ts\",2345,\"Argument of type '{ updatedAt: Date; name: string; category: string; createdBy: number; subject: string; htmlContent: string; language?: string | undefined; variables?: Json | undefined; isActive?: boolean | ... 1 more ... | undefined; isDefault?: boolean | ... 1 more ... | undefined; textContent?: string | ... 1 more ... | undefined...' is not assignable to parameter of type '{ name?: string | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined; category?: string | SQL<unknown> | PgColumn<...> | undefined; ... 12 more ...; lastUsed?: Date | ... 3 more ... | undefined; }'.\\n  Types of property 'variables' are incompatible.\\n    Type 'Json | undefined' is not assignable to type 'string[] | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | null | undefined'.\\n      Type 'string' is not assignable to type 'string[] | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | null | undefined'.\",\".set({\"]",
+      "count": 1
+    },
+    {
       "key": "[\"server/routes.ts\",2345,\"Argument of type '\\\"logistics_approved\\\"' is not assignable to parameter of type 'OrderStatus'.\",\"'logistics_approved',\"]",
       "count": 1
     },
@@ -4289,6 +4121,14 @@
       "count": 2
     },
     {
+      "key": "[\"server/routes.ts\",2488,\"Type 'QueryResult<any>' must have a '[Symbol.iterator]()' method that returns an iterator.\",\"const [customer] = await pool.query(\"]",
+      "count": 2
+    },
+    {
+      "key": "[\"server/routes.ts\",2488,\"Type 'QueryResult<any>' must have a '[Symbol.iterator]()' method that returns an iterator.\",\"const [order] = await pool.query(`\"]",
+      "count": 1
+    },
+    {
       "key": "[\"server/routes.ts\",2538,\"Type 'null' cannot be used as an index type.\",\"const emailCategory = categoryMap[inquiryData.category] || 'admin';\"]",
       "count": 1
     },
@@ -4473,6 +4313,10 @@
       "count": 2
     },
     {
+      "key": "[\"server/routes.ts\",2561,\"Object literal may only specify known properties, but 'deliveredAt' does not exist in type '{ customerId?: number | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined; orderNumber?: string | SQL<...> | PgColumn<...> | undefined; ... 23 more ...; deliveredDate?: Date | ... 3 more ... | undefined; }'. Did you mean to write 'deliveredDate'?\",\"deliveredAt: new Date(),\"]",
+      "count": 1
+    },
+    {
       "key": "[\"server/routes.ts\",2571,\"Object is of type 'unknown'.\",\"if (usedInShippingRates[0]?.count > 0) {\"]",
       "count": 1
     },
@@ -4521,11 +4365,27 @@
       "count": 2
     },
     {
+      "key": "[\"server/routes.ts\",2740,\"Type 'Omit<PgSelectBase<\\\"incoming_correspondence\\\", { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"incoming_correspondence\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; notNull: true; hasDefault: true; ... 6 more ...; generated: undefined; }, {}, {}>; ... 18 more ...; updatedAt: PgColumn<...>; ...' is missing the following properties from type 'PgSelectBase<\\\"incoming_correspondence\\\", { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"incoming_correspondence\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; notNull: true; hasDefault: true; ... 6 more ...; generated: undefined; }, {}, {}>; ... 18 more ...; updatedAt: PgColumn<...>; }, .....': config, joinsNotNullableMap, tableName, isPartialSelect, and 6 more.\",\"query = query.where(eq(incomingCorrespondence.priority, priority as string));\"]",
+      "count": 1
+    },
+    {
+      "key": "[\"server/routes.ts\",2740,\"Type 'Omit<PgSelectBase<\\\"incoming_correspondence\\\", { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"incoming_correspondence\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; notNull: true; hasDefault: true; ... 6 more ...; generated: undefined; }, {}, {}>; ... 18 more ...; updatedAt: PgColumn<...>; ...' is missing the following properties from type 'PgSelectBase<\\\"incoming_correspondence\\\", { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"incoming_correspondence\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; notNull: true; hasDefault: true; ... 6 more ...; generated: undefined; }, {}, {}>; ... 18 more ...; updatedAt: PgColumn<...>; }, .....': config, joinsNotNullableMap, tableName, isPartialSelect, and 6 more.\",\"query = query.where(eq(incomingCorrespondence.status, status as string));\"]",
+      "count": 1
+    },
+    {
       "key": "[\"server/routes.ts\",2740,\"Type 'Omit<PgSelectBase<\\\"international_countries\\\", { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"international_countries\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; notNull: true; hasDefault: true; ... 6 more ...; generated: undefined; }, {}, {}>; ... 10 more ...; updatedAt: PgColumn<...>; ...' is missing the following properties from type 'PgSelectBase<\\\"international_countries\\\", { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"international_countries\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; notNull: true; hasDefault: true; ... 6 more ...; generated: undefined; }, {}, {}>; ... 10 more ...; updatedAt: PgColumn<...>; }, .....': config, joinsNotNullableMap, tableName, isPartialSelect, and 6 more.\",\"query = query.where(eq(internationalCountries.isActive, isActive === 'true'));\"]",
       "count": 1
     },
     {
       "key": "[\"server/routes.ts\",2740,\"Type 'Omit<PgSelectBase<\\\"international_countries\\\", { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"international_countries\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; notNull: true; hasDefault: true; ... 6 more ...; generated: undefined; }, {}, {}>; ... 10 more ...; updatedAt: PgColumn<...>; ...' is missing the following properties from type 'PgSelectBase<\\\"international_countries\\\", { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"international_countries\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; notNull: true; hasDefault: true; ... 6 more ...; generated: undefined; }, {}, {}>; ... 10 more ...; updatedAt: PgColumn<...>; }, .....': config, joinsNotNullableMap, tableName, isPartialSelect, and 6 more.\",\"query = query.where(eq(internationalCountries.region, region as string));\"]",
+      "count": 1
+    },
+    {
+      "key": "[\"server/routes.ts\",2740,\"Type 'Omit<PgSelectBase<\\\"outgoing_correspondence\\\", { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"outgoing_correspondence\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; notNull: true; hasDefault: true; ... 6 more ...; generated: undefined; }, {}, {}>; ... 20 more ...; updatedAt: PgColumn<...>; ...' is missing the following properties from type 'PgSelectBase<\\\"outgoing_correspondence\\\", { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"outgoing_correspondence\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; notNull: true; hasDefault: true; ... 6 more ...; generated: undefined; }, {}, {}>; ... 20 more ...; updatedAt: PgColumn<...>; }, .....': config, joinsNotNullableMap, tableName, isPartialSelect, and 6 more.\",\"query = query.where(eq(outgoingCorrespondence.priority, priority as string));\"]",
+      "count": 1
+    },
+    {
+      "key": "[\"server/routes.ts\",2740,\"Type 'Omit<PgSelectBase<\\\"outgoing_correspondence\\\", { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"outgoing_correspondence\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; notNull: true; hasDefault: true; ... 6 more ...; generated: undefined; }, {}, {}>; ... 20 more ...; updatedAt: PgColumn<...>; ...' is missing the following properties from type 'PgSelectBase<\\\"outgoing_correspondence\\\", { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"outgoing_correspondence\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; notNull: true; hasDefault: true; ... 6 more ...; generated: undefined; }, {}, {}>; ... 20 more ...; updatedAt: PgColumn<...>; }, .....': config, joinsNotNullableMap, tableName, isPartialSelect, and 6 more.\",\"query = query.where(eq(outgoingCorrespondence.status, status as string));\"]",
       "count": 1
     },
     {
@@ -4549,23 +4409,15 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2740,\"Type 'Omit<PgSelectBase<any, any, \\\"single\\\", any, false, \\\"where\\\", any[], any>, \\\"where\\\">' is missing the following properties from type 'PgSelectBase<any, any, \\\"single\\\", any, false, never, any[], any>': config, joinsNotNullableMap, tableName, isPartialSelect, and 6 more.\",\"query = query.where(eq(incomingCorrespondence.priority, priority as string));\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2740,\"Type 'Omit<PgSelectBase<any, any, \\\"single\\\", any, false, \\\"where\\\", any[], any>, \\\"where\\\">' is missing the following properties from type 'PgSelectBase<any, any, \\\"single\\\", any, false, never, any[], any>': config, joinsNotNullableMap, tableName, isPartialSelect, and 6 more.\",\"query = query.where(eq(incomingCorrespondence.status, status as string));\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2740,\"Type 'Omit<PgSelectBase<any, any, \\\"single\\\", any, false, \\\"where\\\", any[], any>, \\\"where\\\">' is missing the following properties from type 'PgSelectBase<any, any, \\\"single\\\", any, false, never, any[], any>': config, joinsNotNullableMap, tableName, isPartialSelect, and 6 more.\",\"query = query.where(eq(outgoingCorrespondence.priority, priority as string));\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2740,\"Type 'Omit<PgSelectBase<any, any, \\\"single\\\", any, false, \\\"where\\\", any[], any>, \\\"where\\\">' is missing the following properties from type 'PgSelectBase<any, any, \\\"single\\\", any, false, never, any[], any>': config, joinsNotNullableMap, tableName, isPartialSelect, and 6 more.\",\"query = query.where(eq(outgoingCorrespondence.status, status as string));\"]",
-      "count": 1
-    },
-    {
       "key": "[\"server/routes.ts\",2769,\"No overload matches this call.\\n  Overload 1 of 2, '(value: { department: string | SQL<unknown> | Placeholder<string, any>; changedBy: number | SQL<unknown> | Placeholder<string, any>; changedByName: string | SQL<...> | Placeholder<...>; ... 9 more ...; scanLocation?: string | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.\\n    Type 'number | undefined' is not assignable to type 'number | SQL<unknown> | Placeholder<string, any>'.\\n      Type 'undefined' is not assignable to type 'number | SQL<unknown> | Placeholder<string, any>'.\\n  Overload 2 of 2, '(values: { department: string | SQL<unknown> | Placeholder<string, any>; changedBy: number | SQL<unknown> | Placeholder<string, any>; changedByName: string | SQL<...> | Placeholder<...>; ... 9 more ...; scanLocation?: string | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.\\n    Object literal may only specify known properties, and 'trackingCodeId' does not exist in type '{ department: string | SQL<unknown> | Placeholder<string, any>; changedBy: number | SQL<unknown> | Placeholder<string, any>; changedByName: string | SQL<...> | Placeholder<...>; ... 9 more ...; scanLocation?: string | ... 3 more ... | undefined; }[]'.\",\"await db.insert(trackingHistory).values({\"]",
+      "count": 1
+    },
+    {
+      "key": "[\"server/routes.ts\",2769,\"No overload matches this call.\\n  Overload 1 of 2, '(value: { employeeName: string | SQL<unknown> | Placeholder<string, any>; jobTitle: string | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<...> | undefined; ... 24 more ...; cardStatus?: string | ... 2 more ... | undefined; }): PgInsertBase<...>', gave the following error.\\n    Argument of type '{ createdBy: number | undefined; employeeName: string; jobTitle: string; email?: string | null | undefined; isActive?: boolean | null | undefined; whatsappNumber?: string | null | undefined; ... 17 more ...; cardStatus?: string | ... 1 more ... | undefined; }' is not assignable to parameter of type '{ employeeName: string | SQL<unknown> | Placeholder<string, any>; jobTitle: string | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<...> | undefined; ... 24 more ...; cardStatus?: string | ... 2 more ... | undefined; }'.\\n      Types of property 'cardDesign' are incompatible.\\n        Type 'string | null | undefined' is not assignable to type 'string | SQL<unknown> | Placeholder<string, any> | undefined'.\\n          Type 'null' is not assignable to type 'string | SQL<unknown> | Placeholder<string, any> | undefined'.\\n  Overload 2 of 2, '(values: { employeeName: string | SQL<unknown> | Placeholder<string, any>; jobTitle: string | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<...> | undefined; ... 24 more ...; cardStatus?: string | ... 2 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.\\n    Object literal may only specify known properties, and 'createdBy' does not exist in type '{ employeeName: string | SQL<unknown> | Placeholder<string, any>; jobTitle: string | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<...> | undefined; ... 24 more ...; cardStatus?: string | ... 2 more ... | undefined; }[]'.\",\".values({\"]",
+      "count": 1
+    },
+    {
+      "key": "[\"server/routes.ts\",2769,\"No overload matches this call.\\n  Overload 1 of 2, '(value: { employeeName: string | SQL<unknown> | Placeholder<string, any>; jobTitle: string | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<...> | undefined; ... 24 more ...; cardStatus?: string | ... 2 more ... | undefined; }): PgInsertBase<...>', gave the following error.\\n    Argument of type '{ employeeName: string; jobTitle: string; email?: string | null | undefined; createdBy?: number | null | undefined; isActive?: boolean | null | undefined; whatsappNumber?: string | null | undefined; ... 17 more ...; cardStatus?: string | ... 1 more ... | undefined; }' is not assignable to parameter of type '{ employeeName: string | SQL<unknown> | Placeholder<string, any>; jobTitle: string | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<...> | undefined; ... 24 more ...; cardStatus?: string | ... 2 more ... | undefined; }'.\\n      Types of property 'cardDesign' are incompatible.\\n        Type 'string | null | undefined' is not assignable to type 'string | SQL<unknown> | Placeholder<string, any> | undefined'.\\n          Type 'null' is not assignable to type 'string | SQL<unknown> | Placeholder<string, any> | undefined'.\\n  Overload 2 of 2, '(values: { employeeName: string | SQL<unknown> | Placeholder<string, any>; jobTitle: string | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<...> | undefined; ... 24 more ...; cardStatus?: string | ... 2 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.\\n    Argument of type '{ employeeName: string; jobTitle: string; email?: string | null | undefined; createdBy?: number | null | undefined; isActive?: boolean | null | undefined; whatsappNumber?: string | null | undefined; ... 17 more ...; cardStatus?: string | ... 1 more ... | undefined; }' is not assignable to parameter of type '{ employeeName: string | SQL<unknown> | Placeholder<string, any>; jobTitle: string | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<...> | undefined; ... 24 more ...; cardStatus?: string | ... 2 more ... | undefined; }[]'.\\n      Type '{ employeeName: string; jobTitle: string; email?: string | null | undefined; createdBy?: number | null | undefined; isActive?: boolean | null | undefined; whatsappNumber?: string | null | undefined; ... 17 more ...; cardStatus?: string | ... 1 more ... | undefined; }' is missing the following properties from type '{ employeeName: string | SQL<unknown> | Placeholder<string, any>; jobTitle: string | SQL<unknown> | Placeholder<string, any>; id?: number | SQL<unknown> | Placeholder<...> | undefined; ... 24 more ...; cardStatus?: string | ... 2 more ... | undefined; }[]': length, pop, push, concat, and 35 more.\",\".values(cardData)\"]",
       "count": 1
     },
     {
@@ -4573,7 +4425,19 @@
       "count": 1
     },
     {
+      "key": "[\"server/routes.ts\",2769,\"No overload matches this call.\\n  Overload 1 of 2, '(value: { issueDate: Date | SQL<unknown> | Placeholder<string, any>; documentName: string | SQL<unknown> | Placeholder<string, any>; documentType: string | ... 1 more ... | Placeholder<...>; ... 12 more ...; uploadedBy?: number | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.\\n    Argument of type '{ documentName: string; documentType: string; fileUrl: string; status?: string | null | undefined; description?: string | null | undefined; tags?: string | null | undefined; issueDate?: Date | ... 1 more ... | undefined; expiryDate?: Date | ... 1 more ... | undefined; documentNumber?: string | ... 1 more ... | undef...' is not assignable to parameter of type '{ issueDate: Date | SQL<unknown> | Placeholder<string, any>; documentName: string | SQL<unknown> | Placeholder<string, any>; documentType: string | SQL<...> | Placeholder<...>; ... 12 more ...; uploadedBy?: number | ... 3 more ... | undefined; }'.\\n      Types of property 'issueDate' are incompatible.\\n        Type 'Date | null | undefined' is not assignable to type 'Date | SQL<unknown> | Placeholder<string, any>'.\\n          Type 'undefined' is not assignable to type 'Date | SQL<unknown> | Placeholder<string, any>'.\\n  Overload 2 of 2, '(values: { issueDate: Date | SQL<unknown> | Placeholder<string, any>; documentName: string | SQL<unknown> | Placeholder<string, any>; documentType: string | ... 1 more ... | Placeholder<...>; ... 12 more ...; uploadedBy?: number | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.\\n    Argument of type '{ documentName: string; documentType: string; fileUrl: string; status?: string | null | undefined; description?: string | null | undefined; tags?: string | null | undefined; issueDate?: Date | ... 1 more ... | undefined; expiryDate?: Date | ... 1 more ... | undefined; documentNumber?: string | ... 1 more ... | undef...' is not assignable to parameter of type '{ issueDate: Date | SQL<unknown> | Placeholder<string, any>; documentName: string | SQL<unknown> | Placeholder<string, any>; documentType: string | SQL<...> | Placeholder<...>; ... 12 more ...; uploadedBy?: number | ... 3 more ... | undefined; }[]'.\\n      Type '{ documentName: string; documentType: string; fileUrl: string; status?: string | null | undefined; description?: string | null | undefined; tags?: string | null | undefined; issueDate?: Date | ... 1 more ... | undefined; expiryDate?: Date | ... 1 more ... | undefined; documentNumber?: string | ... 1 more ... | undef...' is missing the following properties from type '{ issueDate: Date | SQL<unknown> | Placeholder<string, any>; documentName: string | SQL<unknown> | Placeholder<string, any>; documentType: string | SQL<...> | Placeholder<...>; ... 12 more ...; uploadedBy?: number | ... 3 more ... | undefined; }[]': length, pop, push, concat, and 35 more.\",\".values(documentData)\"]",
+      "count": 1
+    },
+    {
+      "key": "[\"server/routes.ts\",2769,\"No overload matches this call.\\n  Overload 1 of 2, '(value: { issueDate: Date | SQL<unknown> | Placeholder<string, any>; documentName: string | SQL<unknown> | Placeholder<string, any>; documentType: string | ... 1 more ... | Placeholder<...>; ... 12 more ...; uploadedBy?: number | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.\\n    Argument of type '{ uploadedBy: number | undefined; documentName: string; documentType: string; fileUrl: string; status?: string | null | undefined; description?: string | null | undefined; tags?: string | null | undefined; issueDate?: Date | ... 1 more ... | undefined; expiryDate?: Date | ... 1 more ... | undefined; documentNumber?:...' is not assignable to parameter of type '{ issueDate: Date | SQL<unknown> | Placeholder<string, any>; documentName: string | SQL<unknown> | Placeholder<string, any>; documentType: string | SQL<...> | Placeholder<...>; ... 12 more ...; uploadedBy?: number | ... 3 more ... | undefined; }'.\\n      Types of property 'issueDate' are incompatible.\\n        Type 'Date | null | undefined' is not assignable to type 'Date | SQL<unknown> | Placeholder<string, any>'.\\n          Type 'undefined' is not assignable to type 'Date | SQL<unknown> | Placeholder<string, any>'.\\n  Overload 2 of 2, '(values: { issueDate: Date | SQL<unknown> | Placeholder<string, any>; documentName: string | SQL<unknown> | Placeholder<string, any>; documentType: string | ... 1 more ... | Placeholder<...>; ... 12 more ...; uploadedBy?: number | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.\\n    Object literal may only specify known properties, and 'uploadedBy' does not exist in type '{ issueDate: Date | SQL<unknown> | Placeholder<string, any>; documentName: string | SQL<unknown> | Placeholder<string, any>; documentType: string | SQL<...> | Placeholder<...>; ... 12 more ...; uploadedBy?: number | ... 3 more ... | undefined; }[]'.\",\".values({\"]",
+      "count": 1
+    },
+    {
       "key": "[\"server/routes.ts\",2769,\"No overload matches this call.\\n  Overload 1 of 2, '(value: { message: string | SQL<unknown> | Placeholder<string, any>; phoneNumber: string | SQL<unknown> | Placeholder<string, any>; purpose: string | SQL<unknown> | Placeholder<...>; ... 7 more ...; deliveryCode?: string | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.\\n    Type 'string | null' is not assignable to type 'string | SQL<unknown> | Placeholder<string, any>'.\\n      Type 'null' is not assignable to type 'string | SQL<unknown> | Placeholder<string, any>'.\\n  Overload 2 of 2, '(values: { message: string | SQL<unknown> | Placeholder<string, any>; phoneNumber: string | SQL<unknown> | Placeholder<string, any>; purpose: string | SQL<unknown> | Placeholder<...>; ... 7 more ...; deliveryCode?: string | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.\\n    Object literal may only specify known properties, and 'phoneNumber' does not exist in type '{ message: string | SQL<unknown> | Placeholder<string, any>; phoneNumber: string | SQL<unknown> | Placeholder<string, any>; purpose: string | SQL<unknown> | Placeholder<...>; ... 7 more ...; deliveryCode?: string | ... 3 more ... | undefined; }[]'.\",\"phoneNumber: customerPhone,\"]",
+      "count": 1
+    },
+    {
+      "key": "[\"server/routes.ts\",2769,\"No overload matches this call.\\n  Overload 1 of 2, '(value: { name: string | SQL<unknown> | Placeholder<string, any>; category: string | SQL<unknown> | Placeholder<string, any>; createdBy: number | SQL<unknown> | Placeholder<...>; ... 11 more ...; lastUsed?: Date | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.\\n    Object literal may only specify known properties, and 'templateNumber' does not exist in type '{ name: string | SQL<unknown> | Placeholder<string, any>; category: string | SQL<unknown> | Placeholder<string, any>; createdBy: number | SQL<unknown> | Placeholder<...>; ... 11 more ...; lastUsed?: Date | ... 3 more ... | undefined; }'.\\n  Overload 2 of 2, '(values: { name: string | SQL<unknown> | Placeholder<string, any>; category: string | SQL<unknown> | Placeholder<string, any>; createdBy: number | SQL<unknown> | Placeholder<...>; ... 11 more ...; lastUsed?: Date | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.\\n    Object literal may only specify known properties, and 'templateNumber' does not exist in type '{ name: string | SQL<unknown> | Placeholder<string, any>; category: string | SQL<unknown> | Placeholder<string, any>; createdBy: number | SQL<unknown> | Placeholder<...>; ... 11 more ...; lastUsed?: Date | ... 3 more ... | undefined; }[]'.\",\"templateNumber,\"]",
       "count": 1
     },
     {
@@ -4714,10 +4578,6 @@
     },
     {
       "key": "[\"server/routes.ts\",7006,\"Parameter 'crmCustomer' implicitly has an 'any' type.\",\"const buildDeliveryAddress = (customer, crmCustomer) => {\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",7006,\"Parameter 'customer' implicitly has an 'any' type.\",\"const batchPromises = batch.map(async (customer) => {\"]",
       "count": 1
     },
     {

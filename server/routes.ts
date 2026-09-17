@@ -35,7 +35,7 @@ import { sendContactEmail } from "./email";
 import { insertBlogPostSchema, insertBlogPostTranslationSchema, blogPosts, blogPostTranslations } from "@shared/blog-schema";
 import TemplateProcessor from "./template-processor";
 import InventoryAlertService from "./inventory-alerts";
-import { db } from "./db";
+import { db, pool } from "./db";
 import { sql, eq, and, or, ne, isNull, isNotNull, desc, gte, inArray } from "drizzle-orm";
 import { findCorruptedOrders, getDataIntegrityStats, validateOrderIntegrity, markCorruptedOrderAsDeleted } from './data-integrity-tools';
 import { z } from "zod";
@@ -176,6 +176,9 @@ import {
 // Import sync service for automatic table synchronization
 import { globalSyncService } from './sync-service';
 import { generateSitemap } from './sitemap';
+import { incomingCorrespondence, insertIncomingCorrespondenceSchema, outgoingCorrespondence, insertOutgoingCorrespondenceSchema, insertCompanyDocumentSchema, insertBusinessCardSchema, insertCompanyImageSchema } from "@shared/company-info-schema.js";
+import { id } from "date-fns/locale";
+import { SessionData } from "express-session";
 
 // Extend session type to include admin user and customer user
 declare module "express-session" {
@@ -24369,10 +24372,13 @@ Momtaz Chemical Technical Team`,
     
     try {
       // Query with JOIN to get all orders with customer names
-      const query = `
+      const query = sql`
         SELECT co.id, co.order_number, co.customer_id, co.total_amount, co.status, 
-               co.payment_method, co.created_at, co.updated_at, co.carrier,
+               co.payment_status, co.payment_method, co.currency, co.notes,
+               co.created_at, co.updated_at, co.carrier,
                co.shipping_cost, co.vat_amount, co.surcharge_amount, co.vat_rate,
+               om.payment_method AS management_payment_method,
+               om.wallet_amount_used, om.bank_amount_paid,
                COALESCE(
                  (
                    SELECT osh.created_at
@@ -24395,11 +24401,18 @@ Momtaz Chemical Technical Team`,
                c.address as customer_address
         FROM customer_orders co
         LEFT JOIN crm_customers c ON co.customer_id = c.id
+        LEFT JOIN LATERAL (
+          SELECT payment_method, wallet_amount_used, bank_amount_paid
+          FROM order_management
+          WHERE customer_order_id = co.id
+          ORDER BY id DESC
+          LIMIT 1
+        ) om ON true
         ORDER BY co.created_at DESC
         LIMIT 50
       `;
       
-      const result = await db.execute(sql.raw(query));
+      const result = await db.execute(query);
       console.log(`✅ [REAL ORDERS DEBUG] SQL Result type:`, typeof result);
       
       // Handle different result formats safely
@@ -24418,9 +24431,28 @@ Momtaz Chemical Technical Team`,
         orders.map(async (order: any) => {
           // Get order items
           try {
-            const itemsQuery = `SELECT * FROM order_items WHERE order_id = ${order.id}`;
-            const itemsResult = await db.execute(sql.raw(itemsQuery));
-            const items = itemsResult?.rows || [];
+            const orderId = Number(order.id);
+            if (!Number.isSafeInteger(orderId) || orderId < 1) throw new Error("Invalid order id");
+            const itemsResult = await db.execute(sql`
+              SELECT id, product_id, product_name, product_sku, quantity, unit,
+                     unit_price, total_price, specifications, notes
+              FROM order_items
+              WHERE order_id = ${orderId}
+              ORDER BY id ASC
+            `);
+            const itemRows = Array.isArray(itemsResult) ? itemsResult : itemsResult?.rows || [];
+            const items = itemRows.map((item: any) => ({
+              id: item.id,
+              productId: item.product_id,
+              productName: item.product_name,
+              productSku: item.product_sku,
+              quantity: item.quantity,
+              unit: item.unit,
+              unitPrice: item.unit_price,
+              totalPrice: item.total_price,
+              specifications: item.specifications,
+              notes: item.notes,
+            }));
 
             // Create customer object
             let customer = null;
@@ -24449,11 +24481,15 @@ Momtaz Chemical Technical Team`,
               totalAmount: order.total_amount,
               status: order.status,
               statusChangedAt: order.status_changed_at,
-              paymentMethod: order.payment_method,
+              paymentStatus: order.payment_status,
+              paymentMethod: order.management_payment_method ?? order.payment_method,
+              walletAmountUsed: order.wallet_amount_used ?? "0",
+              bankAmountPaid: order.bank_amount_paid ?? "0",
+              currency: order.currency,
               carrier: order.carrier,
               createdAt: order.created_at,
-          notes: order.notes,
-          customerNotes: order.notes,
+              notes: order.notes,
+              customerNotes: order.notes,
               updatedAt: order.updated_at,
               orderDate: order.created_at,
               items: items,
@@ -24463,7 +24499,6 @@ Momtaz Chemical Technical Team`,
                 : 'نامشخص',
               mobileNumber: customer?.phone || 'نامشخص',
               email: customer?.email || 'نامشخص',
-              walletAmountUsed: 0,
             };
           } catch (itemError) {
             console.error(`Error getting items for order ${order.id}:`, itemError);
@@ -24474,7 +24509,11 @@ Momtaz Chemical Technical Team`,
               totalAmount: order.total_amount,
               status: order.status,
               statusChangedAt: order.status_changed_at,
-              paymentMethod: order.payment_method,
+              paymentStatus: order.payment_status,
+              paymentMethod: order.management_payment_method ?? order.payment_method,
+              walletAmountUsed: order.wallet_amount_used ?? "0",
+              bankAmountPaid: order.bank_amount_paid ?? "0",
+              currency: order.currency,
               carrier: order.carrier,
               createdAt: order.created_at,
           notes: order.notes,
@@ -24486,7 +24525,6 @@ Momtaz Chemical Technical Team`,
               customerName: 'نامشخص',
               mobileNumber: 'نامشخص',
               email: 'نامشخص',
-              walletAmountUsed: 0,
             };
           }
         })
@@ -32106,7 +32144,7 @@ ${message ? `Additional Requirements:\n${message}` : ''}
   };
 
   // Helper function to send individual reminders
-  const sendAbandonedOrderReminder = async (order: AbandonedOrder, reminderType: 'first' | 'second' | 'final') => {
+  const sendAbandonedOrderReminder = async (order: schema.AbandonedOrder, reminderType: 'first' | 'second' | 'final') => {
     if (!order.customerEmail && !order.customerPhone) {
       throw new Error('No contact information available');
     }
@@ -32935,8 +32973,8 @@ ${message ? `Additional Requirements:\n${message}` : ''}
       // Get order details
       const [order] = await db
         .select()
-        .from(orders)
-        .where(eq(orders.id, orderId))
+        .from(schema.orders)
+        .where(eq(schema.orders.id, orderId))
         .limit(1);
 
       if (!order) {
@@ -32985,13 +33023,13 @@ ${message ? `Additional Requirements:\n${message}` : ''}
       if (result.success) {
         // Update order status to delivered
         await db
-          .update(orders)
+          .update(schema.orders)
           .set({
             status: 'delivered',
             deliveredAt: new Date(),
             deliveryNotes: verificationNotes || 'تحویل با کد تأیید پیامک'
           })
-          .where(eq(orders.id, customerOrderId));
+          .where(eq(schema.orders.id, customerOrderId));
       }
 
       res.json(result);
@@ -38801,17 +38839,17 @@ momtazchem.com
     try {
       // Get orders with pending payment status
       const pendingOrders = await db.select({
-        orderId: orders.id,
-        orderNumber: orders.orderNumber,
-        customerId: orders.customerId,
-        totalAmount: orders.totalAmount,
-        paymentMethod: orders.paymentMethod,
-        paymentGatewayId: orders.paymentGatewayId,
-        createdAt: orders.createdAt
+        orderId: schema.orders.id,
+        orderNumber: schema.orders.orderNumber,
+        customerId: schema.orders.customerId,
+        totalAmount: schema.orders.totalAmount,
+        paymentMethod: schema.orders.paymentMethod,
+        paymentGatewayId: schema.orders.paymentGatewayId,
+        createdAt: schema.orders.createdAt
       })
-      .from(orders)
-      .where(eq(orders.paymentStatus, 'pending'))
-      .orderBy(desc(orders.createdAt));
+      .from(schema.orders)
+      .where(eq(schema.orders.paymentStatus, 'pending'))
+      .orderBy(desc(schema.orders.createdAt));
 
       // Get customer details for each order
       const ordersWithCustomers = await Promise.all(
@@ -50404,10 +50442,10 @@ momtazchem.com
       const validatedData = insertEmailTemplateSchema.parse(req.body);
       
       // Generate unique template number
-      const templateCount = await db.select({ count: sql<number>`count(*)` }).from(emailTemplates);
+      const templateCount = await db.select({ count: sql<number>`count(*)` }).from(schema.emailTemplates);
       const templateNumber = `TPL-${String(templateCount[0].count + 1).padStart(4, '0')}`;
       
-      const [newTemplate] = await db.insert(emailTemplates).values({
+      const [newTemplate] = await db.insert(schema.emailTemplates).values({
         ...validatedData,
         templateNumber,
         updatedAt: new Date()
@@ -50425,12 +50463,12 @@ momtazchem.com
       const templateId = parseInt(req.params.id);
       const validatedData = insertEmailTemplateSchema.parse(req.body);
       
-      const [updatedTemplate] = await db.update(emailTemplates)
+      const [updatedTemplate] = await db.update(schema.emailTemplates)
         .set({
           ...validatedData,
           updatedAt: new Date()
         })
-        .where(eq(emailTemplates.id, templateId))
+        .where(eq(schema.emailTemplates.id, templateId))
         .returning();
 
       if (!updatedTemplate) {
@@ -50448,8 +50486,8 @@ momtazchem.com
     try {
       const templateId = parseInt(req.params.id);
       
-      const deletedTemplate = await db.delete(emailTemplates)
-        .where(eq(emailTemplates.id, templateId))
+      const deletedTemplate = await db.delete(schema.emailTemplates)
+        .where(eq(schema.emailTemplates.id, templateId))
         .returning();
 
       if (!deletedTemplate.length) {
