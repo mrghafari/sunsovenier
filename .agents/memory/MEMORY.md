@@ -13,3 +13,4 @@
 - [Monitoring data honesty](monitoring-data-honesty.md) — distinguish configured, observed, and unavailable states; never present defaults or failed queries as live health.
 - [SMS recipient language](sms-recipient-language.md) — choose SMS text from stored customer language; raw numbers need an explicit fallback and provider acceptance is not delivery.
 - [Destructive super-admin actions](destructive-super-admin-actions.md) — require a verified active role and make multi-record deletion atomic with explicit targets.
+- [Legacy super-admin role](legacy-super-admin-role.md) — the active super-admin role may use the historical “Supper Admin” spelling; authorization must canonicalize only this known alias.

@@ -1,0 +1,35 @@
+index-BF-5Fhdw.js:1703 CI_CD_TEST_2026
+index-BF-5Fhdw.js:1703 [PWA] Service Worker registered, scope: https://momtazchem.com/
+index-BF-5Fhdw.js:1553 📥 Loading Tawk.to widget at bottom-left position...
+index-BF-5Fhdw.js:1553 ✅ Tawk.to Live Chat loaded successfully at bottom-left
+index-BF-5Fhdw.js:50 Auth check result: Object
+/admin:1 Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner.
+index-BF-5Fhdw.js:639 🔍 [DEBUG] Site Management component initialized
+index-BF-5Fhdw.js:639 🔍 [DEBUG] Site Management component initialized
+index-BF-5Fhdw.js:639 🔍 [DEBUG] Full userPermissions response: Object
+index-BF-5Fhdw.js:639 🔍 [DEBUG] userPermissions.modules: Array(38)
+index-BF-5Fhdw.js:639 🔍 [DEBUG] userPermissions.permissions: Array(38)
+index-BF-5Fhdw.js:639 🔍 [DEBUG] Total allButtons count: 40
+index-BF-5Fhdw.js:639 🔍 [DEBUG] AI Settings exists in allButtons: true
+index-BF-5Fhdw.js:639 🔍 [DEBUG] Content Management exists in allButtons: true
+index-BF-5Fhdw.js:639 🔍 [DEBUG] allowedModules: Array(38)
+index-BF-5Fhdw.js:639 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+index-BF-5Fhdw.js:639 🔍 [DEBUG] management_dashboard in allowedModules? true
+index-BF-5Fhdw.js:639 🔍 [DEBUG] finance in allowedModules? true
+index-BF-5Fhdw.js:639 🔍 [DEBUG] geography_analytics in allowedModules? true
+index-BF-5Fhdw.js:639 🔍 [DEBUG] ai_settings in allowedModules? true
+index-BF-5Fhdw.js:639 🔍 [DEBUG] content_management in allowedModules? true
+index-BF-5Fhdw.js:639 🔍 [CRITICAL] Missing button detection:
+index-BF-5Fhdw.js:639 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+index-BF-5Fhdw.js:639 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+index-BF-5Fhdw.js:639 🔍 [CRITICAL] Missing buttons count: 2
+index-BF-5Fhdw.js:639 🔍 [DEBUG] finance button found in allButtons? Object
+index-BF-5Fhdw.js:639 🔍 [DEBUG] geography_analytics button found in allButtons? Object
+index-BF-5Fhdw.js:639 🔍 [DEBUG] ai_settings button found in allButtons? Object
+index-BF-5Fhdw.js:639 🔍 [DEBUG] content_management button found in allButtons? Object
+index-BF-5Fhdw.js:639 🔍 [DEBUG] finance button in filtered? Object
+index-BF-5Fhdw.js:639 🔍 [DEBUG] geography_analytics button in filtered? Object
+index-BF-5Fhdw.js:639 🔍 [DEBUG] ai_settings button in filtered? Object
+index-BF-5Fhdw.js:639 🔍 [DEBUG] content_management button in filtered? Object
+index-BF-5Fhdw.js:639 🔍 [DEBUG] Site Management component initialized
+/api/super-admin/deletable-orders:1  Failed to load resource: the server responded with a status of 403 ()

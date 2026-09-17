@@ -1,6 +1,13 @@
 import { Request, Response, NextFunction } from "express";
 import { pool } from "./db";
 
+const isSuperAdminRoleName = (roleName: unknown) => {
+  if (typeof roleName !== "string") return false;
+
+  const normalizedRole = roleName.trim().toLowerCase().replace(/[\s-]+/g, "_");
+  return normalizedRole === "super_admin" || normalizedRole === "supper_admin";
+};
+
 export const requireAdminAuth = async (req: Request, res: Response, next: NextFunction) => {
   console.log(`🔐 [ADMIN AUTH] ${req.method} ${req.path}`);
   console.log(`🔐 [ADMIN AUTH] Session:`, {
@@ -80,7 +87,7 @@ export const requireSuperAdminRole = async (req: Request, res: Response, next: N
 
     const roleName = roleResult.rows[0]?.role_name;
 
-    if (roleName !== "super_admin") {
+    if (!isSuperAdminRoleName(roleName)) {
       return res.status(403).json({
         success: false,
         message: "Super admin access required"
