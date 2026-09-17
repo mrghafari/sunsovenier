@@ -6218,6 +6218,7 @@ export const translations = {
   forIndustry: 'برای صنعت',
   heroDescription: 'ارائه‌دهنده راهکارهای شیمیایی باکیفیت برای صنایع مختلف؛ از افزودنی‌های سوخت تا تصفیه آب و کاربردهای کشاورزی.',
   contactSales: 'تماس با واحد فروش',
+  callForPrice: 'برای دریافت قیمت تماس بگیرید',
   ourProductPortfolio: 'سبد محصولات ما',
   productPortfolioDesc: 'مجموعه‌ای جامع از راهکارهای شیمیایی تخصصی، طراحی‌شده برای عملکرد مطمئن در صنایع مختلف.',
   products_plural: 'محصول',
