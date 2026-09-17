@@ -191,6 +191,8 @@ const procedureTranslations = {
     tags: "Tags (comma separated)", content: "Procedure content", summary: "Summary", requiredPpeHint: "Goggles, gloves, mask",
     categoryName: "Category name", color: "Color", protocolTitle: "Protocol title", protocolCategory: "Protocol category",
     success: "Success", error: "Error", saved: "Changes saved.", failed: "Unable to save changes.", documentDownloaded: "Document downloaded successfully",
+    procedureTitle: "Procedure title", priorityNormal: "Normal", accessPublic: "Public", accessInternal: "Internal", accessRestricted: "Restricted", accessConfidential: "Confidential",
+    tagsPlaceholder: "production, quality, safety", uploadAttachments: "Upload attached documents", createProcedure: "Create procedure", editProcedure: "Edit procedure", updateProcedure: "Update procedure",
   },
   fa: {
     back: "بازگشت به داشبورد", title: "مدیریت دستورالعمل‌ها و ایمنی", subtitle: "مرور، انتشار و نگهداری رویه‌های کنترل‌شده سازمانی.",
@@ -212,6 +214,8 @@ const procedureTranslations = {
     tags: "برچسب‌ها (با کاما جدا کنید)", content: "محتوای دستورالعمل", summary: "خلاصه توضیحات", requiredPpeHint: "عینک، دستکش، ماسک",
     categoryName: "نام دسته‌بندی", color: "رنگ", protocolTitle: "عنوان پروتکل", protocolCategory: "دسته‌بندی پروتکل",
     success: "موفقیت", error: "خطا", saved: "تغییرات ذخیره شد.", failed: "ذخیره تغییرات انجام نشد.", documentDownloaded: "سند با موفقیت دانلود شد",
+    procedureTitle: "عنوان دستورالعمل", priorityNormal: "عادی", accessPublic: "عمومی", accessInternal: "داخلی", accessRestricted: "محدود", accessConfidential: "محرمانه",
+    tagsPlaceholder: "تولید، کیفیت، ایمنی", uploadAttachments: "آپلود مدارک ضمیمه", createProcedure: "ایجاد دستورالعمل", editProcedure: "ویرایش دستورالعمل", updateProcedure: "به‌روزرسانی دستورالعمل",
   },
   ar: {
     back: "العودة إلى لوحة التحكم", title: "إدارة الإجراءات والسلامة", subtitle: "مراجعة الإجراءات المؤسسية المنضبطة ونشرها وصيانتها.",
@@ -228,12 +232,14 @@ const procedureTranslations = {
     safetyInstructions: "تعليمات السلامة", firstAid: "إسعافات أولية", evacuation: "خطة الإخلاء", severityLow: "منخفض", severityMedium: "متوسط", severityHigh: "مرتفع", severityCritical: "حرج",
     access: "مستوى الوصول", effectiveDate: "تاريخ السريان", reviewDate: "تاريخ المراجعة", tags: "الوسوم (مفصولة بفواصل)", content: "محتوى الإجراء", summary: "الملخص", requiredPpeHint: "نظارات، قفازات، كمامة",
     categoryName: "اسم الفئة", color: "اللون", protocolTitle: "عنوان البروتوكول", protocolCategory: "فئة البروتوكول", success: "نجاح", error: "خطأ", saved: "تم حفظ التغييرات.", failed: "تعذر حفظ التغييرات.", documentDownloaded: "تم تنزيل المستند بنجاح",
+    procedureTitle: "عنوان الإجراء", priorityNormal: "عادي", accessPublic: "عام", accessInternal: "داخلي", accessRestricted: "مقيّد", accessConfidential: "سري",
+    tagsPlaceholder: "الإنتاج، الجودة، السلامة", uploadAttachments: "رفع المستندات المرفقة", createProcedure: "إنشاء الإجراء", editProcedure: "تعديل الإجراء", updateProcedure: "تحديث الإجراء",
   },
   tr: {
     back: "Kontrol paneline dön", title: "Prosedür ve güvenlik yönetimi", subtitle: "Kurumsal prosedürleri hızlıca inceleyin, yayınlayın ve güncel tutun.",
     overview: "Genel bakış", procedures: "Prosedürler", categories: "Kategoriler", safety: "Güvenlik protokolleri", analytics: "Raporlar", total: "Toplam prosedür", approved: "Onaylı", pending: "İnceleme bekliyor", needsApproval: "Onay gerekiyor",
     protocols: "Güvenlik protokolleri", critical: "Kritik", categoryCount: "Kategoriler", active: "Etkin", recent: "Son prosedürler", version: "Sürüm", search: "Prosedürlerde ara...", chooseCategory: "Kategori seç", allCategories: "Tüm kategoriler", chooseStatus: "Durum seç", allStatuses: "Tüm durumlar", draft: "Taslak", review: "İncelemede", archived: "Arşivlendi",
-    addProcedure: "Prosedür ekle", addCategory: "Kategori ekle", addProtocol: "Güvenlik protokolü ekle", loading: "Yükleniyor...", titleLabel: "Başlık", category: "Kategori", priority: "Öncelik", status: "Durum", documents: "Belgeler", views: "Görüntülenme", created: "Oluşturulma", actions: "İşlemler", unknown: "Bilinmiyor", uploadedDocuments: "Yüklenen belgeler", viewDocuments: "Yüklenen belgeleri görüntüle", export: "Prosedürü dışa aktar", edit: "Düzenle", delete: "Sil", row: "Sıra", description: "Açıklama", displayOrder: "Görüntüleme sırası", yes: "Evet", no: "Hayır", mandatory: "Zorunlu", severity: "Önem", ppe: "Gerekli KKD", noDocuments: "Henüz belge yüklenmedi.", close: "Kapat", cancel: "İptal", attachments: "Belge ekleri", upload: "Belgeleri yükle", selectedFiles: "Seçilen dosyalar", allowed: "İzin verilen biçimler: PDF, DOC, DOCX, TXT, JPG, PNG", save: "Kaydet", create: "Oluştur", update: "Güncelle", usage: "Prosedür kullanımı", totalViews: "Toplam görüntülenme", averageViews: "Ortalama görüntülenme", mostViewed: "En çok görüntülenen", approvalStatus: "Onay durumu", safetyInstructions: "Güvenlik talimatları", firstAid: "İlk yardım adımları", evacuation: "Tahliye planı", severityLow: "Düşük", severityMedium: "Orta", severityHigh: "Yüksek", severityCritical: "Kritik", access: "Erişim düzeyi", effectiveDate: "Yürürlük tarihi", reviewDate: "İnceleme tarihi", tags: "Etiketler (virgülle ayırın)", content: "Prosedür içeriği", summary: "Özet", requiredPpeHint: "Gözlük, eldiven, maske", categoryName: "Kategori adı", color: "Renk", protocolTitle: "Protokol başlığı", protocolCategory: "Protokol kategorisi", success: "Başarılı", error: "Hata", saved: "Değişiklikler kaydedildi.", failed: "Değişiklikler kaydedilemedi.", documentDownloaded: "Belge başarıyla indirildi",
+    addProcedure: "Prosedür ekle", addCategory: "Kategori ekle", addProtocol: "Güvenlik protokolü ekle", loading: "Yükleniyor...", titleLabel: "Başlık", category: "Kategori", priority: "Öncelik", status: "Durum", documents: "Belgeler", views: "Görüntülenme", created: "Oluşturulma", actions: "İşlemler", unknown: "Bilinmiyor", uploadedDocuments: "Yüklenen belgeler", viewDocuments: "Yüklenen belgeleri görüntüle", export: "Prosedürü dışa aktar", edit: "Düzenle", delete: "Sil", row: "Sıra", description: "Açıklama", displayOrder: "Görüntüleme sırası", yes: "Evet", no: "Hayır", mandatory: "Zorunlu", severity: "Önem", ppe: "Gerekli KKD", noDocuments: "Henüz belge yüklenmedi.", close: "Kapat", cancel: "İptal", attachments: "Belge ekleri", upload: "Belgeleri yükle", selectedFiles: "Seçilen dosyalar", allowed: "İzin verilen biçimler: PDF, DOC, DOCX, TXT, JPG, PNG", save: "Kaydet", create: "Oluştur", update: "Güncelle", usage: "Prosedür kullanımı", totalViews: "Toplam görüntülenme", averageViews: "Ortalama görüntülenme", mostViewed: "En çok görüntülenen", approvalStatus: "Onay durumu", safetyInstructions: "Güvenlik talimatları", firstAid: "İlk yardım adımları", evacuation: "Tahliye planı", severityLow: "Düşük", severityMedium: "Orta", severityHigh: "Yüksek", severityCritical: "Kritik", access: "Erişim düzeyi", effectiveDate: "Yürürlük tarihi", reviewDate: "İnceleme tarihi", tags: "Etiketler (virgülle ayırın)", content: "Prosedür içeriği", summary: "Özet", requiredPpeHint: "Gözlük, eldiven, maske", categoryName: "Kategori adı", color: "Renk", protocolTitle: "Protokol başlığı", protocolCategory: "Protokol kategorisi", success: "Başarılı", error: "Hata", saved: "Değişiklikler kaydedildi.", failed: "Değişiklikler kaydedilemedi.", documentDownloaded: "Belge başarıyla indirildi", procedureTitle: "Prosedür başlığı", priorityNormal: "Normal", accessPublic: "Herkese açık", accessInternal: "Dahili", accessRestricted: "Kısıtlı", accessConfidential: "Gizli", tagsPlaceholder: "üretim, kalite, güvenlik", uploadAttachments: "Ek belgeleri yükle", createProcedure: "Prosedür oluştur", editProcedure: "Prosedürü düzenle", updateProcedure: "Prosedürü güncelle",
   },
 } as const;
 
@@ -1167,7 +1173,7 @@ export default function ProceduresManagement() {
 
       {/* Documents Dialog */}
       <Dialog open={showDocuments} onOpenChange={setShowDocuments}>
-          <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
+          <DialogContent dir={direction} className="max-h-[90vh] max-w-4xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{t.uploadedDocuments}</DialogTitle>
           </DialogHeader>
@@ -1291,7 +1297,7 @@ export default function ProceduresManagement() {
           <DialogHeader>
             <DialogTitle>
               {dialogType === 'category' ? (editingItem ? `${t.edit} ${t.categories}` : t.addCategory) :
-               dialogType === 'procedure' ? (editingItem ? `${t.edit} ${t.procedures}` : t.addProcedure) :
+               dialogType === 'procedure' ? (editingItem ? t.editProcedure : t.addProcedure) :
                dialogType === 'safety' ? (editingItem ? `${t.edit} ${t.safety}` : t.addProtocol) : ''}
             </DialogTitle>
           </DialogHeader>
@@ -1374,7 +1380,7 @@ export default function ProceduresManagement() {
                     name="title"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>عنوان دستورالعمل</FormLabel>
+                        <FormLabel>{t.procedureTitle}</FormLabel>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
@@ -1387,11 +1393,11 @@ export default function ProceduresManagement() {
                     name="categoryId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>دسته‌بندی</FormLabel>
+                        <FormLabel>{t.category}</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="انتخاب دسته‌بندی" />
+                              <SelectValue placeholder={t.chooseCategory} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -1412,7 +1418,7 @@ export default function ProceduresManagement() {
                   name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>خلاصه توضیحات</FormLabel>
+                      <FormLabel>{t.summary}</FormLabel>
                       <FormControl>
                         <Textarea {...field} />
                       </FormControl>
@@ -1425,7 +1431,7 @@ export default function ProceduresManagement() {
                   name="content"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>محتوای دستورالعمل</FormLabel>
+                      <FormLabel>{t.content}</FormLabel>
                       <FormControl>
                         <Textarea {...field} rows={8} />
                       </FormControl>
@@ -1439,7 +1445,7 @@ export default function ProceduresManagement() {
                     name="priority"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>اولویت</FormLabel>
+                        <FormLabel>{t.priority}</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
@@ -1447,10 +1453,10 @@ export default function ProceduresManagement() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="low">پایین</SelectItem>
-                            <SelectItem value="normal">عادی</SelectItem>
-                            <SelectItem value="high">بالا</SelectItem>
-                            <SelectItem value="critical">بحرانی</SelectItem>
+                            <SelectItem value="low">{t.severityLow}</SelectItem>
+                            <SelectItem value="normal">{t.priorityNormal}</SelectItem>
+                            <SelectItem value="high">{t.severityHigh}</SelectItem>
+                            <SelectItem value="critical">{t.severityCritical}</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -1462,7 +1468,7 @@ export default function ProceduresManagement() {
                     name="accessLevel"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>سطح دسترسی</FormLabel>
+                        <FormLabel>{t.access}</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
@@ -1470,10 +1476,10 @@ export default function ProceduresManagement() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="public">عمومی</SelectItem>
-                            <SelectItem value="internal">داخلی</SelectItem>
-                            <SelectItem value="restricted">محدود</SelectItem>
-                            <SelectItem value="confidential">محرمانه</SelectItem>
+                            <SelectItem value="public">{t.accessPublic}</SelectItem>
+                            <SelectItem value="internal">{t.accessInternal}</SelectItem>
+                            <SelectItem value="restricted">{t.accessRestricted}</SelectItem>
+                            <SelectItem value="confidential">{t.accessConfidential}</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -1485,9 +1491,9 @@ export default function ProceduresManagement() {
                     name="tags"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>برچسب‌ها (با کاما جدا کنید)</FormLabel>
+                        <FormLabel>{t.tags}</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="تولید, کیفیت, ایمنی" />
+                          <Input {...field} placeholder={t.tagsPlaceholder} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -1500,7 +1506,7 @@ export default function ProceduresManagement() {
                     name="effectiveDate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>تاریخ اجرا</FormLabel>
+                        <FormLabel>{t.effectiveDate}</FormLabel>
                         <FormControl>
                           <Input type="date" {...field} />
                         </FormControl>
@@ -1513,7 +1519,7 @@ export default function ProceduresManagement() {
                     name="reviewDate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>تاریخ بازنگری</FormLabel>
+                        <FormLabel>{t.reviewDate}</FormLabel>
                         <FormControl>
                           <Input type="date" {...field} />
                         </FormControl>
@@ -1527,7 +1533,7 @@ export default function ProceduresManagement() {
                 <div className="space-y-4 p-4 border rounded-lg">
                   <div className="flex items-center gap-2">
                     <Upload className="h-4 w-4" />
-                    <h3 className="font-medium">آپلود مدارک ضمیمه</h3>
+                    <h3 className="font-medium">{t.uploadAttachments}</h3>
                   </div>
                   
                   <div className="space-y-2">
@@ -1539,13 +1545,13 @@ export default function ProceduresManagement() {
                       className="w-full p-2 border rounded"
                     />
                     <p className="text-sm text-muted-foreground">
-                      فرمت‌های مجاز: PDF, DOC, DOCX, TXT, JPG, PNG
+                      {t.allowed}
                     </p>
                   </div>
 
                   {documentFiles.length > 0 && (
                     <div className="space-y-2">
-                      <h4 className="text-sm font-medium">فایل‌های انتخاب شده:</h4>
+                      <h4 className="text-sm font-medium">{t.selectedFiles}:</h4>
                       {documentFiles.map((file, index) => (
                         <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                           <div className="flex items-center gap-2">
@@ -1571,10 +1577,10 @@ export default function ProceduresManagement() {
 
                 <div className="flex justify-end gap-2">
                   <Button type="button" variant="outline" onClick={closeDialog}>
-                    انصراف
+                    {t.cancel}
                   </Button>
                   <Button type="submit">
-                    {editingItem ? 'به‌روزرسانی دستورالعمل' : 'ایجاد دستورالعمل'}
+                    {editingItem ? t.updateProcedure : t.createProcedure}
                   </Button>
                 </div>
               </form>

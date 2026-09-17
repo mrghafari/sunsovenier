@@ -953,34 +953,6 @@
       "count": 1
     },
     {
-      "key": "[\"client/src/pages/admin/marketing-module.tsx\",2339,\"Property 'data' does not exist on type '{}'.\",\"{loyaltyStats?.data?.tierDistribution?.bronze?.toLocaleString() || '847'}\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/admin/marketing-module.tsx\",2339,\"Property 'data' does not exist on type '{}'.\",\"{loyaltyStats?.data?.tierDistribution?.gold?.toLocaleString() || '88'}\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/admin/marketing-module.tsx\",2339,\"Property 'data' does not exist on type '{}'.\",\"{loyaltyStats?.data?.tierDistribution?.silver?.toLocaleString() || '312'}\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/admin/marketing-module.tsx\",2339,\"Property 'data' does not exist on type '{}'.\",\"{loyaltyStats?.data?.totalActiveCustomers?.toLocaleString() || '1,247'}\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/admin/marketing-module.tsx\",2339,\"Property 'data' does not exist on type '{}'.\",\"{loyaltyStats?.data?.totalDiscountsUsed?.toLocaleString() || '156'}\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/admin/marketing-module.tsx\",2339,\"Property 'data' does not exist on type '{}'.\",\"{loyaltyStats?.data?.totalPointsAwarded?.toLocaleString() || '45,820'}\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/admin/marketing-module.tsx\",7053,\"Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ middle_east: { name: string; color: string; countries: string[]; }; gulf: { name: string; color: string; countries: string[]; }; asia: { name: string; color: string; countries: string[]; }; europe: { name: string; color: string; countries: string[]; }; africa: { ...; }; americas: { ...; }; }'.\\n  No index signature with a parameter of type 'string' was found on type '{ middle_east: { name: string; color: string; countries: string[]; }; gulf: { name: string; color: string; countries: string[]; }; asia: { name: string; color: string; countries: string[]; }; europe: { name: string; color: string; countries: string[]; }; africa: { ...; }; americas: { ...; }; }'.\",\"const regionInfo = INTERNATIONAL_REGIONS[market.region];\"]",
-      "count": 1
-    },
-    {
       "key": "[\"client/src/pages/admin/order-tracking-management.tsx\",18046,\"'lastPage' is of type 'unknown'.\",\"return lastPage.pagination?.hasNextPage ? lastPage.pagination.nextOffset : undefined;\"]",
       "count": 2
     },

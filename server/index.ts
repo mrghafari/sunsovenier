@@ -21,6 +21,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import passport from "./passport-config";
 import { monitoringService } from "./monitoring-service";
 import { sequenceSyncService } from "./sequence-sync";
+import { startMarketingEmailWorker, stopMarketingEmailWorker } from "./marketing-email-worker";
 
 // Global error handlers to prevent server crashes
 process.on('uncaughtException', (err) => {
@@ -429,6 +430,7 @@ app.use((req, res, next) => {
       reusePort: true,
     }, () => {
       log(`serving on port ${port}`);
+      startMarketingEmailWorker();
       
       // Start services with delayed initialization
       setTimeout(async () => {
@@ -494,6 +496,12 @@ app.use((req, res, next) => {
         }
       }, 5000); // Delay 5 seconds to ensure database connections are stable
     });
+    const stopMarketingWorker = () => {
+      stopMarketingEmailWorker();
+      server.close(() => process.exit(0));
+    };
+    process.once("SIGTERM", stopMarketingWorker);
+    process.once("SIGINT", stopMarketingWorker);
   } catch (error) {
     console.error("Failed to start server:", error);
     process.exit(1);

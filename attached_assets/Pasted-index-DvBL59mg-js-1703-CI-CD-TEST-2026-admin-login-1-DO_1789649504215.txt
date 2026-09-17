@@ -1,0 +1,53 @@
+index-DvBL59mg.js:1703 CI_CD_TEST_2026
+/admin/login:1 [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) null
+/api/admin/me:1  Failed to load resource: the server responded with a status of 401 ()
+index-DvBL59mg.js:1553 📥 Loading Tawk.to widget at bottom-left position...
+index-DvBL59mg.js:1553 ✅ Tawk.to Live Chat loaded successfully at bottom-left
+index-DvBL59mg.js:1703 [PWA] Service Worker registered, scope: https://momtazchem.com/
+/admin/login:1 Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner.
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 ()
+login:1 [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) null
+The FetchEvent for "https://momtazchem.com/vendor/dashboard" resulted in a network error response: the promise was rejected.
+sw.js?v=4-20260911:111 Uncaught (in promise) Error: Network failed and no cache available
+    at networkFirstWithCache (sw.js?v=4-20260911:111:11)
+/api/admin/me:1  Failed to load resource: the server responded with a status of 401 ()
+/api/admin/me:1  Failed to load resource: the server responded with a status of 401 ()
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 ()
+index-DvBL59mg.js:474 Barcode effect triggered:  Canvas ref: null
+index-DvBL59mg.js:474 Barcode effect triggered:  Canvas ref: null
+index-DvBL59mg.js:470 New barcode generation details: Object
+index-DvBL59mg.js:474 Barcode effect triggered: 8649677198270 Canvas ref: null
+/api/admin/me:1  Failed to load resource: the server responded with a status of 401 ()
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 ()
+/api/products/generate-sku:1  Failed to load resource: the server responded with a status of 401 ()
+index-DvBL59mg.js:476 Error generating SKU: Error: Product update failed
+    at onClick (index-DvBL59mg.js:476:1776)
+onClick @ index-DvBL59mg.js:476
+/api/products/generate-sku:1  Failed to load resource: the server responded with a status of 401 ()
+index-DvBL59mg.js:476 Error generating SKU: Error: Product update failed
+    at onClick (index-DvBL59mg.js:476:1776)
+onClick @ index-DvBL59mg.js:476
+/api/admin/me:1  Failed to load resource: the server responded with a status of 401 ()
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 ()
+products:1 Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+index-DvBL59mg.js:472 Set primary image URL: /uploads/general-files/1789649147629-623740f42358d208.png at index: 0
+index-DvBL59mg.js:470 🔍 [DEBUG] Form submission - Raw form data: Object
+index-DvBL59mg.js:470 🔍 [DEBUG] Tags in form data:  Type: string
+index-DvBL59mg.js:470 🔍 [DEBUG] Description in form data: 
+index-DvBL59mg.js:470 🔍 [DEBUG] editingProduct state: undefined
+index-DvBL59mg.js:50  GET https://momtazchem.com/api/admin/me 401 (Unauthorized)
+queryFn @ index-DvBL59mg.js:50
+fetchFn @ queryClient-C76wM52K.js:1
+h @ queryClient-C76wM52K.js:1
+start @ queryClient-C76wM52K.js:1
+fetch @ queryClient-C76wM52K.js:1
+#h @ card-BoW5Zo7v.js:8
+(anonymous) @ card-BoW5Zo7v.js:8
+index-DvBL59mg.js:42  GET https://momtazchem.com/api/customers/me 401 (Unauthorized)
+queryFn @ index-DvBL59mg.js:42
+fetchFn @ queryClient-C76wM52K.js:1
+h @ queryClient-C76wM52K.js:1
+start @ queryClient-C76wM52K.js:1
+fetch @ queryClient-C76wM52K.js:1
+#h @ card-BoW5Zo7v.js:8
+(anonymous) @ card-BoW5Zo7v.js:8

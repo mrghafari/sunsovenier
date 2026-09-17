@@ -17,6 +17,28 @@ import crypto from "crypto";
 import { storage } from "./storage";
 import { UniversalEmailService } from "./universal-email-service";
 import { CONFIG } from "./config";
+import { insertShowcaseProductSchema, showcaseProducts } from "@shared/showcase-schema";
+
+const vendorProductCreateSchema = insertShowcaseProductSchema.pick({
+  name: true,
+  technicalName: true,
+  category: true,
+  description: true,
+  sku: true,
+  barcode: true,
+  stockQuantity: true,
+  unitPrice: true,
+  transportationTemperature: true,
+}).extend({
+  name: z.string().trim().min(3),
+  category: z.string().trim().min(1),
+  description: z.string().trim().min(1),
+  sku: z.string().trim().min(3),
+  barcode: z.string().trim().min(8),
+  stockQuantity: z.coerce.number().int().min(0),
+  unitPrice: z.coerce.number().min(0),
+  transportationTemperature: z.enum(["none", "frozen", "chilled", "cool", "dry"]).optional(),
+});
 
 export function createVendorRouter() {
   const router = Router();
@@ -641,16 +663,17 @@ export function createVendorRouter() {
         });
       }
 
-      const { db } = await import("./db");
-      const { showcaseProducts: products } = await import("@shared/showcase-schema");
-      
-      // Extract product data from body and IGNORE any vendorId sent by client
-      const { vendorId: _ignored, ...bodyData } = req.body;
+      const validatedData = vendorProductCreateSchema.parse(req.body);
       
       // Always use vendorId from authenticated session - cannot be spoofed
       const productData = {
-        ...bodyData,
+        ...validatedData,
+        unitPrice: validatedData.unitPrice.toString(),
+        transportationTemperature: validatedData.transportationTemperature === "none"
+          ? null
+          : validatedData.transportationTemperature,
         vendorId: req.vendorUser.vendorId, // Always from session, never from client
+        isActive: true,
         createdAt: new Date(),
         updatedAt: new Date()
       };
@@ -660,7 +683,7 @@ export function createVendorRouter() {
 
       // Insert into main products table
       const [product] = await db
-        .insert(products)
+        .insert(showcaseProducts)
         .values(productData)
         .returning();
 
@@ -673,9 +696,15 @@ export function createVendorRouter() {
       });
     } catch (error: any) {
       console.error("❌ [VENDOR PRODUCT CREATE] Error:", error);
-      res.status(500).json({
+      const isDuplicate = error?.code === "23505";
+      const isInvalid = error instanceof z.ZodError;
+      res.status(isDuplicate ? 409 : isInvalid ? 400 : 500).json({
         success: false,
-        message: error.message || "Error creating product"
+        message: isDuplicate
+          ? "SKU or barcode is already in use"
+          : isInvalid
+            ? "Product information is incomplete or invalid"
+            : "Error creating product"
       });
     }
   });

@@ -37,7 +37,7 @@ import { insertBlogPostSchema, insertBlogPostTranslationSchema, blogPosts, blogP
 import TemplateProcessor from "./template-processor";
 import InventoryAlertService from "./inventory-alerts";
 import { db, pool } from "./db";
-import { sql, eq, and, or, ne, isNull, isNotNull, desc, gte, inArray } from "drizzle-orm";
+import { sql, eq, and, or, ne, isNull, isNotNull, desc, gte, inArray, asc } from "drizzle-orm";
 import { findCorruptedOrders, getDataIntegrityStats, validateOrderIntegrity, markCorruptedOrderAsDeleted } from './data-integrity-tools';
 import { z } from "zod";
 import * as schema from "@shared/schema";
@@ -58,6 +58,7 @@ import { ObjectStorageService } from "./objectStorage";
 import { getAwsS3Service } from './aws-s3-service';
 import { sendOrderConfirmationEmail } from "./order-confirmation-email";
 import { resolveOrderStatus } from "@shared/order-status";
+import { marketingSubscribers, marketingSuppressions, marketingCampaigns, marketingCampaignRecipients } from "@shared/email-marketing-schema";
 
 const INVOICE_LANGUAGES = ['en', 'ar', 'tr', 'fa'] as const;
 type InvoiceLanguage = typeof INVOICE_LANGUAGES[number];
@@ -36970,7 +36971,7 @@ momtazchem.com
   // =============================================================================
 
   // Get all international markets
-  app.get('/api/marketing/international-markets', requireAuth, async (req, res) => {
+  app.get('/api/marketing/international-markets', requireSuperAdminRole, async (req, res) => {
     try {
       const markets = await db.select().from(internationalMarkets).orderBy(desc(internationalMarkets.priority));
       res.json({ success: true, data: markets });
@@ -36981,7 +36982,7 @@ momtazchem.com
   });
 
   // Create new international market
-  app.post('/api/marketing/international-markets', requireAuth, async (req, res) => {
+  app.post('/api/marketing/international-markets', requireSuperAdminRole, async (req, res) => {
     try {
       const validatedData = insertInternationalMarketSchema.parse(req.body);
       const [market] = await db.insert(internationalMarkets).values(validatedData).returning();
@@ -36993,7 +36994,7 @@ momtazchem.com
   });
 
   // Update international market
-  app.put('/api/marketing/international-markets/:id', requireAuth, async (req, res) => {
+  app.put('/api/marketing/international-markets/:id', requireSuperAdminRole, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const validatedData = insertInternationalMarketSchema.parse(req.body);
@@ -37015,7 +37016,7 @@ momtazchem.com
   });
 
   // Delete international market
-  app.delete('/api/marketing/international-markets/:id', requireAuth, async (req, res) => {
+  app.delete('/api/marketing/international-markets/:id', requireSuperAdminRole, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const [deletedMarket] = await db
@@ -37035,7 +37036,7 @@ momtazchem.com
   });
 
   // Get all market segments
-  app.get('/api/marketing/market-segments', requireAuth, async (req, res) => {
+  app.get('/api/marketing/market-segments', requireSuperAdminRole, async (req, res) => {
     try {
       const segments = await db.select().from(marketSegments).orderBy(desc(marketSegments.createdAt));
       res.json({ success: true, data: segments });
@@ -37046,7 +37047,7 @@ momtazchem.com
   });
 
   // Create new market segment
-  app.post('/api/marketing/market-segments', requireAuth, async (req, res) => {
+  app.post('/api/marketing/market-segments', requireSuperAdminRole, async (req, res) => {
     try {
       const validatedData = insertMarketSegmentSchema.parse(req.body);
       const [segment] = await db.insert(marketSegments).values(validatedData).returning();
@@ -37058,7 +37059,7 @@ momtazchem.com
   });
 
   // Get all competitor analysis
-  app.get('/api/marketing/competitor-analysis', requireAuth, async (req, res) => {
+  app.get('/api/marketing/competitor-analysis', requireSuperAdminRole, async (req, res) => {
     try {
       const analysis = await db.select().from(competitorAnalysis).orderBy(desc(competitorAnalysis.lastAnalyzed));
       res.json({ success: true, data: analysis });
@@ -37069,7 +37070,7 @@ momtazchem.com
   });
 
   // Create new competitor analysis
-  app.post('/api/marketing/competitor-analysis', requireAuth, async (req, res) => {
+  app.post('/api/marketing/competitor-analysis', requireSuperAdminRole, async (req, res) => {
     try {
       const validatedData = insertCompetitorAnalysisSchema.parse(req.body);
       const [analysis] = await db.insert(competitorAnalysis).values(validatedData).returning();
@@ -37081,7 +37082,7 @@ momtazchem.com
   });
 
   // Get all market intelligence
-  app.get('/api/marketing/market-intelligence', requireAuth, async (req, res) => {
+  app.get('/api/marketing/market-intelligence', requireSuperAdminRole, async (req, res) => {
     try {
       const intel = await db.select().from(marketIntelligence).orderBy(desc(marketIntelligence.createdAt));
       res.json({ success: true, data: intel });
@@ -37092,7 +37093,7 @@ momtazchem.com
   });
 
   // Create new market intelligence entry
-  app.post('/api/marketing/market-intelligence', requireAuth, async (req, res) => {
+  app.post('/api/marketing/market-intelligence', requireSuperAdminRole, async (req, res) => {
     try {
       const validatedData = insertMarketIntelligenceSchema.parse(req.body);
       const [intel] = await db.insert(marketIntelligence).values(validatedData).returning();
@@ -37104,7 +37105,7 @@ momtazchem.com
   });
 
   // Get marketing dashboard statistics
-  app.get('/api/marketing/dashboard-stats', requireAuth, async (req, res) => {
+  app.get('/api/marketing/dashboard-stats', requireSuperAdminRole, async (req, res) => {
     try {
       const [marketsCount] = await db.select({ count: sql<number>`count(*)` }).from(internationalMarkets);
       const [activeMarketsCount] = await db.select({ count: sql<number>`count(*)` }).from(internationalMarkets).where(eq(internationalMarkets.status, 'active'));
@@ -37135,6 +37136,346 @@ momtazchem.com
     } catch (error) {
       console.error('Error fetching marketing dashboard stats:', error);
       res.status(500).json({ success: false, message: 'خطا در دریافت آمار داشبورد مارکتینگ' });
+    }
+  });
+
+  // =============================================================================
+  // PERMISSIONED MARKETING EMAILS
+  // =============================================================================
+  // These routes deliberately do not use UniversalEmailService: that service adds
+  // configured recipients/CC/BCC when a recipient is missing, which is unsafe for
+  // campaign mail. Queueing only snapshots eligible recipients; a worker is the
+  // only component allowed to perform delivery.
+  const normalizeMarketingEmail = (value: unknown) => String(value || '').trim().toLowerCase();
+  const marketingEmailIsValid = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  const marketingToken = (value: string) => {
+    if (!process.env.SESSION_SECRET) throw new Error('SESSION_SECRET is required for marketing links');
+    return crypto.createHmac('sha256', process.env.SESSION_SECRET).update(value).digest('hex');
+  };
+  const marketingPublicOrigin = (req: Request) => {
+    const candidate = process.env.MARKETING_PUBLIC_ORIGIN;
+    if (!candidate) throw new Error('MARKETING_PUBLIC_ORIGIN is required');
+    const origin = new URL(candidate);
+    const developmentHttp = process.env.NODE_ENV === 'development' && origin.protocol === 'http:' && origin.hostname === 'localhost';
+    if ((!developmentHttp && origin.protocol !== 'https:') || origin.username || origin.password ||
+        !origin.hostname || origin.pathname !== '/' && origin.pathname !== '') {
+      throw new Error('Invalid public origin');
+    }
+    return origin.origin;
+  };
+  const sendMarketingConfirmation = async (req: Request, email: string, _name: string | null, token: string) => {
+    const smtp = await emailStorage.getOtpSmtpSetting();
+    if (!smtp) throw new Error('No active SMTP configuration is available');
+    const transporter = nodemailer.createTransport({
+      host: smtp.host, port: smtp.port, secure: smtp.secure ?? smtp.port === 465,
+      auth: { user: smtp.username, pass: smtp.password },
+    });
+    const url = `${marketingPublicOrigin(req)}/api/marketing/subscribe/confirm/${encodeURIComponent(token)}`;
+    await transporter.sendMail({
+      from: `${smtp.fromName} <${smtp.fromEmail}>`, to: email, subject: 'Confirm your subscription',
+      text: `Please confirm your subscription using this link: ${url}`,
+      html: `<p>Please confirm your subscription using the link below.</p><p><a href="${url}">Confirm subscription</a></p>`,
+    });
+  };
+  const marketingUnsubscribeUrl = (req: Request, email: string) => {
+    const normalized = normalizeMarketingEmail(email);
+    return `${marketingPublicOrigin(req)}/api/marketing/unsubscribe/${Buffer.from(normalized).toString('base64url')}.${marketingToken(normalized)}`;
+  };
+
+  // Public lead capture is intentionally double opt-in. The token is returned
+  // for the caller's mail service to deliver; this route never sends mail.
+  app.post('/api/marketing/subscribe', async (req, res) => {
+    const email = normalizeMarketingEmail(req.body?.email);
+    const cleanName = typeof req.body?.name === 'string' ? req.body.name.replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 120) : '';
+    const cleanSource = typeof req.body?.source === 'string' ? req.body.source.replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 80) : 'website';
+    const generic = { success: true, message: 'If eligible, a confirmation message will be sent shortly.' };
+    if (!marketingEmailIsValid(email) || req.body?.consent !== true) return res.status(202).json(generic);
+    const ip = String(req.ip || 'unknown').slice(0, 128);
+    try {
+      await db.execute(sql`CREATE TABLE IF NOT EXISTS marketing_subscription_rate_limits (
+        rate_key text PRIMARY KEY, last_attempt timestamp NOT NULL DEFAULT now()
+      )`);
+      const acquired = await db.transaction(async tx => {
+        const cutoff = new Date(Date.now() - 10 * 60 * 1000);
+        const ipLock = await tx.execute(sql`INSERT INTO marketing_subscription_rate_limits (rate_key, last_attempt)
+          VALUES (${`ip:${ip}`}, NOW()) ON CONFLICT (rate_key) DO UPDATE SET last_attempt=NOW()
+          WHERE marketing_subscription_rate_limits.last_attempt <= ${cutoff} RETURNING rate_key`);
+        const emailLock = await tx.execute(sql`INSERT INTO marketing_subscription_rate_limits (rate_key, last_attempt)
+          VALUES (${`email:${email}`}, NOW()) ON CONFLICT (rate_key) DO UPDATE SET last_attempt=NOW()
+          WHERE marketing_subscription_rate_limits.last_attempt <= ${cutoff} RETURNING rate_key`);
+        return ipLock.rows.length === 1 && emailLock.rows.length === 1;
+      });
+      if (!acquired) return res.status(202).json(generic);
+    } catch (error) {
+      console.error('[MARKETING EMAIL] subscription limiter unavailable:', error);
+      return res.status(202).json(generic);
+    }
+    const token = crypto.randomBytes(32).toString('hex');
+    try {
+      const [blocked] = await db.select({ id: marketingSuppressions.id }).from(marketingSuppressions).where(eq(marketingSuppressions.email, email)).limit(1);
+      if (blocked) return res.status(202).json(generic);
+      const [created] = await db.insert(marketingSubscribers).values({
+        email, name: cleanName || null, audience: 'prospect', source: cleanSource || 'website',
+        consent: true, verified: false, status: 'pending_verification', consentAt: new Date(),
+        consentSource: typeof req.body?.consentSource === 'string' ? req.body.consentSource : 'website',
+        verificationTokenHash: marketingToken(token), verificationExpiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
+        unsubscribeTokenHash: marketingToken(email),
+      }).onConflictDoNothing({
+        target: [marketingSubscribers.email, marketingSubscribers.audience],
+      }).returning({ id: marketingSubscribers.id });
+      if (!created) {
+        const [existing] = await db.select({ verified: marketingSubscribers.verified, status: marketingSubscribers.status })
+          .from(marketingSubscribers).where(and(eq(marketingSubscribers.email, email), eq(marketingSubscribers.audience, 'prospect'))).limit(1);
+        if (existing?.verified && existing.status === 'active') return res.status(202).json(generic);
+        await db.update(marketingSubscribers).set({
+          consent: true, verified: false, status: 'pending_verification', consentAt: new Date(),
+          verificationTokenHash: marketingToken(token), verificationExpiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000), updatedAt: new Date(),
+        }).where(and(eq(marketingSubscribers.email, email), eq(marketingSubscribers.audience, 'prospect')));
+      }
+      try {
+        await sendMarketingConfirmation(req, email, typeof req.body?.name === 'string' ? req.body.name.trim() || null : null, token);
+      } catch (error) {
+        console.error('[MARKETING EMAIL] confirmation delivery unavailable:', error);
+        return res.status(503).json({ success: false, message: 'Subscription recorded, but confirmation delivery is currently unavailable' });
+      }
+      res.status(202).json(generic);
+    } catch (error) {
+      console.error('[MARKETING EMAIL] public subscribe failed:', error);
+      res.status(500).json({ success: false, message: 'Unable to register subscription' });
+    }
+  });
+
+  app.get('/api/marketing/subscribe/confirm/:token', async (req, res) => {
+    const hash = marketingToken(String(req.params.token || ''));
+    try {
+      const [subscriber] = await db.update(marketingSubscribers).set({
+        verified: true, status: 'active', verificationTokenHash: null, verificationExpiresAt: null,
+        updatedAt: new Date(),
+      }).where(and(eq(marketingSubscribers.verificationTokenHash, hash), gte(marketingSubscribers.verificationExpiresAt, new Date()))).returning({ email: marketingSubscribers.email });
+      if (!subscriber) return res.status(404).send('Confirmation link is invalid or expired');
+      res.status(200).send('Your subscription has been confirmed successfully.');
+    } catch {
+      res.status(400).send('Unable to confirm subscription');
+    }
+  });
+
+  app.get('/api/marketing/email-subscribers', requireSuperAdminRole, async (_req, res) => {
+    try {
+      const rows = await db.select({
+        id: marketingSubscribers.id,
+        email: marketingSubscribers.email,
+        name: marketingSubscribers.name,
+        audience: marketingSubscribers.audience,
+        source: marketingSubscribers.source,
+        consent: marketingSubscribers.consent,
+        verified: marketingSubscribers.verified,
+        status: marketingSubscribers.status,
+        createdAt: marketingSubscribers.createdAt,
+      }).from(marketingSubscribers).orderBy(desc(marketingSubscribers.createdAt)).limit(500);
+      res.json({ success: true, data: rows });
+    } catch (error) {
+      console.error('[MARKETING EMAIL] subscriber list failed:', error);
+      res.status(500).json({ success: false, message: 'Unable to load marketing subscribers' });
+    }
+  });
+
+  app.post('/api/marketing/email-subscribers', requireSuperAdminRole, async (req, res) => {
+    const email = normalizeMarketingEmail(req.body?.email);
+    if (!marketingEmailIsValid(email)) return res.status(400).json({ success: false, message: 'A valid email address is required' });
+    if (req.body?.consent !== true) return res.status(400).json({ success: false, message: 'Explicit marketing consent is required' });
+    const audience = req.body?.audience === 'prospect' ? 'prospect' : 'customer';
+    const verified = audience === 'customer';
+    try {
+      const [blocked] = await db.select({ id: marketingSuppressions.id }).from(marketingSuppressions).where(eq(marketingSuppressions.email, email)).limit(1);
+      if (blocked) return res.status(409).json({ success: false, message: 'This email is globally suppressed' });
+      const [subscriber] = await db.insert(marketingSubscribers).values({
+        email,
+        name: typeof req.body?.name === 'string' ? req.body.name.trim() || null : null,
+        audience,
+        source: typeof req.body?.source === 'string' ? req.body.source.trim() || 'admin' : 'admin',
+        consent: true,
+         verified,
+        status: 'active',
+        consentAt: new Date(),
+        consentSource: 'admin',
+        unsubscribeTokenHash: marketingToken(email),
+      }).onConflictDoUpdate({
+        target: [marketingSubscribers.email, marketingSubscribers.audience],
+        set: { consent: true, verified, status: 'active', updatedAt: new Date(), unsubscribedAt: null, unsubscribeTokenHash: marketingToken(email) },
+      }).returning();
+      if (audience === 'prospect') {
+        try {
+          const token = crypto.randomBytes(32).toString('hex');
+          await db.update(marketingSubscribers).set({
+            status: 'pending_verification', verified: false, verificationTokenHash: marketingToken(token),
+            verificationExpiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000), updatedAt: new Date(),
+          }).where(eq(marketingSubscribers.id, subscriber.id));
+          await sendMarketingConfirmation(req, email, typeof req.body?.name === 'string' ? req.body.name.trim() || null : null, token);
+        } catch (error) {
+          console.error('[MARKETING EMAIL] admin confirmation delivery unavailable:', error);
+          return res.status(503).json({ success: false, message: 'Subscriber recorded, but confirmation delivery is currently unavailable' });
+        }
+      }
+      res.status(201).json({ success: true, data: { ...subscriber, verificationTokenHash: undefined, unsubscribeTokenHash: undefined } });
+    } catch (error) {
+      console.error('[MARKETING EMAIL] subscriber save failed:', error);
+      res.status(500).json({ success: false, message: 'Unable to save subscriber' });
+    }
+  });
+
+  app.get('/api/marketing/email-audience-preview', requireSuperAdminRole, async (_req, res) => {
+    try {
+      const customerResult = await customerPool.query(`
+        SELECT id, email, CONCAT_WS(' ', first_name, last_name) AS name
+        FROM customers
+        WHERE marketing_consent = true
+          AND is_active = true
+          AND email_verified = true
+          AND COALESCE(communication_preference, 'email') = 'email'
+          AND email ~* '^[^[:space:]@]+@[^[:space:]@]+\\.[^[:space:]@]+$'
+      `);
+      const prospects = await db.select({ id: marketingSubscribers.id, email: marketingSubscribers.email, name: marketingSubscribers.name })
+        .from(marketingSubscribers)
+        .where(and(eq(marketingSubscribers.audience, 'prospect'), eq(marketingSubscribers.consent, true), eq(marketingSubscribers.verified, true), eq(marketingSubscribers.status, 'active')));
+      const suppressionRows = await db.select({ email: marketingSuppressions.email }).from(marketingSuppressions);
+      const suppressed = new Set(suppressionRows.map(row => normalizeMarketingEmail(row.email)));
+      const seen = new Set<string>();
+      const customers = customerResult.rows.filter(row => {
+        const email = normalizeMarketingEmail(row.email);
+        if (seen.has(email) || suppressed.has(email)) return false;
+        seen.add(email);
+        return true;
+      }).map(row => ({ id: row.id, email: normalizeMarketingEmail(row.email), name: row.name || null, audience: 'customer' }));
+      const eligibleProspects = prospects.filter(row => {
+        const email = normalizeMarketingEmail(row.email);
+        if (seen.has(email) || suppressed.has(email)) return false;
+        seen.add(email);
+        return marketingEmailIsValid(email);
+      }).map(row => ({ id: row.id, email: row.email, name: row.name, audience: 'prospect' }));
+      res.json({ success: true, data: { customers, prospects: eligibleProspects, total: customers.length + eligibleProspects.length } });
+    } catch (error) {
+      console.error('[MARKETING EMAIL] audience preview failed:', error);
+      res.status(500).json({ success: false, message: 'Unable to calculate eligible audience' });
+    }
+  });
+
+  app.get('/api/marketing/email-campaigns', requireSuperAdminRole, async (_req, res) => {
+    try {
+      const campaigns = await db.select().from(marketingCampaigns).orderBy(desc(marketingCampaigns.createdAt)).limit(100);
+      res.json({ success: true, data: campaigns });
+    } catch (error) {
+      res.status(500).json({ success: false, message: 'Unable to load email campaigns' });
+    }
+  });
+
+  app.post('/api/marketing/email-campaigns', requireSuperAdminRole, async (req, res) => {
+    const name = String(req.body?.name || '').trim();
+    const subject = String(req.body?.subject || '').trim();
+    const htmlContent = String(req.body?.htmlContent || '').trim();
+    if (!name || !subject || !htmlContent) return res.status(400).json({ success: false, message: 'Name, subject and HTML content are required' });
+    const audience = ['customers', 'prospects', 'all'].includes(req.body?.audience) ? req.body.audience : 'all';
+    try {
+      const [campaign] = await db.insert(marketingCampaigns).values({
+        name, subject, htmlContent, textContent: typeof req.body?.textContent === 'string' ? req.body.textContent : null,
+        audience, status: 'draft', createdBy: req.session.adminId || null,
+      }).returning();
+      res.status(201).json({ success: true, data: campaign });
+    } catch (error) {
+      res.status(500).json({ success: false, message: 'Unable to create email campaign' });
+    }
+  });
+
+  app.get('/api/marketing/email-campaigns/:id/recipients', requireSuperAdminRole, async (req, res) => {
+    const id = Number.parseInt(req.params.id, 10);
+    if (!Number.isInteger(id)) return res.status(400).json({ success: false, message: 'Invalid campaign id' });
+    try {
+      const recipients = await db.select().from(marketingCampaignRecipients).where(eq(marketingCampaignRecipients.campaignId, id)).orderBy(asc(marketingCampaignRecipients.id)).limit(1000);
+      res.json({ success: true, data: recipients });
+    } catch (error) {
+      res.status(500).json({ success: false, message: 'Unable to load campaign recipients' });
+    }
+  });
+
+  app.post('/api/marketing/email-campaigns/:id/queue', requireSuperAdminRole, async (req, res) => {
+    const campaignId = Number.parseInt(req.params.id, 10);
+    if (!Number.isInteger(campaignId)) return res.status(400).json({ success: false, message: 'Invalid campaign id' });
+    try {
+      const [campaign] = await db.select().from(marketingCampaigns).where(eq(marketingCampaigns.id, campaignId)).limit(1);
+      if (!campaign) return res.status(404).json({ success: false, message: 'Campaign not found' });
+      if (!['draft', 'paused'].includes(campaign.status)) return res.status(409).json({ success: false, message: 'Campaign cannot be queued from its current state' });
+      const customerResult = await customerPool.query(`
+        SELECT id, email, CONCAT_WS(' ', first_name, last_name) AS name
+        FROM customers
+        WHERE marketing_consent = true AND is_active = true AND email_verified = true
+          AND COALESCE(communication_preference, 'email') = 'email'
+          AND email ~* '^[^[:space:]@]+@[^[:space:]@]+\\.[^[:space:]@]+$'
+      `);
+      const prospects = await db.select({ id: marketingSubscribers.id, email: marketingSubscribers.email, name: marketingSubscribers.name })
+        .from(marketingSubscribers)
+        .where(and(eq(marketingSubscribers.audience, 'prospect'), eq(marketingSubscribers.consent, true), eq(marketingSubscribers.verified, true), eq(marketingSubscribers.status, 'active')));
+      const suppressionRows = await db.select({ email: marketingSuppressions.email }).from(marketingSuppressions);
+      const suppressed = new Set(suppressionRows.map(row => normalizeMarketingEmail(row.email)));
+      const audience = campaign.audience;
+      const candidates = [
+        ...(audience !== 'prospects' ? customerResult.rows.map(row => ({ subscriberId: null, audience: 'customer', email: normalizeMarketingEmail(row.email), name: row.name || null })) : []),
+        ...(audience !== 'customers' ? prospects.map(row => ({ subscriberId: row.id, audience: 'prospect', email: normalizeMarketingEmail(row.email), name: row.name || null })) : []),
+      ];
+      const deduped = [...new Map(candidates.filter(row => marketingEmailIsValid(row.email) && !suppressed.has(row.email)).map(row => [row.email, row])).values()];
+      const inserted = await db.transaction(async tx => {
+        let count = 0;
+        for (const row of deduped) {
+          const [recipient] = await tx.insert(marketingCampaignRecipients).values({
+            campaignId, subscriberId: row.subscriberId, email: row.email, normalizedEmail: row.email,
+            audience: row.audience, name: row.name, unsubscribeUrl: marketingUnsubscribeUrl(req, row.email), status: 'pending',
+          }).onConflictDoNothing().returning({ id: marketingCampaignRecipients.id });
+          if (recipient) count += 1;
+        }
+        const [pending] = await tx.select({ count: sql<number>`count(*)` })
+          .from(marketingCampaignRecipients)
+          .where(and(eq(marketingCampaignRecipients.campaignId, campaignId), eq(marketingCampaignRecipients.status, 'pending')));
+        const totalPending = Number(pending?.count || 0);
+        if (count > 0 || totalPending > 0) {
+          await tx.update(marketingCampaigns).set({ status: 'queued', queuedAt: new Date(), updatedAt: new Date() }).where(eq(marketingCampaigns.id, campaignId));
+        }
+        return { inserted: count, pending: totalPending };
+      });
+      res.json({ success: true, data: { campaignId, queued: inserted.inserted, pending: inserted.pending, status: inserted.pending > 0 ? 'queued' : campaign.status } });
+    } catch (error) {
+      console.error('[MARKETING EMAIL] queue failed:', error);
+      const unavailable = error instanceof Error && /MARKETING_PUBLIC_ORIGIN|SESSION_SECRET|public origin/i.test(error.message);
+      res.status(unavailable ? 503 : 500).json({ success: false, message: unavailable ? 'Marketing public origin or signing configuration is unavailable' : 'Unable to queue email campaign' });
+    }
+  });
+
+  app.post('/api/marketing/email-campaigns/:id/pause', requireSuperAdminRole, async (req, res) => {
+    const id = Number.parseInt(req.params.id, 10);
+    if (!Number.isInteger(id)) return res.status(400).json({ success: false, message: 'Invalid campaign id' });
+    const [campaign] = await db.update(marketingCampaigns).set({ status: 'paused', updatedAt: new Date() }).where(and(eq(marketingCampaigns.id, id), inArray(marketingCampaigns.status, ['queued', 'running']))).returning();
+    if (!campaign) return res.status(404).json({ success: false, message: 'Campaign not found or cannot be paused' });
+    res.json({ success: true, data: campaign });
+  });
+
+  app.post('/api/marketing/email-campaigns/:id/cancel', requireSuperAdminRole, async (req, res) => {
+    const id = Number.parseInt(req.params.id, 10);
+    if (!Number.isInteger(id)) return res.status(400).json({ success: false, message: 'Invalid campaign id' });
+    const [campaign] = await db.update(marketingCampaigns).set({ status: 'cancelled', updatedAt: new Date() }).where(and(eq(marketingCampaigns.id, id), ne(marketingCampaigns.status, 'completed'))).returning();
+    if (!campaign) return res.status(404).json({ success: false, message: 'Campaign not found or already completed' });
+    res.json({ success: true, data: campaign });
+  });
+
+  app.get('/api/marketing/unsubscribe/:token', async (req, res) => {
+    try {
+      marketingPublicOrigin(req);
+      const token = String(req.params.token || '');
+      const [encodedEmail, signature] = token.split('.');
+      const email = Buffer.from(encodedEmail || '', 'base64url').toString('utf8');
+      if (!marketingEmailIsValid(email) || signature !== marketingToken(email)) return res.status(400).send('Unable to process unsubscribe request');
+      await db.insert(marketingSuppressions).values({ email, reason: 'unsubscribe' }).onConflictDoNothing();
+      await db.update(marketingSubscribers).set({ status: 'unsubscribed', consent: false, unsubscribedAt: new Date(), updatedAt: new Date() }).where(eq(marketingSubscribers.email, email));
+      res.status(200).send('You have been unsubscribed successfully.');
+    } catch (error) {
+      const unavailable = error instanceof Error && /MARKETING_PUBLIC_ORIGIN|public origin/i.test(error.message);
+      res.status(unavailable ? 503 : 400).send(unavailable ? 'Unsubscribe service is temporarily unavailable' : 'Unable to process unsubscribe request');
     }
   });
 

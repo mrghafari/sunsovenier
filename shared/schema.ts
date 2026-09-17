@@ -20,6 +20,7 @@ export * from "./logistics-schema";
 export * from "./webrtc-schema";
 export * from "./blog-schema";
 export * from "./email-schema";
+export * from "./email-marketing-schema";
 
 // =============================================================================
 // AI API SETTINGS SYSTEM
