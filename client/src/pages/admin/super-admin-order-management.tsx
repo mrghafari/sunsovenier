@@ -67,7 +67,19 @@ export default function SuperAdminOrderManagement() {
     c.selectedCount = `${bulkSnapshot.labels.slice(0, 8).join(", ")}${bulkSnapshot.labels.length > 8 ? ` … +${bulkSnapshot.labels.length - 8}` : ""}`;
   }
 
-  const ordersQuery = useQuery({ queryKey: ["/api/super-admin/deletable-orders"], retry: false, refetchInterval: 30000 });
+  const ordersQuery = useQuery({
+    queryKey: ["/api/super-admin/deletable-orders"],
+    retry: false,
+    refetchInterval: 30000,
+    queryFn: async () => {
+      const response = await fetch("/api/super-admin/deletable-orders", { credentials: "include" });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(`${response.status}: ${payload?.message || c.error}`);
+      }
+      return payload;
+    },
+  });
   const customerQuery = useQuery({ queryKey: ["/api/super-admin/customer-orders-by-email", email], enabled: tab === "customer" && !!email.trim(), retry: false, queryFn: async () => {
     const r = await fetch(`/api/super-admin/customer-orders-by-email/${encodeURIComponent(email.trim())}`, { credentials: "include" });
     if (!r.ok) throw new Error(await r.text());

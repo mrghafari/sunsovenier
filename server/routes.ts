@@ -8740,17 +8740,27 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       req.session.customUserPermissions = user.role_permissions;
       req.session.isAuthenticated = true;
 
-      res.json({
-        success: true,
-        message: "ورود موفق",
-        user: {
-          id: user.id,
-          fullName: user.full_name,
-          email: user.email,
-          role: user.role_name,
-          roleDisplayName: user.role_display_name,
-          permissions: user.role_permissions
+      req.session.save((sessionError) => {
+        if (sessionError) {
+          console.error("Failed to persist custom user session:", sessionError);
+          return res.status(500).json({
+            success: false,
+            message: "خطا در ذخیره نشست کاربر",
+          });
         }
+
+        res.json({
+          success: true,
+          message: "ورود موفق",
+          user: {
+            id: user.id,
+            fullName: user.full_name,
+            email: user.email,
+            role: user.role_name,
+            roleDisplayName: user.role_display_name,
+            permissions: user.role_permissions
+          }
+        });
       });
 
     } catch (error) {
