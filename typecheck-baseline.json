@@ -2209,10 +2209,6 @@
       "count": 1
     },
     {
-      "key": "[\"server/gps-delivery-storage.ts\",2322,\"Type 'SQL<unknown> | undefined' is not assignable to type 'SQL<unknown>'.\\n  Type 'undefined' is not assignable to type 'SQL<unknown>'.\",\"whereClause = and(whereClause, eq(gpsDeliveryConfirmations.city, city));\"]",
-      "count": 1
-    },
-    {
       "key": "[\"server/gps-delivery-storage.ts\",2339,\"Property 'accuracy' does not exist on type '{}'.\",\"accuracy: data.accuracy\"]",
       "count": 1
     },
@@ -3137,14 +3133,6 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'customerEmail' does not exist on type '{ id: number; customerOrderId: number; currentStatus: string; deliveryCode: string | null; financialReviewerId: number | null; financialReviewedAt: Date | null; financialNotes: string | null; ... 58 more ...; updatedAt: Date; }'.\",\"email: updatedOrder.customerEmail,\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2339,\"Property 'customerFirstName' does not exist on type '{ id: number; customerOrderId: number; currentStatus: string; deliveryCode: string | null; financialReviewerId: number | null; financialReviewedAt: Date | null; financialNotes: string | null; ... 58 more ...; updatedAt: Date; }'.\",\"name: `${updatedOrder.customerFirstName || ''} ${updatedOrder.customerLastName || ''}`.trim(),\"]",
-      "count": 1
-    },
-    {
       "key": "[\"server/routes.ts\",2339,\"Property 'customerFirstName' does not exist on type '{ id: number; weightUnit: string | null; createdAt: Date; actualDeliveryDate: Date | null; trackingNumber: string | null; updatedAt: Date; isVerified: boolean | null; ... 58 more ...; carrierLocationSource: string | null; }'.\",\"const customerName = `${orderDetails.customerFirstName} ${orderDetails.customerLastName || ''}`.trim();\"]",
       "count": 1
     },
@@ -3157,20 +3145,12 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'customerLastName' does not exist on type '{ id: number; customerOrderId: number; currentStatus: string; deliveryCode: string | null; financialReviewerId: number | null; financialReviewedAt: Date | null; financialNotes: string | null; ... 58 more ...; updatedAt: Date; }'.\",\"name: `${updatedOrder.customerFirstName || ''} ${updatedOrder.customerLastName || ''}`.trim(),\"]",
-      "count": 1
-    },
-    {
       "key": "[\"server/routes.ts\",2339,\"Property 'customerLastName' does not exist on type '{ id: number; weightUnit: string | null; createdAt: Date; actualDeliveryDate: Date | null; trackingNumber: string | null; updatedAt: Date; isVerified: boolean | null; ... 58 more ...; carrierLocationSource: string | null; }'.\",\"const customerName = `${orderDetails.customerFirstName} ${orderDetails.customerLastName || ''}`.trim();\"]",
       "count": 1
     },
     {
       "key": "[\"server/routes.ts\",2339,\"Property 'customerName' does not exist on type '{ id: number; customerId: number; orderNumber: string; status: string; priority: string; totalAmount: string; shippingCost: string | null; currency: string; paymentStatus: string; paymentMethod: string | null; ... 36 more ...; updatedAt: Date; }'.\",\"customerName: order.customerName || 'مشتری گرامی'\"]",
       "count": 2
-    },
-    {
-      "key": "[\"server/routes.ts\",2339,\"Property 'customerPhone' does not exist on type '{ id: number; customerOrderId: number; currentStatus: string; deliveryCode: string | null; financialReviewerId: number | null; financialReviewedAt: Date | null; financialNotes: string | null; ... 58 more ...; updatedAt: Date; }'.\",\"phone: updatedOrder.customerPhone\"]",
-      "count": 1
     },
     {
       "key": "[\"server/routes.ts\",2339,\"Property 'customerPhone' does not exist on type '{ id: number; orderNumber: string; customerId: number; status: string; paymentStatus: string; paymentMethod: string | null; paymentGatewayId: number | null; subtotal: string; taxAmount: string | null; ... 16 more ...; updatedAt: Date; }'.\",\"order.phone || order.customerPhone || '',\"]",
@@ -4303,10 +4283,6 @@
     {
       "key": "[\"server/routes.ts\",2554,\"Expected 5 arguments, but got 3.\",\"const smsSent = await orderManagementStorage.sendDeliveryCodeSms(customerPhone, deliveryCode, customerOrderId);\"]",
       "count": 2
-    },
-    {
-      "key": "[\"server/routes.ts\",2561,\"Object literal may only specify known properties, but 'deliveredAt' does not exist in type '{ customerId?: number | SQL<unknown> | PgColumn<ColumnBaseConfig<ColumnDataType, string>, {}, {}> | undefined; orderNumber?: string | SQL<...> | PgColumn<...> | undefined; ... 23 more ...; deliveredDate?: Date | ... 3 more ... | undefined; }'. Did you mean to write 'deliveredDate'?\",\"deliveredAt: new Date(),\"]",
-      "count": 1
     },
     {
       "key": "[\"server/routes.ts\",2571,\"Object is of type 'unknown'.\",\"if (usedInShippingRates[0]?.count > 0) {\"]",

@@ -30,7 +30,7 @@ export interface IGpsDeliveryStorage {
   
   // Location Analysis
   validateDeliveryLocation(latitude: number, longitude: number, customerAddress: string): Promise<any>;
-  getDeliveryHeatmapData(country: string, city?: string): Promise<any>;
+  getDeliveryHeatmapData(country?: string, city?: string): Promise<any>;
   getDeliveryRouteAnalysis(deliveryPersonPhone: string, date: Date): Promise<any>;
 }
 
@@ -411,29 +411,40 @@ export class GpsDeliveryStorage implements IGpsDeliveryStorage {
     };
   }
   
-  async getDeliveryHeatmapData(country: string, city?: string): Promise<any> {
-    let whereClause = eq(gpsDeliveryConfirmations.country, country);
-    
-    if (city) {
-      whereClause = and(whereClause, eq(gpsDeliveryConfirmations.city, city));
-    }
-    
+  async getDeliveryHeatmapData(country?: string, city?: string): Promise<any> {
     const deliveries = await db
       .select({
         latitude: gpsDeliveryConfirmations.latitude,
         longitude: gpsDeliveryConfirmations.longitude,
         addressMatched: gpsDeliveryConfirmations.addressMatched,
         verificationTime: gpsDeliveryConfirmations.verificationTime,
+        country: gpsDeliveryConfirmations.country,
+        city: gpsDeliveryConfirmations.city,
       })
       .from(gpsDeliveryConfirmations)
-      .where(whereClause);
-    
-    return deliveries.map(d => ({
-      lat: parseFloat(d.latitude.toString()),
-      lng: parseFloat(d.longitude.toString()),
-      weight: d.addressMatched ? 1 : 0.5,
-      timestamp: d.verificationTime
-    }));
+      .orderBy(desc(gpsDeliveryConfirmations.verificationTime))
+      .limit(5000);
+
+    const filteredDeliveries = deliveries.filter((delivery) =>
+      (!country || delivery.country === country) &&
+      (!city || delivery.city === city)
+    );
+
+    const buckets = new Map<string, { lat: number; lng: number; weight: number; timestamp: Date }>();
+    for (const delivery of filteredDeliveries) {
+      const lat = Number(parseFloat(delivery.latitude.toString()).toFixed(3));
+      const lng = Number(parseFloat(delivery.longitude.toString()).toFixed(3));
+      const key = `${lat},${lng}`;
+      const bucket = buckets.get(key);
+      if (bucket) {
+        bucket.weight += 1;
+        if (delivery.verificationTime > bucket.timestamp) bucket.timestamp = delivery.verificationTime;
+      } else {
+        buckets.set(key, { lat, lng, weight: 1, timestamp: delivery.verificationTime });
+      }
+    }
+
+    return Array.from(buckets.values()).slice(0, 1000);
   }
   
   async getDeliveryRouteAnalysis(deliveryPersonPhone: string, date: Date): Promise<any> {

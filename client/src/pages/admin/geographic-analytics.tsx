@@ -12,6 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from 'recharts';
 import { MapPin, Package, TrendingUp, Users, DollarSign, ShoppingCart, Calendar, Download, Filter, ArrowUpDown, ArrowUp, ArrowDown, Navigation, Target, Clock, CheckCircle, AlertTriangle, Maximize2, Minimize2 } from "lucide-react";
+import { SalesDeliveryHeatmap } from "@/components/admin/sales-delivery-heatmap";
 
 interface GeographicData {
   region: string;
@@ -282,9 +283,9 @@ export default function GeographicAnalytics() {
 
   // Fetch GPS heatmap data  
   const gpsHeatmap = useQuery({
-    queryKey: ['/api/gps-delivery/heatmap', 'Iraq'],
+    queryKey: ['/api/gps-delivery/heatmap'],
     queryFn: async () => {
-      const response = await fetch('/api/gps-delivery/heatmap?country=Iraq', {
+      const response = await fetch('/api/gps-delivery/heatmap', {
         credentials: 'include'
       });
       if (!response.ok) throw new Error('Failed to fetch GPS heatmap');
@@ -1491,9 +1492,11 @@ export default function GeographicAnalytics() {
                             <div className="text-sm text-purple-700">{t.uniqueAreas}</div>
                         </div>
                       </div>
+
+                      <SalesDeliveryHeatmap points={gpsHeatmap.data} />
                       
                       {/* Delivery Distribution Map */}
-                      <div className="bg-white border rounded-lg p-4">
+                      <div className="hidden bg-white border rounded-lg p-4">
                         <div className="flex items-center justify-between mb-4">
                           <h4 className="font-semibold text-gray-800 flex items-center">
                             <MapPin className="h-5 w-5 mr-2 text-blue-600" />

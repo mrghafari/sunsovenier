@@ -29,6 +29,7 @@ import {
   Shield,
   AlertTriangle,
   FileText,
+  Loader2,
   Printer,
   Calculator,
   History,
@@ -793,6 +794,15 @@ const LogisticsManagement = () => {
   const [confirmingDeliveryOrderId, setConfirmingDeliveryOrderId] = useState<number | null>(null);
   const [deliveryConfirmStep, setDeliveryConfirmStep] = useState<1 | 2>(1);
   const [deliveryConfirmDialogOpen, setDeliveryConfirmDialogOpen] = useState(false);
+  const [deliveryVerificationCode, setDeliveryVerificationCode] = useState("");
+  const [deliveryGps, setDeliveryGps] = useState<GeolocationCoordinates | null>(null);
+  const [isCapturingDeliveryGps, setIsCapturingDeliveryGps] = useState(false);
+  const gpsCopy = {
+    en: { request: "Capture delivery GPS", captured: "GPS captured", accuracy: "Approximate accuracy", required: "Enable location access to confirm delivery.", code: "Enter the customer delivery code" },
+    fa: { request: "دریافت GPS محل تحویل", captured: "موقعیت GPS ثبت شد", accuracy: "دقت تقریبی", required: "برای تأیید تحویل، موقعیت مکانی گوشی را فعال کنید.", code: "کد تحویل مشتری را وارد کنید" },
+    ar: { request: "التقاط موقع التسليم", captured: "تم تسجيل موقع GPS", accuracy: "الدقة التقريبية", required: "فعّل الوصول إلى الموقع لتأكيد التسليم.", code: "أدخل رمز تسليم العميل" },
+    tr: { request: "Teslimat GPS konumunu al", captured: "GPS konumu kaydedildi", accuracy: "Yaklaşık doğruluk", required: "Teslimatı onaylamak için konum erişimini etkinleştirin.", code: "Müşteri teslimat kodunu girin" },
+  }[language];
 
   // State for updating delivery method
   const [updatingDeliveryMethod, setUpdatingDeliveryMethod] = useState<{[orderId: number]: boolean}>({});
@@ -2815,25 +2825,49 @@ const LogisticsManagement = () => {
   };
 
   const handleDeliveryConfirmStep1 = () => {
-    setDeliveryConfirmStep(2);
+    if (!navigator.geolocation) {
+      toast({ title: t('error'), description: gpsCopy.required, variant: "destructive" });
+      return;
+    }
+
+    setIsCapturingDeliveryGps(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setDeliveryGps(position.coords);
+        setIsCapturingDeliveryGps(false);
+        setDeliveryConfirmStep(2);
+      },
+      () => {
+        setIsCapturingDeliveryGps(false);
+        toast({ title: t('error'), description: gpsCopy.required, variant: "destructive" });
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
+    );
   };
 
   const handleDeliveryConfirmStep2 = async () => {
-    if (!confirmingDeliveryOrderId) return;
+    if (!confirmingDeliveryOrderId || !deliveryGps || !deliveryVerificationCode.trim()) return;
     
     console.log('🚚 [DELIVERY] Starting delivery completion for order:', confirmingDeliveryOrderId);
     
     try {
-      const response = await fetch('/api/order-management/update-order-status', {
+      const confirmingOrder = getConfirmingDeliveryOrder();
+      const response = await fetch(`/api/order-management/${confirmingDeliveryOrderId}/verify-delivery`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
         body: JSON.stringify({
-          orderManagementId: confirmingDeliveryOrderId,
-          newStatus: 'delivered',
-          notes: t('deliveryCompleted')
+          verificationCode: deliveryVerificationCode.trim(),
+          customerLocation: confirmingOrder?.shippingAddress || confirmingOrder?.customerAddress || '',
+          isVerified: true,
+          verifiedAt: new Date().toISOString(),
+          carrierLatitude: deliveryGps.latitude,
+          carrierLongitude: deliveryGps.longitude,
+          carrierLocationAccuracy: deliveryGps.accuracy,
+          carrierLocationCapturedAt: new Date().toISOString(),
+          carrierLocationSource: 'mobile',
         })
       });
 
@@ -2854,6 +2888,8 @@ const LogisticsManagement = () => {
         setDeliveryConfirmDialogOpen(false);
         setConfirmingDeliveryOrderId(null);
         setDeliveryConfirmStep(1);
+        setDeliveryVerificationCode("");
+        setDeliveryGps(null);
       } else {
         console.error('🚚 [DELIVERY] API returned error:', result.message);
         throw new Error(result.message || t('deliveryUpdateError'));
@@ -2872,6 +2908,8 @@ const LogisticsManagement = () => {
     setDeliveryConfirmDialogOpen(false);
     setConfirmingDeliveryOrderId(null);
     setDeliveryConfirmStep(1);
+    setDeliveryVerificationCode("");
+    setDeliveryGps(null);
   };
 
   const getConfirmingDeliveryOrder = () => {
@@ -7337,6 +7375,24 @@ const LogisticsManagement = () => {
                   <p className="text-sm text-red-600 font-bold">
                     {t('areYouAbsolutelySure')}
                   </p>
+                  <div className="space-y-2 rounded-lg border border-blue-200 bg-blue-50 p-3">
+                    <Label htmlFor="delivery-verification-code">{t('deliveryCode')}</Label>
+                    <Input
+                      id="delivery-verification-code"
+                      value={deliveryVerificationCode}
+                      onChange={(event) => setDeliveryVerificationCode(event.target.value)}
+                      placeholder={gpsCopy.code}
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      data-testid="input-delivery-verification-code"
+                    />
+                    {deliveryGps && (
+                      <p className="flex items-center gap-2 text-sm text-green-700">
+                        <MapPin className="h-4 w-4" />
+                        {gpsCopy.captured} — {gpsCopy.accuracy}: {Math.round(deliveryGps.accuracy)}m
+                      </p>
+                    )}
+                  </div>
                 </div>
               )}
             </AlertDialogDescription>
@@ -7351,14 +7407,17 @@ const LogisticsManagement = () => {
             {deliveryConfirmStep === 1 ? (
               <Button 
                 onClick={handleDeliveryConfirmStep1}
+                disabled={isCapturingDeliveryGps}
                 className="flex-1 bg-amber-500 hover:bg-amber-600"
                 data-testid="button-delivery-step1"
               >
-                {t('continueNext')}
+                {isCapturingDeliveryGps && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
+                {isCapturingDeliveryGps ? gpsCopy.request : t('continueNext')}
               </Button>
             ) : (
               <Button 
                 onClick={handleDeliveryConfirmStep2}
+                disabled={!deliveryGps || !deliveryVerificationCode.trim()}
                 className="flex-1 bg-red-600 hover:bg-red-700"
                 data-testid="button-delivery-step2"
               >

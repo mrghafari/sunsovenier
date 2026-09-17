@@ -32461,6 +32461,59 @@ ${message ? `Additional Requirements:\n${message}` : ''}
     };
   }
 
+  function requireModuleAccess(moduleId: string, capability: 'view' | 'edit') {
+    return async (req: any, res: any, next: any) => {
+      const session = req.session as any;
+      const hasAdminIdentity = Boolean(session?.adminId);
+      const hasCustomIdentity = Boolean(session?.customUserId);
+      if (!session?.isAuthenticated || hasAdminIdentity === hasCustomIdentity) {
+        return res.status(401).json({ success: false, message: "احراز هویت الزامی است" });
+      }
+
+      try {
+        if (hasCustomIdentity) {
+          const result = await pool.query(`
+            SELECT cr.name, cr.permissions
+            FROM custom_users cu
+            JOIN custom_roles cr ON cr.id = cu.role_id
+            WHERE cu.id = $1 AND cu.is_active = true AND cr.is_active = true
+          `, [session.customUserId]);
+          const role = result.rows[0];
+          const permissions = Array.isArray(role?.permissions)
+            ? role.permissions
+            : JSON.parse(role?.permissions || '[]');
+          if (role?.name === 'super_admin' || permissions.includes(moduleId)) return next();
+        } else {
+          const result = await pool.query(`
+            SELECT ar.id::text AS role_id, ar.name
+            FROM users u
+            JOIN admin_roles ar ON ar.id = u.role_id
+            WHERE u.id = $1 AND u.is_active = true AND ar.is_active = true
+          `, [session.adminId]);
+          const role = result.rows[0];
+          if (role?.name === 'super_admin') return next();
+          if (role?.role_id) {
+            const permission = await pool.query(`
+              SELECT can_view, can_edit, can_approve
+              FROM module_permissions
+              WHERE role_id = $1 AND module_id = $2
+              LIMIT 1
+            `, [role.role_id, moduleId]);
+            const allowed = capability === 'view'
+              ? permission.rows[0]?.can_view
+              : permission.rows[0]?.can_edit || permission.rows[0]?.can_approve;
+            if (allowed) return next();
+          }
+        }
+
+        return res.status(403).json({ success: false, message: "دسترسی کافی وجود ندارد" });
+      } catch (error) {
+        console.error("Module access check failed:", error);
+        return res.status(500).json({ success: false, message: "بررسی دسترسی انجام نشد" });
+      }
+    };
+  }
+
   // ============================================================================
   // LOGISTICS DEPARTMENT ROUTES
   // ============================================================================
@@ -33038,29 +33091,110 @@ ${message ? `Additional Requirements:\n${message}` : ''}
   });
 
   // Verify delivery code
-  app.post('/api/logistics/verify-delivery', async (req, res) => {
+  app.post('/api/logistics/verify-delivery', requireModuleAccess('logistics_management', 'edit'), async (req, res) => {
     try {
-      const { verificationCode, customerOrderId, courierName, verificationNotes } = req.body;
-
-      const result = await deliveryVerificationStorage.verifyDeliveryCode({
+      const {
         verificationCode,
         customerOrderId,
         courierName,
-        verificationNotes
-      });
+        verificationNotes,
+        latitude,
+        longitude,
+        accuracy,
+      } = req.body;
 
-      if (result.success) {
-        // Update order status to delivered
-        await db
-          .update(schema.orders)
-          .set({
-            status: 'delivered',
-            deliveredAt: new Date(),
-            deliveryNotes: verificationNotes || 'تحویل با کد تأیید پیامک'
-          })
-          .where(eq(schema.orders.id, customerOrderId));
+      const parsedLatitude = Number(latitude);
+      const parsedLongitude = Number(longitude);
+      const parsedAccuracy = Number(accuracy);
+      if (
+        !Number.isFinite(parsedLatitude) ||
+        !Number.isFinite(parsedLongitude) ||
+        parsedLatitude < -90 ||
+        parsedLatitude > 90 ||
+        parsedLongitude < -180 ||
+        parsedLongitude > 180 ||
+        !Number.isFinite(parsedAccuracy) ||
+        parsedAccuracy < 0 ||
+        parsedAccuracy > 10000
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: 'برای تأیید تحویل، موقعیت GPS معتبر الزامی است',
+        });
       }
 
+      const { deliveryVerificationCodes: smsCodes } = await import('@shared/delivery-verification-schema');
+      const result = await db.transaction(async (tx) => {
+        await tx.execute(sql`SELECT pg_advisory_xact_lock(${Number(customerOrderId)})`);
+        const [codeRecord] = await tx.select()
+          .from(smsCodes)
+          .where(and(
+            eq(smsCodes.verificationCode, verificationCode),
+            eq(smsCodes.customerOrderId, Number(customerOrderId)),
+            eq(smsCodes.isActive, true),
+            eq(smsCodes.isUsed, false),
+          ))
+          .limit(1);
+
+        if (!codeRecord || new Date() > codeRecord.expiresAt) return null;
+
+        const [managedOrder] = await tx.select()
+          .from(orderManagement)
+          .where(eq(orderManagement.id, codeRecord.orderManagementId))
+          .limit(1);
+        if (
+          !managedOrder ||
+          managedOrder.isVerified ||
+          ['delivered', 'logistics_delivered', 'completed'].includes(managedOrder.currentStatus)
+        ) return 'already-verified' as const;
+
+        await tx.update(smsCodes)
+          .set({
+            isUsed: true,
+            isActive: false,
+            verifiedAt: new Date(),
+            verifiedBy: courierName,
+            verificationNotes: verificationNotes || null,
+            updatedAt: new Date(),
+          })
+          .where(eq(smsCodes.id, codeRecord.id));
+
+        await tx.update(orderManagement)
+          .set({
+            currentStatus: 'logistics_delivered',
+            isVerified: true,
+            verifiedAt: new Date(),
+            actualDeliveryDate: new Date(),
+            deliveryCode: null,
+            carrierLatitude: parsedLatitude.toString(),
+            carrierLongitude: parsedLongitude.toString(),
+            carrierLocationAccuracy: parsedAccuracy.toString(),
+            carrierLocationCapturedAt: new Date(),
+            carrierLocationSource: 'mobile',
+            logisticsNotes: verificationNotes || 'تحویل با کد تأیید پیامک',
+            updatedAt: new Date(),
+          })
+          .where(eq(orderManagement.id, managedOrder.id));
+
+        await tx.insert(gpsDeliveryConfirmations).values({
+          deliveryVerificationId: codeRecord.id,
+          customerOrderId: Number(customerOrderId),
+          latitude: parsedLatitude.toString(),
+          longitude: parsedLongitude.toString(),
+          accuracy: parsedAccuracy.toString(),
+          deliveryPersonName: courierName,
+          deliveryPersonPhone: managedOrder.deliveryPersonPhone || 'not-provided',
+          verificationTime: new Date(),
+          deliveryNotes: verificationNotes || null,
+        });
+
+        return { success: true, message: 'کد تأیید با موفقیت تأیید شد و تحویل ثبت شد' };
+      });
+
+      if (!result) return res.status(400).json({ success: false, message: 'کد تأیید نامعتبر یا منقضی شده است' });
+      if (result === 'already-verified') {
+        return res.status(409).json({ success: false, message: 'این تحویل قبلاً تأیید شده است' });
+      }
       res.json(result);
     } catch (error) {
       console.error('Error verifying delivery code:', error);
@@ -47020,10 +47154,8 @@ momtazchem.com
   // ===========================================
 
   // Record GPS delivery confirmation
-  app.post("/api/gps-delivery/confirm", async (req, res) => {
+  app.post("/api/gps-delivery/confirm", requireModuleAccess('logistics_management', 'edit'), async (req, res) => {
     try {
-      console.log('📍 [GPS-API] Delivery confirmation request:', req.body);
-      
       const gpsData = insertGpsDeliveryConfirmationSchema.parse(req.body);
       const confirmation = await gpsDeliveryStorage.recordGpsDelivery(gpsData);
       
@@ -47128,13 +47260,9 @@ momtazchem.com
   });
 
   // Get delivery heatmap data
-  app.get("/api/gps-delivery/heatmap", async (req, res) => {
+  app.get("/api/gps-delivery/heatmap", requireModuleAccess('geography_analytics', 'view'), async (req, res) => {
     try {
       const { country, city } = req.query;
-      if (!country) {
-        return res.status(400).json({ success: false, message: "Country parameter is required" });
-      }
-      
       const heatmapData = await gpsDeliveryStorage.getDeliveryHeatmapData(country as string, city as string);
       res.json({ success: true, data: heatmapData });
     } catch (error) {
@@ -47144,7 +47272,7 @@ momtazchem.com
   });
 
   // Get actual GPS delivery confirmations for table display
-  app.get("/api/gps-delivery/confirmations", async (req, res) => {
+  app.get("/api/gps-delivery/confirmations", requireModuleAccess('geography_analytics', 'view'), async (req, res) => {
     try {
       const { startDate, endDate, limit = 50 } = req.query;
       console.log('🚚 [GPS-CONFIRMATIONS] Fetching delivery confirmations');
@@ -47947,7 +48075,7 @@ momtazchem.com
   });
 
   // Verify delivery with customer code
-  app.post('/api/order-management/:orderId/verify-delivery', requireAuth, async (req, res) => {
+  app.post('/api/order-management/:orderId/verify-delivery', requireModuleAccess('logistics_management', 'edit'), async (req, res) => {
     try {
       const orderId = parseInt(req.params.orderId);
       const { 
@@ -47970,90 +48098,93 @@ momtazchem.com
       const { eq } = await import('drizzle-orm');
       const { orderManagement } = await import('../shared/order-management-schema');
       
-      // Get current delivery code for this order
-      const [currentOrder] = await db.select()
-        .from(orderManagement)
-        .where(eq(orderManagement.id, orderId))
-        .limit(1);
-
-      if (!currentOrder) {
-        return res.status(404).json({
-          success: false,
-          message: 'سفارش یافت نشد'
-        });
-      }
-
-      // Check if verification code matches expected code
-      const codeMatches = verificationCode === currentOrder.deliveryCode;
-      
-      if (!codeMatches) {
+      const parsedCarrierLatitude = Number(carrierLatitude);
+      const parsedCarrierLongitude = Number(carrierLongitude);
+      const parsedCarrierAccuracy = Number(carrierLocationAccuracy);
+      if (
+        !Number.isFinite(parsedCarrierLatitude) ||
+        !Number.isFinite(parsedCarrierLongitude) ||
+        parsedCarrierLatitude < -90 ||
+        parsedCarrierLatitude > 90 ||
+        parsedCarrierLongitude < -180 ||
+        parsedCarrierLongitude > 180 ||
+        !Number.isFinite(parsedCarrierAccuracy) ||
+        parsedCarrierAccuracy < 0 ||
+        parsedCarrierAccuracy > 10000
+      ) {
         return res.status(400).json({
           success: false,
-          message: 'کد تحویل اشتباه است'
+          message: 'موقعیت GPS معتبر برای تأیید تحویل الزامی است'
         });
       }
 
-      // Update order with verification status and carrier location data
-      const [updatedOrder] = await db.update(orderManagement)
-        .set({
-          isVerified: true,
-          verifiedAt: new Date(),
-          verificationLocation: customerLocation,
-          actualDeliveryDate: new Date(),
-          currentStatus: 'delivered',
-          // Save carrier location data for geography analytics
-          carrierLatitude: carrierLatitude || null,
-          carrierLongitude: carrierLongitude || null,
-          carrierLocationAccuracy: carrierLocationAccuracy || null,
-          carrierLocationCapturedAt: carrierLocationCapturedAt ? new Date(carrierLocationCapturedAt) : null,
-          carrierLocationSource: carrierLocationSource || 'mobile',
-          updatedAt: new Date()
-        })
-        .where(eq(orderManagement.id, orderId))
-        .returning();
+      const updatedOrder = await db.transaction(async (tx) => {
+        await tx.execute(sql`SELECT pg_advisory_xact_lock(${orderId})`);
 
-      // Send carrier location data to geography analytics if available
-      if (carrierLatitude && carrierLongitude && updatedOrder) {
-        try {
-          console.log(`🌍 [GEOGRAPHY] Sending carrier location data to analytics for order ${orderId}`);
-          console.log(`📍 [GEOGRAPHY] Latitude: ${carrierLatitude}, Longitude: ${carrierLongitude}, Accuracy: ${carrierLocationAccuracy}m`);
-          
-          // Here you would typically send to geography analytics service
-          // For now, we'll just log the data that would be sent
-          const geographyData = {
-            orderId: orderId,
-            customerOrderId: updatedOrder.customerOrderId,
-            carrierLocation: {
-              latitude: carrierLatitude,
-              longitude: carrierLongitude,
-              accuracy: carrierLocationAccuracy,
-              capturedAt: carrierLocationCapturedAt,
-              source: carrierLocationSource
-            },
-            deliveryInfo: {
-              deliveredAt: updatedOrder.actualDeliveryDate,
-              customerLocation: customerLocation,
-              verificationCode: verificationCode
-            },
-            customerInfo: {
-              name: `${updatedOrder.customerFirstName || ''} ${updatedOrder.customerLastName || ''}`.trim(),
-              email: updatedOrder.customerEmail,
-              phone: updatedOrder.customerPhone
-            }
-          };
-          
-          console.log(`📊 [GEOGRAPHY] Data prepared for analytics:`, JSON.stringify(geographyData, null, 2));
-          
-          // In a real implementation, you would:
-          // 1. Send to a geography analytics database
-          // 2. Trigger analytics processing
-          // 3. Update delivery route optimization
-          // 4. Update carrier performance metrics
-          
-        } catch (geoError) {
-          console.error('Error sending location data to geography analytics:', geoError);
-          // Don't fail the main delivery verification if geography analytics fails
+        const [currentOrder] = await tx.select()
+          .from(orderManagement)
+          .where(eq(orderManagement.id, orderId))
+          .limit(1);
+        if (!currentOrder) throw new Error('ORDER_NOT_FOUND');
+        if (!currentOrder.customerOrderId) throw new Error('CUSTOMER_ORDER_NOT_FOUND');
+        if (!currentOrder.deliveryCode || verificationCode !== currentOrder.deliveryCode) {
+          throw new Error('INVALID_DELIVERY_CODE');
         }
+        if (
+          currentOrder.isVerified ||
+          ['delivered', 'logistics_delivered', 'completed'].includes(currentOrder.currentStatus)
+        ) {
+          throw new Error('DELIVERY_ALREADY_VERIFIED');
+        }
+
+        const [updated] = await tx.update(orderManagement)
+          .set({
+            isVerified: true,
+            verifiedAt: new Date(),
+            verificationLocation: customerLocation,
+            actualDeliveryDate: new Date(),
+            currentStatus: 'logistics_delivered',
+            deliveryCode: null,
+            carrierLatitude: parsedCarrierLatitude.toString(),
+            carrierLongitude: parsedCarrierLongitude.toString(),
+            carrierLocationAccuracy: parsedCarrierAccuracy.toString(),
+            carrierLocationCapturedAt: new Date(),
+            carrierLocationSource: 'mobile',
+            updatedAt: new Date()
+          })
+          .where(eq(orderManagement.id, orderId))
+          .returning();
+
+        await tx.insert(gpsDeliveryConfirmations).values({
+          customerOrderId: currentOrder.customerOrderId,
+          latitude: parsedCarrierLatitude.toString(),
+          longitude: parsedCarrierLongitude.toString(),
+          accuracy: parsedCarrierAccuracy.toString(),
+          deliveryPersonName: currentOrder.deliveryPersonName || 'Delivery staff',
+          deliveryPersonPhone: currentOrder.deliveryPersonPhone || 'not-provided',
+          customerAddress: customerLocation || null,
+          addressMatched: false,
+          verificationTime: new Date(),
+          deliveryNotes: 'تحویل با کد مشتری و موقعیت GPS تأیید شد',
+        });
+
+        return updated;
+      }).catch((error: Error) => {
+        if (error.message === 'ORDER_NOT_FOUND') return null;
+        if (error.message === 'CUSTOMER_ORDER_NOT_FOUND') return null;
+        if (error.message === 'INVALID_DELIVERY_CODE') return false;
+        if (error.message === 'DELIVERY_ALREADY_VERIFIED') return 'already-verified';
+        throw error;
+      });
+
+      if (updatedOrder === null) {
+        return res.status(404).json({ success: false, message: 'سفارش مرتبط یافت نشد' });
+      }
+      if (updatedOrder === false) {
+        return res.status(400).json({ success: false, message: 'کد تحویل اشتباه است' });
+      }
+      if (updatedOrder === 'already-verified') {
+        return res.status(409).json({ success: false, message: 'این تحویل قبلاً تأیید شده است' });
       }
 
       res.json({

@@ -9,3 +9,4 @@
 - [Serial sequence safety](serial-sequence-safety.md) — include externally submitted tables in sequence synchronization when imports or restores can leave sequences behind row IDs.
 - [Order item snapshots](order-item-snapshots.md) — customer and admin views must use the stored order-item snapshot, not current catalog data, and expose one normalized item shape.
 - [Canonical order status](canonical-order-status.md) — derive labels, phases, aliases, colors, and department visibility from one shared resolver while preserving raw workflow history.
+- [Delivery GPS integrity](delivery-gps-integrity.md) — code consumption, terminal status, and GPS insertion must be atomic; analytics expose aggregated coordinates only.
