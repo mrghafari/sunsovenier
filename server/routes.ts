@@ -32482,7 +32482,7 @@ ${message ? `Additional Requirements:\n${message}` : ''}
           const permissions = Array.isArray(role?.permissions)
             ? role.permissions
             : JSON.parse(role?.permissions || '[]');
-          if (role?.name === 'super_admin' || permissions.includes(moduleId)) return next();
+          if (['super_admin', 'admin'].includes(role?.name) || permissions.includes(moduleId)) return next();
         } else {
           const result = await pool.query(`
             SELECT ar.id::text AS role_id, ar.name
@@ -32491,7 +32491,7 @@ ${message ? `Additional Requirements:\n${message}` : ''}
             WHERE u.id = $1 AND u.is_active = true AND ar.is_active = true
           `, [session.adminId]);
           const role = result.rows[0];
-          if (role?.name === 'super_admin') return next();
+          if (['super_admin', 'admin'].includes(role?.name)) return next();
           if (role?.role_id) {
             const permission = await pool.query(`
               SELECT can_view, can_edit, can_approve

@@ -2161,10 +2161,11 @@ export default function GeographicAnalytics() {
                       </div>
                     </div>
                   ) : (
-                    <div className="h-64 flex items-center justify-center text-gray-500">
-                      <div className="text-center">
-                        <MapPin className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                        <p className="text-lg font-medium">{t.noHeatmap}</p>
+                    <div className="space-y-4">
+                      <SalesDeliveryHeatmap points={[]} />
+                      <div className="rounded-lg border border-dashed bg-gray-50 p-4 text-center text-gray-500">
+                        <MapPin className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                        <p className="font-medium">{t.noHeatmap}</p>
                         <p className="text-sm">{t.heatmapWillAppear}</p>
                       </div>
                     </div>
