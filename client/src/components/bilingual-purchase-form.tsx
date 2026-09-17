@@ -19,7 +19,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { formatIQDAmount, displayCurrencyAmountWithSymbol } from "@/lib/currency-utils";
 
 // Language types
-type Language = 'en' | 'ar' | 'fa';
+type Language = 'en' | 'ar' | 'fa' | 'tr';
 
 // Translation system
 const translations = {
@@ -407,19 +407,42 @@ const translations = {
   }
 };
 
+const taxTranslations = {
+  en: {
+    vat: "Value Added Tax",
+    duties: "Value Added Duty",
+  },
+  ar: {
+    vat: "ضريبة القيمة المضافة",
+    duties: "رسوم القيمة المضافة",
+  },
+  fa: {
+    vat: "مالیات بر ارزش افزوده",
+    duties: "عوارض بر ارزش افزوده",
+  },
+  tr: {
+    vat: "Katma Değer Vergisi",
+    duties: "Katma Değer Vergisi Harcı",
+  },
+} as const;
+
 // Dynamic form schema based on language
-const createPurchaseSchema = (lang: Language) => z.object({
-  customerName: z.string().min(2, translations[lang].nameRequired),
-  phone: z.string().min(10, translations[lang].phoneRequired),
-  address: z.string().min(10, translations[lang].addressRequired),
-  city: z.string().optional(), // Make city optional to prevent validation failures
-  country: z.string().default('Iraq'), // Add country field with default
-  postalCode: z.string().optional(),
-  notes: z.string().optional(),
-  gpsLatitude: z.number().optional(),
-  gpsLongitude: z.number().optional(),
-  deliveryMethod: z.string().optional(), // Add delivery method field
-});
+const createPurchaseSchema = (lang: Language) => {
+  const copy = translations[lang as keyof typeof translations] || translations.en;
+
+  return z.object({
+    customerName: z.string().min(2, copy.nameRequired),
+    phone: z.string().min(10, copy.phoneRequired),
+    address: z.string().min(10, copy.addressRequired),
+    city: z.string().optional(), // Make city optional to prevent validation failures
+    country: z.string().default('Iraq'), // Add country field with default
+    postalCode: z.string().optional(),
+    notes: z.string().optional(),
+    gpsLatitude: z.number().optional(),
+    gpsLongitude: z.number().optional(),
+    deliveryMethod: z.string().optional(), // Add delivery method field
+  });
+};
 
 interface PurchaseFormProps {
   cart: {[key: number]: number};
@@ -996,6 +1019,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
 
   // Get current translations based on site language
   const t = translations[language as keyof typeof translations] || translations.en;
+  const taxT = taxTranslations[language as keyof typeof taxTranslations] || taxTranslations.en;
   const isRTL = direction === 'rtl';
   
   // Conditional graying out logic for CRM fields
@@ -2102,7 +2126,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
               {/* VAT */}
               {vatData?.vatEnabled && vatAmount > 0 && (
                 <div className="flex justify-between text-sm">
-                  <span>مالیات بر ارزش افزوده ({(vatRate * 100).toFixed(0)}%)</span>
+                  <span>{taxT.vat} ({(vatRate * 100).toFixed(0)}%)</span>
                   <span>{formatCurrency(vatAmount)}</span>
                 </div>
               )}
@@ -2110,7 +2134,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
               {/* Duties */}
               {vatData?.dutiesEnabled && dutiesAmount > 0 && (
                 <div className="flex justify-between text-sm">
-                  <span>عوارض بر ارزش افزوده ({(dutiesRate * 100).toFixed(0)}%)</span>
+                  <span>{taxT.duties} ({(dutiesRate * 100).toFixed(0)}%)</span>
                   <span>{formatCurrency(dutiesAmount)}</span>
                 </div>
               )}

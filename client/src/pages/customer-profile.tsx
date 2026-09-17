@@ -734,15 +734,28 @@ const CustomerProfile = () => {
     const subtotal = (order.items || []).reduce((sum: number, item: any) => sum + parseFloat(item.totalPrice || 0), 0);
     return subtotal + parseFloat(order.vatAmount || "0") + parseFloat(order.shippingCost || "0") + parseFloat(order.surchargeAmount || "0");
   };
+  const isUnpaidGraceOrder = (order: any) => {
+    const isGracePeriod =
+      order.paymentMethod === "واریز بانکی با مهلت 3 روزه" ||
+      order.paymentMethod === "bank_transfer_grace";
+    const isAwaitingPayment =
+      order.status === "pending" ||
+      order.status === "payment_grace_period";
+    const paymentStatus = String(order.paymentStatus || "").toLowerCase();
+    const hasPayment =
+      ["paid", "completed", "successful", "success", "receipt_uploaded"].includes(paymentStatus) ||
+      Boolean(order.receiptPath);
+
+    return isGracePeriod && isAwaitingPayment && !hasPayment;
+  };
   const rawOrders = Array.isArray(orderData?.orders) ? orderData.orders : [];
   const recentBaseOrders = dedupeOrders(rawOrders);
   const sortedOrders = [...recentBaseOrders].sort((a: any, b: any) => {
-    const aIs3DayBank = a.paymentMethod === "واریز بانکی با مهلت 3 روزه" || a.paymentMethod === "bank_transfer_grace";
-    const bIs3DayBank = b.paymentMethod === "واریز بانکی با مهلت 3 روزه" || b.paymentMethod === "bank_transfer_grace";
-    if (aIs3DayBank && !bIs3DayBank) return -1;
-    if (!aIs3DayBank && bIs3DayBank) return 1;
+    const priorityDifference =
+      Number(isUnpaidGraceOrder(b)) - Number(isUnpaidGraceOrder(a));
+    if (priorityDifference !== 0) return priorityDifference;
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-  });
+  }).slice(0, 10);
 
   const completeBaseOrders = dedupeOrders(completeHistory);
   const baseOrders = showPurchaseHistory ? completeBaseOrders : sortedOrders;
@@ -808,6 +821,9 @@ const CustomerProfile = () => {
     return categoryMatch && searchMatch && productMatch && fromMatch && toMatch;
   });
   const visibleOrders = [...filteredOrders].sort((a: any, b: any) => {
+    const priorityDifference =
+      Number(isUnpaidGraceOrder(b)) - Number(isUnpaidGraceOrder(a));
+    if (priorityDifference !== 0) return priorityDifference;
     const direction = sortDirection === "asc" ? 1 : -1;
     const itemCount = (order: any) => (order.items || []).length;
     let left: string | number = 0;

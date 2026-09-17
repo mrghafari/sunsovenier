@@ -1,0 +1,264 @@
+ CI_CD_TEST_2026
+ 📥 Loading Tawk.to widget at bottom-left position...
+api/admin/me:1  Failed to load resource: the server responded with a status of 401 ()
+ 🔐 User just logged in, resetting cart loaded flag
+ 🛒 Loading persistent cart for customer: 8
+ ✅ Tawk.to Live Chat loaded successfully at bottom-left
+ 🛒 Loaded cart from database: Object
+ [PWA] Service Worker registered, scope: https://momtazchem.com/
+momtazchem.com/:1 Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner.
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🔐 User just logged in, resetting cart loaded flag
+ 🔐 [AUTH] Guest user confirmed
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🔐 [AUTH] Customer authenticated, cart will be synced automatically
+ 🛒 Loading persistent cart for customer: 8
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ Customer auth check result: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(3)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(2)
+ 📦 [INIT DISPLAY STOCK] Product 624: Stock=981, Cart=0, Display=981
+ 📦 [INIT DISPLAY STOCK] Product 625: Stock=98, Cart=0, Display=98
+ 📦 [INIT DISPLAY STOCK] Product 529: Stock=19, Cart=0, Display=19
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(3)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(2)
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(3)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(2)
+ 🛒 Loaded cart from database: Object
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(3)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(2)
+ 🔄 [CART SYNC] Product 624: Display stock 981 -> 978
+ 🔄 [CART SYNC] Product 625: Display stock 98 -> 96
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(3)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(2)
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(3)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(2)
+ 📦 [INIT DISPLAY STOCK] Product 624: Stock=981, Cart=3, Display=978
+ 📦 [INIT DISPLAY STOCK] Product 625: Stock=98, Cart=2, Display=96
+ 📦 [INIT DISPLAY STOCK] Product 529: Stock=19, Cart=0, Display=19
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(3)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(2)
+ Cart clicked, total items: 5
+ Customer: Object
+ User is logged in, showing checkout
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(3)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(2)
+ 💳 [WALLET QUERY] Enabled check: Object
+ 🔥 [BILINGUAL FORM] Cart flammable check result: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🚚 [BILINGUAL FORM] ===== SHIPPING RATES QUERY STARTED =====
+ 🚚 [BILINGUAL FORM] Fetching shipping rates with flammable filtering... Object
+ === BilingualPurchaseForm Address Debug ===
+ existingCustomer from parent: Object
+ customerData from API: Object
+ crmCustomerData from API: undefined
+ isLoadingCustomer: false
+ Using existingCustomer from parent
+ Customer object found: Object
+ Customer firstName: ABAS
+ Customer lastName: ABASI
+ Customer phone: 09124955173
+ Customer address: NAGwer Road, Qaryataq Village
+ Customer secondaryAddress: NAGwer Road, Qaryataq Village, Erbil, Iraq
+ Customer city: 
+ Customer country: Iraq
+ Customer postalCode: 196891375
+ Full name constructed: ABAS ABASI
+ 🏠 [ADDRESS DEBUG] Enhanced address mapping result: Object
+ Form data to reset: Object
+ Form reset completed
+ === End BilingualPurchaseForm Debug ===
+ 🚚 [AUTO-SELECT DEBUG] useEffect triggered: Object
+ 🚚 Shipping cost calculation: Object
+ 🔄 No shipping method selected or no data, resetting cost
+ Shipping rates state: Object
+ 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+api/shop/proforma-reminders:1  Failed to load resource: the server responded with a status of 401 ()
+ Failed to parse JSON response: 
+ Error fetching reminder schedules: 
+ CRM Customer API response: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ === BilingualPurchaseForm Address Debug ===
+ existingCustomer from parent: Object
+ customerData from API: Object
+ crmCustomerData from API: Object
+ isLoadingCustomer: false
+ Using CRM customer data (most complete)
+ Customer object found: Object
+ Customer firstName: ABAS
+ Customer lastName: ABASI
+ Customer phone: 09124955173
+ Customer address: NAGwer Road, Qaryataq Village
+ Customer secondaryAddress: NAGwer Road, Qaryataq Village, Erbil, Iraq
+ Customer city: undefined
+ Customer country: Iraq
+ Customer postalCode: 196891375
+ Full name constructed: ABAS ABASI
+ 🏠 [ADDRESS DEBUG] Enhanced address mapping result: Object
+ Form data to reset: Object
+ Form reset completed
+ === End BilingualPurchaseForm Debug ===
+ 🚚 [DELIVERY CALCULATION] Final destination determined: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 💰 [VAT] Tax settings API response: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+index-L6kd4xRg.js:54 📦 [BILINGUAL FORM] Raw shipping rates API response: Object
+index-L6kd4xRg.js:54 ✅ [BILINGUAL FORM] Successfully loaded shipping rates: 4 methods
+index-L6kd4xRg.js:54 🚚 [BILINGUAL FORM] Shipping rates details: Array(4)
+index-L6kd4xRg.js:54 💰 [PURCHASE FORM] Tax calculation: Object
+index-L6kd4xRg.js:54 💰 [TOTAL CALCULATION] Breakdown: Object
+index-L6kd4xRg.js:54 💳 [WALLET DEBUG] Complete wallet analysis: Object
+index-L6kd4xRg.js:54 🚚 [AUTO-SELECT DEBUG] useEffect triggered: Object
+index-L6kd4xRg.js:54 🚚 [AUTO-SELECT] Auto-selecting first shipping method: 34 undefined
+index-L6kd4xRg.js:54 🚚 Shipping cost calculation: Object
+index-L6kd4xRg.js:54 🔄 No shipping method selected or no data, resetting cost
+index-L6kd4xRg.js:54 Shipping rates state: Object
+index-L6kd4xRg.js:54 🚚 [AUTO SELECT] Auto-selecting smart vehicle method: 32
+index-L6kd4xRg.js:54 💰 [PURCHASE FORM] Tax calculation: Object
+index-L6kd4xRg.js:54 💰 [TOTAL CALCULATION] Breakdown: Object
+index-L6kd4xRg.js:54 💳 [WALLET DEBUG] Complete wallet analysis: Object
+index-L6kd4xRg.js:54 🚚 [AUTO-SELECT DEBUG] useEffect triggered: Object
+index-L6kd4xRg.js:54 🚚 Shipping cost calculation: Object
+index-L6kd4xRg.js:54 📦 Selected shipping rate: Object
+index-L6kd4xRg.js:54 ✅ SPECIAL DELIVERY METHOD: Zero cost for smart_vehicle
+index-L6kd4xRg.js:54 💰 [PURCHASE FORM] Tax calculation: Object
+index-L6kd4xRg.js:54 💰 [TOTAL CALCULATION] Breakdown: Object
+index-L6kd4xRg.js:54 💳 [WALLET DEBUG] Complete wallet analysis: Object
+index-L6kd4xRg.js:54 💰 [PURCHASE FORM] Tax calculation: Object
+index-L6kd4xRg.js:54 💰 [TOTAL CALCULATION] Breakdown: Object
+index-L6kd4xRg.js:54 💳 [WALLET DEBUG] Complete wallet analysis: Object
+index-L6kd4xRg.js:54 💰 [PURCHASE FORM] Tax calculation: Object
+index-L6kd4xRg.js:54 💰 [TOTAL CALCULATION] Breakdown: Object
+index-L6kd4xRg.js:54 💳 [WALLET DEBUG] Complete wallet analysis: Object
+index-L6kd4xRg.js:54 🚚 [SMART DELIVERY] Calculating cost for: Object
+index-L6kd4xRg.js:54 💰 [PURCHASE FORM] Tax calculation: Object
+index-L6kd4xRg.js:54 💰 [TOTAL CALCULATION] Breakdown: Object
+index-L6kd4xRg.js:54 💳 [WALLET DEBUG] Complete wallet analysis: Object
+index-L6kd4xRg.js:54 🚚 [SMART DELIVERY] API response: Object
+index-L6kd4xRg.js:54 ✅ [SMART DELIVERY] Single vehicle cost calculated: Object
+index-L6kd4xRg.js:54 💰 [PURCHASE FORM] Tax calculation: Object
+index-L6kd4xRg.js:54 💰 [TOTAL CALCULATION] Breakdown: Object
+index-L6kd4xRg.js:54 💳 [WALLET DEBUG] Complete wallet analysis: Object
+index-L6kd4xRg.js:54 💰 [PURCHASE FORM] Tax calculation: Object
+index-L6kd4xRg.js:54 💰 [TOTAL CALCULATION] Breakdown: Object
+index-L6kd4xRg.js:54 💳 [WALLET DEBUG] Complete wallet analysis: Object
+index-L6kd4xRg.js:54 🎛️ [FRONTEND CONTROLS] Loaded: Object
+index-L6kd4xRg.js:54 🎛️ [VISIBILITY] Discount Banner: true
+index-L6kd4xRg.js:54 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+index-L6kd4xRg.js:54 🌟 [RATINGS DEBUG] Product stats data: Object
+index-L6kd4xRg.js:54 🌟 [RATINGS DEBUG] Current products: Array(3)
+index-L6kd4xRg.js:54 🌟 [RATINGS DEBUG] Products with ratings: Array(2)
+index-L6kd4xRg.js:54 🎛️ [FRONTEND CONTROLS] Loaded: Object
+index-L6kd4xRg.js:54 🎛️ [VISIBILITY] Discount Banner: true
+index-L6kd4xRg.js:54 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+index-L6kd4xRg.js:54 🌟 [RATINGS DEBUG] Product stats data: Object
+index-L6kd4xRg.js:54 🌟 [RATINGS DEBUG] Current products: Array(3)
+index-L6kd4xRg.js:54 🌟 [RATINGS DEBUG] Products with ratings: Array(2)
+card-BoW5Zo7v.js:8 TypeError: Cannot read properties of undefined (reading 'nameRequired')
+    at Nhe (index-L6kd4xRg.js:54:292814)
+    at Fhe (index-L6kd4xRg.js:54:300009)
+    at Lo (card-BoW5Zo7v.js:6:16848)
+    at qs (card-BoW5Zo7v.js:8:3137)
+    at Ul (card-BoW5Zo7v.js:8:44299)
+    at Nl (card-BoW5Zo7v.js:8:39338)
+    at jl (card-BoW5Zo7v.js:8:39269)
+    at Al (card-BoW5Zo7v.js:8:39129)
+    at vl (card-BoW5Zo7v.js:8:35565)
+    at Sl (card-BoW5Zo7v.js:8:36366)
+Ms @ card-BoW5Zo7v.js:8
+card-BoW5Zo7v.js:5 Uncaught TypeError: Cannot read properties of undefined (reading 'nameRequired')
+    at Nhe (index-L6kd4xRg.js:54:292814)
+    at Fhe (index-L6kd4xRg.js:54:300009)
+    at Lo (card-BoW5Zo7v.js:6:16848)
+    at qs (card-BoW5Zo7v.js:8:3137)
+    at Ul (card-BoW5Zo7v.js:8:44299)
+    at Nl (card-BoW5Zo7v.js:8:39338)
+    at jl (card-BoW5Zo7v.js:8:39269)
+    at Al (card-BoW5Zo7v.js:8:39129)
+    at vl (card-BoW5Zo7v.js:8:35565)
+    at Sl (card-BoW5Zo7v.js:8:36366)

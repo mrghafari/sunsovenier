@@ -842,16 +842,16 @@ function UserManagement() {
     if (!modulesData?.modules) return [];
     
     return modulesData.modules.map((module: any) => {
-       const staticModule = extractSiteManagementModules(
+      const staticModule = extractSiteManagementModules(
          financialApprovalLabel,
          t.moduleLabels,
          t.moduleWord
-       ).find(m => m.moduleId === module.id);
+      ).find(m => m.name === module.id);
       return {
         id: module.id,
-        name: module.id, // Use technical English name instead of Persian translation
-        displayName: staticModule?.displayName || module.id, // Use English display name from static config
-        description: module.description,
+        name: module.id,
+        displayName: staticModule?.displayName || t.moduleLabels[module.id] || module.id,
+        description: staticModule?.description || `${t.moduleLabels[module.id] || module.id} ${t.moduleWord}`,
         category: module.category,
         isCore: true,
         icon: staticModule?.icon || Package,

@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { Wallet, Plus, ArrowUpCircle, ArrowDownCircle, Clock, CheckCircle, XCircle, DollarSign, CreditCard, Banknote, Shield, Building2, RefreshCw, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -81,6 +82,7 @@ const WALLET_T = {
     transactionsDescription: "View all your wallet transactions", rechargeDescription: "View all your recharge requests",
     orderPayment: "Order payment", order: "Order #", before: "Before:", after: "After:", admin: "Admin",
     reserved: "Reserved:", reservedHelp: "(Pending bank payment completion)",
+    transactionColumns: { number: "#", details: "Transaction", reference: "Reference", date: "Date", amount: "Amount", before: "Balance Before", after: "Balance After", status: "Status" },
     statuses: { pending: "Pending", approved: "Approved", completed: "Completed", rejected: "Rejected", active: "Active", frozen: "Frozen" },
   },
   ar: {
@@ -96,6 +98,7 @@ const WALLET_T = {
     transactionsDescription: "عرض جميع معاملات محفظتك", rechargeDescription: "عرض جميع طلبات شحن محفظتك",
     orderPayment: "دفع الطلب", order: "الطلب #", before: "قبل:", after: "بعد:", admin: "المدير",
     reserved: "المبلغ المحجوز:", reservedHelp: "(بانتظار إكمال الدفع البنكي)",
+    transactionColumns: { number: "#", details: "المعاملة", reference: "المرجع", date: "التاريخ", amount: "المبلغ", before: "الرصيد قبل", after: "الرصيد بعد", status: "الحالة" },
     statuses: { pending: "معلق", approved: "موافق عليه", completed: "مكتمل", rejected: "مرفوض", active: "نشط", frozen: "مجمد" },
   },
   tr: {
@@ -111,6 +114,7 @@ const WALLET_T = {
     transactionsDescription: "Tüm cüzdan işlemlerinizi görüntüleyin", rechargeDescription: "Tüm bakiye yükleme taleplerinizi görüntüleyin",
     orderPayment: "Sipariş ödemesi", order: "Sipariş #", before: "Önce:", after: "Sonra:", admin: "Yönetici",
     reserved: "Ayrılan:", reservedHelp: "(Banka ödemesinin tamamlanması bekleniyor)",
+    transactionColumns: { number: "#", details: "İşlem", reference: "Referans", date: "Tarih", amount: "Tutar", before: "Önceki Bakiye", after: "Sonraki Bakiye", status: "Durum" },
     statuses: { pending: "Bekliyor", approved: "Onaylandı", completed: "Tamamlandı", rejected: "Reddedildi", active: "Aktif", frozen: "Donduruldu" },
   },
   fa: {
@@ -126,6 +130,7 @@ const WALLET_T = {
     transactionsDescription: "همه تراکنش‌های کیف پول خود را مشاهده کنید", rechargeDescription: "همه درخواست‌های شارژ را مشاهده کنید",
     orderPayment: "پرداخت سفارش", order: "سفارش #", before: "قبل:", after: "بعد:", admin: "مدیر",
     reserved: "مبلغ رزروشده:", reservedHelp: "(در انتظار تکمیل پرداخت بانکی)",
+    transactionColumns: { number: "#", details: "تراکنش", reference: "مرجع", date: "تاریخ", amount: "مبلغ", before: "موجودی قبل", after: "موجودی بعد", status: "وضعیت" },
     statuses: { pending: "در انتظار", approved: "تأییدشده", completed: "تکمیل‌شده", rejected: "ردشده", active: "فعال", frozen: "مسدود" },
   },
 } as const;
@@ -485,6 +490,18 @@ export default function CustomerWallet() {
   const pendingRecharges = walletData?.data?.pendingRecharges || [];
   const allRechargeRequests = rechargeRequestsData?.data || [];
   const allTransactions = transactionsData?.data || [];
+  const formatTransactionDate = (date: string) => {
+    const parsedDate = new Date(date);
+    if (Number.isNaN(parsedDate.getTime())) return "—";
+
+    return new Intl.DateTimeFormat(
+      language === "fa" ? "fa-IR-u-ca-persian" :
+      language === "ar" ? "ar-IQ" :
+      language === "tr" ? "tr-TR" :
+      "en-US",
+      { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" },
+    ).format(parsedDate);
+  };
 
   return (
     <div className={`min-h-screen bg-gray-50 p-6 ${isRTL ? 'rtl' : 'ltr'}`} dir={direction}>
@@ -795,54 +812,58 @@ export default function CustomerWallet() {
 
           {/* All Transactions Tab */}
           <TabsContent value="transactions">
-            <Card>
+            <Card className="overflow-hidden border-slate-300 shadow-sm">
               <CardHeader>
                 <CardTitle>{t.allTransactions}</CardTitle>
                 <CardDescription>
                   {wt.transactionsDescription}
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-0">
                 {allTransactions.length > 0 ? (
-                  <div className="space-y-4">
-                    {allTransactions.map((transaction, index) => (
-                      <div key={index} className={`flex items-center justify-between p-4 border rounded-lg ${isRTL ? 'flex-row-reverse' : ''}`}>
-                        <div className={`flex items-center space-x-4 ${isRTL ? 'flex-row-reverse space-x-reverse' : ''}`}>
-                          {getTransactionIcon(transaction.transactionType)}
-                          <div className={isRTL ? 'text-right' : 'text-left'}>
-                            <p className="font-medium">{getTransactionDescription(transaction)}</p>
-                            {/* Display order number when transaction is related to an order */}
-                            {transaction.referenceType === 'order' && transaction.referenceId && (
-                              <p className="text-sm font-medium text-blue-600">
-                                {wt.order}{transaction.referenceId}
-                              </p>
-                            )}
-                            <p className="text-sm text-gray-500">
-                              {new Date(transaction.createdAt).toLocaleDateString({ en: 'en-US', ar: 'ar-IQ', tr: 'tr-TR', fa: 'fa-IR' }[language])}
-                            </p>
-                          </div>
-                        </div>
-                        <div className={`${isRTL ? 'text-left' : 'text-right'} space-y-1`}>
-                          {/* Balance Before */}
-                          {transaction.balanceBefore && (
-                            <p className="text-xs text-gray-500">
-                              {wt.before} {formatCurrency(transaction.balanceBefore, transaction.currency)}
-                            </p>
-                          )}
-                          {/* Transaction Amount */}
-                          <p className={`font-bold text-lg ${transaction.transactionType === 'credit' ? 'text-green-600' : 'text-red-600'}`}>
-                            {transaction.transactionType === 'credit' ? '+' : '-'}{formatCurrency(transaction.amount, transaction.currency)}
-                          </p>
-                          {/* Balance After */}
-                          {transaction.balanceAfter && (
-                            <p className="text-xs text-gray-500">
-                              {wt.after} {formatCurrency(transaction.balanceAfter, transaction.currency)}
-                            </p>
-                          )}
-                          {getStatusBadge(transaction.status)}
-                        </div>
-                      </div>
-                    ))}
+                  <div className="overflow-x-auto">
+                    <Table className="min-w-[1120px] text-xs">
+                      <TableHeader className="sticky top-0 z-10 bg-slate-700">
+                        <TableRow className="border-slate-700 hover:bg-slate-700">
+                          {Object.values(wt.transactionColumns).map((heading) => (
+                            <TableHead key={heading} className="h-9 border-e border-slate-600 px-3 text-start font-semibold text-slate-50 last:border-e-0">
+                              {heading}
+                            </TableHead>
+                          ))}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {allTransactions.map((transaction, index) => (
+                          <TableRow key={transaction.id ?? index} className="border-slate-200 odd:bg-slate-50 even:bg-white hover:bg-amber-50">
+                            <TableCell className="w-12 border-e border-slate-200 px-3 py-2 font-mono text-slate-500">{index + 1}</TableCell>
+                            <TableCell className="min-w-[240px] border-e border-slate-200 px-3 py-2">
+                              <div className="flex items-center gap-2">
+                                {getTransactionIcon(transaction.transactionType)}
+                                <span className="font-medium text-slate-800">{getTransactionDescription(transaction)}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="border-e border-slate-200 px-3 py-2 font-medium text-blue-700">
+                              {transaction.referenceType === "order" && transaction.referenceId
+                                ? `${wt.order}${transaction.referenceId}`
+                                : transaction.referenceId || "—"}
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap border-e border-slate-200 px-3 py-2 text-slate-600">
+                              {formatTransactionDate(transaction.createdAt)}
+                            </TableCell>
+                            <TableCell className={`whitespace-nowrap border-e border-slate-200 px-3 py-2 font-mono font-bold ${transaction.transactionType === "credit" ? "text-emerald-700" : "text-rose-700"}`}>
+                              {transaction.transactionType === "credit" ? "+" : "-"}{formatCurrency(transaction.amount, transaction.currency)}
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap border-e border-slate-200 px-3 py-2 font-mono text-slate-600">
+                              {transaction.balanceBefore != null ? formatCurrency(transaction.balanceBefore, transaction.currency) : "—"}
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap border-e border-slate-200 px-3 py-2 font-mono text-slate-700">
+                              {transaction.balanceAfter != null ? formatCurrency(transaction.balanceAfter, transaction.currency) : "—"}
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap px-3 py-2">{getStatusBadge(transaction.status)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
                   </div>
                 ) : (
                   <p className="text-gray-500 text-center py-8">{t.noTransactions}</p>
