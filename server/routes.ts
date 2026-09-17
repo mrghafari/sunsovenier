@@ -54828,10 +54828,62 @@ momtazchem.com
   app.get('/api/super-admin/deletable-orders', requireSuperAdmin, async (req: Request, res: Response) => {
     try {
       console.log('🔍 [SUPER ADMIN] Starting enhanced deletable orders request');
-      
+
+      const limit = Math.min(Math.max(Number.parseInt(String(req.query.limit || "100"), 10) || 100, 1), 100);
+      const offset = Math.max(Number.parseInt(String(req.query.offset || "0"), 10) || 0, 0);
+      const filters = {
+        q: String(req.query.q || "").trim(),
+        orderNumber: String(req.query.orderNumber || "").trim(),
+        customer: String(req.query.customer || "").trim(),
+        amount: String(req.query.amount || "").trim(),
+        status: String(req.query.status || "").trim(),
+        payment: String(req.query.payment || "").trim(),
+        date: String(req.query.date || "").trim(),
+      };
+      const values: unknown[] = [];
+      const where = [`(
+        co.order_number IS NOT NULL
+        OR (co.order_number IS NULL AND (
+          co.status IN ('cancelled', 'failed', 'pending')
+          OR co.payment_status IN ('failed', 'cancelled', 'pending')
+          OR co.created_at < NOW() - INTERVAL '1 hour'
+        ))
+      )`];
+      const addLikeFilter = (sql: string, value: string) => {
+        if (!value) return;
+        values.push(`%${value}%`);
+        where.push(`(${sql}) ILIKE $${values.length}`);
+      };
+      if (filters.q) {
+        values.push(`%${filters.q}%`);
+        const parameter = `$${values.length}`;
+        where.push(`(
+          COALESCE(co.order_number, '') ILIKE ${parameter}
+          OR COALESCE(co.guest_name, '') ILIKE ${parameter}
+          OR COALESCE(co.guest_email, '') ILIKE ${parameter}
+          OR COALESCE(c.first_name || ' ' || c.last_name, '') ILIKE ${parameter}
+          OR COALESCE(c.email, '') ILIKE ${parameter}
+          OR COALESCE(crm.first_name || ' ' || crm.last_name, '') ILIKE ${parameter}
+          OR COALESCE(crm.email, '') ILIKE ${parameter}
+        )`);
+      }
+      addLikeFilter(`COALESCE(co.order_number, '')`, filters.orderNumber);
+      addLikeFilter(`CONCAT_WS(' ', co.guest_name, co.guest_email, c.first_name, c.last_name, c.email, crm.first_name, crm.last_name, crm.email)`, filters.customer);
+      addLikeFilter(`COALESCE(co.total_amount::text, '')`, filters.amount);
+      addLikeFilter(`COALESCE(co.status, '')`, filters.status);
+      addLikeFilter(`CONCAT_WS(' ', co.payment_status, co.payment_method)`, filters.payment);
+      if (filters.date) {
+        values.push(filters.date);
+        where.push(`co.created_at::date = $${values.length}::date`);
+      }
+      values.push(limit + 1, offset);
+      const limitParameter = `$${values.length - 1}`;
+      const offsetParameter = `$${values.length}`;
+
       // Get orders with complete details only - filter out incomplete temporary orders
       const result = await customerPool.query(`
         SELECT 
+          COUNT(*) OVER()::int as "_filteredTotal",
           co.id, 
           co.order_number as "orderNumber", 
           co.guest_name as "customerName", 
@@ -54850,22 +54902,16 @@ momtazchem.com
         FROM customer_orders co
         LEFT JOIN customers c ON co.customer_id = c.id
         LEFT JOIN crm_customers crm ON co.customer_id = crm.id
-        WHERE (
-          -- Include orders with order numbers (completed/confirmed orders)
-          co.order_number IS NOT NULL 
-          OR 
-          -- Include failed/incomplete orders that should be cleaned up
-          (co.order_number IS NULL AND (
-            co.status IN ('cancelled', 'failed', 'pending') 
-            OR co.payment_status IN ('failed', 'cancelled', 'pending')
-            OR co.created_at < NOW() - INTERVAL '1 hour'
-          ))
-        )
+        WHERE ${where.join(" AND ")}
         ORDER BY co.created_at DESC 
-        LIMIT 100
-      `);
-      
-      const allOrders = result.rows;
+        LIMIT ${limitParameter}
+        OFFSET ${offsetParameter}
+      `, values);
+
+      const hasMore = result.rows.length > limit;
+      const pageRows = result.rows.slice(0, limit);
+      const total = pageRows[0]?._filteredTotal ?? offset;
+      const allOrders = pageRows.map(({ _filteredTotal, ...order }) => order);
       
       // Separate orders by type for better presentation
       const ordersWithNumbers = allOrders.filter(order => order.orderNumber);
@@ -54879,6 +54925,13 @@ momtazchem.com
       res.json({
         success: true,
         data: allOrders,
+        pagination: {
+          limit,
+          offset,
+          total,
+          hasMore,
+          nextOffset: hasMore ? offset + limit : null,
+        },
         summary: {
           total: allOrders.length,
           withOrderNumbers: ordersWithNumbers.length,
