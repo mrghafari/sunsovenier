@@ -633,21 +633,36 @@ type Role = {
   createdAt: string;
 };
 
-const englishSystemRoleDescriptions: Record<string, string> = {
-  'sales manager': 'Manage sales operations and customer relationships',
-  'warehouse supervisor': 'Manage warehouse operations and product inventory',
-  'customer support': 'Respond to customers and handle support requests',
-  'content editor': 'Manage website content and SEO',
+const systemRoleDescriptions: Partial<Record<Language, Record<string, string>>> = {
+  en: {
+    'sales manager': 'Manage sales operations and customer relationships',
+    'warehouse supervisor': 'Manage warehouse operations and product inventory',
+    'customer support': 'Respond to customers and handle support requests',
+    'content editor': 'Manage website content and SEO',
+  },
+  ar: {
+    'sales manager': 'إدارة عمليات المبيعات وعلاقات العملاء',
+    'warehouse supervisor': 'إدارة عمليات المستودع ومخزون المنتجات',
+    'customer support': 'الرد على العملاء ومعالجة طلبات الدعم',
+    'content editor': 'إدارة محتوى الموقع وتحسين محركات البحث',
+  },
+  tr: {
+    'sales manager': 'Satış operasyonlarını ve müşteri ilişkilerini yönetir',
+    'warehouse supervisor': 'Depo operasyonlarını ve ürün stoklarını yönetir',
+    'customer support': 'Müşterilere yanıt verir ve destek taleplerini yönetir',
+    'content editor': 'Web sitesi içeriğini ve SEO çalışmalarını yönetir',
+  },
 };
 
 const getVisibleRoleDescription = (role: Role, language: Language): string => {
   const description = role.description?.trim() || '';
-  if (language !== 'en' || !/[\u0600-\u06FF]/.test(description)) {
+  if (language === 'fa' || !/[\u0600-\u06FF]/.test(description)) {
     return description;
   }
 
-  return englishSystemRoleDescriptions[role.name.trim().toLowerCase()]
-    || englishSystemRoleDescriptions[role.displayName.trim().toLowerCase()]
+  const localizedDescriptions = systemRoleDescriptions[language];
+  return localizedDescriptions?.[role.name.trim().toLowerCase()]
+    || localizedDescriptions?.[role.displayName.trim().toLowerCase()]
     || '';
 };
 
