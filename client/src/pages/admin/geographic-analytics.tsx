@@ -97,9 +97,20 @@ export default function GeographicAnalytics() {
   const { language, direction } = useLanguage();
   const t = geographicAnalyticsLocalization[language];
   const locale = language === "fa" ? "fa-IR" : language === "ar" ? "ar-IQ" : language === "tr" ? "tr-TR" : "en-US";
+  const calendar = language === "fa" ? "persian" : "gregory";
   const number = (value: number, options?: Intl.NumberFormatOptions) => new Intl.NumberFormat(locale, options).format(value);
   const currency = (value: number, currencyCode = "USD") => new Intl.NumberFormat(locale, { style: "currency", currency: currencyCode, minimumFractionDigits: 2 }).format(value);
-  const date = (value: string | Date) => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+  const date = (value: string | Date) => new Intl.DateTimeFormat(locale, {
+    calendar,
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+  const chartDate = (value: string | number) => new Intl.DateTimeFormat(locale, {
+    calendar,
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  }).format(new Date(value));
   const percentage = (value: number) => new Intl.NumberFormat(locale, { style: "percent", maximumFractionDigits: 1 }).format(value);
   const paymentLabel = (value?: string | null) => {
     if (!value) return "—";
@@ -770,9 +781,10 @@ export default function GeographicAnalytics() {
                   }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
+                  <XAxis dataKey="date" tickFormatter={chartDate} />
                   <YAxis />
                   <Tooltip 
+                    labelFormatter={chartDate}
                     formatter={(value: any, name: string) => [
                       name === 'orders' ? `${number(Number(value))} ${t.orders}` : currency(Number(value)),
                       name === 'orders' ? t.orders : t.revenue
@@ -831,9 +843,10 @@ export default function GeographicAnalytics() {
                         <ResponsiveContainer width="100%" height={200}>
                           <LineChart data={productTrendsData.filter((trend: any) => trend.productName === product.name)}>
                             <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="date" />
+                            <XAxis dataKey="date" tickFormatter={chartDate} />
                             <YAxis />
                             <Tooltip 
+                              labelFormatter={chartDate}
                               formatter={(value: any, name: string) => [
                                 name === 'quantity' ? `${number(Number(value))} ${t.unitsSold}` : `${number(Number(value), { minimumFractionDigits: 2 })} IQD`,
                                 name === 'quantity' ? t.dailySales : t.dailyRevenue
@@ -1077,10 +1090,10 @@ export default function GeographicAnalytics() {
               <ResponsiveContainer width="100%" height={400}>
                 <LineChart data={timeData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
+                  <XAxis dataKey="date" tickFormatter={chartDate} />
                   <YAxis yAxisId="left" />
                   <YAxis yAxisId="right" orientation="right" />
-                  <Tooltip />
+                  <Tooltip labelFormatter={chartDate} />
                   <Line yAxisId="left" type="monotone" dataKey="orders" stroke="#8884d8" name={t.orders} />
                   <Line yAxisId="right" type="monotone" dataKey="revenue" stroke="#82ca9d" name={t.revenue} />
                 </LineChart>

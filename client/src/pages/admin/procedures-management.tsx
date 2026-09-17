@@ -41,6 +41,7 @@ import {
   X
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
@@ -238,6 +239,8 @@ const procedureTranslations = {
 
 export default function ProceduresManagement() {
   const { language, direction } = useLanguage();
+  const { user } = useAuth();
+  const canManageProcedures = user?.roleName === "super_admin";
   const t = procedureTranslations[language];
   const { toast } = useToast();
   const [, setLocation] = useLocation();
@@ -252,6 +255,7 @@ export default function ProceduresManagement() {
   const [documentFiles, setDocumentFiles] = useState<File[]>([]);
   const [selectedProcedureId, setSelectedProcedureId] = useState<number | null>(null);
   const [showDocuments, setShowDocuments] = useState(false);
+  const [viewingProcedure, setViewingProcedure] = useState<Procedure | null>(null);
 
   // Form hooks
   const categoryForm = useForm<ProcedureCategoryForm>({
@@ -927,10 +931,12 @@ export default function ProceduresManagement() {
             <CardHeader>
               <div className="flex items-center justify-between">
                   <CardTitle>{t.procedures}</CardTitle>
-                <Button onClick={() => openCreateDialog('procedure')}>
-                  <Plus className="h-4 w-4 me-2" />
-                  {t.addProcedure}
-                </Button>
+                {canManageProcedures && (
+                  <Button onClick={() => openCreateDialog('procedure')}>
+                    <Plus className="h-4 w-4 me-2" />
+                    {t.addProcedure}
+                  </Button>
+                )}
               </div>
               
               {/* Filters */}
@@ -1036,7 +1042,12 @@ export default function ProceduresManagement() {
                           </TableCell>
                           <TableCell className="px-3 py-2">
                             <div className="flex items-center gap-2">
-                              <Button variant="outline" size="sm">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setViewingProcedure(procedure)}
+                                title={language === "fa" ? "مشاهده دستورالعمل" : language === "ar" ? "عرض الإجراء" : language === "tr" ? "Prosedürü görüntüle" : "View procedure"}
+                              >
                                 <Eye className="h-4 w-4" />
                               </Button>
                               <Button 
@@ -1047,17 +1058,16 @@ export default function ProceduresManagement() {
                               >
                                 <Download className="h-4 w-4" />
                               </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => openEditDialog('procedure', procedure)}
-                                title={t.edit}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button variant="outline" size="sm">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                              {canManageProcedures && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => openEditDialog('procedure', procedure)}
+                                  title={t.edit}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
@@ -1077,10 +1087,12 @@ export default function ProceduresManagement() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>{t.categories}</CardTitle>
-                <Button onClick={() => openCreateDialog('category')}>
-                  <Plus className="h-4 w-4 me-2" />
-                  {t.addCategory}
-                </Button>
+                {canManageProcedures && (
+                  <Button onClick={() => openCreateDialog('category')}>
+                    <Plus className="h-4 w-4 me-2" />
+                    {t.addCategory}
+                  </Button>
+                )}
               </div>
             </CardHeader>
             <CardContent>
@@ -1108,7 +1120,9 @@ export default function ProceduresManagement() {
                         <Badge variant={category.isActive ? "default" : "secondary"}>{category.isActive ? t.active : (language === "tr" ? "Devre dışı" : language === "ar" ? "غير نشط" : language === "en" ? "Inactive" : "غیرفعال")}</Badge>
                       </TableCell>
                       <TableCell className="px-3 py-2">
-                        <Button variant="outline" size="sm" onClick={() => openEditDialog('category', category)}>{t.edit}</Button>
+                        {canManageProcedures ? (
+                          <Button variant="outline" size="sm" onClick={() => openEditDialog('category', category)}>{t.edit}</Button>
+                        ) : "—"}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -1126,10 +1140,12 @@ export default function ProceduresManagement() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>{t.safety}</CardTitle>
-                <Button onClick={() => openCreateDialog('safety')}>
-                <Plus className="h-4 w-4 me-2" />
-                {t.addProtocol}
-                </Button>
+                {canManageProcedures && (
+                  <Button onClick={() => openCreateDialog('safety')}>
+                    <Plus className="h-4 w-4 me-2" />
+                    {t.addProtocol}
+                  </Button>
+                )}
               </div>
             </CardHeader>
             <CardContent>
@@ -1160,7 +1176,11 @@ export default function ProceduresManagement() {
                       <TableCell className="border-e border-slate-200 px-3 py-2">
                         <Button variant="outline" size="sm" onClick={() => { setSelectedProcedureId(protocol.id); setShowDocuments(true); }}>{t.documents}</Button>
                       </TableCell>
-                      <TableCell className="px-3 py-2"><Button variant="outline" size="sm" onClick={() => openEditDialog('safety', protocol)}>{t.edit}</Button></TableCell>
+                      <TableCell className="px-3 py-2">
+                        {canManageProcedures ? (
+                          <Button variant="outline" size="sm" onClick={() => openEditDialog('safety', protocol)}>{t.edit}</Button>
+                        ) : "—"}
+                      </TableCell>
                     </TableRow>
                   ))}
                   </TableBody>
@@ -1285,16 +1305,18 @@ export default function ProceduresManagement() {
                             <Download className="h-4 w-4 mr-1" />
                             {language === "tr" ? "İndir" : language === "ar" ? "تنزيل" : language === "en" ? "Download" : "دانلود"}
                           </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => deleteDocument(document.id, document.title)}
-                            title={t.delete}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-4 w-4 mr-1" />
-                            {t.delete}
-                          </Button>
+                          {canManageProcedures && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => deleteDocument(document.id, document.title)}
+                              title={t.delete}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              {t.delete}
+                            </Button>
+                          )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -1313,8 +1335,52 @@ export default function ProceduresManagement() {
         </DialogContent>
       </Dialog>
 
+      {/* Read-only procedure preview */}
+      <Dialog open={!!viewingProcedure} onOpenChange={(open) => !open && setViewingProcedure(null)}>
+        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{viewingProcedure?.title}</DialogTitle>
+          </DialogHeader>
+          {viewingProcedure && (
+            <div className="space-y-5">
+              <div className="flex flex-wrap gap-2">
+                <Badge className={getStatusColor(viewingProcedure.status)}>
+                  {viewingProcedure.status === "approved" ? t.approved : viewingProcedure.status === "review" ? t.review : viewingProcedure.status === "draft" ? t.draft : t.archived}
+                </Badge>
+                <Badge className={getPriorityColor(viewingProcedure.priority)}>
+                  {viewingProcedure.priority}
+                </Badge>
+                <Badge variant="outline">{t.version}: {viewingProcedure.version}</Badge>
+              </div>
+              {viewingProcedure.description && (
+                <div>
+                  <Label className="text-muted-foreground">{t.summary}</Label>
+                  <p className="mt-1 whitespace-pre-wrap">{viewingProcedure.description}</p>
+                </div>
+              )}
+              <div>
+                <Label className="text-muted-foreground">{t.content}</Label>
+                <div className="mt-2 whitespace-pre-wrap rounded-md border bg-slate-50 p-4 leading-7">
+                  {viewingProcedure.content}
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setViewingProcedure(null)}>{t.close}</Button>
+                <Button onClick={() => {
+                  setViewingProcedure(null);
+                  viewProcedureDocuments(viewingProcedure.id);
+                }}>
+                  <FileText className="me-2 h-4 w-4" />
+                  {t.documents}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Create Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={canManageProcedures && dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>

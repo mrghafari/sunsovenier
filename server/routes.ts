@@ -27,6 +27,7 @@ import { widgetRecommendationStorage } from "./widget-recommendation-storage";
 import { orderManagementStorage } from "./order-management-storage";
 import { walletStorage } from "./wallet-storage";
 import { requireDepartment, attachUserDepartments } from "./department-auth";
+import { requireSuperAdminRole } from "./admin-auth";
 import { insertCustomerInquirySchema, insertEmailTemplateSchema, insertCustomerSchema, insertCustomerAddressSchema, walletRechargeRequests, customerOrders, orderItems, walletTransactions, customerWallets, customerVerificationSettings } from "@shared/customer-schema";
 import { customerDb, customerPool } from "./customer-db";
 import { insertEmailCategorySchema, insertSmtpSettingSchema, insertEmailRecipientSchema, smtpConfigSchema, emailLogs, emailCategories, smtpSettings, emailRecipients, categoryEmailAssignments, insertCategoryEmailAssignmentSchema } from "@shared/email-schema";
@@ -179,6 +180,7 @@ import { generateSitemap } from './sitemap';
 import { incomingCorrespondence, insertIncomingCorrespondenceSchema, outgoingCorrespondence, insertOutgoingCorrespondenceSchema, insertCompanyDocumentSchema, insertBusinessCardSchema, insertCompanyImageSchema } from "@shared/company-info-schema.js";
 import { id } from "date-fns/locale";
 import { SessionData } from "express-session";
+import { registerKpiDashboardRoute } from "./kpi-dashboard";
 
 // Extend session type to include admin user and customer user
 declare module "express-session" {
@@ -554,6 +556,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Create requireAdmin alias for better semantics
   const requireAdmin = requireAuth;
+  registerKpiDashboardRoute(app, requireAdmin);
   
   // Super Admin authentication middleware - simplified for debugging
   const requireSuperAdmin = (req: Request, res: Response, next: NextFunction) => {
@@ -3322,6 +3325,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       
       // Set up session with appropriate user type
       if (isCustomUser) {
+        req.session.adminId = undefined;
         req.session.customUserId = user.id;
         req.session.isAuthenticated = true;
         console.log(`✅ [LOGIN] Session configured for custom user ${user.id} (customer session cleared):`, {
@@ -3330,6 +3334,11 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           sessionId: req.sessionID
         });
       } else {
+        req.session.customUserId = undefined;
+        req.session.customUserEmail = undefined;
+        req.session.customUserName = undefined;
+        req.session.customUserRole = undefined;
+        req.session.customUserPermissions = undefined;
         req.session.adminId = user.id;
         req.session.isAuthenticated = true;
         console.log(`✅ [LOGIN] Session configured for admin ${user.id} (customer session cleared):`, {
@@ -3444,10 +3453,29 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
     try {
       let user = null;
       let userType = 'admin';
+
+      if (req.session.adminId && req.session.customUserId) {
+        return res.status(401).json({
+          success: false,
+          message: "Invalid admin session"
+        });
+      }
       
       if (req.session.adminId) {
         // Standard admin user
-        user = await storage.getUserById(req.session.adminId);
+        const adminUser = await storage.getUserById(req.session.adminId);
+        if (adminUser) {
+          const roleResult = await pool.query(`
+            SELECT name, display_name
+            FROM admin_roles
+            WHERE id = $1 AND is_active = true
+          `, [adminUser.roleId]);
+          user = {
+            ...adminUser,
+            roleName: roleResult.rows[0]?.name || 'admin',
+            roleDisplayName: roleResult.rows[0]?.display_name || 'Administrator'
+          };
+        }
         userType = 'admin';
       } else if (req.session.customUserId) {
         // Custom user - fetch from custom_users table
@@ -3457,7 +3485,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
                  cr.name as role_name, cr.display_name as role_display_name
           FROM custom_users cu
           LEFT JOIN custom_roles cr ON cu.role_id = cr.id
-          WHERE cu.id = $1 AND cu.is_active = true
+          WHERE cu.id = $1 AND cu.is_active = true AND cr.is_active = true
         `, [req.session.customUserId]);
         
         if (result.rows.length === 0) {
@@ -8733,6 +8761,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       `, [user.id]);
 
       // Set session
+      req.session.adminId = undefined;
       req.session.customUserId = user.id;
       req.session.customUserEmail = user.email;
       req.session.customUserName = user.full_name;
@@ -14057,7 +14086,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
   });
 
   // Create procedure category
-  app.post("/api/procedures/categories", requireAuth, async (req, res) => {
+  app.post("/api/procedures/categories", requireSuperAdminRole, async (req, res) => {
     try {
       const { name, description, colorCode, displayOrder } = req.body;
       
@@ -14083,7 +14112,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
   });
 
   // Create procedure
-  app.post("/api/procedures", requireAuth, async (req, res) => {
+  app.post("/api/procedures", requireSuperAdminRole, async (req, res) => {
     try {
       const { title, categoryId, description, content, priority, effectiveDate, reviewDate, tags, accessLevel } = req.body;
       const userId = (req.session as any)?.adminId;
@@ -14114,7 +14143,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
   });
 
   // Update procedure
-  app.put("/api/procedures/:id", requireAuth, async (req, res) => {
+  app.put("/api/procedures/:id", requireSuperAdminRole, async (req, res) => {
     try {
       const { id } = req.params;
       const { title, categoryId, description, content, priority, effectiveDate, reviewDate, tags, accessLevel } = req.body;
@@ -14147,7 +14176,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
   });
 
   // Create safety protocol
-  app.post("/api/procedures/safety-protocols", requireAuth, async (req, res) => {
+  app.post("/api/procedures/safety-protocols", requireSuperAdminRole, async (req, res) => {
     try {
       const { title, category, description, severityLevel, procedures, firstAidSteps, evacuationPlan, requiredPpe } = req.body;
       const userId = (req.session as any)?.adminId;
@@ -14209,7 +14238,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
   });
 
   // Create procedure outline
-  app.post("/api/procedures/:procedureId/outlines", requireAuth, async (req, res) => {
+  app.post("/api/procedures/:procedureId/outlines", requireSuperAdminRole, async (req, res) => {
     try {
       const { procedureId } = req.params;
       const { parentId, level, orderNumber, title, content, isCollapsible } = req.body;
@@ -14232,7 +14261,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
   });
 
   // Create safety protocol
-  app.post("/api/procedures/safety-protocols", requireAuth, async (req, res) => {
+  app.post("/api/procedures/safety-protocols", requireSuperAdminRole, async (req, res) => {
     try {
       const { title, category, description, severityLevel, procedures, firstAidSteps, evacuationPlan, requiredPpe } = req.body;
       const userId = (req.session as any)?.adminId;
@@ -14260,7 +14289,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
   });
 
   // Update safety protocol
-  app.put("/api/procedures/safety-protocols/:id", requireAuth, async (req, res) => {
+  app.put("/api/procedures/safety-protocols/:id", requireSuperAdminRole, async (req, res) => {
     try {
       const { id } = req.params;
       const { title, category, description, severityLevel, procedures, firstAidSteps, evacuationPlan, requiredPpe } = req.body;
@@ -14339,7 +14368,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
   });
 
   // Upload safety protocol document
-  app.post("/api/procedures/safety-protocols/:protocolId/documents", requireAuth, upload.single('document'), async (req, res) => {
+  app.post("/api/procedures/safety-protocols/:protocolId/documents", requireSuperAdminRole, upload.single('document'), async (req, res) => {
     try {
       const { protocolId } = req.params;
       const { title, description, version, tags } = req.body;
@@ -14451,7 +14480,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
   });
 
   // Delete safety protocol document
-  app.delete("/api/procedures/safety-protocols/documents/:documentId", requireAuth, async (req, res) => {
+  app.delete("/api/procedures/safety-protocols/documents/:documentId", requireSuperAdminRole, async (req, res) => {
     try {
       const { documentId } = req.params;
       
@@ -14504,7 +14533,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
   });
 
   // Update procedure category
-  app.put("/api/procedures/categories/:id", requireAuth, async (req, res) => {
+  app.put("/api/procedures/categories/:id", requireSuperAdminRole, async (req, res) => {
     try {
       const { id } = req.params;
       const { name, description, colorCode, displayOrder } = req.body;
@@ -22388,7 +22417,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
   });
 
   // Upload procedure document
-  app.post("/api/procedures/:procedureId/documents", requireAuth, (req, res, next) => {
+  app.post("/api/procedures/:procedureId/documents", requireSuperAdminRole, (req, res, next) => {
     upload.single('document')(req, res, (err) => {
       if (err) {
         return res.status(400).json({ success: false, message: err.message });
@@ -22530,7 +22559,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
   });
 
   // Upload procedure document
-  app.post("/api/procedures/:procedureId/documents", requireAuth, upload.single('document'), async (req, res) => {
+  app.post("/api/procedures/:procedureId/documents", requireSuperAdminRole, upload.single('document'), async (req, res) => {
     try {
       const { procedureId } = req.params;
       const { title, description } = req.body;
@@ -22590,7 +22619,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
   });
 
   // Delete procedure document
-  app.delete("/api/procedures/documents/:documentId", requireAuth, async (req, res) => {
+  app.delete("/api/procedures/documents/:documentId", requireSuperAdminRole, async (req, res) => {
     try {
       const { documentId } = req.params;
       

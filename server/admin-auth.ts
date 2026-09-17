@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import { pool } from "./db";
 
 export const requireAdminAuth = async (req: Request, res: Response, next: NextFunction) => {
   console.log(`🔐 [ADMIN AUTH] ${req.method} ${req.path}`);
@@ -48,6 +49,52 @@ export const requireAdminRole = (allowedRoles: string[] = ['admin', 'super_admin
       });
     }
   };
+};
+
+export const requireSuperAdminRole = async (req: Request, res: Response, next: NextFunction) => {
+  const session = req.session as any;
+  const hasAdminIdentity = Boolean(session?.adminId);
+  const hasCustomIdentity = Boolean(session?.customUserId);
+
+  if (!session?.isAuthenticated || hasAdminIdentity === hasCustomIdentity) {
+    return res.status(401).json({
+      success: false,
+      message: "Admin authentication required"
+    });
+  }
+
+  try {
+    const roleResult = session.customUserId
+      ? await pool.query(`
+          SELECT cr.name AS role_name
+          FROM custom_users cu
+          JOIN custom_roles cr ON cr.id = cu.role_id
+          WHERE cu.id = $1 AND cu.is_active = true AND cr.is_active = true
+        `, [session.customUserId])
+      : await pool.query(`
+          SELECT ar.name AS role_name
+          FROM users u
+          JOIN admin_roles ar ON ar.id = u.role_id
+          WHERE u.id = $1 AND u.is_active = true AND ar.is_active = true
+        `, [session.adminId]);
+
+    const roleName = roleResult.rows[0]?.role_name;
+
+    if (roleName !== "super_admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Super admin access required"
+      });
+    }
+
+    next();
+  } catch (error) {
+    console.error("Super admin role check failed:", error);
+    res.status(500).json({
+      success: false,
+      message: "Unable to verify admin access"
+    });
+  }
 };
 
 export const requireAdminPermission = (requiredPermission: string) => {

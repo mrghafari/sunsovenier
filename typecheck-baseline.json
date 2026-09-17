@@ -3573,16 +3573,8 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'roleDisplayName' does not exist on type '{ id: number; email: string; username: string; createdAt: Date; updatedAt: Date; isActive: boolean | null; phone: string | null; passwordHash: string; emailVerified: boolean | null; department: string | null; roleId: number | null; phoneVerified: boolean | null; lastLoginAt: Date | null; } | { ...; }'.\\n  Property 'roleDisplayName' does not exist on type '{ id: number; email: string; username: string; createdAt: Date; updatedAt: Date; isActive: boolean | null; phone: string | null; passwordHash: string; emailVerified: boolean | null; department: string | null; roleId: number | null; phoneVerified: boolean | null; lastLoginAt: Date | null; }'.\",\"roleDisplayName: user.roleDisplayName || 'Administrator',\"]",
-      "count": 1
-    },
-    {
       "key": "[\"server/routes.ts\",2339,\"Property 'roleId' does not exist on type 'User'.\",\"if (!req.isAuthenticated() || (!req.user?.roleId && !req.session?.adminId)) {\"]",
       "count": 3
-    },
-    {
-      "key": "[\"server/routes.ts\",2339,\"Property 'roleName' does not exist on type '{ id: number; email: string; username: string; createdAt: Date; updatedAt: Date; isActive: boolean | null; phone: string | null; passwordHash: string; emailVerified: boolean | null; department: string | null; roleId: number | null; phoneVerified: boolean | null; lastLoginAt: Date | null; } | { ...; }'.\\n  Property 'roleName' does not exist on type '{ id: number; email: string; username: string; createdAt: Date; updatedAt: Date; isActive: boolean | null; phone: string | null; passwordHash: string; emailVerified: boolean | null; department: string | null; roleId: number | null; phoneVerified: boolean | null; lastLoginAt: Date | null; }'.\",\"roleName: user.roleName || 'admin',\"]",
-      "count": 1
     },
     {
       "key": "[\"server/routes.ts\",2339,\"Property 'schema' does not exist on type 'DatabaseStorage'.\",\".where(storage.eq(storage.schema.customerOrders.id, order130.id));\"]",
