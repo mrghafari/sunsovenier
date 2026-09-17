@@ -917,6 +917,18 @@ export default function ProceduresManagement() {
                          procedure.status === 'review' ? 'در بررسی' :
                          procedure.status === 'draft' ? 'پیش‌نویس' : 'بایگانی'}
                       </Badge>
+                      {canManageProcedures && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openEditDialog('procedure', procedure)}
+                          title={t.edit}
+                          data-testid={`button-edit-recent-procedure-${procedure.id}`}
+                        >
+                          <Edit className="h-4 w-4 me-2" />
+                          {t.edit}
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -1064,8 +1076,10 @@ export default function ProceduresManagement() {
                                   size="sm"
                                   onClick={() => openEditDialog('procedure', procedure)}
                                   title={t.edit}
+                                  data-testid={`button-edit-procedure-${procedure.id}`}
                                 >
-                                  <Edit className="h-4 w-4" />
+                                  <Edit className="h-4 w-4 me-2" />
+                                  {t.edit}
                                 </Button>
                               )}
                             </div>
