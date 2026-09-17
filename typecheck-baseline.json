@@ -4221,10 +4221,6 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2554,\"Expected 5 arguments, but got 3.\",\"const smsSent = await orderManagementStorage.sendDeliveryCodeSms(customerPhone, deliveryCode, customerOrderId);\"]",
-      "count": 2
-    },
-    {
       "key": "[\"server/routes.ts\",2571,\"Object is of type 'unknown'.\",\"if (usedInShippingRates[0]?.count > 0) {\"]",
       "count": 1
     },

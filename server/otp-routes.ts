@@ -4,6 +4,7 @@ import { customersOtp, crmCustomers } from '../shared/schema';
 import { emailTemplates, customerVerificationSettings } from '../shared/customer-schema';
 import { eq, and, gt, or } from 'drizzle-orm';
 import { SmsService } from './sms-service';
+import { normalizeSmsLanguage, selectLocalizedSms } from './sms-language';
 import { WhatsAppService } from './whatsapp-service';
 import nodemailer from 'nodemailer';
 import { EmailStorage } from './email-storage';
@@ -53,7 +54,7 @@ async function sendOtpWhatsApp(phone: string, code: string): Promise<boolean> {
 }
 
 // Helper: Send OTP via SMS
-async function sendOtpSms(phone: string, code: string): Promise<boolean> {
+async function sendOtpSms(phone: string, code: string, preferredLanguage?: unknown): Promise<boolean> {
   try {
     const smsService = new SmsService({
       isEnabled: true,
@@ -64,7 +65,13 @@ async function sendOtpSms(phone: string, code: string): Promise<boolean> {
       rateLimitMinutes: 5,
     });
 
-    const message = `کد تایید: ${code}\nVerification code: ${code}\nExpires in 5 min`;
+    const language = normalizeSmsLanguage(preferredLanguage);
+    const message = selectLocalizedSms({
+      en: `Verification code: ${code}\nExpires in 5 minutes.`,
+      fa: `کد تأیید شما: ${code}\nاین کد تا ۵ دقیقه معتبر است.`,
+      ar: `رمز التحقق الخاص بك: ${code}\nتنتهي صلاحية الرمز خلال 5 دقائق.`,
+      tr: `Doğrulama kodunuz: ${code}\nBu kod 5 dakika içinde geçerliliğini yitirir.`,
+    }, language)!;
 
     const result = await smsService.sendSms({
       to: phone,
@@ -247,7 +254,7 @@ router.post('/api/customers/send-otp', async (req, res) => {
       channelNames.push('whatsapp');
     }
     if (verificationSettings.smsVerificationEnabled) {
-      sendPromises.push(sendOtpSms(phone, code));
+      sendPromises.push(sendOtpSms(phone, code, registrationData?.preferredLanguage));
       channelNames.push('sms');
     }
     if (verificationSettings.emailVerificationEnabled) {
@@ -520,7 +527,7 @@ router.post('/api/customers/resend-otp', async (req, res) => {
       channelNames.push('whatsapp');
     }
     if (verificationSettings.smsVerificationEnabled) {
-      sendPromises.push(sendOtpSms(phone, code));
+      sendPromises.push(sendOtpSms(phone, code, (lastOtp?.registrationData as any)?.preferredLanguage));
       channelNames.push('sms');
     }
     if (verificationSettings.emailVerificationEnabled) {

@@ -386,6 +386,7 @@ export class OrderManagementStorage implements IOrderManagementStorage {
             recipientMobile: customerOrders.recipientMobile,
             customerFirstName: crmCustomers.firstName,
             customerLastName: crmCustomers.lastName,
+            preferredLanguage: crmCustomers.preferredLanguage,
             customerOrderId: orderManagement.customerOrderId,
             orderNumber: customerOrders.orderNumber
           })
@@ -400,7 +401,7 @@ export class OrderManagementStorage implements IOrderManagementStorage {
         if (orderWithCustomer[0]?.customerPhone) {
           const customerData = orderWithCustomer[0];
           const customerName = `${customerData.customerFirstName || ''} ${customerData.customerLastName || ''}`.trim();
-          const orderNumber = customerData.orderNumber || `سفارش #${customerData.customerOrderId}`;
+          const orderNumber = customerData.orderNumber || String(customerData.customerOrderId);
           
           // Determine target phone: use recipient mobile if provided, otherwise customer phone
           const targetPhone = customerData.recipientMobile || customerData.customerPhone;
@@ -425,7 +426,7 @@ export class OrderManagementStorage implements IOrderManagementStorage {
                   targetPhone, 
                   deliveryCode, 
                   customerData.customerOrderId,
-                  customerName || 'مشتری عزیز',
+                  customerName,
                   orderNumber
                 ).then(result => {
                   console.log(`✅ [SMS] Delivery code sent: ${result}`);
@@ -443,7 +444,7 @@ export class OrderManagementStorage implements IOrderManagementStorage {
                 this.sendDeliveryCodeWhatsApp(
                   targetPhone, 
                   deliveryCode, 
-                  customerName || 'مشتری عزیز',
+                  customerName,
                   orderNumber
                 ).then(result => {
                   console.log(`✅ [WHATSAPP] Delivery code sent: ${result}`);
@@ -461,8 +462,9 @@ export class OrderManagementStorage implements IOrderManagementStorage {
                 this.sendDeliveryCodeEmail(
                   customerData.customerEmail,
                   deliveryCode,
-                  customerName || 'مشتری عزیز',
-                  orderNumber
+                  customerName,
+                  orderNumber,
+                  customerData.preferredLanguage || undefined
                 ).then(result => {
                   console.log(`✅ [EMAIL] Delivery code sent: ${result}`);
                   return { channel: 'Email', success: result };
@@ -1362,17 +1364,35 @@ export class OrderManagementStorage implements IOrderManagementStorage {
     }
   }
 
-  async sendDeliveryCodeSms(customerPhone: string, deliveryCode: string, customerOrderId: number, customerName: string, orderNumber: string): Promise<boolean> {
+  async sendDeliveryCodeSms(customerPhone: string, deliveryCode: string, customerOrderId: number, customerName = '', orderNumber = ''): Promise<boolean> {
     try {
       const { createSmsService } = await import('./sms-service');
+      const { pool } = await import('./db');
+      const { resolveSmsLanguage, selectLocalizedSms } = await import('./sms-language');
       const smsService = await createSmsService();
-      
-      // Use template 3 for delivery code (قالب شماره 3 - کد تحویل سفارش) 
-      const result = await smsService.sendSmsUsingTemplate(3, customerPhone, {
-        customer_name: customerName,
-        order_number: orderNumber,
-        delivery_code: deliveryCode
-      });
+      const customerResult = await pool.query(
+        'SELECT customer_id FROM customer_orders WHERE id = $1 LIMIT 1',
+        [customerOrderId],
+      );
+      const language = await resolveSmsLanguage(
+        pool,
+        customerResult.rows[0]?.customer_id,
+        customerPhone,
+      );
+      const recipient = customerName || {
+        en: 'Dear customer',
+        fa: 'مشتری گرامی',
+        ar: 'عميلنا العزيز',
+        tr: 'Değerli müşterimiz',
+      }[language];
+      const reference = orderNumber || String(customerOrderId);
+      const message = selectLocalizedSms({
+        en: `${recipient}, your delivery code for order ${reference} is ${deliveryCode}. Please provide this code to the driver upon delivery.`,
+        fa: `${recipient}، کد تحویل سفارش ${reference}: ${deliveryCode}. لطفاً این کد را هنگام تحویل به راننده ارائه دهید.`,
+        ar: `${recipient}، رمز تسليم الطلب ${reference} هو ${deliveryCode}. يرجى تقديم الرمز للسائق عند التسليم.`,
+        tr: `${recipient}, ${reference} numaralı siparişinizin teslimat kodu: ${deliveryCode}. Lütfen teslimat sırasında bu kodu sürücüye verin.`,
+      }, language)!;
+      const result = await smsService.sendSms({ to: customerPhone, message });
       
       console.log(`📱 [SMS TEMPLATE 3] Delivery code ${deliveryCode} sent to ${customerPhone} for order ${orderNumber}:`, result);
       
@@ -1404,17 +1424,25 @@ export class OrderManagementStorage implements IOrderManagementStorage {
     }
   }
 
-  async sendDeliveryCodeEmail(customerEmail: string, deliveryCode: string, customerName: string, orderNumber: string): Promise<boolean> {
+  async sendDeliveryCodeEmail(customerEmail: string, deliveryCode: string, customerName: string, orderNumber: string, language?: string): Promise<boolean> {
     try {
       const { emailService } = await import('./email-service');
+      const { normalizeSmsLanguage } = await import('./sms-language');
+      const normalizedLanguage = normalizeSmsLanguage(language);
+      const recipient = customerName || {
+        en: 'Dear customer',
+        fa: 'مشتری گرامی',
+        ar: 'عميلنا العزيز',
+        tr: 'Değerli müşterimiz',
+      }[normalizedLanguage];
       
       // Use template #20 for delivery verification code (قالب شماره 20 - کد تحویل سفارش)
       // Template variables: customer_name, order_number, delivery_code
       const result = await emailService.sendEmailWithTemplate('#20', {
-        customer_name: customerName,
+        customer_name: recipient,
         order_number: orderNumber,
         delivery_code: deliveryCode
-      }, customerEmail, 'orders');
+      }, customerEmail, 'orders', normalizedLanguage);
       
       console.log(`📧 [EMAIL TEMPLATE #20] Delivery code ${deliveryCode} sent to ${customerEmail} for order ${orderNumber}:`, result);
       
@@ -1462,7 +1490,8 @@ export class OrderManagementStorage implements IOrderManagementStorage {
           c.first_name as firstName,
           c.last_name as lastName,
           c.phone as phone,
-          c.email as email
+          c.email as email,
+          c.preferred_language as preferredLanguage
         FROM customer_orders co
         LEFT JOIN crm_customers c ON co.customer_id = c.id
         WHERE co.id = $1
@@ -1537,8 +1566,9 @@ export class OrderManagementStorage implements IOrderManagementStorage {
         const emailSuccess = await this.sendDeliveryCodeEmail(
           customerEmail,
           deliveryCode,
-          customerName || 'مشتری عزیز',
-          customer.ordernumber
+          customerName,
+          customer.ordernumber,
+          customer.preferredlanguage
         );
         results.push({ channel: 'Email', success: emailSuccess });
         console.log(`📧 [EMAIL] Delivery code sent to ${customerEmail} - Success: ${emailSuccess}`);

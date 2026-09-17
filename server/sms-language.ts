@@ -59,6 +59,33 @@ export async function resolveSmsLanguage(
     : normalizeSmsLanguage(fallback);
 }
 
+export async function resolveEmailLanguage(
+  pool: Pool,
+  email?: string,
+  fallback?: unknown,
+): Promise<SmsLanguage> {
+  const normalizedEmail = String(email ?? '').trim().toLowerCase();
+  if (normalizedEmail) {
+    const crm = await pool.query(
+      'SELECT preferred_language FROM crm_customers WHERE LOWER(email) = $1 LIMIT 1',
+      [normalizedEmail],
+    );
+    if (crm.rows[0]?.preferred_language) {
+      return normalizeSmsLanguage(crm.rows[0].preferred_language);
+    }
+    const portal = await pool.query(
+      'SELECT preferred_language FROM customers WHERE LOWER(email) = $1 LIMIT 1',
+      [normalizedEmail],
+    );
+    if (portal.rows[0]?.preferred_language) {
+      return normalizeSmsLanguage(portal.rows[0].preferred_language);
+    }
+  }
+  return fallback == null
+    ? SMS_LANGUAGE_FALLBACK
+    : normalizeSmsLanguage(fallback);
+}
+
 export function selectLocalizedSms(
   messages: Partial<Record<SmsLanguage, string>>,
   language: SmsLanguage,

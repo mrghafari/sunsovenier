@@ -790,6 +790,7 @@ const EmailTemplatesCentral: React.FC = () => {
                         <SelectItem value="fa">فارسی</SelectItem>
                         <SelectItem value="en">انگلیسی</SelectItem>
                         <SelectItem value="ar">عربی</SelectItem>
+                         <SelectItem value="tr">ترکی</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

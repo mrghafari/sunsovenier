@@ -32341,17 +32341,30 @@ ${message ? `Additional Requirements:\n${message}` : ''}
     const totalValue = parseFloat(order.totalAmount || '0');
     const walletAmount = parseFloat(order.walletAmountUsed || '0');
     const bankAmount = parseFloat(order.bankAmountPending || '0');
+    const { resolveSmsLanguage, selectLocalizedSms } = await import('./sms-language');
+    const preferredLanguage = await resolveSmsLanguage(
+      pool,
+      order.customerId || undefined,
+      order.customerPhone || undefined,
+    );
+    const customerLabel = {
+      en: order.customerName || 'Dear customer',
+      fa: order.customerName || 'مشتری گرامی',
+      ar: order.customerName || 'عميلنا العزيز',
+      tr: order.customerName || 'Değerli müşterimiz',
+    }[preferredLanguage];
+    const orderNumber = order.hybridOrderNumber || `AO-${order.id}`;
 
     // Email reminder
     if (order.customerEmail) {
       const templateName = reminderType === 'first' ? 'سفارش رها شده - یادآوری اول' : 
                           reminderType === 'second' ? 'سفارش رها شده - یادآوری دوم' : 
                           'سفارش رها شده - یادآوری نهایی';
-      const emailTemplate = await emailStorage.getTemplateByName(templateName);
+      const emailTemplate = await emailStorage.getTemplateByName(templateName, preferredLanguage);
       if (emailTemplate) {
         const personalizedContent = emailTemplate.htmlContent
-          .replace(/{{customerName}}/g, order.customerName || 'مشتری گرامی')
-          .replace(/{{orderNumber}}/g, order.hybridOrderNumber || `AO-${order.id}`)
+          .replace(/{{customerName}}/g, customerLabel)
+          .replace(/{{orderNumber}}/g, orderNumber)
           .replace(/{{totalAmount}}/g, totalValue.toLocaleString())
           .replace(/{{walletAmount}}/g, walletAmount.toLocaleString())
           .replace(/{{bankAmount}}/g, bankAmount.toLocaleString())
@@ -32370,18 +32383,32 @@ ${message ? `Additional Requirements:\n${message}` : ''}
 
     // SMS reminder
     if (order.customerPhone) {
-      let smsMessage = '';
-      switch (reminderType) {
-        case 'first':
-          smsMessage = `${order.customerName || 'مشتری گرامی'}، سفارش شما ${order.hybridOrderNumber || `AO-${order.id}`} به مبلغ ${totalValue.toLocaleString()} دینار ناتمام است. ${walletAmount > 0 ? `مبلغ ${walletAmount.toLocaleString()} دینار از کیف پول کسر شده و ${bankAmount.toLocaleString()} دینار نیاز به پرداخت بانکی دارد.` : ''} برای تکمیل: momtazchem.com`;
-          break;
-        case 'second':
-          smsMessage = `یادآوری مجدد: سفارش ${order.hybridOrderNumber || `AO-${order.id}`} شما به مبلغ ${totalValue.toLocaleString()} دینار در انتظار تکمیل پرداخت است. ممتازکم - momtazchem.com`;
-          break;
-        case 'final':
-          smsMessage = `آخرین فرصت: سفارش ${order.hybridOrderNumber || `AO-${order.id}`} شما به زودی منقضی می‌شود. مبلغ ${bankAmount.toLocaleString()} دینار نیاز به پرداخت دارد. ممتازکم`;
-          break;
-      }
+      const amounts = {
+        total: totalValue.toLocaleString(preferredLanguage),
+        wallet: walletAmount.toLocaleString(preferredLanguage),
+        bank: bankAmount.toLocaleString(preferredLanguage),
+      };
+      const messages = {
+        first: {
+          en: `${customerLabel}, order ${orderNumber} for IQD ${amounts.total} is incomplete. ${walletAmount > 0 ? `IQD ${amounts.wallet} was deducted from your wallet and IQD ${amounts.bank} remains for bank payment. ` : ''}Complete it at momtazchem.com`,
+          fa: `${customerLabel}، سفارش ${orderNumber} به مبلغ ${amounts.total} دینار ناتمام است. ${walletAmount > 0 ? `${amounts.wallet} دینار از کیف پول کسر شده و ${amounts.bank} دینار نیاز به پرداخت بانکی دارد. ` : ''}تکمیل: momtazchem.com`,
+          ar: `${customerLabel}، الطلب ${orderNumber} بقيمة ${amounts.total} دينار غير مكتمل. ${walletAmount > 0 ? `تم خصم ${amounts.wallet} دينار من محفظتك ويتبقى ${amounts.bank} دينار للدفع المصرفي. ` : ''}للإكمال: momtazchem.com`,
+          tr: `${customerLabel}, ${orderNumber} numaralı ${amounts.total} IQD tutarındaki siparişiniz tamamlanmadı. ${walletAmount > 0 ? `Cüzdanınızdan ${amounts.wallet} IQD düşüldü; banka ödemesi için ${amounts.bank} IQD kaldı. ` : ''}Tamamlamak için: momtazchem.com`,
+        },
+        second: {
+          en: `Reminder: Your order ${orderNumber} for IQD ${amounts.total} is awaiting payment completion. Momtaz Chem - momtazchem.com`,
+          fa: `یادآوری: سفارش ${orderNumber} شما به مبلغ ${amounts.total} دینار در انتظار تکمیل پرداخت است. ممتازکم - momtazchem.com`,
+          ar: `تذكير: طلبك ${orderNumber} بقيمة ${amounts.total} دينار بانتظار إكمال الدفع. ممتاز كيم - momtazchem.com`,
+          tr: `Hatırlatma: ${orderNumber} numaralı ${amounts.total} IQD tutarındaki siparişiniz ödemenin tamamlanmasını bekliyor. Momtaz Chem - momtazchem.com`,
+        },
+        final: {
+          en: `Final notice: Your order ${orderNumber} will expire soon. IQD ${amounts.bank} remains to be paid. Momtaz Chem`,
+          fa: `آخرین فرصت: سفارش ${orderNumber} شما به‌زودی منقضی می‌شود. مبلغ ${amounts.bank} دینار نیاز به پرداخت دارد. ممتازکم`,
+          ar: `التنبيه الأخير: سينتهي طلبك ${orderNumber} قريباً. يتبقى دفع ${amounts.bank} دينار. ممتاز كيم`,
+          tr: `Son bildirim: ${orderNumber} numaralı siparişiniz yakında sona erecek. Ödenmesi gereken tutar: ${amounts.bank} IQD. Momtaz Chem`,
+        },
+      } as const;
+      const smsMessage = selectLocalizedSms(messages[reminderType], preferredLanguage)!;
 
       await smsStorage.sendSMS({
         to: order.customerPhone,

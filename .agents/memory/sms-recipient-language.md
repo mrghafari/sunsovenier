@@ -1,10 +1,10 @@
 ---
 name: SMS recipient language
-description: Rules for multilingual SMS selection and truthful outbound delivery status.
+description: Rules for selecting customer language across SMS and email notifications, plus truthful outbound delivery status.
 ---
 
-For customer-targeted SMS, select an en/fa/ar/tr message using the authoritative saved customer preference. Never infer language from a phone prefix, country, or name. A raw number without a matched customer requires an explicit language fallback.
+For customer-targeted SMS and email, select the en/fa/ar/tr content or template using the authoritative saved customer preference. Never infer language from a phone prefix, country, or name. A raw recipient without a matched customer requires an explicit language fallback.
 
-**Why:** Mixed-language batches cannot safely reuse one rendered message, and guessed language can send customers content they cannot read.
+**Why:** Mixed-language batches cannot safely reuse one rendered message or template, and guessed language can send customers content they cannot read.
 
-**How to apply:** Render per recipient, normalize persisted language aliases, require all relevant variants, preserve the exact outbound text in logs, and call a provider response “accepted” unless a delivery callback proves delivery.
+**How to apply:** Render per recipient, normalize persisted aliases, prefer the requested template language then English/default, preserve exact outbound content in logs, and call a provider response “accepted” unless a delivery callback proves delivery.

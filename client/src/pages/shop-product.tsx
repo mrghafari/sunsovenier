@@ -49,7 +49,7 @@ function parseObj(field: any): Record<string, string> {
 export default function ShopProductPage() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
-  const { direction, t } = useLanguage();
+  const { direction, language, t } = useLanguage();
   const isRtl = direction === "rtl";
 
   const [imgIndex, setImgIndex] = useState(0);
@@ -77,7 +77,7 @@ export default function ShopProductPage() {
   // ── loading ───────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="max-w-4xl mx-auto p-6 space-y-6">
+      <div className={`max-w-4xl mx-auto p-6 space-y-6 ${language === "fa" ? "shop-lang-fa" : ""}`}>
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-80 w-full rounded-xl" />
         <div className="grid grid-cols-3 gap-4">
@@ -93,7 +93,7 @@ export default function ShopProductPage() {
   // ── error ─────────────────────────────────────────────────────────────────
   if (isError || !product) {
     return (
-      <div className="max-w-4xl mx-auto p-6 text-center">
+      <div className={`max-w-4xl mx-auto p-6 text-center ${language === "fa" ? "shop-lang-fa" : ""}`}>
         <p className="text-gray-500 text-lg mb-4">محصول پیدا نشد</p>
         <Button variant="outline" onClick={() => navigate("/shop")}>
           {isRtl ? <ArrowRight className="w-4 h-4 ml-2" /> : <ArrowLeft className="w-4 h-4 mr-2" />}
@@ -113,7 +113,7 @@ export default function ShopProductPage() {
   const next = () => setImgIndex(i => (i === images.length - 1 ? 0 : i + 1));
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950" dir={direction}>
+    <div className={`min-h-screen bg-gray-50 dark:bg-gray-950 ${language === "fa" ? "shop-lang-fa" : ""}`} dir={direction}>
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-8">
 
         {/* ── Back button ────────────────────────────────────────────────── */}

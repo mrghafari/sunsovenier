@@ -51,11 +51,11 @@ export interface IEmailStorage {
   getTemplates(): Promise<EmailTemplate[]>;
   getTemplatesByCategory(categoryId: number): Promise<EmailTemplate[]>;
   getTemplateById(id: number): Promise<EmailTemplate | undefined>;
-  getTemplateByName(name: string): Promise<EmailTemplate | undefined>;
+  getTemplateByName(name: string, language?: string): Promise<EmailTemplate | undefined>;
   updateTemplate(id: number, template: Partial<InsertEmailTemplate>): Promise<EmailTemplate>;
   deleteTemplate(id: number): Promise<void>;
   toggleTemplateStatus(id: number): Promise<EmailTemplate>;
-  getTemplateByNumber(templateNumber: string): Promise<EmailTemplate | undefined>;
+  getTemplateByNumber(templateNumber: string, language?: string): Promise<EmailTemplate | undefined>;
   
   // Email Logs
   logEmail(log: InsertEmailLog): Promise<EmailLog>;
@@ -397,7 +397,7 @@ export class EmailStorage implements IEmailStorage {
   }
 
   // Get template by name for abandoned order reminders
-  async getTemplateByName(name: string): Promise<EmailTemplate | undefined> {
+  async getTemplateByName(name: string, language?: string): Promise<EmailTemplate | undefined> {
     try {
       const { sql } = await import("drizzle-orm");
       
@@ -421,6 +421,15 @@ export class EmailStorage implements IEmailStorage {
         FROM email_templates 
         WHERE name = ${name}
         AND is_active = true
+        AND (${language || null}::text IS NULL OR language IN (${language || null}, 'en') OR is_default = true)
+        ORDER BY
+          CASE
+            WHEN language = ${language || null} THEN 0
+            WHEN language = 'en' THEN 1
+            WHEN is_default = true THEN 2
+            ELSE 3
+          END,
+          id ASC
         LIMIT 1
       `);
       
@@ -589,7 +598,7 @@ export class EmailStorage implements IEmailStorage {
   }
 
   // Get template by numbered reference (e.g., "#05", "#13")
-  async getTemplateByNumber(templateNumber: string): Promise<EmailTemplate | undefined> {
+  async getTemplateByNumber(templateNumber: string, language?: string): Promise<EmailTemplate | undefined> {
     try {
       const { sql } = await import("drizzle-orm");
       
@@ -613,7 +622,15 @@ export class EmailStorage implements IEmailStorage {
         FROM email_templates 
         WHERE name LIKE '%' || ${templateNumber} || '%' 
         AND is_active = true
-        ORDER BY name ASC
+        AND (${language || null}::text IS NULL OR language IN (${language || null}, 'en') OR is_default = true)
+        ORDER BY
+          CASE
+            WHEN language = ${language || null} THEN 0
+            WHEN language = 'en' THEN 1
+            WHEN is_default = true THEN 2
+            ELSE 3
+          END,
+          name ASC
         LIMIT 1
       `);
       

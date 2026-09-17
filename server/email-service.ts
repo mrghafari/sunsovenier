@@ -89,10 +89,10 @@ class EmailService {
   }
 
   // Get template by number (e.g., "#05", "#13") - NEW METHOD
-  private async getEmailTemplateByNumber(templateNumber: string) {
+  private async getEmailTemplateByNumber(templateNumber: string, language?: string) {
     try {
       const { emailStorage } = await import("./email-storage");
-      return await emailStorage.getTemplateByNumber(templateNumber);
+      return await emailStorage.getTemplateByNumber(templateNumber, language);
     } catch (error) {
       console.error(`Error fetching template ${templateNumber}:`, error);
       return null;
@@ -100,9 +100,21 @@ class EmailService {
   }
 
   // Send email using template number - NEW METHOD
-  async sendEmailWithTemplate(templateNumber: string, variables: Record<string, string>, to: string, category: string = 'admin') {
+  async sendEmailWithTemplate(
+    templateNumber: string,
+    variables: Record<string, string>,
+    to: string,
+    category: string = 'admin',
+    language?: string,
+  ) {
     try {
-      const template = await this.getEmailTemplateByNumber(templateNumber);
+      let resolvedLanguage = language;
+      if (!resolvedLanguage) {
+        const { pool } = await import('./db');
+        const { resolveEmailLanguage } = await import('./sms-language');
+        resolvedLanguage = await resolveEmailLanguage(pool, to);
+      }
+      const template = await this.getEmailTemplateByNumber(templateNumber, resolvedLanguage);
       
       if (!template) {
         console.error(`Template ${templateNumber} not found`);
