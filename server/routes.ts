@@ -14161,6 +14161,49 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
     }
   });
 
+  // Delete procedure and its dependent content
+  app.delete("/api/procedures/:id", requireSuperAdminRole, async (req, res) => {
+    const { pool } = await import('./db');
+    const client = await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      const procedureResult = await client.query(`
+        SELECT id
+        FROM procedures
+        WHERE id = $1
+        FOR UPDATE
+      `, [req.params.id]);
+
+      if (procedureResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ success: false, message: "Procedure not found" });
+      }
+
+      // Preserve historical training records while removing their deleted procedure link.
+      await client.query(`
+        UPDATE procedure_training
+        SET procedure_id = NULL
+        WHERE procedure_id = $1
+      `, [req.params.id]);
+
+      await client.query(`
+        DELETE FROM procedures
+        WHERE id = $1
+      `, [req.params.id]);
+
+      await client.query('COMMIT');
+      res.json({ success: true, message: "Procedure deleted successfully" });
+    } catch (error) {
+      await client.query('ROLLBACK');
+      console.error("Error deleting procedure:", error);
+      res.status(500).json({ success: false, message: "Internal server error" });
+    } finally {
+      client.release();
+    }
+  });
+
   // Create safety protocol
   app.post("/api/procedures/safety-protocols", requireSuperAdminRole, async (req, res) => {
     try {
@@ -14547,6 +14590,49 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       } else {
         res.status(500).json({ success: false, message: "Internal server error" });
       }
+    }
+  });
+
+  // Delete an unused procedure category
+  app.delete("/api/procedures/categories/:id", requireSuperAdminRole, async (req, res) => {
+    try {
+      const { pool } = await import('./db');
+      const result = await pool.query(`
+        UPDATE procedure_categories c
+        SET is_active = false, updated_at = NOW()
+        WHERE c.id = $1
+          AND c.is_active = true
+          AND NOT EXISTS (
+            SELECT 1
+            FROM procedures p
+            WHERE p.category_id = c.id
+          )
+        RETURNING c.id
+      `, [req.params.id]);
+
+      if (result.rows.length > 0) {
+        return res.json({ success: true, message: "Category deleted successfully" });
+      }
+
+      const categoryResult = await pool.query(`
+        SELECT c.id, EXISTS (
+          SELECT 1 FROM procedures p WHERE p.category_id = c.id
+        ) AS has_procedures
+        FROM procedure_categories c
+        WHERE c.id = $1 AND c.is_active = true
+      `, [req.params.id]);
+
+      if (categoryResult.rows.length === 0) {
+        return res.status(404).json({ success: false, message: "Category not found" });
+      }
+
+      return res.status(409).json({
+        success: false,
+        message: "This category contains procedures. Delete or move them first."
+      });
+    } catch (error) {
+      console.error("Error deleting procedure category:", error);
+      res.status(500).json({ success: false, message: "Internal server error" });
     }
   });
 

@@ -539,6 +539,80 @@ export default function ProceduresManagement() {
     }
   };
 
+  const deleteProcedure = async (procedure: Procedure) => {
+    const message = language === "fa"
+      ? `پروسیجر «${procedure.title}» و تمام مراحل و داکیومنت‌های وابسته حذف شود؟ این عملیات قابل بازگشت نیست.`
+      : language === "ar"
+        ? `هل تريد حذف الإجراء «${procedure.title}» وجميع خطواته ومستنداته؟ لا يمكن التراجع عن ذلك.`
+        : language === "tr"
+          ? `“${procedure.title}” prosedürü, tüm adımları ve belgeleriyle birlikte silinsin mi? Bu işlem geri alınamaz.`
+          : `Delete “${procedure.title}” and all of its steps and documents? This cannot be undone.`;
+
+    if (!confirm(message)) return;
+
+    try {
+      const response = await fetch(`/api/procedures/${procedure.id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || "Failed to delete procedure");
+
+      queryClient.invalidateQueries({ queryKey: ["/api/procedures"] });
+      toast({
+        title: t.success,
+        description: language === "fa" ? "پروسیجر با موفقیت حذف شد" : result.message,
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: t.error,
+        description: error instanceof Error ? error.message : t.failed,
+      });
+    }
+  };
+
+  const deleteCategory = async (category: ProcedureCategory) => {
+    const message = language === "fa"
+      ? `کتگوری «${category.name}» حذف شود؟`
+      : language === "ar"
+        ? `هل تريد حذف الفئة «${category.name}»؟`
+        : language === "tr"
+          ? `“${category.name}” kategorisi silinsin mi?`
+          : `Delete the category “${category.name}”?`;
+
+    if (!confirm(message)) return;
+
+    try {
+      const response = await fetch(`/api/procedures/categories/${category.id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        const dependentMessage = response.status === 409
+          ? (language === "fa"
+              ? "این کتگوری دارای پروسیجر است. ابتدا آن‌ها را حذف کنید یا به کتگوری دیگری انتقال دهید."
+              : result.message)
+          : result.message;
+        throw new Error(dependentMessage || "Failed to delete category");
+      }
+
+      if (selectedCategory === String(category.id)) setSelectedCategory("all");
+      queryClient.invalidateQueries({ queryKey: ["/api/procedures/categories"] });
+      toast({
+        title: t.success,
+        description: language === "fa" ? "کتگوری با موفقیت حذف شد" : result.message,
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: t.error,
+        description: error instanceof Error ? error.message : t.failed,
+      });
+    }
+  };
+
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -977,16 +1051,29 @@ export default function ProceduresManagement() {
                                 <Download className="h-4 w-4" />
                               </Button>
                               {canManageProcedures && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => openEditDialog('procedure', procedure)}
-                                  title={t.edit}
-                                  data-testid={`button-edit-procedure-${procedure.id}`}
-                                >
-                                  <Edit className="h-4 w-4 me-2" />
-                                  {t.edit}
-                                </Button>
+                                <>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => openEditDialog('procedure', procedure)}
+                                    title={t.edit}
+                                    data-testid={`button-edit-procedure-${procedure.id}`}
+                                  >
+                                    <Edit className="h-4 w-4 me-2" />
+                                    {t.edit}
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => deleteProcedure(procedure)}
+                                    title={t.delete}
+                                    className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                                    data-testid={`button-delete-procedure-${procedure.id}`}
+                                  >
+                                    <Trash2 className="h-4 w-4 me-2" />
+                                    {t.delete}
+                                  </Button>
+                                </>
                               )}
                             </div>
                           </TableCell>
@@ -1041,7 +1128,22 @@ export default function ProceduresManagement() {
                       </TableCell>
                       <TableCell className="px-3 py-2">
                         {canManageProcedures ? (
-                          <Button variant="outline" size="sm" onClick={() => openEditDialog('category', category)}>{t.edit}</Button>
+                          <div className="flex flex-wrap gap-2">
+                            <Button variant="outline" size="sm" onClick={() => openEditDialog('category', category)}>
+                              <Edit className="h-4 w-4 me-2" />
+                              {t.edit}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => deleteCategory(category)}
+                              className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                              data-testid={`button-delete-category-${category.id}`}
+                            >
+                              <Trash2 className="h-4 w-4 me-2" />
+                              {t.delete}
+                            </Button>
+                          </div>
                         ) : "—"}
                       </TableCell>
                     </TableRow>

@@ -127,7 +127,6 @@ import TawkToChat from "@/components/TawkToChat";
 
 import TemplateDistribution from "@/pages/admin/template-distribution";
 import WhatsAppCRM from "@/pages/admin/whatsapp-crm";
-import WhatsAppCRMEnglish from "@/pages/admin/whatsapp-crm-en";
 
 import BankReceiptUpload from "@/pages/bank-receipt-upload";
 import WalletCorrection from "@/pages/admin/wallet-correction";
@@ -260,7 +259,7 @@ function Router() {
           <Route path="/seo-management" component={() => <AdminRoute><SeoManagement /></AdminRoute>} />
           <Route path="/admin/sms-management" component={() => <AdminRoute><AdminSmsManagement /></AdminRoute>} />
           <Route path="/admin/whatsapp-crm" component={() => <AdminRoute><WhatsAppCRM /></AdminRoute>} />
-          <Route path="/admin/whatsapp-crm-en" component={() => <AdminRoute><WhatsAppCRMEnglish /></AdminRoute>} />
+          <Route path="/admin/whatsapp-crm-en" component={() => <AdminRoute><WhatsAppCRM /></AdminRoute>} />
           <Route path="/admin/email-logs" component={() => <AdminRoute>{(() => { const Comp = lazy(() => import("@/pages/admin-email-logs")); return <Comp />; })()}</AdminRoute>} />
           <Route path="/admin/sms" component={() => <AdminRoute><AdminSmsManagement /></AdminRoute>} />
           <Route path="/admin/widgets" component={() => <AdminRoute><WidgetRecommendations /></AdminRoute>} />
