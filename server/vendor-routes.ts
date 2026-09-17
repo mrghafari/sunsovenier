@@ -37,7 +37,10 @@ const vendorProductCreateSchema = insertShowcaseProductSchema.pick({
   barcode: z.string().trim().min(8),
   stockQuantity: z.coerce.number().int().min(0),
   unitPrice: z.coerce.number().min(0),
-  transportationTemperature: z.enum(["none", "frozen", "chilled", "cool", "dry"]).optional(),
+  transportationTemperature: z.preprocess(
+    (value) => value === "" || value === null ? undefined : value,
+    z.enum(["none", "frozen", "chilled", "cool", "dry"]).optional(),
+  ),
 });
 
 export function createVendorRouter() {

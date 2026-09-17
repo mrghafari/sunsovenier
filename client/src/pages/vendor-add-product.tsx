@@ -43,7 +43,7 @@ export default function VendorAddProduct() {
       stockQuantity: 0,
       unitPrice: 0,
       description: "",
-      transportationTemperature: "",
+      transportationTemperature: "none",
     },
   });
 

@@ -1097,10 +1097,6 @@
       "count": 1
     },
     {
-      "key": "[\"client/src/pages/admin/wallet-management.tsx\",2339,\"Property 'noActivity' does not exist on type 'Translation'.\",\": t.noActivity\"]",
-      "count": 1
-    },
-    {
       "key": "[\"client/src/pages/admin/wallet-management.tsx\",2554,\"Expected 2 arguments, but got 1.\",\"const response = await apiRequest(`/api/admin/customers/search?email=${encodeURIComponent(email)}`);\"]",
       "count": 1
     },

@@ -662,7 +662,7 @@ export default function ProductsPage() {
       // Flammable product flag
       isFlammable: false,
       // Transportation temperature
-      transportationTemperature: "",
+      transportationTemperature: "none",
       // Display Mode fields
       displayMode: "images" as const,
       model3dKey: "",

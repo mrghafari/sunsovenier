@@ -682,7 +682,7 @@ export default function SeoManagement() {
           </TabsTrigger>
           <TabsTrigger value="api-config" className="flex items-center gap-2">
             <Key className="h-4 w-4" />
-            تنظیمات API
+            {l("API Settings")}
           </TabsTrigger>
           <TabsTrigger value="languages" className="flex items-center gap-2">
             <Languages className="h-4 w-4" />
@@ -751,7 +751,7 @@ export default function SeoManagement() {
                           <div className="flex items-center gap-2 mb-2">
                             <h3 className="font-semibold">{setting.title}</h3>
                             <Badge variant={setting.isActive ? "default" : "secondary"}>
-                              {setting.isActive ? "Active" : "Inactive"}
+                              {setting.isActive ? l("Active") : l("Inactive")}
                             </Badge>
                             <Badge variant="outline">{seoValue(language, setting.pageType)}</Badge>
                             <Badge variant="secondary">{seoValue(language, setting.language)}</Badge>
@@ -935,24 +935,24 @@ export default function SeoManagement() {
               <CardContent className="space-y-4">
                 {/* AI Provider Selection */}
                 <div className="space-y-2">
-                  <Label>{l('🤖 انتخاب هوش مصنوعی')}</Label>
+                  <Label>{l('AI provider')}</Label>
                   <Select value={selectedAiProvider} onValueChange={setSelectedAiProvider}>
                     <SelectTrigger>
-                      <SelectValue placeholder={l('انتخاب ارائه\u200cدهنده AI')} />
+                      <SelectValue placeholder={l("Select AI provider")} />
                     </SelectTrigger>
                     <SelectContent dir={direction}>
                       <SelectItem value="openai">
-                        OpenAI GPT-5 (پیشرفته)
+                        OpenAI GPT-5 ({l('Advanced')})
                       </SelectItem>
                       <SelectItem value="deepseek">
-                        DeepSeek AI (تحلیلی)
+                        DeepSeek AI ({l('Analytical')})
                       </SelectItem>
                     </SelectContent>
                   </Select>
                   <div className="text-xs text-gray-500">
                     {selectedAiProvider === 'openai' ? 
-                      '🔵 OpenAI GPT-5 - بهترین برای تولید محتوا و تحلیل' : 
-                      '🟣 DeepSeek AI - مناسب برای تحقیق و تحلیل عمیق'
+                      `🔵 OpenAI GPT-5 — ${l('Best for content generation and analysis')}` :
+                      `🟣 DeepSeek AI — ${l('Suitable for research and deep analysis')}`
                     }
                   </div>
                 </div>
@@ -1014,7 +1014,7 @@ export default function SeoManagement() {
                   onClick={handleGenerateAiContent}
                   disabled={generateAiContent.isPending}
                 >
-                  <Brain className="h-4 w-4 mr-2" />
+                  <Brain className="h-4 w-4 me-2" />
                   {generateAiContent.isPending ? "Generating..." : "Generate AI Content"}
                 </Button>
               </CardContent>
@@ -1077,7 +1077,7 @@ export default function SeoManagement() {
                   onClick={handleResearchKeywords}
                   disabled={researchKeywords.isPending}
                 >
-                  <Lightbulb className="h-4 w-4 mr-2" />
+                  <Lightbulb className="h-4 w-4 me-2" />
                   {researchKeywords.isPending ? "Researching..." : "Research Keywords"}
                 </Button>
               </CardContent>
@@ -1125,7 +1125,7 @@ export default function SeoManagement() {
                     </Select>
                   </div>
                   <Button className="w-full bg-yellow-600 hover:bg-yellow-700">
-                    <FileText className="h-4 w-4 mr-2" />
+                    <FileText className="h-4 w-4 me-2" />
                     {l("Optimize Content")}
                   </Button>
                 </div>
@@ -1157,7 +1157,7 @@ export default function SeoManagement() {
               </div>
               
               <Button className="w-full bg-green-600 hover:bg-green-700">
-                <BarChart3 className="h-4 w-4 mr-2" />
+                <BarChart3 className="h-4 w-4 me-2" />
                 {l("Analyze SEO Performance")}
               </Button>
               
@@ -1184,10 +1184,10 @@ export default function SeoManagement() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Key className="h-5 w-5 text-green-600" />
-                تنظیمات کلیدهای API هوش مصنوعی
+                {l('AI API Settings')}
               </CardTitle>
               <CardDescription>
-                مدیریت کلیدهای OpenAI و DeepSeek برای سرویس‌های SEO - ذخیره امن در دیتابیس
+                {l('Manage OpenAI and DeepSeek keys for SEO services — securely stored in the database')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -1196,11 +1196,11 @@ export default function SeoManagement() {
                 <div className="flex items-center gap-2 mb-3">
                   <Bot className="h-5 w-5 text-blue-600" />
                   <h3 className="text-lg font-semibold">{l('OpenAI GPT-5')}</h3>
-                  <Badge variant="secondary">{l('محتوا و تحلیل')}</Badge>
+                  <Badge variant="secondary">{l('Content and analysis')}</Badge>
                 </div>
                 
                 <div className="space-y-3">
-                  <Label htmlFor="openai-key">{l('کلید API OpenAI:')}</Label>
+                  <Label htmlFor="openai-key">{l('OpenAI API key:')}</Label>
                   <div className="flex gap-2">
                     <div className="relative flex-1">
                       <Input
@@ -1235,11 +1235,11 @@ export default function SeoManagement() {
                       disabled={!openaiApiKey.trim() || testApiKey.isPending}
                     >
                       {testApiKey.isPending ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        <Loader2 className="h-4 w-4 me-2 animate-spin" />
                       ) : (
-                        <Zap className="h-4 w-4 mr-2" />
+                        <Zap className="h-4 w-4 me-2" />
                       )}
-                      تست
+                      {l('Test')}
                     </Button>
                   </div>
                 </div>
@@ -1250,11 +1250,11 @@ export default function SeoManagement() {
                 <div className="flex items-center gap-2 mb-3">
                   <Brain className="h-5 w-5 text-purple-600" />
                   <h3 className="text-lg font-semibold">{l('DeepSeek AI')}</h3>
-                  <Badge variant="secondary">{l('تحقیق و تجزیه\u200cوتحلیل')}</Badge>
+                  <Badge variant="secondary">{l('Research and analysis')}</Badge>
                 </div>
                 
                 <div className="space-y-3">
-                  <Label htmlFor="deepseek-key">{l('کلید API DeepSeek:')}</Label>
+                  <Label htmlFor="deepseek-key">{l('DeepSeek API key:')}</Label>
                   <div className="flex gap-2">
                     <div className="relative flex-1">
                       <Input
@@ -1289,11 +1289,11 @@ export default function SeoManagement() {
                       disabled={!deepseekApiKey.trim() || testApiKey.isPending}
                     >
                       {testApiKey.isPending ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        <Loader2 className="h-4 w-4 me-2 animate-spin" />
                       ) : (
-                        <Zap className="h-4 w-4 mr-2" />
+                        <Zap className="h-4 w-4 me-2" />
                       )}
-                      تست
+                      {l('Test')}
                     </Button>
                   </div>
                 </div>
@@ -1312,7 +1312,7 @@ export default function SeoManagement() {
                     });
                   }}
                 >
-                  پاک کردن فیلدها
+                  {l('Clear fields')}
                 </Button>
                 
                 <div className="flex gap-3">
@@ -1329,11 +1329,11 @@ export default function SeoManagement() {
                     disabled={!openaiApiKey.trim() || saveApiKey.isPending}
                   >
                     {saveApiKey.isPending ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      <Loader2 className="h-4 w-4 me-2 animate-spin" />
                     ) : (
-                      <Settings className="h-4 w-4 mr-2" />
+                      <Settings className="h-4 w-4 me-2" />
                     )}
-                    ذخیره OpenAI
+                    {l('Save OpenAI')}
                   </Button>
                   
                   <Button 
@@ -1349,11 +1349,11 @@ export default function SeoManagement() {
                     disabled={!deepseekApiKey.trim() || saveApiKey.isPending}
                   >
                     {saveApiKey.isPending ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      <Loader2 className="h-4 w-4 me-2 animate-spin" />
                     ) : (
-                      <Settings className="h-4 w-4 mr-2" />
+                      <Settings className="h-4 w-4 me-2" />
                     )}
-                    ذخیره DeepSeek
+                    {l('Save DeepSeek')}
                   </Button>
                 </div>
               </div>
@@ -1361,18 +1361,18 @@ export default function SeoManagement() {
               {/* Current Stored Keys */}
               {apiKeysData?.data && apiKeysData.data.length > 0 && (
                 <div className="bg-gray-50 border rounded-lg p-4 mt-6">
-                  <h4 className="font-semibold text-gray-900 mb-3">{l('🔑 کلیدهای ذخیره شده')}</h4>
+                  <h4 className="font-semibold text-gray-900 mb-3">{l('Saved API keys')}</h4>
                   <div className="space-y-2">
                     {apiKeysData.data.map((key: any) => (
                       <div key={key.id} className="flex justify-between items-center p-2 bg-white rounded border">
                         <div>
                           <span className="font-medium">{key.provider}</span>
-                          <span className="text-sm text-gray-500 ml-2">
+                          <span className="text-sm text-gray-500 ms-2">
                             {date(key.createdAt)}
                           </span>
                         </div>
                         <Badge variant={key.isActive ? "default" : "secondary"}>
-                          {key.isActive ? "فعال" : "غیرفعال"}
+                          {l(key.isActive ? "Active" : "Inactive")}
                         </Badge>
                       </div>
                     ))}
@@ -1382,13 +1382,13 @@ export default function SeoManagement() {
 
               {/* API Usage Information */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
-                <h4 className="font-semibold text-blue-900 mb-2">{l('ℹ️ اطلاعات مهم')}</h4>
+                <h4 className="font-semibold text-blue-900 mb-2">{l('Important information')}</h4>
                 <ul className="text-sm text-blue-800 space-y-1">
-                  <li>• <strong>{l('امنیت:')}</strong> {l('کلیدها به\u200cصورت رمزگذاری شده در دیتابیس ذخیره می\u200cشوند')}</li>
-                  <li>• <strong>{l('قابلیت انتقال:')}</strong> {l('سیستم در هر سروری قابل اجرا است')}</li>
-                  <li>• <strong>{l('OpenAI GPT-5:')}</strong> {l('بهترین برای تولید محتوا و تحلیل')}</li>
-                  <li>• <strong>{l('DeepSeek AI:')}</strong> {l('مناسب برای تحقیق و تحلیل عمیق')}</li>
-                  <li>• <strong>{l('تست:')}</strong> {l('همیشه قبل از ذخیره، کلیدها را تست کنید')}</li>
+                    <li>• <strong>{l("Security:")}</strong> {l("API keys are stored encrypted in the database")}</li>
+                  <li>• <strong>{l('Portability:')}</strong> {l('The system can run on any server')}</li>
+                  <li>• <strong>{l('OpenAI GPT-5:')}</strong> {l('Best for content generation and analysis')}</li>
+                  <li>• <strong>{l('DeepSeek AI:')}</strong> {l('Suitable for research and deep analysis')}</li>
+                    <li>• <strong>{l("Testing:")}</strong> {l("Always test keys before saving")}</li>
                 </ul>
               </div>
             </CardContent>
@@ -1402,77 +1402,77 @@ export default function SeoManagement() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Target className="h-5 w-5 text-blue-600" />
-                  پژوهش کلیدواژه با هوش مصنوعی
+                  {l('AI keyword research')}
                 </CardTitle>
-                <CardDescription className="text-right">
-                  تولید کلیدواژه‌های مؤثر برای بهبود رتبه‌بندی در جستجوگرها
+                <CardDescription className="text-start">
+                  {l('Generate effective keywords to improve search rankings')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
                   <div>
-                    <Label htmlFor="businessType" className="text-right">{l('نوع کسب\u200cوکار')}</Label>
+                    <Label htmlFor="businessType" className="text-start">{l("Business type")}</Label>
                     <Input
                       id="businessType"
                       value={aiIndustry}
                       onChange={(e) => setAiIndustry(e.target.value)}
-                      placeholder={l('مثال: فروش مواد شیمیایی، صنایع نفت\u200cوگاز')}
-                      className="text-right"
+                      placeholder={l('Example: chemical sales, oil and gas industries')}
+                      className="text-start"
                     />
                   </div>
                   
                   <div>
-                    <Label htmlFor="targetMarket" className="text-right">{l('بازار هدف')}</Label>
+                    <Label htmlFor="targetMarket" className="text-start">{l("Target market")}</Label>
                     <Input
                       id="targetMarket"
                       value={aiBusinessContext}
                       onChange={(e) => setAiBusinessContext(e.target.value)}
-                      placeholder={l('مثال: عراق، خاورمیانه، مشتریان صنعتی')}
-                      className="text-right"
+                      placeholder={l('Example: Iraq, Middle East, industrial customers')}
+                      className="text-start"
                     />
                   </div>
                   
                   <div>
-                    <Label htmlFor="seedKeywords" className="text-right">{l('کلیدواژه\u200cهای اولیه')}</Label>
+                    <Label htmlFor="seedKeywords" className="text-start">{l('Seed Keywords')}</Label>
                     <Textarea
                       id="seedKeywords"
                       value={aiSeedKeywords}
                       onChange={(e) => setAiSeedKeywords(e.target.value)}
-                      placeholder={l('مثال: مواد شیمیایی، حلال، کود، پتروشیمی')}
+                      placeholder={l('Example: chemicals, solvents, fertilizer, petrochemicals')}
                       rows={3}
-                      className="text-right"
+                      className="text-start"
                     />
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                      <Label htmlFor="language" className="text-right">{l('زبان')}</Label>
+                      <Label htmlFor="language" className="text-start">{l('Language')}</Label>
                       <Select value={aiLanguage} onValueChange={setAiLanguage}>
                         <SelectTrigger>
-                          <SelectValue placeholder={l('انتخاب زبان')} />
+                          <SelectValue placeholder={l('Select Language')} />
                         </SelectTrigger>
                         <SelectContent dir={direction}>
-                          <SelectItem value="fa">{l('فارسی')}</SelectItem>
-                          <SelectItem value="ar">{l('عربی')}</SelectItem>
-                          <SelectItem value="en">{l('انگلیسی')}</SelectItem>
-                          <SelectItem value="ku">{l('کردی')}</SelectItem>
+                          <SelectItem value="fa">{l('Persian')}</SelectItem>
+                          <SelectItem value="ar">{l('Arabic')}</SelectItem>
+                          <SelectItem value="en">{l('English')}</SelectItem>
+                          <SelectItem value="ku">{l('Kurdish')}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     
                     <div>
-                      <Label htmlFor="pageType" className="text-right">{l('نوع صفحه')}</Label>
+                      <Label htmlFor="pageType" className="text-start">{l('Page Type')}</Label>
                       <Select value={aiPageType} onValueChange={setAiPageType}>
                         <SelectTrigger>
-                          <SelectValue placeholder={l('انتخاب نوع صفحه')} />
+                          <SelectValue placeholder={l('Select page type')} />
                         </SelectTrigger>
                         <SelectContent dir={direction}>
-                          <SelectItem value="homepage">{l('صفحه اصلی')}</SelectItem>
-                          <SelectItem value="product">{l('صفحه محصول')}</SelectItem>
-                          <SelectItem value="category">{l('دسته\u200cبندی')}</SelectItem>
-                          <SelectItem value="about">{l('درباره ما')}</SelectItem>
-                          <SelectItem value="service">{l('خدمات')}</SelectItem>
-                          <SelectItem value="blog">{l('وبلاگ')}</SelectItem>
+                          <SelectItem value="homepage">{l('Home page')}</SelectItem>
+                          <SelectItem value="product">{l('Product page')}</SelectItem>
+                          <SelectItem value="category">{l('Category')}</SelectItem>
+                          <SelectItem value="about">{l('About us')}</SelectItem>
+                          <SelectItem value="service">{l('Services')}</SelectItem>
+                          <SelectItem value="blog">{l('Blog')}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -1486,13 +1486,13 @@ export default function SeoManagement() {
                 >
                   {isAiLoading ? (
                     <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      در حال تولید کلیدواژه...
+                      <Loader2 className="h-4 w-4 me-2 animate-spin" />
+                      {l('Generating keywords...')}
                     </>
                   ) : (
                     <>
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      تولید کلیدواژه‌های هوشمند
+                      <Sparkles className="h-4 w-4 me-2" />
+                      {l('Generate smart keywords')}
                     </>
                   )}
                 </Button>
@@ -1504,17 +1504,17 @@ export default function SeoManagement() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <BarChart3 className="h-5 w-5 text-green-600" />
-                  عملکرد کلیدواژه‌ها
+                  {l('Keyword performance')}
                 </CardTitle>
-                <CardDescription className="text-right">
-                  رصد و تحلیل عملکرد کلیدواژه‌های فعلی
+                <CardDescription className="text-start">
+                  {l('Track and analyze current keyword performance')}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {isLoadingKeywordPerformance ? (
                   <div className="text-center py-8">
                     <Loader2 className="h-8 w-8 mx-auto mb-4 animate-spin text-blue-600" />
-                    <p className="text-gray-600">{l('در حال بارگذاری آمار کلیدواژه\u200cها...')}</p>
+                    <p className="text-gray-600">{l("Loading keyword statistics...")}</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -1523,39 +1523,39 @@ export default function SeoManagement() {
                         <div className="text-2xl font-bold text-blue-600">
                           {keywordPerformance?.totalKeywords || 0}
                         </div>
-                        <div className="text-sm text-gray-600">{l('کل کلیدواژه\u200cها')}</div>
+                        <div className="text-sm text-gray-600">{l("Total keywords")}</div>
                       </div>
                       <div className="text-center p-4 bg-green-50 rounded-lg">
                         <div className="text-2xl font-bold text-green-600">
                           {keywordPerformance?.averagePosition ? 
                             number(keywordPerformance.averagePosition) : l('N/A')}
                         </div>
-                        <div className="text-sm text-gray-600">{l('میانگین رتبه')}</div>
+                        <div className="text-sm text-gray-600">{l("Average ranking")}</div>
                       </div>
                     </div>
                     
                     {keywordPerformance?.topKeywords && keywordPerformance.topKeywords.length > 0 ? (
                       <div className="space-y-2">
-                        <h4 className="font-semibold text-right">{l('برترین کلیدواژه\u200cها')}</h4>
+                        <h4 className="font-semibold text-start">{l("Top keywords")}</h4>
                         {keywordPerformance.topKeywords.map((keyword: any, index: number) => (
                           <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded">
                             <div className="flex items-center gap-2">
                               <Badge variant={keyword.position <= 10 ? "default" : "secondary"}>
-                                رتبه {keyword.position}
+                                {l('Position')} {number(keyword.position)}
                               </Badge>
                               <span className="text-sm text-gray-600">
                                 {number(keyword.clicks)} {l('Clicks')}
                               </span>
                             </div>
-                            <span className="font-medium text-right">{keyword.keyword}</span>
+                            <span className="font-medium text-start">{keyword.keyword}</span>
                           </div>
                         ))}
                       </div>
                     ) : (
                       <div className="text-center py-6 text-gray-500">
                         <Target className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                        <p>{l('هنوز کلیدواژه\u200cای ثبت نشده است')}</p>
-                        <p className="text-sm mt-1">{l('از بخش تولید کلیدواژه استفاده کنید')}</p>
+                        <p>{l("No keywords registered yet")}</p>
+                        <p className="text-sm mt-1">{l('Use the keyword generation section')}</p>
                       </div>
                     )}
                   </div>
@@ -1570,17 +1570,17 @@ export default function SeoManagement() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Sparkles className="h-5 w-5 text-purple-600" />
-                  کلیدواژه‌های پیشنهادی
+                  {l('Suggested keywords')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {aiResults.data.primary && (
                     <div className="space-y-2">
-                      <h4 className="font-semibold text-purple-600 text-right">{l('کلیدواژه\u200cهای اصلی')}</h4>
+                      <h4 className="font-semibold text-purple-600 text-start">{l('Primary keywords')}</h4>
                       <div className="space-y-1">
                         {aiResults.data.primary.map((keyword: string, index: number) => (
-                          <Badge key={index} variant="default" className="mr-1 mb-1">
+                          <Badge key={index} variant="default" className="me-1 mb-1">
                             {keyword}
                           </Badge>
                         ))}
@@ -1590,10 +1590,10 @@ export default function SeoManagement() {
                   
                   {aiResults.data.longTail && (
                     <div className="space-y-2">
-                      <h4 className="font-semibold text-blue-600 text-right">{l('کلیدواژه\u200cهای طولانی')}</h4>
+                      <h4 className="font-semibold text-blue-600 text-start">{l('Long-tail keywords')}</h4>
                       <div className="space-y-1">
                         {aiResults.data.longTail.map((keyword: string, index: number) => (
-                          <Badge key={index} variant="secondary" className="mr-1 mb-1">
+                          <Badge key={index} variant="secondary" className="me-1 mb-1">
                             {keyword}
                           </Badge>
                         ))}
@@ -1603,10 +1603,10 @@ export default function SeoManagement() {
                   
                   {aiResults.data.semantic && (
                     <div className="space-y-2">
-                      <h4 className="font-semibold text-green-600 text-right">{l('کلیدواژه\u200cهای مرتبط')}</h4>
+                      <h4 className="font-semibold text-green-600 text-start">{l('Related keywords')}</h4>
                       <div className="space-y-1">
                         {aiResults.data.semantic.map((keyword: string, index: number) => (
-                          <Badge key={index} variant="outline" className="mr-1 mb-1">
+                          <Badge key={index} variant="outline" className="me-1 mb-1">
                             {keyword}
                           </Badge>
                         ))}
@@ -1617,10 +1617,10 @@ export default function SeoManagement() {
                 
                 {aiResults.data.recommendations && (
                   <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <h4 className="font-semibold text-yellow-800 mb-2 text-right">
-                      توصیه‌های بهینه‌سازی
+                    <h4 className="font-semibold text-yellow-800 mb-2 text-start">
+                      {l('Optimization recommendations')}
                     </h4>
-                    <ul className="space-y-1 text-sm text-yellow-700 text-right">
+                    <ul className="space-y-1 text-sm text-yellow-700 text-start">
                       {aiResults.data.recommendations.map((rec: string, index: number) => (
                         <li key={index}>• {rec}</li>
                       ))}
@@ -1719,7 +1719,7 @@ export default function SeoManagement() {
             <CardHeader>
               <CardTitle>{l('Sitemap Management')}</CardTitle>
               <CardDescription>
-                Manage your website's XML sitemap entries
+                {l("Manage your website's XML sitemap entries")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -1744,7 +1744,7 @@ export default function SeoManagement() {
                         </p>
                       </div>
                       <Badge variant={entry.isActive ? "default" : "secondary"}>
-                        {entry.isActive ? "Active" : "Inactive"}
+                        {entry.isActive ? l("Active") : l("Inactive")}
                       </Badge>
                     </div>
                   ))}
@@ -1839,7 +1839,7 @@ export default function SeoManagement() {
                         </p>
                       </div>
                       <Badge variant={redirect.isActive ? "default" : "secondary"}>
-                        {redirect.isActive ? "Active" : "Inactive"}
+                          {redirect.isActive ? l("Active") : l("Inactive")}
                       </Badge>
                     </div>
                   ))}
@@ -1861,7 +1861,7 @@ export default function SeoManagement() {
         <DialogContent dir={direction} lang={language} className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {selectedSetting ? "Edit SEO Setting" : "Create SEO Setting"}
+              {selectedSetting ? l("Edit SEO Setting") : l("Create SEO Setting")}
             </DialogTitle>
             <DialogDescription>
               {l("Configure SEO metadata for your website pages")}

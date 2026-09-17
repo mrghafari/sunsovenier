@@ -9,6 +9,88 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Camera, Square, CheckCircle, AlertTriangle, History, Zap, Keyboard } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
+import type { Language } from "@/lib/i18n";
+
+interface BarcodeTranslations {
+  title: string; modes: { camera: string; laser: string; manual: string };
+  scanModes: { lookup: string; inventory_in: string; inventory_out: string; audit: string };
+  productFound: string; scanned: string; productNotFound: string; noProduct: string;
+  processError: string; laserStarted: string; laserStartedDescription: string;
+  laserStopped: string; laserStoppedDescription: string; scannerError: string;
+  cameraStartError: string; cameraDenied: string; startScan: string; stopScan: string;
+  cameraPrompt: string; laserInstructions: string; enableLaser: string; disableLaser: string;
+  laserActive: string; receiving: string; productBarcode: string; enterBarcode: string;
+  processBarcode: string; lastScan: string; recentScans: string; found: string;
+  notFound: string; instructions: string[];
+}
+
+const barcodeTranslations: Record<Language, BarcodeTranslations> = {
+  en: {
+    title: "Barcode Scanner", modes: { camera: "Camera", laser: "Laser", manual: "Manual" },
+    scanModes: { lookup: "Lookup", inventory_in: "Inventory in", inventory_out: "Inventory out", audit: "Audit" },
+    productFound: "Product found", scanned: "Scanned: ", productNotFound: "Product not found",
+    noProduct: "No product found for barcode: ", processError: "Failed to process barcode scan",
+    laserStarted: "Laser scanner enabled", laserStartedDescription: "Scan products with the laser now",
+    laserStopped: "Laser scanner disabled", laserStoppedDescription: "Laser scanning stopped",
+    scannerError: "Scanner error", cameraStartError: "Could not start the camera. Please check permissions.",
+    cameraDenied: "Camera access was denied. Please enable camera permission in your browser settings.",
+    startScan: "Start scanning", stopScan: "Stop scanning", cameraPrompt: 'Click "Start scanning" to begin',
+    laserInstructions: "Point the laser scanner at a product and scan it. The barcode will be processed automatically.",
+    enableLaser: "Enable laser scanner", disableLaser: "Disable laser scanner", laserActive: "Laser scanner is active",
+    receiving: "Receiving: ", productBarcode: "Product barcode", enterBarcode: "Enter barcode...",
+    processBarcode: "Process barcode", lastScan: "Last scan:", recentScans: "Recent scans", found: "Found",
+    notFound: "Not found", instructions: ["Place the barcode within the scan area", "Ensure sufficient light for best results", "Supports QR, Code128, Code39, EAN, and UPC"],
+  },
+  fa: {
+    title: "اسکنر بارکد", modes: { camera: "دوربین", laser: "لیزر", manual: "دستی" },
+    scanModes: { lookup: "جستجو", inventory_in: "ورود کالا", inventory_out: "خروج کالا", audit: "بررسی" },
+    productFound: "محصول پیدا شد", scanned: "اسکن شد: ", productNotFound: "محصول پیدا نشد",
+    noProduct: "هیچ محصولی برای بارکد یافت نشد: ", processError: "پردازش اسکن بارکد ناموفق بود",
+    laserStarted: "اسکنر لیزری فعال شد", laserStartedDescription: "اکنون محصولات را با لیزر اسکن کنید",
+    laserStopped: "اسکنر لیزری غیرفعال شد", laserStoppedDescription: "اسکن با لیزر متوقف شد",
+    scannerError: "خطای اسکنر", cameraStartError: "شروع دوربین ناموفق بود. لطفاً مجوزها را بررسی کنید.",
+    cameraDenied: "دسترسی به دوربین رد شده است. لطفاً در تنظیمات مرورگر مجوز دوربین را فعال کنید.",
+    startScan: "شروع اسکن", stopScan: "توقف اسکن", cameraPrompt: 'برای شروع روی «شروع اسکن» کلیک کنید',
+    laserInstructions: "اسکنر لیزری را به محصول نشانه بگیرید و اسکن کنید. بارکد به‌طور خودکار پردازش می‌شود.",
+    enableLaser: "فعال کردن اسکنر لیزری", disableLaser: "غیرفعال کردن اسکنر لیزری", laserActive: "اسکنر لیزری فعال است",
+    receiving: "در حال دریافت: ", productBarcode: "بارکد محصول", enterBarcode: "بارکد را وارد کنید...",
+    processBarcode: "پردازش بارکد", lastScan: "آخرین اسکن:", recentScans: "اسکن‌های اخیر", found: "یافت شد",
+    notFound: "یافت نشد", instructions: ["بارکد را در محدوده اسکن قرار دهید", "برای بهترین نتیجه نور کافی تأمین کنید", "پشتیبانی از QR، Code128، Code39، EAN و UPC"],
+  },
+  ar: {
+    title: "ماسح الباركود", modes: { camera: "الكاميرا", laser: "الليزر", manual: "يدوي" },
+    scanModes: { lookup: "بحث", inventory_in: "إدخال المخزون", inventory_out: "إخراج المخزون", audit: "تدقيق" },
+    productFound: "تم العثور على المنتج", scanned: "تم المسح: ", productNotFound: "لم يتم العثور على المنتج",
+    noProduct: "لم يتم العثور على منتج للباركود: ", processError: "تعذّر معالجة مسح الباركود",
+    laserStarted: "تم تفعيل ماسح الليزر", laserStartedDescription: "يمكنك الآن مسح المنتجات بالليزر",
+    laserStopped: "تم تعطيل ماسح الليزر", laserStoppedDescription: "توقف المسح بالليزر",
+    scannerError: "خطأ في الماسح", cameraStartError: "تعذّر تشغيل الكاميرا. يُرجى التحقق من الأذونات.",
+    cameraDenied: "تم رفض الوصول إلى الكاميرا. فعّل إذن الكاميرا من إعدادات المتصفح.",
+    startScan: "بدء المسح", stopScan: "إيقاف المسح", cameraPrompt: 'انقر على «بدء المسح» للبدء',
+    laserInstructions: "وجّه ماسح الليزر إلى المنتج وامسحه. ستتم معالجة الباركود تلقائياً.",
+    enableLaser: "تفعيل ماسح الليزر", disableLaser: "تعطيل ماسح الليزر", laserActive: "ماسح الليزر نشط",
+    receiving: "جارٍ الاستلام: ", productBarcode: "باركود المنتج", enterBarcode: "أدخل الباركود...",
+    processBarcode: "معالجة الباركود", lastScan: "آخر مسح:", recentScans: "عمليات المسح الأخيرة", found: "وُجد",
+    notFound: "غير موجود", instructions: ["ضع الباركود ضمن منطقة المسح", "وفّر إضاءة كافية للحصول على أفضل نتيجة", "يدعم QR وCode128 وCode39 وEAN وUPC"],
+  },
+  tr: {
+    title: "Barkod Tarayıcı", modes: { camera: "Kamera", laser: "Lazer", manual: "Manuel" },
+    scanModes: { lookup: "Arama", inventory_in: "Stok girişi", inventory_out: "Stok çıkışı", audit: "Denetim" },
+    productFound: "Ürün bulundu", scanned: "Taranan: ", productNotFound: "Ürün bulunamadı",
+    noProduct: "Barkod için ürün bulunamadı: ", processError: "Barkod taraması işlenemedi",
+    laserStarted: "Lazer tarayıcı etkin", laserStartedDescription: "Ürünleri şimdi lazerle tarayın",
+    laserStopped: "Lazer tarayıcı devre dışı", laserStoppedDescription: "Lazer taraması durduruldu",
+    scannerError: "Tarayıcı hatası", cameraStartError: "Kamera başlatılamadı. Lütfen izinleri kontrol edin.",
+    cameraDenied: "Kamera erişimi reddedildi. Tarayıcı ayarlarından kamera iznini etkinleştirin.",
+    startScan: "Taramayı başlat", stopScan: "Taramayı durdur", cameraPrompt: 'Başlamak için "Taramayı başlat"a tıklayın',
+    laserInstructions: "Lazer tarayıcıyı ürüne doğrultup tarayın. Barkod otomatik olarak işlenir.",
+    enableLaser: "Lazer tarayıcıyı etkinleştir", disableLaser: "Lazer tarayıcıyı devre dışı bırak", laserActive: "Lazer tarayıcı etkin",
+    receiving: "Alınıyor: ", productBarcode: "Ürün barkodu", enterBarcode: "Barkod girin...",
+    processBarcode: "Barkodu işle", lastScan: "Son tarama:", recentScans: "Son taramalar", found: "Bulundu",
+    notFound: "Bulunamadı", instructions: ["Barkodu tarama alanına yerleştirin", "En iyi sonuç için yeterli ışık sağlayın", "QR, Code128, Code39, EAN ve UPC desteklenir"],
+  },
+};
 
 interface BarcodeScannerProps {
   onScanSuccess: (barcode: string, productData?: any) => void;
@@ -36,6 +118,8 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   const laserInputRef = useRef<HTMLInputElement>(null);
   const laserTimeoutRef = useRef<NodeJS.Timeout>();
   const { toast } = useToast();
+  const { language, direction } = useLanguage();
+  const text = barcodeTranslations[language];
 
   // Shared barcode processing function
   const processScannedBarcode = useCallback(async (barcode: string) => {
@@ -53,14 +137,14 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         scanResult = 'found';
         
         toast({
-          title: "محصول پیدا شد",
-          description: `اسکن شده: ${productData.name}`,
+          title: text.productFound,
+          description: `${text.scanned}${productData.name}`,
           variant: "default"
         });
       } else {
         toast({
-          title: "محصول پیدا نشد",
-          description: `هیچ محصولی برای بارکد یافت نشد: ${barcode}`,
+          title: text.productNotFound,
+          description: `${text.noProduct}${barcode}`,
           variant: "destructive"
         });
       }
@@ -88,9 +172,9 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
       
     } catch (error) {
       console.error('Error processing scan:', error);
-      onScanError?.('Failed to process barcode scan');
+      onScanError?.(text.processError);
     }
-  }, [scanMode, onScanSuccess, onScanError, toast]);
+  }, [scanMode, onScanSuccess, onScanError, toast, text]);
 
   useEffect(() => {
     // Check camera permission on component mount
@@ -170,8 +254,8 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   const startLaserListening = () => {
     setIsLaserListening(true);
     toast({
-      title: "لیزر اسکنر فعال شد",
-      description: "اکنون محصولات را با لیزر اسکن کنید",
+      title: text.laserStarted,
+      description: text.laserStartedDescription,
       variant: "default"
     });
   };
@@ -180,8 +264,8 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     setIsLaserListening(false);
     setLaserBuffer('');
     toast({
-      title: "لیزر اسکنر غیرفعال شد",
-      description: "اسکن با لیزر متوقف شد",
+      title: text.laserStopped,
+      description: text.laserStoppedDescription,
       variant: "default"
     });
   };
@@ -242,8 +326,8 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
       console.error('Failed to start scanner:', error);
       setIsScanning(false);
       toast({
-        title: "خطا در اسکنر",
-        description: "شروع دوربین ناموفق بود. لطفاً مجوزها را بررسی کنید.",
+        title: text.scannerError,
+        description: text.cameraStartError,
         variant: "destructive"
       });
     }
@@ -268,20 +352,20 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
 
   const getScanModeLabel = () => {
     switch (scanMode) {
-      case 'inventory_in': return 'ورود کالا';
-      case 'inventory_out': return 'خروج کالا';
-      case 'audit': return 'بررسی';
-      default: return 'جستجو';
+      case 'inventory_in': return text.scanModes.inventory_in;
+      case 'inventory_out': return text.scanModes.inventory_out;
+      case 'audit': return text.scanModes.audit;
+      default: return text.scanModes.lookup;
     }
   };
 
   return (
-    <Card className={className}>
+    <Card className={className} dir={direction}>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Camera className="h-5 w-5" />
-            اسکنر بارکد
+             {text.title}
           </div>
           <Badge className={getScanModeColor()}>
             {getScanModeLabel()}
@@ -294,15 +378,15 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="camera" className="flex items-center gap-2">
               <Camera className="h-4 w-4" />
-              دوربین
+              {text.modes.camera}
             </TabsTrigger>
             <TabsTrigger value="laser" className="flex items-center gap-2">
               <Zap className="h-4 w-4" />
-              لیزر
+              {text.modes.laser}
             </TabsTrigger>
             <TabsTrigger value="manual" className="flex items-center gap-2">
               <Keyboard className="h-4 w-4" />
-              دستی
+              {text.modes.manual}
             </TabsTrigger>
           </TabsList>
 
@@ -313,7 +397,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
               <Alert>
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
-                  دسترسی به دوربین رد شده است. لطفاً در تنظیمات مرورگر، مجوز دوربین را فعال کنید.
+                   {text.cameraDenied}
                 </AlertDescription>
               </Alert>
             )}
@@ -326,8 +410,8 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
                   disabled={cameraPermission === 'denied'}
                   className="flex-1"
                 >
-                  <Camera className="h-4 w-4 mr-2" />
-                  شروع اسکن
+                  <Camera className="h-4 w-4 me-2" />
+                  {text.startScan}
                 </Button>
               ) : (
                 <Button 
@@ -335,8 +419,8 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
                   variant="outline"
                   className="flex-1"
                 >
-                  <Square className="h-4 w-4 mr-2" />
-                  توقف اسکن
+                  <Square className="h-4 w-4 me-2" />
+                  {text.stopScan}
                 </Button>
               )}
             </div>
@@ -353,7 +437,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
                 <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
                   <div className="text-center text-gray-500">
                     <Camera className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>برای شروع "شروع اسکن" را کلیک کنید</p>
+                     <p>{text.cameraPrompt}</p>
                   </div>
                 </div>
               )}
@@ -365,7 +449,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
             <Alert>
               <Zap className="h-4 w-4" />
               <AlertDescription>
-                لیزر اسکنر را به محصول نشانه گیری کرده و اسکن کنید. بارکد به طور خودکار پردازش می‌شود.
+                 {text.laserInstructions}
               </AlertDescription>
             </Alert>
 
@@ -375,8 +459,8 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
                   onClick={startLaserListening}
                   className="flex-1"
                 >
-                  <Zap className="h-4 w-4 mr-2" />
-                  فعال کردن لیزر اسکنر
+                   <Zap className="h-4 w-4 me-2" />
+                   {text.enableLaser}
                 </Button>
               ) : (
                 <Button 
@@ -384,8 +468,8 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
                   variant="outline"
                   className="flex-1"
                 >
-                  <Square className="h-4 w-4 mr-2" />
-                  غیرفعال کردن لیزر اسکنر
+                   <Square className="h-4 w-4 me-2" />
+                   {text.disableLaser}
                 </Button>
               )}
             </div>
@@ -396,7 +480,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
               type="text"
               value={laserBuffer}
               onChange={() => {}} // Controlled by keyboard events
-              className="opacity-0 absolute -top-10 left-0 w-1 h-1"
+               className="opacity-0 absolute -top-10 start-0 w-1 h-1"
               autoFocus={isLaserListening}
             />
 
@@ -405,11 +489,11 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
               <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                 <div className="flex items-center gap-2">
                   <Zap className="h-4 w-4 text-yellow-600" />
-                  <span className="text-sm font-medium text-yellow-800">لیزر اسکنر فعال است</span>
+                   <span className="text-sm font-medium text-yellow-800">{text.laserActive}</span>
                 </div>
                 {laserBuffer && (
                   <div className="mt-2">
-                    <span className="text-xs text-yellow-700">در حال دریافت: </span>
+                     <span className="text-xs text-yellow-700">{text.receiving}</span>
                     <code className="text-xs font-mono bg-yellow-100 px-1 rounded">
                       {laserBuffer}
                     </code>
@@ -423,18 +507,18 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           <TabsContent value="manual" className="space-y-4">
             <form onSubmit={handleManualSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="manual-barcode">بارکد محصول</Label>
+                 <Label htmlFor="manual-barcode">{text.productBarcode}</Label>
                 <Input
                   id="manual-barcode"
                   value={manualBarcode}
                   onChange={(e) => setManualBarcode(e.target.value)}
-                  placeholder="بارکد را وارد کنید..."
+                   placeholder={text.enterBarcode}
                   className="font-mono"
                 />
               </div>
               <Button type="submit" className="w-full" disabled={!manualBarcode.trim()}>
-                <CheckCircle className="h-4 w-4 mr-2" />
-                پردازش بارکد
+                 <CheckCircle className="h-4 w-4 me-2" />
+                 {text.processBarcode}
               </Button>
             </form>
           </TabsContent>
@@ -445,7 +529,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
             <div className="flex items-center gap-2">
               <CheckCircle className="h-4 w-4 text-green-600" />
-              <span className="text-sm font-medium text-green-800">آخرین اسکن:</span>
+               <span className="text-sm font-medium text-green-800">{text.lastScan}</span>
             </div>
             <code className="text-sm font-mono text-green-700 block mt-1">
               {lastScanResult}
@@ -458,7 +542,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
               <History className="h-4 w-4" />
-              اسکن‌های اخیر
+               {text.recentScans}
             </div>
             <div className="space-y-1 max-h-40 overflow-y-auto">
               {scanHistory.slice(0, 5).map((scan, index) => (
@@ -471,7 +555,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
                       <AlertTriangle className="h-3 w-3 text-red-500" />
                     )}
                     <span className="text-gray-500">
-                      {scan.timestamp.toLocaleTimeString('fa-IR')}
+                       {scan.timestamp.toLocaleTimeString(language)}
                     </span>
                   </div>
                 </div>
@@ -482,9 +566,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
 
         {/* Scanner Instructions */}
         <div className="text-xs text-gray-500 space-y-1">
-          <p>• بارکد را در محدوده اسکن قرار دهید</p>
-          <p>• برای بهترین نتیجه نور کافی تأمین کنید</p>
-          <p>• پشتیبانی از QR، Code128، Code39، EAN و UPC</p>
+           {text.instructions.map((instruction) => <p key={instruction}>• {instruction}</p>)}
         </div>
       </CardContent>
     </Card>

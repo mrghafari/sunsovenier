@@ -14,6 +14,11 @@ import PaymentMethodBadge from "@/components/PaymentMethodBadge";
 import { BankReceiptUploadModal } from "@/components/BankReceiptUploadModal";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getOrderStatusLabel, resolveOrderStatus, type OrderStatusLanguage } from "@shared/order-status";
+import DatePicker, { DateObject } from "react-multi-date-picker";
+import persian from "react-date-object/calendars/persian";
+import gregorian from "react-date-object/calendars/gregorian";
+import persianFa from "react-date-object/locales/persian_fa";
+import "react-multi-date-picker/styles/layouts/mobile.css";
 
 // ─── Local profile translations ───────────────────────────────────────────────
 const PROFILE_T = {
@@ -848,9 +853,30 @@ const CustomerProfile = () => {
   };
 
   const formatDate = (dateString: string) =>
-    new Date(dateString).toLocaleDateString("en-US", {
+    new Intl.DateTimeFormat(
+      language === "fa" ? "fa-IR-u-ca-persian" :
+      language === "ar" ? "ar-IQ" :
+      language === "tr" ? "tr-TR" :
+      "en-US",
+      {
       year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit",
-    });
+      },
+    ).format(new Date(dateString));
+
+  const toPersianPickerValue = (value: string) => value
+    ? new DateObject({ date: value, format: "YYYY-MM-DD", calendar: gregorian }).convert(persian)
+    : null;
+
+  const handlePersianDateChange = (
+    value: DateObject | DateObject[] | null,
+    setter: React.Dispatch<React.SetStateAction<string>>,
+  ) => {
+    if (!value || Array.isArray(value)) {
+      setter("");
+      return;
+    }
+    setter(value.convert(gregorian).format("YYYY-MM-DD"));
+  };
 
   const handleCsvExport = async () => {
     setIsExportingCsv(true);
@@ -1261,8 +1287,40 @@ const CustomerProfile = () => {
                         </Button>
                       ))}
                        </div>
-                       <Input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} aria-label={pt.fromDate} className="h-9 w-full border-slate-300 sm:w-[145px]" />
-                       <Input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} aria-label={pt.toDate} className="h-9 w-full border-slate-300 sm:w-[145px]" />
+                       {language === "fa" ? (
+                         <DatePicker
+                           value={toPersianPickerValue(dateFrom)}
+                           onChange={(value) => handlePersianDateChange(value, setDateFrom)}
+                           calendar={persian}
+                           locale={persianFa}
+                           calendarPosition="bottom-right"
+                           format="YYYY/MM/DD"
+                           mobileLabels={{ OK: "تأیید", CANCEL: "لغو" }}
+                           inputClass="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-xs text-slate-700 sm:w-[145px]"
+                           containerClassName="w-full sm:w-[145px]"
+                           placeholder={pt.fromDate}
+                           aria-label={pt.fromDate}
+                         />
+                       ) : (
+                         <Input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} aria-label={pt.fromDate} className="h-9 w-full border-slate-300 sm:w-[145px]" />
+                       )}
+                       {language === "fa" ? (
+                         <DatePicker
+                           value={toPersianPickerValue(dateTo)}
+                           onChange={(value) => handlePersianDateChange(value, setDateTo)}
+                           calendar={persian}
+                           locale={persianFa}
+                           calendarPosition="bottom-right"
+                           format="YYYY/MM/DD"
+                           mobileLabels={{ OK: "تأیید", CANCEL: "لغو" }}
+                           inputClass="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-xs text-slate-700 sm:w-[145px]"
+                           containerClassName="w-full sm:w-[145px]"
+                           placeholder={pt.toDate}
+                           aria-label={pt.toDate}
+                         />
+                       ) : (
+                         <Input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} aria-label={pt.toDate} className="h-9 w-full border-slate-300 sm:w-[145px]" />
+                       )}
                        <select value={selectedProduct} onChange={(event) => setSelectedProduct(event.target.value)} aria-label={pt.productFilter} className="h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-700 sm:w-[150px]">
                          <option value="all">{pt.allProducts}</option>
                          {productNames.map((name) => <option key={name} value={name}>{name}</option>)}
