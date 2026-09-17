@@ -245,7 +245,7 @@ export default function ProceduresManagement() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
-  const [selectedTab, setSelectedTab] = useState("overview");
+  const [selectedTab, setSelectedTab] = useState("procedures");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogType, setDialogType] = useState<'category' | 'procedure' | 'safety' | null>(null);
   const [editingItem, setEditingItem] = useState<any>(null);
@@ -822,120 +822,12 @@ export default function ProceduresManagement() {
       </div>
 
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-        <TabsList className="grid w-full grid-cols-2 gap-1 sm:grid-cols-5">
-          <TabsTrigger value="overview">{t.overview}</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 gap-1 sm:grid-cols-4">
           <TabsTrigger value="procedures">{t.procedures}</TabsTrigger>
           <TabsTrigger value="categories">{t.categories}</TabsTrigger>
           <TabsTrigger value="safety">{t.safety}</TabsTrigger>
           <TabsTrigger value="analytics">{t.analytics}</TabsTrigger>
         </TabsList>
-
-        {/* Overview Tab */}
-        <TabsContent value="overview" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{t.total}</CardTitle>
-                <FileText className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{procedures.length}</div>
-                <p className="text-xs text-muted-foreground">
-                  {t.approved}: {procedures.filter(p => p.status === 'approved').length}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{t.pending}</CardTitle>
-                <Clock className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {procedures.filter(p => p.status === 'review').length}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {t.needsApproval}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{t.protocols}</CardTitle>
-                <Shield className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{safetyProtocols.length}</div>
-                <p className="text-xs text-muted-foreground">
-                  {t.critical}: {safetyProtocols.filter(p => p.severityLevel === 'critical').length}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{t.categoryCount}</CardTitle>
-                <Layers className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{categories.length}</div>
-                <p className="text-xs text-muted-foreground">
-                  {t.active}: {categories.filter(c => c.isActive).length}
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Recent Procedures */}
-          <Card>
-            <CardHeader>
-              <CardTitle>{t.recent}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {procedures.slice(0, 5).map((procedure) => (
-                  <div key={procedure.id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center space-x-4 space-x-reverse">
-                      <div className="flex items-center space-x-2 space-x-reverse">
-                        <FileText className="w-5 h-5 text-muted-foreground" />
-                        <div>
-                          <p className="text-sm font-medium">{procedure.title}</p>
-                          <p className="text-xs text-muted-foreground">{t.version}: {procedure.version}</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge className={getPriorityColor(procedure.priority)}>
-                        {procedure.priority === 'critical' ? 'بحرانی' :
-                         procedure.priority === 'high' ? 'بالا' :
-                         procedure.priority === 'normal' ? 'عادی' : 'پایین'}
-                      </Badge>
-                      <Badge className={getStatusColor(procedure.status)}>
-                        {procedure.status === 'approved' ? 'تأیید شده' :
-                         procedure.status === 'review' ? 'در بررسی' :
-                         procedure.status === 'draft' ? 'پیش‌نویس' : 'بایگانی'}
-                      </Badge>
-                      {canManageProcedures && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openEditDialog('procedure', procedure)}
-                          title={t.edit}
-                          data-testid={`button-edit-recent-procedure-${procedure.id}`}
-                        >
-                          <Edit className="h-4 w-4 me-2" />
-                          {t.edit}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         {/* Procedures Tab */}
         <TabsContent value="procedures" className="space-y-4">
