@@ -633,6 +633,24 @@ type Role = {
   createdAt: string;
 };
 
+const englishSystemRoleDescriptions: Record<string, string> = {
+  'sales manager': 'Manage sales operations and customer relationships',
+  'warehouse supervisor': 'Manage warehouse operations and product inventory',
+  'customer support': 'Respond to customers and handle support requests',
+  'content editor': 'Manage website content and SEO',
+};
+
+const getVisibleRoleDescription = (role: Role, language: Language): string => {
+  const description = role.description?.trim() || '';
+  if (language !== 'en' || !/[\u0600-\u06FF]/.test(description)) {
+    return description;
+  }
+
+  return englishSystemRoleDescriptions[role.name.trim().toLowerCase()]
+    || englishSystemRoleDescriptions[role.displayName.trim().toLowerCase()]
+    || '';
+};
+
 type User = {
   id: string;
   fullName: string;
@@ -1774,7 +1792,10 @@ function UserManagement() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {roles.map((role) => (
+                  {roles.map((role) => {
+                    const visibleDescription = getVisibleRoleDescription(role, language);
+
+                    return (
                     <Card key={role.id} className="border-2" style={{ borderColor: role.color }}>
                       <CardHeader className="pb-3">
                         <div className="flex items-center justify-between">
@@ -1787,7 +1808,9 @@ function UserManagement() {
                           </div>
                           <Badge variant="outline">#{role.priority}</Badge>
                         </div>
-                        <p className="text-sm text-muted-foreground">{role.description}</p>
+                        {visibleDescription && (
+                          <p className="text-sm text-muted-foreground">{visibleDescription}</p>
+                        )}
                       </CardHeader>
                       <CardContent className="space-y-3">
                         <div className="flex items-center justify-between">
@@ -1839,7 +1862,8 @@ function UserManagement() {
                         </div>
                       </CardContent>
                     </Card>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>
