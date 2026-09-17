@@ -190,7 +190,7 @@ function Router() {
           <Route path="/vendor/dashboard" component={VendorDashboard} />
           <Route path="/vendor/products/new" component={VendorAddProduct} />
           <Route path="/vendor/products/edit/:id" component={VendorEditProduct} />
-          <Route path="/vendor/products" component={VendorDashboard} />
+          <Route path="/vendor/products" component={ProductsPage} />
           <Route path="/blog" component={Blog} />
           <Route path="/blog/:slug" component={BlogPost} />
           <Route path="/payment-options" component={PaymentOptionsPage} />
@@ -271,7 +271,7 @@ function Router() {
           <Route path="/site-management" component={() => <AdminRoute><SiteManagementFixed /></AdminRoute>} />
           <Route path="/admin/site-management" component={() => <AdminRoute><SiteManagementFixed /></AdminRoute>} />
           <Route path="/admin/products" component={() => <AdminRoute><ProductsPage /></AdminRoute>} />
-          <Route path="/vendor/products" component={VendorDashboard} />
+          <Route path="/vendor/products" component={ProductsPage} />
           <Route path="/admin/product-variants" component={() => <AdminRoute><ProductVariants /></AdminRoute>} />
           <Route path="/admin/geographic-reports" component={() => <AdminRoute><GeographicReports /></AdminRoute>} />
           <Route path="/admin/geographic-analytics" component={() => <AdminRoute><GeographicAnalytics /></AdminRoute>} />

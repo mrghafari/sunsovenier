@@ -193,6 +193,7 @@ const procedureTranslations = {
     success: "Success", error: "Error", saved: "Changes saved.", failed: "Unable to save changes.", documentDownloaded: "Document downloaded successfully",
     procedureTitle: "Procedure title", priorityNormal: "Normal", accessPublic: "Public", accessInternal: "Internal", accessRestricted: "Restricted", accessConfidential: "Confidential",
     tagsPlaceholder: "production, quality, safety", uploadAttachments: "Upload attached documents", createProcedure: "Create procedure", editProcedure: "Edit procedure", updateProcedure: "Update procedure",
+    confirmDocumentDelete: "Delete the document “{name}”? This cannot be undone.", documentDeleted: "Document deleted successfully", documentDeleteFailed: "Could not delete the document", documentDeleteNetworkFailed: "A network error occurred while deleting the document",
   },
   fa: {
     back: "بازگشت به داشبورد", title: "مدیریت دستورالعمل‌ها و ایمنی", subtitle: "مرور، انتشار و نگهداری رویه‌های کنترل‌شده سازمانی.",
@@ -216,6 +217,7 @@ const procedureTranslations = {
     success: "موفقیت", error: "خطا", saved: "تغییرات ذخیره شد.", failed: "ذخیره تغییرات انجام نشد.", documentDownloaded: "سند با موفقیت دانلود شد",
     procedureTitle: "عنوان دستورالعمل", priorityNormal: "عادی", accessPublic: "عمومی", accessInternal: "داخلی", accessRestricted: "محدود", accessConfidential: "محرمانه",
     tagsPlaceholder: "تولید، کیفیت، ایمنی", uploadAttachments: "آپلود مدارک ضمیمه", createProcedure: "ایجاد دستورالعمل", editProcedure: "ویرایش دستورالعمل", updateProcedure: "به‌روزرسانی دستورالعمل",
+    confirmDocumentDelete: "فایل «{name}» حذف شود؟ این عملیات قابل بازگشت نیست.", documentDeleted: "سند با موفقیت حذف شد", documentDeleteFailed: "حذف سند انجام نشد", documentDeleteNetworkFailed: "خطای شبکه هنگام حذف سند رخ داد",
   },
   ar: {
     back: "العودة إلى لوحة التحكم", title: "إدارة الإجراءات والسلامة", subtitle: "مراجعة الإجراءات المؤسسية المنضبطة ونشرها وصيانتها.",
@@ -234,19 +236,25 @@ const procedureTranslations = {
     categoryName: "اسم الفئة", color: "اللون", protocolTitle: "عنوان البروتوكول", protocolCategory: "فئة البروتوكول", success: "نجاح", error: "خطأ", saved: "تم حفظ التغييرات.", failed: "تعذر حفظ التغييرات.", documentDownloaded: "تم تنزيل المستند بنجاح",
     procedureTitle: "عنوان الإجراء", priorityNormal: "عادي", accessPublic: "عام", accessInternal: "داخلي", accessRestricted: "مقيّد", accessConfidential: "سري",
     tagsPlaceholder: "الإنتاج، الجودة، السلامة", uploadAttachments: "رفع المستندات المرفقة", createProcedure: "إنشاء الإجراء", editProcedure: "تعديل الإجراء", updateProcedure: "تحديث الإجراء",
+    confirmDocumentDelete: "هل تريد حذف المستند «{name}»؟ لا يمكن التراجع عن ذلك.", documentDeleted: "تم حذف المستند بنجاح", documentDeleteFailed: "تعذر حذف المستند", documentDeleteNetworkFailed: "حدث خطأ في الشبكة أثناء حذف المستند",
   },
   tr: {
     back: "Kontrol paneline dön", title: "Prosedür ve güvenlik yönetimi", subtitle: "Kurumsal prosedürleri hızlıca inceleyin, yayınlayın ve güncel tutun.",
     overview: "Genel bakış", procedures: "Prosedürler", categories: "Kategoriler", safety: "Güvenlik protokolleri", analytics: "Raporlar", total: "Toplam prosedür", approved: "Onaylı", pending: "İnceleme bekliyor", needsApproval: "Onay gerekiyor",
     protocols: "Güvenlik protokolleri", critical: "Kritik", categoryCount: "Kategoriler", active: "Etkin", recent: "Son prosedürler", version: "Sürüm", search: "Prosedürlerde ara...", chooseCategory: "Kategori seç", allCategories: "Tüm kategoriler", chooseStatus: "Durum seç", allStatuses: "Tüm durumlar", draft: "Taslak", review: "İncelemede", archived: "Arşivlendi",
-    addProcedure: "Prosedür ekle", addCategory: "Kategori ekle", addProtocol: "Güvenlik protokolü ekle", loading: "Yükleniyor...", titleLabel: "Başlık", category: "Kategori", priority: "Öncelik", status: "Durum", documents: "Belgeler", views: "Görüntülenme", created: "Oluşturulma", actions: "İşlemler", unknown: "Bilinmiyor", uploadedDocuments: "Yüklenen belgeler", viewDocuments: "Yüklenen belgeleri görüntüle", export: "Prosedürü dışa aktar", edit: "Düzenle", delete: "Sil", row: "Sıra", description: "Açıklama", displayOrder: "Görüntüleme sırası", yes: "Evet", no: "Hayır", mandatory: "Zorunlu", severity: "Önem", ppe: "Gerekli KKD", noDocuments: "Henüz belge yüklenmedi.", close: "Kapat", cancel: "İptal", attachments: "Belge ekleri", upload: "Belgeleri yükle", selectedFiles: "Seçilen dosyalar", allowed: "İzin verilen biçimler: PDF, DOC, DOCX, TXT, JPG, PNG", save: "Kaydet", create: "Oluştur", update: "Güncelle", usage: "Prosedür kullanımı", totalViews: "Toplam görüntülenme", averageViews: "Ortalama görüntülenme", mostViewed: "En çok görüntülenen", approvalStatus: "Onay durumu", safetyInstructions: "Güvenlik talimatları", firstAid: "İlk yardım adımları", evacuation: "Tahliye planı", severityLow: "Düşük", severityMedium: "Orta", severityHigh: "Yüksek", severityCritical: "Kritik", access: "Erişim düzeyi", effectiveDate: "Yürürlük tarihi", reviewDate: "İnceleme tarihi", tags: "Etiketler (virgülle ayırın)", content: "Prosedür içeriği", summary: "Özet", requiredPpeHint: "Gözlük, eldiven, maske", categoryName: "Kategori adı", color: "Renk", protocolTitle: "Protokol başlığı", protocolCategory: "Protokol kategorisi", success: "Başarılı", error: "Hata", saved: "Değişiklikler kaydedildi.", failed: "Değişiklikler kaydedilemedi.", documentDownloaded: "Belge başarıyla indirildi", procedureTitle: "Prosedür başlığı", priorityNormal: "Normal", accessPublic: "Herkese açık", accessInternal: "Dahili", accessRestricted: "Kısıtlı", accessConfidential: "Gizli", tagsPlaceholder: "üretim, kalite, güvenlik", uploadAttachments: "Ek belgeleri yükle", createProcedure: "Prosedür oluştur", editProcedure: "Prosedürü düzenle", updateProcedure: "Prosedürü güncelle",
+    addProcedure: "Prosedür ekle", addCategory: "Kategori ekle", addProtocol: "Güvenlik protokolü ekle", loading: "Yükleniyor...", titleLabel: "Başlık", category: "Kategori", priority: "Öncelik", status: "Durum", documents: "Belgeler", views: "Görüntülenme", created: "Oluşturulma", actions: "İşlemler", unknown: "Bilinmiyor", uploadedDocuments: "Yüklenen belgeler", viewDocuments: "Yüklenen belgeleri görüntüle", export: "Prosedürü dışa aktar", edit: "Düzenle", delete: "Sil", row: "Sıra", description: "Açıklama", displayOrder: "Görüntüleme sırası", yes: "Evet", no: "Hayır", mandatory: "Zorunlu", severity: "Önem", ppe: "Gerekli KKD", noDocuments: "Henüz belge yüklenmedi.", close: "Kapat", cancel: "İptal", attachments: "Belge ekleri", upload: "Belgeleri yükle", selectedFiles: "Seçilen dosyalar", allowed: "İzin verilen biçimler: PDF, DOC, DOCX, TXT, JPG, PNG", save: "Kaydet", create: "Oluştur", update: "Güncelle", usage: "Prosedür kullanımı", totalViews: "Toplam görüntülenme", averageViews: "Ortalama görüntülenme", mostViewed: "En çok görüntülenen", approvalStatus: "Onay durumu", safetyInstructions: "Güvenlik talimatları", firstAid: "İlk yardım adımları", evacuation: "Tahliye planı", severityLow: "Düşük", severityMedium: "Orta", severityHigh: "Yüksek", severityCritical: "Kritik", access: "Erişim düzeyi", effectiveDate: "Yürürlük tarihi", reviewDate: "İnceleme tarihi", tags: "Etiketler (virgülle ayırın)", content: "Prosedür içeriği", summary: "Özet", requiredPpeHint: "Gözlük, eldiven, maske", categoryName: "Kategori adı", color: "Renk", protocolTitle: "Protokol başlığı", protocolCategory: "Protokol kategorisi", success: "Başarılı", error: "Hata", saved: "Değişiklikler kaydedildi.", failed: "Değişiklikler kaydedilemedi.", documentDownloaded: "Belge başarıyla indirildi", procedureTitle: "Prosedür başlığı", priorityNormal: "Normal", accessPublic: "Herkese açık", accessInternal: "Dahili", accessRestricted: "Kısıtlı", accessConfidential: "Gizli", tagsPlaceholder: "üretim, kalite, güvenlik", uploadAttachments: "Ek belgeleri yükle", createProcedure: "Prosedür oluştur", editProcedure: "Prosedürü düzenle", updateProcedure: "Prosedürü güncelle", confirmDocumentDelete: "“{name}” belgesi silinsin mi? Bu işlem geri alınamaz.", documentDeleted: "Belge başarıyla silindi", documentDeleteFailed: "Belge silinemedi", documentDeleteNetworkFailed: "Belge silinirken ağ hatası oluştu",
   },
 } as const;
 
 export default function ProceduresManagement() {
   const { language, direction } = useLanguage();
   const { user } = useAuth();
-  const canManageProcedures = user?.roleName === "super_admin";
+  const normalizedRoleName = String(user?.roleName || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+  const canManageProcedures =
+    normalizedRoleName === "super_admin" || normalizedRoleName === "supper_admin";
   const t = procedureTranslations[language];
   const { toast } = useToast();
   const [, setLocation] = useLocation();
@@ -468,7 +476,7 @@ export default function ProceduresManagement() {
   };
 
   const deleteDocument = async (documentId: number, documentTitle: string) => {
-    if (!confirm(`Are you sure you want to delete the document "${documentTitle}"?`)) {
+    if (!confirm(t.confirmDocumentDelete.replace("{name}", documentTitle))) {
       return;
     }
 
@@ -495,7 +503,7 @@ export default function ProceduresManagement() {
           toast({
             variant: "destructive",
             title: t.error,
-            description: result.message || "Failed to delete document",
+            description: result.message || t.documentDeleteFailed,
           });
         }
         
@@ -519,14 +527,14 @@ export default function ProceduresManagement() {
 
       toast({
         title: t.success,
-        description: "Document deleted successfully",
+        description: t.documentDeleted,
       });
     } catch (error) {
       console.error('Error deleting document:', error);
       toast({
         variant: "destructive",
         title: t.error,
-        description: "Network error occurred while deleting document",
+        description: t.documentDeleteNetworkFailed,
       });
     }
   };

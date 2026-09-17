@@ -469,7 +469,7 @@ export default function VendorDashboard() {
                       {c.manageProductsDescription}
                     </CardDescription>
                   </div>
-                  <Link href="/vendor/products/new">
+                  <Link href="/vendor/products">
                     <Button data-testid="button-add-product">
                       <Plus className="w-4 h-4 mr-2" />
                       {c.manageProducts}
@@ -518,7 +518,7 @@ export default function VendorDashboard() {
                           <Badge variant={product.isActive ? "default" : "secondary"}>
                             {product.isActive ? c.active : c.inactive}
                           </Badge>
-                          <Link href={`/vendor/products/edit/${product.id}`}>
+                          <Link href="/vendor/products">
                             <Button size="sm" variant="outline" data-testid={`button-manage-products-${product.id}`}>
                               <Edit className="w-4 h-4 mr-1" />
                               {c.manageProductsShort}

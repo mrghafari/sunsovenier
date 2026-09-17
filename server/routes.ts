@@ -22691,7 +22691,9 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       const docResult = await pool.query(`
         SELECT file_path, file_name
         FROM procedure_documents
-        WHERE id = $1 AND is_active = true
+        WHERE id = $1
+          AND is_active = true
+          AND (document_type IS NULL OR document_type = 'procedure')
       `, [documentId]);
 
       if (docResult.rows.length === 0) {
@@ -42639,7 +42641,7 @@ momtazchem.com
   });
 
   // AI-powered SKU generation endpoint
-  app.post("/api/products/generate-sku", requireAuth, async (req: Request, res: Response) => {
+  app.post("/api/products/generate-sku", requireProductManagerAuth, async (req: Request, res: Response) => {
     try {
       const productData = req.body;
       
@@ -42683,7 +42685,7 @@ momtazchem.com
   });
 
   // Generate barcode endpoint
-  app.post("/api/products/generate-barcode", requireAuth, async (req: Request, res: Response) => {
+  app.post("/api/products/generate-barcode", requireProductManagerAuth, async (req: Request, res: Response) => {
     try {
       const { name, category } = req.body;
       

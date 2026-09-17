@@ -32,7 +32,7 @@ const vendorProductCreateSchema = insertShowcaseProductSchema.pick({
 }).extend({
   name: z.string().trim().min(3),
   category: z.string().trim().min(1),
-  description: z.string().trim().min(1),
+  description: z.string().trim(),
   sku: z.string().trim().min(3),
   barcode: z.string().trim().min(8),
   stockQuantity: z.coerce.number().int().min(0),
@@ -668,6 +668,7 @@ export function createVendorRouter() {
       // Always use vendorId from authenticated session - cannot be spoofed
       const productData = {
         ...validatedData,
+        description: validatedData.description || "Vendor product",
         unitPrice: validatedData.unitPrice.toString(),
         transportationTemperature: validatedData.transportationTemperature === "none"
           ? null
