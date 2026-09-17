@@ -12,3 +12,4 @@
 - [Delivery GPS integrity](delivery-gps-integrity.md) — code consumption, terminal status, and GPS insertion must be atomic; analytics expose aggregated coordinates only.
 - [Monitoring data honesty](monitoring-data-honesty.md) — distinguish configured, observed, and unavailable states; never present defaults or failed queries as live health.
 - [SMS recipient language](sms-recipient-language.md) — choose SMS text from stored customer language; raw numbers need an explicit fallback and provider acceptance is not delivery.
+- [Destructive super-admin actions](destructive-super-admin-actions.md) — require a verified active role and make multi-record deletion atomic with explicit targets.

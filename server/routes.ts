@@ -558,38 +558,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const requireAdmin = requireAuth;
   registerKpiDashboardRoute(app, requireAdmin);
   
-  // Super Admin authentication middleware - simplified for debugging
-  const requireSuperAdmin = (req: Request, res: Response, next: NextFunction) => {
-    console.log('🔐 [SUPER ADMIN AUTH] Session details:', {
-      adminId: req.session?.adminId,
-      isAuthenticated: req.session?.isAuthenticated,
-      sessionID: req.sessionID
-    });
-
-    // Check for admin authentication in any available form
-    const adminId = req.session?.adminId;
-    const isAuthenticated = req.session?.isAuthenticated;
-    
-    if (!adminId && !isAuthenticated) {
-      console.log('❌ [SUPER ADMIN AUTH] No admin authentication found');
-      return res.status(401).json({ 
-        success: false, 
-        message: "احراز هویت سوپر ادمین مورد نیاز است" 
-      });
-    }
-
-    // Admin ID 15 is always super admin, or if we have admin session
-    if (adminId === 15 || adminId || isAuthenticated) {
-      console.log(`✅ [SUPER ADMIN AUTH] Access granted for admin ${adminId}`);
-      return next();
-    }
-
-    console.log('❌ [SUPER ADMIN AUTH] Access denied - insufficient permissions');
-    return res.status(403).json({ 
-      success: false, 
-      message: "دسترسی محدود به سوپر ادمین" 
-    });
-  };
+  // Every route carrying this name must verify an active super-admin role.
+  // A generic authenticated customer or non-super-admin session is not enough.
+  const requireSuperAdmin = requireSuperAdminRole;
   
   // Add department middleware to all authenticated routes (excluding ticket creation for guest access)
   app.use('/api', (req, res, next) => {
@@ -50316,6 +50287,147 @@ momtazchem.com
   // سیستم حذف کامل سفارشات توسط سوپر ادمین
   // =============================================================================
 
+  // Atomically delete a bounded set of orders and their known dependent records.
+  // The order rows are locked and the complete request is validated before any
+  // dependent row is removed, so a partial request can never be applied.
+  app.post('/api/super-admin/orders/bulk-delete', requireSuperAdmin, async (req: Request, res: Response) => {
+    const rawOrderIds = req.body?.orderIds;
+
+    if (
+      !Array.isArray(rawOrderIds) ||
+      rawOrderIds.some(
+        (id: unknown) =>
+          typeof id !== 'number' ||
+          !Number.isSafeInteger(id) ||
+          id <= 0 ||
+          id > 2_147_483_647,
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: 'orderIds must be an array of positive integers',
+      });
+    }
+
+    const orderIds = [...new Set(rawOrderIds as number[])];
+    if (orderIds.length < 1 || orderIds.length > 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'orderIds must contain between 1 and 100 unique IDs',
+      });
+    }
+
+    let client: any;
+    let transactionStarted = false;
+    try {
+      client = await customerPool.connect();
+      await client.query('BEGIN');
+      transactionStarted = true;
+
+      // Lock and resolve every requested order before touching any dependent
+      // table. This also ensures that a missing ID causes a no-op transaction.
+      const lockedOrdersResult = await client.query(
+        `SELECT id, order_number
+           FROM customer_orders
+          WHERE id = ANY($1::int[])
+          ORDER BY id
+          FOR UPDATE`,
+        [orderIds],
+      );
+      const foundIds = new Set(lockedOrdersResult.rows.map((row: { id: number }) => Number(row.id)));
+      const missingIds = orderIds.filter((id) => !foundIds.has(id));
+
+      if (missingIds.length > 0) {
+        await client.query('ROLLBACK');
+        transactionStarted = false;
+        return res.status(404).json({
+          success: false,
+          message: 'One or more requested orders were not found',
+          missingIds,
+        });
+      }
+
+      const orderNumbers = lockedOrdersResult.rows
+        .map((row: { order_number: string | null }) => row.order_number)
+        .filter((value: string | null): value is string => Boolean(value));
+      const managementResult = await client.query(
+        'SELECT id FROM order_management WHERE customer_order_id = ANY($1::int[])',
+        [orderIds],
+      );
+      const managementIds = managementResult.rows.map((row: { id: number }) => Number(row.id));
+
+      // Remove children of order_management before removing its rows.
+      await client.query('DELETE FROM order_status_history WHERE order_management_id = ANY($1::int[])', [managementIds]);
+      await client.query('DELETE FROM delivery_codes WHERE order_management_id = ANY($1::int[])', [managementIds]);
+      await client.query('DELETE FROM order_locks WHERE order_management_id = ANY($1::int[])', [managementIds]);
+      await client.query('DELETE FROM delivery_verification_codes WHERE order_management_id = ANY($1::int[])', [managementIds]);
+      await client.query('DELETE FROM consolidated_order_data WHERE order_management_id = ANY($1::int[])', [managementIds]);
+
+      // All predicates use exact numeric IDs or exact order numbers. Text
+      // descriptions and partial LIKE matching are deliberately not used.
+      await client.query('DELETE FROM order_items WHERE order_id = ANY($1::int[])', [orderIds]);
+      await client.query('DELETE FROM payment_receipts WHERE customer_order_id = ANY($1::int[])', [orderIds]);
+      await client.query('DELETE FROM gps_delivery_confirmations WHERE customer_order_id = ANY($1::int[])', [orderIds]);
+      await client.query('DELETE FROM delivery_verification_codes WHERE customer_order_id = ANY($1::int[])', [orderIds]);
+      await client.query('DELETE FROM consolidated_order_data WHERE customer_order_id = ANY($1::int[])', [orderIds]);
+      await client.query('DELETE FROM vehicle_delivery_history WHERE customer_order_id = ANY($1::int[])', [orderIds]);
+      await client.query('DELETE FROM logistics_orders WHERE customer_order_id = ANY($1::int[])', [orderIds]);
+      await client.query('DELETE FROM vendor_transactions WHERE customer_order_id = ANY($1::int[])', [orderIds]);
+      await client.query('DELETE FROM fib_payments WHERE order_id = ANY($1::int[])', [orderIds]);
+      await client.query('DELETE FROM financial_transactions WHERE order_id = ANY($1::int[])', [orderIds]);
+      await client.query('DELETE FROM invoices WHERE order_id = ANY($1::int[])', [orderIds]);
+      await client.query('DELETE FROM proforma_reminder_logs WHERE order_id = ANY($1::int[])', [orderIds]);
+      await client.query('DELETE FROM shipping_calculation_logs WHERE order_id = ANY($1::int[])', [orderIds]);
+      await client.query('DELETE FROM goods_in_transit WHERE order_id = ANY($1::int[])', [orderIds]);
+      await client.query('DELETE FROM shop_inventory_movements WHERE order_id = ANY($1::int[])', [orderIds]);
+      await client.query(
+        `DELETE FROM wallet_transactions
+          WHERE reference_id = ANY($1::int[])
+            AND reference_type = 'order'`,
+        [orderIds],
+      );
+      await client.query('DELETE FROM vehicle_selection_history WHERE order_number = ANY($1::text[])', [orderNumbers]);
+      await client.query('DELETE FROM production_orders WHERE order_number = ANY($1::text[])', [orderNumbers]);
+      await client.query('DELETE FROM abandoned_orders WHERE hybrid_order_number = ANY($1::text[])', [orderNumbers]);
+      await client.query('DELETE FROM order_management WHERE customer_order_id = ANY($1::int[])', [orderIds]);
+      await client.query('DELETE FROM customer_orders WHERE id = ANY($1::int[])', [orderIds]);
+      await client.query('COMMIT');
+      transactionStarted = false;
+
+      const orderById = new Map(
+        lockedOrdersResult.rows.map((row: { id: number; order_number: string | null }) => [
+          Number(row.id),
+          row.order_number ?? null,
+        ]),
+      );
+      const orders = orderIds.map((id) => ({ id, orderNumber: orderById.get(id) ?? null }));
+
+      return res.json({
+        success: true,
+        deletedIds: orderIds,
+        deletedCount: orderIds.length,
+        orders,
+      });
+    } catch (error) {
+      if (client && transactionStarted) {
+        try {
+          await client.query('ROLLBACK');
+        } catch (rollbackError) {
+          console.error('[SUPER ADMIN] Bulk order deletion rollback failed:', rollbackError);
+        }
+      }
+      console.error('[SUPER ADMIN] Bulk order deletion failed:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Unable to delete the requested orders',
+      });
+    } finally {
+      if (client) {
+        client.release();
+      }
+    }
+  });
+
   // Delete order by ID (for orders without order numbers) - SUPER ADMIN ONLY
   app.delete('/api/super-admin/orders-by-id/:orderId', requireSuperAdmin, async (req: Request, res: Response) => {
     const { orderId } = req.params;
@@ -50520,7 +50632,7 @@ momtazchem.com
   // REMOVED: Duplicate endpoint - see improved version below
 
   // Production Reset - SUPER ADMIN ONLY
-  app.post('/api/super-admin/reset-for-production', requireAuth, async (req: Request, res: Response) => {
+  app.post('/api/super-admin/reset-for-production', requireSuperAdminRole, async (req: Request, res: Response) => {
     try {
       console.log('🗑️ [PRODUCTION RESET] Starting production reset process');
       
@@ -57945,8 +58057,12 @@ momtazchem.com
       
       // Validate amount is a valid positive number
       const amountNum = typeof amount === 'number' ? amount : parseFloat(String(amount).replace(/,/g, ''));
-      if (!vendorId || isNaN(amountNum) || amountNum <= 0) {
-        return res.status(400).json({ success: false, message: 'اطلاعات پرداخت نامعتبر است' });
+      if (!Number.isInteger(vendorId) || vendorId <= 0 || !Number.isFinite(amountNum) || amountNum <= 0) {
+        return res.status(400).json({
+          success: false,
+          code: 'INVALID_VENDOR_PAYMENT',
+          message: 'شناسه فروشنده یا مبلغ پرداخت نامعتبر است',
+        });
       }
 
       const { db } = await import('./db');
@@ -57971,6 +58087,9 @@ momtazchem.com
       if (amountNum > availableBalance) {
         return res.status(400).json({ 
           success: false, 
+          code: 'PAYMENT_EXCEEDS_VENDOR_BALANCE',
+          requestedAmount: amountNum,
+          availableBalance,
           message: `مبلغ پرداخت (${amountNum.toLocaleString()} IQD) بیشتر از موجودی قابل پرداخت (${availableBalance.toLocaleString()} IQD) است`
         });
       }

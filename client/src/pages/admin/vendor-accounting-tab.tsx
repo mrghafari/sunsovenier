@@ -69,9 +69,13 @@ export default function VendorAccountingTab() {
   const allTransactions = useQuery<{ transactions: VendorTransaction[] }>({ queryKey: ["/api/admin/vendor-accounting/transactions"] });
   const invalidate = (key: string) => queryClient.invalidateQueries({ queryKey: [key] });
   const notify = (description: string) => toast({ title: t.success, description });
-  const fail = () => toast({ title: t.error, description: t.operationFailed, variant: "destructive" });
+  const fail = (error?: Error) => toast({
+    title: t.error,
+    description: error?.message || t.operationFailed,
+    variant: "destructive",
+  });
 
-  const paymentMutation = useMutation({ mutationFn: (data: { vendorId: number; amount: number; method: string; reference: string; notes: string }) => apiRequest("/api/admin/vendor-accounting/payment", { method: "POST", body: data }), onSuccess: () => { invalidate("/api/admin/vendor-accounting/balances"); invalidate("/api/admin/vendor-accounting/transactions"); setDialog(null); setPaymentAmount(""); setPaymentReference(""); setPaymentNotes(""); notify(t.paymentSaved); }, onError: fail });
+  const paymentMutation = useMutation({ mutationFn: (data: { vendorId: number; amount: number; method: string; reference: string; notes: string }) => apiRequest("/api/admin/vendor-accounting/payment", { method: "POST", body: data }), onSuccess: () => { invalidate("/api/admin/vendor-accounting/balances"); invalidate("/api/admin/vendor-accounting/transactions"); setDialog(null); setPaymentAmount(""); setPaymentReference(""); setPaymentNotes(""); notify(t.paymentSaved); }, onError: (error: Error) => fail(error) });
   const commissionMutation = useMutation({ mutationFn: (data: { vendorId: number; commissionRate: number }) => apiRequest(`/api/admin/vendor-accounting/commission/${data.vendorId}`, { method: "PATCH", body: { commissionRate: data.commissionRate } }), onSuccess: () => { invalidate("/api/admin/vendor-accounting/balances"); setDialog(null); notify(t.commissionSaved); }, onError: fail });
   const productCommissionMutation = useMutation({ mutationFn: (data: { productId: number; commissionOverride: number | null }) => apiRequest(`/api/admin/vendor-accounting/product-commission/${data.productId}`, { method: "PATCH", body: { commissionOverride: data.commissionOverride } }), onSuccess: () => { invalidate("/api/admin/vendor-accounting/products"); setDialog(null); notify(t.productCommissionSaved); }, onError: fail });
 
