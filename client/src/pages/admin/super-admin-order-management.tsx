@@ -43,6 +43,11 @@ const paymentLabels: Record<Lang, Record<string, string>> = {
   ar: { wallet_full: "محفظة (كامل)", wallet_partial: "محفظة (جزئي)", online_payment: "دفع إلكتروني", bank_transfer: "تحويل بنكي", bank_transfer_grace: "تحويل بنكي (مهلة)", hybrid: "مختلط", cash: "نقدي", credit: "ائتماني" },
   tr: { wallet_full: "Cüzdan (tam)", wallet_partial: "Cüzdan (kısmi)", online_payment: "Çevrim içi ödeme", bank_transfer: "Banka havalesi", bank_transfer_grace: "Banka havalesi (ek süre)", hybrid: "Karma", cash: "Nakit", credit: "Kredi" },
 };
+const statusFilterOptions = ["pending", "delivered", "cancelled", "deleted"];
+const paymentFilterOptions = [
+  { group: "status", values: ["pending", "partial", "paid", "grace_period", "receipt_uploaded"] },
+  { group: "method", values: ["online_payment", "bank_transfer_grace", "wallet_full", "wallet_partial"] },
+];
 
 export default function SuperAdminOrderManagement() {
   const { language, direction } = useLanguage();
@@ -183,8 +188,30 @@ export default function SuperAdminOrderManagement() {
   if (isUnauthenticated || isForbidden) return <div dir={direction} className="min-h-[100dvh] bg-slate-950 p-6 flex items-center justify-center"><Card className="max-w-md w-full border-red-900 bg-slate-900 text-slate-100"><CardHeader><CardTitle className="flex items-center gap-2 text-red-300"><Shield />{isForbidden ? c.forbidden : c.auth}</CardTitle></CardHeader><CardContent><p className="text-slate-300 mb-5">{isForbidden ? c.forbiddenHint : c.authHint}</p><Button onClick={() => window.location.href = isForbidden ? "/admin" : "/admin/login"}>{isForbidden ? c.back : c.signIn}</Button></CardContent></Card></div>;
 
   const updateColumnFilter = (key: keyof typeof columnFilters, value: string) => setColumnFilters(previous => ({ ...previous, [key]: value }));
-  const filterInput = (key: keyof typeof columnFilters, placeholder: string, type = "text") => (
-    <Input type={type} value={columnFilters[key]} onChange={event => updateColumnFilter(key, event.target.value)} placeholder={placeholder} className="mt-2 h-8 min-w-[110px] bg-white text-xs font-normal text-slate-900" />
+  const filterInput = (key: keyof typeof columnFilters, placeholder: string, type = "text") => {
+    if (key === "status") {
+      return selectFilter("status", statusFilterOptions.map(value => (
+        <option key={value} value={value}>{optionLabel(value)}</option>
+      )));
+    }
+    if (key === "payment") {
+      return selectFilter("payment", paymentFilterOptions.map(group => (
+        <optgroup key={group.group} label={group.group === "status" ? `${c.payment} status` : `${c.payment} method`}>
+          {group.values.map(value => <option key={value} value={value}>{optionLabel(value)}</option>)}
+        </optgroup>
+      )));
+    }
+    return <Input type={type} value={columnFilters[key]} onChange={event => updateColumnFilter(key, event.target.value)} placeholder={placeholder} className="mt-2 h-8 min-w-[110px] bg-white text-xs font-normal text-slate-900" />;
+  };
+  const optionLabel = (value: string) => {
+    const translatedStatus = c[`status${value.charAt(0).toUpperCase()}${value.slice(1)}`];
+    return paymentLabels[language as Lang]?.[value] || translatedStatus || value.replaceAll("_", " ");
+  };
+  const selectFilter = (key: "status" | "payment", options: React.ReactNode) => (
+    <select value={columnFilters[key]} onChange={event => updateColumnFilter(key, event.target.value)} className="mt-2 h-8 min-w-[135px] rounded-md border border-input bg-white px-2 text-xs font-normal text-slate-900" aria-label={key === "status" ? c.status : c.payment}>
+      <option value="">{language === "fa" ? "همه" : language === "ar" ? "الكل" : language === "tr" ? "Tümü" : "All"}</option>
+      {options}
+    </select>
   );
   const table = (rows: Order[], loading: boolean, emptyText = c.empty) => <Card className="border-slate-200 shadow-sm"><CardHeader className="border-b bg-slate-50/80 py-4"><div className="flex flex-wrap items-center justify-between gap-3"><CardTitle className="text-base flex items-center gap-2"><Package className="h-4 w-4 text-red-700" />{tab === "orders" ? c.orders : c.customer} <span className="text-slate-500 font-normal">({rows.length})</span></CardTitle><div className="flex items-center gap-2">{currentSelected.size > 0 && <><span className="text-sm font-medium text-red-800">{currentSelected.size} {c.selected}</span><Button variant="ghost" size="sm" onClick={() => setCurrentSelection(new Set())}><X className="h-4 w-4" />{c.clear}</Button><Button variant="destructive" size="sm" disabled={mutation.isPending} onClick={() => { const selectedRows = rows.filter(o => currentSelected.has(o.id)); setBulkSnapshot({ ids: selectedRows.map(o => o.id), labels: selectedRows.map(o => o.orderNumber ? `${o.orderNumber} (ID ${o.id})` : `ID ${o.id}`) }); setDialog("bulk"); }}><Trash2 className="h-4 w-4" />{c.bulk}</Button></>}</div></div></CardHeader><CardContent className="p-0">{loading ? <div className="p-8 space-y-3"><div className="h-4 bg-slate-100 animate-pulse rounded" /><div className="h-4 bg-slate-100 animate-pulse rounded" /><div className="h-4 bg-slate-100 animate-pulse rounded" /></div> : rows.length === 0 ? <div className="py-16 text-center text-slate-500"><Package className="mx-auto mb-3 h-9 w-9 text-slate-300" /><p className="font-medium">{emptyText}</p><p className="text-sm mt-1">{c.emptyHint}</p></div> : <div className="overflow-x-auto"><table className="w-full min-w-[1120px] text-sm"><thead className="bg-slate-50 text-slate-500"><tr className="align-top"><th className="w-12 px-4 py-3"><Checkbox checked={allVisibleSelected} onCheckedChange={(v) => setCurrentSelection(v === true ? new Set(rows.map(o => o.id)) : new Set())} aria-label={c.selected} /></th><th className="px-3 py-3 text-start">{c.order}{tab === "orders" && filterInput("orderNumber", c.order)}</th><th className="px-3 py-3 text-start">{c.customerName}{tab === "orders" && filterInput("customer", c.customerName)}</th><th className="px-3 py-3 text-start">{c.amount}{tab === "orders" && filterInput("amount", c.amount)}</th><th className="px-3 py-3 text-start">{c.status}{tab === "orders" && filterInput("status", c.status)}</th><th className="px-3 py-3 text-start">{c.payment}{tab === "orders" && filterInput("payment", c.payment)}</th><th className="px-3 py-3 text-start">{c.date}{tab === "orders" && filterInput("date", c.date, "date")}</th><th className="px-4 py-3 text-end">{c.action}</th></tr></thead><tbody>{rows.map(o => <tr key={o.id} className="border-t hover:bg-slate-50/70"><td className="px-4 py-3"><Checkbox checked={currentSelected.has(o.id)} onCheckedChange={(v) => { const next = new Set(currentSelected); v ? next.add(o.id) : next.delete(o.id); setCurrentSelection(next); }} /></td><td className="px-3 py-3 font-semibold text-slate-900">{o.orderNumber || <span className="text-slate-400">{c.noNumber}</span>}<div className="text-xs text-slate-400">ID {o.id}</div></td><td className="px-3 py-3"><div className="font-medium">{o.customerName || o.fullCustomerName || c.unknown}</div><div className="text-xs text-slate-500">{o.customerEmail || o.fullCustomerEmail || "—"}</div>{o.customerPhone && <div className="text-xs text-slate-400">{o.customerPhone}</div>}</td><td className="px-3 py-3 font-medium whitespace-nowrap">{formatMoney(o.totalAmount, o.currency)}</td><td className="px-3 py-3">{status(o.status)}</td><td className="px-3 py-3">{payment(o.paymentMethod)}</td><td className="px-3 py-3 whitespace-nowrap text-slate-600">{formatDate(o.createdAt)}</td><td className="px-4 py-3 text-end"><Button variant="outline" size="sm" className="text-red-700 border-red-200 hover:bg-red-50" disabled={mutation.isPending} onClick={() => { setTarget(o); setDialog("single"); }}><Trash2 className="h-4 w-4" />{c.delete}</Button></td></tr>)}</tbody></table></div>}</CardContent></Card>;
 
