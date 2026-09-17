@@ -14,11 +14,14 @@ import PaymentMethodBadge from "@/components/PaymentMethodBadge";
 import { BankReceiptUploadModal } from "@/components/BankReceiptUploadModal";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getOrderStatusLabel, resolveOrderStatus, type OrderStatusLanguage } from "@shared/order-status";
-import DatePicker, { DateObject } from "react-multi-date-picker";
+import DatePickerModule, { type DateObject } from "react-multi-date-picker";
 import persian from "react-date-object/calendars/persian";
-import gregorian from "react-date-object/calendars/gregorian";
 import persianFa from "react-date-object/locales/persian_fa";
 import "react-multi-date-picker/styles/layouts/mobile.css";
+
+const PersianDatePicker = (
+  (DatePickerModule as any).default ?? DatePickerModule
+) as React.ComponentType<any>;
 
 // ─── Local profile translations ───────────────────────────────────────────────
 const PROFILE_T = {
@@ -864,7 +867,7 @@ const CustomerProfile = () => {
     ).format(new Date(dateString));
 
   const toPersianPickerValue = (value: string) => value
-    ? new DateObject({ date: value, format: "YYYY-MM-DD", calendar: gregorian }).convert(persian)
+    ? new Date(`${value}T12:00:00`)
     : null;
 
   const handlePersianDateChange = (
@@ -875,7 +878,11 @@ const CustomerProfile = () => {
       setter("");
       return;
     }
-    setter(value.convert(gregorian).format("YYYY-MM-DD"));
+    const selectedDate = value.toDate();
+    const year = selectedDate.getFullYear();
+    const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
+    const day = String(selectedDate.getDate()).padStart(2, "0");
+    setter(`${year}-${month}-${day}`);
   };
 
   const handleCsvExport = async () => {
@@ -1288,9 +1295,9 @@ const CustomerProfile = () => {
                       ))}
                        </div>
                        {language === "fa" ? (
-                         <DatePicker
+                         <PersianDatePicker
                            value={toPersianPickerValue(dateFrom)}
-                           onChange={(value) => handlePersianDateChange(value, setDateFrom)}
+                           onChange={(value: DateObject | DateObject[] | null) => handlePersianDateChange(value, setDateFrom)}
                            calendar={persian}
                            locale={persianFa}
                            calendarPosition="bottom-right"
@@ -1305,9 +1312,9 @@ const CustomerProfile = () => {
                          <Input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} aria-label={pt.fromDate} className="h-9 w-full border-slate-300 sm:w-[145px]" />
                        )}
                        {language === "fa" ? (
-                         <DatePicker
+                         <PersianDatePicker
                            value={toPersianPickerValue(dateTo)}
-                           onChange={(value) => handlePersianDateChange(value, setDateTo)}
+                           onChange={(value: DateObject | DateObject[] | null) => handlePersianDateChange(value, setDateTo)}
                            calendar={persian}
                            locale={persianFa}
                            calendarPosition="bottom-right"

@@ -15,3 +15,4 @@
 - [Destructive super-admin actions](destructive-super-admin-actions.md) — require a verified active role and make multi-record deletion atomic with explicit targets.
 - [Legacy super-admin role](legacy-super-admin-role.md) — the active super-admin role may use the historical “Supper Admin” spelling; authorization must canonicalize only this known alias.
 - [Permissioned marketing email](permissioned-marketing-email.md) — campaign recipients require verified consent, global suppression, safe queueing, and explicit worker activation.
+- [Multi-date-picker module interop](multi-date-picker-interop.md) — resolve the package’s inner default export before rendering or Persian mode can crash with React error 130.
