@@ -358,9 +358,18 @@ export class SmsService {
   }
 
   async sendVerificationCode(phone: string, code: string): Promise<{ success: boolean; messageId?: string; error?: string }> {
+    const { pool } = await import('./db');
+    const { resolveSmsLanguage, selectLocalizedSms } = await import('./sms-language');
+    const language = await resolveSmsLanguage(pool, undefined, phone);
+    const localizedMessages = {
+      en: `Your verification code is: ${code}`,
+      fa: `کد تأیید شما: ${code}`,
+      ar: `رمز التحقق الخاص بك: ${code}`,
+      tr: `Doğrulama kodunuz: ${code}`,
+    };
     const message = {
       to: phone,
-      message: `کد تایید شما: ${code}`,
+      message: selectLocalizedSms(localizedMessages, language) || localizedMessages.en,
       code: code
     };
 

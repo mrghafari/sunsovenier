@@ -1,994 +1,978 @@
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { 
-  MessageSquare, 
-  Settings, 
-  BarChart3, 
-  Shield, 
-  Clock, 
-  Truck, 
+import { useEffect, useMemo, useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  BarChart3,
+  Settings,
+  MessageSquare,
+  RefreshCw,
   CheckCircle2,
   XCircle,
-  RefreshCw,
+  Send,
   Info,
-  AlertTriangle,
-  Send
-} from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import SmsTemplatesSimple from '@/components/sms-templates-simple';
+  Shield,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
+import SmsTemplatesSimple from "@/components/sms-templates-simple";
 
+type Lang = "en" | "fa" | "ar" | "tr";
+type Status = "sent" | "accepted" | "pending" | "failed" | "delivered";
 interface SmsSettings {
-  id?: number;
+  [key: string]: any;
   isEnabled: boolean;
   provider: string;
-  customProviderName?: string;
-  
-  // Authentication credentials
-  apiKey?: string;
-  apiSecret?: string;
-  username?: string;
-  password?: string;
-  accessToken?: string;
-  clientId?: string;
-  clientSecret?: string;
-  
-  // Provider configuration
-  senderNumber?: string;
-  senderId?: string;
-  apiEndpoint?: string;
-  baseUrl?: string;
-  serviceType?: string;
-  patternId?: string;
-  templateId?: string;
-  serviceCode?: string;
-  applicationId?: string;
-  
-  // Additional provider-specific fields
-  countryCode?: string;
-  encoding?: string;
-  messageType?: string;
-  priority?: string;
-  validityPeriod?: number;
-  
-  // Security and validation
-  webhookUrl?: string;
-  webhookSecret?: string;
-  ipWhitelist?: string[];
-  
-  // Rate limiting and quotas
-  dailyLimit?: number;
-  monthlyLimit?: number;
-  rateLimitPerMinute?: number;
-  
-  // Message configuration
   codeLength: number;
   codeExpiry: number;
   maxAttempts: number;
-  rateLimitMinutes?: number;
-  
-  // System fields
-  isTestMode?: boolean;
   rateLimitMinutes: number;
 }
-
-
-
 interface SmsLog {
   id: number;
   recipientName: string;
   recipientPhone: string;
   messageText: string;
   sentAt: string;
-  status: 'sent' | 'delivered' | 'failed';
+  status: Status;
 }
-
-interface DeliveryLog {
-  id: number;
-  orderId: number;
-  customerName: string;
-  phone: string;
-  verificationCode: string;
-  smsStatus: 'sent' | 'delivered' | 'failed';
-  createdAt: string;
-  deliveredAt?: string;
-  isVerified: boolean;
+interface Copy {
+  [key: string]: string;
 }
+const copy: Record<Lang, Copy> = {
+  en: {
+    title: "SMS authentication management",
+    subtitle: "Manage SMS delivery and templates",
+    active: "System active",
+    disabled: "System disabled",
+    overview: "Overview",
+    settings: "Settings",
+    templates: "SMS templates",
+    stats: "Outbound SMS statistics",
+    history: "Outbound messages and delivery status",
+    search: "Search messages",
+    searchPh: "Name, phone number, or message text",
+    range: "Time range",
+    all: "All time",
+    today: "Today",
+    week: "Past week",
+    month: "Past month",
+    refresh: "Refresh",
+    showing: "Showing {shown} of {total} messages",
+    empty: "No outbound SMS messages",
+    emptyDesc: "Outbound messages will appear here",
+    recipient: "Recipient",
+    phone: "Phone",
+    message: "Message",
+    time: "Sent at",
+    status: "Status",
+    accepted: "Accepted / sent to provider",
+    pending: "Pending",
+    failed: "Failed",
+    delivered: "Delivered",
+    save: "Save settings",
+    saved: "Settings saved",
+    saveError: "Could not save settings",
+    toggleError: "Could not change system status",
+    enabled: "Enabled",
+    disabledWord: "Disabled",
+    provider: "SMS provider",
+    custom: "Custom provider name",
+    apiKey: "API key / token",
+    username: "Username",
+    password: "Password",
+    senderNumber: "Sender number",
+    apiEndpoint: "API endpoint",
+    serviceType: "Service type",
+    patternId: "Pattern ID",
+    serviceCode: "Service code",
+    accessToken: "Access token",
+    clientId: "Client ID",
+    senderId: "Sender ID",
+    templateId: "Template ID",
+    applicationId: "Application ID",
+    webhookUrl: "Webhook URL",
+    dailyLimit: "Daily message limit",
+    priority: "Priority",
+    testMode: "Test mode",
+    testModeOn: "Test mode enabled",
+    testModeOff: "Test mode disabled",
+    codeLength: "Code length",
+    codeExpiry: "Code expiry (seconds)",
+    maxAttempts: "Maximum attempts",
+    rateLimit: "Rate limit (minutes)",
+    test: "Send test SMS",
+    testDesc: "Send one test message using the current provider settings",
+    testPhone: "Recipient phone number",
+    testPhonePh: "+964770000000",
+    testLanguage: "Message language",
+    testMessage: "Message",
+    testMessagePh: "Enter a test message",
+    send: "Send test message",
+    testing: "Sending…",
+    connection: "Test connection",
+    success: "Success",
+    error: "Error",
+    required: "Phone number and message are required",
+    connectionOk: "SMS connection test succeeded",
+    sent: "Message accepted by provider",
+    testError: "Test SMS failed",
+    providerGuide: "Provider guidance",
+    iraq: "Iraqi operators",
+    international: "International providers",
+    customNote:
+      "If your provider is not listed, choose Custom and enter its API details.",
+    disabledNote: "SMS authentication is disabled. Enable it in Settings.",
+    noDelivery:
+      "Accepted means sent to the provider; it does not confirm delivery.",
+  },
+  fa: {
+    title: "مدیریت احراز هویت پیامکی",
+    subtitle: "مدیریت ارسال پیامک و قالب‌ها",
+    active: "سیستم فعال است",
+    disabled: "سیستم غیرفعال است",
+    overview: "آمار کلی",
+    settings: "تنظیمات",
+    templates: "قالب‌های پیامک",
+    stats: "آمار پیامک‌های خروجی",
+    history: "پیام‌های خروجی و وضعیت ارسال",
+    search: "جستجو در پیام‌ها",
+    searchPh: "نام، شماره تلفن یا متن پیام",
+    range: "بازه زمانی",
+    all: "همه زمان‌ها",
+    today: "امروز",
+    week: "هفته گذشته",
+    month: "ماه گذشته",
+    refresh: "بروزرسانی",
+    showing: "نمایش {shown} از {total} پیام",
+    empty: "هیچ پیام خروجی وجود ندارد",
+    emptyDesc: "پیام‌های خروجی اینجا نمایش داده می‌شوند",
+    recipient: "دریافت‌کننده",
+    phone: "شماره تلفن",
+    message: "پیام",
+    time: "زمان ارسال",
+    status: "وضعیت",
+    accepted: "پذیرفته‌شده / ارسال به ارائه‌دهنده",
+    pending: "در انتظار",
+    failed: "ناموفق",
+    delivered: "تحویل‌شده",
+    save: "ذخیره تنظیمات",
+    saved: "تنظیمات ذخیره شد",
+    saveError: "ذخیره تنظیمات ناموفق بود",
+    toggleError: "تغییر وضعیت سیستم ناموفق بود",
+    enabled: "فعال",
+    disabledWord: "غیرفعال",
+    provider: "ارائه‌دهنده پیامک",
+    custom: "نام ارائه‌دهنده سفارشی",
+    apiKey: "کلید API / Token",
+    username: "نام کاربری",
+    password: "رمز عبور",
+    senderNumber: "شماره ارسال",
+    apiEndpoint: "آدرس API",
+    serviceType: "نوع سرویس",
+    patternId: "شناسه Pattern",
+    serviceCode: "کد سرویس",
+    accessToken: "Access Token",
+    clientId: "Client ID",
+    senderId: "Sender ID",
+    templateId: "Template ID",
+    applicationId: "Application ID",
+    webhookUrl: "آدرس Webhook",
+    dailyLimit: "حد روزانه پیام",
+    priority: "اولویت",
+    testMode: "حالت تست",
+    testModeOn: "حالت تست فعال",
+    testModeOff: "حالت تست غیرفعال",
+    codeLength: "طول کد",
+    codeExpiry: "انقضای کد (ثانیه)",
+    maxAttempts: "حداکثر تلاش‌ها",
+    rateLimit: "محدودیت (دقیقه)",
+    test: "ارسال پیامک تست",
+    testDesc: "ارسال یک پیام تست با تنظیمات فعلی ارائه‌دهنده",
+    testPhone: "شماره تلفن دریافت‌کننده",
+    testPhonePh: "+964770000000",
+    testLanguage: "زبان پیام",
+    testMessage: "پیام",
+    testMessagePh: "پیام تست را وارد کنید",
+    send: "ارسال پیام تست",
+    testing: "در حال ارسال…",
+    connection: "تست اتصال",
+    success: "موفقیت",
+    error: "خطا",
+    required: "شماره تلفن و پیام الزامی است",
+    connectionOk: "تست اتصال پیامک موفق بود",
+    sent: "پیام توسط ارائه‌دهنده پذیرفته شد",
+    testError: "ارسال پیامک تست ناموفق بود",
+    providerGuide: "راهنمای ارائه‌دهندگان",
+    iraq: "اپراتورهای عراق",
+    international: "ارائه‌دهندگان بین‌المللی",
+    customNote:
+      "اگر ارائه‌دهنده شما در فهرست نیست، Custom را انتخاب و جزئیات API را وارد کنید.",
+    disabledNote: "احراز هویت پیامکی غیرفعال است. آن را در تنظیمات فعال کنید.",
+    noDelivery:
+      "پذیرفته‌شدن یعنی ارسال به ارائه‌دهنده؛ تحویل پیام را تأیید نمی‌کند.",
+  },
+  ar: {
+    title: "إدارة مصادقة الرسائل النصية",
+    subtitle: "إدارة إرسال الرسائل والقوالب",
+    active: "النظام مفعل",
+    disabled: "النظام معطل",
+    overview: "نظرة عامة",
+    settings: "الإعدادات",
+    templates: "قوالب الرسائل",
+    stats: "إحصاءات الرسائل الصادرة",
+    history: "الرسائل الصادرة وحالة الإرسال",
+    search: "البحث في الرسائل",
+    searchPh: "الاسم أو الهاتف أو نص الرسالة",
+    range: "النطاق الزمني",
+    all: "كل الأوقات",
+    today: "اليوم",
+    week: "الأسبوع الماضي",
+    month: "الشهر الماضي",
+    refresh: "تحديث",
+    showing: "عرض {shown} من {total} رسالة",
+    empty: "لا توجد رسائل صادرة",
+    emptyDesc: "ستظهر الرسائل الصادرة هنا",
+    recipient: "المستلم",
+    phone: "الهاتف",
+    message: "الرسالة",
+    time: "وقت الإرسال",
+    status: "الحالة",
+    accepted: "مقبولة / أرسلت للمزود",
+    pending: "قيد الانتظار",
+    failed: "فشل",
+    delivered: "تم التسليم",
+    save: "حفظ الإعدادات",
+    saved: "تم حفظ الإعدادات",
+    saveError: "تعذر حفظ الإعدادات",
+    toggleError: "تعذر تغيير حالة النظام",
+    enabled: "مفعل",
+    disabledWord: "معطل",
+    provider: "مزود الرسائل",
+    custom: "اسم المزود المخصص",
+    apiKey: "مفتاح API / Token",
+    username: "اسم المستخدم",
+    password: "كلمة المرور",
+    senderNumber: "رقم المرسل",
+    apiEndpoint: "نقطة API",
+    serviceType: "نوع الخدمة",
+    patternId: "معرف Pattern",
+    serviceCode: "رمز الخدمة",
+    accessToken: "Access Token",
+    clientId: "Client ID",
+    senderId: "Sender ID",
+    templateId: "Template ID",
+    applicationId: "Application ID",
+    webhookUrl: "عنوان Webhook",
+    dailyLimit: "الحد اليومي",
+    priority: "الأولوية",
+    testMode: "وضع الاختبار",
+    testModeOn: "وضع الاختبار مفعل",
+    testModeOff: "وضع الاختبار معطل",
+    codeLength: "طول الرمز",
+    codeExpiry: "انتهاء الرمز (ثوان)",
+    maxAttempts: "أقصى المحاولات",
+    rateLimit: "حد المعدل (دقائق)",
+    test: "إرسال رسالة اختبار",
+    testDesc: "إرسال رسالة اختبار بإعدادات المزود الحالية",
+    testPhone: "رقم هاتف المستلم",
+    testPhonePh: "+964770000000",
+    testLanguage: "لغة الرسالة",
+    testMessage: "الرسالة",
+    testMessagePh: "أدخل رسالة اختبار",
+    send: "إرسال رسالة اختبار",
+    testing: "جار الإرسال…",
+    connection: "اختبار الاتصال",
+    success: "نجاح",
+    error: "خطأ",
+    required: "رقم الهاتف والرسالة مطلوبان",
+    connectionOk: "نجح اختبار اتصال الرسائل",
+    sent: "قبل المزود الرسالة",
+    testError: "فشل إرسال رسالة الاختبار",
+    providerGuide: "إرشادات المزود",
+    iraq: "المشغلون العراقيون",
+    international: "المزودون الدوليون",
+    customNote: "إذا لم يكن مزودك في القائمة، اختر Custom وأدخل تفاصيل API.",
+    disabledNote: "مصادقة الرسائل معطلة. فعلها من الإعدادات.",
+    noDelivery: "القبول يعني الإرسال إلى المزود ولا يؤكد التسليم.",
+  },
+  tr: {
+    title: "SMS kimlik doğrulama yönetimi",
+    subtitle: "SMS gönderimini ve şablonları yönetin",
+    active: "Sistem etkin",
+    disabled: "Sistem devre dışı",
+    overview: "Genel bakış",
+    settings: "Ayarlar",
+    templates: "SMS şablonları",
+    stats: "Giden SMS istatistikleri",
+    history: "Giden mesajlar ve gönderim durumu",
+    search: "Mesajlarda ara",
+    searchPh: "Ad, telefon veya mesaj metni",
+    range: "Zaman aralığı",
+    all: "Tüm zamanlar",
+    today: "Bugün",
+    week: "Geçen hafta",
+    month: "Geçen ay",
+    refresh: "Yenile",
+    showing: "{total} mesajdan {shown} gösteriliyor",
+    empty: "Giden SMS yok",
+    emptyDesc: "Giden mesajlar burada görünecek",
+    recipient: "Alıcı",
+    phone: "Telefon",
+    message: "Mesaj",
+    time: "Gönderim zamanı",
+    status: "Durum",
+    accepted: "Kabul edildi / sağlayıcıya gönderildi",
+    pending: "Bekliyor",
+    failed: "Başarısız",
+    delivered: "Teslim edildi",
+    save: "Ayarları kaydet",
+    saved: "Ayarlar kaydedildi",
+    saveError: "Ayarlar kaydedilemedi",
+    toggleError: "Sistem durumu değiştirilemedi",
+    enabled: "Etkin",
+    disabledWord: "Devre dışı",
+    provider: "SMS sağlayıcısı",
+    custom: "Özel sağlayıcı adı",
+    apiKey: "API anahtarı / Token",
+    username: "Kullanıcı adı",
+    password: "Şifre",
+    senderNumber: "Gönderici numarası",
+    apiEndpoint: "API uç noktası",
+    serviceType: "Servis türü",
+    patternId: "Pattern ID",
+    serviceCode: "Servis kodu",
+    accessToken: "Access Token",
+    clientId: "Client ID",
+    senderId: "Sender ID",
+    templateId: "Template ID",
+    applicationId: "Application ID",
+    webhookUrl: "Webhook adresi",
+    dailyLimit: "Günlük mesaj sınırı",
+    priority: "Öncelik",
+    testMode: "Test modu",
+    testModeOn: "Test modu etkin",
+    testModeOff: "Test modu devre dışı",
+    codeLength: "Kod uzunluğu",
+    codeExpiry: "Kod süresi (saniye)",
+    maxAttempts: "Maksimum deneme",
+    rateLimit: "Hız sınırı (dakika)",
+    test: "Test SMS gönder",
+    testDesc: "Geçerli sağlayıcı ayarlarıyla bir test mesajı gönderin",
+    testPhone: "Alıcı telefon numarası",
+    testPhonePh: "+964770000000",
+    testLanguage: "Mesaj dili",
+    testMessage: "Mesaj",
+    testMessagePh: "Test mesajı girin",
+    send: "Test mesajı gönder",
+    testing: "Gönderiliyor…",
+    connection: "Bağlantıyı test et",
+    success: "Başarılı",
+    error: "Hata",
+    required: "Telefon ve mesaj gereklidir",
+    connectionOk: "SMS bağlantı testi başarılı",
+    sent: "Mesaj sağlayıcı tarafından kabul edildi",
+    testError: "Test SMS gönderilemedi",
+    providerGuide: "Sağlayıcı bilgileri",
+    iraq: "Irak operatörleri",
+    international: "Uluslararası sağlayıcılar",
+    customNote:
+      "Sağlayıcınız listede yoksa Custom seçin ve API ayrıntılarını girin.",
+    disabledNote: "SMS kimlik doğrulama devre dışı. Ayarlardan etkinleştirin.",
+    noDelivery:
+      "Kabul, sağlayıcıya gönderildiğini gösterir; teslimatı doğrulamaz.",
+  },
+};
+const languages: Record<Lang, string> = {
+  en: "English",
+  fa: "فارسی",
+  ar: "العربية",
+  tr: "Türkçe",
+};
+const initial: SmsSettings = {
+  isEnabled: false,
+  provider: "infobip",
+  codeLength: 4,
+  codeExpiry: 10,
+  maxAttempts: 3,
+  rateLimitMinutes: 60,
+  isTestMode: true,
+  dailyLimit: 1000,
+};
 
 export default function AdminSmsManagement() {
+  const { language, direction } = useLanguage();
+  const l = copy[language as Lang];
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
-  const [testLoading, setTestLoading] = useState(false);
-  const [testPhone, setTestPhone] = useState("");
-  const [testMessage, setTestMessage] = useState("پیام تست از سیستم Momtaz Chemical");
-  const [testResult, setTestResult] = useState<{
-    success: boolean;
-    message: string;
-    messageId?: string;
-  } | null>(null);
-  const [settings, setSettings] = useState<SmsSettings>({
-    isEnabled: false,
-    provider: 'infobip',
-    encoding: 'UTF-8',
-    messageType: 'TEXT',
-    priority: 'NORMAL',
-    validityPeriod: 1440,
-    dailyLimit: 1000,
-    monthlyLimit: 30000,
-    rateLimitPerMinute: 10,
-    codeLength: 4,
-    codeExpiry: 10,
-    maxAttempts: 3,
-    rateLimitMinutes: 60,
-    isTestMode: true
+  const [settings, setSettings] = useState<SmsSettings>(initial);
+  const [logs, setLogs] = useState<SmsLog[]>([]);
+  const [search, setSearch] = useState("");
+  const [range, setRange] = useState("all");
+  const [busy, setBusy] = useState(false);
+  const [testBusy, setTestBusy] = useState(false);
+  const [phone, setPhone] = useState("");
+  const [preferredLanguage, setPreferredLanguage] = useState<Lang>(
+    language as Lang,
+  );
+  const [messages, setMessages] = useState<Record<Lang, string>>({
+    en: "",
+    fa: "",
+    ar: "",
+    tr: "",
   });
-
-  const [smsLogs, setSmsLogs] = useState<SmsLog[]>([]);
-  const [filteredLogs, setFilteredLogs] = useState<SmsLog[]>([]);
-  const [logSearchQuery, setLogSearchQuery] = useState('');
-  const [timeFilter, setTimeFilter] = useState('all');
-
-
+  const [result, setResult] = useState<any>(null);
+  const load = async () => {
+    try {
+      const [s, g] = await Promise.all([
+        fetch("/api/admin/sms/settings"),
+        fetch("/api/admin/sms/logs"),
+      ]);
+      const sd = await s.json();
+      const gd = await g.json();
+      if (sd.success)
+        setSettings({ ...initial, ...(sd.data || sd.settings || {}) });
+      if (gd.success) setLogs(gd.data || gd.logs || []);
+    } catch {}
+  };
   useEffect(() => {
-    loadSmsSettings();
-    loadSmsLogs();
+    load();
   }, []);
-
-
-
-  // Filter SMS logs based on search and time filters
-  useEffect(() => {
-    let filtered = [...smsLogs];
-
-    // Apply text search filter
-    if (logSearchQuery.trim()) {
-      filtered = filtered.filter(log => 
-        log.recipientName.toLowerCase().includes(logSearchQuery.toLowerCase()) ||
-        log.recipientPhone.includes(logSearchQuery) ||
-        log.messageText.toLowerCase().includes(logSearchQuery.toLowerCase())
-      );
-    }
-
-    // Apply time filter
-    if (timeFilter !== 'all') {
-      const now = new Date();
-      const filterDate = new Date();
-      
-      if (timeFilter === 'today') {
-        filterDate.setHours(0, 0, 0, 0);
-      } else if (timeFilter === 'week') {
-        filterDate.setDate(now.getDate() - 7);
-      } else if (timeFilter === 'month') {
-        filterDate.setMonth(now.getMonth() - 1);
-      }
-      
-      filtered = filtered.filter(log => new Date(log.sentAt) >= filterDate);
-    }
-
-    setFilteredLogs(filtered);
-  }, [smsLogs, logSearchQuery, timeFilter]);
-
-  const loadSmsSettings = async () => {
+  const visible = useMemo(
+    () =>
+      logs.filter((x) => {
+        const q = search.toLowerCase();
+        const found =
+          !q ||
+          x.recipientName.toLowerCase().includes(q) ||
+          x.recipientPhone.includes(q) ||
+          x.messageText.toLowerCase().includes(q);
+        if (!found) return false;
+        if (range === "all") return true;
+        const d = new Date();
+        if (range === "today") d.setHours(0, 0, 0, 0);
+        if (range === "week") d.setDate(d.getDate() - 7);
+        if (range === "month") d.setMonth(d.getMonth() - 1);
+        return new Date(x.sentAt) >= d;
+      }),
+    [logs, search, range],
+  );
+  const update = (key: string, value: any) =>
+    setSettings((x) => ({ ...x, [key]: value }));
+  const toggle = async (enabled: boolean) => {
+    setBusy(true);
     try {
-      const response = await fetch('/api/admin/sms/settings');
-      const result = await response.json();
-      if (result.success && result.data) {
-        setSettings(result.data);
-      }
-    } catch (error) {
-      console.error('Error loading SMS settings:', error);
-    }
-  };
-
-  const loadSmsLogs = async () => {
-    try {
-      const response = await fetch('/api/admin/sms/logs');
-      const result = await response.json();
-      if (result.success) {
-        setSmsLogs(result.data || []);
-      }
-    } catch (error) {
-      console.error('Error loading SMS logs:', error);
-      setSmsLogs([]);
-    }
-  };
-
-
-
-
-
-  const handleToggleSystem = async (enabled: boolean) => {
-    setLoading(true);
-    try {
-      const response = await fetch('/api/admin/sms/toggle-system', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enabled })
+      const r = await fetch("/api/admin/sms/toggle-system", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled }),
       });
-
-      if (response.ok) {
-        setSettings(prev => ({ ...prev, isEnabled: enabled }));
-        setSettings(prev => ({ ...prev, isEnabled: enabled }));
-        toast({
-          title: enabled ? 'فعال شد' : 'غیرفعال شد',
-          description: `سیستم SMS ${enabled ? 'فعال' : 'غیرفعال'} شد`
-        });
-      }
-    } catch (error) {
+      if (!r.ok) throw Error();
+      update("isEnabled", enabled);
+    } catch {
       toast({
-        title: 'خطا',
-        description: 'مشکل در تغییر وضعیت سیستم',
-        variant: 'destructive'
+        title: l.error,
+        description: l.toggleError,
+        variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
   };
-
-  const handleSaveSettings = async () => {
-    setLoading(true);
+  const save = async () => {
+    setBusy(true);
     try {
-      const response = await fetch('/api/admin/sms/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings)
+      const r = await fetch("/api/admin/sms/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(settings),
       });
-
-      if (response.ok) {
-        toast({
-          title: 'ذخیره شد',
-          description: 'تنظیمات SMS ذخیره شد'
-        });
-      }
-    } catch (error) {
+      if (!r.ok) throw Error();
+      toast({ title: l.success, description: l.saved });
+    } catch {
       toast({
-        title: 'خطا',
-        description: 'مشکل در ذخیره تنظیمات',
-        variant: 'destructive'
+        title: l.error,
+        description: l.saveError,
+        variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
   };
-
-  const handleTestConnection = async () => {
-    setTestLoading(true);
-    setTestResult(null);
+  const testConnection = async () => {
+    setTestBusy(true);
     try {
-      const response = await fetch('/api/admin/sms/test-connection', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
+      const r = await fetch("/api/admin/sms/test-connection", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
       });
-
-      const data = await response.json();
-      
-      if (data.success) {
-        setTestResult({
-          success: true,
-          message: data.message,
-          messageId: data.messageId
-        });
-        toast({
-          title: "موفقیت",
-          description: "اتصال SMS با موفقیت تست شد"
-        });
-      } else {
-        setTestResult({
-          success: false,
-          message: data.message
-        });
-        toast({
-          title: "خطا در تست اتصال",
-          description: data.message,
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('Error testing SMS connection:', error);
-      setTestResult({
-        success: false,
-        message: "خطا در تست اتصال SMS"
-      });
+      const d = await r.json();
+      const message = d.success ? l.connectionOk : l.testError;
+      setResult({ success: d.success, message });
       toast({
-        title: "خطا",
-        description: "خطا در تست اتصال SMS",
-        variant: "destructive"
+        title: d.success ? l.success : l.error,
+        description: message,
+        variant: d.success ? "default" : "destructive",
       });
+    } catch {
+      setResult({ success: false, message: l.testError });
     } finally {
-      setTestLoading(false);
+      setTestBusy(false);
     }
   };
-
-  const handleTestSms = async () => {
-    if (!testPhone || !testMessage) {
+  const testSms = async () => {
+    const localizedMessages = Object.fromEntries(
+      Object.entries(messages).filter(([, v]) => v.trim()),
+    );
+    const hasAllLanguages = Object.keys(languages).every(
+      (v) => localizedMessages[v],
+    );
+    if (!phone || !hasAllLanguages) {
       toast({
-        title: "خطا",
-        description: "شماره تلفن و پیام الزامی است",
-        variant: "destructive"
+        title: l.error,
+        description: l.required,
+        variant: "destructive",
       });
       return;
     }
-
-    setTestLoading(true);
-    setTestResult(null);
+    setTestBusy(true);
     try {
-      const response = await fetch('/api/admin/sms/test-sms', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const r = await fetch("/api/admin/sms/test-sms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          phoneNumber: testPhone,
-          message: testMessage
-        })
+          phoneNumber: phone,
+          message: localizedMessages[preferredLanguage],
+          localizedMessages,
+          preferredLanguage,
+        }),
       });
-
-      const data = await response.json();
-      
-      if (data.success) {
-        setTestResult({
-          success: true,
-          message: data.message,
-          messageId: data.messageId
-        });
-        toast({
-          title: "موفقیت",
-          description: "پیامک با موفقیت ارسال شد"
-        });
-      } else {
-        setTestResult({
-          success: false,
-          message: data.message
-        });
-        toast({
-          title: "خطا در ارسال",
-          description: data.message,
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('Error sending test SMS:', error);
-      setTestResult({
-        success: false,
-        message: "خطا در ارسال پیامک تست"
-      });
+      const d = await r.json();
+      const message = d.success ? l.sent : l.testError;
+      setResult({ success: d.success, message, messageId: d.messageId });
       toast({
-        title: "خطا",
-        description: "خطا در ارسال پیامک تست",
-        variant: "destructive"
+        title: d.success ? l.success : l.error,
+        description: message,
+        variant: d.success ? "default" : "destructive",
       });
+    } catch {
+      setResult({ success: false, message: l.testError });
     } finally {
-      setTestLoading(false);
+      setTestBusy(false);
     }
   };
-
-
-
+  const field = (key: string, label: string, type = "text") => (
+    <div className="space-y-2">
+      <Label htmlFor={key}>{label}</Label>
+      <Input
+        id={key}
+        type={type}
+        value={settings[key] ?? ""}
+        onChange={(e) =>
+          update(
+            key,
+            type === "number" ? Number(e.target.value) : e.target.value,
+          )
+        }
+      />
+    </div>
+  );
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div dir={direction} lang={language} className="space-y-6">
+      <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">SMS Authentication Management</h1>
-          <p className="text-muted-foreground">
-            مدیریت سیستم SMS و قالب‌های ساده
-          </p>
+          <h1 className="text-3xl font-bold">{l.title}</h1>
+          <p className="text-muted-foreground">{l.subtitle}</p>
         </div>
-        <div className="flex items-center space-x-2">
-          <Badge variant={settings.isEnabled ? "default" : "secondary"}>
-            {settings.isEnabled ? "System Active" : "System Disabled"}
-          </Badge>
-        </div>
-      </div>
-
+        <Badge variant={settings.isEnabled ? "default" : "secondary"}>
+          {settings.isEnabled ? l.active : l.disabled}
+        </Badge>
+      </header>
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">
-            <BarChart3 className="h-4 w-4 mr-2" />
-            آمار کلی
+            <BarChart3 className="h-4 w-4 me-2" />
+            {l.overview}
           </TabsTrigger>
           <TabsTrigger value="settings">
-            <Settings className="h-4 w-4 mr-2" />
-            تنظیمات
+            <Settings className="h-4 w-4 me-2" />
+            {l.settings}
           </TabsTrigger>
-
           <TabsTrigger value="templates">
-            <MessageSquare className="h-4 w-4 mr-2" />
-            قالب‌های SMS
+            <MessageSquare className="h-4 w-4 me-2" />
+            {l.templates}
           </TabsTrigger>
         </TabsList>
-
-        <TabsContent value="overview" className="space-y-4">
+        <TabsContent value="overview">
           <Card>
             <CardHeader>
-              <CardTitle>آمار کلی ارسال SMS</CardTitle>
-              <CardDescription>
-                تاریخچه کامل پیام‌های ارسالی با امکان فیلتر کردن
-              </CardDescription>
-              
-              {/* فیلترها */}
-              <div className="space-y-4 mt-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="searchSms">جستجو در پیام‌ها</Label>
-                    <Input
-                      id="searchSms"
-                      placeholder="نام، شماره تلفن، یا متن پیام..."
-                      value={logSearchQuery}
-                      onChange={(e) => setLogSearchQuery(e.target.value)}
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="timeFilter">بازه زمانی</Label>
-                    <Select value={timeFilter} onValueChange={setTimeFilter}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">همه زمان‌ها</SelectItem>
-                        <SelectItem value="today">امروز</SelectItem>
-                        <SelectItem value="week">هفته گذشته</SelectItem>
-                        <SelectItem value="month">ماه گذشته</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex items-end">
-                    <Button 
-                      onClick={loadSmsLogs} 
-                      variant="outline"
-                      disabled={loading}
-                      className="w-full"
-                    >
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      بروزرسانی
-                    </Button>
-                  </div>
+              <CardTitle>{l.stats}</CardTitle>
+              <CardDescription>{l.history}</CardDescription>
+              <div className="grid gap-4 md:grid-cols-3 pt-4">
+                <div>
+                  <Label htmlFor="search">{l.search}</Label>
+                  <Input
+                    id="search"
+                    placeholder={l.searchPh}
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
                 </div>
-
-                <div className="text-sm text-muted-foreground">
-                  نمایش {filteredLogs.length} از {smsLogs.length} پیام
+                <div>
+                  <Label>{l.range}</Label>
+                  <Select value={range} onValueChange={setRange}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[
+                        ["all", l.all],
+                        ["today", l.today],
+                        ["week", l.week],
+                        ["month", l.month],
+                      ].map(([v, n]) => (
+                        <SelectItem key={v} value={v}>
+                          {n}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
+                <Button variant="outline" className="self-end" onClick={load}>
+                  <RefreshCw className="h-4 w-4 me-2" />
+                  {l.refresh}
+                </Button>
               </div>
+              <p className="text-sm text-muted-foreground pt-2">
+                {l.showing
+                  .replace("{shown}", String(visible.length))
+                  .replace("{total}", String(logs.length))}
+              </p>
             </CardHeader>
-            
             <CardContent>
-              {filteredLogs.length === 0 ? (
-                <div className="text-center py-8">
-                  <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">هیچ پیام SMS ارسالی وجود ندارد</h3>
-                  <p className="text-muted-foreground">
-                    پیام‌های ارسالی در اینجا نمایش داده خواهند شد
-                  </p>
+              {visible.length === 0 ? (
+                <div className="py-8 text-center text-muted-foreground">
+                  <MessageSquare className="mx-auto mb-3 h-10 w-10" />
+                  <p>{l.empty}</p>
+                  <p className="text-sm">{l.emptyDesc}</p>
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>نام دریافت‌کننده</TableHead>
-                      <TableHead>شماره موبایل</TableHead>
-                      <TableHead>متن ارسالی</TableHead>
-                      <TableHead>زمان ارسال</TableHead>
-                      <TableHead>وضعیت</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredLogs.map((log) => (
-                      <TableRow key={log.id}>
-                        <TableCell className="font-medium">{log.recipientName}</TableCell>
-                        <TableCell>{log.recipientPhone}</TableCell>
-                        <TableCell className="max-w-xs truncate">{log.messageText}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {new Date(log.sentAt).toLocaleString('fa-IR')}
-                        </TableCell>
-                        <TableCell>
-                          <Badge 
-                            variant={
-                              log.status === 'delivered' ? 'default' : 
-                              log.status === 'sent' ? 'secondary' : 'destructive'
-                            }
+                <div className="overflow-x-auto">
+                  <Table className="min-w-[850px] border text-xs">
+                    <TableHeader className="bg-slate-700">
+                      <TableRow className="border-slate-700 hover:bg-slate-700">
+                        {[
+                          l.recipient,
+                          l.phone,
+                          l.message,
+                          l.time,
+                          l.status,
+                        ].map((x) => (
+                          <TableHead
+                            key={x}
+                            className="border-e border-slate-600 px-3 text-start font-semibold text-slate-50"
                           >
-                            {log.status === 'delivered' ? 'تحویل شده' :
-                             log.status === 'sent' ? 'ارسال شده' : 'ناموفق'}
-                          </Badge>
-                        </TableCell>
+                            {x}
+                          </TableHead>
+                        ))}
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {visible.map((x) => (
+                        <TableRow
+                          key={x.id}
+                          className="odd:bg-slate-50 even:bg-white hover:bg-amber-50"
+                        >
+                          <TableCell className="border-e px-3 py-2 font-medium">
+                            {x.recipientName}
+                          </TableCell>
+                          <TableCell className="border-e px-3 py-2">
+                            {x.recipientPhone}
+                          </TableCell>
+                          <TableCell className="max-w-xs truncate border-e px-3 py-2">
+                            {x.messageText}
+                          </TableCell>
+                          <TableCell className="border-e px-3 py-2">
+                            {new Date(x.sentAt).toLocaleString(language)}
+                          </TableCell>
+                          <TableCell className="px-3 py-2">
+                            <Badge
+                              variant={
+                                x.status === "failed"
+                                  ? "destructive"
+                                  : x.status === "delivered"
+                                    ? "default"
+                                    : "secondary"
+                              }
+                            >
+                              {x.status === "delivered"
+                                ? l.delivered
+                                : x.status === "failed"
+                                  ? l.failed
+                                  : x.status === "pending"
+                                    ? l.pending
+                                    : l.accepted}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               )}
             </CardContent>
           </Card>
         </TabsContent>
-
         <TabsContent value="settings" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>تنظیمات پیشرفته SMS</CardTitle>
-              <CardDescription>
-                پیکربندی تنظیمات احراز هویت SMS
-              </CardDescription>
+              <CardTitle>{l.settings}</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="provider">SMS Provider</Label>
-                  <Select value={settings.provider} onValueChange={(value) => setSettings(prev => ({ ...prev, provider: value }))}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="asiacell">Asiacell</SelectItem>
-                      <SelectItem value="zain_iraq">Zain Iraq</SelectItem>
-                      <SelectItem value="korek_telecom">Korek Telecom</SelectItem>
-                      <SelectItem value="twilio">Twilio</SelectItem>
-                      <SelectItem value="plivo">Plivo</SelectItem>
-                      <SelectItem value="infobip">Infobip</SelectItem>
-                      <SelectItem value="msg91">MSG91</SelectItem>
-                      <SelectItem value="custom">شرکت جدید - سفارشی</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {settings.provider === 'custom' && (
-                  <div className="space-y-2">
-                    <Label htmlFor="customProviderName">نام شرکت سفارشی</Label>
-                    <Input
-                      id="customProviderName"
-                      placeholder="نام شرکت ارائه‌دهنده SMS"
-                      value={settings.customProviderName || ''}
-                      onChange={(e) => setSettings(prev => ({ ...prev, customProviderName: e.target.value }))}
-                    />
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <Label htmlFor="apiKey">API Key / Token</Label>
-                  <Input
-                    id="apiKey"
-                    type="password"
-                    placeholder="کلید API یا Token"
-                    value={settings.apiKey || ''}
-                    onChange={(e) => setSettings(prev => ({ ...prev, apiKey: e.target.value }))}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="username">نام کاربری</Label>
-                  <Input
-                    id="username"
-                    placeholder="نام کاربری حساب SMS"
-                    value={settings.username || ''}
-                    onChange={(e) => setSettings(prev => ({ ...prev, username: e.target.value }))}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="password">رمز عبور</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="رمز عبور حساب SMS"
-                    value={settings.password || ''}
-                    onChange={(e) => setSettings(prev => ({ ...prev, password: e.target.value }))}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="senderNumber">شماره ارسال</Label>
-                  <Input
-                    id="senderNumber"
-                    placeholder="شماره ارسال کننده (خط اختصاصی)"
-                    value={settings.senderNumber || ''}
-                    onChange={(e) => setSettings(prev => ({ ...prev, senderNumber: e.target.value }))}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="apiEndpoint">آدرس API</Label>
-                  <Input
-                    id="apiEndpoint"
-                    placeholder="https://api.provider.com/send"
-                    value={settings.apiEndpoint || ''}
-                    onChange={(e) => setSettings(prev => ({ ...prev, apiEndpoint: e.target.value }))}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="serviceType">نوع سرویس</Label>
-                  <Select value={settings.serviceType || 'pattern'} onValueChange={(value) => setSettings(prev => ({ ...prev, serviceType: value }))}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pattern">پیامک الگویی (Pattern)</SelectItem>
-                      <SelectItem value="simple">پیامک ساده (Simple)</SelectItem>
-                      <SelectItem value="otp">کد یکبار مصرف (OTP)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="patternId">شناسه الگو</Label>
-                  <Input
-                    id="patternId"
-                    placeholder="Pattern ID برای پیامک‌های الگویی"
-                    value={settings.patternId || ''}
-                    onChange={(e) => setSettings(prev => ({ ...prev, patternId: e.target.value }))}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="serviceCode">کد سرویس</Label>
-                  <Input
-                    id="serviceCode"
-                    placeholder="کد سرویس خاص SMS Provider"
-                    value={settings.serviceCode || ''}
-                    onChange={(e) => setSettings(prev => ({ ...prev, serviceCode: e.target.value }))}
-                  />
-                </div>
-
-                {/* Additional Authentication Fields */}
-                <div className="space-y-2">
-                  <Label htmlFor="accessToken">Access Token</Label>
-                  <Input
-                    id="accessToken"
-                    type="password"
-                    placeholder="JWT یا Access Token"
-                    value={settings.accessToken || ''}
-                    onChange={(e) => setSettings(prev => ({ ...prev, accessToken: e.target.value }))}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="clientId">Client ID</Label>
-                  <Input
-                    id="clientId"
-                    placeholder="OAuth Client ID"
-                    value={settings.clientId || ''}
-                    onChange={(e) => setSettings(prev => ({ ...prev, clientId: e.target.value }))}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="senderId">Sender ID</Label>
-                  <Input
-                    id="senderId"
-                    placeholder="نام فرستنده (برای برخی ارائه‌دهندگان)"
-                    value={settings.senderId || ''}
-                    onChange={(e) => setSettings(prev => ({ ...prev, senderId: e.target.value }))}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="templateId">Template ID</Label>
-                  <Input
-                    id="templateId"
-                    placeholder="شناسه قالب پیام"
-                    value={settings.templateId || ''}
-                    onChange={(e) => setSettings(prev => ({ ...prev, templateId: e.target.value }))}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="applicationId">Application ID</Label>
-                  <Input
-                    id="applicationId"
-                    placeholder="شناسه اپلیکیشن"
-                    value={settings.applicationId || ''}
-                    onChange={(e) => setSettings(prev => ({ ...prev, applicationId: e.target.value }))}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="webhookUrl">Webhook URL</Label>
-                  <Input
-                    id="webhookUrl"
-                    placeholder="https://yoursite.com/webhook/sms"
-                    value={settings.webhookUrl || ''}
-                    onChange={(e) => setSettings(prev => ({ ...prev, webhookUrl: e.target.value }))}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="dailyLimit">حد روزانه پیام</Label>
-                  <Input
-                    id="dailyLimit"
-                    type="number"
-                    placeholder="1000"
-                    value={settings.dailyLimit || 1000}
-                    onChange={(e) => setSettings(prev => ({ ...prev, dailyLimit: parseInt(e.target.value) }))}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="priority">اولویت ارسال</Label>
-                  <Select value={settings.priority || 'NORMAL'} onValueChange={(value) => setSettings(prev => ({ ...prev, priority: value }))}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="LOW">پایین</SelectItem>
-                      <SelectItem value="NORMAL">عادی</SelectItem>
-                      <SelectItem value="HIGH">بالا</SelectItem>
-                      <SelectItem value="URGENT">فوری</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="isTestMode">حالت تست</Label>
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="isTestMode"
-                      checked={settings.isTestMode || false}
-                      onCheckedChange={(checked) => setSettings(prev => ({ ...prev, isTestMode: checked }))}
-                    />
-                    <span className="text-sm text-muted-foreground">
-                      {settings.isTestMode ? 'حالت تست فعال' : 'حالت تست غیرفعال'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* SMS Test Section */}
-                <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
-                  <h4 className="text-sm font-medium">تست ارسال SMS</h4>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="testPhone">شماره تلفن تست</Label>
-                      <Input
-                        id="testPhone"
-                        placeholder="+964770xxxxxxx"
-                        value={testPhone}
-                        onChange={(e) => setTestPhone(e.target.value)}
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="testMessage">متن پیام تست</Label>
-                      <Input
-                        id="testMessage"
-                        placeholder="این یک پیام تست است"
-                        value={testMessage}
-                        onChange={(e) => setTestMessage(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-start">
-                    <Button 
-                      onClick={handleTestSms}
-                      disabled={testLoading || !testPhone || !testMessage}
-                      className="w-full md:w-auto"
-                    >
-                      {testLoading ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                          در حال ارسال...
-                        </>
-                      ) : (
-                        <>
-                          <Send className="h-4 w-4 mr-2" />
-                          ارسال پیام تست
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                  
-                  {testResult && (
-                    <div className={`p-3 rounded-lg ${testResult.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
-                      <p className={`text-sm ${testResult.success ? 'text-green-700' : 'text-red-700'}`}>
-                        {testResult.message}
-                        {testResult.messageId && (
-                          <span className="block mt-1 text-xs text-gray-600">
-                            شناسه پیام: {testResult.messageId}
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="codeLength">Code Length</Label>
-                  <Input
-                    id="codeLength"
-                    type="number"
-                    min="4"
-                    max="8"
-                    value={settings.codeLength}
-                    onChange={(e) => setSettings(prev => ({ ...prev, codeLength: parseInt(e.target.value) }))}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="codeExpiry">Code Expiry (seconds)</Label>
-                  <Input
-                    id="codeExpiry"
-                    type="number"
-                    min="60"
-                    max="3600"
-                    value={settings.codeExpiry}
-                    onChange={(e) => setSettings(prev => ({ ...prev, codeExpiry: parseInt(e.target.value) }))}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="maxAttempts">Max Attempts</Label>
-                  <Input
-                    id="maxAttempts"
-                    type="number"
-                    min="1"
-                    max="5"
-                    value={settings.maxAttempts}
-                    onChange={(e) => setSettings(prev => ({ ...prev, maxAttempts: parseInt(e.target.value) }))}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="rateLimitMinutes">Rate Limit (minutes)</Label>
-                  <Input
-                    id="rateLimitMinutes"
-                    type="number"
-                    min="1"
-                    max="120"
-                    value={settings.rateLimitMinutes}
-                    onChange={(e) => setSettings(prev => ({ ...prev, rateLimitMinutes: parseInt(e.target.value) }))}
-                  />
-                </div>
+            <CardContent className="space-y-6">
+              <div className="flex items-center gap-3">
+                <Switch
+                  checked={settings.isEnabled}
+                  onCheckedChange={toggle}
+                  disabled={busy}
+                />
+                <Label>{settings.isEnabled ? l.enabled : l.disabledWord}</Label>
               </div>
-
-              <Button onClick={handleSaveSettings} disabled={loading} className="w-full">
-                Save Settings
+              <div className="grid gap-4 md:grid-cols-2">
+                {
+                  <div className="space-y-2">
+                    <Label>{l.provider}</Label>
+                    <Select
+                      value={settings.provider}
+                      onValueChange={(v) => update("provider", v)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[
+                          "asiacell",
+                          "zain_iraq",
+                          "korek_telecom",
+                          "twilio",
+                          "plivo",
+                          "infobip",
+                          "msg91",
+                          "custom",
+                        ].map((v) => (
+                          <SelectItem key={v} value={v}>
+                            {v}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                }
+                {settings.provider === "custom" &&
+                  field("customProviderName", l.custom)}
+                {field("apiKey", l.apiKey, "password")}
+                {field("username", l.username)}
+                {field("password", l.password, "password")}
+                {field("senderNumber", l.senderNumber)}
+                {field("apiEndpoint", l.apiEndpoint)}
+                <div className="space-y-2">
+                  <Label>{l.serviceType}</Label>
+                  <Select
+                    value={settings.serviceType || "pattern"}
+                    onValueChange={(v) => update("serviceType", v)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pattern">Pattern</SelectItem>
+                      <SelectItem value="simple">Simple</SelectItem>
+                      <SelectItem value="otp">OTP</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {field("patternId", l.patternId)}
+                {field("serviceCode", l.serviceCode)}
+                {field("accessToken", l.accessToken, "password")}
+                {field("clientId", l.clientId)}
+                {field("senderId", l.senderId)}
+                {field("templateId", l.templateId)}
+                {field("applicationId", l.applicationId)}
+                {field("webhookUrl", l.webhookUrl)}
+                {field("dailyLimit", l.dailyLimit, "number")}
+                <div className="space-y-2">
+                  <Label>{l.priority}</Label>
+                  <Select
+                    value={settings.priority || "NORMAL"}
+                    onValueChange={(v) => update("priority", v)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {["LOW", "NORMAL", "HIGH", "URGENT"].map((v) => (
+                        <SelectItem key={v} value={v}>
+                          {v}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Switch
+                    checked={Boolean(settings.isTestMode)}
+                    onCheckedChange={(v) => update("isTestMode", v)}
+                  />
+                  <Label>
+                    {settings.isTestMode ? l.testModeOn : l.testModeOff}
+                  </Label>
+                </div>
+                {field("codeLength", l.codeLength, "number")}
+                {field("codeExpiry", l.codeExpiry, "number")}
+                {field("maxAttempts", l.maxAttempts, "number")}
+                {field("rateLimitMinutes", l.rateLimit, "number")}
+              </div>
+              <Button onClick={save} disabled={busy} className="w-full">
+                {l.save}
               </Button>
             </CardContent>
           </Card>
-
-          {/* SMS Test Card */}
-          {settings.isEnabled && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MessageSquare className="h-5 w-5" />
-                  تست ارسال SMS
-                </CardTitle>
-                <CardDescription>
-                  تست اتصال و ارسال پیامک با تنظیمات فعلی
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="testPhone">شماره تلفن تست</Label>
-                  <Input
-                    id="testPhone"
-                    placeholder="9647503533769"
-                    value={testPhone}
-                    onChange={(e) => setTestPhone(e.target.value)}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="testMessage">پیام تست</Label>
-                  <Input
-                    id="testMessage"
-                    placeholder="پیام تست از سیستم Momtaz Chemical"
-                    value={testMessage}
-                    onChange={(e) => setTestMessage(e.target.value)}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Button 
-                    onClick={handleTestConnection} 
-                    disabled={testLoading}
-                    variant="outline"
-                    className="w-full"
-                  >
-                    {testLoading ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null}
-                    تست اتصال
-                  </Button>
-                  
-                  <Button 
-                    onClick={handleTestSms} 
-                    disabled={testLoading || !testPhone || !testMessage}
-                    className="w-full"
-                  >
-                    {testLoading ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null}
-                    ارسال پیام تست
-                  </Button>
-                </div>
-
-                {testResult && (
-                  <Alert className={testResult.success ? "border-green-500 bg-green-50" : "border-red-500 bg-red-50"}>
-                    {testResult.success ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : <XCircle className="h-4 w-4 text-red-600" />}
-                    <AlertDescription className={testResult.success ? "text-green-800" : "text-red-800"}>
-                      {testResult.message}
-                      {testResult.messageId && (
-                        <div className="text-xs mt-1 opacity-75">
-                          Message ID: {testResult.messageId}
-                        </div>
-                      )}
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Provider Information Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>{l.test}</CardTitle>
+              <CardDescription>{l.testDesc}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>{l.testPhone}</Label>
+                <Input
+                  placeholder={l.testPhonePh}
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>{l.testLanguage}</Label>
+                <Select
+                  value={preferredLanguage}
+                  onValueChange={(v) => setPreferredLanguage(v as any)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(languages) as Lang[]).map((v) => (
+                      <SelectItem key={v} value={v}>
+                        {languages[v]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                {(Object.keys(languages) as Lang[]).map((v) => (
+                  <div key={v} className="space-y-2">
+                    <Label>
+                      {languages[v]} — {l.testMessage}
+                    </Label>
+                    <Input
+                      placeholder={l.testMessagePh}
+                      value={messages[v]}
+                      onChange={(e) =>
+                        setMessages((x) => ({ ...x, [v]: e.target.value }))
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  onClick={testConnection}
+                  disabled={testBusy}
+                >
+                  <RefreshCw className="h-4 w-4 me-2" />
+                  {l.connection}
+                </Button>
+                <Button onClick={testSms} disabled={testBusy}>
+                  <Send className="h-4 w-4 me-2" />
+                  {testBusy ? l.testing : l.send}
+                </Button>
+              </div>
+              {result && (
+                <Alert
+                  className={
+                    result.success ? "border-green-500" : "border-red-500"
+                  }
+                >
+                  {result.success ? (
+                    <CheckCircle2 className="h-4 w-4" />
+                  ) : (
+                    <XCircle className="h-4 w-4" />
+                  )}
+                  <AlertDescription>
+                    {result.message}
+                    {result.messageId && (
+                      <span className="block text-xs">{result.messageId}</span>
+                    )}
+                  </AlertDescription>
+                </Alert>
+              )}
+              <p className="text-xs text-muted-foreground">{l.noDelivery}</p>
+            </CardContent>
+          </Card>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Info className="h-5 w-5" />
-                راهنمای ارائه‌دهندگان SMS
+                <Info className="h-4 w-4" />
+                {l.providerGuide}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div className="space-y-3">
-                  <div className="border-l-4 border-green-500 pl-3">
-                    <h4 className="font-medium text-green-700">اپراتورهای عراق</h4>
-                    <ul className="space-y-1 text-muted-foreground">
-                      <li>• <strong>Asiacell</strong> - asiacell.com</li>
-                      <li>• <strong>Zain Iraq</strong> - iq.zain.com</li>
-                      <li>• <strong>Korek Telecom</strong> - korek.com</li>
-                    </ul>
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  <div className="border-l-4 border-blue-500 pl-3">
-                    <h4 className="font-medium text-blue-700">ارائه‌دهندگان بین‌المللی</h4>
-                    <ul className="space-y-1 text-muted-foreground">
-                      <li>• <strong>Twilio</strong> - twilio.com</li>
-                      <li>• <strong>Plivo</strong> - plivo.com</li>
-                      <li>• <strong>Infobip</strong> - infobip.com</li>
-                      <li>• <strong>MSG91</strong> - msg91.com</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-              <div className="mt-4 space-y-3">
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                  <div className="flex items-start gap-2">
-                    <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5" />
-                    <div className="text-sm text-amber-800">
-                      <strong>نکته مهم:</strong> برای استفاده از اپراتورهای عراق، با بخش فنی هر اپراتور تماس بگیرید تا API credentials و اطلاعات اتصال را دریافت کنید.
-                    </div>
-                  </div>
-                </div>
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-start gap-2">
-                    <Info className="h-4 w-4 text-blue-600 mt-0.5" />
-                    <div className="text-sm text-blue-800">
-                      <strong>شرکت سفارشی:</strong> اگر ارائه‌دهنده SMS شما در لیست نیست، گزینه "شرکت جدید - سفارشی" را انتخاب کرده و اطلاعات API خود را وارد کنید.
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <p className="text-sm">
+                {l.iraq}: Asiacell, Zain Iraq, Korek Telecom
+              </p>
+              <p className="text-sm">
+                {l.international}: Twilio, Plivo, Infobip, MSG91
+              </p>
+              <p className="mt-3 text-sm text-muted-foreground">
+                {l.customNote}
+              </p>
             </CardContent>
           </Card>
-
           {!settings.isEnabled && (
             <Alert>
               <Shield className="h-4 w-4" />
-              <AlertDescription>
-                SMS authentication system is currently disabled. Enable it from the Overview tab to start processing SMS verifications.
-              </AlertDescription>
+              <AlertDescription>{l.disabledNote}</AlertDescription>
             </Alert>
           )}
         </TabsContent>
-
-
-
-        <TabsContent value="templates" className="space-y-4">
+        <TabsContent value="templates">
           <SmsTemplatesSimple />
         </TabsContent>
       </Tabs>

@@ -10280,10 +10280,12 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       
       const config = {
         frontendUrl: process.env.FRONTEND_URL || CONFIG.getBaseUrl(req),
-        serverIp: process.env.SERVER_IP || '0.0.0.0',
-        nodeEnv: process.env.NODE_ENV || 'development',
-        smtpHost: process.env.SMTP_HOST || 'smtp.zoho.com',
-        smtpPort: process.env.SMTP_PORT || '587',
+        // Missing values must stay missing. A fallback here would make the
+        // admin panel report defaults as if they were actually configured.
+        serverIp: process.env.SERVER_IP || null,
+        nodeEnv: process.env.NODE_ENV || null,
+        smtpHost: process.env.SMTP_HOST || null,
+        smtpPort: process.env.SMTP_PORT || null,
         smtpUser: process.env.SMTP_USER || '',
         // Don't send sensitive data
         databaseUrl: process.env.DATABASE_URL ? '***configured***' : '',
@@ -10352,7 +10354,9 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       res.json({
         success: allPassed,
         testResults,
-        message: allPassed ? "همه تنظیمات صحیح است" : "برخی تنظیمات نیاز به بررسی دارند"
+        message: allPassed
+          ? "ساختار تنظیمات معتبر است؛ این بررسی به معنی تأیید اتصال سرویس‌ها نیست"
+          : "ساختار برخی تنظیمات نیاز به بررسی دارد"
       });
     } catch (error) {
       console.error("Error testing server config:", error);
@@ -14688,9 +14692,9 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
   // Test SMS endpoint
   app.post("/api/admin/sms/test-sms", requireAuth, async (req, res) => {
     try {
-      const { phoneNumber, message } = req.body;
+      const { phoneNumber, message, customerId, preferredLanguage, localizedMessages } = req.body;
       
-      if (!phoneNumber || !message) {
+      if (!phoneNumber || (!message && !localizedMessages)) {
         return res.status(400).json({
           success: false,
           message: "شماره تلفن و متن پیام الزامی است"
@@ -14711,6 +14715,31 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       }
 
       const settings = settingsResult.rows[0];
+      let selectedMessage = message;
+      let selectedLanguage = preferredLanguage;
+      if (localizedMessages && typeof localizedMessages === 'object') {
+        const { resolveSmsLanguage, normalizeSmsLanguage, selectLocalizedSms } =
+          await import('./sms-language');
+        if (!customerId && !preferredLanguage) {
+          return res.status(400).json({
+            success: false,
+            message: "برای شماره خام، preferredLanguage الزامی است"
+          });
+        }
+        selectedLanguage = await resolveSmsLanguage(
+          pool,
+          customerId ? Number(customerId) : undefined,
+          phoneNumber,
+          normalizeSmsLanguage(preferredLanguage),
+        );
+        selectedMessage = selectLocalizedSms(localizedMessages, selectedLanguage);
+        if (!selectedMessage) {
+          return res.status(400).json({
+            success: false,
+            message: "پیام محلی برای زبان دریافت‌کننده موجود نیست"
+          });
+        }
+      }
       
       // Log test SMS
       console.log(`📱 Test SMS Request:`, {
@@ -14739,7 +14768,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
                 destinations: [{
                   to: phoneNumber
                 }],
-                text: message
+                text: selectedMessage
               }]
             })
           });
@@ -14766,7 +14795,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
             },
             body: new URLSearchParams({
               receptor: phoneNumber,
-              message: message,
+              message: selectedMessage,
               sender: settings.sender_number || '1000596446'
             })
           });
@@ -14783,32 +14812,53 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
             throw new Error(`Kavenegar API Error: ${kavenegarData.return?.message || 'Unknown error'}`);
           }
         } else {
-          // For other providers, simulate for now
-          smsResult = {
-            success: true,
-            messageId: `PROVIDER_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-            status: 'SIMULATED'
-          };
+          throw new Error(`SMS provider "${settings.provider}" is not implemented`);
+        }
+
+        try {
+          const { smsLogs } = await import("../shared/schema");
+          await db.insert(smsLogs).values({
+            phoneNumber,
+            message: selectedMessage,
+            purpose: 'admin_test',
+            status: 'accepted',
+            smsProvider: settings.provider,
+            errorMessage: null
+          });
+        } catch (logError) {
+          console.error('Error storing outbound SMS log:', logError);
         }
 
         res.json({
           success: true,
-          message: settings.is_test_mode ? 
-            `پیام تست واقعی ارسال شد (${settings.provider})` : 
-            "پیام با موفقیت ارسال شد",
+          message: "پیام توسط ارائه‌دهنده پذیرفته شد؛ تحویل نهایی هنوز تأیید نشده است",
           messageId: smsResult.messageId,
-          status: smsResult.status,
+          status: 'accepted',
           provider: settings.provider,
-          testMode: settings.is_test_mode
+          testMode: settings.is_test_mode,
+          language: selectedLanguage
         });
         
-        console.log(`✅ Real SMS sent via ${settings.provider} - ID: ${smsResult.messageId}, Phone: ${phoneNumber}, Status: ${smsResult.status}`);
+        console.log(`✅ Real SMS sent via ${settings.provider} - ID: ${smsResult.messageId}, Phone: ${phoneNumber}, Status: ${smsResult.status}, Language: ${selectedLanguage || 'explicit-content'}`);
         
       } catch (smsError) {
         console.error('SMS sending error:', smsError);
-        res.json({
+        try {
+          const { smsLogs } = await import("../shared/schema");
+          await db.insert(smsLogs).values({
+            phoneNumber,
+            message: selectedMessage,
+            purpose: 'admin_test',
+            status: 'failed',
+            smsProvider: settings.provider,
+            errorMessage: smsError instanceof Error ? smsError.message : 'provider rejected message'
+          });
+        } catch (logError) {
+          console.error('Error storing failed outbound SMS log:', logError);
+        }
+        res.status(502).json({
           success: false,
-          message: `خطا در ارسال SMS: ${smsError.message}`,
+          message: "ارائه‌دهنده پیامک را نپذیرفت",
           provider: settings.provider,
           testMode: settings.is_test_mode
         });
@@ -14831,7 +14881,29 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         SELECT * FROM sms_settings WHERE id = 1
       `);
       
-      const settings = result.rows[0] || {
+      const row = result.rows[0];
+      const settings = row ? {
+        isEnabled: row.is_enabled,
+        provider: row.provider,
+        customProviderName: row.custom_provider_name || '',
+        // Credentials are write-only in the admin UI.
+        apiKey: '',
+        apiSecret: '',
+        username: row.username || '',
+        password: '',
+        senderNumber: row.sender_number || '',
+        apiEndpoint: row.api_endpoint || '',
+        serviceType: row.service_type || 'pattern',
+        patternId: row.pattern_id || '',
+        serviceCode: row.service_code || '',
+        codeLength: row.code_length,
+        codeExpiry: row.code_expiry,
+        maxAttempts: row.max_attempts,
+        rateLimitMinutes: row.rate_limit_minutes,
+        hasApiKey: Boolean(row.api_key),
+        hasApiSecret: Boolean(row.api_secret),
+        hasPassword: Boolean(row.password)
+      } : {
         isEnabled: false,
         provider: 'asiacell',
         customProviderName: '',
@@ -14847,10 +14919,13 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         codeLength: 6,
         codeExpiry: 300,
         maxAttempts: 3,
-        rateLimitMinutes: 5
+        rateLimitMinutes: 5,
+        hasApiKey: false,
+        hasApiSecret: false,
+        hasPassword: false
       };
 
-      res.json({ success: true, settings });
+      res.json({ success: true, data: settings, settings });
     } catch (error) {
       console.error("Error fetching SMS settings:", error);
       res.status(500).json({ success: false, message: "خطا در دریافت تنظیمات" });
@@ -14870,10 +14945,10 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           is_enabled = $1,
           provider = $2,
           custom_provider_name = $3,
-          api_key = $4,
-          api_secret = $5,
+          api_key = COALESCE(NULLIF($4, ''), sms_settings.api_key),
+          api_secret = COALESCE(NULLIF($5, ''), sms_settings.api_secret),
           username = $6,
-          password = $7,
+          password = COALESCE(NULLIF($7, ''), sms_settings.password),
           sender_number = $8,
           api_endpoint = $9,
           service_type = $10,
@@ -14904,7 +14979,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         settings.rateLimitMinutes
       ]);
 
-      res.json({ success: true, settings: result.rows[0] });
+      res.json({ success: true });
     } catch (error) {
       console.error("Error updating SMS settings:", error);
       res.status(500).json({ success: false, message: "خطا در بروزرسانی تنظیمات" });
@@ -14924,10 +14999,10 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           is_enabled = $1,
           provider = $2,
           custom_provider_name = $3,
-          api_key = $4,
-          api_secret = $5,
+          api_key = COALESCE(NULLIF($4, ''), sms_settings.api_key),
+          api_secret = COALESCE(NULLIF($5, ''), sms_settings.api_secret),
           username = $6,
-          password = $7,
+          password = COALESCE(NULLIF($7, ''), sms_settings.password),
           sender_number = $8,
           api_endpoint = $9,
           service_type = $10,
@@ -14958,7 +15033,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         settings.rateLimitMinutes
       ]);
 
-      res.json({ success: true, settings: result.rows[0] });
+      res.json({ success: true });
     } catch (error) {
       console.error("Error updating SMS settings:", error);
       res.status(500).json({ success: false, message: "خطا در بروزرسانی تنظیمات" });
@@ -15595,26 +15670,29 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
     }
   });
 
-  // Get SMS logs (simplified statistics)
+  // Get outbound SMS logs. Verification-code tables are intentionally not
+  // used here: consuming a code proves verification, not SMS delivery.
   app.get("/api/admin/sms/logs", requireAuth, async (req, res) => {
     try {
       const { pool } = await import('./db');
-      
-      // Get SMS logs from customer verification codes
       const logsResult = await pool.query(`
         SELECT 
-          cvc.id,
-          CONCAT(c.first_name, ' ', c.last_name) as recipient_name,
-          cvc.phone_number as recipient_phone,
-          'کد تایید شما: ' || cvc.verification_code as message_text,
-          cvc.created_at as sent_at,
-          CASE 
-            WHEN cvc.is_used = true THEN 'delivered'
-            ELSE 'sent'
-          END as status
-        FROM customer_verification_codes cvc
-        LEFT JOIN crm_customers c ON c.phone = cvc.phone_number
-        ORDER BY cvc.created_at DESC
+          sl.id,
+          COALESCE(
+            NULLIF(CONCAT_WS(' ', crm.first_name, crm.last_name), ''),
+            NULLIF(CONCAT_WS(' ', portal.first_name, portal.last_name), ''),
+            'نامشخص'
+          ) AS recipient_name,
+          sl.phone_number AS recipient_phone,
+          sl.message AS message_text,
+          sl.created_at AS sent_at,
+          sl.status,
+          sl.sms_provider AS provider,
+          sl.error_message
+        FROM sms_logs sl
+        LEFT JOIN crm_customers crm ON crm.phone = sl.phone_number
+        LEFT JOIN customers portal ON portal.phone = sl.phone_number
+        ORDER BY sl.created_at DESC
         LIMIT 100
       `);
 
@@ -15624,7 +15702,9 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         recipientPhone: row.recipient_phone,
         messageText: row.message_text,
         sentAt: row.sent_at,
-        status: row.status
+         status: row.status,
+         provider: row.provider,
+         errorMessage: row.error_message
       }));
 
       res.json({ success: true, data: logs });
@@ -29561,13 +29641,22 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         expiresAt
       });
       
-      // Here you would integrate with SMS provider (Kavenegar, etc.)
-      // For now, we'll just log the code for development
-      console.log(`SMS Verification Code for ${phone}: ${code}`);
+      const { createSmsService } = await import('./sms-service');
+      const smsService = await createSmsService();
+      const sendResult = await smsService.sendVerificationCode(phone, code);
+
+      if (!sendResult.success) {
+        console.error('[SMS VERIFICATION] Provider rejected verification SMS:', sendResult.error);
+        return res.status(502).json({
+          success: false,
+          message: "ارائه‌دهنده پیامک کد تأیید را نپذیرفت"
+        });
+      }
       
       res.json({ 
         success: true, 
-        message: "کد تأیید ارسال شد",
+        message: "کد تأیید توسط ارائه‌دهنده پیامک پذیرفته شد",
+        messageId: sendResult.messageId,
         // In production, don't send the code in response
         ...(process.env.NODE_ENV === 'development' && { code })
       });
@@ -57417,15 +57506,6 @@ momtazchem.com
       } catch (e) {
         console.log("[ACTIVITY] Payments query skipped:", (e as Error).message);
       }
-      
-      // Add system status
-      logs.push({
-        id: Date.now(),
-        timestamp: now.toLocaleTimeString('en-US', { hour12: false }),
-        type: 'system',
-        action: 'بررسی سیستم',
-        details: 'سیستم در حال اجرا است'
-      });
       
       // Sort by timestamp (newest first for display, but component will handle order)
       logs.sort((a, b) => a.id - b.id);

@@ -41,12 +41,12 @@ export interface SystemHealth {
     cpuLoadAverage: number[];
     cpuCores: number;
     databasePool: DatabasePoolStats;
-    activeSessions: number;
+    activeSessions: number | null;
     recentOrders: {
       today: number;
       pending: number;
       processing: number;
-    };
+    } | null;
     requestStats: {
       totalRequests: number;
       requestsPerMinute: number;
@@ -224,14 +224,16 @@ class MonitoringService {
 
       const responseTime = Date.now() - startTime;
 
+      // Credentials alone do not prove that the gateway is reachable. Keep
+      // this explicitly configured until a real authenticated probe exists.
       return {
-        status: 'healthy',
-        message: 'سرویس پرداخت بانکی آماده است',
+        status: 'degraded',
+        message: 'تنظیمات FIB موجود است؛ اتصال سرویس بررسی نشده است',
         responseTime,
         details: {
           configured: true,
-          baseURL: process.env.FIB_STAGE_BASE_URL || 'https://fib.stage.moonlay.com',
-          phone: process.env.FIB_BUSINESS_PHONE
+          baseURL: process.env.FIB_STAGE_BASE_URL || null,
+          configuredPhone: true
         }
       };
     } catch (error) {
@@ -288,7 +290,7 @@ class MonitoringService {
   async checkServerIpHealth(): Promise<HealthStatus> {
     const startTime = Date.now();
     try {
-      const serverIp = process.env.SERVER_IP || '0.0.0.0';
+      const serverIp = process.env.SERVER_IP || null;
       const http = await import('http');
       const os = await import('os');
 
@@ -310,8 +312,10 @@ class MonitoringService {
       const responseTime = Date.now() - startTime;
 
       return {
-        status: 'healthy',
-        message: `سرور روی ${serverIp} در دسترس است`,
+        status: serverIp ? 'degraded' : 'degraded',
+        message: serverIp
+          ? `آدرس ${serverIp} پیکربندی شده است؛ دسترسی شبکه بررسی نشده است`
+          : 'آدرس IP سرور پیکربندی نشده است',
         responseTime,
         details: {
           configuredIp: serverIp,
@@ -333,7 +337,7 @@ class MonitoringService {
   }
 
   // 📊 Get Active Sessions Count
-  async getActiveSessions(): Promise<number> {
+  async getActiveSessions(): Promise<number | null> {
     try {
       const result = await pool.query(`
         SELECT COUNT(*) as count FROM sessions 
@@ -341,12 +345,12 @@ class MonitoringService {
       `);
       return parseInt(result.rows[0]?.count || '0');
     } catch {
-      return 0;
+      return null;
     }
   }
 
   // 📦 Get Order Statistics
-  async getOrderStats(): Promise<{ today: number; pending: number; processing: number }> {
+  async getOrderStats(): Promise<{ today: number; pending: number; processing: number } | null> {
     try {
       const [todayResult, pendingResult, processingResult] = await Promise.all([
         pool.query(`
@@ -369,7 +373,7 @@ class MonitoringService {
         processing: parseInt(processingResult.rows[0]?.count || '0')
       };
     } catch {
-      return { today: 0, pending: 0, processing: 0 };
+      return null;
     }
   }
 

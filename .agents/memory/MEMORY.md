@@ -10,3 +10,5 @@
 - [Order item snapshots](order-item-snapshots.md) — customer and admin views must use the stored order-item snapshot, not current catalog data, and expose one normalized item shape.
 - [Canonical order status](canonical-order-status.md) — derive labels, phases, aliases, colors, and department visibility from one shared resolver while preserving raw workflow history.
 - [Delivery GPS integrity](delivery-gps-integrity.md) — code consumption, terminal status, and GPS insertion must be atomic; analytics expose aggregated coordinates only.
+- [Monitoring data honesty](monitoring-data-honesty.md) — distinguish configured, observed, and unavailable states; never present defaults or failed queries as live health.
+- [SMS recipient language](sms-recipient-language.md) — choose SMS text from stored customer language; raw numbers need an explicit fallback and provider acceptance is not delivery.

@@ -377,10 +377,6 @@
       "count": 1
     },
     {
-      "key": "[\"client/src/components/sms-templates-simple.tsx\",2554,\"Expected 2 arguments, but got 1.\",\"queryFn: () => apiRequest(\\\"/api/admin/simple-sms-templates\\\")\"]",
-      "count": 1
-    },
-    {
       "key": "[\"client/src/components/SmsVerificationComponent.tsx\",2554,\"Expected 2 arguments, but got 1.\",\"queryFn: () => apiRequest(`/api/logistics/orders/${orderId}/verification-history`),\"]",
       "count": 1
     },
@@ -674,26 +670,6 @@
     },
     {
       "key": "[\"client/src/pages/admin-abandoned-orders.tsx\",2345,\"Argument of type '{ method: string; body: { orderId: string; }; }' is not assignable to parameter of type 'string'.\",\"return apiRequest({ method: 'POST', body: { orderId } }, `/api/abandoned-orders/${abandonedId}/recover`);\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/admin-sms-management.tsx\",2300,\"Duplicate identifier 'rateLimitMinutes'.\",\"rateLimitMinutes: number;\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/admin-sms-management.tsx\",2300,\"Duplicate identifier 'rateLimitMinutes'.\",\"rateLimitMinutes?: number;\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/admin-sms-management.tsx\",2687,\"All declarations of 'rateLimitMinutes' must have identical modifiers.\",\"rateLimitMinutes: number;\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/admin-sms-management.tsx\",2687,\"All declarations of 'rateLimitMinutes' must have identical modifiers.\",\"rateLimitMinutes?: number;\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/admin-sms-management.tsx\",2717,\"Subsequent property declarations must have the same type.  Property 'rateLimitMinutes' must be of type 'number | undefined', but here has type 'number'.\",\"rateLimitMinutes: number;\"]",
       "count": 1
     },
     {
@@ -2731,10 +2707,6 @@
     {
       "key": "[\"server/routes.ts\",18046,\"'pdfError' is of type 'unknown'.\",\"console.log('PDF generation failed, falling back to HTML:', pdfError.message);\"]",
       "count": 2
-    },
-    {
-      "key": "[\"server/routes.ts\",18046,\"'smsError' is of type 'unknown'.\",\"message: `خطا در ارسال SMS: ${smsError.message}`,\"]",
-      "count": 1
     },
     {
       "key": "[\"server/routes.ts\",18046,\"'syncError' is of type 'unknown'.\",\"console.error(`❌ خطا در sync کردن محصول ${product.name}:`, syncError.message);\"]",

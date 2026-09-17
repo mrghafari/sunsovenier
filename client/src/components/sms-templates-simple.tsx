@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -12,407 +11,59 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { Edit, Trash2, Plus, Copy, MessageSquare, Tag, AlertCircle, Info } from "lucide-react";
+import { Edit, Trash2, Plus, Copy, MessageSquare } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
-import { getTemplateUsageConditions } from "@/config/sms-template-conditions";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-// Types
-interface SmsTemplate {
-  id: number;
-  templateName: string;
-  templateContent: string;
-  variables: string[];
-  usageConditions?: string;
-  isDefault: boolean;
-  isActive: boolean;
-  usageCount: number;
-  lastUsed: string | null;
-  createdBy: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// Form schema
-const templateSchema = z.object({
-  templateName: z.string().min(1, "نام قالب الزامی است"),
-  templateContent: z.string().min(1, "محتوای قالب الزامی است"),
-  variables: z.array(z.string()).optional(),
-  usageConditions: z.string().optional(),
-  isDefault: z.boolean().default(false),
-  createdBy: z.string().default("admin")
-});
+interface SmsTemplate { id: number; templateName: string; templateContent: string; variables: string[]; usageConditions?: string; isDefault: boolean; isActive: boolean; usageCount: number; lastUsed: string | null; createdBy: string; createdAt: string; updatedAt: string; }
+type Lang = "en" | "fa" | "ar" | "tr";
+const labels: Record<Lang, Record<string, string>> = {
+  en: { title:"System SMS templates", count:"Manage and edit SMS templates ({n} templates)", new:"New template", edit:"Edit template", create:"Create template", desc:"Create a new SMS template for the system", name:"Template name", namePh:"SMS template name", content:"Template content", contentPh:"SMS content (use {{variable_name}} for variables)", vars:"Variables", none:"None", conditions:"Procedure / sending conditions", conditionsPh:"Define automatic sending conditions for this template", hint:"These conditions can be changed using this form", save:"Create", update:"Update", copy:"Copy content", del:"Delete", confirm:"Confirm template deletion", sure:"Are you sure you want to delete “{name}”?", irreversible:"This action cannot be undone.", cancel:"Cancel", delete:"Delete permanently", deleting:"Deleting…", copied:"Copied", copiedDesc:"Template content copied", success:"Success", created:"SMS template created", updated:"Template updated", deleted:"Template deleted", error:"Error", failed:"The operation failed", default:"Default", number:"Template #{n}", usage:"Usage count", author:"Created by", date:"Created", actions:"Actions", message:"Message content", noTemplates:"No templates available", first:"Create the first system SMS template", loading:"Loading templates…" },
+  fa: { title:"قالب‌های پیامک سیستم", count:"مدیریت و ویرایش قالب‌های پیامک ({n} قالب)", new:"قالب جدید", edit:"ویرایش قالب", create:"ایجاد قالب جدید", desc:"قالب پیامک جدید برای سیستم ایجاد کنید", name:"نام قالب", namePh:"نام قالب پیامک", content:"محتوای قالب", contentPh:"محتوای پیامک (از {{variable_name}} برای متغیرها استفاده کنید)", vars:"متغیرها", none:"هیچ", conditions:"رویه / شرایط ارسال", conditionsPh:"شرایط ارسال خودکار این قالب را تعریف کنید", hint:"این شرایط از طریق همین فرم قابل تغییر است", save:"ایجاد", update:"بروزرسانی", copy:"کپی محتوا", del:"حذف", confirm:"تأیید حذف قالب", sure:"آیا از حذف قالب «{name}» اطمینان دارید؟", irreversible:"این عمل غیرقابل بازگشت است.", cancel:"انصراف", delete:"حذف قطعی", deleting:"در حال حذف…", copied:"کپی شد", copiedDesc:"محتوای قالب کپی شد", success:"موفقیت", created:"قالب پیامک ایجاد شد", updated:"قالب بروزرسانی شد", deleted:"قالب حذف شد", error:"خطا", failed:"عملیات ناموفق بود", default:"پیش‌فرض", number:"قالب #{n}", usage:"تعداد استفاده", author:"ایجاد شده توسط", date:"تاریخ ایجاد", actions:"عملیات", message:"محتوای پیام", noTemplates:"هیچ قالبی موجود نیست", first:"اولین قالب پیامک سیستم را ایجاد کنید", loading:"در حال بارگذاری قالب‌ها…" },
+  ar: { title:"قوالب الرسائل النصية للنظام", count:"إدارة وتحرير القوالب ({n} قالب)", new:"قالب جديد", edit:"تحرير القالب", create:"إنشاء قالب جديد", desc:"أنشئ قالب رسالة نصية جديدا للنظام", name:"اسم القالب", namePh:"اسم قالب الرسالة", content:"محتوى القالب", contentPh:"محتوى الرسالة (استخدم {{variable_name}} للمتغيرات)", vars:"المتغيرات", none:"لا يوجد", conditions:"الإجراء / شروط الإرسال", conditionsPh:"حدد شروط الإرسال التلقائي لهذا القالب", hint:"يمكن تعديل هذه الشروط من هذا النموذج", save:"إنشاء", update:"تحديث", copy:"نسخ المحتوى", del:"حذف", confirm:"تأكيد حذف القالب", sure:"هل أنت متأكد من حذف «{name}»؟", irreversible:"لا يمكن التراجع عن هذا الإجراء.", cancel:"إلغاء", delete:"حذف نهائي", deleting:"جار الحذف…", copied:"تم النسخ", copiedDesc:"تم نسخ محتوى القالب", success:"نجاح", created:"تم إنشاء القالب", updated:"تم تحديث القالب", deleted:"تم حذف القالب", error:"خطأ", failed:"فشلت العملية", default:"افتراضي", number:"القالب #{n}", usage:"عدد الاستخدامات", author:"أنشأه", date:"تاريخ الإنشاء", actions:"الإجراءات", message:"محتوى الرسالة", noTemplates:"لا توجد قوالب", first:"أنشئ أول قالب رسالة للنظام", loading:"جار تحميل القوالب…" },
+  tr: { title:"Sistem SMS şablonları", count:"SMS şablonlarını yönetin ve düzenleyin ({n} şablon)", new:"Yeni şablon", edit:"Şablonu düzenle", create:"Yeni şablon oluştur", desc:"Sistem için yeni SMS şablonu oluşturun", name:"Şablon adı", namePh:"SMS şablon adı", content:"Şablon içeriği", contentPh:"SMS içeriği (değişkenler için {{variable_name}} kullanın)", vars:"Değişkenler", none:"Yok", conditions:"Prosedür / gönderim koşulları", conditionsPh:"Bu şablonun otomatik gönderim koşullarını tanımlayın", hint:"Bu koşullar bu formdan değiştirilebilir", save:"Oluştur", update:"Güncelle", copy:"İçeriği kopyala", del:"Sil", confirm:"Şablon silmeyi onayla", sure:"“{name}” şablonu silinsin mi?", irreversible:"Bu işlem geri alınamaz.", cancel:"İptal", delete:"Kalıcı olarak sil", deleting:"Siliniyor…", copied:"Kopyalandı", copiedDesc:"Şablon içeriği kopyalandı", success:"Başarılı", created:"SMS şablonu oluşturuldu", updated:"Şablon güncellendi", deleted:"Şablon silindi", error:"Hata", failed:"İşlem başarısız", default:"Varsayılan", number:"Şablon #{n}", usage:"Kullanım sayısı", author:"Oluşturan", date:"Oluşturma tarihi", actions:"İşlemler", message:"Mesaj içeriği", noTemplates:"Şablon bulunamadı", first:"İlk sistem SMS şablonunu oluşturun", loading:"Şablonlar yükleniyor…" }
+};
 
 export default function SmsTemplatesSimple() {
-  const [showTemplateDialog, setShowTemplateDialog] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<SmsTemplate | null>(null);
-  
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-
-  // Fetch all templates using simple API
-  const { data: templatesData = { data: [] }, isLoading: templatesLoading } = useQuery({
-    queryKey: ["/api/admin/simple-sms-templates"],
-    queryFn: () => apiRequest("/api/admin/simple-sms-templates")
-  });
-
-  // Extract arrays from API responses
-  const templates = Array.isArray(templatesData) ? templatesData : (templatesData?.data || []);
-
-  // Debug logging
-  console.log("Templates Debug:", { templatesData, templates, templatesLoading });
-
-  // Template form
-  const templateForm = useForm<z.infer<typeof templateSchema>>({
-    resolver: zodResolver(templateSchema),
-    defaultValues: {
-      templateName: "",
-      templateContent: "",
-      variables: [],
-      usageConditions: "",
-      isDefault: false,
-      createdBy: "admin"
-    }
-  });
-
-  // Create template mutation
-  const createTemplateMutation = useMutation({
-    mutationFn: (data: z.infer<typeof templateSchema>) =>
-      apiRequest("/api/admin/simple-sms-templates", { method: "POST", body: data }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/simple-sms-templates"] });
-      setShowTemplateDialog(false);
-      templateForm.reset();
-      toast({ title: "موفقیت", description: "قالب پیامک ایجاد شد" });
-    },
-    onError: (error: any) => {
-      toast({ title: "خطا", description: error.message || "خطا در ایجاد قالب", variant: "destructive" });
-    }
-  });
-
-  // Update template mutation
-  const updateTemplateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<z.infer<typeof templateSchema>> }) =>
-      apiRequest(`/api/admin/simple-sms-templates/${id}`, { method: "PUT", body: data }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/simple-sms-templates"] });
-      setShowTemplateDialog(false);
-      setEditingTemplate(null);
-      templateForm.reset();
-      toast({ title: "موفقیت", description: "قالب بروزرسانی شد" });
-    },
-    onError: (error: any) => {
-      toast({ title: "خطا", description: error.message || "خطا در بروزرسانی قالب", variant: "destructive" });
-    }
-  });
-
-  // Delete template mutation
-  const deleteTemplateMutation = useMutation({
-    mutationFn: (id: number) =>
-      apiRequest(`/api/admin/simple-sms-templates/${id}`, { method: "DELETE" }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/simple-sms-templates"] });
-      toast({ title: "موفقیت", description: "قالب حذف شد" });
-    },
-    onError: (error: any) => {
-      toast({ title: "خطا", description: error.message || "خطا در حذف قالب", variant: "destructive" });
-    }
-  });
-
-  // Handle template form submission
-  const onTemplateSubmit = (data: z.infer<typeof templateSchema>) => {
-    // Extract variables from template content
-    const extractedVars = extractVariables(data.templateContent);
-    
-    if (editingTemplate) {
-      updateTemplateMutation.mutate({ 
-        id: editingTemplate.id, 
-        data: { ...data, variables: extractedVars }
-      });
-    } else {
-      createTemplateMutation.mutate({ 
-        ...data, 
-        variables: extractedVars 
-      });
-    }
-  };
-
-  // Handle edit template
-  const handleEditTemplate = (template: SmsTemplate) => {
-    setEditingTemplate(template);
-    templateForm.reset({
-      templateName: template.templateName,
-      templateContent: template.templateContent,
-      variables: template.variables || [],
-      usageConditions: template.usageConditions || "",
-      isDefault: template.isDefault,
-      createdBy: template.createdBy || "admin"
-    });
-    setShowTemplateDialog(true);
-  };
-
-  // Extract variables from template content
-  const extractVariables = (content: string): string[] => {
-    const matches = content.match(/\{\{([^}]+)\}\}/g);
-    return matches ? matches.map(match => match.replace(/\{\{|\}\}/g, '')) : [];
-  };
-
-  // Copy template content to clipboard
-  const copyToClipboard = (content: string) => {
-    navigator.clipboard.writeText(content);
-    toast({ title: "کپی شد", description: "محتوای قالب کپی شد" });
-  };
-
-  if (templatesLoading) {
-    return (
-      <div className="flex justify-center items-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">قالب‌های پیامک سیستم</h2>
-          <p className="text-gray-600">مدیریت و ویرایش قالب‌های پیامک ({templates.length} قالب)</p>
-        </div>
-        <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
-          <DialogTrigger asChild>
-            <Button onClick={() => { setEditingTemplate(null); templateForm.reset(); }}>
-              <Plus className="h-4 w-4 mr-2" />
-              قالب جدید
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>
-                {editingTemplate ? "ویرایش قالب" : "ایجاد قالب جدید"}
-              </DialogTitle>
-              <DialogDescription>
-                قالب پیامک جدید برای سیستم ایجاد کنید
-              </DialogDescription>
-            </DialogHeader>
-            <Form {...templateForm}>
-              <form onSubmit={templateForm.handleSubmit(onTemplateSubmit)} className="space-y-4">
-                <FormField
-                  control={templateForm.control}
-                  name="templateName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>نام قالب</FormLabel>
-                      <FormControl>
-                        <Input placeholder="نام قالب پیامک" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={templateForm.control}
-                  name="templateContent"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>محتوای قالب</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="محتوای پیامک (از {{variable_name}} برای متغیرها استفاده کنید)"
-                          className="min-h-32"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                      <p className="text-xs text-gray-500">
-                        متغیرهای شناسایی شده: {extractVariables(field.value || "").join(", ") || "هیچ"}
-                      </p>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={templateForm.control}
-                  name="usageConditions"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>شرایط ارسال (قابل تغییر)</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="شرایط ارسال خودکار این قالب را تعریف کنید (مثال: وضعیت سفارش = تایید شده و مبلغ پرداخت > 0)"
-                          className="min-h-20"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                      <p className="text-xs text-amber-600">
-                        💡 این شرایط در کارت قالب نمایش داده می‌شود و از طریق همین فرم قابل تغییر است
-                      </p>
-                    </FormItem>
-                  )}
-                />
-
-                <DialogFooter>
-                  <Button 
-                    type="submit" 
-                    disabled={createTemplateMutation.isPending || updateTemplateMutation.isPending}
-                  >
-                    {editingTemplate ? "بروزرسانی" : "ایجاد"}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {/* Templates Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {templates.map((template: SmsTemplate, index: number) => (
-          <Card key={template.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader className="pb-3">
-              <div className="flex justify-between items-start">
-                <div className="flex items-center gap-3">
-                  <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg w-14 h-14 flex items-center justify-center font-bold text-xl shrink-0">
-                    {index + 1}
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">{template.templateName}</CardTitle>
-                    <p className="text-sm text-blue-600 font-medium">
-                      قالب #{index + 1}
-                    </p>
-                  </div>
-                  {template.isDefault && (
-                    <Badge variant="default" className="text-xs">پیش‌فرض</Badge>
-                  )}
-                </div>
-                <div className="flex gap-1">
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => copyToClipboard(template.templateContent)}
-                    title="کپی محتوا"
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => handleEditTemplate(template)}
-                    title="ویرایش"
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        disabled={deleteTemplateMutation.isPending}
-                        title="حذف"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle className="flex items-center gap-2">
-                          <Trash2 className="h-5 w-5 text-red-600" />
-                          تأیید حذف قالب
-                        </AlertDialogTitle>
-                        <AlertDialogDescription className="text-right">
-                          آیا از حذف قالب "{template.templateName}" اطمینان دارید؟
-                          <br />
-                          <span className="text-red-600 font-medium">
-                            این عمل غیرقابل بازگشت است و قالب به طور کامل حذف خواهد شد.
-                          </span>
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter className="flex gap-2">
-                        <AlertDialogCancel>انصراف</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => deleteTemplateMutation.mutate(template.id)}
-                          className="bg-red-600 hover:bg-red-700 text-white"
-                          disabled={deleteTemplateMutation.isPending}
-                        >
-                          {deleteTemplateMutation.isPending ? "در حال حذف..." : "حذف قطعی"}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="bg-gradient-to-r from-gray-50 to-blue-50 p-4 rounded-lg border">
-                  <p className="text-sm font-medium mb-2 text-gray-700">محتوای قالب:</p>
-                  <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
-                    {template.templateContent}
-                  </p>
-                </div>
-                
-                {template.variables && template.variables.length > 0 && (
-                  <div>
-                    <p className="text-sm font-medium mb-2 flex items-center gap-1">
-                      <Tag className="h-4 w-4" />
-                      متغیرها ({template.variables.length}):
-                    </p>
-                    <div className="flex flex-wrap gap-1">
-                      {template.variables.map((variable, index) => (
-                        <Badge key={index} variant="outline" className="text-xs bg-blue-50 text-blue-700">
-                          {variable}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                {/* Template Number and Usage Conditions */}
-                <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-lg border border-amber-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Info className="h-4 w-4 text-amber-600" />
-                    <span className="text-sm font-medium text-amber-800">
-                      شماره قالب: #{index + 1} - شرایط ارسال:
-                    </span>
-                  </div>
-                  <p className="text-sm text-amber-700 leading-relaxed">
-                    {template.usageConditions || "شرایط ارسال تعریف نشده - نیاز به تنظیم توسط مدیر سیستم"}
-                  </p>
-                  <div className="mt-2 pt-2 border-t border-amber-200">
-                    <p className="text-xs text-amber-600">
-                      💡 این شرایط از طریق فرم ویرایش قابل تغییر است (بدون نیاز به تغییر کد)
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4 text-xs text-gray-500 pt-2 border-t">
-                  <div>
-                    <span className="font-medium">تعداد استفاده:</span> {template.usageCount}
-                  </div>
-                  <div>
-                    <span className="font-medium">ایجاد شده توسط:</span> {template.createdBy}
-                  </div>
-                  <div className="col-span-2">
-                    <span className="font-medium">تاریخ ایجاد:</span> {new Date(template.createdAt).toLocaleDateString('fa-IR')}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {templates.length === 0 && (
-        <div className="text-center py-12">
-          <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">هیچ قالبی موجود نیست</h3>
-          <p className="text-gray-500 mb-4">اولین قالب پیامک سیستم را ایجاد کنید</p>
-          <Button onClick={() => setShowTemplateDialog(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            ایجاد اولین قالب
-          </Button>
-        </div>
-      )}
+  const { language, direction } = useLanguage(); const l = labels[language as Lang];
+  const schema = z.object({ templateName:z.string().min(1,l.name), templateContent:z.string().min(1,l.content), variables:z.array(z.string()).optional(), usageConditions:z.string().optional(), isDefault:z.boolean().default(false), createdBy:z.string().default("admin") });
+  const [open,setOpen]=useState(false); const [editing,setEditing]=useState<SmsTemplate|null>(null); const {toast}=useToast(); const qc=useQueryClient();
+  const {data:raw=[],isLoading}=useQuery({queryKey:["/api/admin/simple-sms-templates"],queryFn:()=>apiRequest("/api/admin/simple-sms-templates", undefined)});
+  const templates:SmsTemplate[]=Array.isArray(raw)?raw:(raw as any)?.data||[];
+  const form=useForm<z.infer<typeof schema>>({resolver:zodResolver(schema),defaultValues:{templateName:"",templateContent:"",variables:[],usageConditions:"",isDefault:false,createdBy:"admin"}});
+  const vars=(s:string)=>{const m=s.match(/\{\{([^}]+)\}\}/g);return m?m.map(x=>x.replace(/\{\{|\}\}/g,"")):[]};
+  const mutation=useMutation({mutationFn:(data:any)=>editing?apiRequest(`/api/admin/simple-sms-templates/${editing.id}`,{method:"PUT",body:data}):apiRequest("/api/admin/simple-sms-templates",{method:"POST",body:data}),onSuccess:()=>{qc.invalidateQueries({queryKey:["/api/admin/simple-sms-templates"]});setOpen(false);setEditing(null);form.reset();toast({title:l.success,description:editing?l.updated:l.created});},onError:(e:any)=>toast({title:l.error,description:e.message||l.failed,variant:"destructive"})});
+  const remove=useMutation({mutationFn:(id:number)=>apiRequest(`/api/admin/simple-sms-templates/${id}`,{method:"DELETE"}),onSuccess:()=>{qc.invalidateQueries({queryKey:["/api/admin/simple-sms-templates"]});toast({title:l.success,description:l.deleted})},onError:()=>toast({title:l.error,description:l.failed,variant:"destructive"})});
+  const submit=(d:any)=>mutation.mutate({...d,variables:vars(d.templateContent)});
+  const openEdit=(x:SmsTemplate)=>{setEditing(x);form.reset({templateName:x.templateName,templateContent:x.templateContent,variables:x.variables||[],usageConditions:x.usageConditions||"",isDefault:x.isDefault,createdBy:x.createdBy||"admin"});setOpen(true)};
+   if(isLoading)return <div dir={direction} lang={language} className="py-8 text-center text-slate-500">{l.loading}</div>;
+   const startCreate = () => { setEditing(null); form.reset(); setOpen(true); };
+   return <div dir={direction} lang={language} className="space-y-6">
+     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+       <div><h2 className="text-2xl font-bold">{l.title}</h2><p className="text-muted-foreground">{l.count.replace("{n}",String(templates.length))}</p></div>
+       <Dialog open={open} onOpenChange={setOpen}>
+         <Button onClick={startCreate} className="w-full sm:w-auto"><Plus className="h-4 w-4 me-2"/>{l.new}</Button>
+         <DialogContent className="max-w-2xl"><DialogHeader><DialogTitle>{editing?l.edit:l.create}</DialogTitle><DialogDescription>{l.desc}</DialogDescription></DialogHeader><Form {...form}><form onSubmit={form.handleSubmit(submit)} className="space-y-4">
+        <FormField control={form.control} name="templateName" render={({field})=><FormItem><FormLabel>{l.name}</FormLabel><FormControl><Input placeholder={l.namePh} {...field}/></FormControl><FormMessage/></FormItem>}/>
+        <FormField control={form.control} name="templateContent" render={({field})=><FormItem><FormLabel>{l.content}</FormLabel><FormControl><Textarea placeholder={l.contentPh} className="min-h-32" {...field}/></FormControl><FormMessage/><p className="text-xs text-muted-foreground">{l.vars}: {vars(field.value||"").join(", ")||l.none}</p></FormItem>}/>
+         <FormField control={form.control} name="usageConditions" render={({field})=><FormItem><FormLabel>{l.conditions}</FormLabel><FormControl><Textarea placeholder={l.conditionsPh} className="min-h-24" {...field}/></FormControl><p className="text-xs text-amber-600">{l.hint}</p></FormItem>}/>
+        <DialogFooter><Button type="submit" disabled={mutation.isPending}>{editing?l.update:l.save}</Button></DialogFooter>
+       </form></Form></DialogContent></Dialog>
     </div>
-  );
+     {templates.length===0?<div className="py-12 text-center"><MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground"/><h3 className="text-lg font-medium">{l.noTemplates}</h3><p className="text-muted-foreground mb-4">{l.first}</p><Button onClick={startCreate}><Plus className="h-4 w-4 me-2"/>{l.new}</Button></div>:
+     <div className="overflow-x-auto rounded-md border"><Table className="min-w-[1050px]">
+       <TableHeader className="bg-muted/60"><TableRow>
+         <TableHead>{l.number} / {l.name}</TableHead><TableHead>{l.message}</TableHead><TableHead>{l.conditions}</TableHead><TableHead>{l.vars}</TableHead><TableHead>{l.usage}</TableHead><TableHead className="text-end">{l.actions}</TableHead>
+       </TableRow></TableHeader>
+       <TableBody>{templates.map((x,i)=><TableRow key={x.id}>
+         <TableCell className="align-top"><div className="font-medium">{x.templateName}</div><div className="text-xs text-muted-foreground">{l.number.replace("{n}",String(i+1))}{x.isDefault&&<Badge className="ms-2">{l.default}</Badge>}</div></TableCell>
+         <TableCell className="max-w-[280px] align-top"><p className="whitespace-pre-wrap break-words">{x.templateContent}</p></TableCell>
+         <TableCell className="max-w-[240px] align-top whitespace-pre-wrap break-words">{x.usageConditions||l.none}</TableCell>
+         <TableCell className="align-top"><div className="flex max-w-[180px] flex-wrap gap-1">{x.variables?.length?x.variables.map(v=><Badge key={v} variant="outline">{v}</Badge>):<span className="text-muted-foreground">{l.none}</span>}</div></TableCell>
+         <TableCell className="align-top whitespace-nowrap">{x.usageCount}</TableCell>
+         <TableCell className="align-top"><div className="flex flex-wrap justify-end gap-2"><Button variant="outline" size="sm" onClick={()=>openEdit(x)}><Edit className="h-4 w-4 me-1"/>{l.edit}</Button><Button variant="outline" size="sm" onClick={()=>{navigator.clipboard.writeText(x.templateContent);toast({title:l.copied,description:l.copiedDesc})}}><Copy className="h-4 w-4 me-1"/>{l.copy}</Button><AlertDialog><AlertDialogTrigger asChild><Button variant="destructive" size="sm"><Trash2 className="h-4 w-4 me-1"/>{l.del}</Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>{l.confirm}</AlertDialogTitle><AlertDialogDescription>{l.sure.replace("{name}",x.templateName)}<br/><span className="text-red-600">{l.irreversible}</span></AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>{l.cancel}</AlertDialogCancel><AlertDialogAction onClick={()=>remove.mutate(x.id)}>{remove.isPending?l.deleting:l.delete}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog></div></TableCell>
+       </TableRow>)}</TableBody>
+     </Table></div>}
+  </div>;
 }
