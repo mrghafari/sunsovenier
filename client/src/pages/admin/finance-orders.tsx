@@ -14,6 +14,14 @@ import { AlertTriangle, CheckCircle, Clock, CreditCard, DollarSign, RefreshCw, T
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getOrderStatusLabel, resolveOrderStatus } from "@shared/order-status";
+import DatePickerModule, { type DateObject } from "react-multi-date-picker";
+import persian from "react-date-object/calendars/persian";
+import persianFa from "react-date-object/locales/persian_fa";
+import "react-multi-date-picker/styles/layouts/mobile.css";
+
+const PersianDatePicker = (
+  (DatePickerModule as any).default ?? DatePickerModule
+) as React.ComponentType<any>;
 
 // OrderManagement interface
 interface OrderManagement {
@@ -288,6 +296,22 @@ function FinanceOrders() {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(value);
+  const toPersianPickerValue = (value: string) =>
+    value ? new Date(`${value}T12:00:00`) : null;
+  const handlePersianDateChange = (
+    value: DateObject | DateObject[] | null,
+    setter: React.Dispatch<React.SetStateAction<string>>,
+  ) => {
+    if (!value || Array.isArray(value)) {
+      setter("");
+      return;
+    }
+    const selectedDate = value.toDate();
+    const year = selectedDate.getFullYear();
+    const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
+    const day = String(selectedDate.getDate()).padStart(2, "0");
+    setter(`${year}-${month}-${day}`);
+  };
   const translateWithValue = (key: string, value: number) => t(key).replace('{count}', formatNumber(value));
   const formatPaymentMethod = (paymentMethod?: string) => {
     switch (paymentMethod) {
@@ -1366,20 +1390,54 @@ function FinanceOrders() {
                 <option value="warehouse_pending">{t('transferredToWarehouse')}</option>
               </select>
               <div className="grid grid-cols-2 gap-2">
-                <Input
-                  type="date"
-                  value={fromDateFilter}
-                  onChange={(event) => setFromDateFilter(event.target.value)}
-                  aria-label={t('fromDate')}
-                  title={t('fromDate')}
-                />
-                <Input
-                  type="date"
-                  value={toDateFilter}
-                  onChange={(event) => setToDateFilter(event.target.value)}
-                  aria-label={t('toDate')}
-                  title={t('toDate')}
-                />
+                {language === 'fa' ? (
+                  <PersianDatePicker
+                    value={toPersianPickerValue(fromDateFilter)}
+                    onChange={(value: DateObject | DateObject[] | null) =>
+                      handlePersianDateChange(value, setFromDateFilter)}
+                    calendar={persian}
+                    locale={persianFa}
+                    calendarPosition="bottom-right"
+                    format="YYYY/MM/DD"
+                    mobileLabels={{ OK: "تأیید", CANCEL: "لغو" }}
+                    inputClass="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    containerClassName="w-full"
+                    placeholder={t('fromDate')}
+                    aria-label={t('fromDate')}
+                  />
+                ) : (
+                  <Input
+                    type="date"
+                    value={fromDateFilter}
+                    onChange={(event) => setFromDateFilter(event.target.value)}
+                    aria-label={t('fromDate')}
+                    title={t('fromDate')}
+                  />
+                )}
+                {language === 'fa' ? (
+                  <PersianDatePicker
+                    value={toPersianPickerValue(toDateFilter)}
+                    onChange={(value: DateObject | DateObject[] | null) =>
+                      handlePersianDateChange(value, setToDateFilter)}
+                    calendar={persian}
+                    locale={persianFa}
+                    calendarPosition="bottom-right"
+                    format="YYYY/MM/DD"
+                    mobileLabels={{ OK: "تأیید", CANCEL: "لغو" }}
+                    inputClass="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    containerClassName="w-full"
+                    placeholder={t('toDate')}
+                    aria-label={t('toDate')}
+                  />
+                ) : (
+                  <Input
+                    type="date"
+                    value={toDateFilter}
+                    onChange={(event) => setToDateFilter(event.target.value)}
+                    aria-label={t('toDate')}
+                    title={t('toDate')}
+                  />
+                )}
               </div>
               <Input
                 type="number"
