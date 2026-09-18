@@ -757,6 +757,16 @@ export class OrderManagementStorage implements IOrderManagementStorage {
           ? or(
               inArray(orderManagement.currentStatus, warehouseStatuses),
               isNotNull(orderManagement.warehouseProcessedAt),
+              sql`EXISTS (
+                SELECT 1
+                FROM order_status_history warehouse_history
+                WHERE warehouse_history.order_management_id = ${orderManagement.id}
+                  AND (
+                    warehouse_history.changed_by_department = 'warehouse'
+                    OR warehouse_history.to_status LIKE 'warehouse_%'
+                    OR warehouse_history.from_status LIKE 'warehouse_%'
+                  )
+              )`,
             )
           : inArray(orderManagement.currentStatus, warehouseStatuses),
       );

@@ -571,20 +571,40 @@ const WarehouseManagementFixed: React.FC = () => {
     refetchInterval: 30000, // Auto-refresh every 30 seconds
   });
 
+  const {
+    data: historyResponse,
+    isLoading: historyLoading,
+    refetch: refetchHistory,
+  } = useQuery({
+    queryKey: ['/api/order-management/warehouse/history'],
+    enabled: orderView === 'history',
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnWindowFocus: true,
+  });
+
   // Force refresh function that completely clears cache
   const forceRefreshOrders = async () => {
     // Clear all cache first
     await queryClient.invalidateQueries({ queryKey: ['/api/order-management/warehouse'] });
     await queryClient.removeQueries({ queryKey: ['/api/order-management/warehouse'] });
-    // Then refetch
-    await refetchOrders();
+    if (orderView === 'history') {
+      await queryClient.invalidateQueries({ queryKey: ['/api/order-management/warehouse/history'] });
+      await queryClient.removeQueries({ queryKey: ['/api/order-management/warehouse/history'] });
+      await refetchHistory();
+    } else {
+      await refetchOrders();
+    }
     console.log({
       title: `🔄 ${t('refreshed')}`,
       description: t('ordersRefreshed'),
     });
   };
 
-  const orders = (ordersResponse as any)?.orders || [];
+  const orders = orderView === 'history'
+    ? (historyResponse as any)?.orders || []
+    : (ordersResponse as any)?.orders || [];
+  const visibleOrdersLoading = orderView === 'history' ? historyLoading : ordersLoading;
 
   // Inventory Products Query
   const { data: inventoryProductsData, isLoading: inventoryProductsLoading, refetch: refetchInventoryProducts } = useQuery<{ products: InventoryProduct[] }>({
@@ -860,21 +880,7 @@ const WarehouseManagementFixed: React.FC = () => {
     return dateA - dateB;
   }) || [];
 
-  const activeWarehouseStatuses = new Set([
-    'financial_approved',
-    'warehouse_pending',
-    'warehouse_notified',
-    'warehouse_processing',
-    'warehouse_verified',
-    'warehouse_fulfilled',
-    'warehouse_approved',
-    'warehouse_ready',
-  ]);
-  const displayedOrders = filteredOrders.filter((order: Order) => {
-    const status = (order.currentStatus || order.status || '').trim().toLowerCase();
-    const isCurrent = activeWarehouseStatuses.has(status);
-    return orderView === 'current' ? isCurrent : !isCurrent;
-  });
+  const displayedOrders = filteredOrders;
 
   // Debug log the final sorted order
   console.log('🔄 [FINAL ORDER] Orders after sorting:', filteredOrders?.map((o: Order) => ({ 
@@ -1076,7 +1082,7 @@ const WarehouseManagementFixed: React.FC = () => {
                 </div>
               </CardHeader>
               <CardContent className="p-0">
-                {ordersLoading ? (
+                 {visibleOrdersLoading ? (
                   <div className="text-center py-12">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
                     <p className="text-gray-500">{t('loadingOrders')}</p>

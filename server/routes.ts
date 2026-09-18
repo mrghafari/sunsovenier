@@ -30765,20 +30765,25 @@ ${message ? `Additional Requirements:\n${message}` : ''}
     try {
       console.log('📦 [WAREHOUSE] Fetching warehouse orders...');
 
-      // Keep orders visible after they leave the warehouse so this page also
-      // serves as the warehouse history. The canonical workflow status in
-      // order_management is authoritative; the legacy customer-order status
-      // is not used for department visibility.
-      const warehouseHistoryStatuses = [
-        'financial_approved',
-        'warehouse_pending',
-        'warehouse_notified',
-        'warehouse_processing',
-        'warehouse_verified',
-        'warehouse_fulfilled',
-        'warehouse_approved',
+      const orders = await orderManagementStorage.getOrdersByDepartment('warehouse');
+
+      console.log('📦 [WAREHOUSE] Found current warehouse orders:', orders.length);
+      res.set('Cache-Control', 'no-store');
+      res.json({ success: true, orders });
+    } catch (error) {
+      console.error('📦 [WAREHOUSE] Error fetching warehouse orders:', error);
+      res.status(500).json({
+        success: false,
+        message: 'خطا در دریافت سفارشات انبار',
+      });
+    }
+  });
+
+  // Warehouse order history - orders that have already left the warehouse.
+  app.get('/api/order-management/warehouse/history', requireAuth, async (req, res) => {
+    try {
+      const historyStatuses = [
         'warehouse_rejected',
-        'warehouse_ready',
         'logistics_assigned',
         'logistics_processing',
         'logistics_dispatched',
@@ -30788,19 +30793,33 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         'delivered',
         'completed',
       ];
-      const orders = await orderManagementStorage.getOrdersByDepartment(
+      const warehouseOrders = await orderManagementStorage.getOrdersByDepartment(
         'warehouse',
-        warehouseHistoryStatuses as any,
+        historyStatuses as any,
         true,
       );
+      const activeStatuses = new Set([
+        'financial_approved',
+        'warehouse_pending',
+        'warehouse_notified',
+        'warehouse_processing',
+        'warehouse_verified',
+        'warehouse_fulfilled',
+        'warehouse_approved',
+        'warehouse_ready',
+      ]);
+      const orders = warehouseOrders.filter((order: any) =>
+        !activeStatuses.has(String(order.currentStatus || '').trim().toLowerCase()),
+      );
 
-      console.log('📦 [WAREHOUSE] Found financial approved orders:', orders.length);
+      console.log('📚 [WAREHOUSE HISTORY] Found historical warehouse orders:', orders.length);
+      res.set('Cache-Control', 'no-store');
       res.json({ success: true, orders });
     } catch (error) {
-      console.error('📦 [WAREHOUSE] Error fetching warehouse orders:', error);
+      console.error('📚 [WAREHOUSE HISTORY] Error fetching warehouse history:', error);
       res.status(500).json({
         success: false,
-        message: 'خطا در دریافت سفارشات انبار',
+        message: 'خطا در دریافت سابقه سفارشات انبار',
       });
     }
   });
