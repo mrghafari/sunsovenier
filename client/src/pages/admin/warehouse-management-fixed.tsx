@@ -22,6 +22,24 @@ import { getOrderStatusLabel, resolveOrderStatus } from '@shared/order-status';
 
 type PageLanguage = 'en' | 'fa' | 'ar' | 'tr';
 
+const localizeFinancialNote = (note: string, language: PageLanguage): string => {
+  return note.replace(
+    /مبلغ\s+([\d۰-۹٠-٩,.٬،]+)\s+دینار\s+از\s+کیف\s+پول\s+کسر\s+شد/g,
+    (_match, amount: string) => {
+      switch (language) {
+        case 'en':
+          return `${amount} IQD was deducted from the wallet`;
+        case 'ar':
+          return `تم خصم ${amount} دينار عراقي من المحفظة`;
+        case 'tr':
+          return `Cüzdandan ${amount} IQD düşüldü`;
+        default:
+          return `مبلغ ${amount} دینار از کیف پول کسر شد`;
+      }
+    },
+  );
+};
+
 const pageTranslations: Record<string, Record<PageLanguage, string>> = {
   warehouseManagement: { en: 'Warehouse management', fa: 'مدیریت انبار', ar: 'إدارة المستودع', tr: 'Depo yönetimi' },
   warehouseDescription: { en: 'Manage orders, inventory, and warehouse operations', fa: 'مدیریت سفارشات، موجودی، و عملیات انبار', ar: 'إدارة الطلبات والمخزون وعمليات المستودع', tr: 'Siparişleri, envanteri ve depo işlemlerini yönetin' },
@@ -1654,7 +1672,12 @@ const WarehouseManagementFixed: React.FC = () => {
                           <span className="bg-blue-200 text-blue-800 px-2 py-0.5 rounded text-xs font-medium">{t('finance')}</span>
                           <span className="text-xs text-blue-600">{t('paymentNote')}</span>
                         </div>
-                        <p className="text-blue-900">{orderDetails.financialNotes || orderDetails.orderManagement?.financialNotes}</p>
+                        <p className="text-blue-900">
+                          {localizeFinancialNote(
+                            orderDetails.financialNotes || orderDetails.orderManagement?.financialNotes || '',
+                            language,
+                          )}
+                        </p>
                       </div>
                     )}
 

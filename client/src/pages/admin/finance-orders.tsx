@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useOrderNotifications } from "@/hooks/useOrderNotifications";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertTriangle, CheckCircle, Clock, CreditCard, DollarSign, RefreshCw, Timer, ChevronRight, XCircle, FileText, Eye, Download, Truck, MapPin, ZoomIn, ZoomOut, RotateCw, Move, X, Wallet, Calculator } from "lucide-react";
+import { AlertTriangle, CheckCircle, Clock, CreditCard, DollarSign, RefreshCw, Timer, ChevronRight, XCircle, FileText, Eye, Download, Truck, MapPin, ZoomIn, ZoomOut, RotateCw, Move, X, Wallet, Calculator, ArrowUpDown, ArrowUp, ArrowDown, Loader2 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getOrderStatusLabel, resolveOrderStatus } from "@shared/order-status";
@@ -47,6 +47,21 @@ interface OrderManagement {
   financialNotes?: string;
   [key: string]: any; // For additional properties
 }
+
+type FinanceTab = 'pending' | 'transferred' | 'rejected';
+type FinanceSortField = 'id' | 'orderNumber' | 'customer' | 'contact' | 'createdAt' | 'financialReviewedAt' |
+  'paymentMethod' | 'totalAmount' | 'currentStatus' | 'receipt' | 'financialNotes';
+type SortDirection = 'asc' | 'desc';
+type FinanceSortConfig = { field: FinanceSortField; direction: SortDirection };
+type FinanceOrdersPage = {
+  orders: OrderManagement[];
+  total: number;
+  offset: number;
+  limit: number;
+  hasMore: boolean;
+};
+
+const FINANCE_PAGE_SIZE = 100;
 
 type PageLanguage = 'en' | 'fa' | 'ar' | 'tr';
 
@@ -356,12 +371,17 @@ function FinanceOrders() {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [activeTab, setActiveTab] = useState("pending");
+  const [activeTab, setActiveTab] = useState<FinanceTab>("pending");
   const [orderDetailsModalOpen, setOrderDetailsModalOpen] = useState(false);
   const [orderDetails, setOrderDetails] = useState<any>(null);
   const [orderDocuments, setOrderDocuments] = useState<any[]>([]);
   const [orderDetailsWalletBalance, setOrderDetailsWalletBalance] = useState<number>(0);
   const [hasViewedReceipt, setHasViewedReceipt] = useState(false);
+  const [sortConfigs, setSortConfigs] = useState<Record<FinanceTab, FinanceSortConfig>>({
+    pending: { field: 'createdAt', direction: 'asc' },
+    transferred: { field: 'financialReviewedAt', direction: 'desc' },
+    rejected: { field: 'createdAt', direction: 'desc' },
+  });
 
   // Check admin authentication - MOVED to top to avoid conditional hooks
   const { data: adminUser, isLoading: isCheckingAuth, error: authError } = useQuery({
@@ -378,31 +398,86 @@ function FinanceOrders() {
   });
 
   // Get orders for financial review - MOVED to top - Using global refresh control
-  const { data: ordersResponse, isLoading, refetch } = useQuery({
-    queryKey: ['/api/financial/orders'],
-    queryFn: async () => {
-      const res = await fetch('/api/financial/orders', { credentials: 'include' });
-      const data = await res.json();
-      return data;
+  const pendingSort = sortConfigs.pending;
+  const pendingQuery = useInfiniteQuery<FinanceOrdersPage>({
+    queryKey: ['/api/financial/orders', 'pending', pendingSort.field, pendingSort.direction],
+    queryFn: async ({ pageParam = 0 }) => {
+      const params = new URLSearchParams({
+        view: 'pending',
+        limit: String(FINANCE_PAGE_SIZE),
+        offset: String(pageParam),
+        sortBy: pendingSort.field,
+        sortDirection: pendingSort.direction,
+      });
+      const res = await fetch(`/api/financial/orders?${params}`, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch pending financial orders');
+      return res.json();
     },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.offset + lastPage.orders.length : undefined,
     enabled: Boolean(adminUser?.success), // Only run if authenticated
+    staleTime: 0,
+  });
+  const {
+    data: ordersResponse,
+    isLoading,
+    refetch,
+    fetchNextPage: fetchNextPendingPage,
+    hasNextPage: hasNextPendingPage,
+    isFetchingNextPage: isFetchingNextPendingPage,
+  } = pendingQuery;
+
+  const rejectedSort = sortConfigs.rejected;
+  const rejectedQuery = useInfiniteQuery<FinanceOrdersPage>({
+    queryKey: ['/api/financial/orders', 'rejected', rejectedSort.field, rejectedSort.direction],
+    queryFn: async ({ pageParam = 0 }) => {
+      const params = new URLSearchParams({
+        view: 'rejected',
+        limit: String(FINANCE_PAGE_SIZE),
+        offset: String(pageParam),
+        sortBy: rejectedSort.field,
+        sortDirection: rejectedSort.direction,
+      });
+      const res = await fetch(`/api/financial/orders?${params}`, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch rejected financial orders');
+      return res.json();
+    },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.offset + lastPage.orders.length : undefined,
+    enabled: Boolean(adminUser?.success),
     staleTime: 0,
   });
 
   // Fetch approved orders that have been transferred to warehouse - MOVED to top
-  const { data: approvedOrdersResponse, isLoading: isLoadingApproved, refetch: refetchApproved } = useQuery({
-    queryKey: ['/api/financial/approved-orders'],
-    queryFn: async () => {
-      const res = await fetch('/api/financial/approved-orders', { credentials: 'include' });
-      const data = await res.json();
-      console.log('🔍 [APPROVED ORDERS] Raw response:', data);
-      return data;
+  const transferredSort = sortConfigs.transferred;
+  const approvedQuery = useInfiniteQuery<FinanceOrdersPage>({
+    queryKey: ['/api/financial/approved-orders', transferredSort.field, transferredSort.direction],
+    queryFn: async ({ pageParam = 0 }) => {
+      const params = new URLSearchParams({
+        limit: String(FINANCE_PAGE_SIZE),
+        offset: String(pageParam),
+        sortBy: transferredSort.field,
+        sortDirection: transferredSort.direction,
+      });
+      const res = await fetch(`/api/financial/approved-orders?${params}`, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to fetch reviewed financial orders');
+      return res.json();
     },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.offset + lastPage.orders.length : undefined,
     enabled: Boolean(adminUser?.success), // Only run if authenticated
     staleTime: 0,
     refetchOnWindowFocus: false, // Disable aggressive refetching
     refetchInterval: false, // Disable automatic refetch
   });
+  const {
+    data: approvedOrdersResponse,
+    isLoading: isLoadingApproved,
+    refetch: refetchApproved,
+    fetchNextPage: fetchNextApprovedPage,
+    hasNextPage: hasNextApprovedPage,
+    isFetchingNextPage: isFetchingNextApprovedPage,
+  } = approvedQuery;
 
   // Fetch company information for logo - MOVED to top to avoid conditional hooks
   const { data: companyInfo } = useQuery({
@@ -496,6 +571,7 @@ function FinanceOrders() {
       }
       // Refresh orders
       refetch();
+      rejectedQuery.refetch();
     },
     onError: (error: any) => {
       console.error(`❌ [FINANCE] Rejection error:`, error);
@@ -531,11 +607,12 @@ function FinanceOrders() {
   });
 
   // Calculate data variables FIRST before useCallbacks that might need them
-  const allOrders: OrderManagement[] = ordersResponse?.orders || [];
-  // Handle both array and object response formats
-  const transferredOrders: OrderManagement[] = Array.isArray(approvedOrdersResponse) 
-    ? approvedOrdersResponse 
-    : (approvedOrdersResponse?.orders || []);
+  const allOrders: OrderManagement[] = ordersResponse?.pages.flatMap(page => page.orders) || [];
+  const transferredOrders: OrderManagement[] = approvedOrdersResponse?.pages.flatMap(page => page.orders) || [];
+  const allRejectedOrders: OrderManagement[] = rejectedQuery.data?.pages.flatMap(page => page.orders) || [];
+  const pendingTotal = ordersResponse?.pages[0]?.total || 0;
+  const transferredTotal = approvedOrdersResponse?.pages[0]?.total || 0;
+  const rejectedTotal = rejectedQuery.data?.pages[0]?.total || 0;
 
   // ALL useCallback functions MUST be after data definitions but before early returns to maintain hook order
   
@@ -1105,10 +1182,7 @@ function FinanceOrders() {
       minimumAmountMatch && maximumAmountMatch;
   };
 
-  const filteredOrders = allOrders.filter(matchesFilters).sort((a, b) => {
-    // Show older orders first (ascending order by creation date)
-    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-  });
+  const filteredOrders = allOrders.filter(matchesFilters);
 
   // Separate pending orders by type for better organization
   const pendingOrders = filteredOrders.filter(order => {
@@ -1124,16 +1198,10 @@ function FinanceOrders() {
     order.paymentMethod !== 'wallet_full' && order.paymentMethod !== 'wallet_partial'
   );
 
-  // Filter transferred orders (chronological order: older first)
-  const filteredTransferredOrders = transferredOrders.filter(matchesFilters).sort((a, b) => {
-    // Show older orders first (ascending order by creation date)
-    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-  });
+  const filteredTransferredOrders = transferredOrders.filter(matchesFilters);
 
   // Rejected orders
-  const rejectedOrders = allOrders.filter(order =>
-    resolveOrderStatus({ workflowStatus: order.currentStatus }).status === 'financial_rejected' && matchesFilters(order)
-  );
+  const rejectedOrders = allRejectedOrders.filter(matchesFilters);
 
   // Statistics - Only calculate total for approved/transferred orders
   const totalAmount = transferredOrders.reduce((sum, order) => 
@@ -1143,6 +1211,19 @@ function FinanceOrders() {
   const totalTransferred = filteredTransferredOrders.reduce((sum, order) => 
     sum + parseFloat(order.totalAmount || '0'), 0
   );
+
+  const handleSort = (tab: FinanceTab, field: FinanceSortField) => {
+    setSortConfigs(current => {
+      const previous = current[tab];
+      return {
+        ...current,
+        [tab]: {
+          field,
+          direction: previous.field === field && previous.direction === 'asc' ? 'desc' : 'asc',
+        },
+      };
+    });
+  };
 
   if (isLoading) {
     return (
@@ -1160,27 +1241,73 @@ function FinanceOrders() {
     orders,
     readOnly = false,
     transferred = false,
+    tab,
+    hasNextPage = false,
+    isFetchingNextPage = false,
+    onLoadMore,
   }: {
     orders: OrderManagement[];
     readOnly?: boolean;
     transferred?: boolean;
-  }) => (
-    <div className="overflow-x-auto rounded-lg border border-slate-300 bg-white shadow-sm">
+    tab: FinanceTab;
+    hasNextPage?: boolean;
+    isFetchingNextPage?: boolean;
+    onLoadMore?: () => void;
+  }) => {
+    const sort = sortConfigs[tab];
+    const sortableHeader = (
+      label: string,
+      field: FinanceSortField,
+      className = '',
+    ) => (
+      <th scope="col" className={`border border-slate-300 px-3 py-2 font-semibold ${className}`}>
+        <button
+          type="button"
+          className="flex w-full items-center justify-between gap-1 text-start"
+          onClick={() => handleSort(tab, field)}
+          aria-label={`${label} sort`}
+        >
+          <span className="whitespace-normal break-words">{label}</span>
+          {sort.field !== field ? (
+            <ArrowUpDown className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+          ) : sort.direction === 'asc' ? (
+            <ArrowUp className="h-3.5 w-3.5 shrink-0 text-blue-600" />
+          ) : (
+            <ArrowDown className="h-3.5 w-3.5 shrink-0 text-blue-600" />
+          )}
+        </button>
+      </th>
+    );
+
+    return (
+    <div
+      className="max-h-[70vh] overflow-auto rounded-lg border border-slate-300 bg-white shadow-sm"
+      onScroll={(event) => {
+        const target = event.currentTarget;
+        if (
+          hasNextPage &&
+          !isFetchingNextPage &&
+          target.scrollHeight - target.scrollTop - target.clientHeight < 400
+        ) {
+          onLoadMore?.();
+        }
+      }}
+    >
       <table className="w-full min-w-[1080px] table-fixed border-collapse text-sm" aria-label={t('ordersTable')}>
         <caption className="sr-only">{t('ordersTable')}</caption>
         <thead className="sticky top-0 z-10 bg-slate-100 text-slate-700 shadow-sm">
           <tr>
-            <th scope="col" className="border border-slate-300 px-3 py-2 text-center font-semibold">{t('rowNumber')}</th>
-            <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('orderNumber')}</th>
-            <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('customer')}</th>
-            <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('contact')}</th>
-            <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('date')}</th>
-            <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('paymentMethod')}</th>
-            <th scope="col" className="border border-slate-300 px-3 py-2 text-end font-semibold">{t('amountIqd')}</th>
-            <th scope="col" className="w-[120px] border border-slate-300 px-3 py-2 text-start font-semibold whitespace-normal break-words">{t('status')}</th>
-            <th scope="col" className="w-[140px] border border-slate-300 px-3 py-2 text-start font-semibold whitespace-normal break-words">{t('receiptStatus')}</th>
-            <th scope="col" className="w-[150px] border border-slate-300 px-3 py-2 text-start font-semibold whitespace-normal break-words">{t('financialNote')}</th>
-            <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('actions')}</th>
+            {sortableHeader(t('rowNumber'), 'id', 'text-center')}
+            {sortableHeader(t('orderNumber'), 'orderNumber', 'text-start')}
+            {sortableHeader(t('customer'), 'customer', 'text-start')}
+            {sortableHeader(t('contact'), 'contact', 'text-start')}
+            {sortableHeader(t('date'), transferred ? 'financialReviewedAt' : 'createdAt', 'text-start')}
+            {sortableHeader(t('paymentMethod'), 'paymentMethod', 'text-start')}
+            {sortableHeader(t('amountIqd'), 'totalAmount', 'text-end')}
+            {sortableHeader(t('status'), 'currentStatus', 'w-[120px] text-start')}
+            {sortableHeader(t('receiptStatus'), 'receipt', 'w-[140px] text-start')}
+            {sortableHeader(t('financialNote'), 'financialNotes', 'w-[150px] text-start')}
+            {sortableHeader(t('actions'), 'id', 'text-start')}
           </tr>
         </thead>
         <tbody>
@@ -1264,8 +1391,15 @@ function FinanceOrders() {
           })}
         </tbody>
       </table>
+      {isFetchingNextPage && (
+        <div className="flex items-center justify-center gap-2 border-t bg-white px-4 py-3 text-sm text-slate-600">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          {t('loading')}
+        </div>
+      )}
     </div>
-  );
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50" dir={direction}>
@@ -1474,11 +1608,11 @@ function FinanceOrders() {
         </Card>
 
         {/* Tabs for different order states */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as FinanceTab)} className="space-y-6">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="pending">{t('pendingReview')} ({formatNumber(pendingOrders.length)})</TabsTrigger>
-            <TabsTrigger value="transferred">{t('transferred')} ({formatNumber(transferredOrders.length)})</TabsTrigger>
-            <TabsTrigger value="rejected">{t('rejected')} ({formatNumber(rejectedOrders.length)})</TabsTrigger>
+            <TabsTrigger value="pending">{t('pendingReview')} ({formatNumber(pendingTotal)})</TabsTrigger>
+            <TabsTrigger value="transferred">{t('transferred')} ({formatNumber(transferredTotal)})</TabsTrigger>
+            <TabsTrigger value="rejected">{t('rejected')} ({formatNumber(rejectedTotal)})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="pending" className="space-y-4">
@@ -1499,7 +1633,13 @@ function FinanceOrders() {
                       <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                       <h3 className="font-medium text-green-800">{t('walletManual')}</h3>
                     </div>
-                    <OrderTable orders={walletOrders} />
+                    <OrderTable
+                      orders={walletOrders}
+                      tab="pending"
+                      hasNextPage={hasNextPendingPage}
+                      isFetchingNextPage={isFetchingNextPendingPage}
+                      onLoadMore={() => fetchNextPendingPage()}
+                    />
                   </div>
                 )}
 
@@ -1512,7 +1652,13 @@ function FinanceOrders() {
                         <h3 className="font-medium text-blue-800">{t('bankManual')}</h3>
                       </div>
                     )}
-                    <OrderTable orders={bankOrders} />
+                    <OrderTable
+                      orders={bankOrders}
+                      tab="pending"
+                      hasNextPage={hasNextPendingPage}
+                      isFetchingNextPage={isFetchingNextPendingPage}
+                      onLoadMore={() => fetchNextPendingPage()}
+                    />
                   </div>
                 )}
               </div>
@@ -1529,7 +1675,15 @@ function FinanceOrders() {
                 </CardContent>
               </Card>
             ) : (
-              <OrderTable orders={filteredTransferredOrders} readOnly transferred />
+              <OrderTable
+                orders={filteredTransferredOrders}
+                tab="transferred"
+                readOnly
+                transferred
+                hasNextPage={hasNextApprovedPage}
+                isFetchingNextPage={isFetchingNextApprovedPage}
+                onLoadMore={() => fetchNextApprovedPage()}
+              />
             )}
           </TabsContent>
 
@@ -1542,7 +1696,14 @@ function FinanceOrders() {
                 </CardContent>
               </Card>
             ) : (
-              <OrderTable orders={rejectedOrders} readOnly />
+              <OrderTable
+                orders={rejectedOrders}
+                tab="rejected"
+                readOnly
+                hasNextPage={rejectedQuery.hasNextPage}
+                isFetchingNextPage={rejectedQuery.isFetchingNextPage}
+                onLoadMore={() => rejectedQuery.fetchNextPage()}
+              />
             )}
           </TabsContent>
         </Tabs>

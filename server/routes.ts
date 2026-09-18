@@ -10739,6 +10739,11 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
     try {
       console.log('🔍 [ROUTES] Financial endpoint called - using getOrdersByDepartment');
       const orders = await orderManagementStorage.getOrdersByDepartment('financial');
+      const view = req.query.view === 'rejected' ? 'rejected' : 'pending';
+      const limit = Math.min(Math.max(Number(req.query.limit) || 100, 1), 100);
+      const offset = Math.max(Number(req.query.offset) || 0, 0);
+      const sortBy = typeof req.query.sortBy === 'string' ? req.query.sortBy : 'createdAt';
+      const sortDirection = req.query.sortDirection === 'desc' ? 'desc' : 'asc';
       
       console.log('🔍 [ROUTES] Received', orders.length, 'orders from financial department');
       
@@ -10760,10 +10765,62 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         receiptFileName: order.receipt?.fileName || '',
         receiptMimeType: order.receipt?.mimeType || ''
       }));
+
+      const filteredOrders = transformedOrders.filter((order) => {
+        const status = resolveOrderStatus({
+          workflowStatus: order.currentStatus,
+          orderStatus: (order as any).status,
+          paymentStatus: (order as any).paymentStatus,
+          financialReviewedAt: (order as any).financialReviewedAt,
+        }).status;
+        if (view === 'rejected') return status === 'financial_rejected';
+        return status === 'financial_reviewing' ||
+          status === 'payment_uploaded' ||
+          status === 'financial_auto_approved';
+      });
+
+      const sortableValues: Record<string, (order: any) => unknown> = {
+        id: (order) => order.id,
+        orderNumber: (order) => order.orderNumber,
+        customer: (order) => order.customer?.name ||
+          `${order.customerFirstName || ''} ${order.customerLastName || ''}`.trim(),
+        contact: (order) => order.customerEmail || order.customerPhone,
+        createdAt: (order) => order.createdAt,
+        paymentMethod: (order) => order.paymentMethod,
+        totalAmount: (order) => Number(order.totalAmount || 0),
+        currentStatus: (order) => order.currentStatus,
+        receipt: (order) => Boolean(order.receipt?.url || order.paymentReceiptUrl),
+        financialNotes: (order) => order.financialNotes,
+      };
+      const getSortValue = sortableValues[sortBy] || sortableValues.createdAt;
+      const sortedOrders = [...filteredOrders].sort((left, right) => {
+        const leftValue = getSortValue(left);
+        const rightValue = getSortValue(right);
+        const direction = sortDirection === 'asc' ? 1 : -1;
+        if (leftValue == null && rightValue == null) return left.id - right.id;
+        if (leftValue == null) return direction;
+        if (rightValue == null) return -direction;
+        if (sortBy === 'createdAt') {
+          return (new Date(String(leftValue)).getTime() - new Date(String(rightValue)).getTime()) * direction ||
+            left.id - right.id;
+        }
+        if (typeof leftValue === 'number' && typeof rightValue === 'number') {
+          return (leftValue - rightValue) * direction || left.id - right.id;
+        }
+        return String(leftValue).localeCompare(String(rightValue), undefined, {
+          numeric: true,
+          sensitivity: 'base',
+        }) * direction || left.id - right.id;
+      });
+      const paginatedOrders = sortedOrders.slice(offset, offset + limit);
       
       res.json({ 
         success: true, 
-        orders: transformedOrders 
+        orders: paginatedOrders,
+        total: sortedOrders.length,
+        offset,
+        limit,
+        hasMore: offset + paginatedOrders.length < sortedOrders.length,
       });
     } catch (error) {
       console.error("Error fetching financial orders:", error);
@@ -34146,6 +34203,26 @@ ${message ? `Additional Requirements:\n${message}` : ''}
   app.get('/api/financial/approved-orders', async (req, res) => {
     try {
       console.log('✅ [APPROVED ORDERS] Fetching financially approved orders...');
+      const limit = Math.min(Math.max(Number(req.query.limit) || 100, 1), 100);
+      const offset = Math.max(Number(req.query.offset) || 0, 0);
+      const sortByMap: Record<string, string> = {
+        id: 'om.id',
+        orderNumber: 'co.order_number',
+        customer: "COALESCE(CONCAT(crm.first_name, ' ', crm.last_name), co.guest_name, co.guest_email)",
+        contact: 'COALESCE(crm.email, co.guest_email, crm.phone)',
+        createdAt: 'om.created_at',
+        financialReviewedAt: 'om.financial_reviewed_at',
+        paymentMethod: 'co.payment_method',
+        totalAmount: 'co.total_amount',
+        currentStatus: 'om.current_status',
+        receipt: '(om.payment_receipt_url IS NOT NULL)',
+        financialNotes: 'om.financial_notes',
+      };
+      const sortBy = typeof req.query.sortBy === 'string' && sortByMap[req.query.sortBy]
+        ? req.query.sortBy
+        : 'financialReviewedAt';
+      const sortDirection = req.query.sortDirection === 'asc' ? 'ASC' : 'DESC';
+      const sortColumn = sortByMap[sortBy];
       
       const { pool } = await import('./db');
       const result = await pool.query(`
@@ -34167,16 +34244,27 @@ ${message ? `Additional Requirements:\n${message}` : ''}
           crm.phone as customer_phone,
           crm.email as customer_email,
           crm.address as customer_address,
-          crm.city_region as customer_city_region
+          crm.city_region as customer_city_region,
+          COUNT(*) OVER()::int as total_count
         FROM order_management om
         LEFT JOIN customer_orders co ON om.customer_order_id = co.id
         LEFT JOIN crm_customers crm ON co.customer_id = crm.id
-        WHERE om.current_status IN ('warehouse_pending', 'warehouse_ready', 'logistics_pending', 'out_for_delivery', 'delivered')
+        WHERE om.current_status IN (
+          'financial_approved',
+          'warehouse_pending',
+          'warehouse_processing',
+          'warehouse_ready',
+          'warehouse_approved',
+          'logistics_pending',
+          'logistics_dispatched',
+          'out_for_delivery',
+          'delivered'
+        )
           AND om.financial_reviewed_at IS NOT NULL
           AND om.financial_reviewer_id IS NOT NULL
-        ORDER BY om.financial_reviewed_at DESC
-        LIMIT 50
-      `);
+        ORDER BY ${sortColumn} ${sortDirection} NULLS LAST, om.id ASC
+        LIMIT $1 OFFSET $2
+      `, [limit, offset]);
       
       // Helper function for payment source labels
       function getPaymentSourceLabel(paymentMethod: string) {
@@ -34228,7 +34316,15 @@ ${message ? `Additional Requirements:\n${message}` : ''}
       
       console.log(`✅ [APPROVED ORDERS] Found ${mappedOrders.length} approved orders`);
       
-      res.json(mappedOrders);
+      const total = result.rows[0]?.total_count || 0;
+      res.json({
+        success: true,
+        orders: mappedOrders,
+        total,
+        offset,
+        limit,
+        hasMore: offset + mappedOrders.length < total,
+      });
     } catch (error) {
       console.error('❌ [APPROVED ORDERS] Error fetching approved orders:', error);
       res.status(500).json({ 
