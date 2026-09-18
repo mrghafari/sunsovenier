@@ -30489,11 +30489,18 @@ ${message ? `Additional Requirements:\n${message}` : ''}
   });
 
   // Get orders for specific department (respects workflow sequence)
-  app.get('/api/order-management/:department', async (req, res) => {
+  app.get('/api/order-management/:department', async (req, res, next) => {
     try {
       const department = req.params.department as 'financial' | 'warehouse' | 'logistics';
+
+      // Warehouse has dedicated routes below that return both current work and
+      // warehouse history. Let Express continue to those routes instead of
+      // shadowing them with this generic department handler.
+      if (department === 'warehouse') {
+        return next();
+      }
       
-      if (!['financial', 'warehouse', 'logistics'].includes(department)) {
+      if (!['financial', 'logistics'].includes(department)) {
         return res.status(400).json({ success: false, message: 'بخش نامعتبر است' });
       }
 
