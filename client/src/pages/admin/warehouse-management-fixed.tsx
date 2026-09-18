@@ -26,6 +26,10 @@ const pageTranslations: Record<string, Record<PageLanguage, string>> = {
   warehouseManagement: { en: 'Warehouse management', fa: 'مدیریت انبار', ar: 'إدارة المستودع', tr: 'Depo yönetimi' },
   warehouseDescription: { en: 'Manage orders, inventory, and warehouse operations', fa: 'مدیریت سفارشات، موجودی، و عملیات انبار', ar: 'إدارة الطلبات والمخزون وعمليات المستودع', tr: 'Siparişleri, envanteri ve depo işlemlerini yönetin' },
   orders: { en: 'Orders', fa: 'سفارشات', ar: 'الطلبات', tr: 'Siparişler' },
+  currentOrders: { en: 'Current orders', fa: 'سفارش‌های جاری', ar: 'الطلبات الحالية', tr: 'Mevcut siparişler' },
+  orderHistory: { en: 'Order history', fa: 'سابقه سفارش‌ها', ar: 'سجل الطلبات', tr: 'Sipariş geçmişi' },
+  warehouseHistoryDescription: { en: 'Orders that have left the warehouse stage', fa: 'سفارش‌هایی که از مرحله انبار عبور کرده‌اند', ar: 'الطلبات التي غادرت مرحلة المستودع', tr: 'Depo aşamasından geçen siparişler' },
+  noHistoryOrders: { en: 'No warehouse order history found', fa: 'هنوز سابقه‌ای برای سفارش‌های انبار وجود ندارد', ar: 'لا يوجد سجل لطلبات المستودع بعد', tr: 'Henüz depo siparişi geçmişi yok' },
   inventory: { en: 'Warehouse inventory', fa: 'موجودی انبار', ar: 'مخزون المستودع', tr: 'Depo envanteri' },
   searchOrders: { en: 'Search (at least 3 characters): order number, customer name, phone, email...', fa: 'جستجو (حداقل 3 کاراکتر): شماره سفارش، نام مشتری، تلفن، ایمیل...', ar: 'بحث (3 أحرف على الأقل): رقم الطلب، اسم العميل، الهاتف، البريد الإلكتروني...', tr: 'Ara (en az 3 karakter): sipariş numarası, müşteri adı, telefon, e-posta...' },
   allStatuses: { en: 'All statuses', fa: 'همه وضعیت‌ها', ar: 'كل الحالات', tr: 'Tüm durumlar' },
@@ -287,6 +291,7 @@ const WarehouseManagementFixed: React.FC = () => {
   const [warehouseNotes, setWarehouseNotes] = useState('');
   const [savingNotes, setSavingNotes] = useState(false);
   const [activeTab, setActiveTab] = useState("orders");
+  const [orderView, setOrderView] = useState<'current' | 'history'>('current');
   const [orderDetails, setOrderDetails] = useState<any>(null);
   const [loadingOrderDetails, setLoadingOrderDetails] = useState(false);
 
@@ -855,6 +860,22 @@ const WarehouseManagementFixed: React.FC = () => {
     return dateA - dateB;
   }) || [];
 
+  const activeWarehouseStatuses = new Set([
+    'financial_approved',
+    'warehouse_pending',
+    'warehouse_notified',
+    'warehouse_processing',
+    'warehouse_verified',
+    'warehouse_fulfilled',
+    'warehouse_approved',
+    'warehouse_ready',
+  ]);
+  const displayedOrders = filteredOrders.filter((order: Order) => {
+    const status = (order.currentStatus || order.status || '').trim().toLowerCase();
+    const isCurrent = activeWarehouseStatuses.has(status);
+    return orderView === 'current' ? isCurrent : !isCurrent;
+  });
+
   // Debug log the final sorted order
   console.log('🔄 [FINAL ORDER] Orders after sorting:', filteredOrders?.map((o: Order) => ({ 
     id: o.id, 
@@ -982,6 +1003,19 @@ const WarehouseManagementFixed: React.FC = () => {
           </TabsList>
 
           <TabsContent value="orders" className="space-y-6">
+            <Tabs value={orderView} onValueChange={(value) => setOrderView(value as 'current' | 'history')}>
+              <TabsList className="grid w-full max-w-lg grid-cols-2">
+                <TabsTrigger value="current" className="flex items-center gap-2">
+                  <Package className="w-4 h-4" />
+                  {t('currentOrders')}
+                </TabsTrigger>
+                <TabsTrigger value="history" className="flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  {t('orderHistory')}
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+
             {/* Search and Filters */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               <div className="relative">
@@ -1019,15 +1053,15 @@ const WarehouseManagementFixed: React.FC = () => {
                       <div className="p-2 bg-blue-100 rounded-lg">
                         <Package className="w-6 h-6 text-blue-600" />
                       </div>
-                      {t('financialOrders')}
+                      {orderView === 'current' ? t('financialOrders') : t('orderHistory')}
                     </CardTitle>
                     <p className="text-sm text-gray-600 mt-2 mr-11">
-                       {t('readyForWarehouse')}
+                       {orderView === 'current' ? t('readyForWarehouse') : t('warehouseHistoryDescription')}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant="secondary" className="text-sm">
-                       {formatNumber(filteredOrders.length)} {t('orderCount')}
+                       {formatNumber(displayedOrders.length)} {t('orderCount')}
                     </Badge>
                     <Button 
                       variant="outline" 
@@ -1047,13 +1081,15 @@ const WarehouseManagementFixed: React.FC = () => {
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
                     <p className="text-gray-500">{t('loadingOrders')}</p>
                   </div>
-                ) : filteredOrders.length === 0 ? (
+                ) : displayedOrders.length === 0 ? (
                   <div className="text-center py-12 text-gray-500">
                     <div className="p-4 bg-gray-100 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
                       <Package className="w-10 h-10 text-gray-400" />
                     </div>
-                     <h3 className="text-lg font-medium text-gray-900 mb-2">{t('noOrders')}</h3>
-                     <p>{t('noOrdersDescription')}</p>
+                     <h3 className="text-lg font-medium text-gray-900 mb-2">
+                       {orderView === 'current' ? t('noOrders') : t('noHistoryOrders')}
+                     </h3>
+                     {orderView === 'current' && <p>{t('noOrdersDescription')}</p>}
                   </div>
                 ) : (
                    <div className="overflow-x-auto rounded-lg border border-slate-300 bg-white shadow-sm">
@@ -1075,7 +1111,7 @@ const WarehouseManagementFixed: React.FC = () => {
                          </tr>
                        </thead>
                        <tbody>
-                         {filteredOrders.map((order: Order, index: number) => (
+                         {displayedOrders.map((order: Order, index: number) => (
                            <tr key={order.id} className="odd:bg-white even:bg-slate-50 hover:bg-blue-50">
                              <th scope="row" className="border border-slate-200 px-3 py-2 text-center font-medium text-slate-600">{index + 1}</th>
                              <td className="border border-slate-200 px-3 py-2 font-medium whitespace-nowrap">
@@ -1688,8 +1724,8 @@ const WarehouseManagementFixed: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Order Notes */}
-                <div>
+                {/* Editing is available only for orders still in the warehouse workflow. */}
+                {orderView === 'current' && <div>
                    <Label htmlFor="warehouseNotes">{t('warehouseNotes')}</Label>
                   <Textarea
                     id="warehouseNotes"
@@ -1708,7 +1744,7 @@ const WarehouseManagementFixed: React.FC = () => {
                        {saveNotesMutation.isPending || updateOrderMutation.isPending ? t('processing') : t('startProcessing')}
                     </Button>
                   </div>
-                </div>
+                </div>}
 
                 {/* Actions */}
                 <div className="flex justify-end gap-3">
