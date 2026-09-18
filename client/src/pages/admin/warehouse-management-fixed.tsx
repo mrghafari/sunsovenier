@@ -986,6 +986,21 @@ const WarehouseManagementFixed: React.FC = () => {
     }
   };
 
+  const detailWorkflowStatus =
+    orderDetails?.currentStatus ||
+    orderDetails?.orderManagement?.currentStatus ||
+    selectedOrder?.currentStatus ||
+    '';
+  const detailStatusProjection = resolveOrderStatus({
+    workflowStatus: detailWorkflowStatus,
+    orderStatus: orderDetails?.customerOrder?.status || selectedOrder?.status,
+    paymentStatus: orderDetails?.customerOrder?.paymentStatus,
+  });
+  const logisticsProcessed =
+    Boolean(orderDetails?.logisticsProcessed || orderDetails?.orderManagement?.logisticsProcessedAt) ||
+    detailStatusProjection.department === 'logistics' ||
+    detailStatusProjection.department === 'complete';
+
   return (
     <div className="min-h-screen bg-gray-50 p-6" dir={direction} lang={language}>
       <div className="max-w-7xl mx-auto">
@@ -1724,14 +1739,14 @@ const WarehouseManagementFixed: React.FC = () => {
                         </span>
                       </div>
                     </div>
-                    <div className={`p-3 rounded-lg border ${orderDetails.logisticsProcessed ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                    <div className={`p-3 rounded-lg border ${logisticsProcessed ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
                       <div className="flex items-center gap-2">
-                        {orderDetails.logisticsProcessed ? (
+                        {logisticsProcessed ? (
                           <CheckCircle className="w-5 h-5 text-green-600" />
                         ) : (
                           <Clock className="w-5 h-5 text-gray-400" />
                         )}
-                        <span className={`text-sm font-medium ${orderDetails.logisticsProcessed ? 'text-green-800' : 'text-gray-600'}`}>
+                        <span className={`text-sm font-medium ${logisticsProcessed ? 'text-green-800' : 'text-gray-600'}`}>
                           {t('logisticsProcessing')}
                         </span>
                       </div>

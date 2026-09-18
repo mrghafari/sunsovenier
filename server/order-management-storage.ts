@@ -2237,8 +2237,17 @@ export class OrderManagementStorage implements IOrderManagementStorage {
         }
       }
       
-      // Calculate total weight from order items
-      const totalWeight = await this.calculateOrderWeight(orderId);
+      // Preserve the weight captured with the order. Recalculating from the
+      // current catalog can return zero for legacy orders whose products or
+      // product weights have since changed.
+      const storedManagementWeight = Number(orderManagement.totalWeight || 0);
+      const storedCustomerWeight = Number(customerOrder.totalWeight || 0);
+      const storedWeight = storedManagementWeight > 0
+        ? storedManagementWeight
+        : storedCustomerWeight;
+      const totalWeight = storedWeight > 0
+        ? storedWeight
+        : await this.calculateOrderWeight(orderId);
       
       const result = {
         // Order management info
@@ -2258,7 +2267,7 @@ export class OrderManagementStorage implements IOrderManagementStorage {
         totalQuantity: orderItemsResult.reduce((sum, item) => sum + parseInt(item.quantity || '0'), 0),
         totalAmount: customerOrder.totalAmount,
         totalWeight: totalWeight,
-        weightUnit: 'kg',
+        weightUnit: orderManagement.weightUnit || customerOrder.weightUnit || 'kg',
         orderDate: customerOrder.createdAt,
         orderNumber: customerOrder.orderNumber, // شماره سفارش M[YY][NNNNN]
         customerNotes: customerOrder.notes, // یادداشت مشتری از چک‌اوت
