@@ -1464,6 +1464,8 @@ export type UserRoleAssignment = typeof userRoleAssignments.$inferSelect;
 // Simple SMS templates table without categories
 export const simpleSmsTemplates = pgTable("simple_sms_templates", {
   id: serial("id").primaryKey(),
+  templateKey: varchar("template_key", { length: 100 }),
+  language: varchar("language", { length: 5 }).notNull().default("fa"),
   templateName: varchar("template_name", { length: 255 }).notNull(),
   templateContent: text("template_content").notNull(),
   variables: text("variables").array(),

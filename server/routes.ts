@@ -22,7 +22,6 @@ import { crmStorage } from "./crm-storage";
 import { customerCommunicationStorage } from "./customer-communication-storage";
 import { crmDb } from "./crm-db";
 import { smsStorage } from "./sms-storage";
-import { SimpleSmsStorage, simpleSmsStorage, simpleSmsDb } from "./simple-sms-storage";
 import { widgetRecommendationStorage } from "./widget-recommendation-storage";
 import { orderManagementStorage } from "./order-management-storage";
 import { walletStorage } from "./wallet-storage";
@@ -632,7 +631,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         textContent: row.text_content,
         category: row.category,
         categoryName: row.category,
-        language: row.language || 'fa',
+        language: row.language || 'en',
         is_active: row.is_active,
         isActive: row.is_active,
         is_default: row.is_default,
@@ -684,7 +683,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           html_content = ${html_content},
           text_content = ${text_content || ''},
           category = ${category},
-          language = ${language || 'fa'},
+          language = ${language || 'en'},
           is_active = ${is_active},
           updated_at = NOW()
         WHERE id = ${templateId}
@@ -15228,6 +15227,9 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       }
 
       const customerData = customer.rows[0];
+      const { normalizeSmsLanguage, selectLocalizedSms } = await import('./sms-language');
+      const customerLanguage = normalizeSmsLanguage(customerData.preferred_language);
+      const fiveMinutes = { en: '5 minutes', fa: '۵ دقیقه', ar: '5 دقائق', tr: '5 dakika' }[customerLanguage];
       const authCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit code
       const results = [];
 
@@ -15239,10 +15241,11 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
             templateNumber: '#AUTH01',
             categoryKey: 'admin',
             to: [customerData.email],
+            language: customerLanguage,
             variables: {
               customerName: `${customerData.first_name} ${customerData.last_name}`,
               authCode: authCode,
-              expiryTime: '5 دقیقه'
+              expiryTime: fiveMinutes
             }
           });
           results.push({ channel: 'email', success: true });
@@ -15258,9 +15261,15 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           const { createSmsService } = await import('./sms-service.js');
           const smsService = await createSmsService();
           
+          const message = selectLocalizedSms({
+            en: `${customerData.first_name}, your verification code is ${authCode}. It expires in 5 minutes. Momtaz Chemical`,
+            fa: `${customerData.first_name} عزیز، کد تأیید شما: ${authCode}\nاین کد در ۵ دقیقه منقضی می‌شود.\nممتازکم`,
+            ar: `${customerData.first_name}، رمز التحقق الخاص بك هو ${authCode}. تنتهي صلاحيته خلال 5 دقائق. ممتاز للكيماويات`,
+            tr: `${customerData.first_name}, doğrulama kodunuz: ${authCode}. Bu kod 5 dakika içinde geçerliliğini yitirir. Momtaz Chemical`,
+          }, customerLanguage)!;
           const result = await smsService.sendSms({
             to: customerData.phone,
-            message: `${customerData.first_name} عزیز، کد تایید شما: ${authCode}\nاین کد در ۵ دقیقه منقضی می‌شود.\nممتازکم`
+            message,
           });
           
           results.push({ channel: 'sms', success: result.success, error: result.error });
@@ -15312,7 +15321,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
 
       // Get order and customer info
       const [order] = await pool.query(`
-        SELECT om.*, c.first_name, c.last_name, c.email, c.phone, c.whatsapp_number
+        SELECT om.*, c.first_name, c.last_name, c.email, c.phone, c.whatsapp_number, c.preferred_language
         FROM order_management om
         LEFT JOIN customer_orders co ON om.customer_order_id = co.id
         LEFT JOIN customers c ON co.customer_id = c.id
@@ -15324,6 +15333,8 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       }
 
       const orderData = order.rows[0];
+      const { normalizeSmsLanguage, selectLocalizedSms } = await import('./sms-language');
+      const customerLanguage = normalizeSmsLanguage(orderData.preferred_language);
       const deliveryCode = Math.floor(1000 + Math.random() * 9000).toString(); // 4-digit code
       const results = [];
 
@@ -15335,6 +15346,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
             templateNumber: '#DELIVERY01',
             categoryKey: 'admin',
             to: [orderData.email],
+            language: customerLanguage,
             variables: {
               customerName: `${orderData.first_name} ${orderData.last_name}`,
               orderNumber: orderNumber,
@@ -15354,9 +15366,15 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           const { createSmsService } = await import('./sms-service.js');
           const smsService = await createSmsService();
           
+          const message = selectLocalizedSms({
+            en: `${orderData.first_name}, order ${orderNumber} is on its way. Delivery code: ${deliveryCode}. Give this code to the driver upon delivery. Momtaz Chemical`,
+            fa: `${orderData.first_name} عزیز، سفارش ${orderNumber} در راه است.\nکد تحویل: ${deliveryCode}\nاین کد را هنگام تحویل به پیک اعلام کنید.\nممتازکم`,
+            ar: `${orderData.first_name}، طلبك ${orderNumber} في الطريق. رمز التسليم: ${deliveryCode}. أعطِ هذا الرمز للسائق عند التسليم. ممتاز للكيماويات`,
+            tr: `${orderData.first_name}, ${orderNumber} numaralı siparişiniz yolda. Teslimat kodu: ${deliveryCode}. Teslimat sırasında bu kodu sürücüye verin. Momtaz Chemical`,
+          }, customerLanguage)!;
           const result = await smsService.sendSms({
             to: orderData.phone,
-            message: `${orderData.first_name} عزیز، سفارش ${orderNumber} در راه است.\nکد تحویل: ${deliveryCode}\nاین کد را هنگام تحویل به پیک اعلام کنید.\nممتازکم`
+            message,
           });
           
           results.push({ channel: 'sms', success: result.success, error: result.error });
@@ -15422,6 +15440,9 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       }
 
       const customerData = customer.rows[0];
+      const { normalizeSmsLanguage, selectLocalizedSms } = await import('./sms-language');
+      const customerLanguage = normalizeSmsLanguage(customerData.preferred_language);
+      const oneHour = { en: '1 hour', fa: '۱ ساعت', ar: 'ساعة واحدة', tr: '1 saat' }[customerLanguage];
       const crypto = await import('crypto');
       const resetToken = crypto.randomBytes(32).toString('hex');
       const resetExpires = new Date(Date.now() + 3600000); // 1 hour
@@ -15444,10 +15465,11 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
             templateNumber: '#RESET01',
             categoryKey: 'admin',
             to: [customerData.email],
+            language: customerLanguage,
             variables: {
               customerName: `${customerData.first_name} ${customerData.last_name}`,
               resetLink: resetLink,
-              expiryTime: '1 ساعت'
+              expiryTime: oneHour
             }
           });
           results.push({ channel: 'email', success: true });
@@ -15463,9 +15485,15 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           const { createSmsService } = await import('./sms-service.js');
           const smsService = await createSmsService();
           
+          const message = selectLocalizedSms({
+            en: `${customerData.first_name}, reset your password using this link:\n${resetLink}\nThe link expires in 1 hour. Momtaz Chemical`,
+            fa: `${customerData.first_name} عزیز، برای بازیابی رمز عبور خود روی لینک زیر کلیک کنید:\n${resetLink}\nاین لینک در ۱ ساعت منقضی می‌شود.\nممتازکم`,
+            ar: `${customerData.first_name}، استخدم الرابط التالي لإعادة تعيين كلمة المرور:\n${resetLink}\nتنتهي صلاحية الرابط خلال ساعة واحدة. ممتاز للكيماويات`,
+            tr: `${customerData.first_name}, parolanızı sıfırlamak için bu bağlantıyı kullanın:\n${resetLink}\nBağlantı 1 saat içinde geçerliliğini yitirir. Momtaz Chemical`,
+          }, customerLanguage)!;
           const result = await smsService.sendSms({
             to: customerData.phone,
-            message: `${customerData.first_name} عزیز، برای بازیابی رمز عبور خود روی لینک زیر کلیک کنید:\n${resetLink}\nاین لینک در ۱ ساعت منقضی می‌شود.\nممتازکم`
+            message,
           });
           
           results.push({ channel: 'sms', success: result.success, error: result.error });
@@ -16580,27 +16608,30 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           VALUES (${crmCustomer.id}, ${verificationCode}, ${phone}, ${new Date(Date.now() + 10 * 60 * 1000)})
         `);
         
-        // Get SMS template 4 for registration verification
-        const template = await simpleSmsStorage.getTemplateById(4);
-        
-        if (template && template.templateContent && phone) {
-          // Replace variables in template
-          let smsMessage = template.templateContent;
-          smsMessage = smsMessage.replace(/\{\{customer_name\}\}/g, `${firstName} ${lastName}`);
-          smsMessage = smsMessage.replace(/\{\{verification_code\}\}/g, verificationCode);
-          
-          // Here you would integrate with your SMS provider
-          // For now, we'll log the message and mark it as sent
-          console.log(`📱 [SMS VERIFICATION] Registration verification sent to ${phone} - Template: ${template.templateName}`);
-          
-          // Increment template usage using direct SQL
-          await simpleSmsDb.execute(sql`
-            UPDATE simple_sms_templates 
-            SET usage_count = usage_count + 1, 
-                last_used = NOW(), 
-                updated_at = NOW() 
-            WHERE id = ${4}
-          `);
+        if (phone) {
+          const { createSmsService } = await import('./sms-service');
+          const customerName = `${firstName} ${lastName}`.trim();
+          const smsService = await createSmsService();
+          const sendResult = await smsService.sendLocalizedSystemTemplate({
+            templateKey: 'registration_verification',
+            phone,
+            customerId: crmCustomer.id,
+            language: preferredLanguage,
+            variables: {
+              customer_name: customerName,
+              verification_code: verificationCode,
+            },
+            fallbackMessages: {
+              en: `{{customer_name}}, your registration verification code is {{verification_code}}. It expires in 10 minutes. Momtaz Chemical`,
+              fa: `{{customer_name}} عزیز، کد تأیید ثبت‌نام شما: {{verification_code}}\nاین کد تا ۱۰ دقیقه معتبر است.\nممتازکم`,
+              ar: `{{customer_name}}، رمز التحقق من التسجيل هو {{verification_code}}. تنتهي صلاحيته خلال 10 دقائق. ممتاز للكيماويات`,
+              tr: `{{customer_name}}, kayıt doğrulama kodunuz: {{verification_code}}. Bu kod 10 dakika içinde geçerliliğini yitirir. Momtaz Chemical`,
+            },
+          });
+          if (!sendResult.success) {
+            throw new Error(sendResult.error || 'SMS provider rejected registration verification');
+          }
+          console.log(`📱 [SMS VERIFICATION] Registration verification accepted for ${phone} (${sendResult.language})`);
           
           // Log SMS activity in CRM
           await crmStorage.logCustomerActivity({
@@ -16610,7 +16641,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
             performedBy: 'system',
             activityData: {
               phone: phone,
-              template_id: 8,
+              template_id: sendResult.templateId || null,
               verification_code: verificationCode,
               sent_at: new Date().toISOString()
             }
@@ -16768,24 +16799,30 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         VALUES (${customer.id}, ${verificationCode}, ${phone}, ${new Date(Date.now() + 10 * 60 * 1000)})
       `);
 
-      // Get SMS template 4 for resend
-      const template = await simpleSmsStorage.getTemplateById(4);
-      
-      if (template && template.templateContent) {
-        let smsMessage = template.templateContent;
-        smsMessage = smsMessage.replace(/\{\{customer_name\}\}/g, `${customer.firstName} ${customer.lastName}`);
-        smsMessage = smsMessage.replace(/\{\{verification_code\}\}/g, verificationCode);
-        
-        console.log(`📱 [SMS RESEND] Verification code resent to ${phone}: ${smsMessage}`);
-        
-        // Increment template usage
-        await simpleSmsDb.execute(sql`
-          UPDATE simple_sms_templates 
-          SET usage_count = usage_count + 1, 
-              last_used = NOW(), 
-              updated_at = NOW() 
-          WHERE id = ${4}
-        `);
+      {
+        const { createSmsService } = await import('./sms-service');
+        const customerName = `${customer.firstName} ${customer.lastName}`.trim();
+        const smsService = await createSmsService();
+        const sendResult = await smsService.sendLocalizedSystemTemplate({
+          templateKey: 'registration_verification',
+          phone,
+          customerId: customer.id,
+          language: customer.preferredLanguage,
+          variables: {
+            customer_name: customerName,
+            verification_code: verificationCode,
+          },
+          fallbackMessages: {
+            en: `{{customer_name}}, your registration verification code is {{verification_code}}. It expires in 10 minutes. Momtaz Chemical`,
+            fa: `{{customer_name}} عزیز، کد تأیید ثبت‌نام شما: {{verification_code}}\nاین کد تا ۱۰ دقیقه معتبر است.\nممتازکم`,
+            ar: `{{customer_name}}، رمز التحقق من التسجيل هو {{verification_code}}. تنتهي صلاحيته خلال 10 دقائق. ممتاز للكيماويات`,
+            tr: `{{customer_name}}, kayıt doğrulama kodunuz: {{verification_code}}. Bu kod 10 dakika içinde geçerliliğini yitirir. Momtaz Chemical`,
+          },
+        });
+        if (!sendResult.success) {
+          throw new Error(sendResult.error || 'SMS provider rejected registration verification resend');
+        }
+        console.log(`📱 [SMS RESEND] Verification code accepted for ${phone} (${sendResult.language})`);
         
         // Log resend activity
         await crmStorage.logCustomerActivity({
@@ -16795,7 +16832,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           performedBy: 'system',
           activityData: {
             phone: phone,
-            templateUsed: template.templateName,
+            templateUsed: sendResult.templateId || `localized-${sendResult.language}-fallback`,
             verificationCode: verificationCode
           }
         });
@@ -23145,7 +23182,9 @@ ${procedure.content}
         // Send confirmation email to customer using Template #05 - Follow-up Response
         try {
           const { emailStorage } = await import('./email-storage');
-          const followUpTemplate = await emailStorage.getTemplateByNumber('#05');
+          const { resolveEmailLanguage } = await import('./sms-language');
+          const recipientLanguage = await resolveEmailLanguage(pool, inquiryData.contactEmail);
+          const followUpTemplate = await emailStorage.getTemplateByNumber('#05', recipientLanguage);
           
           if (followUpTemplate) {
             console.log(`📧 Using Template #05 - ${followUpTemplate.templateName}`);
@@ -23156,22 +23195,20 @@ ${procedure.content}
               subjectText: followUpTemplate.subject
             });
             
+            const customerName = inquiryData.contactEmail.split('@')[0] || 'Customer';
+            const responseText = {
+              en: `Dear ${customerName},\n\nThank you for your inquiry. Our technical team has reviewed your request and will send pricing, specifications, and availability within 24 hours.\n\nBest regards,\nMomtaz Chemical Technical Team`,
+              fa: `${customerName} گرامی،\n\nاز استعلام شما سپاسگزاریم. تیم فنی ما درخواست شما را بررسی کرده و قیمت، مشخصات و وضعیت موجودی را حداکثر تا ۲۴ ساعت آینده ارسال می‌کند.\n\nبا احترام،\nتیم فنی ممتازکم`,
+              ar: `عزيزي ${customerName}،\n\nشكرًا لاستفسارك. راجع فريقنا الفني طلبك وسيرسل الأسعار والمواصفات وحالة التوفر خلال 24 ساعة.\n\nمع أطيب التحيات،\nالفريق الفني لممتاز للكيماويات`,
+              tr: `Sayın ${customerName},\n\nTalebiniz için teşekkür ederiz. Teknik ekibimiz talebinizi inceledi; fiyat, teknik özellikler ve stok durumunu 24 saat içinde gönderecektir.\n\nSaygılarımızla,\nMomtaz Chemical Teknik Ekibi`,
+            }[recipientLanguage];
             const templateVariables = {
-              customer_name: inquiryData.contactEmail.split('@')[0] || 'Valued Customer',
+              customer_name: customerName,
               inquiry_number: inquiry.inquiryNumber,
               inquiry_subject: inquiryData.subject || 'General Inquiry',
               inquiry_category: inquiryData.category || 'general',
               customer_message: inquiryData.message || 'No specific message provided',
-              response_text: `Dear ${inquiryData.contactEmail.split('@')[0] || 'Customer'},
-
-Thank you for your inquiry about our ${inquiryData.category || 'chemical products'}. We are pleased to provide you with detailed information about this product. 
-
-Our technical team has reviewed your requirements and will send you a comprehensive quote including pricing, specifications, and availability within 24 hours. 
-
-If you need immediate assistance or have specific technical questions, please feel free to contact us directly.
-
-Best regards,
-Momtaz Chemical Technical Team`,
+              response_text: responseText,
               contact_phone: '+964 770 999 6771',
               contact_email: 'info@momtazchem.com'
             };
@@ -23208,6 +23245,7 @@ Momtaz Chemical Technical Team`,
             await UniversalEmailService.sendEmail({
               categoryKey: 'notifications',
               to: [inquiryData.contactEmail],
+              language: recipientLanguage,
               subject: processedSubject,
               html: processedHtml,
               templateNumber: '#05',
@@ -49327,8 +49365,8 @@ momtazchem.com
   // SIMPLE SMS TEMPLATES API ENDPOINTS
   // =============================================================================
 
-  // Get all simple SMS templates (no auth for testing)
-  app.get("/api/admin/simple-sms-templates", async (req, res) => {
+  // Get all simple SMS templates
+  app.get("/api/admin/simple-sms-templates", requireAuth, async (req, res) => {
     try {
       console.log("🚀 Fetching simple SMS templates...");
       const { simpleSmsStorage } = await import('./simple-sms-storage');
@@ -49349,7 +49387,7 @@ momtazchem.com
   });
 
   // Get simple SMS template by ID
-  app.get("/api/admin/simple-sms-templates/:id", async (req, res) => {
+  app.get("/api/admin/simple-sms-templates/:id", requireAuth, async (req, res) => {
     try {
       const { simpleSmsStorage } = await import('./simple-sms-storage');
       const template = await simpleSmsStorage.getTemplateById(parseInt(req.params.id));
@@ -49375,7 +49413,7 @@ momtazchem.com
   });
 
   // Create new simple SMS template
-  app.post("/api/admin/simple-sms-templates", async (req, res) => {
+  app.post("/api/admin/simple-sms-templates", requireAuth, async (req, res) => {
     try {
       const { insertSimpleSmsTemplateSchema } = await import('../shared/schema');
       const templateData = insertSimpleSmsTemplateSchema.parse(req.body);
@@ -49398,7 +49436,7 @@ momtazchem.com
   });
 
   // Update simple SMS template
-  app.put("/api/admin/simple-sms-templates/:id", async (req, res) => {
+  app.put("/api/admin/simple-sms-templates/:id", requireAuth, async (req, res) => {
     try {
       const { insertSimpleSmsTemplateSchema } = await import('../shared/schema');
       const updates = insertSimpleSmsTemplateSchema.partial().parse(req.body);
@@ -49421,7 +49459,7 @@ momtazchem.com
   });
 
   // Delete simple SMS template
-  app.delete("/api/admin/simple-sms-templates/:id", async (req, res) => {
+  app.delete("/api/admin/simple-sms-templates/:id", requireAuth, async (req, res) => {
     try {
       const { simpleSmsStorage } = await import('./simple-sms-storage');
       await simpleSmsStorage.deleteTemplate(parseInt(req.params.id));
@@ -49440,7 +49478,7 @@ momtazchem.com
   });
 
   // Increment template usage count
-  app.post("/api/admin/simple-sms-templates/:id/increment-usage", async (req, res) => {
+  app.post("/api/admin/simple-sms-templates/:id/increment-usage", requireAuth, async (req, res) => {
     try {
       const { simpleSmsStorage } = await import('./simple-sms-storage');
       await simpleSmsStorage.incrementTemplateUsage(parseInt(req.params.id));

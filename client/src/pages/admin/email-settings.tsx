@@ -7,26 +7,90 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { 
   Mail, 
   Settings, 
   ArrowLeft, 
   Save, 
-  TestTube2, 
   CheckCircle, 
   XCircle, 
-  AlertTriangle,
-  Eye,
-  EyeOff,
-  Zap,
-  BookOpen,
   FileText
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useLanguage } from "@/contexts/LanguageContext";
+
+const emailSettingsCopy = {
+  en: {
+    title: "Email Management",
+    description: "Configure email addresses and manage email templates",
+    progressTracker: "Progress Tracker",
+    backToAdmin: "Back to Admin",
+    emailAddressesTab: "Email Addresses",
+    emailTemplatesTab: "Email Templates",
+    templatesTitle: "Email Template Management",
+    templatesDescription: "Create, edit, and manage email templates for automated responses",
+    openTemplates: "Open Template Management",
+    automatedEmailLogs: "Automated Email Logs",
+    templatesIntro: "In this section you can:",
+    createTemplates: "Create new templates",
+    editTemplates: "Edit existing templates",
+    addVariables: "Add dynamic variables",
+    setDefaultTemplate: "Set a default template",
+  },
+  fa: {
+    title: "مدیریت ایمیل",
+    description: "آدرس‌های ایمیل و قالب‌های ایمیل را مدیریت کنید",
+    progressTracker: "پیگیری پیشرفت",
+    backToAdmin: "بازگشت به مدیریت",
+    emailAddressesTab: "آدرس‌های ایمیل",
+    emailTemplatesTab: "قالب‌های ایمیل",
+    templatesTitle: "مدیریت قالب‌های ایمیل",
+    templatesDescription: "ایجاد، ویرایش و مدیریت قالب‌های ایمیل برای پاسخ‌های خودکار",
+    openTemplates: "باز کردن مدیریت قالب‌ها",
+    automatedEmailLogs: "گزارش ایمیل‌های خودکار",
+    templatesIntro: "در این بخش می‌توانید:",
+    createTemplates: "قالب‌های جدید ایجاد کنید",
+    editTemplates: "قالب‌های موجود را ویرایش کنید",
+    addVariables: "متغیرهای پویا اضافه کنید",
+    setDefaultTemplate: "قالب پیش‌فرض تنظیم کنید",
+  },
+  ar: {
+    title: "إدارة البريد الإلكتروني",
+    description: "إعداد عناوين البريد الإلكتروني وإدارة قوالب البريد",
+    progressTracker: "متابعة التقدم",
+    backToAdmin: "العودة إلى الإدارة",
+    emailAddressesTab: "عناوين البريد الإلكتروني",
+    emailTemplatesTab: "قوالب البريد الإلكتروني",
+    templatesTitle: "إدارة قوالب البريد الإلكتروني",
+    templatesDescription: "إنشاء قوالب البريد الإلكتروني وتحريرها وإدارتها للردود التلقائية",
+    openTemplates: "فتح إدارة القوالب",
+    automatedEmailLogs: "سجلات البريد الإلكتروني التلقائي",
+    templatesIntro: "يمكنك في هذا القسم:",
+    createTemplates: "إنشاء قوالب جديدة",
+    editTemplates: "تعديل القوالب الحالية",
+    addVariables: "إضافة متغيرات ديناميكية",
+    setDefaultTemplate: "تعيين قالب افتراضي",
+  },
+  tr: {
+    title: "E-posta Yönetimi",
+    description: "E-posta adreslerini yapılandırın ve e-posta şablonlarını yönetin",
+    progressTracker: "İlerleme Takibi",
+    backToAdmin: "Yönetim Paneline Dön",
+    emailAddressesTab: "E-posta Adresleri",
+    emailTemplatesTab: "E-posta Şablonları",
+    templatesTitle: "E-posta Şablonu Yönetimi",
+    templatesDescription: "Otomatik yanıtlar için e-posta şablonları oluşturun, düzenleyin ve yönetin",
+    openTemplates: "Şablon Yönetimini Aç",
+    automatedEmailLogs: "Otomatik E-posta Kayıtları",
+    templatesIntro: "Bu bölümde şunları yapabilirsiniz:",
+    createTemplates: "Yeni şablonlar oluşturun",
+    editTemplates: "Mevcut şablonları düzenleyin",
+    addVariables: "Dinamik değişkenler ekleyin",
+    setDefaultTemplate: "Varsayılan şablonu ayarlayın",
+  },
+} as const;
 
 interface EmailSettings {
   id?: number;
@@ -41,42 +105,20 @@ interface EmailSettings {
   updatedAt?: string;
 }
 
-interface SMTPSettings {
-  host: string;
-  port: number;
-  secure: boolean;
-  user: string;
-  pass: string;
-  fromName: string;
-  fromEmail: string;
-}
-
 // No default email settings - use only database configurations
 
 export default function EmailSettingsPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { language, direction } = useLanguage();
+  const copy = emailSettingsCopy[language];
   
   // Email settings state
   const [emailSettings, setEmailSettings] = useState<EmailSettings[]>([]);
   const [editingEmail, setEditingEmail] = useState<EmailSettings | null>(null);
   
-  // SMTP settings state
-  const [smtpSettings, setSmtpSettings] = useState<SMTPSettings>({
-    host: "",
-    port: 587,
-    secure: false,
-    user: "",
-    pass: "",
-    fromName: "",
-    fromEmail: ""
-  });
-  
   // UI state
-  const [showPassword, setShowPassword] = useState(false);
-  const [isTestingConnection, setIsTestingConnection] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [isSaving, setIsSaving] = useState(false);
 
   // Authentication check
@@ -105,9 +147,6 @@ export default function EmailSettingsPage() {
     if (currentSettings?.emailSettings) {
       setEmailSettings(currentSettings.emailSettings);
     }
-    if (currentSettings?.smtpSettings) {
-      setSmtpSettings(currentSettings.smtpSettings);
-    }
   }, [currentSettings]);
 
   // Save email settings mutation
@@ -123,63 +162,9 @@ export default function EmailSettingsPage() {
     }
   });
 
-  // Save SMTP settings mutation
-  const saveSMTPSettingsMutation = useMutation({
-    mutationFn: (settings: SMTPSettings) => 
-      apiRequest("/api/admin/smtp-settings", "POST", settings),
-    onSuccess: () => {
-      toast({ title: "Success", description: "SMTP settings saved successfully" });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/email-settings"] });
-    },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to save SMTP settings", variant: "destructive" });
-    }
-  });
-
-  // Test SMTP connection
-  const testSMTPConnection = async () => {
-    setIsTestingConnection(true);
-    setConnectionStatus('idle');
-
-    try {
-      // Map frontend fields to backend expected fields
-      const testData = {
-        host: smtpSettings.host,
-        port: smtpSettings.port,
-        secure: smtpSettings.secure,
-        user: smtpSettings.user,
-        pass: smtpSettings.pass,
-        fromName: smtpSettings.fromName,
-        fromEmail: smtpSettings.fromEmail
-      };
-
-      console.log('Testing SMTP with data:', { ...testData, pass: '***' });
-
-      const response = await apiRequest("/api/admin/test-smtp", "POST", testData);
-      if (response.success) {
-        setConnectionStatus('success');
-        toast({ title: "Success", description: "SMTP connection test successful" });
-      } else {
-        setConnectionStatus('error');
-        toast({ title: "Error", description: response.message || "SMTP connection test failed", variant: "destructive" });
-      }
-    } catch (error) {
-      setConnectionStatus('error');
-      toast({ title: "Error", description: "SMTP connection test failed", variant: "destructive" });
-    } finally {
-      setIsTestingConnection(false);
-    }
-  };
-
   const handleSaveEmailSettings = () => {
     setIsSaving(true);
     saveEmailSettingsMutation.mutate(emailSettings);
-    setTimeout(() => setIsSaving(false), 1000);
-  };
-
-  const handleSaveSMTPSettings = () => {
-    setIsSaving(true);
-    saveSMTPSettingsMutation.mutate(smtpSettings);
     setTimeout(() => setIsSaving(false), 1000);
   };
 
@@ -211,13 +196,13 @@ export default function EmailSettingsPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8" dir={direction}>
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
           <Mail className="w-8 h-8 text-blue-600" />
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Email Management</h1>
-            <p className="text-gray-600 mt-1">Configure email addresses and SMTP settings</p>
+            <h1 className="text-3xl font-bold text-gray-900">{copy.title}</h1>
+            <p className="text-gray-600 mt-1">{copy.description}</p>
           </div>
         </div>
         <div className="flex gap-3">
@@ -225,20 +210,19 @@ export default function EmailSettingsPage() {
             onClick={() => setLocation("/admin/email-progress")}
             className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
           >
-            🎯 Progress Tracker
+            🎯 {copy.progressTracker}
           </Button>
           <Button onClick={() => setLocation("/admin")} variant="outline">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Admin
+            {copy.backToAdmin}
           </Button>
         </div>
       </div>
 
       <Tabs defaultValue="email-addresses" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="email-addresses">Email Addresses</TabsTrigger>
-          <TabsTrigger value="smtp-settings">SMTP Settings</TabsTrigger>
-          <TabsTrigger value="email-templates">قالب‌های ایمیل</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="email-addresses">{copy.emailAddressesTab}</TabsTrigger>
+          <TabsTrigger value="email-templates">{copy.emailTemplatesTab}</TabsTrigger>
         </TabsList>
 
         {/* Email Addresses Tab */}
@@ -321,150 +305,16 @@ export default function EmailSettingsPage() {
           </Card>
         </TabsContent>
 
-        {/* SMTP Settings Tab */}
-        <TabsContent value="smtp-settings" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>SMTP Configuration</CardTitle>
-              <CardDescription>
-                Configure SMTP server settings for sending emails
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <Label htmlFor="smtp-host">SMTP Host</Label>
-                  <Input
-                    id="smtp-host"
-                    value={smtpSettings.host}
-                    onChange={(e) => setSmtpSettings(prev => ({ ...prev, host: e.target.value }))}
-                    placeholder="smtp.zoho.com"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="smtp-port">SMTP Port</Label>
-                  <Input
-                    id="smtp-port"
-                    type="number"
-                    value={smtpSettings.port}
-                    onChange={(e) => setSmtpSettings(prev => ({ ...prev, port: parseInt(e.target.value) }))}
-                    placeholder="587"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="smtp-user">Username</Label>
-                  <Input
-                    id="smtp-user"
-                    value={smtpSettings.user}
-                    onChange={(e) => setSmtpSettings(prev => ({ ...prev, user: e.target.value }))}
-                    placeholder="info@momtazchem.com"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="smtp-pass">Password / App Password</Label>
-                  <div className="relative">
-                    <Input
-                      id="smtp-pass"
-                      type={showPassword ? "text" : "password"}
-                      value={smtpSettings.pass}
-                      onChange={(e) => setSmtpSettings(prev => ({ ...prev, pass: e.target.value }))}
-                      placeholder="Enter password or app password"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="from-name">From Name</Label>
-                  <Input
-                    id="from-name"
-                    value={smtpSettings.fromName}
-                    onChange={(e) => setSmtpSettings(prev => ({ ...prev, fromName: e.target.value }))}
-                    placeholder="Momtaz Chemical"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="from-email">From Email</Label>
-                  <Input
-                    id="from-email"
-                    type="email"
-                    value={smtpSettings.fromEmail}
-                    onChange={(e) => setSmtpSettings(prev => ({ ...prev, fromEmail: e.target.value }))}
-                    placeholder="info@momtazchem.com"
-                  />
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button
-                  onClick={testSMTPConnection}
-                  disabled={isTestingConnection}
-                  variant="outline"
-                  className="flex-1"
-                >
-                  <TestTube2 className="w-4 h-4 mr-2" />
-                  {isTestingConnection ? 'Testing...' : 'Test Connection'}
-                </Button>
-                
-                <Button
-                  onClick={handleSaveSMTPSettings}
-                  disabled={isSaving}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700"
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  {isSaving ? 'Saving...' : 'Save SMTP Settings'}
-                </Button>
-              </div>
-
-              {connectionStatus !== 'idle' && (
-                <Alert className={connectionStatus === 'success' ? 'border-green-200' : 'border-red-200'}>
-                  {connectionStatus === 'success' ? (
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                  ) : (
-                    <XCircle className="h-4 w-4 text-red-600" />
-                  )}
-                  <AlertDescription>
-                    {connectionStatus === 'success' 
-                      ? 'SMTP connection test successful!' 
-                      : 'SMTP connection test failed. Please check your settings.'}
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              <Alert>
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  <strong>Important:</strong> Use App Passwords for Gmail, Zoho, and other providers that require 2FA.
-                  Regular passwords will not work with modern email providers.
-                </AlertDescription>
-              </Alert>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
         {/* Email Templates Tab */}
         <TabsContent value="email-templates" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Mail className="w-5 h-5" />
-                مدیریت قالب‌های ایمیل
+                {copy.templatesTitle}
               </CardTitle>
               <CardDescription>
-                ایجاد، ویرایش و مدیریت قالب‌های ایمیل برای پاسخ‌های خودکار
+                {copy.templatesDescription}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -474,7 +324,7 @@ export default function EmailSettingsPage() {
                   className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 text-lg"
                 >
                   <Mail className="w-5 h-5 mr-2" />
-                  باز کردن مدیریت قالب‌ها
+                  {copy.openTemplates}
                 </Button>
                 
                 <Button
@@ -482,16 +332,16 @@ export default function EmailSettingsPage() {
                   className="bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white px-8 py-3 text-lg"
                 >
                   <FileText className="w-5 h-5 mr-2" />
-                  لاگ ایمیل‌های اتوماتیک
+                  {copy.automatedEmailLogs}
                 </Button>
               </div>
               <div className="text-center text-gray-600 mt-4">
-                <p>در این بخش می‌توانید:</p>
+                <p>{copy.templatesIntro}</p>
                 <div className="mt-2 space-y-1 text-sm">
-                  <p>• قالب‌های جدید ایجاد کنید</p>
-                  <p>• قالب‌های موجود را ویرایش کنید</p>
-                  <p>• متغیرهای پویا اضافه کنید</p>
-                  <p>• قالب پیش‌فرض تنظیم کنید</p>
+                  <p>• {copy.createTemplates}</p>
+                  <p>• {copy.editTemplates}</p>
+                  <p>• {copy.addVariables}</p>
+                  <p>• {copy.setDefaultTemplate}</p>
                 </div>
               </div>
             </CardContent>

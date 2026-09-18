@@ -777,31 +777,7 @@
       "count": 1
     },
     {
-      "key": "[\"client/src/pages/admin/email-settings.tsx\",2554,\"Expected 2 arguments, but got 3.\",\"apiRequest(\\\"/api/admin/smtp-settings\\\", \\\"POST\\\", settings),\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/admin/email-settings.tsx\",2554,\"Expected 2 arguments, but got 3.\",\"const response = await apiRequest(\\\"/api/admin/test-smtp\\\", \\\"POST\\\", testData);\"]",
-      "count": 1
-    },
-    {
       "key": "[\"client/src/pages/admin/email-templates-central.tsx\",18046,\"'error' is of type 'unknown'.\",\"description: error.message?.includes('Authentication')\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/admin/email-templates-central.tsx\",2322,\"Type '(options?: RefetchOptions | undefined) => Promise<QueryObserverResult<any[], Error>>' is not assignable to type 'MouseEventHandler<HTMLButtonElement>'.\\n  Types of parameters 'options' and 'event' are incompatible.\\n    Type 'MouseEvent<HTMLButtonElement, MouseEvent>' has no properties in common with type 'RefetchOptions'.\",\"<Button onClick={refetch} variant=\\\"outline\\\">\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/admin/email-templates-central.tsx\",2339,\"Property 'message' does not exist on type 'never'.\",\": `خطا: ${error.message}`)\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/admin/email-templates-central.tsx\",2339,\"Property 'message' does not exist on type 'never'.\",\"? (error.message?.includes('Authentication')\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/admin/email-templates-central.tsx\",2339,\"Property 'message' does not exist on type 'never'.\",\"{error?.message?.includes('Authentication') ? (\"]",
       "count": 1
     },
     {
@@ -834,14 +810,6 @@
     },
     {
       "key": "[\"client/src/pages/admin/email-templates-central.tsx\",7053,\"Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ technical_support: { name: string; color: string; icon: ForwardRefExoticComponent<Omit<LucideProps, \\\"ref\\\"> & RefAttributes<SVGSVGElement>>; description: string; }; ... 12 more ...; notification: { ...; }; }'.\\n  No index signature with a parameter of type 'string' was found on type '{ technical_support: { name: string; color: string; icon: ForwardRefExoticComponent<Omit<LucideProps, \\\"ref\\\"> & RefAttributes<SVGSVGElement>>; description: string; }; ... 12 more ...; notification: { ...; }; }'.\",\"<Card className={`border ${TEMPLATE_CATEGORIES[selectedCategory].color.replace('text-', 'border-').replace('-800', '-200')}`}>\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/admin/email-templates-central.tsx\",7053,\"Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ technical_support: { name: string; color: string; icon: ForwardRefExoticComponent<Omit<LucideProps, \\\"ref\\\"> & RefAttributes<SVGSVGElement>>; description: string; }; ... 12 more ...; notification: { ...; }; }'.\\n  No index signature with a parameter of type 'string' was found on type '{ technical_support: { name: string; color: string; icon: ForwardRefExoticComponent<Omit<LucideProps, \\\"ref\\\"> & RefAttributes<SVGSVGElement>>; description: string; }; ... 12 more ...; notification: { ...; }; }'.\",\"<h3 className=\\\"font-semibold\\\">{TEMPLATE_CATEGORIES[selectedCategory].name}</h3>\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/admin/email-templates-central.tsx\",7053,\"Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ technical_support: { name: string; color: string; icon: ForwardRefExoticComponent<Omit<LucideProps, \\\"ref\\\"> & RefAttributes<SVGSVGElement>>; description: string; }; ... 12 more ...; notification: { ...; }; }'.\\n  No index signature with a parameter of type 'string' was found on type '{ technical_support: { name: string; color: string; icon: ForwardRefExoticComponent<Omit<LucideProps, \\\"ref\\\"> & RefAttributes<SVGSVGElement>>; description: string; }; ... 12 more ...; notification: { ...; }; }'.\",\"<p className=\\\"text-sm text-gray-600\\\">{TEMPLATE_CATEGORIES[selectedCategory].description}</p>\"]",
       "count": 1
     },
     {
@@ -3766,18 +3734,6 @@
     },
     {
       "key": "[\"server/routes.ts\",2345,\"Argument of type '{ settingsCount: number; adminId: number | undefined; }' is not assignable to parameter of type 'string'.\",\"await logSecurityEvent(req, 'security_settings_updated', {\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2345,\"Argument of type '{ templateNumber: string; categoryKey: string; to: any[]; variables: { customerName: string; authCode: string; expiryTime: string; }; }' is not assignable to parameter of type 'UniversalEmailOptions'.\\n  Type '{ templateNumber: string; categoryKey: string; to: any[]; variables: { customerName: string; authCode: string; expiryTime: string; }; }' is missing the following properties from type 'UniversalEmailOptions': subject, html\",\"await UniversalEmailService.sendEmail({\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2345,\"Argument of type '{ templateNumber: string; categoryKey: string; to: any[]; variables: { customerName: string; orderNumber: any; deliveryCode: string; }; }' is not assignable to parameter of type 'UniversalEmailOptions'.\\n  Type '{ templateNumber: string; categoryKey: string; to: any[]; variables: { customerName: string; orderNumber: any; deliveryCode: string; }; }' is missing the following properties from type 'UniversalEmailOptions': subject, html\",\"await UniversalEmailService.sendEmail({\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2345,\"Argument of type '{ templateNumber: string; categoryKey: string; to: any[]; variables: { customerName: string; resetLink: string; expiryTime: string; }; }' is not assignable to parameter of type 'UniversalEmailOptions'.\\n  Type '{ templateNumber: string; categoryKey: string; to: any[]; variables: { customerName: string; resetLink: string; expiryTime: string; }; }' is missing the following properties from type 'UniversalEmailOptions': subject, html\",\"await UniversalEmailService.sendEmail({\"]",
       "count": 1
     },
     {

@@ -48,6 +48,7 @@ import MarketingModule from '@/pages/admin/marketing-module';
 
 import EmailRoutingStats from "@/pages/admin/email-routing-stats";
 import AutomatedEmailLogs from "@/pages/admin/automated-email-logs";
+import AdminEmailLogs from "@/pages/admin-email-logs";
 import InquiryResponses from '@/pages/admin/inquiry-responses';
 import ServerConfig from "@/components/admin/server-config";
 import AwsS3Settings from "@/pages/admin/aws-s3-settings";
@@ -260,7 +261,7 @@ function Router() {
           <Route path="/admin/sms-management" component={() => <AdminRoute><AdminSmsManagement /></AdminRoute>} />
           <Route path="/admin/whatsapp-crm" component={() => <AdminRoute><WhatsAppCRM /></AdminRoute>} />
           <Route path="/admin/whatsapp-crm-en" component={() => <AdminRoute><WhatsAppCRM /></AdminRoute>} />
-          <Route path="/admin/email-logs" component={() => <AdminRoute>{(() => { const Comp = lazy(() => import("@/pages/admin-email-logs")); return <Comp />; })()}</AdminRoute>} />
+          <Route path="/admin/email-logs" component={() => <AdminRoute><AdminEmailLogs /></AdminRoute>} />
           <Route path="/admin/sms" component={() => <AdminRoute><AdminSmsManagement /></AdminRoute>} />
           <Route path="/admin/widgets" component={() => <AdminRoute><WidgetRecommendations /></AdminRoute>} />
           <Route path="/admin/order-management" component={() => <AdminRoute><OrderTrackingManagement /></AdminRoute>} />
