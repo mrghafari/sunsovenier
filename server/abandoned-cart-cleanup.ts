@@ -37,6 +37,11 @@ class AbandonedCartCleanupService {
   async processAbandonedCarts() {
     try {
       console.log('🛒 [CART CLEANUP] Processing abandoned carts...');
+      const { releaseExpiredReservations } = await import("./cart-inventory-reservation");
+      const releasedReservations = await releaseExpiredReservations();
+      if (releasedReservations > 0) {
+        console.log(`🛒 [CART CLEANUP] Released ${releasedReservations} expired inventory reservations`);
+      }
       
       const result = await this.cartStorage.processAbandonedCartCleanup();
       
@@ -54,6 +59,12 @@ class AbandonedCartCleanupService {
       // Delete old carts (2 hours - user requested cleanup for items older than 2 hours)
       for (const cart of result.cartsToDelete) {
         await this.cartStorage.deleteAbandonedCart(cart.id);
+        const { releaseOwnerReservations, ownerKeyForRequest } =
+          await import("./cart-inventory-reservation");
+        if (cart.sessionId) {
+          await releaseOwnerReservations(ownerKeyForRequest(cart.sessionId, cart.customerId));
+          await releaseOwnerReservations(ownerKeyForRequest(cart.sessionId, null));
+        }
         console.log(`🛒 [CART CLEANUP] Deleted cart ${cart.id} for customer ${cart.customerId} (2+ hours old)`);
       }
       

@@ -438,14 +438,13 @@ const Shop = () => {
     }
   }, [selectedImageForZoom, selectedProductForZoom, zoomedImageIndex]);
 
-  // Initialize display stock from actual database values, reduced by cart items
+  // The API already subtracts all active reservations from physical stock.
   useEffect(() => {
     if (currentProducts?.length > 0) {
       const initialDisplayStock: {[key: number]: number} = {};
       currentProducts.forEach(product => {
-        // Calculate available stock after considering cart items
         const cartQuantity = cart[product.id] || 0;
-        const availableStock = Math.max(0, (product.stockQuantity || 0) - cartQuantity);
+        const availableStock = Math.max(0, product.stockQuantity || 0);
         initialDisplayStock[product.id] = availableStock;
         console.log(`📦 [INIT DISPLAY STOCK] Product ${product.id}: Stock=${product.stockQuantity}, Cart=${cartQuantity}, Display=${availableStock}`);
       });
@@ -461,7 +460,7 @@ const Shop = () => {
       
       currentProducts.forEach(product => {
         const productInCart = cart[product.id] || 0;
-        const availableStock = Math.max(0, (product.stockQuantity || 0) - productInCart);
+        const availableStock = Math.max(0, product.stockQuantity || 0);
         refreshedDisplayStock[product.id] = availableStock;
         
         // Only update if there's a significant difference
@@ -624,8 +623,7 @@ const Shop = () => {
     }
     
     const actualStock = product.stockQuantity || 0;
-    const currentInCart = cart[productId] || 0;
-    const availableForQuantityInput = actualStock - currentInCart;
+    const availableForQuantityInput = actualStock;
     
     // Check if there's any stock available after considering cart items
     if (availableForQuantityInput <= 0) {
@@ -645,7 +643,7 @@ const Shop = () => {
     }));
   };
 
-  const addToCart = (productId: number) => {
+  const addToCart = async (productId: number) => {
     const targetQuantity = getProductQuantity(productId);
     
     // Find the product to verify stock availability
@@ -654,7 +652,9 @@ const Shop = () => {
     
     // Check if enough stock is available
     const currentInCart = cart[productId] || 0;
-    const availableStock = (product.stockQuantity || 0) - currentInCart;
+    // stockQuantity is already the server-computed sellable quantity after
+    // subtracting every active cart/order reservation, including this cart.
+    const availableStock = product.stockQuantity || 0;
     
     if (availableStock < targetQuantity) {
       toast({
@@ -667,8 +667,21 @@ const Shop = () => {
     
     console.log(`🛒 [ADD TO CART] Before add - Product ${productId}, Stock: ${product.stockQuantity}, Cart: ${currentInCart}, DisplayStock: ${displayStock[productId]}`);
     
-    // Add to persistent cart
-    addToCartPersistent(productId, targetQuantity);
+    // Reserve on the server before changing local state. A rejected 409
+    // therefore cannot leave a quantity in the browser that was not accepted.
+    try {
+      await addToCartPersistent(productId, targetQuantity);
+    } catch (error: any) {
+      const available = error?.details?.available;
+      toast({
+        title: 'errorOccurred',
+        description: available !== undefined
+          ? t.shop.onlyXAvailable.replace('{count}', String(available))
+          : t.shop.insufficientStock,
+        variant: "destructive",
+      });
+      return;
+    }
     
     // Update display stock to immediately show reduced quantity
     setDisplayStock(prev => {
@@ -692,12 +705,17 @@ const Shop = () => {
     });
   };
 
-  const removeFromCart = (productId: number) => {
+  const removeFromCart = async (productId: number) => {
     const currentQuantityInCart = cart[productId] || 0;
     console.log(`🗑️ [REMOVE FROM CART] Product ${productId}, CurrentInCart: ${currentQuantityInCart}`);
     
     if (currentQuantityInCart > 1) {
-      updateCartQuantity(productId, currentQuantityInCart - 1);
+      try {
+        await updateCartQuantity(productId, currentQuantityInCart - 1);
+      } catch (error) {
+        console.error('❌ [CART] Failed to release quantity:', error);
+        return;
+      }
       // Update display stock to show returned quantity
       setDisplayStock(prev => {
         const newDisplayStock = (prev[productId] || 0) + 1;
@@ -708,7 +726,12 @@ const Shop = () => {
         };
       });
     } else {
-      removeFromCartPersistent(productId);
+      try {
+        await removeFromCartPersistent(productId);
+      } catch (error) {
+        console.error('❌ [CART] Failed to release product reservation:', error);
+        return;
+      }
       // Return all quantity to display stock
       setDisplayStock(prev => {
         const newDisplayStock = (prev[productId] || 0) + currentQuantityInCart;
@@ -1807,7 +1830,7 @@ const Shop = () => {
                               <input
                                 type="number"
                                 min="1"
-                                max={Math.max(1, (product.stockQuantity || 0) - (cart[product.id] || 0))}
+                                max={Math.max(1, product.stockQuantity || 0)}
                                 value={getProductQuantity(product.id)}
                                 onChange={(e) => setProductQuantity(product.id, parseInt(e.target.value) || 1)}
                                 className="w-16 text-center border rounded px-2 py-1 font-medium"
@@ -1816,7 +1839,7 @@ const Shop = () => {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => setProductQuantity(product.id, getProductQuantity(product.id) + 1)}
-                                disabled={!product.inStock || product.stockQuantity <= 0 || getProductQuantity(product.id) >= product.stockQuantity || (cart[product.id] || 0) + getProductQuantity(product.id) >= product.stockQuantity}
+                                disabled={!product.inStock || product.stockQuantity <= 0 || getProductQuantity(product.id) >= product.stockQuantity}
                               >
                                 <Plus className="w-4 h-4" />
                               </Button>
@@ -1858,11 +1881,11 @@ const Shop = () => {
                               onClick={() => addToCart(product.id)}
                               disabled={
                                 !product.inStock || 
-                                (cart[product.id] || 0) + getProductQuantity(product.id) > product.stockQuantity
+                                getProductQuantity(product.id) > product.stockQuantity
                               }
                             >
                               <ShoppingCart className="w-4 h-4 mr-2" />
-                              {!product.inStock || ((cart[product.id] || 0) >= product.stockQuantity) ? t.shop.notAvailable : cart[product.id] && cart[product.id] > 0 ? t.shop.addMore : t.shop.addToCart}
+                              {!product.inStock || product.stockQuantity <= 0 ? t.shop.notAvailable : cart[product.id] && cart[product.id] > 0 ? t.shop.addMore : t.shop.addToCart}
                             </Button>
                           </div>
                         </CardContent>
@@ -2366,7 +2389,7 @@ const Shop = () => {
                                   <input
                                     type="number"
                                     min="1"
-                                    max={Math.max(1, (product.stockQuantity || 0) - (cart[product.id] || 0))}
+                                    max={Math.max(1, product.stockQuantity || 0)}
                                     value={getProductQuantity(product.id)}
                                     onChange={(e) => setProductQuantity(product.id, parseInt(e.target.value) || 1)}
                                     className="w-16 text-center border rounded px-2 py-1 font-medium"
@@ -2375,7 +2398,7 @@ const Shop = () => {
                                     size="sm"
                                     variant="outline"
                                     onClick={() => setProductQuantity(product.id, getProductQuantity(product.id) + 1)}
-                                    disabled={!product.inStock || product.stockQuantity <= 0 || getProductQuantity(product.id) >= product.stockQuantity || (cart[product.id] || 0) + getProductQuantity(product.id) >= product.stockQuantity}
+                                    disabled={!product.inStock || product.stockQuantity <= 0 || getProductQuantity(product.id) >= product.stockQuantity}
                                   >
                                     <Plus className="w-4 h-4" />
                                   </Button>
@@ -2417,11 +2440,11 @@ const Shop = () => {
                                   onClick={() => addToCart(product.id)}
                                   disabled={
                                     !product.inStock || 
-                                    (cart[product.id] || 0) + getProductQuantity(product.id) > product.stockQuantity
+                                    getProductQuantity(product.id) > product.stockQuantity
                                   }
                                 >
                                   <ShoppingCart className="w-4 h-4 mr-2" />
-                                  {!product.inStock || ((cart[product.id] || 0) >= product.stockQuantity) ? t.shop.notAvailable : cart[product.id] && cart[product.id] > 0 ? t.shop.addMore : t.shop.addToCart}
+                                  {!product.inStock || product.stockQuantity <= 0 ? t.shop.notAvailable : cart[product.id] && cart[product.id] > 0 ? t.shop.addMore : t.shop.addToCart}
                                 </Button>
                               </div>
                             </div>

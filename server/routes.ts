@@ -8920,6 +8920,13 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
                                 paymentStatus === 'success';
 
       if (isPaymentSuccessful) {
+        // This legacy generic endpoint has no provider signature or server-side
+        // transaction verification. Never let caller-supplied JSON finalize
+        // inventory; verified gateway-specific callbacks own paid transitions.
+        return res.status(403).json({
+          success: false,
+          message: "تأیید پرداخت فقط از مسیر امن درگاه امکان‌پذیر است"
+        });
         // Update customer order payment status
         await db
           .update(customerOrders)
@@ -9012,6 +9019,11 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
 
       // Handle successful payments by assigning order numbers and sending to warehouse
       if (isPaymentSuccessful) {
+        // Do not trust a public callback body as proof of payment.
+        return res.status(403).json({
+          success: false,
+          message: "تأیید پرداخت فقط از مسیر امن درگاه امکان‌پذیر است"
+        });
         console.log(`✅ [PAYMENT CALLBACK] Payment successful - processing order ${orderId || orderNumber}`);
         
         try {
@@ -9061,8 +9073,9 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
                   orderForWallet.customerId || undefined
                 );
                 if (reservation) {
-                  await walletStorage.confirmReservation(reservation.id);
-                  console.log(`✅ [PAYMENT CALLBACK] Wallet reservation ${reservation.id} confirmed - ${reservation.amount} IQD deducted for order ${targetOrderId} (${orderForWallet.orderNumber})`);
+                  const confirmedReservation = reservation!;
+                  await walletStorage.confirmReservation(confirmedReservation.id);
+                  console.log(`✅ [PAYMENT CALLBACK] Wallet reservation ${confirmedReservation.id} confirmed - ${confirmedReservation.amount} IQD deducted for order ${targetOrderId} (${orderForWallet.orderNumber})`);
                 } else {
                   console.log(`ℹ️ [PAYMENT CALLBACK] No wallet reservation found for hybrid order ${targetOrderId} (${orderForWallet.orderNumber})`);
                 }
@@ -17750,6 +17763,58 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
   // PERSISTENT CART ENDPOINTS (CUSTOMER SECTION)
   // =============================================================================
 
+  // Reconcile a complete cart snapshot for guests and authenticated customers.
+  // This endpoint only reserves exact FIFO batches; it never changes physical stock.
+  app.post("/api/cart/inventory-reservations", async (req, res) => {
+    try {
+      const customerId = (req.session as any)?.customerId || null;
+      const sessionId = req.sessionID;
+      if (!sessionId) {
+        return res.status(400).json({ success: false, message: "شناسه جلسه سبد خرید موجود نیست" });
+      }
+      const { cart } = req.body || {};
+      const { reconcileCartReservations, ownerKeyForRequest } =
+        await import("./cart-inventory-reservation");
+      const ownerKey = ownerKeyForRequest(sessionId, customerId);
+      const result = await reconcileCartReservations({
+        ownerKey,
+        sessionId,
+        customerId,
+        cart: cart || {}
+      });
+      return res.json({ success: true, ...result });
+    } catch (error) {
+      if (error instanceof (await import("./cart-inventory-reservation")).InsufficientCartInventoryError) {
+        const inventoryError = error as any;
+        const { getOwnerReservationQuantities, getAvailableQuantities, ownerKeyForRequest } =
+          await import("./cart-inventory-reservation");
+        const ownerCart = await getOwnerReservationQuantities(
+          ownerKeyForRequest(req.sessionID, (req.session as any)?.customerId || null)
+        );
+        const requestedCart = req.body?.cart || {};
+        const productIds = [
+          ...new Set([
+            ...Object.keys(ownerCart).map(Number),
+            ...(Array.isArray(requestedCart)
+              ? requestedCart.map((item: any) => Number(item.productId))
+              : Object.keys(requestedCart).map(Number))
+          ])
+        ].filter(id => Number.isInteger(id) && id > 0);
+        return res.status(409).json({
+          success: false,
+          message: "موجودی کافی نیست",
+          acceptedCart: ownerCart,
+          availability: await getAvailableQuantities(productIds),
+          productId: inventoryError.productId,
+          requested: inventoryError.requested,
+          available: inventoryError.available
+        });
+      }
+      console.error("❌ [CART RESERVATION] Reconciliation failed:", error);
+      return res.status(500).json({ success: false, message: "خطا در رزرو موجودی" });
+    }
+  });
+
   // Get customer's persistent cart
   app.get("/api/customers/persistent-cart", requireCustomerAuth, async (req, res) => {
     try {
@@ -17805,6 +17870,14 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       console.log('🛒 [PERSISTENT CART] Cart data:', cartData);
       
       const { pool } = await import('./db');
+      const { reconcileCartReservations, ownerKeyForRequest } = await import("./cart-inventory-reservation");
+      const sessionId = req.sessionID;
+      await reconcileCartReservations({
+        ownerKey: ownerKeyForRequest(sessionId, customerId),
+        sessionId,
+        customerId,
+        cart: cartData || {}
+      });
       
       // Upsert cart data (insert or update)
       await pool.query(`
@@ -17855,6 +17928,13 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       
       // Update product quantity
       cartData[productId] = quantity;
+      const { reconcileCartReservations, ownerKeyForRequest } = await import("./cart-inventory-reservation");
+      await reconcileCartReservations({
+        ownerKey: ownerKeyForRequest(req.sessionID, customerId),
+        sessionId: req.sessionID,
+        customerId,
+        cart: cartData
+      });
       
       // Upsert cart data
       await pool.query(`
@@ -17909,6 +17989,13 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       
       // Update product quantity
       cartData[productId] = quantity;
+      const { reconcileCartReservations, ownerKeyForRequest } = await import("./cart-inventory-reservation");
+      await reconcileCartReservations({
+        ownerKey: ownerKeyForRequest(req.sessionID, customerId),
+        sessionId: req.sessionID,
+        customerId,
+        cart: cartData
+      });
       
       // Update cart data
       await pool.query(`
@@ -17960,6 +18047,13 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       
       // Remove product
       delete cartData[productId];
+      const { reconcileCartReservations, ownerKeyForRequest } = await import("./cart-inventory-reservation");
+      await reconcileCartReservations({
+        ownerKey: ownerKeyForRequest(req.sessionID, customerId),
+        sessionId: req.sessionID,
+        customerId,
+        cart: cartData
+      });
       
       // Update cart data
       await pool.query(`
@@ -17990,6 +18084,8 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       console.log('🛒 [PERSISTENT CART CLEAR] Clearing cart for customer:', customerId);
       
       const { pool } = await import('./db');
+      const { releaseOwnerReservations, ownerKeyForRequest } = await import("./cart-inventory-reservation");
+      await releaseOwnerReservations(ownerKeyForRequest(req.sessionID, customerId));
       const result = await pool.query(`
         DELETE FROM persistent_carts 
         WHERE customer_id = $1
@@ -18385,6 +18481,37 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       const customerId = (req.session as any)?.customerId;
       const crmCustomerId = (req.session as any)?.crmCustomerId;
       const { items, customerInfo, recipientInfo, totalAmount, shippingCost, notes, shippingMethod, paymentMethod, walletAmountUsed, remainingAmount, vatAmount, dutiesAmount, vehicleType, totalWeight } = req.body;
+      const reservationItems = Array.isArray(items) ? items : [];
+      const reservationCart = reservationItems.reduce((cart: Record<number, number>, item: any) => {
+        const productId = Number(item.productId);
+        const quantity = Math.floor(Number(item.quantity));
+        if (Number.isInteger(productId) && productId > 0 && quantity > 0) {
+          cart[productId] = (cart[productId] || 0) + quantity;
+        }
+        return cart;
+      }, {});
+      const reservationModule = await import("./cart-inventory-reservation");
+      if (!req.sessionID) {
+        return res.status(400).json({ success: false, message: "جلسه سبد خرید معتبر نیست" });
+      }
+      try {
+        await reservationModule.reconcileCartReservations({
+          ownerKey: reservationModule.ownerKeyForRequest(req.sessionID, customerId),
+          sessionId: req.sessionID,
+          customerId,
+          cart: reservationCart,
+        });
+      } catch (reservationError) {
+        if (reservationError instanceof reservationModule.InsufficientCartInventoryError) {
+          return res.status(409).json({
+            success: false,
+            message: "موجودی برای تکمیل سفارش کافی نیست",
+            productId: reservationError.productId,
+            available: reservationError.available,
+          });
+        }
+        throw reservationError;
+      }
       
       console.log('🛒 [ORDER DEBUG] Order data received:', {
         paymentMethod,
@@ -18618,7 +18745,9 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         vatAmount: Math.round(vatAmount || 0).toString(), // Store frozen VAT amount from frontend calculation
         surchargeAmount: Math.round(dutiesAmount || 0).toString(), // Store frozen duties amount from frontend calculation
         status: 'pending' as const,
-        paymentStatus: finalPaymentStatus,
+        // A paid transition is written only after items and exact batch
+        // reservations are attached, so its trigger can finalize atomically.
+        paymentStatus: "pending",
         paymentMethod: finalPaymentMethod,
         walletAmountUsed: Math.round(actualWalletUsed).toString(),
         shippingAddress: {
@@ -18644,7 +18773,20 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       };
 
       const order = await customerStorage.createOrder(orderData);
-
+      const reservationOwnerKey = reservationModule.ownerKeyForRequest(req.sessionID, customerId);
+      const attachedReservations = await reservationModule.attachOwnerReservationsToOrder(
+        reservationOwnerKey,
+        order.id,
+        reservationItems.map((item: any) => Number(item.productId)),
+        reservationModule.reservationExpiryForPayment(finalPaymentMethod),
+      );
+      for (const item of reservationItems) {
+        const quantity = Number(item.quantity) || 0;
+        if ((attachedReservations[Number(item.productId)] || 0) < quantity) {
+          await reservationModule.releaseOrderReservations(order.id);
+          throw new Error(`Order ${order.id} was created without a complete inventory reservation`);
+        }
+      }
       // Create order items and update stock - IQD whole numbers only
       for (const item of items) {
         const unitPrice = Math.round(parseFloat(item.unitPrice || item.price || '0') || 0);
@@ -18660,26 +18802,14 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           productSku: item.productSku || '',
         });
 
-        // Update product stock using unified inventory manager
-        try {
-          console.log(`🛒 UNIFIED STOCK UPDATE - Product ${item.productName} (ID: ${item.productId})`);
-          
-          // Use unified inventory manager for single source of truth
-          const { UnifiedInventoryManager } = await import('./unified-inventory-manager');
-          const success = await UnifiedInventoryManager.reduceInventoryForOrder([{
-            productName: item.productName,
-            quantity: item.quantity
-          }]);
-          
-          if (success) {
-            console.log(`✅ Stock updated successfully using unified system for product ${item.productId}`);
-          } else {
-            console.log(`⚠️ Failed to update stock for product ${item.productId}`);
-          }
-        } catch (stockError) {
-          console.error(`Error updating stock for product ${item.productId}:`, stockError);
-          // Continue with other products even if stock update fails
-        }
+        // Physical showcase stock is finalized by cart reservations on payment.
+        // Never run the legacy read/modify/write inventory reducer here.
+      }
+      if (finalPaymentStatus === "paid") {
+        await db
+          .update(customerOrders)
+          .set({ paymentStatus: "paid", updatedAt: new Date() })
+          .where(eq(customerOrders.id, order.id));
       }
 
       // Log order activity in CRM
@@ -19112,6 +19242,30 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         });
       }
 
+      const reservationModule = await import("./cart-inventory-reservation");
+      if (!req.sessionID) {
+        return res.status(400).json({ success: false, message: "جلسه سبد خرید معتبر نیست" });
+      }
+      const reservationCart = orderData.cart || {};
+      try {
+        await reservationModule.reconcileCartReservations({
+          ownerKey: reservationModule.ownerKeyForRequest(req.sessionID, customerId),
+          sessionId: req.sessionID,
+          customerId,
+          cart: reservationCart,
+        });
+      } catch (reservationError) {
+        if (reservationError instanceof reservationModule.InsufficientCartInventoryError) {
+          return res.status(409).json({
+            success: false,
+            message: "موجودی برای تکمیل سفارش کافی نیست",
+            productId: reservationError.productId,
+            available: reservationError.available,
+          });
+        }
+        throw reservationError;
+      }
+
       // Handle payment method processing
       let finalPaymentStatus = "pending";
       let walletAmountUsed = 0;
@@ -19231,7 +19385,8 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         customerId: finalCustomerId,
         orderNumber,
         status: "pending",
-        paymentStatus: finalPaymentStatus,
+        // Keep the header pending until order items and reservations exist.
+        paymentStatus: "pending",
         paymentMethod: finalPaymentMethod,
         totalAmount: Math.round(totalAmount).toString(),
         shippingCost: Math.round(shippingAmount).toString(),
@@ -19291,6 +19446,25 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
 
       });
 
+      const reservationOwnerKey = reservationModule.ownerKeyForRequest(req.sessionID, customerId);
+      const requestedProductIds = Object.keys(reservationCart).map(Number);
+      const attachedReservations = await reservationModule.attachOwnerReservationsToOrder(
+        reservationOwnerKey,
+        order.id,
+        requestedProductIds,
+        reservationModule.reservationExpiryForPayment(finalPaymentMethod),
+      );
+      for (const [productId, rawQuantity] of Object.entries(reservationCart)) {
+        const quantity = Number(rawQuantity) || 0;
+        if ((attachedReservations[Number(productId)] || 0) < quantity) {
+          await reservationModule.releaseOrderReservations(order.id);
+          throw new Error(`Order ${order.id} was created without a complete inventory reservation`);
+        }
+      }
+      const inventoryReservedForOrder = Object.entries(reservationCart).every(
+        ([productId, rawQuantity]) =>
+          (attachedReservations[Number(productId)] || 0) >= (Number(rawQuantity) || 0),
+      );
       console.log('🚚 [ORDER CREATED] Enhanced order with delivery tracking:', {
         orderId: order.id,
         orderNumber: order.orderNumber,
@@ -19441,8 +19615,10 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
                 }
               }
 
-              // Update product stock with batch tracking
-              if (product.stockQuantity !== null && product.stockQuantity !== undefined) {
+              // Legacy stock reducers are bypassed whenever the exact batch
+              // reservation covers this order. Payment finalization owns the
+              // physical showcase decrement.
+              if (!inventoryReservedForOrder && product.stockQuantity !== null && product.stockQuantity !== undefined) {
                 const currentStock = product.stockQuantity;
                 const quantityToSell = quantity as number;
                 
@@ -19509,6 +19685,12 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
             // Continue with other products even if one fails
           }
         }
+      }
+      if (finalPaymentStatus === "paid") {
+        await db
+          .update(customerOrders)
+          .set({ paymentStatus: "paid", updatedAt: new Date() })
+          .where(eq(customerOrders.id, order.id));
       }
 
       // Auto-capture customer data in CRM system
@@ -23783,17 +23965,25 @@ ${procedure.content}
   app.get("/api/shop/products", async (req, res) => {
     try {
       const products = await shopStorage.getShopProducts();
+      const { getAvailableQuantities } = await import("./cart-inventory-reservation");
+      const availableQuantities = await getAvailableQuantities(products.map(product => product.id));
       
       // Map database fields to frontend expected format
-      const mappedProducts = products.map(product => ({
+      const mappedProducts = products.map(product => {
+        const available = availableQuantities[product.id] ?? Number(product.stockQuantity || 0);
+        return {
         ...product,
+        stockQuantity: available,
+        availableQuantity: available,
+        inStock: available > 0 || Boolean(product.showWhenOutOfStock),
         imageUrl: product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls[0] : null,
         imageUrls: product.imageUrls || [], // Include the full array of images
         unitPrice: product.price,
         currency: (product.priceUnit === 'IQD' || !product.priceUnit || product.priceUnit === 'unit') ? 'IQD' : product.priceUnit,
         weight: product.weight,
         weightUnit: product.weightUnit
-      }));
+        };
+      });
       
       res.json(mappedProducts);
     } catch (error) {
@@ -47871,6 +48061,11 @@ momtazchem.com
       }
 
       await cartStorage.clearCartSession(customerId);
+      const { releaseOwnerReservations, ownerKeyForRequest } =
+        await import("./cart-inventory-reservation");
+      if (req.sessionID) {
+        await releaseOwnerReservations(ownerKeyForRequest(req.sessionID, customerId));
+      }
       res.json({ success: true, message: "Cart session completed" });
     } catch (error) {
       console.error("Error completing cart session:", error);
@@ -59009,6 +59204,20 @@ momtazchem.com
           sp.name,
           sp.sku,
           sp.barcode,
+          COALESCE(
+            NULLIF(sp.image_url, ''),
+            (
+              SELECT NULLIF(sibling.image_url, '')
+              FROM showcase_products sibling
+              WHERE sibling.is_active = true
+                AND LOWER(TRIM(sibling.name)) = LOWER(TRIM(sp.name))
+                AND NULLIF(sibling.image_url, '') IS NOT NULL
+              ORDER BY
+                CASE WHEN sibling.sku = sp.sku THEN 0 ELSE 1 END,
+                sibling.id
+              LIMIT 1
+            )
+          ) as "imageUrl",
           sp.batch_number as "batchNumber",
           sp.stock_quantity as "stockQuantity",
           COALESCE(sp.stock_unit, 'units') as "stockUnit",

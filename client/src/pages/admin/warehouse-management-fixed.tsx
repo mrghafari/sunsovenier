@@ -98,6 +98,7 @@ const pageTranslations: Record<string, Record<PageLanguage, string>> = {
   refresh: { en: 'Refresh', fa: 'بروزرسانی', ar: 'تحديث', tr: 'Yenile' },
   loading: { en: 'Loading...', fa: 'در حال بارگذاری...', ar: 'جارٍ التحميل...', tr: 'Yükleniyor...' },
   productName: { en: 'Product name', fa: 'نام محصول', ar: 'اسم المنتج', tr: 'Ürün adı' },
+  productImage: { en: 'Product image', fa: 'تصویر محصول', ar: 'صورة المنتج', tr: 'Ürün görseli' },
   vendor: { en: 'Vendor', fa: 'فروشنده', ar: 'المورّد', tr: 'Tedarikçi' },
   productCode: { en: 'Product code', fa: 'کد کالا', ar: 'رمز المنتج', tr: 'Ürün kodu' },
   stock: { en: 'Stock', fa: 'موجودی', ar: 'المخزون', tr: 'Stok' },
@@ -197,6 +198,7 @@ interface InventoryProduct {
   name: string;
   sku: string;
   barcode: string;
+  imageUrl?: string | null;
   batchNumber?: string | null;
   stockQuantity: number;
   stockUnit?: string | null;
@@ -1343,7 +1345,25 @@ const WarehouseManagementFixed: React.FC = () => {
                           const stockStatus = getStockStatus(product);
                           return (
                             <TableRow key={product.id}>
-                              <TableCell className="font-medium text-right">{product.name}</TableCell>
+                               <TableCell className="font-medium text-right">
+                                 <div className="flex items-center gap-3">
+                                   <div className="h-12 w-12 shrink-0 overflow-hidden rounded-md border border-slate-200 bg-slate-50">
+                                     {product.imageUrl ? (
+                                       <img
+                                         src={product.imageUrl}
+                                         alt={`${t('productImage')}: ${product.name}`}
+                                         className="h-full w-full object-cover"
+                                         loading="lazy"
+                                       />
+                                     ) : (
+                                       <div className="flex h-full w-full items-center justify-center text-slate-400">
+                                         <Package2 className="h-5 w-5" aria-hidden="true" />
+                                       </div>
+                                     )}
+                                   </div>
+                                   <span>{product.name}</span>
+                                 </div>
+                               </TableCell>
                               <TableCell className="text-right">
                                 <Badge variant={product.vendorId ? "secondary" : "outline"}>
                                    {product.vendorName || t('defaultVendor')}

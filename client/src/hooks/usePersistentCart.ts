@@ -17,6 +17,31 @@ export function usePersistentCart() {
   
   // Add ref to track mount status
   const mounted = useRef(true);
+
+  type CartReservationError = Error & {
+    status?: number;
+    details?: { productId?: number; requested?: number; available?: number; acceptedCart?: Record<string, number> };
+  };
+
+  // The server is the source of truth for both guest and authenticated cart
+  // quantities. The owner is derived from the server session cookie.
+  const reconcileCartSnapshot = async (nextCart: {[key: number]: number}) => {
+    const response = await fetch('/api/cart/inventory-reservations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ cart: nextCart }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || payload.success === false) {
+      const error = Object.assign(
+        new Error(payload.message || 'موجودی کافی نیست'),
+        { status: response.status, details: payload },
+      ) as CartReservationError;
+      throw error;
+    }
+    return payload;
+  };
   
   useEffect(() => {
     return () => {
@@ -127,6 +152,10 @@ export function usePersistentCart() {
     const currentQuantity = newCart[productId] || 0;
     newCart[productId] = currentQuantity + quantity;
 
+    // Reconcile before changing local state. A 409 leaves the old local cart
+    // untouched and is propagated to the caller.
+    await reconcileCartSnapshot(newCart);
+
     if (isAuthenticated && user) {
       try {
         console.log(`🛒 Saving product ${productId} to database for customer ${user.id}`);
@@ -136,9 +165,8 @@ export function usePersistentCart() {
         });
         console.log(`✅ Product ${productId} saved to database`);
       } catch (error) {
-        console.error('❌ Error saving to database, falling back to localStorage:', error);
-        saveLocalCart(newCart);
-        return;
+        console.error('❌ Error saving to database after reservation:', error);
+        throw error;
       }
     }
 
@@ -155,6 +183,8 @@ export function usePersistentCart() {
     const newCart = { ...localCart };
     newCart[productId] = quantity;
 
+    await reconcileCartSnapshot(newCart);
+
     if (isAuthenticated && user) {
       try {
         console.log(`🛒 Updating quantity for product ${productId} to ${quantity} for customer ${user.id}`);
@@ -165,8 +195,7 @@ export function usePersistentCart() {
         console.log(`✅ Product ${productId} quantity updated`);
       } catch (error) {
         console.error('❌ Error updating quantity in database:', error);
-        saveLocalCart(newCart);
-        return;
+        throw error;
       }
     }
 
@@ -178,6 +207,8 @@ export function usePersistentCart() {
     const newCart = { ...localCart };
     delete newCart[productId];
 
+    await reconcileCartSnapshot(newCart);
+
     if (isAuthenticated && user) {
       try {
         console.log(`🛒 Removing product ${productId} from database for customer ${user.id}`);
@@ -188,8 +219,7 @@ export function usePersistentCart() {
         console.log(`✅ Product ${productId} removed from database`);
       } catch (error) {
         console.error('❌ Error removing from database:', error);
-        saveLocalCart(newCart);
-        return;
+        throw error;
       }
     }
 
@@ -200,6 +230,8 @@ export function usePersistentCart() {
   const clearCart = async () => {
     console.log('🗑️ Clearing cart..., authenticated:', isAuthenticated);
     
+    await reconcileCartSnapshot({});
+
     // Wait a bit to ensure we're actually logged out
     if (isAuthenticated && user) {
       try {
@@ -209,8 +241,8 @@ export function usePersistentCart() {
         });
         console.log('✅ Cart cleared from database');
       } catch (error) {
-        console.error('❌ Error clearing cart from database (user may already be logged out):', error);
-        // This is expected during logout, so we continue
+        console.error('❌ Error clearing cart from database:', error);
+        throw error;
       }
     } else {
       console.log('🔄 User not authenticated, clearing only localStorage');

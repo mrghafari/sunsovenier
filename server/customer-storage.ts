@@ -707,9 +707,15 @@ export class CustomerStorage implements ICustomerStorage {
       // Get order items to release reservations
       const items = await this.getOrderItems(id);
       const releasedProducts: any[] = [];
+      const { orderHasReservations, releaseOrderReservations } =
+        await import("./cart-inventory-reservation");
+      const hasReservationLedger = await orderHasReservations(id);
+      if (hasReservationLedger) {
+        await releaseOrderReservations(id);
+      }
 
       // Release product reservations by adding quantities back to inventory
-      if (items.length > 0) {
+      if (!hasReservationLedger && items.length > 0) {
         const { db } = await import('./db');
         const { shopProducts } = await import('@shared/shop-schema');
         

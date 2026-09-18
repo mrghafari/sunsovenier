@@ -117,8 +117,14 @@ export class ExpiredOrdersCleanup {
             .from(orderItems)
             .where(eq(orderItems.orderId, order.id));
 
-          // Release product reservations by adding quantities back to inventory
-          if (items.length > 0) {
+          // Reservation-backed orders never changed physical stock before
+          // payment, so expiration only releases the exact ledger rows.
+          // Keep the legacy stock restoration only for orders created before
+          // the reservation ledger existed.
+          const { releaseOrderReservations, orderHasReservations } = await import("./cart-inventory-reservation");
+          const releasedReservationCount = await releaseOrderReservations(order.id);
+          const hasReservationLedger = releasedReservationCount > 0 || await orderHasReservations(order.id);
+          if (!hasReservationLedger && items.length > 0) {
             const { db } = await import('./db');
             const { shopProducts } = await import('@shared/shop-schema');
             
