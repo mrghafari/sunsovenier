@@ -341,11 +341,10 @@ export class OrderManagementStorage implements IOrderManagementStorage {
     // Update department-specific fields
     if (department === 'financial') {
       updateData.financialReviewerId = changedBy;
-      // 🚨 CRITICAL: Only set financialReviewedAt when explicitly approving (FINANCIAL_APPROVED status)
-      // NOT for routine updates or auto-sync transitions like warehouse_pending
-      if (newStatus === orderStatuses.FINANCIAL_APPROVED) {
-        updateData.financialReviewedAt = new Date();
-      }
+      // A manual financial action may move regular orders directly to
+      // warehouse_pending. Record the review regardless of that destination;
+      // automatic syncs use a different department and do not enter this branch.
+      updateData.financialReviewedAt = currentOrder.financialReviewedAt || new Date();
       if (notes) updateData.financialNotes = notes;
       
       // 📋 CONSOLIDATION: After financial approval, consolidate complete order data

@@ -7,4 +7,4 @@ Keep the public order status, payment status, and internal workflow status as se
 
 **Why:** Historical aliases and independent page-level conditions caused the same order to appear delivered in one department and awaiting financial approval to the customer.
 
-**How to apply:** Add aliases, labels, badge styles, customer phases, and department visibility rules to the shared resolver. Preserve raw fields and status history for transitions and auditing; do not make a UI page reinterpret them independently.
+**How to apply:** Add aliases, labels, badge styles, customer phases, and department visibility rules to the shared resolver. Preserve raw fields and status history for transitions and auditing; do not make a UI page reinterpret them independently. A manual financial action must persist its reviewer and review time even when it advances directly to a warehouse status.
