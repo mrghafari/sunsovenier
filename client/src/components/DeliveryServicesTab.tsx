@@ -114,6 +114,33 @@ interface DeliveryServicesTabProps {
   language?: DeliveryServicesLanguage;
 }
 
+const localizedServiceNames: Record<string, Record<DeliveryServicesLanguage, string>> = {
+  postal: {
+    en: 'Postal service',
+    fa: 'سرویس پستی',
+    ar: 'الخدمة البريدية',
+    tr: 'Posta hizmeti',
+  },
+  self_pickup: {
+    en: 'Customer pickup',
+    fa: 'تحویل حضوری',
+    ar: 'استلام العميل',
+    tr: 'Müşteri teslim alımı',
+  },
+  smart_vehicle: {
+    en: 'Smart vehicle delivery',
+    fa: 'ارسال هوشمند با خودرو',
+    ar: 'التوصيل الذكي بالمركبة',
+    tr: 'Akıllı araç teslimatı',
+  },
+  freight_collect: {
+    en: 'Freight collect',
+    fa: 'باربری پس‌کرایه',
+    ar: 'الشحن عند الاستلام',
+    tr: 'Alıcı ödemeli nakliye',
+  },
+};
+
 const formFromMethod = (method: DeliveryMethod): FormState => ({
   value: method.value || '', label: method.label || '', icon: method.icon || 'package', color: method.color || 'blue',
   baseCost: String(method.baseCost ?? 0), costPerKg: String(method.costPerKg ?? 0), minimumOrder: String(method.minimumOrder ?? 0),
@@ -140,6 +167,8 @@ const DeliveryServicesTab = ({ language: pageLanguage }: DeliveryServicesTabProp
   ) as DeliveryServicesLanguage;
   const direction = language === 'fa' || language === 'ar' ? 'rtl' : 'ltr';
   const t = translations[language];
+  const serviceName = (method: DeliveryMethod) =>
+    localizedServiceNames[method.value]?.[language] || method.label;
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<DeliveryMethod | null>(null);
@@ -195,7 +224,7 @@ const DeliveryServicesTab = ({ language: pageLanguage }: DeliveryServicesTabProp
           </TableRow></TableHeader><TableBody>
             {deliveryMethods.map((method, index) => <TableRow key={method.id} className="border-slate-200 odd:bg-slate-50 even:bg-white hover:bg-amber-50" data-testid={`card-delivery-${method.id}`}>
               <TableCell className="border-e border-slate-200 px-3 py-2 font-mono text-slate-500">{index + 1}</TableCell>
-              <TableCell className="border-e border-slate-200 px-3 py-2 font-semibold text-slate-900">{method.label}</TableCell>
+              <TableCell className="border-e border-slate-200 px-3 py-2 font-semibold text-slate-900">{serviceName(method)}</TableCell>
               <TableCell className="border-e border-slate-200 px-3 py-2 font-mono text-slate-600">{method.value}</TableCell>
               <TableCell className="border-e border-slate-200 px-3 py-2 font-mono whitespace-nowrap">{Number(method.baseCost || 0).toLocaleString()} IQD</TableCell>
               <TableCell className="border-e border-slate-200 px-3 py-2 whitespace-nowrap">{method.estimatedDays && method.estimatedDays > 0 ? <span className="inline-flex items-center gap-1"><Clock className="h-3.5 w-3.5 text-slate-400" />{method.estimatedDays} {method.estimatedDays === 1 ? t.day : t.days}</span> : '—'}</TableCell>
