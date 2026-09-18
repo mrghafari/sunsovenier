@@ -343,9 +343,24 @@ const EmailTemplatesCentral: React.FC = () => {
   };
 
   // Filter templates by actual database category (not registry mapping)
-  const filteredTemplates = selectedCategory === 'all' 
+  const filteredTemplates = (selectedCategory === 'all'
     ? (Array.isArray(templates) ? templates : [])
-    : (Array.isArray(templates) ? templates.filter(template => template.category === selectedCategory) : []);
+    : (Array.isArray(templates) ? templates.filter(template => template.category === selectedCategory) : []))
+    .slice()
+    .sort((a, b) => {
+      const numberA = Number.parseInt(getTemplateNumber(a.name).replace('#', ''), 10);
+      const numberB = Number.parseInt(getTemplateNumber(b.name).replace('#', ''), 10);
+      if (Number.isNaN(numberA) && Number.isNaN(numberB)) return a.name.localeCompare(b.name);
+      if (Number.isNaN(numberA)) return 1;
+      if (Number.isNaN(numberB)) return -1;
+      return numberA - numberB || a.name.localeCompare(b.name);
+    });
+
+  const getTemplateVariables = (template: EmailTemplate) => {
+    const content = `${template.subject || ''}\n${template.html_content || ''}`;
+    const matches = content.match(/\{\{[^{}]+\}\}/g) || [];
+    return [...new Set(matches)];
+  };
 
   // Debug logging
   React.useEffect(() => {
@@ -485,73 +500,6 @@ const EmailTemplatesCentral: React.FC = () => {
           </div>
         </div>
 
-        {/* Template #05 Special Highlight */}
-        {Array.isArray(templates) && templates.find(t => t.name === '#05 - Momtaz Chemical Follow-up Response') && (
-          <div className="mb-6">
-            <Card className="border-green-300 bg-green-50 shadow-lg">
-              <CardHeader>
-                <CardTitle className="text-green-800 flex items-center gap-2">
-                  <Star className="w-5 h-5 text-yellow-500" />
-                  Template #05 - Momtaz Chemical Follow-up Response
-                  <Badge variant="default" className="bg-green-600 text-white">
-                     ⭐ {copy.featured}
-                  </Badge>
-                  <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
-                     {copy.automaticUse}
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-green-100 border border-green-300 rounded-lg p-3">
-                     <h4 className="text-sm font-bold text-green-800 mb-2">✨ {copy.features}:</h4>
-                    <div className="space-y-1 text-xs text-green-700">
-                       <div>✅ {copy.responseSection}</div>
-                       <div>✅ {copy.requestSection}</div>
-                      <div>✅ شماره تلفن: +964 770 999 6771</div>
-                      <div>✅ وب‌سایت: www.momtazchem.com</div>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-blue-100 border border-blue-300 rounded-lg p-3">
-                     <h4 className="text-sm font-bold text-blue-800 mb-2">📋 {copy.usage}:</h4>
-                    <div className="space-y-1 text-xs text-blue-700">
-                       <div>• {copy.followUp}</div>
-                       <div>• {copy.reconnect}</div>
-                       <div>• {copy.automaticSystem}</div>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-3">
-                     <h4 className="text-sm font-bold text-yellow-800 mb-2">🔧 {copy.variables}:</h4>
-                    <div className="text-xs text-yellow-700">
-                      {`{{customer_name}}, {{inquiry_number}}, {{response_text}}, {{inquiry_subject}}, {{inquiry_category}}`}
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="mt-4 flex gap-2">
-                  <a 
-                    href="/admin/template05-static" 
-                    className="inline-flex items-center px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
-                  >
-                     🎨 {copy.viewFull}
-                  </a>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPreviewTemplate(Array.isArray(templates) ? templates.find(t => t.name === '#05 - Momtaz Chemical Follow-up Response') || null : null)}
-                    className="text-green-700 border-green-300 hover:bg-green-100"
-                  >
-                    <Eye className="w-4 h-4 mr-2" />
-                     {copy.preview}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
         {/* Category Filter Tabs */}
         <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="mb-6">
           <TabsList className="grid grid-cols-4 md:grid-cols-8 gap-1 h-auto p-1">
@@ -593,30 +541,27 @@ const EmailTemplatesCentral: React.FC = () => {
         </Tabs>
 
         {/* Templates Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="space-y-5">
           {filteredTemplates.map((template) => {
             const templateInfo = getTemplateInfo(template.name);
             const category = TEMPLATE_CATEGORIES[templateInfo.category];
             const templateNumber = getTemplateNumber(template.name);
             const isSpecial = ['#05', '#13', '#17'].includes(templateNumber);
+            const variables = getTemplateVariables(template);
             
             return (
               <Card 
                 key={template.id} 
-                className={`hover:shadow-md transition-shadow ${
+                className={`hover:shadow-md transition-shadow border-green-200 bg-green-50/60 ${
                   isSpecial ? 'border-green-300 bg-green-50 shadow-lg' : ''
                 }`}
               >
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle className={`text-lg mb-2 ${isSpecial ? 'text-green-800' : ''}`}>
+                      <CardTitle className="text-lg mb-2 text-green-800 flex flex-wrap items-center gap-2">
+                        {isSpecial && <Star className="w-5 h-5 text-yellow-500" />}
                         {template.name}
-                        {isSpecial && (
-                          <span className="block text-sm text-green-600 font-normal mt-1">
-                             ⭐ {copy.automaticSystem}
-                          </span>
-                        )}
                       </CardTitle>
                       <div className="flex gap-2 flex-wrap">
                         <Badge variant={template.is_active ? "default" : "secondary"}>
@@ -665,24 +610,29 @@ const EmailTemplatesCentral: React.FC = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    <div>
-                       <p className="text-sm font-medium text-gray-700">{copy.subject}:</p>
-                      <p className={`text-sm p-2 rounded ${
-                        isSpecial ? 'text-green-700 bg-green-100' : 'text-gray-600 bg-gray-50'
-                      }`}>
-                        {template.subject}
-                      </p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-green-100 border border-green-300 rounded-lg p-3">
+                      <h4 className="text-sm font-bold text-green-800 mb-2">✨ {copy.features}:</h4>
+                      <div className="space-y-1 text-xs text-green-700">
+                        <div>✅ {copy.subject}: {template.subject}</div>
+                        <div>✅ {copy.language}: {copy[template.language] || template.language || copy.en}</div>
+                        <div>✅ {template.is_active ? copy.active : copy.inactive}</div>
+                        <div>✅ {copy.useCount}: {template.usage_count || 0} {copy.times}</div>
+                      </div>
                     </div>
-                    
-                    <div>
-                       <p className="text-sm font-medium text-gray-700">{copy.usage}:</p>
-                       <p className="text-sm text-gray-600">{categoryText(templateInfo.category)[1]}</p>
+                    <div className="bg-blue-100 border border-blue-300 rounded-lg p-3">
+                      <h4 className="text-sm font-bold text-blue-800 mb-2">📋 {copy.usage}:</h4>
+                      <div className="space-y-1 text-xs text-blue-700">
+                        <div>• {categoryText(templateInfo.category)[1]}</div>
+                        <div>• {templateInfo.usage}</div>
+                        <div>• {templateInfo.autoUse ? copy.automaticSystem : copy.general}</div>
+                      </div>
                     </div>
-                    
-                    <div className="flex items-center justify-between text-xs text-gray-500">
-                       <span>{copy.language}: {copy[template.language] || template.language || copy.en}</span>
-                       <span>{copy.useCount}: {template.usage_count || 0} {copy.times}</span>
+                    <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-3">
+                      <h4 className="text-sm font-bold text-yellow-800 mb-2">🔧 {copy.variables}:</h4>
+                      <div className="text-xs text-yellow-700 break-words" dir="ltr">
+                        {variables.length ? variables.join(', ') : '—'}
+                      </div>
                     </div>
                   </div>
                 </CardContent>
