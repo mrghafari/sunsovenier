@@ -16507,10 +16507,16 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       }
 
       // Validate mandatory fields
-      if (!email || !phone || !country || !province || !city || !address) {
+      if (!email || !phone || !country || !province || !city || !address || !preferredLanguage) {
         return res.status(400).json({ 
           success: false, 
-          message: "ایمیل، شماره تلفن، کشور، استان، شهر و آدرس اجباری هستند" 
+          message: "ایمیل، شماره تلفن، کشور، استان، شهر، آدرس و زبان ترجیحی اجباری هستند"
+        });
+      }
+      if (!['en', 'fa', 'ar', 'tr'].includes(preferredLanguage)) {
+        return res.status(400).json({
+          success: false,
+          message: "زبان ترجیحی معتبر نیست",
         });
       }
 
@@ -16541,7 +16547,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         businessType: businessType || null,
         companySize: companySize || null,
         communicationPreference: communicationPreference || 'email',
-        preferredLanguage: preferredLanguage || 'en',
+        preferredLanguage,
         marketingConsent: marketingConsent || false,
         productInterests: productInterests || null,
         creditLimit: creditLimit || null,

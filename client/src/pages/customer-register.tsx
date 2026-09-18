@@ -12,6 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Link, useLocation } from "wouter";
 import { z } from "zod";
 import { OtpVerificationModal } from "@/components/OtpVerificationModal";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // Enhanced registration schema with mandatory fields
 const customerRegistrationSchema = z.object({
@@ -28,7 +29,9 @@ const customerRegistrationSchema = z.object({
   address: z.string().min(1, "Address is required"),
   postalCode: z.string().optional(),
   communicationPreference: z.string().default("email"),
-  preferredLanguage: z.string().default("en"),
+  preferredLanguage: z.enum(["en", "fa", "ar", "tr"], {
+    required_error: "Preferred language is required",
+  }),
   marketingConsent: z.boolean().default(false),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
@@ -39,6 +42,7 @@ type CustomerRegistrationData = z.infer<typeof customerRegistrationSchema>;
 
 const CustomerRegister = () => {
   const { toast } = useToast();
+  const { language } = useLanguage();
   const [, setLocation] = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedProvince, setSelectedProvince] = useState("");
@@ -97,10 +101,16 @@ const CustomerRegister = () => {
       password: "",
       confirmPassword: "",
       communicationPreference: "email",
-      preferredLanguage: "en",
+      preferredLanguage: language,
       marketingConsent: false,
     },
   });
+
+  useEffect(() => {
+    if (!form.formState.dirtyFields.preferredLanguage) {
+      form.setValue("preferredLanguage", language, { shouldValidate: true });
+    }
+  }, [language, form]);
 
   // Mutation to send OTP
   const sendOtpMutation = useMutation({
@@ -552,8 +562,8 @@ const CustomerRegister = () => {
                     name="preferredLanguage"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Preferred Language</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormLabel>Preferred Language *</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue />
@@ -561,8 +571,9 @@ const CustomerRegister = () => {
                           </FormControl>
                           <SelectContent>
                             <SelectItem value="en">English</SelectItem>
-                            <SelectItem value="fa">Persian</SelectItem>
-                            <SelectItem value="ar">Arabic</SelectItem>
+                            <SelectItem value="fa">فارسی</SelectItem>
+                            <SelectItem value="ar">العربية</SelectItem>
+                            <SelectItem value="tr">Türkçe</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
