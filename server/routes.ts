@@ -30780,6 +30780,7 @@ ${message ? `Additional Requirements:\n${message}` : ''}
           o.notes,
           o.warehouse_notes as "warehouseNotes",
           o.financial_approved_at as "financialApprovedAt",
+          om.financial_notes as "financialNotes",
           o.fulfilled_at as "fulfilledAt",
           o.fulfilled_by as "fulfilledBy",
           om.total_weight as "totalWeight",
@@ -30808,7 +30809,7 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         GROUP BY o.id, o.customer_name, o.customer_email, o.total_amount, o.status, 
                  o.created_at, o.shipping_address, o.payment_method, o.notes, 
                  o.warehouse_notes, o.financial_approved_at, o.fulfilled_at, o.fulfilled_by,
-                 om.total_weight, om.weight_unit
+                 om.total_weight, om.weight_unit, om.financial_notes
         ORDER BY o.financial_approved_at DESC
       `);
       

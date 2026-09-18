@@ -893,30 +893,26 @@ const WarehouseManagementFixed: React.FC = () => {
     setWarehouseNotes('');
   };
 
-  const handleSaveNotes = () => {
-    console.log("🔍 [WAREHOUSE NOTES] Save notes clicked");
-    console.log("🔍 [WAREHOUSE NOTES] Selected order:", selectedOrder);
-    console.log("🔍 [WAREHOUSE NOTES] Warehouse notes:", warehouseNotes);
-    
-    if (!selectedOrder || !warehouseNotes.trim()) {
-      console.log("❌ [WAREHOUSE NOTES] Validation failed - missing order or notes");
-      console.log({
-        title: t('error'),
-        description: t('enterNote'),
-        variant: "destructive",
+  const handleStartProcessing = async () => {
+    if (!selectedOrder) return;
+
+    const notes = warehouseNotes.trim();
+    try {
+      if (notes) {
+        await saveNotesMutation.mutateAsync({
+          customerOrderId: selectedOrder.customerOrderId,
+          notes,
+        });
+      }
+      updateOrderMutation.mutate({
+        orderId: selectedOrder.id,
+        status: 'warehouse_processing',
+        notes: notes || undefined,
       });
-      return;
+    } catch {
+      // The notes mutation reports its own error. Keep the modal open so the
+      // user can retry without losing the entered note.
     }
-
-    console.log("✅ [WAREHOUSE NOTES] Starting mutation with data:", {
-      customerOrderId: selectedOrder.customerOrderId,
-      notes: warehouseNotes
-    });
-
-    saveNotesMutation.mutate({
-      customerOrderId: selectedOrder.customerOrderId,
-      notes: warehouseNotes
-    });
   };
 
   const clearAllFilters = () => {
@@ -1116,10 +1112,10 @@ const WarehouseManagementFixed: React.FC = () => {
                                </div>
                              </td>
                              <td className="w-[140px] border border-slate-200 px-3 py-2 align-top whitespace-normal">
-                               {(order as any).customerNotes && (order as any).customerNotes.trim().length > 0 ? (
-                                 <div className="bg-amber-100 text-amber-700 px-2 py-1 rounded text-xs font-medium inline-flex items-center gap-1 whitespace-normal break-words">
+                                {order.financialNotes?.trim() ? (
+                                  <div className="bg-blue-50 text-blue-800 border border-blue-200 px-2 py-1.5 rounded text-xs inline-flex items-start gap-1.5 whitespace-pre-wrap break-words">
                                    <Edit3 className="w-3 h-3 shrink-0" />
-                                    {t('customerNote')}
+                                    <span>{order.financialNotes}</span>
                                  </div>
                                ) : (
                                  <span className="text-gray-400 text-xs">—</span>
@@ -1652,11 +1648,11 @@ const WarehouseManagementFixed: React.FC = () => {
                   <div className="flex justify-end mt-2">
                     <Button
                       size="sm"
-                      onClick={handleSaveNotes}
-                      disabled={saveNotesMutation.isPending}
-                      className="bg-blue-600 hover:bg-blue-700"
+                      onClick={handleStartProcessing}
+                      disabled={saveNotesMutation.isPending || updateOrderMutation.isPending}
+                      className="bg-orange-500 hover:bg-orange-600"
                     >
-                       {saveNotesMutation.isPending ? t('saving') : t('saveNote')}
+                       {saveNotesMutation.isPending || updateOrderMutation.isPending ? t('processing') : t('startProcessing')}
                     </Button>
                   </div>
                 </div>
