@@ -37,9 +37,14 @@ import ProductModel3DViewer from "@/components/ProductModel3DViewer";
 const Shop = () => {
   const { toast } = useMultilingualToast();
   const { t, direction, language } = useLanguage();
+  const authCopy = {
+    en: { login: 'Login', register: 'Register' },
+    fa: { login: 'ورود', register: 'ثبت‌نام' },
+    ar: { login: 'تسجيل الدخول', register: 'إنشاء حساب' },
+    tr: { login: 'Giriş Yap', register: 'Kayıt Ol' },
+  }[language];
   const shopCopy = language === 'fa' ? {
-    login: 'ورود',
-    register: 'ثبت‌نام',
+    ...authCopy,
     cart: 'سبد خرید',
     save: 'صرفه‌جویی',
     noProducts: 'کالایی مطابق معیارهای شما پیدا نشد',
@@ -51,7 +56,7 @@ const Shop = () => {
     shopTitle: 'فروش محصولات شیمیایی ممتازکم | خرید آنلاین',
     shopDescription: 'مشاهده و خرید آنلاین محصولات شیمیایی ممتاز، افزودنی‌های سوخت، مواد تصفیه آب، تینرها و کودهای کشاورزی با پرداخت امن و ارسال سریع.',
   } : {
-    login: 'Login', register: 'Register', cart: 'Cart', save: 'Save',
+    ...authCopy, cart: 'Cart', save: 'Save',
     noProducts: 'No products found matching your criteria',
     adjustSearch: 'Try adjusting your search terms or clearing filters',
     clearFilters: 'Clear all filters', bulkDiscount: 'Bulk Purchase Discount',
