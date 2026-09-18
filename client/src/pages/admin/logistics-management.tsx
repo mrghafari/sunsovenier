@@ -3162,7 +3162,7 @@ const LogisticsManagement = () => {
         <NotificationSettingsTab />
       </TabsContent>
       <TabsContent value="delivery-services">
-        <DeliveryServicesTab />
+        <DeliveryServicesTab language={language} />
       </TabsContent>
     </Tabs>
   );

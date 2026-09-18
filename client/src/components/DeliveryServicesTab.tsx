@@ -108,6 +108,12 @@ const translations = {
   },
 } as const;
 
+type DeliveryServicesLanguage = keyof typeof translations;
+
+interface DeliveryServicesTabProps {
+  language?: DeliveryServicesLanguage;
+}
+
 const formFromMethod = (method: DeliveryMethod): FormState => ({
   value: method.value || '', label: method.label || '', icon: method.icon || 'package', color: method.color || 'blue',
   baseCost: String(method.baseCost ?? 0), costPerKg: String(method.costPerKg ?? 0), minimumOrder: String(method.minimumOrder ?? 0),
@@ -126,8 +132,13 @@ const payloadFrom = (form: FormState) => ({
   sortOrder: form.sortOrder, isActive: form.isActive,
 });
 
-const DeliveryServicesTab = () => {
-  const { language, direction } = useLanguage();
+const DeliveryServicesTab = ({ language: pageLanguage }: DeliveryServicesTabProps) => {
+  const { language: contextLanguage } = useLanguage();
+  const language = (
+    pageLanguage ||
+    (contextLanguage in translations ? contextLanguage : 'en')
+  ) as DeliveryServicesLanguage;
+  const direction = language === 'fa' || language === 'ar' ? 'rtl' : 'ltr';
   const t = translations[language];
   const { toast } = useToast();
   const queryClient = useQueryClient();
