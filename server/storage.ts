@@ -292,9 +292,13 @@ export class DatabaseStorage implements IStorage {
     
     // بررسی بارکد تکراری قبل از بروزرسانی محصول
     if (productUpdate.barcode && productUpdate.barcode.trim() !== '') {
-      const barcodeExists = await this.checkBarcodeExists(productUpdate.barcode, id);
-      if (barcodeExists) {
-        throw new Error(`خطا: بارکد "${productUpdate.barcode}" قبلاً استفاده شده است. هر محصول باید بارکد منحصر به فرد داشته باشد.`);
+      const currentProduct = await this.getProductById(id);
+      const barcodeChanged = productUpdate.barcode.trim() !== currentProduct?.barcode?.trim();
+      if (barcodeChanged) {
+        const barcodeExists = await this.checkBarcodeExists(productUpdate.barcode, id);
+        if (barcodeExists) {
+          throw new Error(`خطا: بارکد "${productUpdate.barcode}" قبلاً استفاده شده است. هر محصول باید بارکد منحصر به فرد داشته باشد.`);
+        }
       }
     }
     

@@ -20,3 +20,4 @@
 - [Legacy private receipt fallback](legacy-private-receipt-fallback.md) — retain stable legacy receipt URLs and serve deterministic private-S3 copies when production cannot read old Object Storage.
 - [Batch product images](batch-product-images.md) — batch rows may omit duplicated media; inventory views should inherit the base product image across matching product names.
 - [Cart batch reservations](cart-batch-reservations.md) — cart holds reduce sellable availability; physical FIFO batches change only on verified payment.
+- [Shared batch barcodes](shared-batch-barcodes.md) — batch rows may intentionally share a barcode; unchanged barcodes must not block editing an individual batch.
