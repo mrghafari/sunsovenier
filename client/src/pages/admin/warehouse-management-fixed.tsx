@@ -600,6 +600,20 @@ const WarehouseManagementFixed: React.FC = () => {
   const currentOrderCount = ((ordersResponse as any)?.orders || []).length;
   const historyOrderCount = ((ordersResponse as any)?.historyOrders || []).length;
   const visibleOrdersLoading = ordersLoading;
+  const statusCounts = new Map<string, number>();
+  orders.forEach((order: Order) => {
+    const status = String(order.currentStatus || order.status || '').trim().toLowerCase();
+    if (status) {
+      statusCounts.set(status, (statusCounts.get(status) || 0) + 1);
+    }
+  });
+  const statusOptions = Array.from(statusCounts.entries())
+    .map(([value, count]) => ({
+      value,
+      count,
+      label: getOrderStatusLabel(resolveOrderStatus({ workflowStatus: value }), language),
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label, language));
 
   const changeOrderView = (value: 'current' | 'history') => {
     setOrderView(value);
@@ -835,23 +849,8 @@ const WarehouseManagementFixed: React.FC = () => {
       matchesStatus = !!order.warehouseNotes?.trim();
     } else if (selectedStatus === 'without_notes') {
       matchesStatus = !order.warehouseNotes?.trim();
-    } else if (selectedStatus === 'warehouse_approved') {
-      // "ارسال شده به لجستیک" should include all statuses that have been sent to logistics
-      const logisticsStatuses = [
-        'warehouse_approved',
-        'logistics_assigned',
-        'logistics_processing', 
-        'logistics_dispatched',
-        'logistics_delivered',
-        'shipped',
-        'in_transit',
-        'delivered',
-        'completed',
-        'confirmed'
-      ];
-      matchesStatus = logisticsStatuses.includes(orderStatus);
     } else {
-      matchesStatus = orderStatus === selectedStatus;
+      matchesStatus = orderStatus.trim().toLowerCase() === selectedStatus;
     }
     
     // Header filters
@@ -1063,12 +1062,11 @@ const WarehouseManagementFixed: React.FC = () => {
                 className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="all">{t('allStatuses')}</option>
-                <option value="warehouse_pending">{t('warehousePending')}</option>
-                <option value="financial_approved">{t('financialApproval')}</option>
-                <option value="warehouse_notified">{t('warehouseNotified')}</option>
-                <option value="warehouse_processing">{t('processing')}</option>
-                <option value="warehouse_approved">{t('sendToLogistics')}</option>
-                <option value="warehouse_rejected">{t('rejected')}</option>
+                {statusOptions.map((status) => (
+                  <option key={status.value} value={status.value}>
+                    {status.label} ({formatNumber(status.count)})
+                  </option>
+                ))}
                 <option value="with_notes">{t('withNotes')}</option>
                 <option value="without_notes">{t('withoutNotes')}</option>
               </select>
