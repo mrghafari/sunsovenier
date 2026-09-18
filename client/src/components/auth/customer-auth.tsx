@@ -849,6 +849,30 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
                       )}
                     />
 
+                    <FormField
+                      control={registerForm.control}
+                      name="preferredLanguage"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t.auth.preferredLanguage} *</FormLabel>
+                          <Select value={field.value} onValueChange={field.onChange}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder={t.auth.preferredLanguage} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="en">English</SelectItem>
+                              <SelectItem value="fa">فارسی</SelectItem>
+                              <SelectItem value="ar">العربية</SelectItem>
+                              <SelectItem value="tr">Türkçe</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
                     <div className="grid grid-cols-2 gap-4">
                       <FormField
                         control={registerForm.control}
@@ -1134,29 +1158,6 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
                       )}
                     />
 
-                    <FormField
-                      control={registerForm.control}
-                      name="preferredLanguage"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t.auth.preferredLanguage} *</FormLabel>
-                          <Select value={field.value} onValueChange={field.onChange}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder={t.auth.preferredLanguage} />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="en">English</SelectItem>
-                              <SelectItem value="fa">فارسی</SelectItem>
-                              <SelectItem value="ar">العربية</SelectItem>
-                              <SelectItem value="tr">Türkçe</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
                   </CollapsibleContent>
                 </Collapsible>
 
