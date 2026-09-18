@@ -2973,7 +2973,7 @@ const LogisticsManagement = () => {
     const [smsEnabled, setSmsEnabled] = useState(false);
     const [whatsappEnabled, setWhatsappEnabled] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
-    const [isSaving, setIsSaving] = useState(false);
+    const [savingKeys, setSavingKeys] = useState<Set<string>>(new Set());
 
     useEffect(() => {
       const fetchSettings = async () => {
@@ -3001,21 +3001,25 @@ const LogisticsManagement = () => {
       fetchSettings();
     }, []);
 
-    const saveSettings = async () => {
-      setIsSaving(true);
-      try {
-        const updates = [
-          { key: 'logistics_notification_email', value: emailEnabled.toString() },
-          { key: 'logistics_notification_sms', value: smsEnabled.toString() },
-          { key: 'logistics_notification_whatsapp', value: whatsappEnabled.toString() }
-        ];
+    const updateSetting = async (
+      key: string,
+      enabled: boolean,
+      setEnabled: React.Dispatch<React.SetStateAction<boolean>>,
+    ) => {
+      const previousValue = !enabled;
+      setEnabled(enabled);
+      setSavingKeys((current) => new Set(current).add(key));
 
-        for (const update of updates) {
-          await fetch(`/api/admin/shop-settings/${update.key}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ setting_value: update.value })
-          });
+      try {
+        const response = await fetch(`/api/admin/shop-settings/${key}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ setting_value: enabled.toString() }),
+        });
+        const result = await response.json().catch(() => null);
+        if (!response.ok || !result?.success) {
+          throw new Error(result?.message || t('settingsSaveError'));
         }
 
         toast({
@@ -3023,14 +3027,19 @@ const LogisticsManagement = () => {
           description: t('settingsSavedDescription'),
         });
       } catch (error) {
+        setEnabled(previousValue);
         console.error('Error saving notification settings:', error);
         toast({
           title: t('error'),
-          description: t('settingsSaveError'),
+          description: error instanceof Error ? error.message : t('settingsSaveError'),
           variant: 'destructive',
         });
       } finally {
-        setIsSaving(false);
+        setSavingKeys((current) => {
+          const next = new Set(current);
+          next.delete(key);
+          return next;
+        });
       }
     };
 
@@ -3073,7 +3082,12 @@ const LogisticsManagement = () => {
                     type="checkbox"
                     className="sr-only peer"
                     checked={emailEnabled}
-                    onChange={(e) => setEmailEnabled(e.target.checked)}
+                    disabled={savingKeys.has('logistics_notification_email')}
+                    onChange={(e) => updateSetting(
+                      'logistics_notification_email',
+                      e.target.checked,
+                      setEmailEnabled,
+                    )}
                   />
                   <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                 </label>
@@ -3094,7 +3108,12 @@ const LogisticsManagement = () => {
                     type="checkbox"
                     className="sr-only peer"
                     checked={smsEnabled}
-                    onChange={(e) => setSmsEnabled(e.target.checked)}
+                    disabled={savingKeys.has('logistics_notification_sms')}
+                    onChange={(e) => updateSetting(
+                      'logistics_notification_sms',
+                      e.target.checked,
+                      setSmsEnabled,
+                    )}
                   />
                   <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
                 </label>
@@ -3115,27 +3134,16 @@ const LogisticsManagement = () => {
                     type="checkbox"
                     className="sr-only peer"
                     checked={whatsappEnabled}
-                    onChange={(e) => setWhatsappEnabled(e.target.checked)}
+                    disabled={savingKeys.has('logistics_notification_whatsapp')}
+                    onChange={(e) => updateSetting(
+                      'logistics_notification_whatsapp',
+                      e.target.checked,
+                      setWhatsappEnabled,
+                    )}
                   />
                   <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
                 </label>
               </div>
-            </div>
-
-            <div className="flex justify-end pt-4 border-t">
-              <Button onClick={saveSettings} disabled={isSaving}>
-                {isSaving ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                    {t('saving')}
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    {t('saveSettings')}
-                  </>
-                )}
-              </Button>
             </div>
 
             <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
