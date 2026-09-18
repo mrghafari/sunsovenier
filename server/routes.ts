@@ -30765,11 +30765,41 @@ ${message ? `Additional Requirements:\n${message}` : ''}
     try {
       console.log('📦 [WAREHOUSE] Fetching warehouse orders...');
 
-      const orders = await orderManagementStorage.getOrdersByDepartment('warehouse');
+      const historyStatuses = [
+        'warehouse_rejected',
+        'logistics_assigned',
+        'logistics_processing',
+        'logistics_dispatched',
+        'shipped',
+        'in_transit',
+        'logistics_delivered',
+        'delivered',
+        'completed',
+      ];
+      const [orders, allWarehouseHistory] = await Promise.all([
+        orderManagementStorage.getOrdersByDepartment('warehouse'),
+        orderManagementStorage.getOrdersByDepartment('warehouse', historyStatuses as any, true),
+      ]);
+      const activeStatuses = new Set([
+        'financial_approved',
+        'warehouse_pending',
+        'warehouse_notified',
+        'warehouse_processing',
+        'warehouse_verified',
+        'warehouse_fulfilled',
+        'warehouse_approved',
+        'warehouse_ready',
+      ]);
+      const historyOrders = allWarehouseHistory.filter((order: any) =>
+        !activeStatuses.has(String(order.currentStatus || '').trim().toLowerCase()),
+      );
 
-      console.log('📦 [WAREHOUSE] Found current warehouse orders:', orders.length);
+      console.log('📦 [WAREHOUSE] Found warehouse orders:', {
+        current: orders.length,
+        history: historyOrders.length,
+      });
       res.set('Cache-Control', 'no-store');
-      res.json({ success: true, orders });
+      res.json({ success: true, orders, historyOrders });
     } catch (error) {
       console.error('📦 [WAREHOUSE] Error fetching warehouse orders:', error);
       res.status(500).json({

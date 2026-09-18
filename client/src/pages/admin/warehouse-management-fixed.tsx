@@ -565,22 +565,21 @@ const WarehouseManagementFixed: React.FC = () => {
   // Queries
   const { data: ordersResponse, isLoading: ordersLoading, refetch: refetchOrders } = useQuery({
     queryKey: ['/api/order-management/warehouse'],
+    queryFn: async () => {
+      const response = await fetch('/api/order-management/warehouse', {
+        credentials: 'include',
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' },
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to load warehouse orders (${response.status})`);
+      }
+      return response.json();
+    },
     staleTime: 0, // Always consider data stale
     gcTime: 0, // Don't cache at all - always fresh (v5 syntax)
     refetchOnWindowFocus: true, // Refetch when user comes back
     refetchInterval: 30000, // Auto-refresh every 30 seconds
-  });
-
-  const {
-    data: historyResponse,
-    isLoading: historyLoading,
-    refetch: refetchHistory,
-  } = useQuery({
-    queryKey: ['/api/order-management/warehouse/history'],
-    enabled: orderView === 'history',
-    staleTime: 0,
-    gcTime: 0,
-    refetchOnWindowFocus: true,
   });
 
   // Force refresh function that completely clears cache
@@ -588,13 +587,7 @@ const WarehouseManagementFixed: React.FC = () => {
     // Clear all cache first
     await queryClient.invalidateQueries({ queryKey: ['/api/order-management/warehouse'] });
     await queryClient.removeQueries({ queryKey: ['/api/order-management/warehouse'] });
-    if (orderView === 'history') {
-      await queryClient.invalidateQueries({ queryKey: ['/api/order-management/warehouse/history'] });
-      await queryClient.removeQueries({ queryKey: ['/api/order-management/warehouse/history'] });
-      await refetchHistory();
-    } else {
-      await refetchOrders();
-    }
+    await refetchOrders();
     console.log({
       title: `🔄 ${t('refreshed')}`,
       description: t('ordersRefreshed'),
@@ -602,9 +595,23 @@ const WarehouseManagementFixed: React.FC = () => {
   };
 
   const orders = orderView === 'history'
-    ? (historyResponse as any)?.orders || []
+    ? (ordersResponse as any)?.historyOrders || []
     : (ordersResponse as any)?.orders || [];
-  const visibleOrdersLoading = orderView === 'history' ? historyLoading : ordersLoading;
+  const currentOrderCount = ((ordersResponse as any)?.orders || []).length;
+  const historyOrderCount = ((ordersResponse as any)?.historyOrders || []).length;
+  const visibleOrdersLoading = ordersLoading;
+
+  const changeOrderView = (value: 'current' | 'history') => {
+    setOrderView(value);
+    setSearchTerm('');
+    setSelectedStatus('all');
+    setOrderIdFilter('');
+    setCustomerNameFilter('');
+    setPhoneFilter('');
+    setEmailFilter('');
+    setStatusFilter('');
+    setAmountFilter('');
+  };
 
   // Inventory Products Query
   const { data: inventoryProductsData, isLoading: inventoryProductsLoading, refetch: refetchInventoryProducts } = useQuery<{ products: InventoryProduct[] }>({
@@ -1009,15 +1016,17 @@ const WarehouseManagementFixed: React.FC = () => {
           </TabsList>
 
           <TabsContent value="orders" className="space-y-6">
-            <Tabs value={orderView} onValueChange={(value) => setOrderView(value as 'current' | 'history')}>
+            <Tabs value={orderView} onValueChange={(value) => changeOrderView(value as 'current' | 'history')}>
               <TabsList className="grid w-full max-w-lg grid-cols-2">
                 <TabsTrigger value="current" className="flex items-center gap-2">
                   <Package className="w-4 h-4" />
                   {t('currentOrders')}
+                  <Badge variant="secondary" className="ms-1">{formatNumber(currentOrderCount)}</Badge>
                 </TabsTrigger>
                 <TabsTrigger value="history" className="flex items-center gap-2">
                   <Clock className="w-4 h-4" />
                   {t('orderHistory')}
+                  <Badge variant="secondary" className="ms-1">{formatNumber(historyOrderCount)}</Badge>
                 </TabsTrigger>
               </TabsList>
             </Tabs>
