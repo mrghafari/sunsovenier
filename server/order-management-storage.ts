@@ -30,7 +30,7 @@ import { showcaseProducts as products } from "@shared/showcase-schema";
 import { shopProducts } from "@shared/shop-schema";
 import { db } from "./db";
 import { pool as dbPool } from "./db";
-import { eq, and, desc, asc, inArray, sql, isNotNull } from "drizzle-orm";
+import { eq, and, desc, asc, inArray, sql, isNotNull, or } from "drizzle-orm";
 import ProformaInvoiceConverter from "./proforma-invoice-converter";
 import { AutoInvoiceConverter } from "./auto-invoice-converter";
 import { orderConsolidationService } from "./order-consolidation-service";
@@ -133,7 +133,7 @@ export interface IOrderManagementStorage {
   getNextValidStatuses(currentStatus: OrderStatus, department: Department): OrderStatus[];
   
   // Department filtering (respects sequence)
-  getOrdersByDepartment(department: Department, status?: OrderStatus[]): Promise<OrderManagement[]>;
+  getOrdersByDepartment(department: Department, status?: OrderStatus[], includeWarehouseHistory?: boolean): Promise<OrderManagement[]>;
   getOrdersByStatus(status: OrderStatus | string | Array<OrderStatus | string>): Promise<OrderManagement[]>;
   getFinancialPendingOrders(): Promise<OrderManagement[]>;
   getFinancialApprovedOrders(): Promise<any[]>;
@@ -648,7 +648,7 @@ export class OrderManagementStorage implements IOrderManagementStorage {
     });
   }
   
-  async getOrdersByDepartment(department: Department, statuses?: OrderStatus[]): Promise<any[]> {
+  async getOrdersByDepartment(department: Department, statuses?: OrderStatus[], includeWarehouseHistory = false): Promise<any[]> {
     console.log('🔍 [DEPARTMENT] getOrdersByDepartment called with department:', department);
     
     let query = db.select({
@@ -752,8 +752,14 @@ export class OrderManagementStorage implements IOrderManagementStorage {
       // انبار فقط سفارشات در مراحل انبار را می‌بیند - جلوگیری از تکرار
       const warehouseStatuses = statuses || [...WAREHOUSE_VISIBLE_STATUSES] as OrderStatus[];
       console.log('🔍 [WAREHOUSE] Searching for orders with statuses (warehouse stage only):', warehouseStatuses);
-      console.log('🚫 [DUPLICATION FIX] Warehouse department shows only warehouse-stage orders to prevent duplication');
-      query = query.where(inArray(orderManagement.currentStatus, warehouseStatuses));
+      query = query.where(
+        includeWarehouseHistory
+          ? or(
+              inArray(orderManagement.currentStatus, warehouseStatuses),
+              isNotNull(orderManagement.warehouseProcessedAt),
+            )
+          : inArray(orderManagement.currentStatus, warehouseStatuses),
+      );
     } else if (department === 'logistics') {
       // لجستیک فقط سفارشات در مراحل لجستیک را می‌بیند - جلوگیری از تکرار
       const logisticsStatuses = statuses || [...LOGISTICS_VISIBLE_STATUSES] as OrderStatus[];

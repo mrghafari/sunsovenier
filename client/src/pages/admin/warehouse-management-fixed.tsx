@@ -18,6 +18,7 @@ import { Switch } from '@/components/ui/switch';
 import PaymentMethodBadge from '@/components/PaymentMethodBadge';
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { getOrderStatusLabel, resolveOrderStatus } from '@shared/order-status';
 
 type PageLanguage = 'en' | 'fa' | 'ar' | 'tr';
 
@@ -50,6 +51,13 @@ const pageTranslations: Record<string, Record<PageLanguage, string>> = {
   status: { en: 'Status', fa: 'وضعیت', ar: 'الحالة', tr: 'Durum' },
   notes: { en: 'Notes', fa: 'یادداشت', ar: 'ملاحظات', tr: 'Notlar' },
   actions: { en: 'Actions', fa: 'عملیات', ar: 'الإجراءات', tr: 'İşlemler' },
+  currentLocation: { en: 'Current location', fa: 'بخش فعلی سفارش', ar: 'القسم الحالي للطلب', tr: 'Siparişin mevcut bölümü' },
+  currentStage: { en: 'Current stage', fa: 'مرحله فعلی', ar: 'المرحلة الحالية', tr: 'Mevcut aşama' },
+  financialDepartment: { en: 'Finance', fa: 'واحد مالی', ar: 'القسم المالي', tr: 'Finans' },
+  warehouseDepartment: { en: 'Warehouse', fa: 'انبار', ar: 'المستودع', tr: 'Depo' },
+  logisticsDepartment: { en: 'Logistics', fa: 'لجستیک', ar: 'الخدمات اللوجستية', tr: 'Lojistik' },
+  completedDepartment: { en: 'Completed', fa: 'تکمیل‌شده', ar: 'مكتمل', tr: 'Tamamlandı' },
+  cancelledDepartment: { en: 'Cancelled', fa: 'لغوشده', ar: 'ملغى', tr: 'İptal edildi' },
   unknown: { en: 'Unknown', fa: 'نامشخص', ar: 'غير معروف', tr: 'Bilinmiyor' },
   unknownPhone: { en: 'Unknown phone', fa: 'شماره نامشخص', ar: 'هاتف غير معروف', tr: 'Bilinmeyen telefon' },
   unknownEmail: { en: 'Unknown email', fa: 'ایمیل نامشخص', ar: 'بريد إلكتروني غير معروف', tr: 'Bilinmeyen e-posta' },
@@ -71,6 +79,9 @@ const pageTranslations: Record<string, Record<PageLanguage, string>> = {
   vendor: { en: 'Vendor', fa: 'فروشنده', ar: 'المورّد', tr: 'Tedarikçi' },
   productCode: { en: 'Product code', fa: 'کد کالا', ar: 'رمز المنتج', tr: 'Ürün kodu' },
   stock: { en: 'Stock', fa: 'موجودی', ar: 'المخزون', tr: 'Stok' },
+  batchNumber: { en: 'Batch number', fa: 'شماره بچ', ar: 'رقم الدفعة', tr: 'Parti numarası' },
+  remainingInBatch: { en: 'Remaining in batch', fa: 'باقی‌مانده بچ', ar: 'المتبقي في الدفعة', tr: 'Partide kalan' },
+  noBatchNumber: { en: 'No batch number', fa: 'بدون شماره بچ', ar: 'بدون رقم دفعة', tr: 'Parti numarası yok' },
   minimum: { en: 'Minimum', fa: 'حداقل', ar: 'الحد الأدنى', tr: 'Minimum' },
   alertThreshold: { en: 'Alert threshold', fa: 'آستانه هشدار', ar: 'حد التنبيه', tr: 'Uyarı eşiği' },
   noProducts: { en: 'No products found', fa: 'محصولی یافت نشد', ar: 'لم يتم العثور على منتجات', tr: 'Ürün bulunamadı' },
@@ -164,7 +175,9 @@ interface InventoryProduct {
   name: string;
   sku: string;
   barcode: string;
+  batchNumber?: string | null;
   stockQuantity: number;
+  stockUnit?: string | null;
   availableQuantity: number;
   reservedQuantity: number;
   minStockLevel: number;
@@ -787,9 +800,9 @@ const WarehouseManagementFixed: React.FC = () => {
     if (selectedStatus === 'all') {
       matchesStatus = true;
     } else if (selectedStatus === 'with_notes') {
-      matchesStatus = !!(order.notes && order.notes.trim().length > 0);
+      matchesStatus = !!order.warehouseNotes?.trim();
     } else if (selectedStatus === 'without_notes') {
-      matchesStatus = !(order.notes && order.notes.trim().length > 0);
+      matchesStatus = !order.warehouseNotes?.trim();
     } else if (selectedStatus === 'warehouse_approved') {
       // "ارسال شده به لجستیک" should include all statuses that have been sent to logistics
       const logisticsStatuses = [
@@ -857,31 +870,25 @@ const WarehouseManagementFixed: React.FC = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    const statusColors: Record<string, string> = {
-      'warehouse_pending': 'bg-yellow-100 text-yellow-800',
-      'financial_approved': 'bg-green-100 text-green-800',
-      'warehouse_notified': 'bg-blue-100 text-blue-800',
-      'warehouse_processing': 'bg-orange-100 text-orange-800',
-      'warehouse_verified': 'bg-blue-100 text-blue-800',
-      'warehouse_approved': 'bg-green-100 text-green-800',
-      'warehouse_rejected': 'bg-red-100 text-red-800'
-    };
-    
-    const statusLabels: Record<string, string> = {
-      'warehouse_pending': t('warehousePending'),
-      'financial_approved': t('financialApproval'),
-      'warehouse_notified': t('warehouseNotified'),
-      'warehouse_processing': t('processing'),
-      'warehouse_verified': t('firstApproval'),
-      'warehouse_approved': t('finalApproval'),
-      'warehouse_rejected': t('rejected')
-    };
-    
+    const resolved = resolveOrderStatus({ workflowStatus: status });
     return (
-      <Badge className={`${statusColors[status] || 'bg-gray-100 text-gray-800'}`}>
-        {statusLabels[status] || status}
+      <Badge className={resolved.badgeClass}>
+        {getOrderStatusLabel(resolved, language)}
       </Badge>
     );
+  };
+
+  const getDepartmentLabel = (status: string) => {
+    const department = resolveOrderStatus({ workflowStatus: status }).department;
+    const labels = {
+      financial: t('financialDepartment'),
+      warehouse: t('warehouseDepartment'),
+      logistics: t('logisticsDepartment'),
+      complete: t('completedDepartment'),
+      cancelled: t('cancelledDepartment'),
+      unknown: t('unknown'),
+    };
+    return labels[department];
   };
 
   const handleOrderAction = (orderId: number, status: string) => {
@@ -1112,10 +1119,10 @@ const WarehouseManagementFixed: React.FC = () => {
                                </div>
                              </td>
                              <td className="w-[140px] border border-slate-200 px-3 py-2 align-top whitespace-normal">
-                                {order.financialNotes?.trim() ? (
-                                  <div className="bg-blue-50 text-blue-800 border border-blue-200 px-2 py-1.5 rounded text-xs inline-flex items-start gap-1.5 whitespace-pre-wrap break-words">
+                                {order.warehouseNotes?.trim() ? (
+                                  <div className="bg-purple-50 text-purple-800 border border-purple-200 px-2 py-1.5 rounded text-xs inline-flex items-start gap-1.5 whitespace-pre-wrap break-words">
                                    <Edit3 className="w-3 h-3 shrink-0" />
-                                    <span>{order.financialNotes}</span>
+                                    <span>{order.warehouseNotes}</span>
                                  </div>
                                ) : (
                                  <span className="text-gray-400 text-xs">—</span>
@@ -1235,7 +1242,8 @@ const WarehouseManagementFixed: React.FC = () => {
                          <TableHead className="text-right whitespace-nowrap">{t('productName')}</TableHead>
                          <TableHead className="text-right whitespace-nowrap">{t('vendor')}</TableHead>
                          <TableHead className="text-right whitespace-nowrap">{t('productCode')}</TableHead>
-                         <TableHead className="text-center whitespace-nowrap">{t('stock')}</TableHead>
+                         <TableHead className="text-center whitespace-nowrap">{t('batchNumber')}</TableHead>
+                         <TableHead className="text-center whitespace-nowrap">{t('remainingInBatch')}</TableHead>
                          <TableHead className="text-center whitespace-nowrap">{t('minimum')}</TableHead>
                          <TableHead className="text-center whitespace-nowrap">{t('alertThreshold')}</TableHead>
                          <TableHead className="text-center whitespace-nowrap">{t('status')}</TableHead>
@@ -1244,7 +1252,7 @@ const WarehouseManagementFixed: React.FC = () => {
                     <TableBody>
                       {filteredInventoryProducts.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                          <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                              {t('noProducts')}
                           </TableCell>
                         </TableRow>
@@ -1260,7 +1268,17 @@ const WarehouseManagementFixed: React.FC = () => {
                                 </Badge>
                               </TableCell>
                               <TableCell className="text-right">{product.sku || '-'}</TableCell>
-                               <TableCell className="text-center font-bold">{formatNumber(product.stockQuantity || 0)}</TableCell>
+                               <TableCell className="text-center">
+                                 <Badge variant="outline">
+                                   {product.batchNumber?.trim() || t('noBatchNumber')}
+                                 </Badge>
+                               </TableCell>
+                               <TableCell className="text-center">
+                                 <span className="font-bold">{formatNumber(product.stockQuantity || 0)}</span>
+                                 {product.stockUnit && (
+                                   <span className="ms-1 text-xs text-gray-500">{product.stockUnit}</span>
+                                 )}
+                               </TableCell>
                                <TableCell className="text-center">{formatNumber(product.minStockLevel || 0)}</TableCell>
                                <TableCell className="text-center">{formatNumber(product.lowStockThreshold || 0)}</TableCell>
                               <TableCell className="text-center">
@@ -1522,8 +1540,32 @@ const WarehouseManagementFixed: React.FC = () => {
                   </div>
                 </div>
 
-                {/* سیستم یادداشت‌های سلسله‌مراتبی - انبار یادداشت مشتری و مالی را می‌بیند */}
-                {((orderDetails.customerNotes || orderDetails.notes) || (orderDetails.financialNotes || orderDetails.orderManagement?.financialNotes)) && (
+                {/* Current workflow location and exact stage */}
+                {(() => {
+                  const currentStatus = orderDetails.currentStatus || orderDetails.orderManagement?.currentStatus || selectedOrder?.currentStatus || '';
+                  const resolved = resolveOrderStatus({ workflowStatus: currentStatus });
+                  return (
+                    <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-xs font-medium text-indigo-700">{t('currentLocation')}</Label>
+                          <p className="mt-1 font-semibold text-indigo-950">{getDepartmentLabel(currentStatus)}</p>
+                        </div>
+                        <div>
+                          <Label className="text-xs font-medium text-indigo-700">{t('currentStage')}</Label>
+                          <div className="mt-1">
+                            <Badge className={resolved.badgeClass}>{getOrderStatusLabel(resolved, language)}</Badge>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Hierarchical notes visible to the warehouse */}
+                {((orderDetails.customerNotes || orderDetails.notes) ||
+                  (orderDetails.financialNotes || orderDetails.orderManagement?.financialNotes) ||
+                  (orderDetails.warehouseNotes || orderDetails.orderManagement?.warehouseNotes)) && (
                   <div className="space-y-3">
                     <h3 className="font-semibold text-lg flex items-center gap-2">
                       <FileText className="w-5 h-5" />
@@ -1549,6 +1591,17 @@ const WarehouseManagementFixed: React.FC = () => {
                           <span className="text-xs text-blue-600">{t('paymentNote')}</span>
                         </div>
                         <p className="text-blue-900">{orderDetails.financialNotes || orderDetails.orderManagement?.financialNotes}</p>
+                      </div>
+                    )}
+
+                    {/* یادداشت بخش انبار */}
+                    {(orderDetails.warehouseNotes || orderDetails.orderManagement?.warehouseNotes) && (
+                      <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="bg-purple-200 text-purple-800 px-2 py-0.5 rounded text-xs font-medium">{t('warehouseDepartment')}</span>
+                          <span className="text-xs text-purple-600">{t('warehouseNotes')}</span>
+                        </div>
+                        <p className="text-purple-900 whitespace-pre-wrap">{orderDetails.warehouseNotes || orderDetails.orderManagement?.warehouseNotes}</p>
                       </div>
                     )}
                   </div>

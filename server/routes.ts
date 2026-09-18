@@ -30764,60 +30764,44 @@ ${message ? `Additional Requirements:\n${message}` : ''}
   app.get('/api/order-management/warehouse', requireAuth, async (req, res) => {
     try {
       console.log('📦 [WAREHOUSE] Fetching warehouse orders...');
-      
-      // Get orders that are approved by financial department and ready for warehouse processing
-      const { pool } = await import('./db');
-      const result = await pool.query(`
-        SELECT 
-          o.id,
-          o.customer_name as "customerName",
-          o.customer_email as "customerEmail", 
-          o.total_amount as "totalAmount",
-          o.status,
-          o.created_at as "createdAt",
-          o.shipping_address as "shippingAddress",
-          o.payment_method as "paymentMethod",
-          o.notes,
-          o.warehouse_notes as "warehouseNotes",
-          o.financial_approved_at as "financialApprovedAt",
-          om.financial_notes as "financialNotes",
-          o.fulfilled_at as "fulfilledAt",
-          o.fulfilled_by as "fulfilledBy",
-          om.total_weight as "totalWeight",
-          om.weight_unit as "weightUnit",
-          COALESCE(
-            json_agg(
-              json_build_object(
-                'id', oi.id,
-                'name', oi.name,
-                'quantity', oi.quantity,
-                'price', oi.price,
-                'sku', oi.sku,
-                'barcode', oi.barcode,
-                'vendor_id', sp.vendor_id,
-                'vendor_name', v.vendor_name
-              )
-            ) FILTER (WHERE oi.id IS NOT NULL),
-            '[]'::json
-          ) as items
-        FROM orders o
-        LEFT JOIN order_items oi ON o.id = oi.order_id
-        LEFT JOIN shop_products sp ON oi.product_id = sp.id
-        LEFT JOIN vendors v ON sp.vendor_id = v.id
-        LEFT JOIN order_management om ON o.id = om.customer_order_id
-        WHERE o.status IN ('financial_approved', 'warehouse_pending', 'warehouse_processing', 'warehouse_verified', 'warehouse_approved')
-        GROUP BY o.id, o.customer_name, o.customer_email, o.total_amount, o.status, 
-                 o.created_at, o.shipping_address, o.payment_method, o.notes, 
-                 o.warehouse_notes, o.financial_approved_at, o.fulfilled_at, o.fulfilled_by,
-                 om.total_weight, om.weight_unit, om.financial_notes
-        ORDER BY o.financial_approved_at DESC
-      `);
-      
-      const orders = result.rows;
+
+      // Keep orders visible after they leave the warehouse so this page also
+      // serves as the warehouse history. The canonical workflow status in
+      // order_management is authoritative; the legacy customer-order status
+      // is not used for department visibility.
+      const warehouseHistoryStatuses = [
+        'financial_approved',
+        'warehouse_pending',
+        'warehouse_notified',
+        'warehouse_processing',
+        'warehouse_verified',
+        'warehouse_fulfilled',
+        'warehouse_approved',
+        'warehouse_rejected',
+        'warehouse_ready',
+        'logistics_assigned',
+        'logistics_processing',
+        'logistics_dispatched',
+        'shipped',
+        'in_transit',
+        'logistics_delivered',
+        'delivered',
+        'completed',
+      ];
+      const orders = await orderManagementStorage.getOrdersByDepartment(
+        'warehouse',
+        warehouseHistoryStatuses as any,
+        true,
+      );
+
       console.log('📦 [WAREHOUSE] Found financial approved orders:', orders.length);
-      console.log('📦 [WAREHOUSE] Orders ready for warehouse processing:', JSON.stringify(orders, null, 2));
       res.json({ success: true, orders });
     } catch (error) {
+      console.error('📦 [WAREHOUSE] Error fetching warehouse orders:', error);
+      res.status(500).json({
+        success: false,
+        message: 'خطا در دریافت سفارشات انبار',
+      });
     }
   });
 
@@ -58851,7 +58835,9 @@ momtazchem.com
           sp.name,
           sp.sku,
           sp.barcode,
+          sp.batch_number as "batchNumber",
           sp.stock_quantity as "stockQuantity",
+          COALESCE(sp.stock_unit, 'units') as "stockUnit",
           sp.min_stock_level as "minStockLevel",
           sp.max_stock_level as "maxStockLevel",
           COALESCE(sp.low_stock_threshold, sp.min_stock_level, 0) as "lowStockThreshold",
