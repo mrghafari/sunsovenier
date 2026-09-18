@@ -577,10 +577,10 @@ export async function generateInvoicePDF(data: any): Promise<Buffer> {
     fa: ['فاکتور', 'پیش‌فاکتور', 'شماره فاکتور', 'شماره سفارش', 'تاریخ فاکتور', 'فروشنده', 'مشتری', 'نام', 'تلفن', 'ایمیل', 'آدرس', 'روش پرداخت', 'وضعیت پرداخت', 'کالا', 'تعداد', 'قیمت واحد', 'مبلغ', 'جمع جزء', 'تخفیف', 'مالیات بر ارزش افزوده', 'عوارض / هزینه اضافی', 'هزینه ارسال', 'مجموع کل', 'این پیش‌فاکتور است و پس از تأیید پرداخت، فاکتور نهایی صادر می‌شود.', 'این فاکتور نهایی است.']
   }[lang];
   const extra: Record<string, string[]> = {
-    en: ['Registration number', 'Tax number', 'Company', 'Postal code', 'Country / city'],
-    ar: ['رقم التسجيل', 'الرقم الضريبي', 'الشركة', 'الرمز البريدي', 'الدولة / المدينة'],
-    tr: ['Kayıt numarası', 'Vergi numarası', 'Şirket', 'Posta kodu', 'Ülke / şehir'],
-    fa: ['شماره ثبت', 'شماره مالیاتی', 'شرکت', 'کد پستی', 'کشور / شهر'],
+    en: ['Registration number', 'Tax number', 'Company', 'Postal code', 'Country / city', 'Batch'],
+    ar: ['رقم التسجيل', 'الرقم الضريبي', 'الشركة', 'الرمز البريدي', 'الدولة / المدينة', 'التشغيلة'],
+    tr: ['Kayıt numarası', 'Vergi numarası', 'Şirket', 'Posta kodu', 'Ülke / şehir', 'Parti'],
+    fa: ['شماره ثبت', 'شماره مالیاتی', 'شرکت', 'کد پستی', 'کشور / شهر', 'بچ'],
   }[lang];
   const company = data.companyInfo || await getCompanyInformation() || {};
   // Use the logo selected in Company Information for both invoices and
@@ -691,7 +691,13 @@ export async function generateInvoicePDF(data: any): Promise<Buffer> {
     const header = () => { doc.rect(42, y, 510, 24).fillAndStroke('#eeeeee', '#777777'); doc.fillColor('#000').font('VazirBold').fontSize(9); cols.forEach((c: any) => doc.text(tx(c[0]), c[1] + 3, y + 7, { width: c[2] - 6, align: 'center' })); y += 24; };
     header(); const items = data.items || []; doc.font('VazirRegular').fontSize(8);
     items.forEach((item: any) => {
-      if (y > 735) { doc.addPage(); y = 42; header(); }
+      const batchSummary = Array.isArray(item.batches) && item.batches.length > 0
+        ? item.batches
+            .map((batch: any) => `${str(batch.batchNumber)} × ${latinDigits(batch.quantity)}`)
+            .join(', ')
+        : '';
+      const rowHeight = batchSummary ? 38 : 24;
+      if (y + rowHeight > 760) { doc.addPage(); y = 42; header(); }
       const row = [item.name || item.productName, item.quantity, fmt(item.unitPrice), fmt(item.total || item.totalPrice || Number(item.quantity || 0) * Number(item.unitPrice || 0))];
       cols.forEach((c: any, i: number) => {
         const ri = rtl ? [3, 2, 1, 0][i] : i;
@@ -704,9 +710,19 @@ export async function generateInvoicePDF(data: any): Promise<Buffer> {
           align: isProductCell ? al : 'center',
           lineBreak: false,
         });
+        if (isProductCell && batchSummary) {
+          const batchLine = `${extra[5]}: ${batchSummary}`;
+          doc.fontSize(7).fillColor('#444').text(rtl ? tx(batchLine) : batchLine, c[1] + 3, y + 21, {
+            width: c[2] - 6,
+            height: 13,
+            ellipsis: true,
+            align: al,
+            lineBreak: false,
+          }).fillColor('#000').fontSize(8);
+        }
       });
-      doc.rect(42, y, 510, 24).stroke('#bbb');
-      y += 24;
+      doc.rect(42, y, 510, rowHeight).stroke('#bbb');
+      y += rowHeight;
     });
     const subtotal = Number(data.subtotal ?? items.reduce((s: number, i: any) => s + Number(i.total || i.totalPrice || Number(i.quantity || 0) * Number(i.unitPrice || 0)), 0)); const discount = Number(data.discountAmount || 0), vat = Number(data.vatAmount || 0), duties = Number(data.dutiesAmount || 0), shipping = Number(data.shippingCost || 0);
     const grandTotal = data.total !== undefined && data.total !== null

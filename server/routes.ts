@@ -1302,6 +1302,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       // Get order items
       const itemsResult = await db
         .select({
+          productId: orderItems.productId,
           productName: orderItems.productName,
           quantity: orderItems.quantity,
           unitPrice: orderItems.unitPrice,
@@ -1309,6 +1310,8 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         })
         .from(orderItems)
         .where(eq(orderItems.orderId, orderId));
+      const { getSoldBatchAllocationsByProduct } = await import('./order-batch-allocations');
+      const soldBatchesByProduct = await getSoldBatchAllocationsByProduct(orderId);
 
       // Calculate subtotal from items - IQD whole numbers only  
       const subtotal = Math.round(itemsResult.reduce((sum, item) => {
@@ -1345,6 +1348,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           quantity: item.quantity,
           unitPrice: Math.round(parseFloat(item.unitPrice)),
           total: Math.round(parseFloat(item.totalPrice || '0')),
+          batches: item.productId ? soldBatchesByProduct[item.productId] || [] : [],
         })),
         subtotal: subtotal,
         vatAmount: storedVatAmount, // Use frozen amount from order creation
@@ -38200,6 +38204,8 @@ momtazchem.com
         return res.status(400).json({ success: false, message: 'زبان نامعتبر است' });
       }
       const { generateInvoicePDF } = await import('./pdfkit-generator');
+      const { getSoldBatchAllocationsByProduct } = await import('./order-batch-allocations');
+      const soldBatchesByProduct = await getSoldBatchAllocationsByProduct(invoice.orderId);
       const localizedPdfBuffer = await generateInvoicePDF({
         invoiceType: invoice.type === 'proforma' ? 'PROFORMA' : 'FINAL',
         invoiceNumber: invoice.invoiceNumber,
@@ -38219,6 +38225,7 @@ momtazchem.com
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           total: item.totalPrice,
+          batches: soldBatchesByProduct[item.productId] || [],
         })),
         subtotal: invoice.subtotal,
         vatAmount: invoice.taxAmount,
