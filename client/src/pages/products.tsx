@@ -785,7 +785,9 @@ export default function ProductsPage() {
       grossWeight: isBatchAddition ? null : (data.grossWeight ? data.grossWeight.toString() : null),
       imageUrl: data.imageUrl, // Always include images (whether batch addition or not)
       imageUrls: data.imageUrls, // Always include images (whether batch addition or not)
-      batchNumber: data.newBatchNumber?.trim() || null,
+      batchNumber: selectedBatchId === 'new'
+        ? (data.newBatchNumber?.trim() || null)
+        : (data.batchNumber?.trim() || editingProduct?.batchNumber || null),
       // New inventory addition fields
       inventoryAddition: Number(data.inventoryAddition) || 0,
       // CRITICAL: Only send newBatchNumber if creating a NEW batch, not updating existing one

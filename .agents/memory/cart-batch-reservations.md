@@ -3,7 +3,7 @@ name: Cart batch reservations
 description: Invariants for reserving FIFO batch inventory between cart activity and verified payment.
 ---
 
-Cart activity must reserve exact FIFO batch allocations without changing physical batch stock. A verified paid transition finalizes those exact allocations once; cancellation, deletion, and expiry release them without restoring physical stock.
+Cart activity must reserve exact FIFO batch allocations without changing physical batch stock. FIFO means oldest creation timestamp first, with the lowest stable batch ID breaking timestamp ties. A verified paid transition finalizes those exact allocations once; cancellation, deletion, and expiry release them without restoring physical stock.
 
 **Why:** Re-running FIFO at payment time can change batch order, while decrementing physical stock at add-to-cart time records a sale that has not happened. Generic, unverified payment callbacks must never trigger physical inventory movement.
 

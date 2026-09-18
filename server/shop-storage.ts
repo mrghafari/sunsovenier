@@ -1012,7 +1012,7 @@ export class ShopStorage implements IShopStorage {
         SELECT id, name, batch_number, stock_quantity, created_at
         FROM showcase_products 
         WHERE barcode = $1 AND stock_quantity > 0
-        ORDER BY created_at ASC
+        ORDER BY created_at ASC, id ASC
       `, [barcode]);
       
       console.log(`🔄 [FIFO] Reducing ${quantityToReduce} units from barcode ${barcode} across ${batchesResult.rows.length} batches`);
@@ -1071,7 +1071,7 @@ export class ShopStorage implements IShopStorage {
         SELECT id, name, batch_number, stock_quantity, created_at
         FROM showcase_products 
         WHERE barcode = $1 AND stock_quantity > 0
-        ORDER BY created_at ASC
+        ORDER BY created_at ASC, id ASC
         LIMIT 1
       `, [barcode]);
       
@@ -1083,7 +1083,15 @@ export class ShopStorage implements IShopStorage {
   }
 
   // Add new batch to the system
-  async addBatch(batchData: { barcode: string, batchNumber: string, stockQuantity: number, createdAt: string, updatedAt: string }): Promise<any> {
+  async addBatch(batchData: {
+    barcode: string;
+    batchNumber: string;
+    stockQuantity: number;
+    createdAt: string;
+    updatedAt: string;
+    imageUrl?: string | null;
+    imageUrls?: string[];
+  }): Promise<any> {
     try {
       const { pool } = await import('./db');
       
@@ -1102,6 +1110,12 @@ export class ShopStorage implements IShopStorage {
       }
       
       const originalProduct = originalResult.rows[0];
+      const imageUrls = batchData.imageUrls !== undefined
+        ? batchData.imageUrls
+        : (originalProduct.image_urls || (originalProduct.image_url ? [originalProduct.image_url] : []));
+      const imageUrl = batchData.imageUrl !== undefined
+        ? (batchData.imageUrl || imageUrls[0] || null)
+        : (originalProduct.image_url || imageUrls[0] || null);
       
       // Extract base SKU (first 3 parts) to prevent accumulation of batch numbers
       
@@ -1109,10 +1123,10 @@ export class ShopStorage implements IShopStorage {
       const insertResult = await pool.query(`
         INSERT INTO showcase_products (
           name, category, description, short_description, barcode, sku, stock_quantity, 
-          unit_price, currency, batch_number, is_active, is_non_chemical, sync_with_shop, 
-          created_at, updated_at
+          unit_price, currency, batch_number, is_active, is_non_chemical, sync_with_shop,
+          image_url, image_urls, created_at, updated_at
         ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15::json, $16, $17
         ) RETURNING *
       `, [
         originalProduct.name,                 // $1
@@ -1128,8 +1142,10 @@ export class ShopStorage implements IShopStorage {
         originalProduct.is_active,            // $11
         originalProduct.is_non_chemical,      // $12
         originalProduct.sync_with_shop,       // $13
-        batchData.createdAt,                  // $14
-        batchData.updatedAt                   // $15
+        imageUrl,                              // $14
+        JSON.stringify(imageUrls),             // $15
+        batchData.createdAt,                  // $16
+        batchData.updatedAt                   // $17
       ]);
       
       console.log(`✅ [ADD-BATCH] Successfully added batch ${batchData.batchNumber} with ${batchData.stockQuantity} units`);

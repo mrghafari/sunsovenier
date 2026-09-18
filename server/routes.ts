@@ -5470,6 +5470,8 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
               barcode: oldProduct.barcode,
               batchNumber: productData.newBatchNumber.trim(),
               stockQuantity: productData.inventoryAddition,
+              imageUrl: productData.imageUrl,
+              imageUrls: productData.imageUrls,
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString()
             };
@@ -5518,7 +5520,10 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         ...productData,
         price: productData.unitPrice || productData.price,
         priceUnit: productData.currency || productData.priceUnit || 'IQD',
-        imageUrls: productData.imageUrl ? [productData.imageUrl] : (productData.imageUrls || [])
+        imageUrl: productData.imageUrl || productData.imageUrls?.[0] || null,
+        imageUrls: Array.isArray(productData.imageUrls)
+          ? productData.imageUrls
+          : (productData.imageUrl ? [productData.imageUrl] : [])
       };
       
       // Update showcase product instead of shop product for admin panel
@@ -5719,6 +5724,8 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
               barcode: oldProduct.barcode,
               batchNumber: productData.newBatchNumber.trim(),
               stockQuantity: productData.inventoryAddition,
+              imageUrl: productData.imageUrl,
+              imageUrls: productData.imageUrls,
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString()
             };
@@ -5786,6 +5793,8 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
               barcode: oldProduct?.barcode || '',
               batchNumber: productData.newBatchNumber.trim(),
               stockQuantity: productData.inventoryAddition,
+              imageUrl: productData.imageUrl,
+              imageUrls: productData.imageUrls,
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString()
             };
