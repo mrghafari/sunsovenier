@@ -4578,8 +4578,8 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
 
   // Endpoint to serve uploaded files from object storage
   app.get("/objects/uploads/:fileId", async (req, res) => {
+    const { fileId } = req.params;
     try {
-      const { fileId } = req.params;
       console.log('🖼️ [FILE SERVE] Serving file:', fileId);
       
       const objectStorageService = new ObjectStorageService();
@@ -4593,6 +4593,28 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       
     } catch (error) {
       console.error('❌ [FILE SERVE] Error serving file:', error);
+
+      // Legacy receipts were originally stored in Replit Object Storage.
+      // Production may not be able to read that historical bucket, so retain
+      // the same stable app URL while serving migrated copies from private S3.
+      if (/^[a-f0-9-]{36}$/i.test(fileId)) {
+        try {
+          const fallbackKey = `legacy-object-uploads/${fileId}.pdf`;
+          const fallbackFile = await getAwsS3Service().getFile(fallbackKey);
+          if (fallbackFile) {
+            res.set({
+              'Content-Type': 'application/pdf',
+              'Content-Length': String(fallbackFile.length),
+              'Content-Disposition': 'inline',
+              'Cache-Control': 'private, max-age=300',
+            });
+            return res.send(fallbackFile);
+          }
+        } catch (fallbackError) {
+          console.error('❌ [FILE SERVE] S3 fallback failed:', fallbackError);
+        }
+      }
+
       if (error.message.includes('not found') || error.name === 'ObjectNotFoundError') {
         return res.status(404).json({ 
           success: false, 

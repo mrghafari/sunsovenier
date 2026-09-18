@@ -17,3 +17,4 @@
 - [Permissioned marketing email](permissioned-marketing-email.md) — campaign recipients require verified consent, global suppression, safe queueing, and explicit worker activation.
 - [Multi-date-picker module interop](multi-date-picker-interop.md) — resolve the package’s inner default export before rendering or Persian mode can crash with React error 130.
 - [Legacy warehouse history](legacy-warehouse-history.md) — some older orders lack warehouse timestamps; retain history using workflow transitions as well as current terminal status.
+- [Legacy private receipt fallback](legacy-private-receipt-fallback.md) — retain stable legacy receipt URLs and serve deterministic private-S3 copies when production cannot read old Object Storage.

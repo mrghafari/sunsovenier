@@ -1178,7 +1178,7 @@ function FinanceOrders() {
             <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('paymentMethod')}</th>
             <th scope="col" className="border border-slate-300 px-3 py-2 text-end font-semibold">{t('amountIqd')}</th>
             <th scope="col" className="w-[120px] border border-slate-300 px-3 py-2 text-start font-semibold whitespace-normal break-words">{t('status')}</th>
-            <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('receiptStatus')}</th>
+            <th scope="col" className="w-[140px] border border-slate-300 px-3 py-2 text-start font-semibold whitespace-normal break-words">{t('receiptStatus')}</th>
             <th scope="col" className="w-[150px] border border-slate-300 px-3 py-2 text-start font-semibold whitespace-normal break-words">{t('financialNote')}</th>
             <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('actions')}</th>
           </tr>
@@ -1214,21 +1214,21 @@ function FinanceOrders() {
                     {getStatusBadge(order.currentStatus)}
                   </div>
                 </td>
-                <td className="border border-slate-200 px-3 py-2">
+                <td className="w-[140px] min-w-0 border border-slate-200 px-3 py-2 align-top whitespace-normal break-words">
                   {receiptUrl ? (
-                    <div className="flex items-center gap-2 whitespace-nowrap">
-                      <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700">
-                        <CheckCircle className="h-3.5 w-3.5" aria-hidden="true" />
+                    <div className="flex min-w-0 max-w-full flex-wrap items-center gap-1.5 whitespace-normal">
+                      <span className="inline-flex min-w-0 max-w-full items-center gap-1 whitespace-normal break-words text-xs font-medium leading-5 text-green-700">
+                        <CheckCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                         {t('receiptAvailable')}
                       </span>
                       <Button
                         size="sm"
                         variant="outline"
-                        className="h-7 px-2"
+                        className="h-auto min-h-7 max-w-full whitespace-normal break-words px-2 py-1 text-start leading-5"
                         onClick={() => openImageModal(receiptUrl)}
                         aria-label={`${t('viewReceipt')}: ${order.orderNumber}`}
                       >
-                        <FileText className="h-3.5 w-3.5 me-1" aria-hidden="true" />
+                        <FileText className="h-3.5 w-3.5 shrink-0 me-1" aria-hidden="true" />
                         {t('receipt')}
                       </Button>
                     </div>

@@ -376,6 +376,47 @@ export class AwsS3Service {
   }
 
   /**
+   * Upload a private file to a deterministic key.
+   * Intended for controlled migrations where an existing stable application
+   * URL must keep working after the backing store changes.
+   */
+  async uploadPrivateFileToKey(
+    fileBuffer: Buffer,
+    key: string,
+    contentType: string,
+  ): Promise<boolean> {
+    if (!this.client || !this.settings) {
+      throw new Error('AWS S3 client not initialized');
+    }
+    if (
+      !key ||
+      key.startsWith('/') ||
+      key.includes('..') ||
+      !/^[a-zA-Z0-9/_.-]+$/.test(key)
+    ) {
+      throw new Error('Invalid private S3 key');
+    }
+
+    try {
+      const upload = new Upload({
+        client: this.client,
+        params: {
+          Bucket: this.settings.bucketName,
+          Key: key,
+          Body: fileBuffer,
+          ContentType: contentType,
+        },
+      });
+      await upload.done();
+      console.log(`✅ PRIVATE migration file uploaded to S3: ${key}`);
+      return true;
+    } catch (error) {
+      console.error('❌ S3 private migration upload error:', error);
+      return false;
+    }
+  }
+
+  /**
    * Generate a temporary signed PUT URL for uploading a private file directly
    * from the browser to S3.
    */
