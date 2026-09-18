@@ -118,7 +118,7 @@ const registerSchema = z.object({
   businessType: z.enum(['manufacturer', 'distributor', 'retailer', 'end_user']).optional(),
   companySize: z.enum(['small', 'medium', 'large', 'enterprise']).optional(),
   communicationPreference: z.enum(['email', 'phone', 'sms', 'whatsapp']).default('email'),
-  preferredLanguage: z.enum(['en', 'fa', 'ar']).default('en'),
+  preferredLanguage: z.enum(['en', 'fa', 'ar', 'tr']),
   marketingConsent: z.boolean().default(false),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "passwords_must_match", // Will be translated in FormMessage
@@ -139,7 +139,7 @@ interface CustomerAuthProps {
 
 export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onRegisterSuccess, initialMode = 'login', existingCustomer }: CustomerAuthProps) {
   const { toast } = useToast();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   
   // Apply custom error map for translated validation messages
   useEffect(() => {
@@ -214,6 +214,7 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
       province: "",
       city: "",
       address: "",
+      preferredLanguage: language,
     },
   });
 
@@ -221,6 +222,12 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
   useEffect(() => {
     setActiveTab(initialMode);
   }, [initialMode]);
+
+  useEffect(() => {
+    if (!registerForm.formState.dirtyFields.preferredLanguage) {
+      registerForm.setValue("preferredLanguage", language, { shouldValidate: true });
+    }
+  }, [language, registerForm]);
 
   // Pre-fill registration form with existing customer data
   useEffect(() => {
@@ -244,7 +251,7 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
         businessType: existingCustomer.businessType || 'retailer',
         companySize: existingCustomer.companySize || 'small',
         communicationPreference: existingCustomer.communicationPreference || 'email',
-        preferredLanguage: existingCustomer.preferredLanguage || 'en',
+        preferredLanguage: existingCustomer.preferredLanguage || language,
         marketingConsent: existingCustomer.marketingConsent || false,
       });
     }
@@ -1122,6 +1129,30 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
                           <FormControl>
                             <Input placeholder={t.auth.postalCode} {...field} />
                           </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={registerForm.control}
+                      name="preferredLanguage"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t.auth.preferredLanguage} *</FormLabel>
+                          <Select value={field.value} onValueChange={field.onChange}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder={t.auth.preferredLanguage} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="en">English</SelectItem>
+                              <SelectItem value="fa">فارسی</SelectItem>
+                              <SelectItem value="ar">العربية</SelectItem>
+                              <SelectItem value="tr">Türkçe</SelectItem>
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
