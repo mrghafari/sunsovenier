@@ -46,6 +46,11 @@ export async function ensureCartReservationSchema(): Promise<void> {
           released_at TIMESTAMP,
           finalized_at TIMESTAMP
         );
+        ALTER TABLE cart_inventory_reservations
+          DROP CONSTRAINT IF EXISTS cart_inventory_reservations_status_check;
+        ALTER TABLE cart_inventory_reservations
+          ADD CONSTRAINT cart_inventory_reservations_status_check
+          CHECK (status IN ('active', 'pending', 'finalized', 'released', 'restored'));
         CREATE INDEX IF NOT EXISTS cart_inventory_reservations_owner_status_idx
           ON cart_inventory_reservations (owner_key, status);
         CREATE INDEX IF NOT EXISTS cart_inventory_reservations_batch_status_idx
@@ -441,6 +446,83 @@ export async function releaseOrderReservations(orderId: number) {
     RETURNING id
   `, [orderId]);
   return result.rowCount || 0;
+}
+
+export async function restoreRejectedOrderInventory(orderId: number) {
+  await ensureCartReservationSchema();
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const reservations = await client.query<{
+      showcase_product_id: number;
+      shop_product_id: number;
+      quantity: number;
+      status: string;
+    }>(`
+      SELECT showcase_product_id, shop_product_id, quantity, status
+      FROM cart_inventory_reservations
+      WHERE order_id = $1 AND status IN ('pending', 'finalized')
+      ORDER BY showcase_product_id, id
+      FOR UPDATE
+    `, [orderId]);
+
+    const restoredByBatch = new Map<number, number>();
+    const shopProductIds = new Set<number>();
+    for (const reservation of reservations.rows) {
+      shopProductIds.add(Number(reservation.shop_product_id));
+      if (reservation.status !== "finalized") continue;
+      const batchId = Number(reservation.showcase_product_id);
+      restoredByBatch.set(
+        batchId,
+        (restoredByBatch.get(batchId) || 0) + Number(reservation.quantity),
+      );
+    }
+
+    for (const [batchId, quantity] of restoredByBatch) {
+      await client.query(`
+        UPDATE showcase_products
+        SET stock_quantity = stock_quantity + $1, updated_at = NOW()
+        WHERE id = $2
+      `, [quantity, batchId]);
+    }
+
+    await client.query(`
+      UPDATE cart_inventory_reservations
+      SET status = CASE WHEN status = 'finalized' THEN 'restored' ELSE 'released' END,
+          released_at = NOW(),
+          updated_at = NOW()
+      WHERE order_id = $1 AND status IN ('pending', 'finalized')
+    `, [orderId]);
+
+    for (const shopProductId of shopProductIds) {
+      await client.query(`
+        UPDATE shop_products shop
+        SET stock_quantity = totals.total_stock,
+            in_stock = totals.total_stock > 0 OR COALESCE(shop.show_when_out_of_stock, false),
+            updated_at = NOW()
+        FROM (
+          SELECT COALESCE(SUM(showcase.stock_quantity), 0)::int AS total_stock
+          FROM showcase_products showcase
+          WHERE showcase.barcode = (
+            SELECT barcode FROM shop_products WHERE id = $1
+          )
+        ) totals
+        WHERE shop.id = $1
+      `, [shopProductId]);
+    }
+
+    await client.query("COMMIT");
+    return {
+      restoredQuantity: Array.from(restoredByBatch.values()).reduce((sum, quantity) => sum + quantity, 0),
+      restoredBatches: restoredByBatch.size,
+      releasedPendingReservations: reservations.rows.filter(row => row.status === "pending").length,
+    };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 export async function orderHasReservations(orderId: number): Promise<boolean> {

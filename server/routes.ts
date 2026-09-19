@@ -30714,9 +30714,11 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         'financial', 
         notes || 'Payment rejected by financial department'
       );
+      const { restoreRejectedOrderInventory } = await import('./cart-inventory-reservation');
+      const inventoryRestoration = await restoreRejectedOrderInventory(updatedOrder.customerOrderId);
 
       console.log(`❌ [FINANCE] Order ${orderId} rejected by financial department`);
-      res.json({ success: true, order: updatedOrder, message: 'پرداخت رد شد' });
+      res.json({ success: true, order: updatedOrder, inventoryRestoration, message: 'پرداخت رد شد' });
     } catch (error) {
       console.error('Error rejecting financial order:', error);
       res.status(500).json({ success: false, message: 'خطا در رد پرداخت' });
@@ -30930,6 +30932,9 @@ ${message ? `Additional Requirements:\n${message}` : ''}
 
       // CRITICAL: Process wallet refund when order is cancelled
       if (newStatus === 'cancelled' || newStatus === 'financial_rejected') {
+        const { restoreRejectedOrderInventory } = await import('./cart-inventory-reservation');
+        const inventoryRestoration = await restoreRejectedOrderInventory(updatedOrder.customerOrderId);
+        console.log(`📦 [INVENTORY RESTORE] Order ${updatedOrder.customerOrderId}:`, inventoryRestoration);
         try {
           // Get the customer order to check payment method
           const customerOrder = await customerStorage.getOrderById(updatedOrder.customerOrderId);
@@ -44101,6 +44106,9 @@ momtazchem.com
         changedByDepartment: 'financial',
         notes: notes
       });
+      const { restoreRejectedOrderInventory } = await import('./cart-inventory-reservation');
+      const inventoryRestoration = await restoreRejectedOrderInventory(customerOrderId);
+      console.log(`📦 [INVENTORY RESTORE] Order ${customerOrderId}:`, inventoryRestoration);
 
       // Send rejection notification to customer
       if (customerInfo) {
@@ -44125,7 +44133,7 @@ momtazchem.com
         }
       }
 
-      res.json({ success: true, message: "پرداخت رد شد و اطلاع‌رسانی ارسال شد" });
+      res.json({ success: true, inventoryRestoration, message: "پرداخت رد شد و اطلاع‌رسانی ارسال شد" });
     } catch (error) {
       console.error("Error rejecting finance order:", error);
       res.status(500).json({
