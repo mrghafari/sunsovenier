@@ -285,6 +285,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateProduct(id: number, productUpdate: Partial<InsertShowcaseProduct>): Promise<ShowcaseProduct> {
+    const currentProduct = await this.getProductById(id);
+    if (!currentProduct) {
+      throw new Error('خطا: محصول مورد نظر پیدا نشد.');
+    }
+
     // بررسی الزامی بودن بارکد در بروزرسانی (اگر مقدار داده شده)
     if (productUpdate.hasOwnProperty('barcode') && (!productUpdate.barcode || productUpdate.barcode.trim() === '')) {
       throw new Error('خطا: بارکد الزامی است. نمی‌توان بارکد را خالی گذاشت.');
@@ -292,7 +297,6 @@ export class DatabaseStorage implements IStorage {
     
     // بررسی بارکد تکراری قبل از بروزرسانی محصول
     if (productUpdate.barcode && productUpdate.barcode.trim() !== '') {
-      const currentProduct = await this.getProductById(id);
       const barcodeChanged = productUpdate.barcode.trim() !== currentProduct?.barcode?.trim();
       if (barcodeChanged) {
         const barcodeExists = await this.checkBarcodeExists(productUpdate.barcode, id);
@@ -304,9 +308,12 @@ export class DatabaseStorage implements IStorage {
     
     // بررسی SKU تکراری قبل از بروزرسانی محصول
     if (productUpdate.sku && productUpdate.sku.trim() !== '') {
-      const skuExists = await this.checkShowcaseSkuExists(productUpdate.sku, id);
-      if (skuExists) {
-        throw new Error(`خطا: SKU "${productUpdate.sku}" قبلاً در کاردکس وجود دارد. لطفاً SKU منحصر به فرد انتخاب کنید.`);
+      const skuChanged = productUpdate.sku.trim() !== currentProduct.sku?.trim();
+      if (skuChanged) {
+        const skuExists = await this.checkShowcaseSkuExists(productUpdate.sku, id);
+        if (skuExists) {
+          throw new Error(`خطا: SKU "${productUpdate.sku}" قبلاً در کاردکس وجود دارد. لطفاً SKU منحصر به فرد انتخاب کنید.`);
+        }
       }
     }
 

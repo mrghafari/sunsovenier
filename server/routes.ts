@@ -6113,6 +6113,9 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       } else if (error.code === '23514') { // Check constraint violation
         statusCode = 400;
         errorMessage = "مقدار نامعتبر وارد شده";
+      } else if (error.message?.startsWith('خطا:')) {
+        statusCode = 400;
+        errorMessage = error.message;
       } else if (error.message?.includes('authentication')) {
         statusCode = 401;
         errorMessage = "احراز هویت مورد نیاز است";

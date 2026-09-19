@@ -1,0 +1,104 @@
+index-B-1sieV_.js:9 CI_CD_TEST_2026
+index-B-1sieV_.js:9 [PWA] Service Worker registered, scope: https://momtazchem.com/
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 ()
+App-DfBx-0i0.js:1561 📥 Loading Tawk.to widget at bottom-left position...
+App-DfBx-0i0.js:1561 ✅ Tawk.to Live Chat loaded successfully at bottom-left
+App-DfBx-0i0.js:50 Auth check result: Object
+App-DfBx-0i0.js:647 🔍 [DEBUG] Site Management component initialized
+App-DfBx-0i0.js:647 🔍 [DEBUG] Site Management component initialized
+App-DfBx-0i0.js:647 🔍 [DEBUG] Full userPermissions response: Object
+App-DfBx-0i0.js:647 🔍 [DEBUG] userPermissions.modules: Array(38)
+App-DfBx-0i0.js:647 🔍 [DEBUG] userPermissions.permissions: Array(38)
+App-DfBx-0i0.js:647 🔍 [DEBUG] Total allButtons count: 40
+App-DfBx-0i0.js:647 🔍 [DEBUG] AI Settings exists in allButtons: true
+App-DfBx-0i0.js:647 🔍 [DEBUG] Content Management exists in allButtons: true
+App-DfBx-0i0.js:647 🔍 [DEBUG] allowedModules: Array(38)
+App-DfBx-0i0.js:647 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+App-DfBx-0i0.js:647 🔍 [DEBUG] management_dashboard in allowedModules? true
+App-DfBx-0i0.js:647 🔍 [DEBUG] finance in allowedModules? true
+App-DfBx-0i0.js:647 🔍 [DEBUG] geography_analytics in allowedModules? true
+App-DfBx-0i0.js:647 🔍 [DEBUG] ai_settings in allowedModules? true
+App-DfBx-0i0.js:647 🔍 [DEBUG] content_management in allowedModules? true
+App-DfBx-0i0.js:647 🔍 [CRITICAL] Missing button detection:
+App-DfBx-0i0.js:647 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+App-DfBx-0i0.js:647 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+App-DfBx-0i0.js:647 🔍 [CRITICAL] Missing buttons count: 2
+App-DfBx-0i0.js:647 🔍 [DEBUG] finance button found in allButtons? Object
+App-DfBx-0i0.js:647 🔍 [DEBUG] geography_analytics button found in allButtons? Object
+App-DfBx-0i0.js:647 🔍 [DEBUG] ai_settings button found in allButtons? Object
+App-DfBx-0i0.js:647 🔍 [DEBUG] content_management button found in allButtons? Object
+App-DfBx-0i0.js:647 🔍 [DEBUG] finance button in filtered? Object
+App-DfBx-0i0.js:647 🔍 [DEBUG] geography_analytics button in filtered? Object
+App-DfBx-0i0.js:647 🔍 [DEBUG] ai_settings button in filtered? Object
+App-DfBx-0i0.js:647 🔍 [DEBUG] content_management button in filtered? Object
+App-DfBx-0i0.js:647 🔍 [DEBUG] Site Management component initialized
+App-DfBx-0i0.js:482 Barcode effect triggered:  Canvas ref: null
+App-DfBx-0i0.js:50 Auth check result: Object
+App-DfBx-0i0.js:482 Barcode effect triggered:  Canvas ref: null
+App-DfBx-0i0.js:50 Auth check result: Object
+App-DfBx-0i0.js:480 📦 Found 9 batches for barcode 8649677191615
+App-DfBx-0i0.js:482 Barcode effect triggered: 8649677191615 Canvas ref: null
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 ()
+App-DfBx-0i0.js:478 🔍 [DEBUG] Form submission - Raw form data: Object
+App-DfBx-0i0.js:478 🔍 [DEBUG] Tags in form data: شیمیایی Type: string
+App-DfBx-0i0.js:478 🔍 [DEBUG] Description in form data: This is a high-quality chemical product...
+App-DfBx-0i0.js:478 🔍 [DEBUG] editingProduct state: 91
+App-DfBx-0i0.js:480 🚀 [DEBUG] Final processed data being sent to API: {
+  "name": "Light Solvent",
+  "category": "Paint & Solvents",
+  "description": "This is a high-quality chemical product...",
+  "shortDescription": "This is a high-quality chemical product...",
+  "priceRange": "",
+  "imageUrl": "/uploads/general-files/1789780737275-912cfb17f2603668.png",
+  "imageUrls": [
+    "/uploads/general-files/1789780737275-912cfb17f2603668.png",
+    "/uploads/general-files/1789781211702-83a3a3204fb2aa1d.png"
+  ],
+  "pdfCatalogUrl": "",
+  "catalogFileName": "",
+  "specifications": {},
+  "features": [],
+  "applications": [],
+  "showCatalogToCustomers": false,
+  "msdsUrl": "",
+  "showMsdsToCustomers": false,
+  "msdsFileName": "",
+  "stockQuantity": 25,
+  "minStockLevel": 10,
+  "maxStockLevel": 1000,
+  "unitPrice": "1",
+  "currency": "USD",
+  "batchNumber": "12",
+  "netWeight": null,
+  "grossWeight": null,
+  "weightUnit": "kg",
+  "weight": "",
+  "barcode": "8649677191615",
+  "sku": "FA-WAT-12",
+  "tags": [
+    "شیمیایی"
+  ],
+  "isActive": true,
+  "syncWithShop": true,
+  "showWhenOutOfStock": false,
+  "isNonChemical": false,
+  "isFlammable": false,
+  "isVariant": false,
+  "displayMode": "3d_model",
+  "model3dKey": "3d-models/1789828975302-c0c5992b06d76780.glb",
+  "model3dFileName": "1771735708706-3f132d6180e03f71.glb",
+  "transportationTemperature": "",
+  "inventoryAddition": 0,
+  "newBatchNumber": null
+}
+App-DfBx-0i0.js:480 📝 [DEBUG] Calling updateProduct with ID: 91
+App-DfBx-0i0.js:480 📝 [DEBUG] updateProduct function exists: function
+/api/products/91:1  Failed to load resource: the server responded with a status of 500 ()
+App-DfBx-0i0.js:478 ❌ [DEBUG] Update mutation failed: Error: خطای داخلی سرور
+    at X (queryClient-C76wM52K.js:1:23044)
+    at async Z (queryClient-C76wM52K.js:1:23349)
+onError @ App-DfBx-0i0.js:478
+App-DfBx-0i0.js:50 Auth check result: Object
+The FetchEvent for "https://momtazchem.com/mrg/products" resulted in a network error response: the promise was rejected.
+sw.js?v=5-20260918:113 Uncaught (in promise) Error: Network failed and no cache available
+    at networkFirstWithCache (sw.js?v=5-20260918:113:11)
