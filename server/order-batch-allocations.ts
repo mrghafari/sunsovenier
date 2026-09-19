@@ -15,22 +15,25 @@ export async function getSoldBatchAllocationsByProduct(
     batch_number: string | null;
     quantity: number;
     expiry_date: Date | null;
+    status: string;
   }>(`
     SELECT
       cir.shop_product_id AS product_id,
       cir.showcase_product_id,
       sp.batch_number,
       cir.quantity,
-      sp.expiry_date
+      sp.expiry_date,
+      cir.status
     FROM cart_inventory_reservations cir
     JOIN showcase_products sp ON sp.id = cir.showcase_product_id
     WHERE cir.order_id = $1
-      AND cir.status = 'finalized'
     ORDER BY cir.id ASC
   `, [orderId]);
 
   const allocations = finalizedReservations.rows.length > 0
-    ? finalizedReservations.rows.map(row => ({
+    ? finalizedReservations.rows
+      .filter(row => row.status === 'finalized')
+      .map(row => ({
         productId: row.product_id,
         batchNumber: row.batch_number?.trim() || `#${row.showcase_product_id}`,
         quantity: Number(row.quantity),

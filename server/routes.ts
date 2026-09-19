@@ -33256,6 +33256,12 @@ ${message ? `Additional Requirements:\n${message}` : ''}
       } = req.body;
       
       if (action === 'approve') {
+        const order = await orderManagementStorage.getOrderById(orderId);
+        if (!order) {
+          return res.status(404).json({ success: false, message: "سفارش یافت نشد" });
+        }
+        const { finalizeOrderReservations } = await import('./cart-inventory-reservation');
+        await finalizeOrderReservations(order.customerOrderId);
         await orderManagementStorage.updateOrderStatus(
           orderId,
           'logistics_approved',
@@ -36015,13 +36021,16 @@ ${message ? `Additional Requirements:\n${message}` : ''}
           notes || 'آماده شده از انبار'
         );
       } else {
-        await orderManagementStorage.updateOrderStatus(
+        const updatedOrder = await orderManagementStorage.updateOrderStatus(
           orderId,
           'warehouse_rejected',
           assigneeId,
           'warehouse',
           notes || 'عدم موجودی در انبار'
         );
+        const { restoreRejectedOrderInventory } = await import('./cart-inventory-reservation');
+        const inventoryRestoration = await restoreRejectedOrderInventory(updatedOrder.customerOrderId);
+        console.log(`📦 [WAREHOUSE REJECT] Restored order ${updatedOrder.customerOrderId}:`, inventoryRestoration);
       }
 
       res.json({ success: true, message: "سفارش با موفقیت پردازش شد" });
@@ -44555,6 +44564,10 @@ momtazchem.com
         console.log(`⚠️ [WAREHOUSE] Warning: Order ${orderId} has no customer phone number for SMS`);
       }
 
+      // Physical batch stock becomes sold only when warehouse confirms outbound.
+      const { finalizeOrderReservations } = await import('./cart-inventory-reservation');
+      await finalizeOrderReservations(order.customerOrderId);
+
       // 🔒 ATOMIC UPDATE with status condition (optimistic locking) - USING order_management.id
       const updateResult = await db
         .update(orderManagement)
@@ -44569,7 +44582,8 @@ momtazchem.com
           or(
             eq(orderManagement.currentStatus, 'warehouse_pending'),
             eq(orderManagement.currentStatus, 'warehouse_processing'),
-            eq(orderManagement.currentStatus, 'financial_approved')
+            eq(orderManagement.currentStatus, 'financial_approved'),
+            eq(orderManagement.currentStatus, 'warehouse_verified')
           )
         ))
         .returning({ id: orderManagement.id });
@@ -44670,7 +44684,11 @@ momtazchem.com
 
       // 🔒 First check current status - USING order_management.id (NOT customerOrderId)
       const currentOrder = await db
-        .select({ currentStatus: orderManagement.currentStatus, id: orderManagement.id })
+        .select({
+          currentStatus: orderManagement.currentStatus,
+          id: orderManagement.id,
+          customerOrderId: orderManagement.customerOrderId,
+        })
         .from(orderManagement)
         .where(eq(orderManagement.id, orderId))
         .limit(1);
@@ -44727,8 +44745,11 @@ momtazchem.com
         changedByDepartment: 'warehouse',
         notes: notes
       });
+      const { restoreRejectedOrderInventory } = await import('./cart-inventory-reservation');
+      const inventoryRestoration = await restoreRejectedOrderInventory(currentOrder[0].customerOrderId);
+      console.log(`📦 [WAREHOUSE REJECT] Restored order ${currentOrder[0].customerOrderId}:`, inventoryRestoration);
 
-      res.json({ success: true, message: "کالا موجود نیست" });
+      res.json({ success: true, inventoryRestoration, message: "کالا موجود نیست" });
     } catch (error) {
       console.error("Error rejecting warehouse order:", error);
       res.status(500).json({

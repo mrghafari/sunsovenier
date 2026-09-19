@@ -59,42 +59,9 @@ export async function ensureCartReservationSchema(): Promise<void> {
           ON cart_inventory_reservations (order_id, status);
         CREATE OR REPLACE FUNCTION finalize_cart_inventory_reservations()
         RETURNS TRIGGER AS $$
-        DECLARE allocation RECORD;
         BEGIN
-          IF NEW.payment_status IN ('paid', 'confirmed')
-             AND (TG_OP = 'INSERT'
-                  OR OLD.payment_status IS DISTINCT FROM NEW.payment_status
-                     AND OLD.payment_status NOT IN ('paid', 'confirmed')) THEN
-            IF EXISTS (
-              SELECT 1 FROM cart_inventory_reservations WHERE order_id = NEW.id
-            ) AND NOT EXISTS (
-              SELECT 1 FROM cart_inventory_reservations
-              WHERE order_id = NEW.id AND status IN ('pending', 'finalized')
-            ) THEN
-              RAISE EXCEPTION 'Inventory reservation for order % is no longer valid', NEW.id;
-            END IF;
-            FOR allocation IN
-              SELECT showcase_product_id, SUM(quantity)::int AS quantity
-              FROM cart_inventory_reservations
-              WHERE order_id = NEW.id AND status = 'pending'
-              GROUP BY showcase_product_id
-              ORDER BY showcase_product_id
-            LOOP
-              UPDATE showcase_products
-              SET stock_quantity = stock_quantity - allocation.quantity, updated_at = NOW()
-              WHERE id = allocation.showcase_product_id
-                AND stock_quantity >= allocation.quantity;
-              IF NOT FOUND THEN
-                RAISE EXCEPTION 'Reserved batch % has insufficient physical stock',
-                  allocation.showcase_product_id;
-              END IF;
-            END LOOP;
-            UPDATE cart_inventory_reservations
-            SET status = 'finalized', finalized_at = NOW(), updated_at = NOW()
-            WHERE order_id = NEW.id AND status = 'pending';
-          ELSIF NEW.payment_status NOT IN ('paid', 'confirmed')
-             AND (NEW.payment_status IN ('failed', 'cancelled', 'canceled', 'expired')
-                 OR NEW.status IN ('cancelled', 'canceled', 'deleted'))
+          IF (NEW.payment_status IN ('failed', 'cancelled', 'canceled', 'expired')
+              OR NEW.status IN ('cancelled', 'canceled', 'deleted'))
              AND (TG_OP = 'INSERT'
                   OR OLD.payment_status IS DISTINCT FROM NEW.payment_status
                   OR OLD.status IS DISTINCT FROM NEW.status) THEN
@@ -406,7 +373,7 @@ export async function finalizeOrderReservations(orderId: number) {
   try {
     await client.query("BEGIN");
     const rows = await client.query(`
-      SELECT id, showcase_product_id, quantity
+      SELECT id, showcase_product_id, shop_product_id, quantity
       FROM cart_inventory_reservations
       WHERE order_id = $1 AND status = 'pending'
       ORDER BY showcase_product_id, id
@@ -428,6 +395,23 @@ export async function finalizeOrderReservations(orderId: number) {
       SET status = 'finalized', finalized_at = NOW(), updated_at = NOW()
       WHERE order_id = $1 AND status = 'pending'
     `, [orderId]);
+    const shopProductIds = [...new Set(rows.rows.map(row => Number(row.shop_product_id)))];
+    for (const shopProductId of shopProductIds) {
+      await client.query(`
+        UPDATE shop_products shop
+        SET stock_quantity = totals.total_stock,
+            in_stock = totals.total_stock > 0 OR COALESCE(shop.show_when_out_of_stock, false),
+            updated_at = NOW()
+        FROM (
+          SELECT COALESCE(SUM(showcase.stock_quantity), 0)::int AS total_stock
+          FROM showcase_products showcase
+          WHERE showcase.barcode = (
+            SELECT barcode FROM shop_products WHERE id = $1
+          )
+        ) totals
+        WHERE shop.id = $1
+      `, [shopProductId]);
+    }
     await client.query("COMMIT");
   } catch (error) {
     await client.query("ROLLBACK");
