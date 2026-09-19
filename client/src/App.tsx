@@ -111,7 +111,6 @@ import AISettings from "@/pages/admin/ai-settings";
 import DocumentationPage from "@/pages/documentation";
 import LogisticsOrders from "@/pages/admin/logistics-orders";
 import LogisticsManagement from "@/pages/admin/logistics-management";
-import DeliveryPage from "@/pages/delivery";
 import DeliveredOrders from "@/pages/admin/delivered-orders";
 import PaymentOptions from "@/pages/payment-options";
 import GlobalRefreshSettings from "@/pages/admin/global-refresh-settings";
@@ -168,8 +167,6 @@ import NotFound from "@/pages/not-found";
 import AdminRoute from "@/components/AdminRoute";
 
 function Router() {
-  const [location] = useLocation();
-  if (location === "/delivery") return <DeliveryPage />;
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
