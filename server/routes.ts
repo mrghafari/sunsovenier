@@ -24170,6 +24170,10 @@ ${procedure.content}
       };
 
       const searchResults = await shopStorage.searchShopProducts(query as string, filters);
+      const { getAvailableQuantities } = await import("./cart-inventory-reservation");
+      const availableQuantities = await getAvailableQuantities(
+        searchResults.products.map(product => product.id),
+      );
       
       // Batch fetch vendor names for vendor products
       const vendorIds = [...new Set(searchResults.products.filter(p => p.vendorId).map(p => p.vendorId!))];
@@ -24184,16 +24188,25 @@ ${procedure.content}
       }
 
       // Map database fields to frontend expected format
-      const mappedProducts = searchResults.products.map(product => ({
-        ...product,
-        imageUrl: product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls[0] : null,
-        imageUrls: product.imageUrls || [],
-        unitPrice: product.price,
-        currency: (product.priceUnit === 'IQD' || !product.priceUnit || product.priceUnit === 'unit') ? 'IQD' : product.priceUnit,
-        weight: product.weight,
-        weightUnit: product.weightUnit,
-        vendorName: product.vendorId ? (vendorMap[product.vendorId] || null) : null
-      }));
+      const mappedProducts = searchResults.products.map(product => {
+        // Keep search results consistent with /api/shop/products. Physical
+        // stock that is held by active carts or submitted orders is not
+        // sellable and must not be shown as available to another customer.
+        const available = availableQuantities[product.id] ?? Number(product.stockQuantity || 0);
+        return {
+          ...product,
+          stockQuantity: available,
+          availableQuantity: available,
+          inStock: available > 0 || Boolean(product.showWhenOutOfStock),
+          imageUrl: product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls[0] : null,
+          imageUrls: product.imageUrls || [],
+          unitPrice: product.price,
+          currency: (product.priceUnit === 'IQD' || !product.priceUnit || product.priceUnit === 'unit') ? 'IQD' : product.priceUnit,
+          weight: product.weight,
+          weightUnit: product.weightUnit,
+          vendorName: product.vendorId ? (vendorMap[product.vendorId] || null) : null
+        };
+      });
       
       res.json({
         success: true,
