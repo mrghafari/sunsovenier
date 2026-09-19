@@ -1,11 +1,13 @@
-const CACHE_VERSION = 'v5-20260918';
+const CACHE_VERSION = 'v6-20260919';
 const STATIC_CACHE = `momtazchem-static-${CACHE_VERSION}`;
 const API_CACHE = `momtazchem-api-${CACHE_VERSION}`;
 
 const STATIC_ASSETS = [
   '/',
   '/shop',
+  '/delivery',
   '/manifest.json',
+  '/delivery-manifest.json',
   '/favicon.png',
 ];
 
