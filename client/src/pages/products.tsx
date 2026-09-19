@@ -832,6 +832,18 @@ export default function ProductsPage() {
     }
   );
 
+  const persistUploadedFields = async (fields: Partial<ShowcaseProduct>) => {
+    if (!editingProduct?.id) return;
+
+    const endpoint = isVendorMode
+      ? `/api/vendors/products/${editingProduct.id}`
+      : `/api/products/${editingProduct.id}`;
+
+    await apiRequest(endpoint, { method: "PATCH", body: fields });
+    setEditingProduct((current) => current ? { ...current, ...fields } : current);
+    await queryClient.invalidateQueries({ queryKey: [productsEndpoint] });
+  };
+
   const handleImageUpload = async (file: File) => {
     if (!file) return;
 
@@ -874,6 +886,7 @@ export default function ProductsPage() {
       const { url } = await response.json();
       form.setValue('imageUrl', url);
       setImagePreview(url);
+      await persistUploadedFields({ imageUrl: url });
       
       toast({
         title: t.productManagement.success,
@@ -946,14 +959,22 @@ export default function ProductsPage() {
       const newUrls = [...currentUrls];
       newUrls[index] = url;
       // Remove empty strings and update form
-      form.setValue('imageUrls', newUrls.filter(url => url));
+      const savedUrls = newUrls.filter(url => url);
+      form.setValue('imageUrls', savedUrls);
       
       // Update legacy imageUrl field with primary image for backward compatibility
+      const primaryImageUrl = index === primaryImageIndex
+        ? url
+        : form.getValues('imageUrl');
       if (index === primaryImageIndex) {
         form.setValue('imageUrl', url);
         setImagePreview(url);
         console.log('Set primary image URL:', url, 'at index:', index);
       }
+      await persistUploadedFields({
+        imageUrls: savedUrls,
+        ...(primaryImageUrl ? { imageUrl: primaryImageUrl } : {}),
+      });
       
       toast({
         title: t.productManagement.imageUploaded.replace('{index}', String(index + 1)),
@@ -994,6 +1015,10 @@ export default function ProductsPage() {
       form.setValue('pdfCatalogUrl', url);
       form.setValue('catalogFileName', originalName);
       setCatalogPreview(url);
+      await persistUploadedFields({
+        pdfCatalogUrl: url,
+        catalogFileName: originalName,
+      });
       
       toast({
         title: t.productManagement.productUpdated,
@@ -1031,6 +1056,10 @@ export default function ProductsPage() {
       form.setValue('msdsUrl', url);
       form.setValue('msdsFileName', originalName);
       setMsdsPreview(url);
+      await persistUploadedFields({
+        msdsUrl: url,
+        msdsFileName: originalName,
+      });
       
       toast({
         title: t.productManagement.productUpdated,
@@ -1092,6 +1121,10 @@ export default function ProductsPage() {
       form.setValue('model3dKey', key);
       form.setValue('model3dFileName', originalName);
       setModel3dPreview(key);
+      await persistUploadedFields({
+        model3dKey: key,
+        model3dFileName: originalName,
+      });
       
       toast({
         title: t.productManagement.success,

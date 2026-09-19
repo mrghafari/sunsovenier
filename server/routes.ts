@@ -5539,12 +5539,20 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       // Map frontend fields to backend fields for update
       const mappedData = {
         ...productData,
-        price: productData.unitPrice || productData.price,
-        priceUnit: productData.currency || productData.priceUnit || 'IQD',
-        imageUrl: productData.imageUrl || productData.imageUrls?.[0] || null,
-        imageUrls: Array.isArray(productData.imageUrls)
-          ? productData.imageUrls
-          : (productData.imageUrl ? [productData.imageUrl] : [])
+        ...(productData.unitPrice !== undefined || productData.price !== undefined
+          ? { price: productData.unitPrice ?? productData.price }
+          : {}),
+        ...(productData.currency !== undefined || productData.priceUnit !== undefined
+          ? { priceUnit: productData.currency ?? productData.priceUnit }
+          : {}),
+        ...(productData.imageUrl !== undefined || productData.imageUrls !== undefined
+          ? {
+              imageUrl: productData.imageUrl ?? productData.imageUrls?.[0] ?? null,
+              imageUrls: Array.isArray(productData.imageUrls)
+                ? productData.imageUrls
+                : (productData.imageUrl ? [productData.imageUrl] : [])
+            }
+          : {})
       };
       
       // Update showcase product instead of shop product for admin panel
@@ -5847,6 +5855,11 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         
         console.log(`✅ [INVENTORY-ADDITION] Inventory addition completed`);
       }
+
+      // These are form-only controls and are not showcase_products columns.
+      // The form sends them even when no inventory is being added.
+      delete productData.inventoryAddition;
+      delete productData.newBatchNumber;
       
       const isStockUpdate = productData.stockQuantity !== undefined && 
                            oldProduct && 
