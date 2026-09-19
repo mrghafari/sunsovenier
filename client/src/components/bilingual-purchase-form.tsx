@@ -577,19 +577,20 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
           credentials: 'include'
         });
         
-        if (response.ok) {
-          const result = await response.json();
-          console.log('Customer API response:', result);
-          if (result.success) {
-            return result;
-          }
+        if (response.status === 401) {
+          return { success: false, message: 'Not authenticated' };
         }
-        
-        console.log('Customer not authenticated or API failed');
-        return null;
+
+        if (!response.ok) {
+          throw new Error(`Customer authentication check failed with HTTP ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('Customer API response:', result);
+        return result;
       } catch (error) {
         console.log('Error fetching customer data:', error);
-        return null;
+        throw error;
       }
     },
     retry: false,
@@ -1833,6 +1834,14 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     
     let orderData = {
       ...data,
+      // The API validates these canonical fields. Populate them from the
+      // destination and phone the customer actively selected, including the
+      // optional second address and recipient mobile.
+      address: activeDeliveryInfo.activeAddress,
+      city: activeDeliveryInfo.activeCity,
+      province: activeDeliveryInfo.activeProvince,
+      postalCode: activeDeliveryInfo.activePostalCode,
+      phone: activeDeliveryInfo.activePhone,
       cart,
       totalAmount,
       subtotalAmount,

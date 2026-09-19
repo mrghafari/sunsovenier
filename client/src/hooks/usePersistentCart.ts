@@ -49,14 +49,16 @@ export function usePersistentCart() {
     };
   }, []);
 
-  // Clear cart when user logs out and load guest cart
+  // Preserve the cart when authentication expires or the user logs out.
+  // The same browser session can continue checkout as a guest, so losing
+  // customer authentication must not erase the active cart.
   useEffect(() => {
-    // If user was authenticated but now isn't (logout detected)
     if (previousAuth && !isAuthenticated) {
-      console.log('🔐 User logged out, clearing cart');
-      setLocalCart({});
+      console.log('🔐 Customer authentication ended, preserving cart for guest checkout');
+      if (Object.keys(localCart).length > 0) {
+        localStorage.setItem('cart', JSON.stringify(localCart));
+      }
       setCartLoaded(false);
-      localStorage.removeItem('cart');
     }
     
     // If user is not authenticated, load from localStorage (guest cart)
