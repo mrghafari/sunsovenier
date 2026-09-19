@@ -952,6 +952,13 @@ function UserManagement() {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/custom-users'] });
       setUserDialogOpen(false);
       userForm.reset();
+    },
+    onError: (error: any) => {
+      toast({
+        title: t.error,
+        description: error?.message || 'خطا در ایجاد کاربر',
+        variant: 'destructive'
+      });
     }
   });
 
@@ -1183,8 +1190,6 @@ function UserManagement() {
                     </DialogHeader>
                     <Form {...userForm}>
                       <form onSubmit={userForm.handleSubmit((data) => {
-                        console.log('Form submitted with data:', data);
-                        console.log('Form errors:', userForm.formState.errors);
                         if (editingUser) {
                           updateUserMutation.mutate({ userId: editingUser.id, data });
                         } else {
