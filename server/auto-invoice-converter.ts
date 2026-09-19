@@ -4,9 +4,9 @@
 // This service automatically converts proforma invoices to invoices
 // when orders are shipped or delivered from warehouse
 
-import { db } from './db';
+import { db, pool } from './db';
 import { customerOrders } from '@shared/customer-schema';
-import { eq, and, or } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import ProformaInvoiceConverter from './proforma-invoice-converter';
 
 export class AutoInvoiceConverter {
@@ -15,8 +15,18 @@ export class AutoInvoiceConverter {
    */
   static async handleOrderStatusChange(orderNumber: string, newStatus: string): Promise<boolean> {
     try {
-      // Only convert when order is shipped or delivered
-      if (!['shipped', 'delivered'].includes(newStatus)) {
+      // These workflow aliases all represent an order that has left warehouse.
+      if (![
+        'warehouse_approved',
+        'logistics_approved',
+        'logistics_assigned',
+        'logistics_dispatched',
+        'in_transit',
+        'shipped',
+        'delivered',
+        'logistics_delivered',
+        'completed',
+      ].includes(newStatus)) {
         return false;
       }
 
@@ -65,19 +75,36 @@ export class AutoInvoiceConverter {
     try {
       console.log(`🔍 [AUTO INVOICE] Checking for shipped/delivered proforma orders...`);
 
-      // Get all shipped/delivered orders that are still proforma
-      const eligibleOrders = await db
-        .select()
-        .from(customerOrders)
-        .where(
-          and(
-            eq(customerOrders.invoiceType, 'proforma'),
-            or(
-              eq(customerOrders.status, 'shipped'),
-              eq(customerOrders.status, 'delivered')
+      // Finalized batch allocations are the authoritative sale signal. Workflow
+      // aliases remain as a fallback for legacy orders without reservations.
+      const eligibleResult = await pool.query<{ order_number: string }>(`
+        SELECT DISTINCT co.order_number
+        FROM customer_orders co
+        LEFT JOIN order_management om ON om.customer_order_id = co.id
+        WHERE co.invoice_type = 'proforma'
+          AND (
+            EXISTS (
+              SELECT 1
+              FROM cart_inventory_reservations cir
+              WHERE cir.order_id = co.id
+                AND cir.status = 'finalized'
+            )
+            OR co.status IN ('warehouse_ready', 'in_transit', 'shipped', 'delivered', 'completed')
+            OR om.current_status IN (
+              'warehouse_approved',
+              'logistics_approved',
+              'logistics_assigned',
+              'logistics_dispatched',
+              'in_transit',
+              'shipped',
+              'delivered',
+              'logistics_delivered',
+              'completed'
             )
           )
-        );
+        ORDER BY co.order_number
+      `);
+      const eligibleOrders = eligibleResult.rows;
 
       if (eligibleOrders.length === 0) {
         console.log(`✅ [AUTO INVOICE] No eligible proforma orders found for conversion`);
@@ -88,10 +115,10 @@ export class AutoInvoiceConverter {
 
       let convertedCount = 0;
       for (const order of eligibleOrders) {
-        const success = await ProformaInvoiceConverter.convertProformaToInvoice(order.orderNumber);
+        const success = await ProformaInvoiceConverter.convertProformaToInvoice(order.order_number);
         if (success) {
           convertedCount++;
-          console.log(`✅ [AUTO INVOICE] Auto-converted ${order.orderNumber} (${convertedCount}/${eligibleOrders.length})`);
+          console.log(`✅ [AUTO INVOICE] Auto-converted ${order.order_number} (${convertedCount}/${eligibleOrders.length})`);
         }
       }
 

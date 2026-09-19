@@ -412,6 +412,19 @@ export async function finalizeOrderReservations(orderId: number) {
         WHERE shop.id = $1
       `, [shopProductId]);
     }
+
+    // A sale becomes final at the same moment warehouse outbound is finalized.
+    // Keep invoice conversion in this transaction so physical batch deduction
+    // and the final invoice can never succeed independently.
+    await client.query(`
+      UPDATE customer_orders
+      SET invoice_type = 'official_invoice',
+          invoice_converted_at = COALESCE(invoice_converted_at, NOW()),
+          updated_at = NOW()
+      WHERE id = $1
+        AND invoice_type IS DISTINCT FROM 'official_invoice'
+    `, [orderId]);
+
     await client.query("COMMIT");
   } catch (error) {
     await client.query("ROLLBACK");
