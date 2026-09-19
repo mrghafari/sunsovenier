@@ -221,47 +221,62 @@ export default function DeliveryPage() {
     finally { setBusy(false); }
   };
 
-  const checkOrderRoute = async () => {
+  useEffect(() => {
     const value = orderNumber.trim();
-    if (!value) {
+    const normalizedValue = value
+      .replace(/[۰-۹]/g, digit => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)))
+      .replace(/[٠-٩]/g, digit => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)))
+      .toUpperCase();
+    const isCompleteOrderNumber = /^M?\d{7}$/.test(normalizedValue);
+    if (state !== "ready" || !isCompleteOrderNumber) {
       setRouteState("idle");
       setRouteDestination(null);
       return;
     }
-    setRouteState("loading");
-    setRouteDestination(null);
-    try {
-      const response = await fetch(`/api/delivery/mobile/route/${encodeURIComponent(value)}`, {
-        credentials: "include",
-      });
-      if (response.status === 401) {
-        setState("login");
-        setMessage(copy.sessionExpired);
-        return;
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setRouteState("loading");
+      setRouteDestination(null);
+      try {
+        const response = await fetch(`/api/delivery/mobile/route/${encodeURIComponent(normalizedValue)}`, {
+          credentials: "include",
+          signal: controller.signal,
+        });
+        if (response.status === 401) {
+          setState("login");
+          setMessage(copy.sessionExpired);
+          return;
+        }
+        if (response.status === 403) {
+          setState("denied");
+          return;
+        }
+        if (response.status === 404) {
+          setRouteState("not-found");
+          return;
+        }
+        if (!response.ok) {
+          setRouteState("idle");
+          return;
+        }
+        const data = await response.json();
+        if (data.hasRoute && Number.isFinite(Number(data.latitude)) && Number.isFinite(Number(data.longitude))) {
+          setRouteDestination({ latitude: Number(data.latitude), longitude: Number(data.longitude) });
+          setRouteState("available");
+        } else {
+          setRouteState("unavailable");
+        }
+      } catch (error) {
+        if ((error as Error).name !== "AbortError") setRouteState("idle");
       }
-      if (response.status === 403) {
-        setState("denied");
-        return;
-      }
-      if (response.status === 404) {
-        setRouteState("not-found");
-        return;
-      }
-      if (!response.ok) {
-        setRouteState("idle");
-        return;
-      }
-      const data = await response.json();
-      if (data.hasRoute && Number.isFinite(Number(data.latitude)) && Number.isFinite(Number(data.longitude))) {
-        setRouteDestination({ latitude: Number(data.latitude), longitude: Number(data.longitude) });
-        setRouteState("available");
-      } else {
-        setRouteState("unavailable");
-      }
-    } catch {
-      setRouteState("idle");
-    }
-  };
+    }, 500);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [orderNumber, state, copy.sessionExpired]);
 
   const openOrderRoute = () => {
     if (!routeDestination) return;
@@ -326,6 +341,6 @@ export default function DeliveryPage() {
   if (state === "denied") return <><main dir={direction} className="min-h-screen bg-slate-50 flex items-center justify-center p-5"><Card className="w-full max-w-md text-center"><CardContent className="pt-8 space-y-4"><p className="text-red-600 font-semibold">{copy.denied}</p><Button variant="outline" onClick={logout}>{copy.logout}</Button></CardContent></Card></main><DeliveryLanguageSwitcher /><DeliveryInstallPrompt /></>;
   return <><main dir={direction} className="min-h-screen bg-slate-50 px-4 py-6"><div className="mx-auto max-w-md">
     <div className="flex items-center justify-between mb-6"><div><h1 className="text-xl font-bold text-slate-800">{copy.title}</h1><p className="text-sm text-slate-500">{copy.subtitle}</p></div><Button variant="ghost" size="sm" onClick={logout}><LogOut className="me-1 h-4 w-4" />{copy.logout}</Button></div>
-    <Card className="shadow-lg"><CardContent className="pt-6"><form onSubmit={submit} className="space-y-5"><label className="block text-sm font-medium">{copy.orderNumber}<Input className="mt-2" dir="ltr" value={orderNumber} onChange={e => { setOrderNumber(e.target.value); setRouteState("idle"); setRouteDestination(null); }} onBlur={checkOrderRoute} placeholder={copy.orderNumber} required /></label>{routeState === "loading" && <p className="flex items-center gap-2 text-sm text-slate-500"><Loader2 className="h-4 w-4 animate-spin" />{copy.routeLoading}</p>}{routeState === "available" && <Button type="button" variant="outline" className="w-full border-teal-300 text-teal-700 hover:bg-teal-50" onClick={openOrderRoute}><Navigation className="me-2 h-4 w-4" />{copy.route}</Button>}{routeState === "unavailable" && <p className="rounded-lg bg-slate-100 p-3 text-center text-sm font-medium text-slate-600">{copy.noRoute}</p>}{routeState === "not-found" && <p className="text-sm text-red-600">{copy.orderNotFound}</p>}<label className="block text-sm font-medium">{copy.deliveryCode}<Input className="mt-2" dir="ltr" inputMode="numeric" value={deliveryCode} onChange={e => setDeliveryCode(e.target.value)} placeholder={copy.deliveryCode} required /></label><div className="rounded-lg bg-teal-50 p-3 text-sm text-teal-800 flex gap-2"><MapPin className="h-5 w-5 shrink-0" />{copy.gpsNotice}</div>{message && <p className="text-sm text-red-600">{message}</p>}{success && <p className="text-sm text-green-700 flex gap-2"><CheckCircle2 className="h-5 w-5" />{copy.success}</p>}<Button className="w-full h-12 bg-teal-600 hover:bg-teal-700" disabled={busy}>{busy && <Loader2 className="me-2 h-5 w-5 animate-spin" />}{busy ? copy.submitting : copy.submit}</Button></form></CardContent></Card>
+    <Card className="shadow-lg"><CardContent className="pt-6"><form onSubmit={submit} className="space-y-5"><label className="block text-sm font-medium">{copy.orderNumber}<Input className="mt-2" dir="ltr" value={orderNumber} onChange={e => { setOrderNumber(e.target.value); setRouteState("idle"); setRouteDestination(null); }} placeholder={copy.orderNumber} required /></label>{routeState === "loading" && <p className="flex items-center gap-2 text-sm text-slate-500"><Loader2 className="h-4 w-4 animate-spin" />{copy.routeLoading}</p>}{routeState === "available" && <Button type="button" variant="outline" className="w-full border-teal-300 text-teal-700 hover:bg-teal-50" onClick={openOrderRoute}><Navigation className="me-2 h-4 w-4" />{copy.route}</Button>}{routeState === "unavailable" && <p className="rounded-lg bg-slate-100 p-3 text-center text-sm font-medium text-slate-600">{copy.noRoute}</p>}{routeState === "not-found" && <p className="text-sm text-red-600">{copy.orderNotFound}</p>}<label className="block text-sm font-medium">{copy.deliveryCode}<Input className="mt-2" dir="ltr" inputMode="numeric" value={deliveryCode} onChange={e => setDeliveryCode(e.target.value)} placeholder={copy.deliveryCode} required /></label><div className="rounded-lg bg-teal-50 p-3 text-sm text-teal-800 flex gap-2"><MapPin className="h-5 w-5 shrink-0" />{copy.gpsNotice}</div>{message && <p className="text-sm text-red-600">{message}</p>}{success && <p className="text-sm text-green-700 flex gap-2"><CheckCircle2 className="h-5 w-5" />{copy.success}</p>}<Button className="w-full h-12 bg-teal-600 hover:bg-teal-700" disabled={busy}>{busy && <Loader2 className="me-2 h-5 w-5 animate-spin" />}{busy ? copy.submitting : copy.submit}</Button></form></CardContent></Card>
   </div></main><DeliveryLanguageSwitcher /><DeliveryInstallPrompt /></>;
 }
