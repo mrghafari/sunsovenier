@@ -49312,6 +49312,9 @@ momtazchem.com
         await tx.update(consolidatedOrderData)
           .set({ currentStatus: 'logistics_delivered' })
           .where(eq(consolidatedOrderData.orderManagementId, currentOrder.id));
+        await tx.update(customerOrders)
+          .set({ status: 'delivered', deliveredAt: new Date(), updatedAt: new Date() })
+          .where(eq(customerOrders.id, currentOrder.customerOrderId));
         await tx.insert(orderStatusHistory).values({
           orderManagementId: currentOrder.id,
           fromStatus: currentOrder.currentStatus,
@@ -49393,9 +49396,11 @@ momtazchem.com
     if (!identity.rows[0]) return res.status(401).json({ success: false, message: 'احراز هویت الزامی است' });
     try {
       const result = await db.transaction(async (tx) => {
+        // Resolve the public order number from the canonical customer order.
+        // Some valid logistics orders predate or temporarily lack a consolidated row.
         const [order] = await tx.select({ id: orderManagement.id }).from(orderManagement)
-            .innerJoin(consolidatedOrderData, eq(consolidatedOrderData.orderManagementId, orderManagement.id))
-            .where(eq(consolidatedOrderData.orderNumber, String(orderNumber).trim())).limit(1);
+            .innerJoin(customerOrders, eq(customerOrders.id, orderManagement.customerOrderId))
+            .where(eq(customerOrders.orderNumber, String(orderNumber).trim())).limit(1);
         if (!order) throw new Error('ORDER_NOT_FOUND');
         await tx.execute(sql`SELECT pg_advisory_xact_lock(${order.id})`);
         const [locked] = await tx.select().from(orderManagement).where(eq(orderManagement.id, order.id)).limit(1);
@@ -49417,6 +49422,9 @@ momtazchem.com
         }).where(eq(orderManagement.id, locked.id));
         await tx.update(consolidatedOrderData).set({ currentStatus: 'logistics_delivered' })
           .where(eq(consolidatedOrderData.orderManagementId, locked.id));
+        await tx.update(customerOrders).set({
+          status: 'delivered', deliveredAt: now, updatedAt: now,
+        }).where(eq(customerOrders.id, locked.customerOrderId));
         await tx.insert(orderStatusHistory).values({
           orderManagementId: locked.id, fromStatus: locked.currentStatus,
           toStatus: 'logistics_delivered', changedBy: null, changedByDepartment: 'logistics',
