@@ -44638,9 +44638,7 @@ momtazchem.com
   // Warehouse Department - Save notes without approval/rejection
   app.post(
     "/api/warehouse/orders/:orderId/notes",
-    requireAuth,
-    attachUserDepartments as RequestHandler,
-    requireDepartment('warehouse') as RequestHandler,
+    requireModuleAccess('warehouse_management', 'edit'),
     async (req: Request, res: Response) => {
     try {
       const { db } = await import("./db");

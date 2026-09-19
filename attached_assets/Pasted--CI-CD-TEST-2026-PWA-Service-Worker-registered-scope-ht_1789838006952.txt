@@ -1,0 +1,322 @@
+ CI_CD_TEST_2026
+ [PWA] Service Worker registered, scope: https://momtazchem.com/
+/mrg:1 Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner.
+me:1  Failed to load resource: the server responded with a status of 401 ()
+ 📥 Loading Tawk.to widget at bottom-left position...
+ ✅ Tawk.to Live Chat loaded successfully at bottom-left
+ Auth check result: 
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] Full userPermissions response: 
+ 🔍 [DEBUG] userPermissions.modules: 
+ 🔍 [DEBUG] userPermissions.permissions: 
+ 🔍 [DEBUG] Total allButtons count: 40
+ 🔍 [DEBUG] AI Settings exists in allButtons: true
+ 🔍 [DEBUG] Content Management exists in allButtons: true
+ 🔍 [DEBUG] allowedModules: 
+ 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+ 🔍 [DEBUG] management_dashboard in allowedModules? true
+ 🔍 [DEBUG] finance in allowedModules? true
+ 🔍 [DEBUG] geography_analytics in allowedModules? true
+ 🔍 [DEBUG] ai_settings in allowedModules? true
+ 🔍 [DEBUG] content_management in allowedModules? true
+ 🔍 [CRITICAL] Missing button detection:
+ 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+ 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+ 🔍 [CRITICAL] Missing buttons count: 2
+ 🔍 [DEBUG] finance button found in allButtons? 
+ 🔍 [DEBUG] geography_analytics button found in allButtons? 
+ 🔍 [DEBUG] ai_settings button found in allButtons? 
+ 🔍 [DEBUG] content_management button found in allButtons? 
+ 🔍 [DEBUG] finance button in filtered? 
+ 🔍 [DEBUG] geography_analytics button in filtered? 
+ 🔍 [DEBUG] ai_settings button in filtered? 
+ 🔍 [DEBUG] content_management button in filtered? 
+ 🔍 [DEBUG] Site Management component initialized
+ Barcode effect triggered:  Canvas ref: null
+ 📦 Found 9 batches for barcode 8649677191615
+ Barcode effect triggered: 8649677191615 Canvas ref: null
+ 🔍 [DEBUG] Form submission - Raw form data: 
+ 🔍 [DEBUG] Tags in form data: شیمیایی Type: string
+ 🔍 [DEBUG] Description in form data: This is a high-quality chemical product...
+ 🔍 [DEBUG] editingProduct state: 91
+ 🚀 [DEBUG] Final processed data being sent to API: {
+  "name": "Light Solvent",
+  "category": "Paint & Solvents",
+  "description": "This is a high-quality chemical product...",
+  "shortDescription": "This is a high-quality chemical product...",
+  "priceRange": "",
+  "imageUrl": "/uploads/general-files/1789780737275-912cfb17f2603668.png",
+  "imageUrls": [
+    "/uploads/general-files/1789780737275-912cfb17f2603668.png",
+    "/uploads/general-files/1789835838240-048887fb8dcab3be.png",
+    "/uploads/general-files/1789836736574-8c30f128c89fb09e.png"
+  ],
+  "pdfCatalogUrl": "",
+  "catalogFileName": "",
+  "specifications": {},
+  "features": [],
+  "applications": [],
+  "showCatalogToCustomers": false,
+  "msdsUrl": "",
+  "showMsdsToCustomers": false,
+  "msdsFileName": "",
+  "stockQuantity": 35,
+  "minStockLevel": 10,
+  "maxStockLevel": 1000,
+  "unitPrice": "1",
+  "currency": "USD",
+  "batchNumber": "12",
+  "netWeight": null,
+  "grossWeight": null,
+  "weightUnit": "kg",
+  "weight": "",
+  "barcode": "8649677191615",
+  "sku": "FA-WAT-12",
+  "tags": [
+    "شیمیایی"
+  ],
+  "isActive": true,
+  "syncWithShop": true,
+  "showWhenOutOfStock": false,
+  "isNonChemical": false,
+  "isFlammable": false,
+  "isVariant": false,
+  "displayMode": "images",
+  "model3dKey": "3d-models/1789835103511-d7af80a977c6d417.glb",
+  "model3dFileName": "1771735708706-3f132d6180e03f71.glb",
+  "transportationTemperature": "",
+  "inventoryAddition": 0,
+  "newBatchNumber": null
+}
+ 📝 [DEBUG] Calling updateProduct with ID: 91
+ 📝 [DEBUG] updateProduct function exists: function
+ ✅ [DEBUG] Update mutation successful, result: 
+ 🔄 [INSTANT-SYNC] Triggering immediate kardex synchronization...
+ Barcode effect triggered: 8649677191615 Canvas ref: null
+ ✅ [INSTANT-SYNC] Kardex synchronization completed
+me:1  Failed to load resource: the server responded with a status of 401 ()
+ Auth check result: 
+me:1  Failed to load resource: the server responded with a status of 401 ()
+ Auth check result: 
+me:1  Failed to load resource: the server responded with a status of 401 ()
+ Auth check result: 
+me:1  Failed to load resource: the server responded with a status of 401 ()
+ Auth check result: 
+products:1 Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+me:1  Failed to load resource: the server responded with a status of 401 ()
+products:1 Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+ Auth check result: 
+me:1  Failed to load resource: the server responded with a status of 401 ()
+ Auth check result: 
+me:1  Failed to load resource: the server responded with a status of 401 ()
+ Auth check result: 
+me:1  Failed to load resource: the server responded with a status of 401 ()
+ Auth check result: 
+me:1  Failed to load resource: the server responded with a status of 401 ()
+ Auth check result: 
+me:1  Failed to load resource: the server responded with a status of 401 ()
+ Auth check result: 
+me:1  Failed to load resource: the server responded with a status of 401 ()
+ Auth check result: 
+me:1  Failed to load resource: the server responded with a status of 401 ()
+ Auth check result: 
+products:1 Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+me:1  Failed to load resource: the server responded with a status of 401 ()
+ Auth check result: 
+ 🔍 [DEBUG] Site Management component initialized
+ Auth check result: 
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] Full userPermissions response: 
+ 🔍 [DEBUG] userPermissions.modules: 
+ 🔍 [DEBUG] userPermissions.permissions: 
+ 🔍 [DEBUG] Total allButtons count: 40
+ 🔍 [DEBUG] AI Settings exists in allButtons: true
+ 🔍 [DEBUG] Content Management exists in allButtons: true
+ 🔍 [DEBUG] allowedModules: 
+ 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+ 🔍 [DEBUG] management_dashboard in allowedModules? true
+ 🔍 [DEBUG] finance in allowedModules? true
+ 🔍 [DEBUG] geography_analytics in allowedModules? true
+ 🔍 [DEBUG] ai_settings in allowedModules? true
+ 🔍 [DEBUG] content_management in allowedModules? true
+ 🔍 [CRITICAL] Missing button detection:
+ 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+ 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+ 🔍 [CRITICAL] Missing buttons count: 2
+ 🔍 [DEBUG] finance button found in allButtons? 
+ 🔍 [DEBUG] geography_analytics button found in allButtons? 
+ 🔍 [DEBUG] ai_settings button found in allButtons? 
+ 🔍 [DEBUG] content_management button found in allButtons? 
+ 🔍 [DEBUG] finance button in filtered? 
+ 🔍 [DEBUG] geography_analytics button in filtered? 
+ 🔍 [DEBUG] ai_settings button in filtered? 
+ 🔍 [DEBUG] content_management button in filtered? 
+ 🔍 [DEBUG] Site Management component initialized
+ 🔔 [FINANCIAL] نوتیفیکیشن: 1 سفارش جدید دریافت شد
+ 🔍 [WALLET DEBUG] Starting wallet fetch for order: M2601286
+ 🔍 [WALLET DEBUG] Order details response status: 200
+ 🔍 [WALLET DEBUG] Order data received: 
+ 🔍 [WALLET DEBUG] Order object: 
+ 🔍 [WALLET DEBUG] customerId value: 8
+ 🔍 [WALLET DEBUG] Found customer ID: 8
+ 🔍 [FINANCE] Approving order - Management ID: 1197, Customer Order ID: 723
+ 💰 [FINANCE] Approving order 1197 with notes: 
+ 🔍 [WALLET DEBUG] Wallet response status: 200
+ 🔍 [WALLET DEBUG] Wallet result: 
+ 🔍 [WALLET DEBUG] Final balance: 43722216974
+ ✅ [FINANCE] Order approved successfully: 
+me:1  Failed to load resource: the server responded with a status of 401 ()
+ 🔍 [DEBUG] Site Management component initialized
+ Auth check result: 
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] Full userPermissions response: 
+ 🔍 [DEBUG] userPermissions.modules: 
+ 🔍 [DEBUG] userPermissions.permissions: 
+ 🔍 [DEBUG] Total allButtons count: 40
+ 🔍 [DEBUG] AI Settings exists in allButtons: true
+ 🔍 [DEBUG] Content Management exists in allButtons: true
+ 🔍 [DEBUG] allowedModules: 
+ 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+ 🔍 [DEBUG] management_dashboard in allowedModules? true
+ 🔍 [DEBUG] finance in allowedModules? true
+ 🔍 [DEBUG] geography_analytics in allowedModules? true
+ 🔍 [DEBUG] ai_settings in allowedModules? true
+ 🔍 [DEBUG] content_management in allowedModules? true
+ 🔍 [CRITICAL] Missing button detection:
+ 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+ 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+ 🔍 [CRITICAL] Missing buttons count: 2
+ 🔍 [DEBUG] finance button found in allButtons? 
+ 🔍 [DEBUG] geography_analytics button found in allButtons? 
+ 🔍 [DEBUG] ai_settings button found in allButtons? 
+ 🔍 [DEBUG] content_management button found in allButtons? 
+ 🔍 [DEBUG] finance button in filtered? 
+ 🔍 [DEBUG] geography_analytics button in filtered? 
+ 🔍 [DEBUG] ai_settings button in filtered? 
+ 🔍 [DEBUG] content_management button in filtered? 
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] Site Management component initialized
+me:1  Failed to load resource: the server responded with a status of 401 ()
+ Auth check result: 
+site-management:1 Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+me:1  Failed to load resource: the server responded with a status of 401 ()
+ Auth check result: 
+ Barcode effect triggered:  Canvas ref: null
+ Auth check result: 
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] Full userPermissions response: 
+ 🔍 [DEBUG] userPermissions.modules: 
+ 🔍 [DEBUG] userPermissions.permissions: 
+ 🔍 [DEBUG] Total allButtons count: 40
+ 🔍 [DEBUG] AI Settings exists in allButtons: true
+ 🔍 [DEBUG] Content Management exists in allButtons: true
+ 🔍 [DEBUG] allowedModules: 
+ 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+ 🔍 [DEBUG] management_dashboard in allowedModules? true
+ 🔍 [DEBUG] finance in allowedModules? true
+ 🔍 [DEBUG] geography_analytics in allowedModules? true
+ 🔍 [DEBUG] ai_settings in allowedModules? true
+ 🔍 [DEBUG] content_management in allowedModules? true
+ 🔍 [CRITICAL] Missing button detection:
+ 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+ 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+ 🔍 [CRITICAL] Missing buttons count: 2
+ 🔍 [DEBUG] finance button found in allButtons? 
+ 🔍 [DEBUG] geography_analytics button found in allButtons? 
+ 🔍 [DEBUG] ai_settings button found in allButtons? 
+ 🔍 [DEBUG] content_management button found in allButtons? 
+ 🔍 [DEBUG] finance button in filtered? 
+ 🔍 [DEBUG] geography_analytics button in filtered? 
+ 🔍 [DEBUG] ai_settings button in filtered? 
+ 🔍 [DEBUG] content_management button in filtered? 
+ 🔍 [DEBUG] Site Management component initialized
+ Auth check result: 
+ 
+me:1  Failed to load resource: the server responded with a status of 401 ()
+ 
+ 
+ 
+ Auth check result: 
+/api/warehouse/orders/723/notes:1  Failed to load resource: the server responded with a status of 403 ()
+ 
+me:1  Failed to load resource: the server responded with a status of 401 ()
+me:1  Failed to load resource: the server responded with a status of 401 ()
+ Auth check result: 
+/api/warehouse/orders/723/notes:1  Failed to load resource: the server responded with a status of 403 ()
+ 
+ 
+me:1  Failed to load resource: the server responded with a status of 401 ()
+ Auth check result: 
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] Full userPermissions response: 
+ 🔍 [DEBUG] userPermissions.modules: 
+ 🔍 [DEBUG] userPermissions.permissions: 
+ 🔍 [DEBUG] Total allButtons count: 40
+ 🔍 [DEBUG] AI Settings exists in allButtons: true
+App-CvMVF6UZ.js:647 🔍 [DEBUG] Content Management exists in allButtons: true
+App-CvMVF6UZ.js:647 🔍 [DEBUG] allowedModules: Array(38)
+App-CvMVF6UZ.js:647 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+App-CvMVF6UZ.js:647 🔍 [DEBUG] management_dashboard in allowedModules? true
+App-CvMVF6UZ.js:647 🔍 [DEBUG] finance in allowedModules? true
+App-CvMVF6UZ.js:647 🔍 [DEBUG] geography_analytics in allowedModules? true
+App-CvMVF6UZ.js:647 🔍 [DEBUG] ai_settings in allowedModules? true
+App-CvMVF6UZ.js:647 🔍 [DEBUG] content_management in allowedModules? true
+App-CvMVF6UZ.js:647 🔍 [CRITICAL] Missing button detection:
+App-CvMVF6UZ.js:647 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+App-CvMVF6UZ.js:647 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+App-CvMVF6UZ.js:647 🔍 [CRITICAL] Missing buttons count: 2
+App-CvMVF6UZ.js:647 🔍 [DEBUG] finance button found in allButtons? Object
+App-CvMVF6UZ.js:647 🔍 [DEBUG] geography_analytics button found in allButtons? Object
+App-CvMVF6UZ.js:647 🔍 [DEBUG] ai_settings button found in allButtons? Object
+App-CvMVF6UZ.js:647 🔍 [DEBUG] content_management button found in allButtons? Object
+App-CvMVF6UZ.js:647 🔍 [DEBUG] finance button in filtered? Object
+App-CvMVF6UZ.js:647 🔍 [DEBUG] geography_analytics button in filtered? Object
+App-CvMVF6UZ.js:647 🔍 [DEBUG] ai_settings button in filtered? Object
+App-CvMVF6UZ.js:647 🔍 [DEBUG] content_management button in filtered? Object
+App-CvMVF6UZ.js:647 🔍 [DEBUG] Site Management component initialized
+App-CvMVF6UZ.js:482 Barcode effect triggered:  Canvas ref: null
+App-CvMVF6UZ.js:50 Auth check result: Object
+/api/customers/me:1  Failed to load resource: the server responded with a status of 401 ()
+App-CvMVF6UZ.js:50 Auth check result: Object
+App-CvMVF6UZ.js:647 🔍 [DEBUG] Site Management component initialized
+App-CvMVF6UZ.js:647 🔍 [DEBUG] Site Management component initialized
+App-CvMVF6UZ.js:647 🔍 [DEBUG] Full userPermissions response: Object
+App-CvMVF6UZ.js:647 🔍 [DEBUG] userPermissions.modules: Array(38)
+App-CvMVF6UZ.js:647 🔍 [DEBUG] userPermissions.permissions: Array(38)
+App-CvMVF6UZ.js:647 🔍 [DEBUG] Total allButtons count: 40
+App-CvMVF6UZ.js:647 🔍 [DEBUG] AI Settings exists in allButtons: true
+App-CvMVF6UZ.js:647 🔍 [DEBUG] Content Management exists in allButtons: true
+App-CvMVF6UZ.js:647 🔍 [DEBUG] allowedModules: Array(38)
+App-CvMVF6UZ.js:647 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+App-CvMVF6UZ.js:647 🔍 [DEBUG] management_dashboard in allowedModules? true
+App-CvMVF6UZ.js:647 🔍 [DEBUG] finance in allowedModules? true
+App-CvMVF6UZ.js:647 🔍 [DEBUG] geography_analytics in allowedModules? true
+App-CvMVF6UZ.js:647 🔍 [DEBUG] ai_settings in allowedModules? true
+App-CvMVF6UZ.js:647 🔍 [DEBUG] content_management in allowedModules? true
+App-CvMVF6UZ.js:647 🔍 [CRITICAL] Missing button detection:
+App-CvMVF6UZ.js:647 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+App-CvMVF6UZ.js:647 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+App-CvMVF6UZ.js:647 🔍 [CRITICAL] Missing buttons count: 2
+App-CvMVF6UZ.js:647 🔍 [DEBUG] finance button found in allButtons? Object
+App-CvMVF6UZ.js:647 🔍 [DEBUG] geography_analytics button found in allButtons? Object
+App-CvMVF6UZ.js:647 🔍 [DEBUG] ai_settings button found in allButtons? Object
+App-CvMVF6UZ.js:647 🔍 [DEBUG] content_management button found in allButtons? Object
+App-CvMVF6UZ.js:647 🔍 [DEBUG] finance button in filtered? Object
+App-CvMVF6UZ.js:647 🔍 [DEBUG] geography_analytics button in filtered? Object
+App-CvMVF6UZ.js:647 🔍 [DEBUG] ai_settings button in filtered? Object
+App-CvMVF6UZ.js:647 🔍 [DEBUG] content_management button in filtered? Object
+App-CvMVF6UZ.js:647 🔍 [DEBUG] Site Management component initialized
+/api/warehouse/orders/722/notes:1  Failed to load resource: the server responded with a status of 403 ()
+App-CvMVF6UZ.js:1335 Object
+App-CvMVF6UZ.js:42  GET https://momtazchem.com/api/customers/me 401 (Unauthorized)
+queryFn @ App-CvMVF6UZ.js:42
+fetchFn @ queryClient-C76wM52K.js:1
+h @ queryClient-C76wM52K.js:1
+start @ queryClient-C76wM52K.js:1
+fetch @ queryClient-C76wM52K.js:1
+#h @ label-BRmTU5yS.js:1
+(anonymous) @ label-BRmTU5yS.js:1
+App-CvMVF6UZ.js:50 Auth check result: {success: true, user: {…}}

@@ -836,13 +836,13 @@ const WarehouseManagementFixed: React.FC = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/order-management/warehouse'] });
-      console.log({
+      toast({
         title: `✅ ${t('noteSaved')}`,
         description: t('noteSavedDescription'),
       });
     },
     onError: (error: any) => {
-      console.log({
+      toast({
         title: t('saveError'),
         description: error.message || t('noteSaveError'),
         variant: "destructive",
