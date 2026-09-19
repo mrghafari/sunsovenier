@@ -45,10 +45,16 @@ export async function getSoldBatchAllocationsByProduct(
         quantity_sold: number;
         batch_expiry_date: Date | null;
       }>(`
-        SELECT product_id, batch_number, quantity_sold, batch_expiry_date
-        FROM batch_sales_tracking
-        WHERE order_id = $1
-        ORDER BY id ASC
+        SELECT
+          shop.id AS product_id,
+          tracking.batch_number,
+          tracking.quantity AS quantity_sold,
+          NULL::timestamp AS batch_expiry_date
+        FROM batch_sales_tracking tracking
+        JOIN shop_products shop
+          ON TRIM(shop.barcode) = TRIM(tracking.product_barcode)
+        WHERE tracking.order_id = $1
+        ORDER BY tracking.id ASC
       `, [orderId])).rows.map(row => ({
         productId: row.product_id,
         batchNumber: row.batch_number,

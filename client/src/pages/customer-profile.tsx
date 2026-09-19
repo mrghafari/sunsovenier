@@ -1435,7 +1435,17 @@ const CustomerProfile = () => {
                                 <Badge className={`text-[10px] ${getStatusColor(order.status, order.paymentStatus, order)}`}>
                                   {getStatusLabel(order.status, order.paymentStatus, order)}
                                 </Badge>
-                                {(order.status === "pending" || order.status === "payment_grace_period") && (
+                                {order.orderType === "temporary" &&
+                                  (order.status === "pending" || order.status === "payment_grace_period") &&
+                                  ![
+                                    "warehouse_approved",
+                                    "logistics_assigned",
+                                    "logistics_dispatched",
+                                    "in_transit",
+                                    "shipped",
+                                    "delivered",
+                                    "completed",
+                                  ].includes(String(order.currentStatus || order.managementStatus || "").toLowerCase()) && (
                                   <Badge className="mt-1 w-fit bg-orange-100 text-[10px] text-orange-800">
                                     <Clock className="me-1 h-3 w-3" />
                                     {pt.temporaryOrder}

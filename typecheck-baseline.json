@@ -3325,19 +3325,11 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'orderCategory' does not exist on type '{ currency: string; id: number; status: string; weightUnit: string | null; customerId: number; notes: string | null; createdAt: Date; trackingNumber: string | null; updatedAt: Date; ... 37 more ...; additionalDocumentsNote: string | null; }'.\",\"order.orderCategory === 'temporary' ||\"]",
-      "count": 1
-    },
-    {
       "key": "[\"server/routes.ts\",2339,\"Property 'orderFrequency' does not exist on type '{ address: string; id: number; email: string; state: string | null; country: string; tags: unknown; province: string; createdAt: Date; updatedAt: Date; isActive: boolean | null; averageOrderValue: string | null; ... 37 more ...; resetPasswordExpires: Date | null; } | { ...; }'.\\n  Property 'orderFrequency' does not exist on type '{ address: string; id: number; email: string; state: string | null; country: string; tags: unknown; province: string; createdAt: Date; updatedAt: Date; isActive: boolean | null; averageOrderValue: string | null; ... 37 more ...; resetPasswordExpires: Date | null; }'.\",\"orderFrequency: customer.orderFrequency,\"]",
       "count": 1
     },
     {
       "key": "[\"server/routes.ts\",2339,\"Property 'orderNumber' does not exist on type 'PgTableWithColumns<{ name: \\\"delivery_verification_codes\\\"; schema: undefined; columns: { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"delivery_verification_codes\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; ... 9 more ...; generated: undefined; }, {}, {}>; ... 20 more ...; updatedAt: PgColumn<...>; }; dialec...'.\",\".where(eq(deliveryVerificationCodes.orderNumber, orderNumber))\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2339,\"Property 'orderType' does not exist on type '{ currency: string; id: number; status: string; weightUnit: string | null; customerId: number; notes: string | null; createdAt: Date; trackingNumber: string | null; updatedAt: Date; ... 37 more ...; additionalDocumentsNote: string | null; }'.\",\"orderType: order.orderType === 'temporary' ||\"]",
       "count": 1
     },
     {

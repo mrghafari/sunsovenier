@@ -20492,12 +20492,21 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       const detailedOrders = await Promise.all(
         displayOrders.map(async (order) => {
           const items = await customerStorage.getOrderItems(order.id);
+          const paymentStatus = String(order.paymentStatus || '').toLowerCase();
+          const isGracePayment =
+            order.paymentMethod === 'bank_transfer_grace' ||
+            order.paymentMethod === 'واریز بانکی با مهلت 3 روزه';
+          const isAwaitingPayment =
+            order.status === 'pending' ||
+            order.status === 'payment_grace_period';
+          const hasPayment =
+            ['paid', 'completed', 'successful', 'success', 'receipt_uploaded'].includes(paymentStatus) ||
+            Boolean(order.receiptPath);
           return {
             ...order,
             items,
-            orderType: order.orderType === 'temporary' || 
-                      order.orderCategory === 'temporary' || 
-                      order.paymentMethod === 'bank_transfer_grace' ? 'temporary' : 'regular'
+            orderType: isGracePayment && isAwaitingPayment && !hasPayment ? 'temporary' : 'regular',
+            orderCategory: isGracePayment && isAwaitingPayment && !hasPayment ? 'temporary' : 'regular',
           };
         })
       );
@@ -20642,8 +20651,22 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           currentStatus: management?.current_status ?? order.status,
           managementStatus: management?.current_status ?? order.status,
         };
+        const terminalOrOutboundStatuses = new Set([
+          'warehouse_approved',
+          'logistics_assigned',
+          'logistics_dispatched',
+          'in_transit',
+          'shipped',
+          'delivered',
+          'completed',
+        ]);
+        const hasLeftTemporaryFlow = terminalOrOutboundStatuses.has(
+          String(enrichedOrder.currentStatus || enrichedOrder.status || '').toLowerCase(),
+        );
         return {
           ...enrichedOrder,
+          orderType: hasLeftTemporaryFlow ? 'regular' : enrichedOrder.orderType,
+          orderCategory: hasLeftTemporaryFlow ? 'regular' : enrichedOrder.orderCategory,
           statusProjection: resolveOrderStatus({
             workflowStatus: enrichedOrder.currentStatus,
             orderStatus: enrichedOrder.status,
