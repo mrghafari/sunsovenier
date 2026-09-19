@@ -74,7 +74,9 @@ const deliveryCopy = {
     sessionExpired: "نشست شما پایان یافته است. دوباره وارد شوید.",
     permissionDenied: "دسترسی تأیید تحویل برای این حساب فعال نیست.",
     noGeolocation: "دسترسی به موقعیت مکانی این دستگاه ممکن نیست",
-    allowGeolocation: "برای ثبت تحویل، اجازه دسترسی به موقعیت مکانی را فعال کنید",
+    locationDenied: "دسترسی موقعیت برای این سایت مسدود است. در تنظیمات مرورگر، مجوز Location این سایت را روی Allow قرار دهید و دوباره تلاش کنید.",
+    locationUnavailable: "گوشی نتوانست موقعیت فعلی را پیدا کند. GPS و اینترنت را بررسی کنید و دوباره تلاش کنید.",
+    locationTimeout: "دریافت موقعیت بیش از حد طول کشید. در فضای بازتر دوباره تلاش کنید.",
   },
   ar: {
     loginTitle: "تأكيد تسليم الطلب", loginSubtitle: "دخول شركة النقل",
@@ -88,7 +90,9 @@ const deliveryCopy = {
     sessionExpired: "انتهت جلستك. يرجى تسجيل الدخول مرة أخرى.",
     permissionDenied: "صلاحية تأكيد التسليم غير مفعّلة لهذا الحساب.",
     noGeolocation: "تحديد الموقع غير متاح على هذا الجهاز",
-    allowGeolocation: "يرجى السماح بالوصول إلى الموقع لتسجيل التسليم",
+    locationDenied: "تم حظر إذن الموقع لهذا الموقع. غيّر إذن Location إلى Allow في إعدادات المتصفح ثم حاول مجدداً.",
+    locationUnavailable: "تعذر على الهاتف تحديد موقعك الحالي. تحقق من GPS والإنترنت ثم حاول مجدداً.",
+    locationTimeout: "استغرق تحديد الموقع وقتاً طويلاً. حاول مرة أخرى في مكان أكثر انفتاحاً.",
   },
   tr: {
     loginTitle: "Sipariş teslimatını onayla", loginSubtitle: "Taşıyıcı girişi",
@@ -102,7 +106,9 @@ const deliveryCopy = {
     sessionExpired: "Oturumunuz sona erdi. Lütfen tekrar giriş yapın.",
     permissionDenied: "Bu hesap için teslimat onayı yetkisi etkin değil.",
     noGeolocation: "Bu cihazda konum erişimi kullanılamıyor",
-    allowGeolocation: "Teslimatı kaydetmek için konum erişimine izin verin",
+    locationDenied: "Bu site için konum izni engellenmiş. Tarayıcı ayarlarında Location iznini Allow yapıp tekrar deneyin.",
+    locationUnavailable: "Telefon mevcut konumunuzu bulamadı. GPS ve internet bağlantısını kontrol edip tekrar deneyin.",
+    locationTimeout: "Konum alınması çok uzun sürdü. Daha açık bir alanda tekrar deneyin.",
   },
   en: {
     loginTitle: "Confirm order delivery", loginSubtitle: "Carrier sign in",
@@ -116,7 +122,9 @@ const deliveryCopy = {
     sessionExpired: "Your session has expired. Please sign in again.",
     permissionDenied: "Delivery confirmation access is not enabled for this account.",
     noGeolocation: "Location access is not available on this device",
-    allowGeolocation: "Allow location access to record the delivery",
+    locationDenied: "Location is blocked for this site. Open the browser's site settings, set Location to Allow, and try again.",
+    locationUnavailable: "Your phone could not determine its current location. Check GPS and internet access, then try again.",
+    locationTimeout: "Getting your location took too long. Move to a more open area and try again.",
   },
 } as const;
 
@@ -206,7 +214,8 @@ export default function DeliveryPage() {
   const submit = async (event: FormEvent) => {
     event.preventDefault(); setBusy(true); setMessage(""); setSuccess(false);
     if (!navigator.geolocation) { setMessage(copy.noGeolocation); setBusy(false); return; }
-    navigator.geolocation.getCurrentPosition(async ({ coords }) => {
+
+    const verifyAtPosition = async ({ coords }: GeolocationPosition) => {
       try {
         const response = await fetch("/api/delivery/mobile/verify", {
           method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
@@ -226,8 +235,27 @@ export default function DeliveryPage() {
         setSuccess(true); setOrderNumber(""); setDeliveryCode("");
       } catch (error: any) { setMessage(error.message || copy.submitFailed); }
       finally { setBusy(false); }
-    }, () => { setMessage(copy.allowGeolocation); setBusy(false); },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+    };
+
+    const showLocationError = (error: GeolocationPositionError) => {
+      if (error.code === error.PERMISSION_DENIED) setMessage(copy.locationDenied);
+      else if (error.code === error.POSITION_UNAVAILABLE) setMessage(copy.locationUnavailable);
+      else setMessage(copy.locationTimeout);
+      setBusy(false);
+    };
+
+    navigator.geolocation.getCurrentPosition(
+      verifyAtPosition,
+      (error) => {
+        if (error.code !== error.TIMEOUT) return showLocationError(error);
+        navigator.geolocation.getCurrentPosition(
+          verifyAtPosition,
+          showLocationError,
+          { enableHighAccuracy: false, timeout: 20000, maximumAge: 60000 },
+        );
+      },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 },
+    );
   };
 
   const logout = async () => { await fetch("/api/custom-users/logout", { method: "POST", credentials: "include" }); setState("login"); };
