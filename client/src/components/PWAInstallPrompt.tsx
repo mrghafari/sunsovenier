@@ -2,12 +2,42 @@ import { useState, useEffect, useRef } from 'react';
 import { usePWA } from '@/hooks/usePWA';
 import { Button } from '@/components/ui/button';
 import { X, Download, Wifi, WifiOff, Smartphone } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
+
+const installCopy = {
+  fa: {
+    title: 'نصب اپ ممتازکم',
+    body: 'فروشگاه را روی گوشی نصب کنید و سریع‌تر خرید کنید',
+    install: 'نصب',
+    later: 'بعداً',
+  },
+  ar: {
+    title: 'تثبيت تطبيق ممتازكم',
+    body: 'ثبّت المتجر على هاتفك لتتسوق بشكل أسرع',
+    install: 'تثبيت',
+    later: 'لاحقاً',
+  },
+  tr: {
+    title: 'Mumtazcom uygulamasını yükleyin',
+    body: 'Daha hızlı alışveriş için mağazayı telefonunuza yükleyin',
+    install: 'Yükle',
+    later: 'Daha sonra',
+  },
+  en: {
+    title: 'Install the Mumtazcom app',
+    body: 'Install the store on your phone for faster shopping',
+    install: 'Install',
+    later: 'Later',
+  },
+} as const;
 
 export function PWAInstallPrompt() {
   const { isInstallable, isInstalled, isOnline, installApp, dismissInstall } = usePWA();
+  const { language, direction } = useLanguage();
   const [showPrompt, setShowPrompt] = useState(false);
   const [showOfflineBanner, setShowOfflineBanner] = useState(false);
   const autoDismissRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const copy = installCopy[language] || installCopy.en;
 
   useEffect(() => {
     if (!isInstallable || isInstalled) return;
@@ -23,7 +53,7 @@ export function PWAInstallPrompt() {
         setShowPrompt(false);
         dismissInstall();
       }, 5000);
-    }, 2000);
+    }, 5000);
     return () => {
       clearTimeout(showTimer);
       if (autoDismissRef.current) clearTimeout(autoDismissRef.current);
@@ -77,7 +107,7 @@ export function PWAInstallPrompt() {
       {/* Install prompt — bottom banner, auto-dismissed after 5s */}
       {showPrompt && (
         <div
-          dir="rtl"
+          dir={direction}
           className="fixed bottom-20 left-4 right-4 z-[9998] mx-auto max-w-sm bg-white border border-blue-200 rounded-2xl shadow-2xl p-4 flex items-start gap-3 animate-in slide-in-from-bottom-4 duration-300 md:bottom-4"
         >
           <div className="flex-shrink-0 w-11 h-11 bg-blue-600 rounded-xl flex items-center justify-center">
@@ -85,9 +115,9 @@ export function PWAInstallPrompt() {
           </div>
 
           <div className="flex-1 min-w-0">
-            <p className="font-bold text-gray-900 text-sm">نصب اپ ممتازکم</p>
+            <p className="font-bold text-gray-900 text-sm">{copy.title}</p>
             <p className="text-gray-500 text-xs mt-0.5 leading-relaxed">
-              فروشگاه را روی گوشی نصب کنید و سریع‌تر خرید کنید
+              {copy.body}
             </p>
             <div className="flex gap-2 mt-3">
               <Button
@@ -96,7 +126,7 @@ export function PWAInstallPrompt() {
                 className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-8 px-4 rounded-lg flex items-center gap-1.5"
               >
                 <Download className="w-3.5 h-3.5" />
-                نصب
+                {copy.install}
               </Button>
               <Button
                 size="sm"
@@ -104,13 +134,14 @@ export function PWAInstallPrompt() {
                 onClick={handleDismiss}
                 className="text-gray-500 text-xs h-8 px-3 rounded-lg"
               >
-                بعداً
+                {copy.later}
               </Button>
             </div>
           </div>
 
           <button
             onClick={handleDismiss}
+            aria-label={copy.later}
             className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
           >
             <X className="w-3.5 h-3.5 text-gray-500" />
