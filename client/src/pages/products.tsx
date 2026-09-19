@@ -1764,10 +1764,10 @@ export default function ProductsPage() {
                       )}
 
                       {/* Batch Summary - Show only for chemical products */}
-                      {!productGroup.mainProduct.isNonChemical && productGroup.batches.length >= 1 && (
+                      {!productGroup.mainProduct.isNonChemical && productGroup.batches.some(batch => batch.stockQuantity > 0) && (
                         <div className="space-y-2">
                           <div className="flex justify-between items-center">
-                            <span className="text-sm font-medium">{t.productManagement.allBatchesCount.replace('{count}', productGroup.batches.length.toString())}</span>
+                            <span className="text-sm font-medium">{t.productManagement.allBatchesCount.replace('{count}', productGroup.batches.filter(batch => batch.stockQuantity > 0).length.toString())}</span>
                             <span className="text-sm text-gray-600">{t.productManagement.totalStockLabel.replace('{stock}', productGroup.totalStock.toString())}</span>
                           </div>
                           <div className="space-y-1">
@@ -2579,6 +2579,7 @@ export default function ProductsPage() {
                               <SelectItem value="IQD">{t.productManagement.currencyIQD}</SelectItem>
                               <SelectItem value="USD">{t.productManagement.currencyUSD}</SelectItem>
                               <SelectItem value="EUR">{t.productManagement.currencyEUR}</SelectItem>
+                               <SelectItem value="IRR">{t.productManagement.currencyIRR}</SelectItem>
                               <SelectItem value="TRY">{t.productManagement.currencyTRY}</SelectItem>
                             </SelectContent>
                           </Select>

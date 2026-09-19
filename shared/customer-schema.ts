@@ -411,7 +411,7 @@ export const customerWallets = pgTable("customer_wallets", {
   customerId: integer("customer_id").notNull().unique().references(() => crmCustomers.id),
   balance: decimal("balance", { precision: 15, scale: 2 }).notNull().default("0"),
   reservedBalance: decimal("reserved_balance", { precision: 15, scale: 2 }).notNull().default("0"), // مبلغ رزرو شده برای سفارشات در انتظار
-  currency: text("currency").notNull().default("IQD"), // IQD, USD, EUR
+  currency: text("currency").notNull().default("IQD"), // IQD, USD, EUR, IRR
   status: text("status").notNull().default("active"), // active, frozen, suspended
   creditLimit: decimal("credit_limit", { precision: 15, scale: 2 }).default("0"),
   lastActivityDate: timestamp("last_activity_date"),

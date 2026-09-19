@@ -1,6 +1,6 @@
 /**
- * Frontend currency utilities for Iraqi Dinar (IQD) handling
- * All IQD amounts should be whole numbers without decimals
+ * Shared frontend currency utilities.
+ * IQD and IRR amounts are represented as whole units without decimals.
  */
 
 export interface CurrencyConfig {
@@ -28,6 +28,12 @@ export const CURRENCY_CONFIGS: Record<string, CurrencyConfig> = {
     hasDecimals: true,
     decimalPlaces: 2,
     symbol: '€'
+  },
+  'IRR': {
+    currency: 'IRR',
+    hasDecimals: false,
+    decimalPlaces: 0,
+    symbol: 'ریال'
   }
 };
 

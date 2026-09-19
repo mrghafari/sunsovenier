@@ -1,0 +1,399 @@
+ CI_CD_TEST_2026
+ [PWA] Service Worker registered, scope: https://momtazchem.com/
+/admin:1 Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner.
+ 📥 Loading Tawk.to widget at bottom-left position...
+ ✅ Tawk.to Live Chat loaded successfully at bottom-left
+ Auth check result: 
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] Full userPermissions response: 
+ 🔍 [DEBUG] userPermissions.modules: 
+ 🔍 [DEBUG] userPermissions.permissions: 
+ 🔍 [DEBUG] Total allButtons count: 40
+ 🔍 [DEBUG] AI Settings exists in allButtons: true
+ 🔍 [DEBUG] Content Management exists in allButtons: true
+ 🔍 [DEBUG] allowedModules: 
+ 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+ 🔍 [DEBUG] management_dashboard in allowedModules? true
+ 🔍 [DEBUG] finance in allowedModules? true
+ 🔍 [DEBUG] geography_analytics in allowedModules? true
+ 🔍 [DEBUG] ai_settings in allowedModules? true
+ 🔍 [DEBUG] content_management in allowedModules? true
+ 🔍 [CRITICAL] Missing button detection:
+ 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+ 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+ 🔍 [CRITICAL] Missing buttons count: 2
+ 🔍 [DEBUG] finance button found in allButtons? 
+ 🔍 [DEBUG] geography_analytics button found in allButtons? 
+ 🔍 [DEBUG] ai_settings button found in allButtons? 
+ 🔍 [DEBUG] content_management button found in allButtons? 
+ 🔍 [DEBUG] finance button in filtered? 
+ 🔍 [DEBUG] geography_analytics button in filtered? 
+ 🔍 [DEBUG] ai_settings button in filtered? 
+ 🔍 [DEBUG] content_management button in filtered? 
+ 🔍 [DEBUG] Site Management component initialized
+ Barcode effect triggered:  Canvas ref: null
+ Auth check result: 
+ 📦 Found 7 batches for barcode 8649677191615
+ Barcode effect triggered: 8649677191615 Canvas ref: null
+ Auth check result: 
+ Auth check result: 
+ Auth check result: 
+ Auth check result: 
+ Auth check result: 
+ Auth check result: 
+ 
+/api/upload/catalog:1  Failed to load resource: the server responded with a status of 500 ()
+ Auth check result: 
+ 🔍 [DEBUG] Form submission - Raw form data: 
+ 🔍 [DEBUG] Tags in form data: شیمیایی Type: string
+ 🔍 [DEBUG] Description in form data: This is a high-quality chemical product...
+ 🔍 [DEBUG] editingProduct state: 89
+ 🚀 [DEBUG] Final processed data being sent to API: {
+  "name": "Light Solvent",
+  "category": "Paint & Solvents",
+  "description": "This is a high-quality chemical product...",
+  "shortDescription": "This is a high-quality chemical product...",
+  "priceRange": "",
+  "imageUrl": "/uploads/general-files/1789780737275-912cfb17f2603668.png",
+  "imageUrls": [
+    "/uploads/general-files/1789780737275-912cfb17f2603668.png",
+    "/uploads/general-files/1789781211702-83a3a3204fb2aa1d.png"
+  ],
+  "pdfCatalogUrl": "/uploads/product-catalogs/1789819981146-579264a7c2dadbb4.pdf",
+  "catalogFileName": "Ø¨Ø±ÙØ§ÙÙ-ÙØ§-1405-06-18 (2).pdf",
+  "specifications": {},
+  "features": [],
+  "applications": [],
+  "showCatalogToCustomers": false,
+  "msdsUrl": "/uploads/product-msds/1789819961023-fd989b86497ae7b0.pdf",
+  "showMsdsToCustomers": false,
+  "msdsFileName": "ØªÙØ²ÛØ¹-ÙØ²ÛÙÙ-ÙØ§ (19).pdf",
+  "stockQuantity": 0,
+  "minStockLevel": 10,
+  "maxStockLevel": 1000,
+  "unitPrice": "1",
+  "currency": "IQD",
+  "batchNumber": "12",
+  "netWeight": null,
+  "grossWeight": null,
+  "weightUnit": "kg",
+  "weight": "",
+  "barcode": "8649677191615",
+  "sku": "FA-WAT-11",
+  "tags": [
+    "شیمیایی"
+  ],
+  "isActive": true,
+  "syncWithShop": true,
+  "showWhenOutOfStock": false,
+  "isNonChemical": false,
+  "isFlammable": false,
+  "isVariant": false,
+  "displayMode": "3d_model",
+  "model3dKey": "3d-models/1789819942471-4cac10d837c82792.glb",
+  "model3dFileName": "1771735708706-3f132d6180e03f71.glb",
+  "transportationTemperature": "",
+  "inventoryAddition": 20,
+  "newBatchNumber": "12"
+}
+ 📝 [DEBUG] Calling updateProduct with ID: 89
+ 📝 [DEBUG] updateProduct function exists: function
+ ✅ [DEBUG] Update mutation successful, result: 
+ 🔄 [INSTANT-SYNC] Triggering immediate kardex synchronization...
+ Barcode effect triggered: 8649677191615 Canvas ref: null
+ ✅ [INSTANT-SYNC] Kardex synchronization completed
+ Auth check result: 
+ Auth check result: 
+ 📦 Found 8 batches for barcode 8649677191615
+ Barcode effect triggered: 8649677191615 Canvas ref: null
+ Auth check result: Object
+model-viewer.js:45946 SyntaxError: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at Sh.parse (model-viewer.js:40366:17)
+    at Object.onLoad (model-viewer.js:40261:11)
+    at model-viewer.js:34545:38
+(anonymous) @ model-viewer.js:45946
+ Auth check result: Object
+ Auth check result: Object
+ Auth check result: Object
+ 🔍 [DEBUG] Form submission - Raw form data: Object
+ 🔍 [DEBUG] Tags in form data: شیمیایی Type: string
+ 🔍 [DEBUG] Description in form data: This is a high-quality chemical product...
+ 🔍 [DEBUG] editingProduct state: 90
+ 🚀 [DEBUG] Final processed data being sent to API: {
+  "name": "Light Solvent",
+  "category": "Paint & Solvents",
+  "description": "This is a high-quality chemical product...",
+  "shortDescription": "This is a high-quality chemical product...",
+  "priceRange": "",
+  "imageUrl": "/uploads/general-files/1789780737275-912cfb17f2603668.png",
+  "imageUrls": [
+    "/uploads/general-files/1789780737275-912cfb17f2603668.png",
+    "/uploads/general-files/1789781211702-83a3a3204fb2aa1d.png"
+  ],
+  "pdfCatalogUrl": "",
+  "catalogFileName": "",
+  "specifications": {},
+  "features": [],
+  "applications": [],
+  "showCatalogToCustomers": false,
+  "msdsUrl": "",
+  "showMsdsToCustomers": false,
+  "msdsFileName": "",
+  "stockQuantity": 20,
+  "minStockLevel": 10,
+  "maxStockLevel": 1000,
+  "unitPrice": "1",
+  "currency": "USD",
+  "batchNumber": "12",
+  "netWeight": null,
+  "grossWeight": null,
+  "weightUnit": "kg",
+  "weight": "",
+  "barcode": "8649677191615",
+  "sku": "FA-WAT-12",
+  "tags": [
+    "شیمیایی"
+  ],
+  "isActive": true,
+  "syncWithShop": true,
+  "showWhenOutOfStock": false,
+  "isNonChemical": false,
+  "isFlammable": false,
+  "isVariant": false,
+  "displayMode": "3d_model",
+  "model3dKey": "3d-models/1789820075440-632ab9c5f335d936.glb",
+  "model3dFileName": "1771735708706-3f132d6180e03f71.glb",
+  "transportationTemperature": "",
+  "inventoryAddition": 5,
+  "newBatchNumber": "12"
+}
+ 📝 [DEBUG] Calling updateProduct with ID: 90
+ 📝 [DEBUG] updateProduct function exists: function
+ ✅ [DEBUG] Update mutation successful, result: Object
+ 🔄 [INSTANT-SYNC] Triggering immediate kardex synchronization...
+ Barcode effect triggered: 8649677191615 Canvas ref: null
+ ✅ [INSTANT-SYNC] Kardex synchronization completed
+ Auth check result: Object
+ Auth check result: Object
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] Site Management component initialized
+ 🔍 [DEBUG] Full userPermissions response: Object
+ 🔍 [DEBUG] userPermissions.modules: Array(38)
+ 🔍 [DEBUG] userPermissions.permissions: Array(38)
+ 🔍 [DEBUG] Total allButtons count: 40
+ 🔍 [DEBUG] AI Settings exists in allButtons: true
+ 🔍 [DEBUG] Content Management exists in allButtons: true
+ 🔍 [DEBUG] allowedModules: Array(38)
+ 🔍 [DEBUG] kpi_dashboard in allowedModules? true
+ 🔍 [DEBUG] management_dashboard in allowedModules? true
+ 🔍 [DEBUG] finance in allowedModules? true
+ 🔍 [DEBUG] geography_analytics in allowedModules? true
+ 🔍 [DEBUG] ai_settings in allowedModules? true
+ 🔍 [DEBUG] content_management in allowedModules? true
+ 🔍 [CRITICAL] Missing button detection:
+ 🔍 [MISSING] missing-images Missing Images moduleId: missing_images_management
+ 🔍 [MISSING] fib-settings FIB Payment Gateway moduleId: fib_payment_settings
+ 🔍 [CRITICAL] Missing buttons count: 2
+ 🔍 [DEBUG] finance button found in allButtons? Object
+ 🔍 [DEBUG] geography_analytics button found in allButtons? Object
+ 🔍 [DEBUG] ai_settings button found in allButtons? Object
+ 🔍 [DEBUG] content_management button found in allButtons? Object
+ 🔍 [DEBUG] finance button in filtered? Object
+ 🔍 [DEBUG] geography_analytics button in filtered? Object
+ 🔍 [DEBUG] ai_settings button in filtered? Object
+ 🔍 [DEBUG] content_management button in filtered? Object
+ 🔍 [DEBUG] Site Management component initialized
+ Barcode effect triggered:  Canvas ref: null
+ Auth check result: Object
+ Auth check result: Object
+ Auth check result: Object
+ 📦 Found 9 batches for barcode 8649677191615
+ Barcode effect triggered: 8649677191615 Canvas ref: null
+model-viewer.js:45946 SyntaxError: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at Sh.parse (model-viewer.js:40366:17)
+    at Object.onLoad (model-viewer.js:40261:11)
+    at model-viewer.js:34545:38
+(anonymous) @ model-viewer.js:45946
+ Auth check result: Object
+model-viewer.js:45946 SyntaxError: Unexpected token '<', "<!DOCTYPE "... is not valid JSON (at VM121:1:1)
+    at JSON.parse (<anonymous>)
+    at Sh.parse (model-viewer.js:40366:17)
+    at Object.onLoad (model-viewer.js:40261:11)
+    at model-viewer.js:34545:38
+(anonymous) @ model-viewer.js:45946
+Promise.catch
+preload @ model-viewer.js:45945
+load @ model-viewer.js:45963
+(anonymous) @ model-viewer.js:57643
+setSource @ model-viewer.js:57640
+(anonymous) @ model-viewer.js:58914
+updated @ model-viewer.js:58742
+updated @ model-viewer.js:59060
+updated @ model-viewer.js:61406
+updated @ model-viewer.js:51357
+value @ model-viewer.js:50986
+value @ model-viewer.js:50986
+value @ model-viewer.js:50986
+value @ model-viewer.js:50986
+value @ model-viewer.js:50986
+value @ model-viewer.js:50986
+value @ model-viewer.js:50986
+updated @ model-viewer.js:38836
+updated @ model-viewer.js:61526
+value @ model-viewer.js:50986
+updated @ model-viewer.js:56820
+_$AE @ model-viewer.js:38543
+performUpdate @ model-viewer.js:38543
+scheduleUpdate @ model-viewer.js:38543
+_$Ej @ model-viewer.js:38543
+await in _$Ej
+requestUpdate @ model-viewer.js:38543
+set @ model-viewer.js:38543
+_$AK @ model-viewer.js:38543
+attributeChangedCallback @ model-viewer.js:38543
+te @ /assets/index-Ciar_sTr.js:2
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Rc @ /assets/index-Ciar_sTr.js:9
+zc @ /assets/index-Ciar_sTr.js:9
+Il @ /assets/index-Ciar_sTr.js:9
+Fl @ /assets/index-Ciar_sTr.js:9
+_l @ /assets/index-Ciar_sTr.js:9
+ee @ /assets/index-Ciar_sTr.js:2
+oe @ /assets/index-Ciar_sTr.js:2
+postMessage
+se @ /assets/index-Ciar_sTr.js:2
+ue @ /assets/index-Ciar_sTr.js:2
+e.unstable_scheduleCallback @ /assets/index-Ciar_sTr.js:2
+Wl @ /assets/index-Ciar_sTr.js:9
+Q @ /assets/index-Ciar_sTr.js:9
+gl @ /assets/index-Ciar_sTr.js:9
+xs @ /assets/index-Ciar_sTr.js:7
+callback @ /assets/App-Cf1qCOCp.js:54
+next @ /assets/App-Cf1qCOCp.js:54
+next @ /assets/App-Cf1qCOCp.js:54
+M @ /assets/App-Cf1qCOCp.js:54
+N @ /assets/App-Cf1qCOCp.js:54
+rt @ /assets/App-Cf1qCOCp.js:480

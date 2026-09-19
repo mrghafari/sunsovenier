@@ -156,6 +156,12 @@ export default function CustomerWallet() {
   // Get language from centralized system
   const { language, t, direction } = useLanguage();
   const wt = WALLET_T[language];
+  const iranianRialLabel = {
+    en: 'Iranian Rial (IRR)',
+    fa: 'ریال ایران (IRR)',
+    ar: 'الريال الإيراني (IRR)',
+    tr: 'İran Riyali (IRR)',
+  }[language];
   const isRTL = direction === 'rtl';
 
   // Get refresh interval from global settings
@@ -648,6 +654,9 @@ export default function CustomerWallet() {
                             <SelectItem value="EUR">
                               {t.euro}
                             </SelectItem>
+                             <SelectItem value="IRR">
+                               {iranianRialLabel}
+                             </SelectItem>
                           </SelectContent>
                         </Select>
                       </div>

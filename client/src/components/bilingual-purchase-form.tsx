@@ -486,6 +486,8 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
   const { language, direction } = useLanguage();
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [locationData, setLocationData] = useState<{latitude: number, longitude: number} | null>(null);
+  const [quantityDrafts, setQuantityDrafts] = useState<Record<number, string>>({});
+  const activatedQuantityInputs = useRef(new Set<number>());
   const [paymentMethod, setPaymentMethod] = useState<'online_payment' | 'fib_online' | 'wallet' | 'wallet_full' | 'wallet_partial' | 'wallet_combined' | 'bank_transfer_grace' | 'bank_receipt'>('fib_online');
 
   // Fetch available payment methods from admin settings (public endpoint)
@@ -2063,15 +2065,35 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                           type="number"
                           min="1"
                           max={product.stockQuantity || 999999}
-                          value={quantity}
+                           value={quantityDrafts[product.id] ?? quantity}
+                           onFocus={() => {
+                             if (!activatedQuantityInputs.current.has(product.id)) {
+                               activatedQuantityInputs.current.add(product.id);
+                               if (quantity === 1) {
+                                 setQuantityDrafts(current => ({ ...current, [product.id]: '' }));
+                               }
+                             }
+                           }}
                           onChange={(e) => {
-                            const newQuantity = parseInt(e.target.value) || 1;
+                             const rawQuantity = e.target.value;
+                             setQuantityDrafts(current => ({ ...current, [product.id]: rawQuantity }));
+                             if (rawQuantity === '') return;
+                             const newQuantity = parseInt(rawQuantity, 10);
+                             if (!Number.isFinite(newQuantity)) return;
                             const maxQuantity = product.stockQuantity || 999999;
                             const validQuantity = Math.max(1, Math.min(newQuantity, maxQuantity));
+                             setQuantityDrafts(current => ({ ...current, [product.id]: validQuantity.toString() }));
                             if (onUpdateQuantity) {
                               onUpdateQuantity(product.id, validQuantity);
                             }
                           }}
+                           onBlur={() => {
+                             setQuantityDrafts(current => {
+                               const next = { ...current };
+                               delete next[product.id];
+                               return next;
+                             });
+                           }}
                           className="h-7 w-16 text-center text-sm font-medium px-1 py-0"
                           title={language === 'en' ? 'Change quantity directly' : language === 'fa' ? 'تغییر مستقیم تعداد' : 'تغيير الكمية مباشرة'}
                         />

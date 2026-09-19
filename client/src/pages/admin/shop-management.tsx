@@ -19,7 +19,7 @@ const SHOP_MANAGEMENT_TRANSLATIONS = {
     loading: "Loading settings...", title: "Shop Management", subtitle: "General shop settings and configuration",
     settingsManagement: "Settings Management", general: "General Settings", business: "Business Hours", system: "System",
     generalTitle: "General Shop Settings", generalDescription: "Basic settings that affect the entire shop",
-    currency: "Default Currency", iqd: "Iraqi Dinar (IQD)", usd: "US Dollar (USD)", eur: "Euro (EUR)",
+    currency: "Default Currency", iqd: "Iraqi Dinar (IQD)", usd: "US Dollar (USD)", eur: "Euro (EUR)", irr: "Iranian Rial (IRR)",
     timezone: "Timezone", baghdad: "Baghdad (Asia/Baghdad)", tehran: "Tehran (Asia/Tehran)",
     businessTitle: "Business Hours", businessDescription: "Set the shop's daily business hours", dailyHours: "Daily Business Hours",
     format: "Format: opening time-closing time (example: 8:00-17:00)", systemTitle: "System Information",
@@ -32,7 +32,7 @@ const SHOP_MANAGEMENT_TRANSLATIONS = {
     loading: "جارٍ تحميل الإعدادات...", title: "إدارة المتجر", subtitle: "الإعدادات العامة وتكوين المتجر",
     settingsManagement: "إدارة الإعدادات", general: "الإعدادات العامة", business: "ساعات العمل", system: "النظام",
     generalTitle: "إعدادات المتجر العامة", generalDescription: "الإعدادات الأساسية التي تؤثر على المتجر بأكمله",
-    currency: "العملة الافتراضية", iqd: "الدينار العراقي (IQD)", usd: "الدولار الأمريكي (USD)", eur: "اليورو (EUR)",
+    currency: "العملة الافتراضية", iqd: "الدينار العراقي (IQD)", usd: "الدولار الأمريكي (USD)", eur: "اليورو (EUR)", irr: "الريال الإيراني (IRR)",
     timezone: "المنطقة الزمنية", baghdad: "بغداد (Asia/Baghdad)", tehran: "طهران (Asia/Tehran)",
     businessTitle: "ساعات العمل", businessDescription: "حدد ساعات العمل اليومية للمتجر", dailyHours: "ساعات العمل اليومية",
     format: "التنسيق: وقت البدء-وقت الانتهاء (مثال: 8:00-17:00)", systemTitle: "معلومات النظام",
@@ -45,7 +45,7 @@ const SHOP_MANAGEMENT_TRANSLATIONS = {
     loading: "Ayarlar yükleniyor...", title: "Mağaza Yönetimi", subtitle: "Genel mağaza ayarları ve yapılandırması",
     settingsManagement: "Ayar Yönetimi", general: "Genel Ayarlar", business: "Çalışma Saatleri", system: "Sistem",
     generalTitle: "Genel Mağaza Ayarları", generalDescription: "Tüm mağazayı etkileyen temel ayarlar",
-    currency: "Varsayılan Para Birimi", iqd: "Irak Dinarı (IQD)", usd: "ABD Doları (USD)", eur: "Euro (EUR)",
+    currency: "Varsayılan Para Birimi", iqd: "Irak Dinarı (IQD)", usd: "ABD Doları (USD)", eur: "Euro (EUR)", irr: "İran Riyali (IRR)",
     timezone: "Saat Dilimi", baghdad: "Bağdat (Asia/Baghdad)", tehran: "Tahran (Asia/Tehran)",
     businessTitle: "Çalışma Saatleri", businessDescription: "Mağazanın günlük çalışma saatlerini belirleyin", dailyHours: "Günlük Çalışma Saatleri",
     format: "Biçim: başlangıç-bitiş saati (örnek: 8:00-17:00)", systemTitle: "Sistem Bilgileri",
@@ -58,7 +58,7 @@ const SHOP_MANAGEMENT_TRANSLATIONS = {
     loading: "در حال بارگذاری تنظیمات...", title: "مدیریت فروشگاه", subtitle: "تنظیمات عمومی و پیکربندی فروشگاه",
     settingsManagement: "مدیریت تنظیمات", general: "تنظیمات عمومی", business: "ساعات کاری", system: "سیستم",
     generalTitle: "تنظیمات عمومی فروشگاه", generalDescription: "تنظیمات پایه‌ای که بر کل فروشگاه تأثیر می‌گذارد",
-    currency: "واحد پول پیش‌فرض", iqd: "دینار عراقی (IQD)", usd: "دلار آمریکا (USD)", eur: "یورو (EUR)",
+    currency: "واحد پول پیش‌فرض", iqd: "دینار عراقی (IQD)", usd: "دلار آمریکا (USD)", eur: "یورو (EUR)", irr: "ریال ایران (IRR)",
     timezone: "منطقه زمانی", baghdad: "بغداد (Asia/Baghdad)", tehran: "تهران (Asia/Tehran)",
     businessTitle: "ساعات کاری", businessDescription: "تعیین ساعات کاری روزانه فروشگاه", dailyHours: "ساعات کاری روزانه",
     format: "فرمت: ساعت شروع-ساعت پایان (مثال: 8:00-17:00)", systemTitle: "اطلاعات سیستم",
@@ -261,6 +261,7 @@ export default function ShopManagement() {
                      <option value="IQD">{tr("iqd")}</option>
                      <option value="USD">{tr("usd")}</option>
                      <option value="EUR">{tr("eur")}</option>
+                     <option value="IRR">{tr("irr")}</option>
                   </select>
                 </div>
                 <div className="space-y-2">

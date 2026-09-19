@@ -983,6 +983,7 @@ export interface Translation {
     currencyIQD: string;
     currencyUSD: string;
     currencyEUR: string;
+    currencyIRR: string;
     currencyTRY: string;
     currentStock: string;
     addStock: string;
@@ -2155,6 +2156,7 @@ const baseTranslations = {
       currencyIQD: 'Iraqi Dinar (IQD)',
       currencyUSD: 'US Dollar (USD)',
       currencyEUR: 'Euro (EUR)',
+      currencyIRR: 'Iranian Rial (IRR)',
       currencyTRY: 'Turkish Lira (TRY)',
       currentStock: 'Current Stock',
       addStock: 'Add Stock',
@@ -2210,7 +2212,7 @@ const baseTranslations = {
       newBatchField: 'New batch number field',
       selectBatchForEdit: 'Select Batch for editing',
       selectBatchPlaceholderText: 'Select batch...',
-      allBatchesCount: 'All Batches ({count}):',
+      allBatchesCount: 'Batches available for sale ({count}):',
       totalStockLabel: 'Total stock: {stock}',
       onlyWithStock: 'Only batches with stock',
       batch: 'Batch',
@@ -3644,6 +3646,7 @@ const baseTranslations = {
       currencyIQD: 'دينار عراقي (IQD)',
       currencyUSD: 'دولار أمريكي (USD)',
       currencyEUR: 'يورو (EUR)',
+      currencyIRR: 'الريال الإيراني (IRR)',
       currencyTRY: 'ليرة تركية (TRY)',
       currentStock: 'المخزون الحالي',
       addStock: 'إضافة مخزون',
@@ -3699,7 +3702,7 @@ const baseTranslations = {
       newBatchField: 'حقل رقم الدفعة الجديدة',
       selectBatchForEdit: 'اختر الدفعة للتحرير',
       selectBatchPlaceholderText: 'اختر الدفعة...',
-      allBatchesCount: 'جميع الدفعات ({count}):',
+      allBatchesCount: 'الدفعات المتاحة للبيع ({count}):',
       totalStockLabel: 'إجمالي المخزون: {stock}',
       onlyWithStock: 'فقط الدفعات مع المخزون',
       batch: 'دفعة',
@@ -5057,6 +5060,7 @@ const baseTranslations = {
       currencyIQD: 'Irak Dinarı (IQD)',
       currencyUSD: 'ABD Doları (USD)',
       currencyEUR: 'Euro (EUR)',
+      currencyIRR: 'İran Riyali (IRR)',
       currencyTRY: 'Türk Lirası (TRY)',
       currentStock: 'Mevcut Stok',
       addStock: 'Stok Ekle',
@@ -5112,7 +5116,7 @@ const baseTranslations = {
       newBatchField: 'Yeni parti numarası alanı',
       selectBatchForEdit: 'Düzenleme için Parti Seçin',
       selectBatchPlaceholderText: 'Parti seçin...',
-      allBatchesCount: 'Tüm Partiler ({count}):',
+      allBatchesCount: 'Satışa hazır partiler ({count}):',
       totalStockLabel: 'Toplam stok: {stock}',
       onlyWithStock: 'Sadece stoklu partiler',
       batch: 'Parti',
@@ -6022,6 +6026,7 @@ export const translations = {
     currencyIQD: 'دینار عراق (IQD)',
     currencyUSD: 'دلار آمریکا (USD)',
     currencyEUR: 'یورو (EUR)',
+    currencyIRR: 'ریال ایران (IRR)',
     currencyTRY: 'لیر ترکیه (TRY)',
     currentStock: 'موجودی فعلی',
     addStock: 'افزودن موجودی',
@@ -6077,7 +6082,7 @@ export const translations = {
     newBatchField: 'فیلد شماره بچ جدید',
     selectBatchForEdit: 'انتخاب بچ برای ویرایش',
     selectBatchPlaceholderText: 'بچ را انتخاب کنید...',
-    allBatchesCount: 'همه بچ‌ها ({count}):',
+    allBatchesCount: 'بچ‌های موجود برای فروش ({count}):',
     totalStockLabel: 'موجودی کل: {stock}',
     onlyWithStock: 'فقط بچ‌های دارای موجودی',
     batch: 'بچ',

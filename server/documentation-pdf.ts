@@ -900,7 +900,7 @@ const technicalDocumentationEN: DocumentationData = {
         },
         {
           title: "Payment Integration",
-          content: "• Iraqi Banking: Rasheed, Al-Rafidain, Trade Bank\n• Payment Processing: Manual verification workflow\n• Invoice Generation: PDF generation with Puppeteer\n• Currency Support: USD, EUR, IQD\n• Wallet System: Digital balance management"
+          content: "• Iraqi Banking: Rasheed, Al-Rafidain, Trade Bank\n• Payment Processing: Manual verification workflow\n• Invoice Generation: PDF generation with Puppeteer\n• Currency Support: USD, EUR, IQD, IRR\n• Wallet System: Digital balance management"
         },
         {
           title: "AI Services",
@@ -1018,7 +1018,7 @@ const technicalDocumentationFA: DocumentationData = {
         },
         {
           title: "یکپارچگی پرداخت",
-          content: "• Iraqi Banking: رشید، الرافدین، بانک تجاری\n• Payment Processing: گردش کار تأیید دستی\n• Invoice Generation: تولید PDF با Puppeteer\n• Currency Support: USD، EUR، IQD\n• Wallet System: مدیریت موجودی دیجیتال"
+          content: "• Iraqi Banking: رشید، الرافدین، بانک تجاری\n• Payment Processing: گردش کار تأیید دستی\n• Invoice Generation: تولید PDF با Puppeteer\n• Currency Support: USD، EUR، IQD، IRR\n• Wallet System: مدیریت موجودی دیجیتال"
         },
         {
           title: "خدمات AI",
@@ -1380,7 +1380,7 @@ const projectProposalEN: DocumentationData = {
         },
         {
           title: "2. Product Management Module",
-          content: "Comprehensive product catalog system:\n• Showcase products with variants\n• E-commerce products with pricing\n• EAN-13 barcode generation (GS1 compliant)\n• Category management (9 main categories)\n• Inventory tracking and alerts\n• Multi-currency support (USD, EUR, IQD)\n• Product specifications and images"
+          content: "Comprehensive product catalog system:\n• Showcase products with variants\n• E-commerce products with pricing\n• EAN-13 barcode generation (GS1 compliant)\n• Category management (9 main categories)\n• Inventory tracking and alerts\n• Multi-currency support (USD, EUR, IQD, IRR)\n• Product specifications and images"
         },
         {
           title: "3. Barcode Management System",
@@ -1620,7 +1620,7 @@ const projectProposalFA: DocumentationData = {
         },
         {
           title: "۲. ماژول مدیریت محصولات",
-          content: "سیستم جامع کاتالوگ محصولات:\n• محصولات نمایشگاهی با انواع\n• محصولات تجارت الکترونیک با قیمت‌گذاری\n• تولید بارکد EAN-13 (مطابق GS1)\n• مدیریت دسته‌بندی (9 دسته اصلی)\n• ردیابی موجودی و هشدارها\n• پشتیبانی چندارزه (USD، EUR، IQD)\n• مشخصات و تصاویر محصولات"
+          content: "سیستم جامع کاتالوگ محصولات:\n• محصولات نمایشگاهی با انواع\n• محصولات تجارت الکترونیک با قیمت‌گذاری\n• تولید بارکد EAN-13 (مطابق GS1)\n• مدیریت دسته‌بندی (9 دسته اصلی)\n• ردیابی موجودی و هشدارها\n• پشتیبانی چندارزه (USD، EUR، IQD، IRR)\n• مشخصات و تصاویر محصولات"
         },
         {
           title: "۳. سیستم مدیریت بارکد",

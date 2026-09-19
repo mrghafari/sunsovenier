@@ -112,7 +112,7 @@ export default function SalesAnalytics() {
   }
 
   const formatCurrency = (amount: number, currency: string = 'IQD') => {
-    const validCurrencies = ['USD', 'EUR', 'IQD'];
+    const validCurrencies = ['USD', 'EUR', 'IQD', 'IRR'];
     const currencyCode = validCurrencies.includes(currency) ? currency : 'IQD';
     
     return new Intl.NumberFormat('en-US', {

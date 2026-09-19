@@ -614,6 +614,7 @@ const PaymentSettings = () => {
                     <SelectItem value="IQD">{t("currency_IQD")}</SelectItem>
                     <SelectItem value="USD">{t("currency_USD")}</SelectItem>
                     <SelectItem value="EUR">{t("currency_EUR")}</SelectItem>
+                     <SelectItem value="IRR">{t("currency_IRR")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1168,6 +1169,7 @@ const PaymentSettings = () => {
                         <SelectItem value="USD">{t("currency_USD")}</SelectItem>
                         <SelectItem value="IQD">{t("currency_IQD")}</SelectItem>
                         <SelectItem value="EUR">{t("currency_EUR")}</SelectItem>
+                         <SelectItem value="IRR">{t("currency_IRR")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

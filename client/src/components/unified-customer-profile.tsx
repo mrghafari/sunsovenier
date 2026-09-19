@@ -158,7 +158,7 @@ export default function UnifiedCustomerProfile({ customerId, mode = 'view', onUp
   };
 
   const formatCurrency = (amount: string | number, currency: string = 'IQD') => {
-    const validCurrencies = ['USD', 'EUR', 'IQD'];
+    const validCurrencies = ['USD', 'EUR', 'IQD', 'IRR'];
     const currencyCode = validCurrencies.includes(currency) ? currency : 'IQD';
     const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
     

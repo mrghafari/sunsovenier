@@ -914,7 +914,7 @@ export default function CRM() {
   };
 
   const formatCurrency = (amount: string | number, currency: string = 'IQD') => {
-    const validCurrencies = ['USD', 'EUR', 'IQD'];
+    const validCurrencies = ['USD', 'EUR', 'IQD', 'IRR'];
     return crmCurrency(amount, language, validCurrencies.includes(currency) ? currency : 'IQD');
   };
 
