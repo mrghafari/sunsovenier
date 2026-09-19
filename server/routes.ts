@@ -49377,8 +49377,16 @@ momtazchem.com
   // Courier/carrier mobile confirmation. Unlike the admin workflow, GPS is mandatory here.
   app.post('/api/delivery/mobile/verify', requireModuleAccess('delivery_confirmation', 'edit'), requireCustomDeliveryUser, async (req, res) => {
     const { orderNumber, deliveryCode, latitude, longitude, accuracy } = req.body || {};
+    const normalizedOrderNumber = String(orderNumber || '')
+      .trim()
+      .replace(/[۰-۹]/g, digit => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)))
+      .replace(/[٠-٩]/g, digit => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)))
+      .toUpperCase();
+    const canonicalOrderNumber = /^\d+$/.test(normalizedOrderNumber)
+      ? `M${normalizedOrderNumber}`
+      : normalizedOrderNumber;
     const lat = Number(latitude), lng = Number(longitude), gpsAccuracy = Number(accuracy);
-    if (!String(orderNumber || '').trim() || !deliveryCode ||
+    if (!canonicalOrderNumber || !deliveryCode ||
       !Number.isFinite(lat) || lat < -90 || lat > 90 ||
       !Number.isFinite(lng) || lng < -180 || lng > 180 ||
       !Number.isFinite(gpsAccuracy) || gpsAccuracy < 0 || gpsAccuracy > 10000) {
@@ -49386,7 +49394,7 @@ momtazchem.com
     }
     const session = req.session as any;
     const actor = String(session?.customUserId || '');
-    const rate = checkDeliveryCodeRateLimit(actor, String(orderNumber).trim());
+    const rate = checkDeliveryCodeRateLimit(actor, canonicalOrderNumber);
     if (!rate.allowed) return res.status(429).json({ success: false, message: 'کد تحویل اشتباه است' });
     const identity = await pool.query(`
       SELECT cu.id, cu.full_name, cu.phone
@@ -49400,7 +49408,7 @@ momtazchem.com
         // Some valid logistics orders predate or temporarily lack a consolidated row.
         const [order] = await tx.select({ id: orderManagement.id }).from(orderManagement)
             .innerJoin(customerOrders, eq(customerOrders.id, orderManagement.customerOrderId))
-            .where(eq(customerOrders.orderNumber, String(orderNumber).trim())).limit(1);
+            .where(eq(customerOrders.orderNumber, canonicalOrderNumber)).limit(1);
         if (!order) throw new Error('ORDER_NOT_FOUND');
         await tx.execute(sql`SELECT pg_advisory_xact_lock(${order.id})`);
         const [locked] = await tx.select().from(orderManagement).where(eq(orderManagement.id, order.id)).limit(1);
