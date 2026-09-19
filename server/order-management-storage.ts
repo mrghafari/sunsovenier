@@ -41,6 +41,7 @@ import {
   WAREHOUSE_VISIBLE_STATUSES,
   resolveOrderStatus,
 } from "@shared/order-status";
+import { finalizeOrderReservations } from "./cart-inventory-reservation";
 
 export type OrderWeightItem = {
   quantity: string | number | null;
@@ -331,6 +332,13 @@ export class OrderManagementStorage implements IOrderManagementStorage {
       customerOrderId: currentOrder.customerOrderId, 
       currentStatus: currentOrder.currentStatus 
     });
+
+    // Every warehouse UI/API path eventually uses this method. Finalize the
+    // physical FIFO sale here so a generic status endpoint cannot move an order
+    // out of the warehouse while leaving its batch reservations pending.
+    if (newStatus === orderStatuses.WAREHOUSE_APPROVED) {
+      await finalizeOrderReservations(currentOrder.customerOrderId);
+    }
     
     // Update order status and department-specific fields
     const updateData: Partial<OrderManagement> = {

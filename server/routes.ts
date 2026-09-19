@@ -51207,9 +51207,11 @@ momtazchem.com
       // No longer restricted to wallet payments only
       console.log(`📄 [MANUAL CONVERT] Manual conversion requested for order ${orderNumber} with payment method: ${order.paymentMethod}`);
       
-      // Check if order has reached warehouse status
-      const isWarehouseReady = ['warehouse_ready', 'warehouse_pending', 'warehouse_processing', 
-                                'logistics_ready', 'logistics_processing', 'delivered', 'completed'].includes(order.status);
+      // A finalized batch movement is the authoritative warehouse-outbound
+      // signal. Customer-facing status aliases must never turn a proforma into
+      // a final invoice while finance or warehouse review is still pending.
+      const { orderHasFinalizedReservations } = await import('./cart-inventory-reservation');
+      const isWarehouseReady = await orderHasFinalizedReservations(order.id);
       
       if (!isWarehouseReady) {
         return res.status(400).json({

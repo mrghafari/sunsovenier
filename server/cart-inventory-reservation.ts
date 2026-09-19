@@ -208,7 +208,10 @@ export async function reconcileCartReservations(options: OwnerOptions & {
                   cir.status = 'pending'
                   OR (cir.status = 'active' AND cir.expires_at > NOW())
                 )
-                AND cir.owner_key <> $2
+                -- Exclude only this cart's active rows. Pending rows belong to
+                -- submitted orders and must continue holding stock even when a
+                -- customer places several orders from the same session.
+                AND NOT (cir.status = 'active' AND cir.owner_key = $2)
             ), 0)::int AS reserved_quantity
           FROM showcase_products sp
           WHERE sp.is_active = true AND ${matchColumn}
@@ -372,6 +375,118 @@ export async function finalizeOrderReservations(orderId: number) {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
+    // Serialize against cart allocation. Older reservations may overlap because
+    // previous versions ignored pending orders from the same session. Rebuild
+    // this order's allocation from current physical stock before deducting it.
+    await client.query(
+      "SELECT pg_advisory_xact_lock(hashtext('cart-inventory-allocation'::text))",
+    );
+    const pendingRows = await client.query(`
+      SELECT id, owner_key, session_id, customer_id, showcase_product_id,
+             shop_product_id, quantity, expires_at
+      FROM cart_inventory_reservations
+      WHERE order_id = $1 AND status = 'pending'
+      ORDER BY shop_product_id, id
+      FOR UPDATE
+    `, [orderId]);
+
+    const pendingByProduct = new Map<number, typeof pendingRows.rows>();
+    for (const row of pendingRows.rows) {
+      const shopProductId = Number(row.shop_product_id);
+      const productRows = pendingByProduct.get(shopProductId) || [];
+      productRows.push(row);
+      pendingByProduct.set(shopProductId, productRows);
+    }
+
+    for (const [shopProductId, productRows] of pendingByProduct) {
+      const reservedQuantity = productRows.reduce(
+        (sum, row) => sum + Number(row.quantity),
+        0,
+      );
+      // The order-item snapshot is authoritative. A historical bug could attach
+      // stale active rows from the same session to a later order, making the
+      // reservation total larger than what the customer actually purchased.
+      const orderedResult = await client.query(`
+        SELECT COALESCE(SUM(quantity), 0) AS quantity
+        FROM order_items
+        WHERE order_id = $1 AND product_id = $2
+      `, [orderId, shopProductId]);
+      const requestedQuantity = Number(orderedResult.rows[0]?.quantity || 0);
+      if (!Number.isInteger(requestedQuantity) || requestedQuantity <= 0) {
+        throw new Error(
+          `Order ${orderId} has reservations for product ${shopProductId} without a valid order-item quantity`,
+        );
+      }
+      if (reservedQuantity !== requestedQuantity) {
+        console.warn(
+          `⚠️ [INVENTORY FINALIZE] Repairing order ${orderId}, product ${shopProductId}: ` +
+          `reserved ${reservedQuantity}, ordered ${requestedQuantity}`,
+        );
+      }
+      const productResult = await client.query(`
+        SELECT name, barcode
+        FROM shop_products
+        WHERE id = $1
+        FOR UPDATE
+      `, [shopProductId]);
+      if (productResult.rows.length === 0) {
+        throw new Error(`Shop product ${shopProductId} no longer exists`);
+      }
+
+      const shopProduct = productResult.rows[0];
+      const matchColumn = shopProduct.barcode
+        ? "barcode = $1"
+        : "LOWER(TRIM(name)) = LOWER(TRIM($1::text))";
+      const matchValue = shopProduct.barcode || shopProduct.name;
+      const batches = await client.query(`
+        SELECT id, stock_quantity
+        FROM showcase_products
+        WHERE is_active = true AND ${matchColumn} AND stock_quantity > 0
+        ORDER BY created_at ASC, id ASC
+        FOR UPDATE
+      `, [matchValue]);
+
+      const availableQuantity = batches.rows.reduce(
+        (sum, batch) => sum + Number(batch.stock_quantity),
+        0,
+      );
+      if (availableQuantity < requestedQuantity) {
+        throw new InsufficientCartInventoryError(
+          shopProductId,
+          requestedQuantity,
+          availableQuantity,
+        );
+      }
+
+      await client.query(`
+        DELETE FROM cart_inventory_reservations
+        WHERE order_id = $1 AND shop_product_id = $2 AND status = 'pending'
+      `, [orderId, shopProductId]);
+
+      const source = productRows[0];
+      let remaining = requestedQuantity;
+      for (const batch of batches.rows) {
+        if (remaining <= 0) break;
+        const quantity = Math.min(remaining, Number(batch.stock_quantity));
+        await client.query(`
+          INSERT INTO cart_inventory_reservations
+            (owner_key, session_id, customer_id, shop_product_id,
+             showcase_product_id, quantity, status, order_id, expires_at)
+          VALUES ($1, $2, $3, $4, $5, $6, 'pending', $7, $8)
+        `, [
+          source.owner_key,
+          source.session_id,
+          source.customer_id,
+          shopProductId,
+          Number(batch.id),
+          quantity,
+          orderId,
+          source.expires_at,
+        ]);
+        remaining -= quantity;
+      }
+    }
+
     const rows = await client.query(`
       SELECT id, showcase_product_id, shop_product_id, quantity
       FROM cart_inventory_reservations
@@ -529,6 +644,130 @@ export async function orderHasReservations(orderId: number): Promise<boolean> {
     [orderId],
   );
   return (result.rowCount || 0) > 0;
+}
+
+export async function orderHasFinalizedReservations(orderId: number): Promise<boolean> {
+  await ensureCartReservationSchema();
+  const result = await pool.query(
+    `SELECT 1
+     FROM cart_inventory_reservations
+     WHERE order_id = $1 AND status = 'finalized'
+     LIMIT 1`,
+    [orderId],
+  );
+  return (result.rowCount || 0) > 0;
+}
+
+export async function revertPrematureOrderFinalization(orderId: number) {
+  await ensureCartReservationSchema();
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query(
+      "SELECT pg_advisory_xact_lock(hashtext('cart-inventory-allocation'::text))",
+    );
+    const orderResult = await client.query<{
+      current_status: string;
+      warehouse_processed_at: Date | null;
+    }>(`
+      SELECT om.current_status, om.warehouse_processed_at
+      FROM customer_orders co
+      JOIN order_management om ON om.customer_order_id = co.id
+      WHERE co.id = $1
+      FOR UPDATE OF co, om
+    `, [orderId]);
+    if (orderResult.rows.length === 0) {
+      throw new Error(`Order ${orderId} does not exist`);
+    }
+
+    const order = orderResult.rows[0];
+    const preOutboundStatuses = new Set([
+      "finance_pending",
+      "payment_uploaded",
+      "financial_review",
+      "financial_pending",
+      "financial_approved",
+      "warehouse_pending",
+      "warehouse_processing",
+      "warehouse_verified",
+    ]);
+    if (order.warehouse_processed_at || !preOutboundStatuses.has(order.current_status)) {
+      throw new Error(
+        `Order ${orderId} cannot be reverted from workflow status ${order.current_status}`,
+      );
+    }
+
+    const reservations = await client.query<{
+      showcase_product_id: number;
+      shop_product_id: number;
+      quantity: number;
+    }>(`
+      SELECT showcase_product_id, shop_product_id, quantity
+      FROM cart_inventory_reservations
+      WHERE order_id = $1 AND status = 'finalized'
+      ORDER BY showcase_product_id, id
+      FOR UPDATE
+    `, [orderId]);
+    if (reservations.rows.length === 0) {
+      throw new Error(`Order ${orderId} has no finalized inventory to revert`);
+    }
+
+    const shopProductIds = new Set<number>();
+    let restoredQuantity = 0;
+    for (const reservation of reservations.rows) {
+      const quantity = Number(reservation.quantity);
+      restoredQuantity += quantity;
+      shopProductIds.add(Number(reservation.shop_product_id));
+      await client.query(`
+        UPDATE showcase_products
+        SET stock_quantity = stock_quantity + $1, updated_at = NOW()
+        WHERE id = $2
+      `, [quantity, Number(reservation.showcase_product_id)]);
+    }
+
+    await client.query(`
+      UPDATE cart_inventory_reservations
+      SET status = 'pending',
+          finalized_at = NULL,
+          released_at = NULL,
+          updated_at = NOW()
+      WHERE order_id = $1 AND status = 'finalized'
+    `, [orderId]);
+
+    for (const shopProductId of shopProductIds) {
+      await client.query(`
+        UPDATE shop_products shop
+        SET stock_quantity = totals.total_stock,
+            in_stock = totals.total_stock > 0 OR COALESCE(shop.show_when_out_of_stock, false),
+            updated_at = NOW()
+        FROM (
+          SELECT COALESCE(SUM(showcase.stock_quantity), 0)::int AS total_stock
+          FROM showcase_products showcase
+          WHERE showcase.barcode = (
+            SELECT barcode FROM shop_products WHERE id = $1
+          )
+        ) totals
+        WHERE shop.id = $1
+      `, [shopProductId]);
+    }
+
+    await client.query(`
+      UPDATE customer_orders
+      SET invoice_type = 'proforma',
+          invoice_converted_at = NULL,
+          is_proforma = true,
+          updated_at = NOW()
+      WHERE id = $1
+    `, [orderId]);
+
+    await client.query("COMMIT");
+    return { restoredQuantity, restoredBatches: reservations.rows.length };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 export async function releaseExpiredReservations() {
