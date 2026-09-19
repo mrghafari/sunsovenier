@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, MapPin, LogOut, CheckCircle2, Truck, Download, Share2, X, Languages } from "lucide-react";
+import { Loader2, MapPin, LogOut, CheckCircle2, Truck, Download, Share2, X, Languages, Navigation } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { usePWA } from "@/hooks/usePWA";
 import type { Language } from "@/lib/i18n";
@@ -77,6 +77,8 @@ const deliveryCopy = {
     locationDenied: "دسترسی موقعیت برای این سایت مسدود است. در تنظیمات مرورگر، مجوز Location این سایت را روی Allow قرار دهید و دوباره تلاش کنید.",
     locationUnavailable: "گوشی نتوانست موقعیت فعلی را پیدا کند. GPS و اینترنت را بررسی کنید و دوباره تلاش کنید.",
     locationTimeout: "دریافت موقعیت بیش از حد طول کشید. در فضای بازتر دوباره تلاش کنید.",
+    route: "Route", noRoute: "بدون مسیر", routeLoading: "بررسی مسیر...",
+    orderNotFound: "سفارش پیدا نشد",
   },
   ar: {
     loginTitle: "تأكيد تسليم الطلب", loginSubtitle: "دخول شركة النقل",
@@ -93,6 +95,8 @@ const deliveryCopy = {
     locationDenied: "تم حظر إذن الموقع لهذا الموقع. غيّر إذن Location إلى Allow في إعدادات المتصفح ثم حاول مجدداً.",
     locationUnavailable: "تعذر على الهاتف تحديد موقعك الحالي. تحقق من GPS والإنترنت ثم حاول مجدداً.",
     locationTimeout: "استغرق تحديد الموقع وقتاً طويلاً. حاول مرة أخرى في مكان أكثر انفتاحاً.",
+    route: "Route", noRoute: "بدون مسار", routeLoading: "جارٍ التحقق من المسار...",
+    orderNotFound: "لم يتم العثور على الطلب",
   },
   tr: {
     loginTitle: "Sipariş teslimatını onayla", loginSubtitle: "Taşıyıcı girişi",
@@ -109,6 +113,8 @@ const deliveryCopy = {
     locationDenied: "Bu site için konum izni engellenmiş. Tarayıcı ayarlarında Location iznini Allow yapıp tekrar deneyin.",
     locationUnavailable: "Telefon mevcut konumunuzu bulamadı. GPS ve internet bağlantısını kontrol edip tekrar deneyin.",
     locationTimeout: "Konum alınması çok uzun sürdü. Daha açık bir alanda tekrar deneyin.",
+    route: "Route", noRoute: "Rota yok", routeLoading: "Rota kontrol ediliyor...",
+    orderNotFound: "Sipariş bulunamadı",
   },
   en: {
     loginTitle: "Confirm order delivery", loginSubtitle: "Carrier sign in",
@@ -125,6 +131,8 @@ const deliveryCopy = {
     locationDenied: "Location is blocked for this site. Open the browser's site settings, set Location to Allow, and try again.",
     locationUnavailable: "Your phone could not determine its current location. Check GPS and internet access, then try again.",
     locationTimeout: "Getting your location took too long. Move to a more open area and try again.",
+    route: "Route", noRoute: "No route", routeLoading: "Checking route...",
+    orderNotFound: "Order not found",
   },
 } as const;
 
@@ -183,6 +191,8 @@ export default function DeliveryPage() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState(false);
+  const [routeState, setRouteState] = useState<"idle" | "loading" | "available" | "unavailable" | "not-found">("idle");
+  const [routeDestination, setRouteDestination] = useState<{ latitude: number; longitude: number } | null>(null);
 
   const checkAccess = async () => {
     try {
@@ -211,6 +221,54 @@ export default function DeliveryPage() {
     finally { setBusy(false); }
   };
 
+  const checkOrderRoute = async () => {
+    const value = orderNumber.trim();
+    if (!value) {
+      setRouteState("idle");
+      setRouteDestination(null);
+      return;
+    }
+    setRouteState("loading");
+    setRouteDestination(null);
+    try {
+      const response = await fetch(`/api/delivery/mobile/route/${encodeURIComponent(value)}`, {
+        credentials: "include",
+      });
+      if (response.status === 401) {
+        setState("login");
+        setMessage(copy.sessionExpired);
+        return;
+      }
+      if (response.status === 403) {
+        setState("denied");
+        return;
+      }
+      if (response.status === 404) {
+        setRouteState("not-found");
+        return;
+      }
+      if (!response.ok) {
+        setRouteState("idle");
+        return;
+      }
+      const data = await response.json();
+      if (data.hasRoute && Number.isFinite(Number(data.latitude)) && Number.isFinite(Number(data.longitude))) {
+        setRouteDestination({ latitude: Number(data.latitude), longitude: Number(data.longitude) });
+        setRouteState("available");
+      } else {
+        setRouteState("unavailable");
+      }
+    } catch {
+      setRouteState("idle");
+    }
+  };
+
+  const openOrderRoute = () => {
+    if (!routeDestination) return;
+    const destination = `${routeDestination.latitude},${routeDestination.longitude}`;
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`, "_blank", "noopener,noreferrer");
+  };
+
   const submit = async (event: FormEvent) => {
     event.preventDefault(); setBusy(true); setMessage(""); setSuccess(false);
     if (!navigator.geolocation) { setMessage(copy.noGeolocation); setBusy(false); return; }
@@ -232,7 +290,7 @@ export default function DeliveryPage() {
           throw new Error(copy.permissionDenied);
         }
         if (!response.ok || !data.success) throw new Error(data.message || copy.submitFailed);
-        setSuccess(true); setOrderNumber(""); setDeliveryCode("");
+        setSuccess(true); setOrderNumber(""); setDeliveryCode(""); setRouteState("idle"); setRouteDestination(null);
       } catch (error: any) { setMessage(error.message || copy.submitFailed); }
       finally { setBusy(false); }
     };
@@ -268,6 +326,6 @@ export default function DeliveryPage() {
   if (state === "denied") return <><main dir={direction} className="min-h-screen bg-slate-50 flex items-center justify-center p-5"><Card className="w-full max-w-md text-center"><CardContent className="pt-8 space-y-4"><p className="text-red-600 font-semibold">{copy.denied}</p><Button variant="outline" onClick={logout}>{copy.logout}</Button></CardContent></Card></main><DeliveryLanguageSwitcher /><DeliveryInstallPrompt /></>;
   return <><main dir={direction} className="min-h-screen bg-slate-50 px-4 py-6"><div className="mx-auto max-w-md">
     <div className="flex items-center justify-between mb-6"><div><h1 className="text-xl font-bold text-slate-800">{copy.title}</h1><p className="text-sm text-slate-500">{copy.subtitle}</p></div><Button variant="ghost" size="sm" onClick={logout}><LogOut className="me-1 h-4 w-4" />{copy.logout}</Button></div>
-    <Card className="shadow-lg"><CardContent className="pt-6"><form onSubmit={submit} className="space-y-5"><label className="block text-sm font-medium">{copy.orderNumber}<Input className="mt-2" dir="ltr" value={orderNumber} onChange={e => setOrderNumber(e.target.value)} placeholder={copy.orderNumber} required /></label><label className="block text-sm font-medium">{copy.deliveryCode}<Input className="mt-2" dir="ltr" inputMode="numeric" value={deliveryCode} onChange={e => setDeliveryCode(e.target.value)} placeholder={copy.deliveryCode} required /></label><div className="rounded-lg bg-teal-50 p-3 text-sm text-teal-800 flex gap-2"><MapPin className="h-5 w-5 shrink-0" />{copy.gpsNotice}</div>{message && <p className="text-sm text-red-600">{message}</p>}{success && <p className="text-sm text-green-700 flex gap-2"><CheckCircle2 className="h-5 w-5" />{copy.success}</p>}<Button className="w-full h-12 bg-teal-600 hover:bg-teal-700" disabled={busy}>{busy && <Loader2 className="me-2 h-5 w-5 animate-spin" />}{busy ? copy.submitting : copy.submit}</Button></form></CardContent></Card>
+    <Card className="shadow-lg"><CardContent className="pt-6"><form onSubmit={submit} className="space-y-5"><label className="block text-sm font-medium">{copy.orderNumber}<Input className="mt-2" dir="ltr" value={orderNumber} onChange={e => { setOrderNumber(e.target.value); setRouteState("idle"); setRouteDestination(null); }} onBlur={checkOrderRoute} placeholder={copy.orderNumber} required /></label>{routeState === "loading" && <p className="flex items-center gap-2 text-sm text-slate-500"><Loader2 className="h-4 w-4 animate-spin" />{copy.routeLoading}</p>}{routeState === "available" && <Button type="button" variant="outline" className="w-full border-teal-300 text-teal-700 hover:bg-teal-50" onClick={openOrderRoute}><Navigation className="me-2 h-4 w-4" />{copy.route}</Button>}{routeState === "unavailable" && <p className="rounded-lg bg-slate-100 p-3 text-center text-sm font-medium text-slate-600">{copy.noRoute}</p>}{routeState === "not-found" && <p className="text-sm text-red-600">{copy.orderNotFound}</p>}<label className="block text-sm font-medium">{copy.deliveryCode}<Input className="mt-2" dir="ltr" inputMode="numeric" value={deliveryCode} onChange={e => setDeliveryCode(e.target.value)} placeholder={copy.deliveryCode} required /></label><div className="rounded-lg bg-teal-50 p-3 text-sm text-teal-800 flex gap-2"><MapPin className="h-5 w-5 shrink-0" />{copy.gpsNotice}</div>{message && <p className="text-sm text-red-600">{message}</p>}{success && <p className="text-sm text-green-700 flex gap-2"><CheckCircle2 className="h-5 w-5" />{copy.success}</p>}<Button className="w-full h-12 bg-teal-600 hover:bg-teal-700" disabled={busy}>{busy && <Loader2 className="me-2 h-5 w-5 animate-spin" />}{busy ? copy.submitting : copy.submit}</Button></form></CardContent></Card>
   </div></main><DeliveryLanguageSwitcher /><DeliveryInstallPrompt /></>;
 }

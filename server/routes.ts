@@ -49443,6 +49443,50 @@ momtazchem.com
     }
   });
 
+  // Return only the customer's route destination to an authorized delivery user.
+  app.get('/api/delivery/mobile/route/:orderNumber', requireModuleAccess('delivery_confirmation', 'edit'), requireCustomDeliveryUser, async (req, res) => {
+    const normalizedOrderNumber = String(req.params.orderNumber || '')
+      .trim()
+      .replace(/[۰-۹]/g, digit => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)))
+      .replace(/[٠-٩]/g, digit => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)))
+      .toUpperCase();
+    const canonicalOrderNumber = /^\d+$/.test(normalizedOrderNumber)
+      ? `M${normalizedOrderNumber}`
+      : normalizedOrderNumber;
+    if (!canonicalOrderNumber) {
+      return res.status(400).json({ success: false, message: 'شماره سفارش معتبر الزامی است' });
+    }
+
+    try {
+      const [order] = await db.select({
+        gpsLatitude: customerOrders.gpsLatitude,
+        gpsLongitude: customerOrders.gpsLongitude,
+      }).from(customerOrders)
+        .innerJoin(orderManagement, eq(orderManagement.customerOrderId, customerOrders.id))
+        .where(and(
+          eq(customerOrders.orderNumber, canonicalOrderNumber),
+          eq(orderManagement.currentStatus, 'logistics_dispatched'),
+        ))
+        .limit(1);
+
+      if (!order) {
+        return res.status(404).json({ success: false, message: 'سفارش پیدا نشد' });
+      }
+      const latitude = order.gpsLatitude === null ? null : Number(order.gpsLatitude);
+      const longitude = order.gpsLongitude === null ? null : Number(order.gpsLongitude);
+      const hasRoute = Number.isFinite(latitude) && Number.isFinite(longitude);
+      return res.json({
+        success: true,
+        hasRoute,
+        latitude: hasRoute ? latitude : null,
+        longitude: hasRoute ? longitude : null,
+      });
+    } catch (error) {
+      console.error('Mobile delivery route lookup failed:', error);
+      return res.status(500).json({ success: false, message: 'خطا در دریافت مسیر سفارش' });
+    }
+  });
+
   // Courier/carrier mobile confirmation. Unlike the admin workflow, GPS is mandatory here.
   app.post('/api/delivery/mobile/verify', requireModuleAccess('delivery_confirmation', 'edit'), requireCustomDeliveryUser, async (req, res) => {
     const { orderNumber, deliveryCode, latitude, longitude, accuracy } = req.body || {};
