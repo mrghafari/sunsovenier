@@ -1110,15 +1110,18 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
     if (isUserLoggedIn && customerData?.customer) {
       const customer = customerData.customer;
       
-      // Check if second address is specified (PRIORITY 1: Second Address)
-      if (data.secondDeliveryAddress) {
-        // Use second address information
-        deliveryAddress = data.secondDeliveryAddress;
+      const explicitRecipientAddress = data.recipientAddress?.trim();
+      const secondDeliveryAddress = data.secondDeliveryAddress?.trim();
+      const explicitRecipientPhone = data.recipientMobile?.trim() || data.recipientPhone?.trim();
+
+      // The recipient snapshot entered at checkout is authoritative for delivery.
+      if (explicitRecipientAddress || secondDeliveryAddress) {
+        deliveryAddress = explicitRecipientAddress || secondDeliveryAddress || '';
         deliveryCity = data.secondDeliveryCity || customer.city || '';
         deliveryProvince = data.secondDeliveryProvince || customer.province || customer.state || '';
         deliveryCountry = customer.country || '';
         deliveryPostalCode = data.secondDeliveryPostalCode || '';
-        activeDeliveryInfo.addressSource = 'second_address';
+        activeDeliveryInfo.addressSource = explicitRecipientAddress ? 'recipient_address' : 'second_address';
         activeDeliveryInfo.isSecondAddress = true;
       } else {
         // Use CRM default address
@@ -1131,10 +1134,9 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
         activeDeliveryInfo.isSecondAddress = false;
       }
       
-      // Check if different recipient mobile is specified (PRIORITY 2: Different Mobile)
-      if (data.recipientMobile) {
-        // Use specified recipient mobile
-        recipientPhone = data.recipientMobile;
+      // Prefer the recipient mobile entered for this order over the CRM phone.
+      if (explicitRecipientPhone) {
+        recipientPhone = explicitRecipientPhone;
         activeDeliveryInfo.phoneSource = 'different_mobile';
         activeDeliveryInfo.isDifferentMobile = true;
       } else {
@@ -1178,8 +1180,8 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
         city: selectedAddress.city,
         address: `${selectedAddress.address}${selectedAddress.postalCode ? `, ${selectedAddress.postalCode}` : ''}`,
       };
-      // Also use selected address phone as recipient phone if no explicit recipientMobile was set
-      if (!data.recipientMobile && selectedAddress.phone) {
+      // Use the selected saved-address phone only when checkout has no recipient phone.
+      if (!recipientPhone && selectedAddress.phone) {
         recipientPhone = selectedAddress.phone;
         activeDeliveryInfo.phoneSource = 'selected_address';
       }

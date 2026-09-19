@@ -2750,29 +2750,29 @@ const LogisticsManagement = () => {
         </div>
       </div>
 
-      ${orderDetails.shippingAddress ? `
+      ${(orderDetails.recipientAddress || orderDetails.shippingAddress) ? `
       <div class="section">
         <div class="section-title">${t('deliveryAddressLabel')}</div>
         <div class="info-grid">
           <div class="info-item">
             <span class="label">${t('recipientPostalName')}:</span>
-            <span class="value" style="font-size: 16px; font-weight: bold; color: #000;">${orderDetails.shippingAddress.name || t('unknownValue')}</span>
+            <span class="value" style="font-size: 16px; font-weight: bold; color: #000;">${orderDetails.recipientName || orderDetails.shippingAddress?.name || t('unknownValue')}</span>
           </div>
           <div class="info-item">
             <span class="label">${t('recipientPhone')}:</span>
-            <span class="value" style="font-size: 16px; font-weight: bold; color: #000;">${orderDetails.shippingAddress.phone || t('unknownValue')}</span>
+            <span class="value" style="font-size: 16px; font-weight: bold; color: #000;">${orderDetails.recipientPhone || orderDetails.shippingAddress?.phone || t('unknownValue')}</span>
           </div>
           <div class="info-item" style="grid-column: 1 / -1;">
             <span class="label">${t('recipientPostalAddress')}:</span>
-            <span class="value" style="font-size: 18px; font-weight: bold; color: #000; line-height: 1.4;">${orderDetails.shippingAddress.address || t('unknownValue')}</span>
+            <span class="value" style="font-size: 18px; font-weight: bold; color: #000; line-height: 1.4;">${orderDetails.recipientAddress || orderDetails.shippingAddress?.address || t('unknownValue')}</span>
           </div>
           <div class="info-item">
             <span class="label">${t('city')}:</span>
-            <span class="value">${orderDetails.shippingAddress.city || t('unknownValue')}</span>
+            <span class="value">${orderDetails.shippingAddress?.city || t('unknownValue')}</span>
           </div>
           <div class="info-item">
             <span class="label">${t('postalCode')}:</span>
-            <span class="value">${orderDetails.shippingAddress.postalCode || t('unknownValue')}</span>
+            <span class="value">${orderDetails.shippingAddress?.postalCode || t('unknownValue')}</span>
           </div>
         </div>
       </div>` : ''}
@@ -3170,7 +3170,7 @@ const LogisticsManagement = () => {
       }
       const city = selectedAddress?.city || selectedAddress?.cityName || selectedAddress?.province || t('unknown');
       const addressParts = [
-        selectedAddress?.address || selectedAddress?.fullAddress || order.recipientAddress || order.customerAddress,
+        order.recipientAddress || selectedAddress?.address || selectedAddress?.fullAddress || order.customerAddress,
         selectedAddress?.district || selectedAddress?.area,
         selectedAddress?.city || selectedAddress?.cityName,
         selectedAddress?.province,
@@ -3936,7 +3936,7 @@ const LogisticsManagement = () => {
       }
       const city = selectedAddress?.city || selectedAddress?.cityName || selectedAddress?.province || t('unknown');
       const addressParts = [
-        selectedAddress?.address || selectedAddress?.fullAddress || order.recipientAddress || order.customerAddress,
+        order.recipientAddress || selectedAddress?.address || selectedAddress?.fullAddress || order.customerAddress,
         selectedAddress?.district || selectedAddress?.area,
         selectedAddress?.city || selectedAddress?.cityName,
         selectedAddress?.province,

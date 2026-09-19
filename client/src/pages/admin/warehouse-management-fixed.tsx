@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
-import { Package, Search, Filter, ArrowLeft, FileText, Clock, CheckCircle, XCircle, Plus, Edit3, Trash2, Download, Upload, RefreshCw, AlertTriangle, Calendar, Users, TrendingUp, TrendingDown, Eye, BarChart3, Package2, Truck, Weight, Calculator, FileSpreadsheet, ChevronRight, ChevronLeft, Printer, Bell, Mail, MessageSquare, Phone, Save, Edit, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { Package, Search, Filter, ArrowLeft, FileText, Clock, CheckCircle, XCircle, Plus, Edit3, Trash2, Download, Upload, RefreshCw, AlertTriangle, Calendar, Users, TrendingUp, TrendingDown, Eye, BarChart3, Package2, Truck, Weight, Calculator, FileSpreadsheet, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, Printer, Bell, Mail, MessageSquare, Phone, Save, Edit, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import SafeModal from '@/components/SafeModal';
 import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/useAuth';
@@ -85,7 +85,7 @@ const pageTranslations: Record<string, Record<PageLanguage, string>> = {
   unknownPhone: { en: 'Unknown phone', fa: 'شماره نامشخص', ar: 'هاتف غير معروف', tr: 'Bilinmeyen telefon' },
   unknownEmail: { en: 'Unknown email', fa: 'ایمیل نامشخص', ar: 'بريد إلكتروني غير معروف', tr: 'Bilinmeyen e-posta' },
   calculating: { en: 'Calculating...', fa: 'محاسبه...', ar: 'جارٍ الحساب...', tr: 'Hesaplanıyor...' },
-  customerNote: { en: 'Customer note', fa: 'دارای یادداشت مشتری', ar: 'ملاحظة العميل', tr: 'Müşteri notu' },
+  customerNote: { en: 'Customer note', fa: 'یادداشت مشتری', ar: 'ملاحظة العميل', tr: 'Müşteri notu' },
   details: { en: 'Details', fa: 'جزئیات', ar: 'التفاصيل', tr: 'Ayrıntılar' },
   processing: { en: 'Processing...', fa: 'در حال پردازش...', ar: 'جارٍ المعالجة...', tr: 'İşleniyor...' },
   startProcessing: { en: 'Start processing', fa: 'شروع پردازش', ar: 'بدء المعالجة', tr: 'İşlemeyi başlat' },
@@ -280,6 +280,7 @@ interface Order {
   warehouseNotes?: string;
   financialReviewedAt?: string;
   financialNotes?: string;
+  customerNotes?: string;
   quantity: number;
   paymentDate: string;
   expectedDeliveryDate?: string;
@@ -324,6 +325,7 @@ const WarehouseManagementFixed: React.FC = () => {
   const [quickNoteOrder, setQuickNoteOrder] = useState<Order | null>(null);
   const [quickNoteText, setQuickNoteText] = useState('');
   const [savingNotes, setSavingNotes] = useState(false);
+  const [expandedCustomerNoteOrderId, setExpandedCustomerNoteOrderId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState("orders");
   const [orderView, setOrderView] = useState<'current' | 'history'>('current');
   const [orderSort, setOrderSort] = useState<{ key: OrderSortKey; direction: SortDirection }>({
@@ -1263,11 +1265,34 @@ const WarehouseManagementFixed: React.FC = () => {
                          </tr>
                        </thead>
                        <tbody>
-                         {displayedOrders.map((order: Order, index: number) => (
-                           <tr key={order.id} className="odd:bg-white even:bg-slate-50 hover:bg-blue-50">
+                          {displayedOrders.map((order: Order, index: number) => {
+                            const customerNote = order.customerNotes?.trim() || '';
+                            const hasCustomerNote = Boolean(customerNote);
+                            const isCustomerNoteExpanded = expandedCustomerNoteOrderId === order.id;
+
+                            return (
+                            <React.Fragment key={order.id}>
+                            <tr className="odd:bg-white even:bg-slate-50 hover:bg-blue-50">
                              <th scope="row" className="border border-slate-200 px-3 py-2 text-center font-medium text-slate-600">{index + 1}</th>
                              <td className="border border-slate-200 px-3 py-2 font-medium whitespace-nowrap">
-                               <div className="font-bold text-blue-600">{order.orderNumber || `#${order.id}`}</div>
+                                <button
+                                  type="button"
+                                  disabled={!hasCustomerNote}
+                                  aria-expanded={hasCustomerNote ? isCustomerNoteExpanded : undefined}
+                                  onClick={() => hasCustomerNote && setExpandedCustomerNoteOrderId(isCustomerNoteExpanded ? null : order.id)}
+                                  className={`inline-flex items-center gap-1.5 rounded px-1 py-0.5 font-bold text-blue-600 ${hasCustomerNote ? 'hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500' : 'cursor-default'}`}
+                                  title={hasCustomerNote ? t('customerNote') : undefined}
+                                >
+                                  {hasCustomerNote && (
+                                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-100" aria-hidden="true" />
+                                  )}
+                                  <span>{order.orderNumber || `#${order.id}`}</span>
+                                  {hasCustomerNote && (
+                                    isCustomerNoteExpanded
+                                      ? <ChevronUp className="h-3.5 w-3.5 text-emerald-700" aria-hidden="true" />
+                                      : <ChevronDown className="h-3.5 w-3.5 text-emerald-700" aria-hidden="true" />
+                                  )}
+                                </button>
                              </td>
                              <td className="border border-slate-200 px-3 py-2">
                                <span className="font-medium text-slate-800 break-words">{
@@ -1394,7 +1419,22 @@ const WarehouseManagementFixed: React.FC = () => {
                                </div>
                              </td>
                            </tr>
-                         ))}
+                            {isCustomerNoteExpanded && (
+                              <tr className="bg-emerald-50/70">
+                                <td colSpan={11} className="border border-emerald-200 p-0">
+                                  <div className="border-s-4 border-emerald-500 px-4 py-3">
+                                    <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-emerald-800">
+                                      <FileText className="h-4 w-4" aria-hidden="true" />
+                                      {t('customerNote')}
+                                    </div>
+                                    <p className="whitespace-pre-wrap break-words text-sm leading-6 text-slate-900">{customerNote}</p>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                            </React.Fragment>
+                            );
+                          })}
                        </tbody>
                      </table>
                    </div>

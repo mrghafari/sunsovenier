@@ -25,3 +25,4 @@
 - [Department middleware typing](department-middleware-typing.md) — department middleware uses a narrower authenticated request type and needs explicit Express handler adaptation when composed.
 - [Wouter prefix migrations](wouter-prefix-migrations.md) — change visible route declarations and direct auth redirects; custom parser remapping does not reliably affect Switch selection.
 - [Legacy duplicate product SKUs](legacy-duplicate-product-skus.md) — preserve edits to legacy duplicate-SKU products; enforce uniqueness only when the SKU itself changes.
+- [Delivery recipient snapshots](delivery-recipient-snapshots.md) — delivery must prefer the order’s checkout recipient address and phone over the customer profile.

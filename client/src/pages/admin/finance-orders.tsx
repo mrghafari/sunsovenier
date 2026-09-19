@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useOrderNotifications } from "@/hooks/useOrderNotifications";
@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertTriangle, CheckCircle, Clock, CreditCard, DollarSign, RefreshCw, Timer, ChevronRight, XCircle, FileText, Eye, Download, Truck, MapPin, ZoomIn, ZoomOut, RotateCw, Move, X, Wallet, Calculator, ArrowUpDown, ArrowUp, ArrowDown, Loader2 } from "lucide-react";
+import { AlertTriangle, CheckCircle, Clock, CreditCard, DollarSign, RefreshCw, Timer, ChevronRight, ChevronDown, ChevronUp, XCircle, FileText, Eye, Download, Truck, MapPin, ZoomIn, ZoomOut, RotateCw, Move, X, Wallet, Calculator, ArrowUpDown, ArrowUp, ArrowDown, Loader2, Save } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getOrderStatusLabel, resolveOrderStatus } from "@shared/order-status";
@@ -45,6 +45,8 @@ interface OrderManagement {
   };
   paymentReceiptUrl?: string;
   financialNotes?: string;
+  customerNotes?: string;
+  notes?: string;
   [key: string]: any; // For additional properties
 }
 
@@ -212,6 +214,9 @@ const pageTranslations: Record<string, Record<PageLanguage, string>> = {
   receiptAvailable: { en: 'Available', fa: 'موجود', ar: 'متوفر', tr: 'Mevcut' },
   noReceipt: { en: 'No receipt', fa: 'بدون رسید', ar: 'لا يوجد إيصال', tr: 'Makbuz yok' },
   financialNote: { en: 'Financial note', fa: 'یادداشت مالی', ar: 'الملاحظة المالية', tr: 'Finans notu' },
+  saveNote: { en: 'Save note', fa: 'ذخیره یادداشت', ar: 'حفظ الملاحظة', tr: 'Notu kaydet' },
+  noteSaved: { en: 'Financial note saved', fa: 'یادداشت مالی ذخیره شد', ar: 'تم حفظ الملاحظة المالية', tr: 'Finans notu kaydedildi' },
+  noteSaveError: { en: 'Unable to save the financial note', fa: 'ذخیره یادداشت مالی انجام نشد', ar: 'تعذر حفظ الملاحظة المالية', tr: 'Finans notu kaydedilemedi' },
   status: { en: 'Status', fa: 'وضعیت', ar: 'الحالة', tr: 'Durum' },
   actions: { en: 'Actions', fa: 'عملیات', ar: 'الإجراءات', tr: 'İşlemler' },
   ordersTable: { en: 'Financial approval orders', fa: 'سفارش‌های تأیید مالی', ar: 'طلبات الموافقة المالية', tr: 'Finansal onay siparişleri' },
@@ -351,6 +356,8 @@ function FinanceOrders() {
   const [selectedOrder, setSelectedOrder] = useState<OrderManagement | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [reviewNotes, setReviewNotes] = useState("");
+  const [financialNoteDrafts, setFinancialNoteDrafts] = useState<Record<number, string>>({});
+  const [expandedCustomerNoteOrderId, setExpandedCustomerNoteOrderId] = useState<number | null>(null);
   const [receiptAmount, setReceiptAmount] = useState("");
   const [walletBalance, setWalletBalance] = useState<number>(0);
   const [walletLoading, setWalletLoading] = useState(false);
@@ -631,6 +638,31 @@ function FinanceOrders() {
       description: t('refreshedDescription'),
     });
   }, [refetch, refetchApproved, toast]);
+
+  const saveFinancialNoteMutation = useMutation({
+    mutationFn: async ({ customerOrderId, notes }: { customerOrderId: number; notes: string }) =>
+      apiRequest(`/api/finance/orders/${customerOrderId}/notes`, {
+        method: 'POST',
+        body: { notes },
+      }),
+    onSuccess: async (_data, variables) => {
+      setFinancialNoteDrafts((current) => {
+        const next = { ...current };
+        delete next[variables.customerOrderId];
+        return next;
+      });
+      await queryClient.invalidateQueries({ queryKey: ['/api/financial/orders'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/financial/approved-orders'] });
+      toast({ title: t('noteSaved') });
+    },
+    onError: (error: any) => {
+      toast({
+        title: t('noteSaveError'),
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
 
   // Fetch order details function for admin users
   const fetchOrderDetails = useCallback(async (orderNumber: string) => {
@@ -1317,11 +1349,29 @@ function FinanceOrders() {
               [customerInfo.firstName, customerInfo.lastName].filter(Boolean).join(' ') ||
               t('unknown');
             const receiptUrl = order.receipt?.url || order.paymentReceiptUrl;
+            const customerNote = (order.customerNotes || order.notes || '').trim();
+            const hasCustomerNote = Boolean(customerNote);
+            const isCustomerNoteExpanded = expandedCustomerNoteOrderId === order.id;
+            const noteDraft = financialNoteDrafts[order.customerOrderId] ?? order.financialNotes ?? '';
 
             return (
-              <tr key={order.id} className="odd:bg-white even:bg-slate-50 hover:bg-blue-50">
+              <React.Fragment key={order.id}>
+              <tr className="odd:bg-white even:bg-slate-50 hover:bg-blue-50">
                 <th scope="row" className="border border-slate-200 px-3 py-2 text-center font-medium text-slate-600">{index + 1}</th>
-                <td className="border border-slate-200 px-3 py-2 font-medium whitespace-nowrap">#{order.orderNumber}</td>
+                <td className="border border-slate-200 px-3 py-2 font-medium whitespace-nowrap">
+                  <button
+                    type="button"
+                    disabled={!hasCustomerNote}
+                    aria-expanded={hasCustomerNote ? isCustomerNoteExpanded : undefined}
+                    onClick={() => hasCustomerNote && setExpandedCustomerNoteOrderId(isCustomerNoteExpanded ? null : order.id)}
+                    className={`inline-flex items-center gap-1.5 rounded px-1 py-0.5 ${hasCustomerNote ? 'hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500' : 'cursor-default'}`}
+                    title={hasCustomerNote ? t('customerNote') : undefined}
+                  >
+                    {hasCustomerNote && <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-100" />}
+                    <span>#{order.orderNumber}</span>
+                    {hasCustomerNote && (isCustomerNoteExpanded ? <ChevronUp className="h-3.5 w-3.5 text-emerald-700" /> : <ChevronDown className="h-3.5 w-3.5 text-emerald-700" />)}
+                  </button>
+                </td>
                 <td className="border border-slate-200 px-3 py-2">
                   <span className="font-medium text-slate-800">{customerName}</span>
                 </td>
@@ -1364,9 +1414,31 @@ function FinanceOrders() {
                   )}
                 </td>
                 <td className="w-[150px] border border-slate-200 px-3 py-2 align-top whitespace-normal">
-                  <span className="block max-w-[150px] whitespace-normal break-words leading-5" title={order.financialNotes || undefined}>
-                    {order.financialNotes || t('unknown')}
-                  </span>
+                  <div className="space-y-1.5">
+                    <Textarea
+                      value={noteDraft}
+                      onChange={(event) => setFinancialNoteDrafts((current) => ({
+                        ...current,
+                        [order.customerOrderId]: event.target.value,
+                      }))}
+                      placeholder={t('notesPlaceholder')}
+                      className="min-h-16 resize-y text-xs"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 w-full px-2 text-xs"
+                      disabled={saveFinancialNoteMutation.isPending}
+                      onClick={() => saveFinancialNoteMutation.mutate({
+                        customerOrderId: order.customerOrderId,
+                        notes: noteDraft,
+                      })}
+                    >
+                      {saveFinancialNoteMutation.isPending ? <Loader2 className="me-1 h-3.5 w-3.5 animate-spin" /> : <Save className="me-1 h-3.5 w-3.5" />}
+                      {t('saveNote')}
+                    </Button>
+                  </div>
                 </td>
                 <td className="border border-slate-200 px-3 py-2">
                   <div className="flex flex-wrap items-center gap-1.5 whitespace-nowrap">
@@ -1387,6 +1459,20 @@ function FinanceOrders() {
                   </div>
                 </td>
               </tr>
+              {isCustomerNoteExpanded && (
+                <tr className="bg-emerald-50/70">
+                  <td colSpan={11} className="border border-emerald-200 p-0">
+                    <div className="border-s-4 border-emerald-500 px-4 py-3">
+                      <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-emerald-800">
+                        <FileText className="h-4 w-4" />
+                        {t('customerNote')}
+                      </div>
+                      <p className="whitespace-pre-wrap break-words text-sm leading-6 text-slate-900">{customerNote}</p>
+                    </div>
+                  </td>
+                </tr>
+              )}
+              </React.Fragment>
             );
           })}
         </tbody>
