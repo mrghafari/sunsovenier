@@ -6090,7 +6090,7 @@ const LogisticsManagement = () => {
                   </h3>
                   {(!user || ((adminUser as any)?.success === false && (adminUser as any)?.message?.includes('Access denied'))) && (
                     <Button
-                      onClick={() => window.location.href = '/admin/login'}
+                      onClick={() => window.location.href = '/mrg/login'}
                       size="sm"
                       variant="outline"
                       className="text-xs border-orange-300 text-orange-700 hover:bg-orange-100"

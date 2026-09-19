@@ -720,7 +720,7 @@ export default function CompanyInformation() {
        toast({ title: tx('خطا'), description: message, variant: "destructive" });
        if (message.includes('session') || message.includes('نشست مدیریت')) {
         window.setTimeout(() => {
-          window.location.href = '/admin/login';
+          window.location.href = '/mrg/login';
         }, 1200);
       }
     }
@@ -757,7 +757,7 @@ export default function CompanyInformation() {
        toast({ title: tx('خطا'), description: message, variant: "destructive" });
        if (message.includes('session') || message.includes('نشست مدیریت')) {
         window.setTimeout(() => {
-          window.location.href = '/admin/login';
+          window.location.href = '/mrg/login';
         }, 1200);
       }
     }
@@ -796,7 +796,7 @@ export default function CompanyInformation() {
       });
        if (message.includes('session') || message.includes('نشست مدیریت')) {
         window.setTimeout(() => {
-          window.location.href = '/admin/login';
+          window.location.href = '/mrg/login';
         }, 1200);
       }
     } finally {

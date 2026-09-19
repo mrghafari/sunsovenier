@@ -831,7 +831,7 @@ const PaymentSettings = () => {
             <Button
               variant="secondary"
               onClick={() => {
-                window.location.href = '/admin/fib-settings';
+                window.location.href = '/mrg/fib-settings';
               }}
               className="flex items-center gap-2"
             >

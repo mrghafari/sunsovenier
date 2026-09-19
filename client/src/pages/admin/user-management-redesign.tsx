@@ -1117,7 +1117,7 @@ function UserManagement() {
               {t.loginRequired}
             </p>
             <Button 
-              onClick={() => window.location.href = '/admin/login'} 
+              onClick={() => window.location.href = '/mrg/login'} 
               className="w-full"
             >
               {t.adminLogin}

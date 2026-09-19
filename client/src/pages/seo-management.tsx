@@ -839,7 +839,7 @@ export default function SeoManagement() {
                   </CardDescription>
                 </div>
                 <Button asChild>
-                  <a href="/admin/blog-management" className="flex items-center gap-2">
+                  <a href="/mrg/blog-management" className="flex items-center gap-2">
                     <BookOpen className="h-4 w-4" />
                     {l("Full Blog Management")}
                   </a>

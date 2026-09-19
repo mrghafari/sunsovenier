@@ -359,7 +359,7 @@ export default function AdminPage() {
   };
 
   return (
-    <AuthGuard requireAuth={true} redirectTo="/admin/login">
+    <AuthGuard requireAuth={true} redirectTo="/mrg/login">
       <AdminDashboardContent 
         user={user}
         logout={logout}

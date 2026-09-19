@@ -160,10 +160,10 @@ const InquiryDetail = () => {
     const checkAuth = async () => {
       try {
         const response = await fetch("/api/admin/check-auth");
-        if (!response.ok) window.location.href = "/admin/login";
+        if (!response.ok) window.location.href = "/mrg/login";
       } catch (error) {
         console.error("Auth check failed:", error);
-        window.location.href = "/admin/login";
+        window.location.href = "/mrg/login";
       }
     };
     checkAuth();
@@ -250,7 +250,7 @@ const InquiryDetail = () => {
     <div dir={direction} className="min-h-[100dvh] bg-gray-50">
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8"><div className="text-center">
         <h1 className="mb-4 text-2xl font-bold text-gray-900">{t.notFound}</h1>
-        <Link href="/admin/inquiries" className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">
+        <Link href="/mrg/inquiries" className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">
           <ArrowLeft className="me-2 h-4 w-4 rtl:rotate-180" />{t.back}
         </Link>
       </div></div>
@@ -261,7 +261,7 @@ const InquiryDetail = () => {
     <div dir={direction} className="min-h-[100dvh] bg-gray-50">
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-6">
-          <Link href="/admin/inquiries" className="mb-4 inline-flex h-10 items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent">
+          <Link href="/mrg/inquiries" className="mb-4 inline-flex h-10 items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent">
             <ArrowLeft className="me-2 h-4 w-4 rtl:rotate-180" />{t.back}
           </Link>
           <div className="flex flex-wrap items-center justify-between gap-3">

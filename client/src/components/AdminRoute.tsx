@@ -6,7 +6,7 @@ interface AdminRouteProps {
 
 export default function AdminRoute({ children }: AdminRouteProps) {
   return (
-    <AuthGuard requireAuth={true} redirectTo="/admin/login">
+    <AuthGuard requireAuth={true} redirectTo="/mrg/login">
       {children}
     </AuthGuard>
   );

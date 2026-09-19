@@ -168,7 +168,7 @@ export default function InventoryAlerts() {
         </div>
         
         <div className="flex gap-3">
-          <Link href="/admin/inventory-notification-settings">
+          <Link href="/mrg/inventory-notification-settings">
             <Button 
               variant="outline"
               className="border-purple-300 text-purple-700 hover:bg-purple-50"

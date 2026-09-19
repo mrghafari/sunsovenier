@@ -333,7 +333,7 @@ const WarehouseManagement: React.FC = () => {
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!authLoading && !user) {
-      window.location.href = '/admin/login';
+      window.location.href = '/mrg/login';
     }
   }, [user, authLoading]);
   
@@ -360,7 +360,7 @@ const WarehouseManagement: React.FC = () => {
           </CardHeader>
           <CardContent>
             <Button 
-              onClick={() => window.location.href = '/admin/login'}
+              onClick={() => window.location.href = '/mrg/login'}
               className="w-full"
             >
               ورود به سیستم

@@ -470,7 +470,7 @@ export default function OrderTrackingManagement() {
       if (!response.ok) {
         // If authentication fails, redirect to login
         if (response.status === 401) {
-          window.location.href = '/admin/login';
+          window.location.href = '/mrg/login';
           return { orders: [], pagination: null };
         }
         throw new Error('Failed to fetch tracking orders');
@@ -528,7 +528,7 @@ export default function OrderTrackingManagement() {
       });
       if (!response.ok) {
         if (response.status === 401) {
-          window.location.href = '/admin/login';
+          window.location.href = '/mrg/login';
           return {};
         }
         throw new Error('Failed to fetch order statistics');
@@ -911,7 +911,7 @@ export default function OrderTrackingManagement() {
           <h2 className="mt-4 text-xl font-bold text-gray-800">{t('sessionExpired')}</h2>
           <p className="mt-2 text-gray-600">{t('signInAgainMessage')}</p>
           <button 
-            onClick={() => window.location.href = '/admin/login'}
+            onClick={() => window.location.href = '/mrg/login'}
             className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             {t('signInAgain')}

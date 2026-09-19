@@ -111,10 +111,10 @@ const Dashboard = () => {
     const checkAuth = async () => {
       try {
         const response = await fetch("/api/admin/check-auth");
-        if (!response.ok) window.location.href = "/admin/login";
+        if (!response.ok) window.location.href = "/mrg/login";
       } catch (error) {
         console.error("Auth check failed:", error);
-        window.location.href = "/admin/login";
+        window.location.href = "/mrg/login";
       }
     };
     checkAuth();

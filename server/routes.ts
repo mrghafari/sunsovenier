@@ -1,4 +1,4 @@
-import express, { type Express, Request, Response, NextFunction } from "express";
+import express, { type Express, type RequestHandler, Request, Response, NextFunction } from "express";
 import { registerFibRoutes } from "./fib-routes";
 import { createServer, type Server } from "http";
 import { logBuffer } from "./log-buffer";
@@ -44591,7 +44591,12 @@ momtazchem.com
   });
 
   // Warehouse Department - Save notes without approval/rejection
-  app.post("/api/warehouse/orders/:orderId/notes", requireAuth, async (req: Request, res: Response) => {
+  app.post(
+    "/api/warehouse/orders/:orderId/notes",
+    requireAuth,
+    attachUserDepartments as RequestHandler,
+    requireDepartment('warehouse') as RequestHandler,
+    async (req: Request, res: Response) => {
     try {
       const { db } = await import("./db");
       const { orderManagement } = await import("../shared/order-management-schema");
@@ -44636,7 +44641,8 @@ momtazchem.com
         error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
-  });
+    },
+  );
 
 
   // Warehouse Department - Stage 1: Verify order inventory

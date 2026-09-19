@@ -157,6 +157,8 @@ const pageTranslations: Record<string, Record<PageLanguage, string>> = {
   finance: { en: 'Finance', fa: 'بخش مالی', ar: 'المالية', tr: 'Finans' },
   paymentNote: { en: 'Payment approval note', fa: 'یادداشت تایید پرداخت', ar: 'ملاحظة اعتماد الدفع', tr: 'Ödeme onay notu' },
   warehouseNotes: { en: 'Warehouse notes', fa: 'یادداشت انبار', ar: 'ملاحظات المستودع', tr: 'Depo notları' },
+  addWarehouseNote: { en: 'Add warehouse note', fa: 'ثبت یادداشت انبار', ar: 'إضافة ملاحظة المستودع', tr: 'Depo notu ekle' },
+  editWarehouseNote: { en: 'Edit warehouse note', fa: 'ویرایش یادداشت انبار', ar: 'تعديل ملاحظة المستودع', tr: 'Depo notunu düzenle' },
   notePlaceholder: { en: 'Note for this order...', fa: 'یادداشت برای این سفارش...', ar: 'ملاحظة لهذا الطلب...', tr: 'Bu sipariş için not...' },
   saveNote: { en: 'Save note', fa: 'ذخیره یادداشت', ar: 'حفظ الملاحظة', tr: 'Notu kaydet' },
   cancel: { en: 'Cancel', fa: 'انصراف', ar: 'إلغاء', tr: 'İptal' },
@@ -319,6 +321,8 @@ const WarehouseManagementFixed: React.FC = () => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showOrderDetails, setShowOrderDetails] = useState(false);
   const [warehouseNotes, setWarehouseNotes] = useState('');
+  const [quickNoteOrder, setQuickNoteOrder] = useState<Order | null>(null);
+  const [quickNoteText, setQuickNoteText] = useState('');
   const [savingNotes, setSavingNotes] = useState(false);
   const [activeTab, setActiveTab] = useState("orders");
   const [orderView, setOrderView] = useState<'current' | 'history'>('current');
@@ -1040,6 +1044,41 @@ const WarehouseManagementFixed: React.FC = () => {
     }
   };
 
+  const openQuickNoteEditor = (order: Order) => {
+    setQuickNoteOrder(order);
+    setQuickNoteText(order.warehouseNotes || '');
+  };
+
+  const closeQuickNoteEditor = () => {
+    if (saveNotesMutation.isPending) return;
+    setQuickNoteOrder(null);
+    setQuickNoteText('');
+  };
+
+  const handleQuickNoteSave = async () => {
+    if (!quickNoteOrder) return;
+
+    try {
+      await saveNotesMutation.mutateAsync({
+        customerOrderId: quickNoteOrder.customerOrderId,
+        notes: quickNoteText.trim(),
+      });
+      await refetchOrders();
+      toast({
+        title: t('noteSaved'),
+        description: t('noteSavedDescription'),
+      });
+      setQuickNoteOrder(null);
+      setQuickNoteText('');
+    } catch {
+      toast({
+        title: t('saveError'),
+        description: t('noteSaveError'),
+        variant: 'destructive',
+      });
+    }
+  };
+
   const clearAllFilters = () => {
     setOrderIdFilter('');
     setCustomerNameFilter('');
@@ -1267,15 +1306,25 @@ const WarehouseManagementFixed: React.FC = () => {
                                  {getStatusBadge(order.currentStatus || order.status)}
                                </div>
                              </td>
-                             <td className="w-[140px] border border-slate-200 px-3 py-2 align-top whitespace-normal">
-                                {order.warehouseNotes?.trim() ? (
-                                  <div className="bg-purple-50 text-purple-800 border border-purple-200 px-2 py-1.5 rounded text-xs inline-flex items-start gap-1.5 whitespace-pre-wrap break-words">
-                                   <Edit3 className="w-3 h-3 shrink-0" />
-                                    <span>{order.warehouseNotes}</span>
-                                 </div>
-                               ) : (
-                                 <span className="text-gray-400 text-xs">—</span>
-                               )}
+                              <td className="w-[140px] border border-slate-200 p-1 align-top whitespace-normal">
+                                <button
+                                  type="button"
+                                  onClick={() => openQuickNoteEditor(order)}
+                                  aria-label={`${order.warehouseNotes?.trim() ? t('editWarehouseNote') : t('addWarehouseNote')} ${order.orderNumber || order.id}`}
+                                  className="min-h-10 w-full rounded px-2 py-1.5 text-start transition-colors hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1"
+                                >
+                                  {order.warehouseNotes?.trim() ? (
+                                    <span className="bg-purple-50 text-purple-800 border border-purple-200 px-2 py-1.5 rounded text-xs inline-flex items-start gap-1.5 whitespace-pre-wrap break-words">
+                                      <Edit3 className="w-3 h-3 shrink-0" />
+                                      <span>{order.warehouseNotes}</span>
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 text-xs text-purple-700">
+                                      <Plus className="h-3.5 w-3.5" />
+                                      {t('addWarehouseNote')}
+                                    </span>
+                                  )}
+                                </button>
                              </td>
                              <td className="border border-slate-200 px-3 py-2">
                                <div className="flex flex-wrap items-center gap-1.5 whitespace-nowrap">
@@ -1645,6 +1694,57 @@ const WarehouseManagementFixed: React.FC = () => {
             </Card>
           </TabsContent>
         </Tabs>
+
+        <SafeModal
+          isOpen={quickNoteOrder !== null}
+          onClose={closeQuickNoteEditor}
+          title={`${quickNoteOrder?.warehouseNotes?.trim() ? t('editWarehouseNote') : t('addWarehouseNote')} — ${quickNoteOrder?.orderNumber || `#${quickNoteOrder?.customerOrderId || ''}`}`}
+          maxWidth="max-w-lg"
+          maxHeight="max-h-[60vh]"
+        >
+          <div className="space-y-4 p-6">
+            <div className="space-y-2">
+              <Label htmlFor="quickWarehouseNote">{t('warehouseNotes')}</Label>
+              <Textarea
+                id="quickWarehouseNote"
+                value={quickNoteText}
+                onChange={(event) => setQuickNoteText(event.target.value)}
+                placeholder={t('notePlaceholder')}
+                rows={5}
+                autoFocus
+                disabled={saveNotesMutation.isPending}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={closeQuickNoteEditor}
+                disabled={saveNotesMutation.isPending}
+              >
+                {t('cancel')}
+              </Button>
+              <Button
+                type="button"
+                onClick={handleQuickNoteSave}
+                disabled={saveNotesMutation.isPending}
+                aria-busy={saveNotesMutation.isPending}
+              >
+                {saveNotesMutation.isPending ? (
+                  <>
+                    <RefreshCw className="me-2 h-4 w-4 animate-spin" />
+                    {t('saving')}
+                  </>
+                ) : (
+                  <>
+                    <Save className="me-2 h-4 w-4" />
+                    {t('saveNote')}
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </SafeModal>
 
         {/* Order Details Modal - Using SafeModal (No React Portal Issues) */}
         <SafeModal

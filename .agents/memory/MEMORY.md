@@ -22,3 +22,5 @@
 - [Cart batch reservations](cart-batch-reservations.md) — cart holds reduce sellable availability; physical FIFO batches change only on verified payment.
 - [Shared batch barcodes](shared-batch-barcodes.md) — batch rows may intentionally share a barcode; unchanged barcodes must not block editing an individual batch.
 - [Vite development error handling](vite-development-error-handling.md) — transient browser/HMR errors must be logged without terminating the development server.
+- [Department middleware typing](department-middleware-typing.md) — department middleware uses a narrower authenticated request type and needs explicit Express handler adaptation when composed.
+- [Wouter prefix migrations](wouter-prefix-migrations.md) — change visible route declarations and direct auth redirects; custom parser remapping does not reliably affect Switch selection.

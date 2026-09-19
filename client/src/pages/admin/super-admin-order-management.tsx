@@ -185,7 +185,7 @@ export default function SuperAdminOrderManagement() {
     return <Badge variant="outline" className="whitespace-nowrap">{label}</Badge>;
   };
 
-  if (isUnauthenticated || isForbidden) return <div dir={direction} className="min-h-[100dvh] bg-slate-950 p-6 flex items-center justify-center"><Card className="max-w-md w-full border-red-900 bg-slate-900 text-slate-100"><CardHeader><CardTitle className="flex items-center gap-2 text-red-300"><Shield />{isForbidden ? c.forbidden : c.auth}</CardTitle></CardHeader><CardContent><p className="text-slate-300 mb-5">{isForbidden ? c.forbiddenHint : c.authHint}</p><Button onClick={() => window.location.href = isForbidden ? "/admin" : "/admin/login"}>{isForbidden ? c.back : c.signIn}</Button></CardContent></Card></div>;
+  if (isUnauthenticated || isForbidden) return <div dir={direction} className="min-h-[100dvh] bg-slate-950 p-6 flex items-center justify-center"><Card className="max-w-md w-full border-red-900 bg-slate-900 text-slate-100"><CardHeader><CardTitle className="flex items-center gap-2 text-red-300"><Shield />{isForbidden ? c.forbidden : c.auth}</CardTitle></CardHeader><CardContent><p className="text-slate-300 mb-5">{isForbidden ? c.forbiddenHint : c.authHint}</p><Button onClick={() => window.location.href = isForbidden ? "/mrg" : "/mrg/login"}>{isForbidden ? c.back : c.signIn}</Button></CardContent></Card></div>;
 
   const updateColumnFilter = (key: keyof typeof columnFilters, value: string) => setColumnFilters(previous => ({ ...previous, [key]: value }));
   const filterInput = (key: keyof typeof columnFilters, placeholder: string, type = "text") => {
