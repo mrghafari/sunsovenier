@@ -1118,12 +1118,18 @@ export default function ProductsPage() {
       }
 
       const { key, originalName } = await response.json();
+      const model3dUploadDate = new Date();
+      const displayMode = '3d_model' as const;
       form.setValue('model3dKey', key);
       form.setValue('model3dFileName', originalName);
+      form.setValue('model3dUploadDate', model3dUploadDate.toISOString());
+      form.setValue('displayMode', displayMode);
       setModel3dPreview(key);
       await persistUploadedFields({
         model3dKey: key,
         model3dFileName: originalName,
+        model3dUploadDate,
+        displayMode,
       });
       
       toast({

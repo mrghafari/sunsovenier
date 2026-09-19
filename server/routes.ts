@@ -5557,6 +5557,48 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       
       // Update showcase product instead of shop product for admin panel
       const product = await storage.updateProduct(id, mappedData);
+
+      // Uploaded media is saved through this lightweight PATCH endpoint.
+      // Keep the customer-facing shop copy in sync so admins do not need to
+      // press the full "Update" button after an upload.
+      const hasUploadedMediaUpdate =
+        productData.imageUrl !== undefined ||
+        productData.imageUrls !== undefined ||
+        productData.model3dKey !== undefined ||
+        productData.model3dFileName !== undefined ||
+        productData.model3dUploadDate !== undefined ||
+        productData.displayMode !== undefined;
+
+      if (hasUploadedMediaUpdate && product.syncWithShop) {
+        const existingShopProducts = await shopStorage.getShopProducts();
+        const existingShopProduct = existingShopProducts.find(
+          (shopProduct) => shopProduct.name === product.name
+        );
+
+        if (existingShopProduct) {
+          await shopStorage.updateShopProduct(existingShopProduct.id, {
+            ...(productData.imageUrl !== undefined || productData.imageUrls !== undefined
+              ? {
+                  imageUrls: product.imageUrls ||
+                    (product.imageUrl ? [product.imageUrl] : [])
+                }
+              : {}),
+            ...(productData.displayMode !== undefined
+              ? { displayMode: product.displayMode }
+              : {}),
+            ...(productData.model3dKey !== undefined
+              ? { model3dKey: product.model3dKey }
+              : {}),
+            ...(productData.model3dFileName !== undefined
+              ? { model3dFileName: product.model3dFileName }
+              : {}),
+            ...(productData.model3dUploadDate !== undefined
+              ? { model3dUploadDate: product.model3dUploadDate }
+              : {})
+          });
+        }
+      }
+
       res.json(product);
     } catch (error) {
       console.error("Error updating product:", error);
