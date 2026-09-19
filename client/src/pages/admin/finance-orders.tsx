@@ -1269,7 +1269,7 @@ function FinanceOrders() {
   }
 
   // Excel-like table shared by pending, transferred, and rejected orders.
-  const OrderTable = ({
+  const renderOrderTable = ({
     orders,
     readOnly = false,
     transferred = false,
@@ -1719,13 +1719,13 @@ function FinanceOrders() {
                       <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                       <h3 className="font-medium text-green-800">{t('walletManual')}</h3>
                     </div>
-                    <OrderTable
-                      orders={walletOrders}
-                      tab="pending"
-                      hasNextPage={hasNextPendingPage}
-                      isFetchingNextPage={isFetchingNextPendingPage}
-                      onLoadMore={() => fetchNextPendingPage()}
-                    />
+                    {renderOrderTable({
+                      orders: walletOrders,
+                      tab: 'pending',
+                      hasNextPage: hasNextPendingPage,
+                      isFetchingNextPage: isFetchingNextPendingPage,
+                      onLoadMore: () => fetchNextPendingPage(),
+                    })}
                   </div>
                 )}
 
@@ -1738,13 +1738,13 @@ function FinanceOrders() {
                         <h3 className="font-medium text-blue-800">{t('bankManual')}</h3>
                       </div>
                     )}
-                    <OrderTable
-                      orders={bankOrders}
-                      tab="pending"
-                      hasNextPage={hasNextPendingPage}
-                      isFetchingNextPage={isFetchingNextPendingPage}
-                      onLoadMore={() => fetchNextPendingPage()}
-                    />
+                    {renderOrderTable({
+                      orders: bankOrders,
+                      tab: 'pending',
+                      hasNextPage: hasNextPendingPage,
+                      isFetchingNextPage: isFetchingNextPendingPage,
+                      onLoadMore: () => fetchNextPendingPage(),
+                    })}
                   </div>
                 )}
               </div>
@@ -1761,15 +1761,15 @@ function FinanceOrders() {
                 </CardContent>
               </Card>
             ) : (
-              <OrderTable
-                orders={filteredTransferredOrders}
-                tab="transferred"
-                readOnly
-                transferred
-                hasNextPage={hasNextApprovedPage}
-                isFetchingNextPage={isFetchingNextApprovedPage}
-                onLoadMore={() => fetchNextApprovedPage()}
-              />
+              renderOrderTable({
+                orders: filteredTransferredOrders,
+                tab: 'transferred',
+                readOnly: true,
+                transferred: true,
+                hasNextPage: hasNextApprovedPage,
+                isFetchingNextPage: isFetchingNextApprovedPage,
+                onLoadMore: () => fetchNextApprovedPage(),
+              })
             )}
           </TabsContent>
 
@@ -1782,14 +1782,14 @@ function FinanceOrders() {
                 </CardContent>
               </Card>
             ) : (
-              <OrderTable
-                orders={rejectedOrders}
-                tab="rejected"
-                readOnly
-                hasNextPage={rejectedQuery.hasNextPage}
-                isFetchingNextPage={rejectedQuery.isFetchingNextPage}
-                onLoadMore={() => rejectedQuery.fetchNextPage()}
-              />
+              renderOrderTable({
+                orders: rejectedOrders,
+                tab: 'rejected',
+                readOnly: true,
+                hasNextPage: rejectedQuery.hasNextPage,
+                isFetchingNextPage: rejectedQuery.isFetchingNextPage,
+                onLoadMore: () => rejectedQuery.fetchNextPage(),
+              })
             )}
           </TabsContent>
         </Tabs>

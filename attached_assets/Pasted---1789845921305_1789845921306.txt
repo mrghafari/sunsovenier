@@ -1,0 +1,1108 @@
+ 
+      /////////////////////
+   ///////////////////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////        Curious and driven?
+  ///////////////@@@@@@@///////        Work with us!
+  ///////////////@@@@@@@///////
+  ///////////////@@@@@@@///////        https://join.replit.com/hack.with.us
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+   ///////////////////////////
+      /////////////////////
+      
+ Download the Apollo DevTools for a better development experience: https://chrome.google.com/webstore/detail/apollo-client-developer-t/jdkknkkbebbapilgoeccciglkfbmbnfm
+ Unrecognized feature: 'attribution-reporting'.
+Rendering was performed in a subtree hidden by content-visibility.
+Rendering was performed in a subtree hidden by content-visibility.
+Rendering was performed in a subtree hidden by content-visibility.
+Rendering was performed in a subtree hidden by content-visibility.
+Rendering was performed in a subtree hidden by content-visibility.
+Rendering was performed in a subtree hidden by content-visibility.
+Rendering was performed in a subtree hidden by content-visibility.
+[Intervention] Slow network is detected. See <URL> for more details. Fallback font will be used while loading: <URL>
+[Intervention] Slow network is detected. See <URL> for more details. Fallback font will be used while loading: <URL>
+[Intervention] Slow network is detected. See <URL> for more details. Fallback font will be used while loading: <URL>
+[Intervention] Slow network is detected. See <URL> for more details. Fallback font will be used while loading: <URL>
+[Intervention] Slow network is detected. See <URL> for more details. Fallback font will be used while loading: <URL>
+ Unrecognized feature: 'speaker-selection'.
+ Allow attribute will take precedence over 'allowfullscreen'.
+ Allow attribute will take precedence over 'allowpaymentrequest'.
+ Failed to execute 'postMessage' on 'DOMWindow': The target origin provided ('https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev') does not match the recipient window's origin ('https://replit.com').
+ Failed to execute 'postMessage' on 'DOMWindow': The target origin provided ('https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev') does not match the recipient window's origin ('https://replit.com').
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'ambient-light-sensor'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'ambient-light-sensor'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'battery'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'battery'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'execution-while-not-rendered'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'execution-while-not-rendered'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'execution-while-out-of-viewport'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'execution-while-out-of-viewport'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'layout-animations'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'layout-animations'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'legacy-image-formats'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'legacy-image-formats'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'navigation-override'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'navigation-override'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'oversized-images'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'oversized-images'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'publickey-credentials'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'publickey-credentials'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'speaker-selection'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'speaker-selection'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'unoptimized-images'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'unoptimized-images'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'unsized-media'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Unrecognized feature: 'unsized-media'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Allow attribute will take precedence over 'allowfullscreen'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Allow attribute will take precedence over 'allowfullscreen'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Allow attribute will take precedence over 'allowpaymentrequest'.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/__replco/workspace_iframe.html?initialPath=%2F&id=wvc1tqelps-1:32 Allow attribute will take precedence over 'allowpaymentrequest'.
+7391980a62497e22001f1a007f4e3ab5a16025937eb7884107292d25e429f624?d=404:1  Failed to load resource: the server responded with a status of 404 ()
+MomtazChemWebsite:1 Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/src/pages/admin/logistics-management.tsx?t=1789838999421:1  Failed to load resource: net::ERR_FAILED
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/src/pages/admin/logistics-management.tsx?t=1789838999421:1  Failed to load resource: net::ERR_FAILED
+ Failed to execute 'postMessage' on 'DOMWindow': The target origin provided ('https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev:5000') does not match the recipient window's origin ('https://replit.com').
+ Failed to execute 'postMessage' on 'DOMWindow': The target origin provided ('https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev:5000') does not match the recipient window's origin ('https://replit.com').
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+Unchecked runtime.lastError: Could not establish connection. Receiving end does not exist.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/jspdf.es.min-BmSDS-bx.js?v=596d4f2c:1  Failed to load resource: net::ERR_FAILED
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/jspdf.es.min-BmSDS-bx.js?v=596d4f2c:1  Failed to load resource: net::ERR_FAILED
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/html5-qrcode.js?v=596d4f2c:1  Failed to load resource: net::ERR_FAILED
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/html5-qrcode.js?v=596d4f2c:1  Failed to load resource: net::ERR_FAILED
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+7391980a62497e22001f1a007f4e3ab5a16025937eb7884107292d25e429f624?d=404:1  Failed to load resource: the server responded with a status of 404 ()
+7391980a62497e22001f1a007f4e3ab5a16025937eb7884107292d25e429f624?d=404:1  Failed to load resource: the server responded with a status of 404 ()
+ onClick is deprecated, please use onPress
+7391980a62497e22001f1a007f4e3ab5a16025937eb7884107292d25e429f624?d=404:1  Failed to load resource: the server responded with a status of 404 ()
+ onClick is deprecated, please use onPress
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+7391980a62497e22001f1a007f4e3ab5a16025937eb7884107292d25e429f624?d=404:1  Failed to load resource: the server responded with a status of 404 ()
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+ [vite] connecting...
+ CI_CD_TEST_2026
+ [PWA] Service Worker registered, scope: https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/
+ [vite] connected.
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ 📥 Loading Tawk.to widget at bottom-left position...
+ ✅ Tawk.to Live Chat loaded successfully at bottom-left
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ [vite] hot updated: /src/index.css
+ [vite] hot updated: /src/pages/admin/finance-orders.tsx
+ [vite] hot updated: /src/index.css
+ [vite] hot updated: /src/pages/admin/finance-orders.tsx
+ [vite] hot updated: /src/index.css
+ [vite] hot updated: /src/pages/admin/finance-orders.tsx
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ [vite] server connection lost. Polling for restart...
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+graphql:1  Failed to load resource: net::ERR_CONNECTION_CLOSED
+graphql:1  Failed to load resource: net::ERR_CONNECTION_CLOSED
+ [vite] connecting...
+ [vite] connected.
+ CI_CD_TEST_2026
+ [PWA] Service Worker registered, scope: https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+ [vite] hot updated: /src/index.css
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ 📥 Loading Tawk.to widget at bottom-left position...
+ ✅ Tawk.to Live Chat loaded successfully at bottom-left
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ [vite] server connection lost. Polling for restart...
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/tawk-support:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/tawk-support:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ [vite] connecting...
+ CI_CD_TEST_2026
+ [PWA] Service Worker registered, scope: https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/
+ [vite] connected.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/uploads/category-images/1779071818742-0af514977bef741b.jpeg:1  Failed to load resource: net::ERR_FAILED
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/uploads/category-images/1779071818742-0af514977bef741b.jpeg:1  Failed to load resource: net::ERR_FAILED
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/uploads/category-images/1780393544564-f04e79038dc73403.jpg:1  Failed to load resource: net::ERR_FAILED
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/uploads/category-images/1780393544564-f04e79038dc73403.jpg:1  Failed to load resource: net::ERR_FAILED
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ 📥 Loading Tawk.to widget at bottom-left position...
+ ✅ Tawk.to Live Chat loaded successfully at bottom-left
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ [vite] hot updated: /src/index.css
+ [vite] hot updated: /src/pages/checkout.tsx
+ [vite] hot updated: /src/index.css
+ [vite] hot updated: /src/pages/admin/logistics-management.tsx
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ [vite] server connection lost. Polling for restart...
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/tawk-support:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/tawk-support:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/tawk-support:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/tawk-support:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+ [vite] connecting...
+ CI_CD_TEST_2026
+ [PWA] Service Worker registered, scope: https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/
+ [vite] connected.
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ 📥 Loading Tawk.to widget at bottom-left position...
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ ✅ Tawk.to Live Chat loaded successfully at bottom-left
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+7391980a62497e22001f1a007f4e3ab5a16025937eb7884107292d25e429f624?d=404:1  Failed to load resource: the server responded with a status of 404 ()
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ onClick is deprecated, please use onPress
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ onClick is deprecated, please use onPress
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+7391980a62497e22001f1a007f4e3ab5a16025937eb7884107292d25e429f624?d=404:1  Failed to load resource: the server responded with a status of 404 ()
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🔐 [AUTH] Guest user confirmed
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+ 📦 [INIT DISPLAY STOCK] Product 624: Stock=978, Cart=0, Display=978
+ 📦 [INIT DISPLAY STOCK] Product 625: Stock=91, Cart=0, Display=91
+ 📦 [INIT DISPLAY STOCK] Product 529: Stock=18, Cart=0, Display=18
+ 🎛️ [FRONTEND CONTROLS] Loaded: undefined
+ 🎛️ [VISIBILITY] Discount Banner: false
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 0 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+ 📦 [INIT DISPLAY STOCK] Product 624: Stock=978, Cart=0, Display=978
+ 📦 [INIT DISPLAY STOCK] Product 625: Stock=91, Cart=0, Display=91
+ 📦 [INIT DISPLAY STOCK] Product 529: Stock=18, Cart=0, Display=18
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ [vite] hot updated: /src/index.css
+ [vite] hot updated: /src/pages/admin/finance-orders.tsx
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+ 📦 [INIT DISPLAY STOCK] Product 624: Stock=976, Cart=0, Display=976
+ 📦 [INIT DISPLAY STOCK] Product 625: Stock=91, Cart=0, Display=91
+ 📦 [INIT DISPLAY STOCK] Product 529: Stock=18, Cart=0, Display=18
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+shop:1 [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) 
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+ 🔐 [AUTH] Customer authenticated, cart will be synced automatically
+ 🔄 Triggering cart reload after login
+ Customer auth check result: 
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+ 🔐 User just logged in, resetting cart loaded flag
+ 🔐 User just logged in, resetting cart loaded flag
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+ 🔐 [AUTH] Customer authenticated, cart will be synced automatically
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+ 🛒 Loading persistent cart for customer: 8
+ 🛒 Loading persistent cart for customer: 8
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+ 🛒 Loaded cart from database: 
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+ 🛒 [ADD TO CART] Before add - Product 625, Stock: 91, Cart: 0, DisplayStock: 91
+ 🛒 Loaded cart from database: 
+ 🛒 Saving product 625 to database for customer 8
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+ ✅ Product 625 saved to database
+ 🛒 [DISPLAY STOCK UPDATE] Product 625: 91 -> 90
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+ Cart clicked, total items: 1
+ Customer: 
+ User is logged in, showing checkout
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+ 💳 [WALLET QUERY] Enabled check: 
+ 🔥 [BILINGUAL FORM] Cart flammable check result: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 🚚 [BILINGUAL FORM] ===== SHIPPING RATES QUERY STARTED =====
+ 🚚 [BILINGUAL FORM] Fetching shipping rates with flammable filtering... 
+ === BilingualPurchaseForm Address Debug ===
+ existingCustomer from parent: 
+ customerData from API: 
+ crmCustomerData from API: undefined
+ isLoadingCustomer: false
+ Using existingCustomer from parent
+ Customer object found: 
+ Customer firstName: ABAS
+ Customer lastName: ABASI
+ Customer phone: 09124955173
+ Customer address: NAGwer Road, Qaryataq Village
+ Customer secondaryAddress: NAGwer Road, Qaryataq Village, Erbil, Iraq
+ Customer city: 
+ Customer country: Iraq
+ Customer postalCode: 196891375
+ Full name constructed: ABAS ABASI
+ 🏠 [ADDRESS DEBUG] Enhanced address mapping result: 
+ Form data to reset: 
+ Form reset completed
+ === End BilingualPurchaseForm Debug ===
+ 🚚 [AUTO-SELECT DEBUG] useEffect triggered: 
+ 🚚 Shipping cost calculation: 
+ 🔄 No shipping method selected or no data, resetting cost
+ Shipping rates state: 
+ 🚚 [DELIVERY CALCULATION] Final destination determined: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 🚚 [DELIVERY CALCULATION] Final destination determined: 
+ CRM Customer API response: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ === BilingualPurchaseForm Address Debug ===
+ existingCustomer from parent: 
+ customerData from API: 
+ crmCustomerData from API: 
+ isLoadingCustomer: false
+ Using CRM customer data (most complete)
+ Customer object found: 
+ Customer firstName: ABAS
+ Customer lastName: ABASI
+ Customer phone: 09124955173
+ Customer address: NAGwer Road, Qaryataq Village
+ Customer secondaryAddress: NAGwer Road, Qaryataq Village, Erbil, Iraq
+ Customer city: undefined
+ Customer country: Iraq
+ Customer postalCode: 196891375
+ Full name constructed: ABAS ABASI
+ 🏠 [ADDRESS DEBUG] Enhanced address mapping result: 
+ Form data to reset: 
+ Form reset completed
+ === End BilingualPurchaseForm Debug ===
+ 🚚 [DELIVERY CALCULATION] Final destination determined: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/shop/proforma-reminders:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/shop/proforma-reminders:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ Failed to parse JSON response: 
+ Error fetching reminder schedules: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [VAT] Tax settings API response: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 📦 [BILINGUAL FORM] Raw shipping rates API response: 
+ ✅ [BILINGUAL FORM] Successfully loaded shipping rates: 4 methods
+ 🚚 [BILINGUAL FORM] Shipping rates details: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 🚚 [AUTO-SELECT DEBUG] useEffect triggered: 
+ 🚚 [AUTO-SELECT] Auto-selecting first shipping method: 34 undefined
+ 🚚 Shipping cost calculation: 
+ 🔄 No shipping method selected or no data, resetting cost
+ Shipping rates state: 
+ 🚚 [AUTO SELECT] Auto-selecting smart vehicle method: 32
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 🚚 [AUTO-SELECT DEBUG] useEffect triggered: 
+ 🚚 Shipping cost calculation: 
+ 📦 Selected shipping rate: 
+ ✅ SPECIAL DELIVERY METHOD: Zero cost for smart_vehicle
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 🚚 [SMART DELIVERY] Calculating cost for: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 🚚 [SMART DELIVERY] API response: 
+ ✅ [SMART DELIVERY] Single vehicle cost calculated: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 🔄 [AUTO WALLET] wallet_combined selected - setting walletAmount: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 🚚 [DELIVERY CALCULATION] Final destination determined: 
+ 🚚 [SMART DELIVERY] Calculating cost for: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 🚚 [SMART DELIVERY] API response: 
+ ✅ [SMART DELIVERY] Single vehicle cost calculated: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 🏛️ [BILINGUAL] Province selected: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 🚚 [DELIVERY CALCULATION] Final destination determined: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 🚚 [SMART DELIVERY] Calculating cost for: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 🚚 [SMART DELIVERY] API response: 
+ ✅ [SMART DELIVERY] Single vehicle cost calculated: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ Customer auth check result: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 🏛️ [BILINGUAL] Province selected: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 🚚 [DELIVERY CALCULATION] Final destination determined: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 🚚 [SMART DELIVERY] Calculating cost for: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 🏙️ [BILINGUAL] City selected: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 🚚 [DELIVERY CALCULATION] Final destination determined: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 🚚 [SMART DELIVERY] API response: 
+ ✅ [SMART DELIVERY] Single vehicle cost calculated: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 🚚 [SMART DELIVERY] Calculating cost for: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 🚚 [SMART DELIVERY] API response: 
+ ✅ [SMART DELIVERY] Single vehicle cost calculated: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ 🔘 [BUTTON DEBUG] Submit button clicked - drag protection active
+ 🔘 [BUTTON DEBUG] Mutation pending: false
+ 🔘 [BUTTON DEBUG] Form valid: false
+ 🔘 [BUTTON DEBUG] Form errors: Object
+ 🔘 [BUTTON DEBUG] Selected shipping method: 32
+ 🔘 [BUTTON DEBUG] Payment method: wallet_combined
+ 🔘 [BUTTON DEBUG] Forcing form submission via handleSubmit
+ 🚀 [SUBMIT DEBUG] onSubmit function called
+ 🚀 [SUBMIT DEBUG] Form data received: Object
+ 🚀 [SUBMIT DEBUG] Selected shipping method: 32
+ 🚀 [SUBMIT DEBUG] Payment method: wallet_combined
+ 🚀 [SUBMIT DEBUG] Form validation state: Object
+ 🚀 [SUBMIT DEBUG] Form errors: Object
+ 🚀 [SUBMIT DEBUG] Mutation pending before submit: false
+ 🚚 [DELIVERY LOGIC] Active delivery information: Object
+ 🚗 [VEHICLE DEBUG] Delivery method and vehicle at order submission: Object
+ 🔍 [PAYMENT ANALYSIS] Before conversion: Object
+ 🔄 [PAYMENT CONVERSION] wallet_combined → wallet_full (user entered sufficient amount)
+ 🚀 [ORDER SUBMIT] Submitting order with complete data: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+ 🚀 [ORDER CREATION] Creating order with payment method: wallet_full
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/admin/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+ [vite] server connection lost. Polling for restart...
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/orders?t=1789845890641:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/orders?t=1789845890641:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+ ❌ [ORDER ERROR] Order submission failed: Error: 502: 
+    at throwIfResNotOk (861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/src/lib/queryClient.ts:44:10)
+    at async apiRequest (861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/src/lib/queryClient.ts:59:3)
+    at async Object.mutationFn (861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/src/components/bilingual-purchase-form.tsx:1407:22)
+console.<computed> @ 861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/@vite/client:299
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(3)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(2)
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/tawk-support:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/tawk-support:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+(index):1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)
+ 🎛️ [FRONTEND CONTROLS] Loaded: Object
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: Object
+ 🌟 [RATINGS DEBUG] Current products: Array(3)
+ 🌟 [RATINGS DEBUG] Products with ratings: Array(2)
+ 💰 [PURCHASE FORM] Tax calculation: Object
+ 💰 [TOTAL CALCULATION] Breakdown: Object
+ 💳 [WALLET DEBUG] Complete wallet analysis: Object
+7391980a62497e22001f1a007f4e3ab5a16025937eb7884107292d25e429f624?d=404:1  Failed to load resource: the server responded with a status of 404 ()
+  GET https://861926f6-85c5-4e93-bb9b-7e1a3d8bd878-00-2majci4octycm.picard.replit.dev/api/customers/me 401 (Unauthorized)
+ 🎛️ [FRONTEND CONTROLS] Loaded: 
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: 
+ 🌟 [RATINGS DEBUG] Current products: 
+ 🌟 [RATINGS DEBUG] Products with ratings: 
+ 💳 [WALLET QUERY] Enabled check: 
+ 💰 [PURCHASE FORM] Tax calculation: 
+ 💰 [TOTAL CALCULATION] Breakdown: 
+ 💳 [WALLET DEBUG] Complete wallet analysis: 
+ === BilingualPurchaseForm Address Debug ===
+ existingCustomer from parent: 
+ customerData from API: 
+ crmCustomerData from API: 
+ isLoadingCustomer: false
+ Using CRM customer data (most complete)
+ Customer object found: 
+ Customer firstName: ABAS
+ Customer lastName: ABASI
+ Customer phone: 09124955173
+ Customer address: NAGwer Road, Qaryataq Village
+ Customer secondaryAddress: NAGwer Road, Qaryataq Village, Erbil, Iraq
+ Customer city: undefined
+ Customer country: Iraq
+ Customer postalCode: 196891375
+ Full name constructed: ABAS ABASI
+ 🏠 [ADDRESS DEBUG] Enhanced address mapping result: {originalCustomer: {…}, mappedAddress: 'NAGwer Road, Qaryataq Village', mappedCity: 'سرسنک', mappedProvince: 'Dohuk', addressSources: {…}, …}
+ Form data to reset: {customerName: 'ABAS ABASI', phone: '09124955173', address: 'NAGwer Road, Qaryataq Village', city: 'سرسنک', country: 'Iraq', …}
+ Form reset completed
+ === End BilingualPurchaseForm Debug ===
+ 🚚 [DELIVERY CALCULATION] Final destination determined: {showSecondAddress: true, secondCity: 'الهندیه', secondProvince: 'کربلا', crmCityRegion: 'سرسنک', crmCity: undefined, …}
+ 🔐 User logged out, clearing cart
+ 🔐 User logged out, clearing cart
+ 🎛️ [FRONTEND CONTROLS] Loaded: {success: true, data: {…}}
+ 🎛️ [VISIBILITY] Discount Banner: true
+ 🌟 [RATINGS DEBUG] Product stats loaded: 16 products with ratings
+ 🌟 [RATINGS DEBUG] Product stats data: {1: {…}, 25: {…}, 470: {…}, 472: {…}, 474: {…}, 475: {…}, 477: {…}, 494: {…}, 504: {…}, 513: {…}, 524: {…}, 529: {…}, 532: {…}, 615: {…}, 618: {…}, 625: {…}}
+ 🌟 [RATINGS DEBUG] Current products: (3) [{…}, {…}, {…}]
+ 🌟 [RATINGS DEBUG] Products with ratings: (2) [{…}, {…}]
+ 💳 [WALLET QUERY] Enabled check: {existingCustomer: false, customerDataSuccess: false, enabled: false}
+ 🔥 [BILINGUAL FORM] Cart flammable check result: {containsFlammableProducts: false, cartItems: 0, totalQuantity: 0}
+ 💰 [PURCHASE FORM] Tax calculation: {vatData: {…}, vatRate: 0.1, dutiesRate: 0, subtotalAmount: 0, vatAmount: 0, …}
+ 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 0, totalTaxAmount: 0, finalShippingCost: 105000, regularShippingCost: 0, smartDeliveryCost: 105000, …}
+ 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: {…}, walletBalance: 43722006927, canUseWallet: false, totalAmount: 105000, existingCustomer: false, …}
+ === BilingualPurchaseForm Address Debug ===
+ existingCustomer from parent: null
+ customerData from API: {success: false, message: 'Not authenticated'}
+ crmCustomerData from API: {id: 8, email: 'oilstar@hotmail.com', passwordHash: '$2b$10$l.gIeegvy5CwDZVqQQ.UH.ngVVskWmzmxF1/CXuvgyGYq83yzbz5u', firstName: 'ABAS', lastName: 'ABASI', …}
+ isLoadingCustomer: false
+ Using CRM customer data (most complete)
+ Customer object found: {id: 8, email: 'oilstar@hotmail.com', passwordHash: '$2b$10$l.gIeegvy5CwDZVqQQ.UH.ngVVskWmzmxF1/CXuvgyGYq83yzbz5u', firstName: 'ABAS', lastName: 'ABASI', …}
+ Customer firstName: ABAS
+ Customer lastName: ABASI
+ Customer phone: 09124955173
+ Customer address: NAGwer Road, Qaryataq Village
+ Customer secondaryAddress: NAGwer Road, Qaryataq Village, Erbil, Iraq
+ Customer city: undefined
+ Customer country: Iraq
+ Customer postalCode: 196891375
+ Full name constructed: ABAS ABASI
+ 🏠 [ADDRESS DEBUG] Enhanced address mapping result: {originalCustomer: {…}, mappedAddress: 'NAGwer Road, Qaryataq Village', mappedCity: 'سرسنک', mappedProvince: 'Dohuk', addressSources: {…}, …}
+ Form data to reset: {customerName: 'ABAS ABASI', phone: '09124955173', address: 'NAGwer Road, Qaryataq Village', city: 'سرسنک', country: 'Iraq', …}
+ Form reset completed
+ === End BilingualPurchaseForm Debug ===
+ 🚚 Shipping cost calculation: {selectedShippingMethod: 32, hasShippingData: true, subtotalAmount: 0}
+ 📦 Selected shipping rate: {id: 32, deliveryMethod: 'smart_vehicle', transportationType: 'smart', cityName: null, provinceName: null, …}
+ ✅ SPECIAL DELIVERY METHOD: Zero cost for smart_vehicle
+ 🔄 [AUTO WALLET] wallet_combined selected - setting walletAmount: {paymentMethod: 'wallet_combined', walletBalance: 43722006927, totalAmount: 105000, maxUsage: 105000, autoSetValue: 105000}
+ 🚚 [DELIVERY CALCULATION] Final destination determined: {showSecondAddress: true, secondCity: 'الهندیه', secondProvince: 'کربلا', crmCityRegion: 'سرسنک', crmCity: undefined, …}
+ 🚚 [DELIVERY CALCULATION] Missing required data for calculation: {hasCity: true, hasProvince: true, effectiveProvince: 'کربلا', hasWeight: false, cityValue: 'الهندیه', …}
+ 🔐 [AUTH] Guest user confirmed
+ 💰 [PURCHASE FORM] Tax calculation: {vatData: {…}, vatRate: 0.1, dutiesRate: 0, subtotalAmount: 0, vatAmount: 0, …}
+ 💰 [TOTAL CALCULATION] Breakdown: {subtotalAmount: 0, totalTaxAmount: 0, finalShippingCost: 105000, regularShippingCost: 0, smartDeliveryCost: 105000, …}
+ 💳 [WALLET DEBUG] Complete wallet analysis: {walletData: {…}, walletBalance: 43722006927, canUseWallet: false, totalAmount: 105000, existingCustomer: false, …}
