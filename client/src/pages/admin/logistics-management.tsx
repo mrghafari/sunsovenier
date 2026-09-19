@@ -663,6 +663,10 @@ interface LogisticsOrder {
   recipientPhone?: string;
   recipientAddress?: string;
   deliveryNotes?: string;
+  customerNotes?: string;
+  notes?: string;
+  financialNotes?: string;
+  warehouseNotes?: string;
   
   // GPS Location data for logistics coordination
   gpsLatitude?: number | string | null;
@@ -727,6 +731,7 @@ const LogisticsManagement = () => {
   const [expandedVehicleIds, setExpandedVehicleIds] = useState<Set<number>>(new Set());
   const [expandedOrderVehicleId, setExpandedOrderVehicleId] = useState<number | null>(null);
   const [expandedOrderAddressId, setExpandedOrderAddressId] = useState<number | null>(null);
+  const [expandedOrderNotesId, setExpandedOrderNotesId] = useState<number | null>(null);
   
   // States for enhanced suitable vehicles display
   const [isSuitableVehiclesOpen, setIsSuitableVehiclesOpen] = useState(false);
@@ -3251,16 +3256,36 @@ const LogisticsManagement = () => {
                   </TableHeader>
                   <TableBody>
                     {filteredOrders.map((order: LogisticsOrder, index: number) => {
-                      const notes = [ (order as any).customerNotes || (order as any).notes, (order as any).financialNotes, (order as any).warehouseNotes ].filter(Boolean).join(' · ');
+                      const noteEntries = [
+                        { key: 'customer', label: t('customerNote'), value: order.customerNotes || order.notes, color: 'blue' },
+                        { key: 'financial', label: t('financialNote'), value: order.financialNotes, color: 'emerald' },
+                        { key: 'warehouse', label: t('warehouseNote'), value: order.warehouseNotes, color: 'purple' },
+                      ].filter((entry) => entry.value?.trim());
                       const vehicle = assignedVehicle(order);
                       const isVehicleExpanded = expandedOrderVehicleId === order.id;
                       const isAddressExpanded = expandedOrderAddressId === order.id;
+                      const isNotesExpanded = expandedOrderNotesId === order.id;
+                      const hasNotes = noteEntries.length > 0;
                       const hasAssignedVehicle = Boolean(order.vehiclePlate);
                       const deliveryAddress = checkoutAddress(order);
                       return <React.Fragment key={order.id}>
                       <TableRow className="border-slate-200 odd:bg-slate-50 even:bg-white hover:bg-amber-50">
                         <TableCell className="border-e border-slate-200 px-3 py-2 font-mono text-slate-500">{index + 1}</TableCell>
-                        <TableCell className="border-e border-slate-200 px-3 py-2 font-semibold text-slate-900">{order.orderNumber || `#${order.customerOrderId}`}<div className="text-[11px] font-normal text-slate-500">{formatLogisticsDate(order.createdAt)}</div></TableCell>
+                        <TableCell className="border-e border-slate-200 px-3 py-2 font-semibold text-slate-900">
+                          <button
+                            type="button"
+                            disabled={!hasNotes}
+                            aria-expanded={hasNotes ? isNotesExpanded : undefined}
+                            onClick={() => hasNotes && setExpandedOrderNotesId(isNotesExpanded ? null : order.id)}
+                            className={`inline-flex items-center gap-1.5 rounded px-1 py-0.5 text-start ${hasNotes ? 'cursor-pointer hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500' : 'cursor-default'}`}
+                            title={hasNotes ? t('notes') : undefined}
+                          >
+                            {hasNotes && <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500 shadow-sm ring-2 ring-emerald-100" />}
+                            <span>{order.orderNumber || `#${order.customerOrderId}`}</span>
+                            {hasNotes && (isNotesExpanded ? <ChevronUp className="h-3.5 w-3.5 text-emerald-700" /> : <ChevronDown className="h-3.5 w-3.5 text-emerald-700" />)}
+                          </button>
+                          <div className="text-[11px] font-normal text-slate-500">{formatLogisticsDate(order.createdAt)}</div>
+                        </TableCell>
                         <TableCell className="max-w-[190px] border-e border-slate-200 px-3 py-2"><button className="text-start font-medium text-slate-800 underline-offset-2 hover:underline" onClick={() => handleShowOrderDetails(order)}>{customerName(order)}</button><div className="text-slate-500">{order.customerPhone || order.customer?.phone || t('unknown')}</div></TableCell>
                         <TableCell className="max-w-[220px] whitespace-normal border-e border-slate-200 px-3 py-2">
                           <button
@@ -3295,7 +3320,7 @@ const LogisticsManagement = () => {
                             <div className="text-slate-500">{order.selectedVehicleName || t('noVehicle')}</div>
                           )}
                         </TableCell>
-                        <TableCell className="border-e border-slate-200 px-3 py-2"><Badge className="whitespace-normal bg-emerald-100 text-emerald-800">{getStatusDisplayName(order.currentStatus, language)}</Badge>{notes && <div className="mt-1 max-w-[150px] whitespace-normal text-[11px] text-amber-700">{notes}</div>}</TableCell>
+                        <TableCell className="border-e border-slate-200 px-3 py-2"><Badge className="whitespace-normal bg-emerald-100 text-emerald-800">{getStatusDisplayName(order.currentStatus, language)}</Badge></TableCell>
                         <TableCell className="border-e border-slate-200 px-3 py-2 whitespace-nowrap">{formatLogisticsDate(order.updatedAt || order.createdAt, true)}</TableCell>
                         <TableCell className="border-e border-slate-200 px-3 py-2 font-mono">
                           {order.deliveryCode || order.trackingNumber || (
@@ -3312,6 +3337,35 @@ const LogisticsManagement = () => {
                           {gpsActions(order)}
                         </div></TableCell>
                       </TableRow>
+                      {isNotesExpanded && (
+                        <TableRow className="border-b-2 border-emerald-200 bg-emerald-50/70 hover:bg-emerald-50">
+                          <TableCell colSpan={11} className="p-0">
+                            <div className="border-s-4 border-emerald-500 px-4 py-4">
+                              <div className="mb-3 flex items-center gap-2 font-semibold text-slate-900">
+                                <FileText className="h-4 w-4 text-emerald-700" />
+                                {t('orderNotes')}
+                              </div>
+                              <div className="grid gap-3 md:grid-cols-3">
+                                {noteEntries.map((entry) => (
+                                  <div
+                                    key={entry.key}
+                                    className={`rounded-lg border p-3 ${
+                                      entry.color === 'blue'
+                                        ? 'border-blue-200 bg-blue-50'
+                                        : entry.color === 'purple'
+                                          ? 'border-purple-200 bg-purple-50'
+                                          : 'border-emerald-200 bg-emerald-50'
+                                    }`}
+                                  >
+                                    <div className="mb-1 text-xs font-semibold text-slate-600">{entry.label}</div>
+                                    <p className="whitespace-pre-wrap break-words text-sm leading-6 text-slate-900">{entry.value}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
                       {isAddressExpanded && (
                         <TableRow className="border-b-2 border-violet-200 bg-violet-50/70 hover:bg-violet-50">
                           <TableCell colSpan={11} className="p-0">
