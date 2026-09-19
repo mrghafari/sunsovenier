@@ -21,3 +21,4 @@
 - [Batch product images](batch-product-images.md) — batch rows may omit duplicated media; inventory views should inherit the base product image across matching product names.
 - [Cart batch reservations](cart-batch-reservations.md) — cart holds reduce sellable availability; physical FIFO batches change only on verified payment.
 - [Shared batch barcodes](shared-batch-barcodes.md) — batch rows may intentionally share a barcode; unchanged barcodes must not block editing an individual batch.
+- [Vite development error handling](vite-development-error-handling.md) — transient browser/HMR errors must be logged without terminating the development server.
