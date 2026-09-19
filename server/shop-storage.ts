@@ -80,6 +80,7 @@ export interface IShopStorage {
   getRandomProductsByCategory(category: string, limit: number): Promise<ShopProduct[]>;
   createShopProduct(product: InsertShopProduct): Promise<ShopProduct>;
   updateShopProduct(id: number, product: Partial<InsertShopProduct>): Promise<ShopProduct>;
+  syncBatchStockTotal(barcode: string): Promise<number>;
   deleteShopProduct(id: number): Promise<void>;
   
   // Discount settings management
@@ -444,6 +445,27 @@ export class ShopStorage implements IShopStorage {
       .where(eq(shopProducts.id, id))
       .returning();
     return updatedProduct;
+  }
+
+  async syncBatchStockTotal(barcode: string): Promise<number> {
+    const { pool } = await import('./db');
+    const totalResult = await pool.query<{ total: number }>(`
+      SELECT COALESCE(SUM(stock_quantity), 0)::int AS total
+      FROM showcase_products
+      WHERE barcode = $1
+    `, [barcode]);
+    const totalStock = Number(totalResult.rows[0]?.total || 0);
+    const shopProducts = await this.getShopProducts();
+    const shopProduct = shopProducts.find(product => product.barcode?.trim() === barcode.trim());
+
+    if (shopProduct) {
+      await this.updateShopProduct(shopProduct.id, {
+        stockQuantity: totalStock,
+        inStock: totalStock > 0 || Boolean(shopProduct.showWhenOutOfStock),
+      });
+    }
+
+    return totalStock;
   }
 
   async deleteShopProduct(id: number): Promise<void> {

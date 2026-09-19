@@ -438,11 +438,14 @@ export default function ProductsPage() {
     onSuccess: async (result, variables) => {
       console.log('✅ [DEBUG] Update mutation successful, result:', result);
       setIsSubmitting(false);
-      const keepDialogOpen = keepDialogOpenAfterUpdateRef.current || Boolean(result?.batchNumber);
+      const createdNewBatch = Boolean(result?.batchNumber && variables?.data?.newBatchNumber);
+      const keepDialogOpen = keepDialogOpenAfterUpdateRef.current && !createdNewBatch;
       const addedStock = Number(variables?.data?.inventoryAddition) || 0;
       keepDialogOpenAfterUpdateRef.current = false;
       
-      // A regular Save closes the form; Apply and batch additions keep it open.
+      // Close after creating a separate batch. Keeping the old product in the
+      // form would make the next save target the old row with aggregate stock
+      // and no batch number. Apply-to-existing-batch remains open.
       if (!keepDialogOpen) {
         // Regular update - close dialog and reset
         setDialogOpen(false);

@@ -5477,6 +5477,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
             };
             
             await shopStorage.addBatch(batchData);
+            const totalStock = await shopStorage.syncBatchStockTotal(oldProduct.barcode);
             
             // Clean up batch fields from productData
             delete productData.inventoryAddition;
@@ -5487,7 +5488,8 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
               success: true,
               message: "بچ جدید با موفقیت ایجاد شد",
               batchNumber: batchData.batchNumber,
-              stockQuantity: batchData.stockQuantity
+              stockQuantity: batchData.stockQuantity,
+              totalStock
             });
             
           } catch (batchError) {
@@ -5731,13 +5733,15 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
             };
             
             await shopStorage.addBatch(batchData);
+            const totalStock = await shopStorage.syncBatchStockTotal(oldProduct.barcode);
             
             // Return immediately after batch creation
             return res.json({
               success: true,
               message: "بچ جدید با موفقیت ایجاد شد",
               batchNumber: batchData.batchNumber,
-              stockQuantity: batchData.stockQuantity
+              stockQuantity: batchData.stockQuantity,
+              totalStock
             });
             
           } catch (batchError) {
