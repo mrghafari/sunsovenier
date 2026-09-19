@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
-import { Package, Search, Filter, ArrowLeft, FileText, Clock, CheckCircle, XCircle, Plus, Edit3, Trash2, Download, Upload, RefreshCw, AlertTriangle, Calendar, Users, TrendingUp, TrendingDown, Eye, BarChart3, Package2, Truck, Weight, Calculator, FileSpreadsheet, ChevronRight, ChevronLeft, Printer, Bell, Mail, MessageSquare, Phone, Save, Edit } from 'lucide-react';
+import { Package, Search, Filter, ArrowLeft, FileText, Clock, CheckCircle, XCircle, Plus, Edit3, Trash2, Download, Upload, RefreshCw, AlertTriangle, Calendar, Users, TrendingUp, TrendingDown, Eye, BarChart3, Package2, Truck, Weight, Calculator, FileSpreadsheet, ChevronRight, ChevronLeft, Printer, Bell, Mail, MessageSquare, Phone, Save, Edit, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import SafeModal from '@/components/SafeModal';
 import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/useAuth';
@@ -73,6 +73,7 @@ const pageTranslations: Record<string, Record<PageLanguage, string>> = {
   status: { en: 'Status', fa: 'وضعیت', ar: 'الحالة', tr: 'Durum' },
   notes: { en: 'Notes', fa: 'یادداشت', ar: 'ملاحظات', tr: 'Notlar' },
   actions: { en: 'Actions', fa: 'عملیات', ar: 'الإجراءات', tr: 'İşlemler' },
+  sortBy: { en: 'Sort by', fa: 'مرتب‌سازی بر اساس', ar: 'ترتيب حسب', tr: 'Şuna göre sırala' },
   currentLocation: { en: 'Current location', fa: 'بخش فعلی سفارش', ar: 'القسم الحالي للطلب', tr: 'Siparişin mevcut bölümü' },
   currentStage: { en: 'Current stage', fa: 'مرحله فعلی', ar: 'المرحلة الحالية', tr: 'Mevcut aşama' },
   financialDepartment: { en: 'Finance', fa: 'واحد مالی', ar: 'القسم المالي', tr: 'Finans' },
@@ -285,6 +286,15 @@ interface Order {
   notes?: string;
 }
 
+type SortDirection = 'asc' | 'desc';
+type OrderSortKey = 'orderNumber' | 'customer' | 'contact' | 'date' | 'paymentMethod' | 'weight' | 'amount' | 'status' | 'notes';
+type InventorySortKey = 'product' | 'vendor' | 'sku' | 'batch' | 'stock' | 'minimum' | 'threshold' | 'status';
+
+const compareSortValues = (left: string | number, right: string | number) => {
+  if (typeof left === 'number' && typeof right === 'number') return left - right;
+  return String(left).localeCompare(String(right), undefined, { numeric: true, sensitivity: 'base' });
+};
+
 const WarehouseManagementFixed: React.FC = () => {
   const { language: contextLanguage, direction } = useLanguage();
   const language = (['en', 'fa', 'ar', 'tr'].includes(contextLanguage) ? contextLanguage : 'en') as PageLanguage;
@@ -312,6 +322,14 @@ const WarehouseManagementFixed: React.FC = () => {
   const [savingNotes, setSavingNotes] = useState(false);
   const [activeTab, setActiveTab] = useState("orders");
   const [orderView, setOrderView] = useState<'current' | 'history'>('current');
+  const [orderSort, setOrderSort] = useState<{ key: OrderSortKey; direction: SortDirection }>({
+    key: 'orderNumber',
+    direction: 'asc',
+  });
+  const [inventorySort, setInventorySort] = useState<{ key: InventorySortKey; direction: SortDirection }>({
+    key: 'product',
+    direction: 'asc',
+  });
   const [orderDetails, setOrderDetails] = useState<any>(null);
   const [loadingOrderDetails, setLoadingOrderDetails] = useState(false);
 
@@ -698,7 +716,6 @@ const WarehouseManagementFixed: React.FC = () => {
     p.sku?.toLowerCase().includes(inventorySearchTerm.toLowerCase()) ||
     p.barcode?.toLowerCase().includes(inventorySearchTerm.toLowerCase())
   );
-
   // Get stock status
   const getStockStatus = (product: InventoryProduct) => {
     const { stockQuantity, lowStockThreshold, minStockLevel } = product;
@@ -707,6 +724,24 @@ const WarehouseManagementFixed: React.FC = () => {
     if (stockQuantity <= (minStockLevel || 10)) return { label: t('low'), color: "bg-yellow-500 text-white" };
     return { label: t('available'), color: "bg-green-500 text-white" };
   };
+  const sortedInventoryProducts = useMemo(() => {
+    const getValue = (product: InventoryProduct): string | number => {
+      switch (inventorySort.key) {
+        case 'product': return product.name || '';
+        case 'vendor': return product.vendorName || '';
+        case 'sku': return product.sku || '';
+        case 'batch': return product.batchNumber || '';
+        case 'stock': return Number(product.stockQuantity || 0);
+        case 'minimum': return Number(product.minStockLevel || 0);
+        case 'threshold': return Number(product.lowStockThreshold || 0);
+        case 'status': return getStockStatus(product).label;
+      }
+    };
+    const multiplier = inventorySort.direction === 'asc' ? 1 : -1;
+    return [...filteredInventoryProducts].sort(
+      (a, b) => compareSortValues(getValue(a), getValue(b)) * multiplier || a.id - b.id,
+    );
+  }, [filteredInventoryProducts, inventorySort, language]);
 
   // Add recipient from Admin Users
   const addRecipientFromAdmin = (user: AdminUser) => {
@@ -882,38 +917,68 @@ const WarehouseManagementFixed: React.FC = () => {
     const matchesAmount = amountFilter === '' || parseFloat(order.totalAmount || '0').toString().includes(amountFilter);
     
     return matchesSearch && matchesStatus && matchesOrderId && matchesCustomerName && matchesPhone && matchesEmail && matchesStatusFilter && matchesAmount;
-  })?.sort((a: any, b: any) => {
-    // Sort by order number - older orders (lower order numbers) first
-    // Extract numeric part from order numbers like M2511401, M2511501
-    const orderNumberA = a.orderNumber || '';
-    const orderNumberB = b.orderNumber || '';
-    
-    // Extract the numeric part after 'M'
-    const numericA = parseInt(orderNumberA.replace(/[^0-9]/g, '')) || 0;
-    const numericB = parseInt(orderNumberB.replace(/[^0-9]/g, '')) || 0;
-    
-    console.log('🔄 [SORTING DEBUG] Order A:', orderNumberA, '(', numericA, ') Order B:', orderNumberB, '(', numericB, ')');
-    
-    if (numericA !== numericB) {
-      const result = numericA - numericB;
-      console.log('🔄 [SORTING DEBUG] Sort result:', result, '- older order first');
-      return result;
-    }
-    
-    // If order numbers are the same, sort by creation date
-    const dateA = new Date(a.createdAt || a.orderDate || '').getTime();
-    const dateB = new Date(b.createdAt || b.orderDate || '').getTime();
-    return dateA - dateB;
   }) || [];
 
-  const displayedOrders = filteredOrders;
+  const displayedOrders = useMemo(() => {
+    const getCustomerName = (order: Order) =>
+      order.customer?.firstName && order.customer?.lastName
+        ? `${order.customer.firstName} ${order.customer.lastName}`
+        : order.customerFirstName && order.customerLastName
+          ? `${order.customerFirstName} ${order.customerLastName}`
+          : order.customerName || '';
+    const getValue = (order: Order): string | number => {
+      switch (orderSort.key) {
+        case 'orderNumber': return Number((order.orderNumber || '').replace(/\D/g, '')) || order.id;
+        case 'customer': return getCustomerName(order);
+        case 'contact': return order.customer?.email || order.customerEmail || order.customer?.phone || order.customerPhone || '';
+        case 'date': return new Date(order.createdAt || 0).getTime();
+        case 'paymentMethod': return order.paymentMethod || '';
+        case 'weight': return Number(order.totalWeight || 0);
+        case 'amount': return Number(order.totalAmount || 0);
+        case 'status': return getOrderStatusLabel(resolveOrderStatus({ workflowStatus: order.currentStatus || order.status }), language);
+        case 'notes': return order.warehouseNotes || '';
+      }
+    };
+    const multiplier = orderSort.direction === 'asc' ? 1 : -1;
+    return [...filteredOrders].sort(
+      (a, b) => compareSortValues(getValue(a), getValue(b)) * multiplier || a.id - b.id,
+    );
+  }, [filteredOrders, orderSort, language]);
 
-  // Debug log the final sorted order
-  console.log('🔄 [FINAL ORDER] Orders after sorting:', filteredOrders?.map((o: Order) => ({ 
-    id: o.id, 
-    customerOrderId: o.customerOrderId, 
-    orderNumber: o.orderNumber 
-  })));
+  const toggleOrderSort = (key: OrderSortKey) => {
+    setOrderSort(current => ({
+      key,
+      direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc',
+    }));
+  };
+
+  const toggleInventorySort = (key: InventorySortKey) => {
+    setInventorySort(current => ({
+      key,
+      direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc',
+    }));
+  };
+
+  const sortIcon = (active: boolean, direction: SortDirection) =>
+    !active ? <ArrowUpDown className="h-3.5 w-3.5 opacity-50" /> :
+      direction === 'asc' ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />;
+
+  const sortableLabel = (
+    label: string,
+    active: boolean,
+    direction: SortDirection,
+    onClick: () => void,
+  ) => (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex w-full items-center gap-1.5 rounded-sm text-inherit hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+      aria-label={`${t('sortBy')} ${label}`}
+    >
+      <span>{label}</span>
+      {sortIcon(active, direction)}
+    </button>
+  );
 
 
 
@@ -1146,15 +1211,15 @@ const WarehouseManagementFixed: React.FC = () => {
                        <thead className="sticky top-0 z-10 bg-slate-100 text-slate-700 shadow-sm">
                          <tr>
                            <th scope="col" className="border border-slate-300 px-3 py-2 text-center font-semibold">{t('rowNumber')}</th>
-                           <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('orderNumber')}</th>
-                           <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('customer')}</th>
-                           <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('contact')}</th>
-                           <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('date')}</th>
-                           <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('paymentMethod')}</th>
-                           <th scope="col" className="border border-slate-300 px-3 py-2 text-center font-semibold">{t('shipmentWeight')}</th>
-                           <th scope="col" className="border border-slate-300 px-3 py-2 text-end font-semibold">{t('totalAmount')}</th>
-                           <th scope="col" className="w-[130px] border border-slate-300 px-3 py-2 text-start font-semibold whitespace-normal break-words">{t('status')}</th>
-                           <th scope="col" className="w-[140px] border border-slate-300 px-3 py-2 text-start font-semibold whitespace-normal break-words">{t('notes')}</th>
+                            <th scope="col" aria-sort={orderSort.key === 'orderNumber' ? (orderSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className="border border-slate-300 px-3 py-2 text-start font-semibold">{sortableLabel(t('orderNumber'), orderSort.key === 'orderNumber', orderSort.direction, () => toggleOrderSort('orderNumber'))}</th>
+                            <th scope="col" aria-sort={orderSort.key === 'customer' ? (orderSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className="border border-slate-300 px-3 py-2 text-start font-semibold">{sortableLabel(t('customer'), orderSort.key === 'customer', orderSort.direction, () => toggleOrderSort('customer'))}</th>
+                            <th scope="col" aria-sort={orderSort.key === 'contact' ? (orderSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className="border border-slate-300 px-3 py-2 text-start font-semibold">{sortableLabel(t('contact'), orderSort.key === 'contact', orderSort.direction, () => toggleOrderSort('contact'))}</th>
+                            <th scope="col" aria-sort={orderSort.key === 'date' ? (orderSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className="border border-slate-300 px-3 py-2 text-start font-semibold">{sortableLabel(t('date'), orderSort.key === 'date', orderSort.direction, () => toggleOrderSort('date'))}</th>
+                            <th scope="col" aria-sort={orderSort.key === 'paymentMethod' ? (orderSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className="border border-slate-300 px-3 py-2 text-start font-semibold">{sortableLabel(t('paymentMethod'), orderSort.key === 'paymentMethod', orderSort.direction, () => toggleOrderSort('paymentMethod'))}</th>
+                            <th scope="col" aria-sort={orderSort.key === 'weight' ? (orderSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className="border border-slate-300 px-3 py-2 text-center font-semibold">{sortableLabel(t('shipmentWeight'), orderSort.key === 'weight', orderSort.direction, () => toggleOrderSort('weight'))}</th>
+                            <th scope="col" aria-sort={orderSort.key === 'amount' ? (orderSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className="border border-slate-300 px-3 py-2 text-end font-semibold">{sortableLabel(t('totalAmount'), orderSort.key === 'amount', orderSort.direction, () => toggleOrderSort('amount'))}</th>
+                            <th scope="col" aria-sort={orderSort.key === 'status' ? (orderSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className="w-[130px] border border-slate-300 px-3 py-2 text-start font-semibold whitespace-normal break-words">{sortableLabel(t('status'), orderSort.key === 'status', orderSort.direction, () => toggleOrderSort('status'))}</th>
+                            <th scope="col" aria-sort={orderSort.key === 'notes' ? (orderSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className="w-[140px] border border-slate-300 px-3 py-2 text-start font-semibold whitespace-normal break-words">{sortableLabel(t('notes'), orderSort.key === 'notes', orderSort.direction, () => toggleOrderSort('notes'))}</th>
                            <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('actions')}</th>
                          </tr>
                        </thead>
@@ -1323,25 +1388,25 @@ const WarehouseManagementFixed: React.FC = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                         <TableHead className="text-right whitespace-nowrap">{t('productName')}</TableHead>
-                         <TableHead className="text-right whitespace-nowrap">{t('vendor')}</TableHead>
-                         <TableHead className="text-right whitespace-nowrap">{t('productCode')}</TableHead>
-                         <TableHead className="text-center whitespace-nowrap">{t('batchNumber')}</TableHead>
-                         <TableHead className="text-center whitespace-nowrap">{t('remainingInBatch')}</TableHead>
-                         <TableHead className="text-center whitespace-nowrap">{t('minimum')}</TableHead>
-                         <TableHead className="text-center whitespace-nowrap">{t('alertThreshold')}</TableHead>
-                         <TableHead className="text-center whitespace-nowrap">{t('status')}</TableHead>
+                         <TableHead aria-sort={inventorySort.key === 'product' ? (inventorySort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className="text-right whitespace-nowrap">{sortableLabel(t('productName'), inventorySort.key === 'product', inventorySort.direction, () => toggleInventorySort('product'))}</TableHead>
+                         <TableHead aria-sort={inventorySort.key === 'vendor' ? (inventorySort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className="text-right whitespace-nowrap">{sortableLabel(t('vendor'), inventorySort.key === 'vendor', inventorySort.direction, () => toggleInventorySort('vendor'))}</TableHead>
+                         <TableHead aria-sort={inventorySort.key === 'sku' ? (inventorySort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className="text-right whitespace-nowrap">{sortableLabel(t('productCode'), inventorySort.key === 'sku', inventorySort.direction, () => toggleInventorySort('sku'))}</TableHead>
+                         <TableHead aria-sort={inventorySort.key === 'batch' ? (inventorySort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className="text-center whitespace-nowrap">{sortableLabel(t('batchNumber'), inventorySort.key === 'batch', inventorySort.direction, () => toggleInventorySort('batch'))}</TableHead>
+                         <TableHead aria-sort={inventorySort.key === 'stock' ? (inventorySort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className="text-center whitespace-nowrap">{sortableLabel(t('remainingInBatch'), inventorySort.key === 'stock', inventorySort.direction, () => toggleInventorySort('stock'))}</TableHead>
+                         <TableHead aria-sort={inventorySort.key === 'minimum' ? (inventorySort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className="text-center whitespace-nowrap">{sortableLabel(t('minimum'), inventorySort.key === 'minimum', inventorySort.direction, () => toggleInventorySort('minimum'))}</TableHead>
+                         <TableHead aria-sort={inventorySort.key === 'threshold' ? (inventorySort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className="text-center whitespace-nowrap">{sortableLabel(t('alertThreshold'), inventorySort.key === 'threshold', inventorySort.direction, () => toggleInventorySort('threshold'))}</TableHead>
+                         <TableHead aria-sort={inventorySort.key === 'status' ? (inventorySort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className="text-center whitespace-nowrap">{sortableLabel(t('status'), inventorySort.key === 'status', inventorySort.direction, () => toggleInventorySort('status'))}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredInventoryProducts.length === 0 ? (
+                      {sortedInventoryProducts.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                              {t('noProducts')}
                           </TableCell>
                         </TableRow>
                       ) : (
-                        filteredInventoryProducts.slice(0, 50).map((product) => {
+                        sortedInventoryProducts.slice(0, 50).map((product) => {
                           const stockStatus = getStockStatus(product);
                           return (
                             <TableRow key={product.id}>
