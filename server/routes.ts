@@ -1073,7 +1073,9 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           currency: customerOrders.currency,
           paymentMethod: customerOrders.paymentMethod,
            paymentStatus: customerOrders.paymentStatus,
+          invoiceType: customerOrders.invoiceType,
           financialReviewedAt: orderManagement.financialReviewedAt,
+          managementStatus: orderManagement.currentStatus,
           status: customerOrders.status,
           createdAt: customerOrders.createdAt,
           vatAmount: customerOrders.vatAmount, // Frozen VAT amount from order creation
@@ -1097,6 +1099,23 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       const order = orderResult[0];
       if (order.customerId !== req.session.customerId) {
         return res.status(403).json({ success: false, message: 'دسترسی به این سفارش مجاز نیست' });
+      }
+      const rejectedStatuses = new Set(['financial_rejected', 'finance_rejected', 'rejected']);
+      if (
+        rejectedStatuses.has(String(order.status || '').toLowerCase()) ||
+        rejectedStatuses.has(String(order.managementStatus || '').toLowerCase()) ||
+        order.invoiceType === 'voided'
+      ) {
+        return res.status(410).json({
+          success: false,
+          message: 'پیش‌فاکتور این سفارش پس از رد واحد مالی باطل شده است'
+        });
+      }
+      if (order.invoiceType !== 'proforma') {
+        return res.status(409).json({
+          success: false,
+          message: 'این سفارش پیش‌فاکتور فعال ندارد'
+        });
       }
       if (order.paymentStatus === 'receipt_uploaded' && !order.financialReviewedAt) {
         return res.status(400).json({
@@ -30737,11 +30756,13 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         'financial', 
         notes || 'Payment rejected by financial department'
       );
+      const { voidRejectedOrderProforma } = await import('./invoice-lifecycle');
+      const proformaVoided = await voidRejectedOrderProforma(updatedOrder.customerOrderId);
       const { restoreRejectedOrderInventory } = await import('./cart-inventory-reservation');
       const inventoryRestoration = await restoreRejectedOrderInventory(updatedOrder.customerOrderId);
 
       console.log(`❌ [FINANCE] Order ${orderId} rejected by financial department`);
-      res.json({ success: true, order: updatedOrder, inventoryRestoration, message: 'پرداخت رد شد' });
+      res.json({ success: true, order: updatedOrder, proformaVoided, inventoryRestoration, message: 'پرداخت رد شد' });
     } catch (error) {
       console.error('Error rejecting financial order:', error);
       res.status(500).json({ success: false, message: 'خطا در رد پرداخت' });
@@ -35200,7 +35221,7 @@ ${message ? `Additional Requirements:\n${message}` : ''}
       
       // Use warehouse_pending status from schema to properly transfer to warehouse
       const { orderStatuses } = await import('../shared/order-management-schema');
-      await orderManagementStorage.updateOrderStatus(
+      const updatedOrder = await orderManagementStorage.updateOrderStatus(
         orderId,
         orderStatuses.WAREHOUSE_PENDING, // Transfer directly to warehouse pending
         reviewerId,
@@ -35230,13 +35251,15 @@ ${message ? `Additional Requirements:\n${message}` : ''}
       const { notes } = req.body;
       const adminId = req.session.adminId!;
       
-      await orderManagementStorage.updateOrderStatus(
+      const updatedOrder = await orderManagementStorage.updateOrderStatus(
         orderId,
         'financial_rejected',
         adminId,
         'financial',
         notes || 'رد شده توسط بخش مالی'
       );
+      const { voidRejectedOrderProforma } = await import('./invoice-lifecycle');
+      await voidRejectedOrderProforma(updatedOrder.customerOrderId);
 
       // Send website notification and email to customer (NO SMS)
       const orderMgmt = await orderManagementStorage.getOrderManagementById(orderId);
@@ -44138,6 +44161,8 @@ momtazchem.com
         changedByDepartment: 'financial',
         notes: notes
       });
+      const { voidRejectedOrderProforma } = await import('./invoice-lifecycle');
+      const proformaVoided = await voidRejectedOrderProforma(customerOrderId);
       const { restoreRejectedOrderInventory } = await import('./cart-inventory-reservation');
       const inventoryRestoration = await restoreRejectedOrderInventory(customerOrderId);
       console.log(`📦 [INVENTORY RESTORE] Order ${customerOrderId}:`, inventoryRestoration);
@@ -44165,7 +44190,7 @@ momtazchem.com
         }
       }
 
-      res.json({ success: true, inventoryRestoration, message: "پرداخت رد شد و اطلاع‌رسانی ارسال شد" });
+      res.json({ success: true, proformaVoided, inventoryRestoration, message: "پرداخت رد شد و اطلاع‌رسانی ارسال شد" });
     } catch (error) {
       console.error("Error rejecting finance order:", error);
       res.status(500).json({

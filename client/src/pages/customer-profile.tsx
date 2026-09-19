@@ -1456,9 +1456,10 @@ const CustomerProfile = () => {
                                 <span className="font-semibold text-slate-900">{Math.floor(getOrderTotal(order))} IQD</span>
                               </div>
                               <div className="col-start-6 row-start-1 flex min-w-0 items-center px-3 py-2">
-                                {order.status !== "cancelled" &&
-                                  order.status !== "financial_rejected" &&
-                                  order.status !== "rejected" &&
+                                {!["cancelled", "financial_rejected", "finance_rejected", "rejected"].includes(
+                                  String(order.currentStatus || order.managementStatus || order.status || "").toLowerCase(),
+                                ) &&
+                                  order.invoiceType !== "voided" &&
                                   !(order.paymentStatus?.toLowerCase() === "receipt_uploaded" && !isFinanciallyReviewed(order)) ? (
                                   order.invoiceType === "official_invoice" ? (
                                     <Button
