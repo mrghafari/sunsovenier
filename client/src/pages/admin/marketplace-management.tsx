@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Calculator, Check, Eye, MapPin, Search, Star, Store, X } from "lucide-react";
+import { Calculator, Check, Eye, MapPin, Search, Settings, Star, Store, X } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -57,6 +58,21 @@ export default function MarketplaceManagement() {
   const rejected = useQuery<{ vendors: Vendor[] }>({ queryKey: ["/api/admin/vendors/rejected"] });
   const changes = useQuery<{ vendors: VendorWithPendingChanges[] }>({ queryKey: ["/api/admin/vendors/pending-profile-changes"] });
   const stats = useQuery<{ stats: Record<number, VendorProductStats> }>({ queryKey: ["/api/admin/vendors/product-stats"] });
+  const displaySettings = useQuery<{ vendorEntryVisible: boolean }>({ queryKey: ["/api/marketplace/display-settings"] });
+  const settingsText = {
+    en: { tab: "Display settings", title: "Public vendor entry", description: "Show the Vendor button on the home page and vendor links in the footer.", visible: "Vendor entry is visible", hidden: "Vendor entry is hidden", saved: "Display setting saved.", error: "Could not save the display setting." },
+    fa: { tab: "تنظیمات نمایش", title: "ورودی عمومی فروشندگان", description: "دکمه Vendor در صفحه اصلی و لینک‌های فروشندگان در فوتر را نمایش دهید یا پنهان کنید.", visible: "ورودی فروشندگان نمایش داده می‌شود", hidden: "ورودی فروشندگان پنهان است", saved: "تنظیم نمایش ذخیره شد.", error: "ذخیره تنظیم نمایش ممکن نیست." },
+    ar: { tab: "إعدادات العرض", title: "مدخل البائع العام", description: "إظهار أو إخفاء زر البائع في الصفحة الرئيسية وروابط البائع في التذييل.", visible: "مدخل البائع ظاهر", hidden: "مدخل البائع مخفي", saved: "تم حفظ إعداد العرض.", error: "تعذر حفظ إعداد العرض." },
+    tr: { tab: "Görünüm ayarları", title: "Herkese açık satıcı girişi", description: "Ana sayfadaki Vendor düğmesini ve alt bilgideki satıcı bağlantılarını gösterin veya gizleyin.", visible: "Satıcı girişi görünür", hidden: "Satıcı girişi gizli", saved: "Görünüm ayarı kaydedildi.", error: "Görünüm ayarı kaydedilemedi." },
+  }[language];
+  const displaySettingsMutation = useMutation({
+    mutationFn: (vendorEntryVisible: boolean) => apiRequest("/api/admin/marketplace/display-settings", { method: "PATCH", body: { vendorEntryVisible } }),
+    onSuccess: (_data, vendorEntryVisible) => {
+      queryClient.setQueryData(["/api/marketplace/display-settings"], { success: true, vendorEntryVisible });
+      toast({ title: t.success, description: settingsText.saved });
+    },
+    onError: () => toast({ title: t.failure, description: settingsText.error, variant: "destructive" }),
+  });
 
   const refresh = () => [all, pending, approved, rejected, changes, stats].forEach((q) => q.refetch());
   const invalidate = (keys: string[]) => keys.forEach((key) => queryClient.invalidateQueries({ queryKey: [key] }));
@@ -138,7 +154,7 @@ export default function MarketplaceManagement() {
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3 border-b border-slate-300 pb-5"><div><h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl" data-testid="page-title">{t.title}</h1><p className="mt-1 text-sm text-slate-500" data-testid="page-description">{t.desc}</p></div><Button variant="outline" size="sm" onClick={refresh}>{t.retry}</Button></div>
       <Tabs defaultValue="accounting" className="space-y-5">
         <TabsList className="w-full justify-start gap-1 rounded-md border border-slate-300 bg-slate-200 p-1" data-testid="vendor-tabs">
-          <TabsTrigger value="pending" data-testid="tab-pending">{t.pending} ({pending.data?.vendors?.length || 0})</TabsTrigger><TabsTrigger value="approved" data-testid="tab-approved">{t.approved} ({approved.data?.vendors?.length || 0})</TabsTrigger><TabsTrigger value="rejected" data-testid="tab-rejected">{t.rejected} ({rejected.data?.vendors?.length || 0})</TabsTrigger><TabsTrigger value="all" data-testid="tab-all">{t.all} ({all.data?.vendors?.length || 0})</TabsTrigger><TabsTrigger value="profile-changes" data-testid="tab-profile-changes">{t.changes} ({changes.data?.vendors?.length || 0})</TabsTrigger><TabsTrigger value="accounting" data-testid="tab-accounting"><Calculator className="me-1 h-4 w-4" />{t.accounting}</TabsTrigger>
+          <TabsTrigger value="pending" data-testid="tab-pending">{t.pending} ({pending.data?.vendors?.length || 0})</TabsTrigger><TabsTrigger value="approved" data-testid="tab-approved">{t.approved} ({approved.data?.vendors?.length || 0})</TabsTrigger><TabsTrigger value="rejected" data-testid="tab-rejected">{t.rejected} ({rejected.data?.vendors?.length || 0})</TabsTrigger><TabsTrigger value="all" data-testid="tab-all">{t.all} ({all.data?.vendors?.length || 0})</TabsTrigger><TabsTrigger value="profile-changes" data-testid="tab-profile-changes">{t.changes} ({changes.data?.vendors?.length || 0})</TabsTrigger><TabsTrigger value="accounting" data-testid="tab-accounting"><Calculator className="me-1 h-4 w-4" />{t.accounting}</TabsTrigger><TabsTrigger value="display-settings" data-testid="tab-display-settings"><Settings className="me-1 h-4 w-4" />{settingsText.tab}</TabsTrigger>
         </TabsList>
         <TabsContent value="pending" data-testid="content-pending"><VendorTab kind="pending" testId="pending-vendor-table" /></TabsContent>
         <TabsContent value="approved" data-testid="content-approved"><VendorTab kind="approved" testId="approved-vendor-table" /></TabsContent>
@@ -146,6 +162,17 @@ export default function MarketplaceManagement() {
         <TabsContent value="all" data-testid="content-all"><VendorTab kind="all" testId="all-vendor-table" /></TabsContent>
         <TabsContent value="profile-changes" data-testid="content-profile-changes">{changes.isLoading ? <Card><CardContent className="py-14 text-center text-slate-500">{t.loading}</CardContent></Card> : changes.isError ? <Card><CardContent className="py-12 text-center text-rose-600">{t.error}</CardContent></Card> : !changes.data?.vendors?.length ? <Empty message={t.emptyChanges} hint={t.emptyHint} /> : <Card className="overflow-hidden border-slate-300 shadow-sm"><CardContent className="p-0"><div className="overflow-x-auto"><Table className="min-w-[900px] text-xs"><TableHeader className="bg-slate-700"><TableRow className="border-slate-700 hover:bg-slate-700">{[t.name, t.submitted, t.actions].map((h) => <TableHead key={h} className="h-9 border-e border-slate-600 px-3 text-start font-semibold text-slate-50">{h}</TableHead>)}</TableRow></TableHeader><TableBody>{changes.data.vendors.map((vendor) => <TableRow key={vendor.id} data-testid={`profile-change-card-${vendor.id}`} className="border-slate-200 odd:bg-slate-50 even:bg-white hover:bg-amber-50"><TableCell className="border-e border-slate-200 px-3 py-3 font-semibold">{localizedVendorName(vendor)} <span className="font-mono text-slate-500">#{vendor.id}</span></TableCell><TableCell className="border-e border-slate-200 px-3 py-3">{date(vendor.pendingChangesSubmittedAt)}</TableCell><TableCell className="px-3 py-3"><div className="flex flex-wrap gap-1.5">{vendor.pendingProfileChanges && Object.entries(vendor.pendingProfileChanges).map(([key, value]) => <Badge variant="outline" key={key} className="max-w-[260px] truncate border-slate-300">{key}: {String(value)}</Badge>)}<Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => rejectChanges.mutate(vendor.id)} disabled={rejectChanges.isPending || approveChanges.isPending} data-testid={`btn-reject-profile-${vendor.id}`}><X className="me-1 h-3.5 w-3.5" />{t.reject}</Button><Button size="sm" className="h-7 bg-emerald-600 px-2 text-xs hover:bg-emerald-700" onClick={() => approveChanges.mutate(vendor.id)} disabled={approveChanges.isPending || rejectChanges.isPending} data-testid={`btn-approve-profile-${vendor.id}`}><Check className="me-1 h-3.5 w-3.5" />{t.apply}</Button></div></TableCell></TableRow>)}</TableBody></Table></div></CardContent></Card>}</TabsContent>
         <TabsContent value="accounting" data-testid="content-accounting"><VendorAccountingTab /></TabsContent>
+        <TabsContent value="display-settings" data-testid="content-display-settings">
+          <Card className="max-w-2xl border-slate-300 shadow-sm">
+            <CardHeader><CardTitle>{settingsText.title}</CardTitle><CardDescription>{settingsText.description}</CardDescription></CardHeader>
+            <CardContent>
+              {displaySettings.isLoading ? <p className="text-sm text-slate-500">{t.loading}</p> : displaySettings.isError ? <p className="text-sm text-rose-600">{t.error}</p> : <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <Label htmlFor="vendor-entry-visible" className="cursor-pointer">{displaySettings.data?.vendorEntryVisible !== false ? settingsText.visible : settingsText.hidden}</Label>
+                <Switch id="vendor-entry-visible" checked={displaySettings.data?.vendorEntryVisible !== false} onCheckedChange={(checked) => displaySettingsMutation.mutate(checked)} disabled={displaySettingsMutation.isPending} data-testid="switch-vendor-entry-visible" />
+              </div>}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
 

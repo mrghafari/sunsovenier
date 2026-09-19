@@ -42,7 +42,7 @@ import { z } from "zod";
 import * as schema from "@shared/schema";
 const { crmCustomers, iraqiProvinces, iraqiCities, abandonedOrders, contentItems, footerSettings, paymentMethodSettings, shopSettings, aiApiSettings, insertAiApiSettingsSchema, vendors, postalServices } = schema;
 import { webrtcRooms, roomParticipants, chatMessages } from "@shared/webrtc-schema";
-import { orderManagement, shippingRates, deliveryMethods, paymentReceipts } from "@shared/order-management-schema";
+import { orderManagement, shippingRates, deliveryMethods, paymentReceipts, consolidatedOrderData, orderStatusHistory } from "@shared/order-management-schema";
 import { generateEAN13Barcode, validateEAN13, parseEAN13Barcode, isMomtazchemBarcode } from "@shared/barcode-utils";
 import { generateSmartSKU, validateSKUUniqueness } from "./ai-sku-generator";
 import { deliveryVerificationStorage } from "./delivery-verification-storage";
@@ -7885,6 +7885,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       'marketing_module': 'ماژول مارکتینگ',
       'warehouse_management': 'مدیریت انبار',
       'logistics_management': 'مدیریت لجستیک',
+      'delivery_confirmation': 'تأیید تحویل پیک / حمل‌کننده',
       'ticketing_system': 'سیستم تیکتینگ',
       'remote_desktop': 'دسکتاپ ریموت',
       'server_config': 'تنظیمات سرور',
@@ -7954,6 +7955,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         'content_management',
         'warehouse_management',
         'logistics_management',
+        'delivery_confirmation',
         'ticketing_system',
         'remote_desktop',
         'server_config',
@@ -8733,9 +8735,10 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
   // Custom user login endpoint
   app.post("/api/custom-users/login", async (req, res) => {
     try {
-      const { email, password } = req.body;
+       const { email, phone, password } = req.body;
+       const loginIdentifier = String(email || phone || '').trim();
       
-      if (!email || !password) {
+       if (!loginIdentifier || !password) {
         return res.status(400).json({
           success: false,
           message: "ایمیل و رمز عبور الزامی است"
@@ -8754,8 +8757,8 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           cr.permissions as role_permissions
         FROM custom_users cu
         LEFT JOIN custom_roles cr ON cu.role_id = cr.id
-        WHERE cu.email = $1 AND cu.is_active = true
-      `, [email]);
+         WHERE (cu.email = $1 OR cu.phone = $1) AND cu.is_active = true
+       `, [loginIdentifier]);
 
       if (result.rows.length === 0) {
         return res.status(401).json({
@@ -10423,7 +10426,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       const currentModules = getSiteManagementModules();
       
       // Map module IDs to their display information
-      const moduleMapping = {
+      const moduleMapping: Record<string, { name: string; description: string; category: string }> = {
         'kpi_dashboard': { name: 'شاخص‌های عملکرد (KPI)', description: 'نمایش شاخص‌های عملکرد کسب‌وکار', category: 'analytics' },
         'management_dashboard': { name: 'داشبورد مدیریتی', description: 'مرکز کنترل مدیریتی و نظارت سیستم', category: 'analytics' },
         'server_config': { name: 'تنظیمات سرور', description: 'مدیریت کانفیگ سرور و مهاجرت', category: 'system' },
@@ -10433,6 +10436,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         'order_management': { name: 'مدیریت سفارشات', description: 'پردازش و تایید سفارشات', category: 'commerce' },
         'warehouse_management': { name: 'مدیریت انبار', description: 'کنترل موجودی و انبارداری', category: 'warehouse' },
         'logistics_management': { name: 'مدیریت لجستیک', description: 'مدیریت حمل و نقل و تحویل', category: 'logistics' },
+        'delivery_confirmation': { name: 'تأیید تحویل پیک / حمل‌کننده', description: 'تأیید تحویل سفارش توسط حمل‌کننده', category: 'logistics' },
         'inquiries': { name: 'مدیریت استعلامات', description: 'پاسخ به استعلامات مشتریان', category: 'customer' },
         'crm': { name: 'مدیریت CRM', description: 'مدیریت مشتریان و روابط', category: 'customer' },
         'barcode': { name: 'مدیریت بارکد', description: 'تولید و مدیریت بارکدها', category: 'inventory' },
@@ -23997,6 +24001,64 @@ ${procedure.content}
   });
 
   // Shop/E-commerce API endpoints - Inventory-based product management
+
+  const ensureMarketplaceDisplaySettings = async () => {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS marketplace_display_settings (
+        id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+        vendor_entry_visible BOOLEAN NOT NULL DEFAULT TRUE,
+        updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        updated_by INTEGER
+      )
+    `);
+    await pool.query(`
+      INSERT INTO marketplace_display_settings (id, vendor_entry_visible)
+      VALUES (1, TRUE)
+      ON CONFLICT (id) DO NOTHING
+    `);
+  };
+
+  app.get("/api/marketplace/display-settings", async (_req, res) => {
+    try {
+      await ensureMarketplaceDisplaySettings();
+      const result = await pool.query(`
+        SELECT vendor_entry_visible AS "vendorEntryVisible"
+        FROM marketplace_display_settings
+        WHERE id = 1
+      `);
+      res.json({
+        success: true,
+        vendorEntryVisible: result.rows[0]?.vendorEntryVisible !== false,
+      });
+    } catch (error) {
+      console.error("Error fetching marketplace display settings:", error);
+      res.status(500).json({ success: false, message: "Failed to fetch marketplace display settings" });
+    }
+  });
+
+  app.patch("/api/admin/marketplace/display-settings", requireAuth, async (req, res) => {
+    try {
+      if (typeof req.body?.vendorEntryVisible !== "boolean") {
+        return res.status(400).json({ success: false, message: "vendorEntryVisible must be boolean" });
+      }
+      await ensureMarketplaceDisplaySettings();
+      const result = await pool.query(`
+        UPDATE marketplace_display_settings
+        SET vendor_entry_visible = $1,
+            updated_at = NOW(),
+            updated_by = $2
+        WHERE id = 1
+        RETURNING vendor_entry_visible AS "vendorEntryVisible"
+      `, [req.body.vendorEntryVisible, req.session.adminId || null]);
+      res.json({
+        success: true,
+        vendorEntryVisible: result.rows[0].vendorEntryVisible,
+      });
+    } catch (error) {
+      console.error("Error updating marketplace display settings:", error);
+      res.status(500).json({ success: false, message: "Failed to update marketplace display settings" });
+    }
+  });
   
   // Admin endpoint - Get ALL shop products including out of stock (for inventory management)
   app.get("/api/admin/shop-products", requireAuth, async (req, res) => {
@@ -33133,6 +33195,66 @@ ${message ? `Additional Requirements:\n${message}` : ''}
     };
   }
 
+  // Site-admin-only gate for the back-office confirmation flow. Custom courier
+  // roles must use the dedicated mobile endpoint instead.
+  function requireSiteAdminDeliveryConfirmation(req: any, res: any, next: any) {
+    const session = req.session as any;
+    if (!session?.isAuthenticated || Boolean(session.adminId) === Boolean(session.customUserId)) {
+      return res.status(401).json({ success: false, message: "احراز هویت الزامی است" });
+    }
+    const identityColumn = session.adminId ? 'adminId' : 'customUserId';
+    pool.query(
+      session.adminId
+        ? `SELECT ar.name FROM users u JOIN admin_roles ar ON ar.id = u.role_id WHERE u.id = $1 AND u.is_active = true AND ar.is_active = true`
+        : `SELECT cr.name FROM custom_users cu JOIN custom_roles cr ON cr.id = cu.role_id WHERE cu.id = $1 AND cu.is_active = true AND cr.is_active = true`,
+      [session[identityColumn]]
+    ).then((result) => {
+      const roleName = String(result.rows[0]?.name || '').toLowerCase().replace(/\s+/g, '_');
+      if (['admin', 'super_admin', 'supper_admin'].includes(roleName)) return next();
+      return res.status(403).json({ success: false, message: "دسترسی کافی وجود ندارد" });
+    }).catch((error) => {
+      console.error("Site admin access check failed:", error);
+      return res.status(500).json({ success: false, message: "بررسی دسترسی انجام نشد" });
+    });
+  }
+
+  function requireCustomDeliveryUser(req: any, res: any, next: any) {
+    const session = req.session as any;
+    if (!session?.customUserId || session?.adminId) {
+      return res.status(401).json({ success: false, message: "احراز هویت الزامی است" });
+    }
+    pool.query(`SELECT cr.permissions FROM custom_users cu JOIN custom_roles cr ON cr.id = cu.role_id WHERE cu.id = $1 AND cu.is_active = true AND cr.is_active = true`, [session.customUserId])
+      .then((result) => {
+        const permissions = Array.isArray(result.rows[0]?.permissions) ? result.rows[0].permissions : JSON.parse(result.rows[0]?.permissions || '[]');
+        if (permissions.includes('delivery_confirmation')) return next();
+        return res.status(403).json({ success: false, message: "دسترسی کافی وجود ندارد" });
+      }).catch(() => res.status(500).json({ success: false, message: "بررسی دسترسی انجام نشد" }));
+  }
+
+  const deliveryCodeAttempts = new Map<string, { count: number; resetAt: number }>();
+  function checkDeliveryCodeRateLimit(actor: string, orderNumber: string) {
+    const now = Date.now();
+    if (deliveryCodeAttempts.size > 10000) {
+      for (const [key, value] of deliveryCodeAttempts) if (value.resetAt <= now) deliveryCodeAttempts.delete(key);
+      if (deliveryCodeAttempts.size > 10000) {
+        const first = deliveryCodeAttempts.keys().next().value;
+        if (first) deliveryCodeAttempts.delete(first);
+      }
+    }
+    const key = `${actor}:${orderNumber}`;
+    const current = deliveryCodeAttempts.get(key);
+    if (!current || current.resetAt <= now) {
+      deliveryCodeAttempts.set(key, { count: 0, resetAt: now + 15 * 60 * 1000 });
+      return { allowed: true, key };
+    }
+    return { allowed: current.count < 5, key };
+  }
+  function recordDeliveryCodeFailure(key: string) {
+    const current = deliveryCodeAttempts.get(key);
+    if (current) current.count += 1;
+  }
+  function clearDeliveryCodeAttempts(key: string) { deliveryCodeAttempts.delete(key); }
+
   // ============================================================================
   // LOGISTICS DEPARTMENT ROUTES
   // ============================================================================
@@ -35805,7 +35927,7 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         console.log(`🔍 [DEBUG] SUPER ADMIN PATH ACTIVATED for ${legacyUser[0].email}`);
         const allModules = [
           "kpi_dashboard", "management_dashboard", "syncing_shop", "shop_management",
-          "product_management", "order_management", "warehouse_management", "logistics_management",
+          "product_management", "order_management", "warehouse_management", "logistics_management", "delivery_confirmation",
           "inquiries", "crm", "barcode", "email_settings", "database_backup", "seo",
           "categories", "sms", "factory", "user_management", "procedures", "payment_management",
           "accounting_management", "finance", "wallet_management", "geography_analytics",
@@ -49109,7 +49231,7 @@ momtazchem.com
   });
 
   // Verify delivery with customer code
-  app.post('/api/order-management/:orderId/verify-delivery', requireModuleAccess('logistics_management', 'edit'), async (req, res) => {
+  app.post('/api/order-management/:orderId/verify-delivery', requireSiteAdminDeliveryConfirmation, async (req, res) => {
     try {
       const orderId = parseInt(req.params.orderId);
       const { 
@@ -49132,10 +49254,11 @@ momtazchem.com
       const { eq } = await import('drizzle-orm');
       const { orderManagement } = await import('../shared/order-management-schema');
       
+      const hasCarrierGps = carrierLatitude !== undefined && carrierLongitude !== undefined && carrierLocationAccuracy !== undefined;
       const parsedCarrierLatitude = Number(carrierLatitude);
       const parsedCarrierLongitude = Number(carrierLongitude);
       const parsedCarrierAccuracy = Number(carrierLocationAccuracy);
-      if (
+      if (hasCarrierGps && (
         !Number.isFinite(parsedCarrierLatitude) ||
         !Number.isFinite(parsedCarrierLongitude) ||
         parsedCarrierLatitude < -90 ||
@@ -49145,7 +49268,7 @@ momtazchem.com
         !Number.isFinite(parsedCarrierAccuracy) ||
         parsedCarrierAccuracy < 0 ||
         parsedCarrierAccuracy > 10000
-      ) {
+      )) {
         return res.status(400).json({
           success: false,
           message: 'موقعیت GPS معتبر برای تأیید تحویل الزامی است'
@@ -49161,16 +49284,13 @@ momtazchem.com
           .limit(1);
         if (!currentOrder) throw new Error('ORDER_NOT_FOUND');
         if (!currentOrder.customerOrderId) throw new Error('CUSTOMER_ORDER_NOT_FOUND');
+        if (currentOrder.isVerified || ['delivered', 'logistics_delivered', 'completed'].includes(currentOrder.currentStatus)) {
+          throw new Error('DELIVERY_ALREADY_VERIFIED');
+        }
+        if (currentOrder.currentStatus !== 'logistics_dispatched') throw new Error('INVALID_DELIVERY_STATUS');
         if (!currentOrder.deliveryCode || verificationCode !== currentOrder.deliveryCode) {
           throw new Error('INVALID_DELIVERY_CODE');
         }
-        if (
-          currentOrder.isVerified ||
-          ['delivered', 'logistics_delivered', 'completed'].includes(currentOrder.currentStatus)
-        ) {
-          throw new Error('DELIVERY_ALREADY_VERIFIED');
-        }
-
         const [updated] = await tx.update(orderManagement)
           .set({
             isVerified: true,
@@ -49179,17 +49299,29 @@ momtazchem.com
             actualDeliveryDate: new Date(),
             currentStatus: 'logistics_delivered',
             deliveryCode: null,
-            carrierLatitude: parsedCarrierLatitude.toString(),
-            carrierLongitude: parsedCarrierLongitude.toString(),
-            carrierLocationAccuracy: parsedCarrierAccuracy.toString(),
-            carrierLocationCapturedAt: new Date(),
-            carrierLocationSource: 'mobile',
+             carrierLatitude: hasCarrierGps ? parsedCarrierLatitude.toString() : null,
+             carrierLongitude: hasCarrierGps ? parsedCarrierLongitude.toString() : null,
+             carrierLocationAccuracy: hasCarrierGps ? parsedCarrierAccuracy.toString() : null,
+             carrierLocationCapturedAt: hasCarrierGps ? new Date() : null,
+             carrierLocationSource: hasCarrierGps ? 'mobile' : null,
             updatedAt: new Date()
           })
           .where(eq(orderManagement.id, orderId))
           .returning();
 
-        await tx.insert(gpsDeliveryConfirmations).values({
+        await tx.update(consolidatedOrderData)
+          .set({ currentStatus: 'logistics_delivered' })
+          .where(eq(consolidatedOrderData.orderManagementId, currentOrder.id));
+        await tx.insert(orderStatusHistory).values({
+          orderManagementId: currentOrder.id,
+          fromStatus: currentOrder.currentStatus,
+          toStatus: 'logistics_delivered',
+          changedBy: Number(req.session?.adminId) || null,
+          changedByDepartment: 'logistics',
+          notes: 'تأیید تحویل توسط مدیر سایت با کد مشتری',
+        });
+
+        if (hasCarrierGps) await tx.insert(gpsDeliveryConfirmations).values({
           customerOrderId: currentOrder.customerOrderId,
           latitude: parsedCarrierLatitude.toString(),
           longitude: parsedCarrierLongitude.toString(),
@@ -49208,6 +49340,7 @@ momtazchem.com
         if (error.message === 'CUSTOMER_ORDER_NOT_FOUND') return null;
         if (error.message === 'INVALID_DELIVERY_CODE') return false;
         if (error.message === 'DELIVERY_ALREADY_VERIFIED') return 'already-verified';
+        if (error.message === 'INVALID_DELIVERY_STATUS') return 'invalid-status';
         throw error;
       });
 
@@ -49219,6 +49352,9 @@ momtazchem.com
       }
       if (updatedOrder === 'already-verified') {
         return res.status(409).json({ success: false, message: 'این تحویل قبلاً تأیید شده است' });
+      }
+      if (updatedOrder === 'invalid-status') {
+        return res.status(409).json({ success: false, message: 'وضعیت سفارش برای تأیید تحویل معتبر نیست' });
       }
 
       res.json({
@@ -49232,6 +49368,80 @@ momtazchem.com
         success: false,
         message: 'خطا در تایید تحویل'
       });
+    }
+  });
+
+  // Courier/carrier mobile confirmation. Unlike the admin workflow, GPS is mandatory here.
+  app.post('/api/delivery/mobile/verify', requireModuleAccess('delivery_confirmation', 'edit'), requireCustomDeliveryUser, async (req, res) => {
+    const { orderNumber, deliveryCode, latitude, longitude, accuracy } = req.body || {};
+    const lat = Number(latitude), lng = Number(longitude), gpsAccuracy = Number(accuracy);
+    if (!String(orderNumber || '').trim() || !deliveryCode ||
+      !Number.isFinite(lat) || lat < -90 || lat > 90 ||
+      !Number.isFinite(lng) || lng < -180 || lng > 180 ||
+      !Number.isFinite(gpsAccuracy) || gpsAccuracy < 0 || gpsAccuracy > 10000) {
+      return res.status(400).json({ success: false, message: 'شماره سفارش، کد تحویل و موقعیت GPS معتبر الزامی است' });
+    }
+    const session = req.session as any;
+    const actor = String(session?.customUserId || '');
+    const rate = checkDeliveryCodeRateLimit(actor, String(orderNumber).trim());
+    if (!rate.allowed) return res.status(429).json({ success: false, message: 'کد تحویل اشتباه است' });
+    const identity = await pool.query(`
+      SELECT cu.id, cu.full_name, cu.phone
+      FROM custom_users cu JOIN custom_roles cr ON cr.id = cu.role_id
+      WHERE cu.id = $1 AND cu.is_active = true AND cr.is_active = true
+    `, [session?.customUserId]);
+    if (!identity.rows[0]) return res.status(401).json({ success: false, message: 'احراز هویت الزامی است' });
+    try {
+      const result = await db.transaction(async (tx) => {
+        const [order] = await tx.select({ id: orderManagement.id }).from(orderManagement)
+            .innerJoin(consolidatedOrderData, eq(consolidatedOrderData.orderManagementId, orderManagement.id))
+            .where(eq(consolidatedOrderData.orderNumber, String(orderNumber).trim())).limit(1);
+        if (!order) throw new Error('ORDER_NOT_FOUND');
+        await tx.execute(sql`SELECT pg_advisory_xact_lock(${order.id})`);
+        const [locked] = await tx.select().from(orderManagement).where(eq(orderManagement.id, order.id)).limit(1);
+        if (!locked?.customerOrderId) throw new Error('ORDER_NOT_FOUND');
+        if (locked.isVerified || ['delivered', 'logistics_delivered', 'completed'].includes(locked.currentStatus)) {
+          throw new Error('ALREADY_DELIVERED');
+        }
+        if (locked.currentStatus !== 'logistics_dispatched') throw new Error('INVALID_DELIVERY_STATUS');
+        if (!locked.deliveryCode || String(deliveryCode).trim() !== locked.deliveryCode) {
+          throw new Error('INVALID_CODE');
+        }
+        const now = new Date();
+        await tx.update(orderManagement).set({
+          isVerified: true, verifiedAt: now, actualDeliveryDate: now,
+          currentStatus: 'logistics_delivered', deliveryCode: null,
+          carrierLatitude: lat.toString(), carrierLongitude: lng.toString(),
+          carrierLocationAccuracy: gpsAccuracy.toString(), carrierLocationCapturedAt: now,
+          carrierLocationSource: 'mobile', updatedAt: now,
+        }).where(eq(orderManagement.id, locked.id));
+        await tx.update(consolidatedOrderData).set({ currentStatus: 'logistics_delivered' })
+          .where(eq(consolidatedOrderData.orderManagementId, locked.id));
+        await tx.insert(orderStatusHistory).values({
+          orderManagementId: locked.id, fromStatus: locked.currentStatus,
+          toStatus: 'logistics_delivered', changedBy: null, changedByDepartment: 'logistics',
+          notes: `تأیید تحویل توسط ${identity.rows[0].full_name}`,
+        });
+        await tx.insert(gpsDeliveryConfirmations).values({
+          customerOrderId: locked.customerOrderId, latitude: lat.toString(), longitude: lng.toString(),
+          accuracy: gpsAccuracy.toString(), deliveryPersonName: identity.rows[0].full_name,
+          deliveryPersonPhone: identity.rows[0].phone,
+          addressMatched: false, verificationTime: now,
+          deliveryNotes: 'تحویل توسط حمل‌کننده با کد مشتری و موقعیت GPS تأیید شد',
+        });
+        return true;
+      });
+      clearDeliveryCodeAttempts(rate.key);
+      return res.json({ success: result, message: 'تحویل با موفقیت ثبت شد' });
+    } catch (error: any) {
+      if (error.message === 'ORDER_NOT_FOUND' || error.message === 'INVALID_CODE') {
+        recordDeliveryCodeFailure(rate.key);
+        return res.status(400).json({ success: false, message: 'کد تحویل اشتباه است' });
+      }
+      if (error.message === 'ALREADY_DELIVERED') return res.status(409).json({ success: false, message: 'این تحویل قبلاً ثبت شده است' });
+      if (error.message === 'INVALID_DELIVERY_STATUS') return res.status(409).json({ success: false, message: 'وضعیت سفارش برای تأیید تحویل معتبر نیست' });
+      console.error('Mobile delivery verification failed:', error);
+      return res.status(500).json({ success: false, message: 'خطا در ثبت تحویل' });
     }
   });
 

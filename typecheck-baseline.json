@@ -4585,18 +4585,6 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",7053,\"Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ kpi_dashboard: { name: string; description: string; category: string; }; management_dashboard: { name: string; description: string; category: string; }; server_config: { name: string; description: string; category: string; }; ... 32 more ...; aws_s3_settings: { ...; }; }'.\\n  No index signature with a parameter of type 'string' was found on type '{ kpi_dashboard: { name: string; description: string; category: string; }; management_dashboard: { name: string; description: string; category: string; }; server_config: { name: string; description: string; category: string; }; ... 32 more ...; aws_s3_settings: { ...; }; }'.\",\"category: moduleMapping[moduleId]?.category || 'general'\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",7053,\"Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ kpi_dashboard: { name: string; description: string; category: string; }; management_dashboard: { name: string; description: string; category: string; }; server_config: { name: string; description: string; category: string; }; ... 32 more ...; aws_s3_settings: { ...; }; }'.\\n  No index signature with a parameter of type 'string' was found on type '{ kpi_dashboard: { name: string; description: string; category: string; }; management_dashboard: { name: string; description: string; category: string; }; server_config: { name: string; description: string; category: string; }; ... 32 more ...; aws_s3_settings: { ...; }; }'.\",\"description: moduleMapping[moduleId]?.description || `ماژول ${moduleId}`,\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",7053,\"Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ kpi_dashboard: { name: string; description: string; category: string; }; management_dashboard: { name: string; description: string; category: string; }; server_config: { name: string; description: string; category: string; }; ... 32 more ...; aws_s3_settings: { ...; }; }'.\\n  No index signature with a parameter of type 'string' was found on type '{ kpi_dashboard: { name: string; description: string; category: string; }; management_dashboard: { name: string; description: string; category: string; }; server_config: { name: string; description: string; category: string; }; ... 32 more ...; aws_s3_settings: { ...; }; }'.\",\"name: moduleMapping[moduleId]?.name || moduleId,\"]",
-      "count": 1
-    },
-    {
       "key": "[\"server/routes/fifo-batch.ts\",2339,\"Property 'allocateInventoryFIFO' does not exist on type 'typeof FIFOBatchManager'.\",\"const allocation = await FIFOBatchManager.allocateInventoryFIFO(\"]",
       "count": 1
     },

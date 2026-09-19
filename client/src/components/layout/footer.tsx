@@ -39,6 +39,9 @@ interface LinkItem {
 
 const Footer = () => {
   const { t, language } = useLanguage();
+  const { data: marketplaceSettings } = useQuery<{ vendorEntryVisible: boolean }>({
+    queryKey: ["/api/marketplace/display-settings"],
+  });
   const localizedFooterCopy = language === 'ar'
     ? {
         companyDescription: 'مزود رائد للحلول الكيميائية المتقدمة',
@@ -304,7 +307,7 @@ const Footer = () => {
           )}
 
           {/* Vendor Links - Static */}
-          <div>
+          {marketplaceSettings?.vendorEntryVisible !== false && <div>
             <h3 className="text-sm font-semibold mb-3">
               {language === 'fa' ? 'برای فروشندگان' : language === 'ar' ? 'للبائعين' : language === 'ku' ? 'بۆ فرۆشیاران' : language === 'tr' ? 'Satıcılar İçin' : 'For Vendors'}
             </h3>
@@ -324,7 +327,7 @@ const Footer = () => {
                 </Link>
               </li>
             </ul>
-          </div>
+          </div>}
         </div>
 
         {/* Compact Bottom Section */}

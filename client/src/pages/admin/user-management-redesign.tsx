@@ -340,7 +340,7 @@ const translations: Record<Language, TranslationDictionary> = {
     moduleLabels: {
       kpi_dashboard: 'KPI Dashboard', management_dashboard: 'Management Dashboard', syncing_shop: 'Syncing Shop',
       shop_management: 'Shop Management', product_management: 'Product Management', order_management: 'Order Management',
-      warehouse_management: 'Warehouse Management', logistics_management: 'Logistics Management', inquiries: 'Inquiries',
+      warehouse_management: 'Warehouse Management', logistics_management: 'Logistics Management', delivery_confirmation: 'Courier / Carrier Delivery Confirmation', inquiries: 'Inquiries',
       crm: 'CRM', barcode: 'Barcode Management', email_settings: 'Email Settings', database_backup: 'Database Backup',
       seo: 'SEO Management', categories: 'Categories', sms: 'SMS Management', factory: 'Factory Management',
       user_management: 'User Management', procedures: 'Procedures', payment_management: 'Payment Management',
@@ -466,7 +466,7 @@ const translations: Record<Language, TranslationDictionary> = {
     moduleLabels: {
       kpi_dashboard: 'داشبورد شاخص‌های کلیدی', management_dashboard: 'داشبورد مدیریت', syncing_shop: 'همگام‌سازی فروشگاه',
       shop_management: 'مدیریت فروشگاه', product_management: 'مدیریت محصولات', order_management: 'مدیریت سفارش‌ها',
-      warehouse_management: 'مدیریت انبار', logistics_management: 'مدیریت لجستیک', inquiries: 'استعلام‌ها', crm: 'CRM',
+      warehouse_management: 'مدیریت انبار', logistics_management: 'مدیریت لجستیک', delivery_confirmation: 'تأیید تحویل پیک / حمل‌کننده', inquiries: 'استعلام‌ها', crm: 'CRM',
       barcode: 'مدیریت بارکد', email_settings: 'تنظیمات ایمیل', database_backup: 'پشتیبان‌گیری پایگاه داده',
       seo: 'مدیریت SEO', categories: 'دسته‌بندی‌ها', sms: 'مدیریت SMS', factory: 'مدیریت کارخانه',
       user_management: 'مدیریت کاربران', procedures: 'رویه‌ها', payment_management: 'مدیریت پرداخت',
@@ -528,7 +528,7 @@ const translations: Record<Language, TranslationDictionary> = {
     moduleLabels: {
       kpi_dashboard: 'لوحة مؤشرات الأداء', management_dashboard: 'لوحة الإدارة', syncing_shop: 'مزامنة المتجر',
       shop_management: 'إدارة المتجر', product_management: 'إدارة المنتجات', order_management: 'إدارة الطلبات',
-      warehouse_management: 'إدارة المستودعات', logistics_management: 'إدارة الخدمات اللوجستية', inquiries: 'الاستفسارات',
+      warehouse_management: 'إدارة المستودعات', logistics_management: 'إدارة الخدمات اللوجستية', delivery_confirmation: 'تأكيد تسليم المندوب / الناقل', inquiries: 'الاستفسارات',
       crm: 'CRM', barcode: 'إدارة الباركود', email_settings: 'إعدادات البريد', database_backup: 'نسخ قاعدة البيانات',
       seo: 'إدارة SEO', categories: 'الفئات', sms: 'إدارة SMS', factory: 'إدارة المصنع', user_management: 'إدارة المستخدمين',
       procedures: 'الإجراءات', payment_management: 'إدارة المدفوعات', accounting_management: 'إدارة المحاسبة',
@@ -583,7 +583,7 @@ const translations: Record<Language, TranslationDictionary> = {
     moduleLabels: {
       kpi_dashboard: 'KPI Panosu', management_dashboard: 'Yönetim Panosu', syncing_shop: 'Mağaza Senkronizasyonu',
       shop_management: 'Mağaza Yönetimi', product_management: 'Ürün Yönetimi', order_management: 'Sipariş Yönetimi',
-      warehouse_management: 'Depo Yönetimi', logistics_management: 'Lojistik Yönetimi', inquiries: 'Sorgular', crm: 'CRM',
+      warehouse_management: 'Depo Yönetimi', logistics_management: 'Lojistik Yönetimi', delivery_confirmation: 'Kurye / Taşıyıcı Teslimat Onayı', inquiries: 'Sorgular', crm: 'CRM',
       barcode: 'Barkod Yönetimi', email_settings: 'E-posta Ayarları', database_backup: 'Veritabanı Yedekleme',
       seo: 'SEO Yönetimi', categories: 'Kategoriler', sms: 'SMS Yönetimi', factory: 'Fabrika Yönetimi',
       user_management: 'Kullanıcı Yönetimi', procedures: 'Prosedürler', payment_management: 'Ödeme Yönetimi',
@@ -710,6 +710,7 @@ const extractSiteManagementModules = (
     { moduleId: 'order_management', label: 'Order Management', icon: Truck, color: 'bg-orange-500' },
     { moduleId: 'warehouse_management', label: 'Warehouse Management', icon: Warehouse, color: 'bg-emerald-500' },
     { moduleId: 'logistics_management', label: 'Logistics Management', icon: Truck, color: 'bg-indigo-500' },
+    { moduleId: 'delivery_confirmation', label: 'Courier / Carrier Delivery Confirmation', icon: CheckCircle, color: 'bg-teal-500' },
     { moduleId: 'inquiries', label: 'Inquiries', icon: BarChart3, color: 'bg-amber-500' },
     { moduleId: 'crm', label: 'CRM', icon: Users, color: 'bg-pink-500' },
     { moduleId: 'barcode', label: 'Barcode Management', icon: QrCode, color: 'bg-rose-500' },

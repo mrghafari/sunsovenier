@@ -2821,33 +2821,20 @@ const LogisticsManagement = () => {
   // Handle delivery completion - open two-step confirmation
   const handleDeliveredStart = (orderManagementId: number) => {
     setConfirmingDeliveryOrderId(orderManagementId);
-    setDeliveryConfirmStep(1);
+    // Admins enter the one-time delivery code directly; browser GPS is not required.
+    setDeliveryConfirmStep(2);
     setDeliveryConfirmDialogOpen(true);
   };
 
   const handleDeliveryConfirmStep1 = () => {
-    if (!navigator.geolocation) {
-      toast({ title: t('error'), description: gpsCopy.required, variant: "destructive" });
-      return;
-    }
-
-    setIsCapturingDeliveryGps(true);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setDeliveryGps(position.coords);
-        setIsCapturingDeliveryGps(false);
-        setDeliveryConfirmStep(2);
-      },
-      () => {
-        setIsCapturingDeliveryGps(false);
-        toast({ title: t('error'), description: gpsCopy.required, variant: "destructive" });
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
-    );
+    // Administrator confirmations do not require browser GPS. Carrier confirmations
+    // use the dedicated mobile endpoint, where GPS is mandatory.
+    setDeliveryGps(null);
+    setDeliveryConfirmStep(2);
   };
 
   const handleDeliveryConfirmStep2 = async () => {
-    if (!confirmingDeliveryOrderId || !deliveryGps || !deliveryVerificationCode.trim()) return;
+    if (!confirmingDeliveryOrderId || !deliveryVerificationCode.trim()) return;
     
     console.log('🚚 [DELIVERY] Starting delivery completion for order:', confirmingDeliveryOrderId);
     
@@ -2864,11 +2851,6 @@ const LogisticsManagement = () => {
           customerLocation: confirmingOrder?.shippingAddress || confirmingOrder?.customerAddress || '',
           isVerified: true,
           verifiedAt: new Date().toISOString(),
-          carrierLatitude: deliveryGps.latitude,
-          carrierLongitude: deliveryGps.longitude,
-          carrierLocationAccuracy: deliveryGps.accuracy,
-          carrierLocationCapturedAt: new Date().toISOString(),
-          carrierLocationSource: 'mobile',
         })
       });
 
@@ -7419,7 +7401,7 @@ const LogisticsManagement = () => {
             ) : (
               <Button 
                 onClick={handleDeliveryConfirmStep2}
-                disabled={!deliveryGps || !deliveryVerificationCode.trim()}
+                disabled={!deliveryVerificationCode.trim()}
                 className="flex-1 bg-red-600 hover:bg-red-700"
                 data-testid="button-delivery-step2"
               >
