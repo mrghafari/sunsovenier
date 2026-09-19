@@ -438,36 +438,14 @@ export default function ProductsPage() {
     onSuccess: async (result, variables) => {
       console.log('✅ [DEBUG] Update mutation successful, result:', result);
       setIsSubmitting(false);
-      const createdNewBatch = Boolean(result?.batchNumber && variables?.data?.newBatchNumber);
-      const keepDialogOpen = keepDialogOpenAfterUpdateRef.current && !createdNewBatch;
-      const addedStock = Number(variables?.data?.inventoryAddition) || 0;
       keepDialogOpenAfterUpdateRef.current = false;
-      
-      // Close after creating a separate batch. Keeping the old product in the
-      // form would make the next save target the old row with aggregate stock
-      // and no batch number. Apply-to-existing-batch remains open.
-      if (!keepDialogOpen) {
-        // Regular update - close dialog and reset
-        setDialogOpen(false);
-        setEditingProduct(null);
-        setImagePreview(null);
-        setImagePreviews([null, null, null]);
-        form.reset();
-      } else {
-        // Keep editing in place and immediately reflect the applied stock.
-        if (addedStock > 0) {
-          form.setValue('stockQuantity', Number(form.getValues('stockQuantity') || 0) + addedStock);
-          if (typeof selectedBatchId === 'number') {
-            setAvailableBatches((batches) => batches.map((batch) =>
-              batch.id === selectedBatchId
-                ? { ...batch, stockQuantity: batch.stockQuantity + addedStock }
-                : batch
-            ));
-          }
-        }
-        form.setValue('inventoryAddition', 0);
-        form.setValue('newBatchNumber', '');
-      }
+
+      // Every successful product update closes and clears the form.
+      setDialogOpen(false);
+      setEditingProduct(null);
+      setImagePreview(null);
+      setImagePreviews([null, null, null]);
+      form.reset();
       
       // Refresh products list to ensure UI is in sync
       queryClient.invalidateQueries({ queryKey: [productsEndpoint] });
