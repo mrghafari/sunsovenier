@@ -3297,7 +3297,13 @@ const LogisticsManagement = () => {
                         </TableCell>
                         <TableCell className="border-e border-slate-200 px-3 py-2"><Badge className="whitespace-normal bg-emerald-100 text-emerald-800">{getStatusDisplayName(order.currentStatus, language)}</Badge>{notes && <div className="mt-1 max-w-[150px] whitespace-normal text-[11px] text-amber-700">{notes}</div>}</TableCell>
                         <TableCell className="border-e border-slate-200 px-3 py-2 whitespace-nowrap">{formatLogisticsDate(order.updatedAt || order.createdAt, true)}</TableCell>
-                        <TableCell className="border-e border-slate-200 px-3 py-2 font-mono">{order.deliveryCode || order.trackingNumber || t('noCode')}</TableCell>
+                        <TableCell className="border-e border-slate-200 px-3 py-2 font-mono">
+                          {order.deliveryCode || order.trackingNumber || (
+                            ['delivered', 'logistics_delivered', 'completed'].includes(order.currentStatus)
+                              ? <span className="font-semibold text-red-600">{t('codeConsumed')}</span>
+                              : t('noCode')
+                          )}
+                        </TableCell>
                         <TableCell className="px-3 py-2"><div className="flex max-w-[270px] flex-wrap gap-1">
                           <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => handleShowOrderDetails(order)}><Eye className="me-1 h-3.5 w-3.5" />{t('details')}</Button>
                           <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => handleVehicleAssignment(order)}><Truck className="me-1 h-3.5 w-3.5" />{t('assign')}</Button>
@@ -3957,7 +3963,13 @@ const LogisticsManagement = () => {
               </TableCell>
               <TableCell className="border-e border-slate-200 px-3 py-2"><Badge className="bg-emerald-100 text-emerald-800">{getStatusDisplayName(order.currentStatus || 'delivered', language)}</Badge></TableCell>
               <TableCell className="border-e border-slate-200 px-3 py-2 whitespace-nowrap">{formatLogisticsDate(order.actualDeliveryDate || order.createdAt, true)}</TableCell>
-              <TableCell className="w-[105px] max-w-[105px] break-all border-e border-slate-200 px-2 py-2 font-mono text-[11px] leading-4">{order.deliveryCode || order.trackingNumber || t('noCode')}</TableCell>
+              <TableCell className="w-[105px] max-w-[105px] break-all border-e border-slate-200 px-2 py-2 font-mono text-[11px] leading-4">
+                {order.deliveryCode || order.trackingNumber || (
+                  ['delivered', 'logistics_delivered', 'completed'].includes(order.currentStatus || 'delivered')
+                    ? <span className="font-semibold text-red-600">{t('codeConsumed')}</span>
+                    : t('noCode')
+                )}
+              </TableCell>
               <TableCell className="px-3 py-2"><div className="flex flex-wrap gap-1"><Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => { setSelectedOrder(order); setIsOrderDetailsOpen(true); }}><Eye className="me-1 h-3.5 w-3.5" />{t('details')}</Button>{order.hasGpsLocation && <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => window.open(`https://www.google.com/maps?q=${order.gpsLatitude},${order.gpsLongitude}`, '_blank')}><MapPin className="me-1 h-3.5 w-3.5" />{t('location')}</Button>}</div></TableCell>
             </TableRow>
             {isAddressExpanded && (

@@ -31,6 +31,7 @@ export const logisticsTranslations: Record<string, Record<LogisticsLanguage, str
   noAddress: { en: 'Address not set', fa: 'آدرس ثبت نشده', ar: 'العنوان غير محدد', tr: 'Adres belirtilmemiş' },
   unknown: { en: 'Unknown', fa: 'نامشخص', ar: 'غير معروف', tr: 'Bilinmiyor' },
   noCode: { en: 'Not issued', fa: 'صادر نشده', ar: 'لم يصدر', tr: 'Verilmedi' },
+  codeConsumed: { en: 'Delivery code used', fa: 'کد تحویل مصرف شد', ar: 'تم استخدام رمز التسليم', tr: 'Teslimat kodu kullanıldı' },
   noVehicle: { en: 'Unassigned', fa: 'تخصیص‌نیافته', ar: 'غير معيّن', tr: 'Atanmadı' },
   clickVehicleDetails: { en: 'Click to view vehicle and driver details', fa: 'برای مشاهده مشخصات خودرو و راننده کلیک کنید', ar: 'انقر لعرض تفاصيل المركبة والسائق', tr: 'Araç ve sürücü ayrıntılarını görmek için tıklayın' },
   assignedVehicleDetails: { en: 'Assigned vehicle and driver details', fa: 'مشخصات خودروی تخصیص‌یافته و راننده', ar: 'تفاصيل المركبة المعيّنة والسائق', tr: 'Atanan araç ve sürücü ayrıntıları' },
