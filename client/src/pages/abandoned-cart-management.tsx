@@ -31,6 +31,8 @@ interface AbandonedCartSettings {
   id?: number;
   timeoutMinutes: number;
   isEnabled: boolean;
+  autoDeleteEnabled: boolean;
+  autoDeleteAfterHours: number;
   notificationTitle: string;
   notificationMessage: string;
   buttonText: string;
@@ -64,6 +66,7 @@ interface AbandonedCartAnalytics {
 
 export default function AbandonedCartManagement() {
   const [activeTab, setActiveTab] = useState("settings");
+  const [autoDeleteEnabled, setAutoDeleteEnabled] = useState(false);
   const [notificationForm, setNotificationForm] = useState({
     title: '',
     message: '',
@@ -90,6 +93,12 @@ export default function AbandonedCartManagement() {
     queryKey: ['/api/admin/abandoned-cart/analytics'],
     queryFn: () => apiRequest('/api/admin/abandoned-cart/analytics'),
   });
+
+  useEffect(() => {
+    if (typeof settings?.data?.autoDeleteEnabled === 'boolean') {
+      setAutoDeleteEnabled(settings.data.autoDeleteEnabled);
+    }
+  }, [settings?.data?.autoDeleteEnabled]);
 
   // Update settings mutation
   const updateSettingsMutation = useMutation({
@@ -145,6 +154,8 @@ export default function AbandonedCartManagement() {
     const settingsData: AbandonedCartSettings = {
       timeoutMinutes: parseInt(formData.get('timeoutMinutes') as string) || 30,
       isEnabled: formData.get('isEnabled') === 'on',
+      autoDeleteEnabled,
+      autoDeleteAfterHours: parseInt(formData.get('autoDeleteAfterHours') as string) || 168,
       notificationTitle: formData.get('notificationTitle') as string,
       notificationMessage: formData.get('notificationMessage') as string,
       buttonText: formData.get('buttonText') as string,
@@ -290,6 +301,37 @@ export default function AbandonedCartManagement() {
                           defaultChecked={settings?.data?.isEnabled || false}
                         />
                         <Label htmlFor="isEnabled">{getMultilingualMessage(language, 'enable_abandoned_cart_recovery')}</Label>
+                      </div>
+
+                      <div className="space-y-3 rounded-lg border border-red-200 bg-red-50/50 p-4 md:col-span-2">
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            id="autoDeleteEnabled"
+                            name="autoDeleteEnabled"
+                            checked={autoDeleteEnabled}
+                            onCheckedChange={setAutoDeleteEnabled}
+                          />
+                          <Label htmlFor="autoDeleteEnabled">
+                            {language === 'fa' ? 'حذف خودکار سبدهای رهاشده' : language === 'ar' ? 'الحذف التلقائي للسلال المهجورة' : language === 'tr' ? 'Terk edilmiş sepetleri otomatik sil' : 'Automatically delete abandoned carts'}
+                          </Label>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="autoDeleteAfterHours">
+                            {language === 'fa' ? 'زمان حذف پس از رهاشدن (ساعت)' : language === 'ar' ? 'وقت الحذف بعد الهجر (بالساعات)' : language === 'tr' ? 'Terk edildikten sonra sil (saat)' : 'Delete after abandonment (hours)'}
+                          </Label>
+                          <Input
+                            id="autoDeleteAfterHours"
+                            name="autoDeleteAfterHours"
+                            type="number"
+                            min="1"
+                            max="8760"
+                            defaultValue={settings?.data?.autoDeleteAfterHours || 168}
+                            className="max-w-xs bg-white"
+                          />
+                          <p className="text-sm text-gray-600">
+                            {language === 'fa' ? 'پس از این مدت، سبد و پیام‌های مرتبط برای همیشه حذف می‌شوند. پاک‌سازی هر ۳۰ دقیقه اجرا می‌شود.' : language === 'ar' ? 'بعد هذه المدة، تُحذف السلة والرسائل المرتبطة بها نهائياً. يتم التنظيف كل 30 دقيقة.' : language === 'tr' ? 'Bu süreden sonra sepet ve ilgili mesajlar kalıcı olarak silinir. Temizlik her 30 dakikada bir çalışır.' : 'After this time, the cart and its related messages are permanently deleted. Cleanup runs every 30 minutes.'}
+                          </p>
+                        </div>
                       </div>
                     </div>
 

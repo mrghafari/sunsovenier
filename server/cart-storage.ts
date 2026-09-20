@@ -284,16 +284,21 @@ export class CartStorage {
           eq(cartSessions.isAbandoned, true)
         ));
       
-      // Find carts to delete (2 hours - user requested cleanup for items older than 2 hours)
-      const twoHoursAgo = new Date(now.getTime() - (2 * 60 * 60 * 1000));
-      const cartsToDelete = await cartDb
-        .select()
-        .from(cartSessions)
-        .where(and(
-          eq(cartSessions.isActive, true),
-          gte(cartSessions.itemCount, 1),
-          lte(cartSessions.lastActivity, twoHoursAgo)
-        ));
+      const settings = await this.getAbandonedCartSettings();
+      const autoDeleteAfterHours = Math.min(
+        8760,
+        Math.max(1, Number(settings?.autoDeleteAfterHours) || 168),
+      );
+      const deletionCutoff = new Date(now.getTime() - autoDeleteAfterHours * 60 * 60 * 1000);
+      const cartsToDelete = settings?.autoDeleteEnabled
+        ? await cartDb
+            .select()
+            .from(cartSessions)
+            .where(and(
+              eq(cartSessions.isAbandoned, true),
+              sql`COALESCE(${cartSessions.abandonedAt}, ${cartSessions.lastActivity}) <= ${deletionCutoff.toISOString()}`,
+            ))
+        : [];
       
       console.log(`🛒 [CART CLEANUP] Found ${cartsForFirstNotification.length} carts for first notification`);
       console.log(`🛒 [CART CLEANUP] Found ${cartsForSecondNotification.length} carts for second notification`);
@@ -303,6 +308,8 @@ export class CartStorage {
         firstNotifications: cartsForFirstNotification.length,
         secondNotifications: cartsForSecondNotification.length,
         deletedCarts: cartsToDelete.length,
+        autoDeleteEnabled: settings?.autoDeleteEnabled === true,
+        autoDeleteAfterHours,
         cartsForFirstNotification,
         cartsForSecondNotification,
         cartsToDelete
@@ -314,6 +321,8 @@ export class CartStorage {
         firstNotifications: 0,
         secondNotifications: 0,
         deletedCarts: 0,
+        autoDeleteEnabled: false,
+        autoDeleteAfterHours: 168,
         cartsForFirstNotification: [],
         cartsForSecondNotification: [],
         cartsToDelete: []
@@ -333,7 +342,6 @@ export class CartStorage {
       .where(eq(cartSessions.id, cartId));
   }
 
-  // Delete abandoned cart after 4 hours
   async getCartSessionById(cartId: number): Promise<CartSession | null> {
     try {
       const cart = await cartDb
@@ -368,12 +376,14 @@ export class CartStorage {
 
   async deleteAbandonedCart(cartId: number) {
     await cartDb
-      .update(cartSessions)
-      .set({
-        isActive: false,
-        updatedAt: new Date()
-      })
-      .where(eq(cartSessions.id, cartId));
+      .delete(abandonedCartNotifications)
+      .where(eq(abandonedCartNotifications.cartSessionId, cartId));
+    await cartDb
+      .delete(cartSessions)
+      .where(and(
+        eq(cartSessions.id, cartId),
+        eq(cartSessions.isAbandoned, true),
+      ));
   }
 
   // =============================================================================
@@ -391,12 +401,20 @@ export class CartStorage {
 
   async updateAbandonedCartSettings(data: Partial<AbandonedCartSettings>) {
     const existing = await this.getAbandonedCartSettings();
+    const sanitizedData = {
+      ...data,
+      timeoutMinutes: Math.min(10080, Math.max(1, Number(data.timeoutMinutes) || 30)),
+      maxNotifications: Math.min(10, Math.max(1, Number(data.maxNotifications) || 3)),
+      notificationIntervalMinutes: Math.min(10080, Math.max(30, Number(data.notificationIntervalMinutes) || 60)),
+      autoDeleteEnabled: data.autoDeleteEnabled === true,
+      autoDeleteAfterHours: Math.min(8760, Math.max(1, Number(data.autoDeleteAfterHours) || 168)),
+    };
     
     if (existing) {
       await cartDb
         .update(abandonedCartSettings)
         .set({
-          ...data,
+          ...sanitizedData,
           updatedAt: new Date()
         })
         .where(eq(abandonedCartSettings.id, existing.id));
@@ -404,7 +422,7 @@ export class CartStorage {
       await cartDb
         .insert(abandonedCartSettings)
         .values({
-          ...data,
+          ...sanitizedData,
           createdAt: new Date(),
           updatedAt: new Date()
         });

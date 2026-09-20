@@ -56,16 +56,16 @@ class AbandonedCartCleanupService {
         await this.sendSecondNotification(cart);
       }
       
-      // Delete old carts (2 hours - user requested cleanup for items older than 2 hours)
+      // Permanently delete carts after the configured time since they were marked abandoned.
       for (const cart of result.cartsToDelete) {
-        await this.cartStorage.deleteAbandonedCart(cart.id);
         const { releaseOwnerReservations, ownerKeyForRequest } =
           await import("./cart-inventory-reservation");
         if (cart.sessionId) {
           await releaseOwnerReservations(ownerKeyForRequest(cart.sessionId, cart.customerId));
           await releaseOwnerReservations(ownerKeyForRequest(cart.sessionId, null));
         }
-        console.log(`🛒 [CART CLEANUP] Deleted cart ${cart.id} for customer ${cart.customerId} (2+ hours old)`);
+        await this.cartStorage.deleteAbandonedCart(cart.id);
+        console.log(`🛒 [CART CLEANUP] Permanently deleted cart ${cart.id} for customer ${cart.customerId} (${result.autoDeleteAfterHours}+ hours after abandonment)`);
       }
       
       console.log(`🛒 [CART CLEANUP] Processed ${result.firstNotifications} first notifications, ${result.secondNotifications} second notifications, deleted ${result.deletedCarts} carts`);

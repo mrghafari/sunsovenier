@@ -166,7 +166,7 @@ export default function SiteManagement() {
       id: "abandoned-cart",
       label: "Abandoned Cart",
       icon: ShoppingCart,
-      onClick: () => trackButtonClick("abandoned-cart", () => setLocation("/admin/abandoned-cart-management")),
+      onClick: () => trackButtonClick("abandoned-cart", () => setLocation("/mrg/abandoned-cart-management")),
       className: "border-red-300 text-red-600 hover:bg-red-50",
       moduleId: "shop_management"
     },

@@ -44,6 +44,7 @@ import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -115,6 +116,10 @@ const SHOP_TRANSLATIONS: Record<string, ShopTranslation> = {
   discountUpdated: { en: "Discount Updated", ar: "تم تحديث الخصم", tr: "İndirim Güncellendi", fa: "تخفیف به‌روزرسانی شد" },
   bulkConfiguration: { en: "Bulk Purchase Configuration", ar: "إعداد المشتريات بالجملة", tr: "Toplu Alım Yapılandırması", fa: "پیکربندی خرید عمده" },
   noProducts: { en: "No products available", ar: "لا توجد منتجات", tr: "Ürün bulunamadı", fa: "محصولی موجود نیست" },
+  inventoryId: { en: "ID", ar: "المعرّف", tr: "Kimlik", fa: "شناسه" },
+  inventoryLoading: { en: "Loading inventory...", ar: "جارٍ تحميل المخزون...", tr: "Stok yükleniyor...", fa: "در حال بارگذاری موجودی..." },
+  inventoryError: { en: "Unable to load inventory.", ar: "تعذر تحميل المخزون.", tr: "Stok yüklenemedi.", fa: "بارگذاری موجودی ممکن نیست." },
+  retry: { en: "Retry", ar: "إعادة المحاولة", tr: "Yeniden dene", fa: "تلاش مجدد" },
   bulkHint: { en: "Add products to configure bulk purchases", ar: "أضف منتجات لإعداد المشتريات بالجملة", tr: "Toplu alımları yapılandırmak için ürün ekleyin", fa: "برای پیکربندی خرید عمده محصول اضافه کنید" },
   deadlineSettings: { en: "Purchase Proforma Deadline Settings", ar: "إعدادات مهلة الفاتورة الأولية للشراء", tr: "Satın Alma Proforma Son Tarihi Ayarları", fa: "تنظیمات مهلت پیش‌فاکتور خرید" },
   deadlineAlert: { en: "This setting applies to all products in the shop and displays in checkout and purchase cards.", ar: "ينطبق هذا الإعداد على جميع منتجات المتجر ويظهر عند الدفع وفي بطاقات الشراء.", tr: "Bu ayar mağazadaki tüm ürünlere uygulanır ve ödeme ile satın alma kartlarında gösterilir.", fa: "این تنظیم برای همه محصولات فروشگاه اعمال شده و در صفحه پرداخت و کارت‌های خرید نمایش داده می‌شود." },
@@ -444,7 +449,12 @@ export default function ShopAdmin() {
   });
 
   // Fetch products for inventory management
-  const { data: products = [] } = useQuery<ShopProduct[]>({
+  const {
+    data: products = [],
+    isLoading: productsLoading,
+    isError: productsError,
+    refetch: refetchProducts,
+  } = useQuery<ShopProduct[]>({
     queryKey: ["/api/shop/products"],
     enabled: isAuthenticated,
   });
@@ -1043,32 +1053,75 @@ export default function ShopAdmin() {
 
           {/* Inventory Tab */}
           <TabsContent value="inventory" className="space-y-6">
-            <Card>
-              <CardHeader>
+            <Card className="overflow-hidden border-slate-300 shadow-sm">
+              <CardHeader className="border-b border-slate-300 bg-white px-4 py-3 sm:px-5">
                 <CardTitle className="flex items-center gap-2">
-                  <Package className="w-5 h-5" />
+                  <Package className="h-5 w-5 text-slate-600" />
                    {tr("inventoryManagement")}
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="grid gap-4">
-                  {products.map((product: any) => (
-                    <div key={product.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex-1">
-                        <h3 className="font-medium">{product.name}</h3>
-                         <p className="text-sm text-gray-600">{tr("sku")}: {product.sku}</p>
-                         <p className="text-sm text-gray-600">{tr("price")}: ${product.unitPrice}</p>
-                      </div>
-                      <div className="text-right">
-                         <p className="font-medium">{tr("stock")}: {product.stockQuantity}</p>
-                        <Badge variant={product.stockQuantity > 10 ? 'default' : 'destructive'}>
-                           {product.stockQuantity > 10 ? tr("inStock") : tr("lowStock")}
-                        </Badge>
-                      </div>
-                    </div>
+              {productsLoading ? (
+                <CardContent className="space-y-2 p-4">
+                  <span className="sr-only">{tr("inventoryLoading")}</span>
+                  {[...Array(5)].map((_, index) => (
+                    <div key={index} className="h-11 animate-pulse rounded-md bg-slate-100" />
                   ))}
-                </div>
-              </CardContent>
+                </CardContent>
+              ) : productsError ? (
+                <CardContent className="py-12 text-center">
+                  <AlertCircle className="mx-auto mb-3 h-9 w-9 text-rose-400" />
+                  <p className="font-medium text-slate-700">{tr("inventoryError")}</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-3 border-slate-300"
+                    onClick={() => refetchProducts()}
+                  >
+                    <RefreshCw className="me-2 h-4 w-4" />
+                    {tr("retry")}
+                  </Button>
+                </CardContent>
+              ) : products.length === 0 ? (
+                <CardContent className="py-12 text-center">
+                  <Package className="mx-auto mb-3 h-10 w-10 text-slate-300" />
+                  <p className="font-medium text-slate-700">{tr("noProducts")}</p>
+                </CardContent>
+              ) : (
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <Table className="min-w-[720px] text-xs">
+                      <TableHeader className="bg-slate-700">
+                        <TableRow className="border-slate-700 hover:bg-slate-700">
+                          {[tr("inventoryId"), tr("productName"), tr("sku"), tr("price"), tr("stock"), tr("status")].map((label) => (
+                            <TableHead key={label} className="h-9 border-e border-slate-600 px-3 text-start font-semibold text-slate-50 last:border-e-0">
+                              {label}
+                            </TableHead>
+                          ))}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {products.map((product: any) => (
+                          <TableRow key={product.id} className="border-slate-200 odd:bg-slate-50 even:bg-white hover:bg-amber-50">
+                            <TableCell className="border-e border-slate-200 px-3 py-2 font-mono text-slate-500">{product.id}</TableCell>
+                            <TableCell className="max-w-[280px] border-e border-slate-200 px-3 py-2 font-semibold text-slate-900">{product.name}</TableCell>
+                            <TableCell className="border-e border-slate-200 px-3 py-2 font-mono text-slate-600">{product.sku}</TableCell>
+                            <TableCell className="border-e border-slate-200 px-3 py-2 font-mono whitespace-nowrap text-slate-700">${product.unitPrice}</TableCell>
+                            <TableCell className="border-e border-slate-200 px-3 py-2 font-mono font-semibold text-slate-800">{product.stockQuantity}</TableCell>
+                            <TableCell className="px-3 py-2">
+                              <Badge
+                                variant={product.stockQuantity > 10 ? "default" : "destructive"}
+                                className={product.stockQuantity > 10 ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-100" : ""}
+                              >
+                                {product.stockQuantity > 10 ? tr("inStock") : tr("lowStock")}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              )}
             </Card>
           </TabsContent>
 
