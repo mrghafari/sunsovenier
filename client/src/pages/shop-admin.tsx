@@ -321,8 +321,8 @@ function ProformaDeadlineSettings() {
     refetchOnMount: "always",
   });
   const emailsQuery = useQuery({
-    queryKey: ["/api/shop/email-templates"],
-    queryFn: () => apiRequest("/api/shop/email-templates", undefined),
+    queryKey: ["/api/email/templates/public", "proforma-reminders"],
+    queryFn: () => apiRequest("/api/email/templates/public", undefined),
     enabled: isAuthenticated,
     staleTime: 0,
     refetchOnMount: "always",
@@ -336,7 +336,19 @@ function ProformaDeadlineSettings() {
   const settings = Array.isArray(settingsResponse?.data) ? settingsResponse.data : [];
   const reminders = Array.isArray(remindersResponse?.data) ? remindersResponse.data : [];
   const senders = Array.isArray(sendersResponse?.data) ? sendersResponse.data : [];
-  const emails = Array.isArray(emailsResponse?.data) ? emailsResponse.data : [];
+  const rawEmails = Array.isArray(emailsResponse)
+    ? emailsResponse
+    : Array.isArray(emailsResponse?.data)
+      ? emailsResponse.data
+      : [];
+  const emails = rawEmails
+    .filter((template: any) => template.is_active !== false && template.isActive !== false)
+    .map((template: any) => ({
+      ...template,
+      htmlContent: template.htmlContent ?? template.html_content ?? "",
+      textContent: template.textContent ?? template.text_content ?? "",
+      isDefault: template.isDefault ?? template.is_default ?? false,
+    }));
   const sms = Array.isArray(smsResponse?.data) ? smsResponse.data : [];
 
   useEffect(() => {
