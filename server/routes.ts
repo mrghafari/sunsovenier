@@ -56989,10 +56989,8 @@ momtazchem.com
   // Get all SMS templates for shop admin
   app.get('/api/shop/sms-templates', requireAuth, async (req, res) => {
     try {
-      const { customerPool } = await import('./customer-db');
-      
-      const result = await customerPool.query(`
-        SELECT id, template_number, template_name, template_content, variables, language, category_id
+      const result = await pool.query(`
+        SELECT id, template_number, template_name, template_content, variables, category_id
         FROM sms_templates 
         WHERE is_active = true 
         ORDER BY created_at
@@ -57003,7 +57001,8 @@ momtazchem.com
         templateNumber: row.template_number,
         templateName: row.template_name,
         categoryId: row.category_id,
-        templateContent: row.template_content, variables: row.variables, language: row.language
+        templateContent: row.template_content,
+        variables: row.variables
       }));
 
       res.json({ success: true, data: templates });

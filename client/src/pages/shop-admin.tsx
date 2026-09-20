@@ -336,10 +336,14 @@ function ProformaDeadlineSettings() {
 
   const setField = <K extends keyof ReminderFormState>(key: K, value: ReminderFormState[K]) =>
     setForm((current) => ({ ...current, [key]: value }));
-  const optionLoading = settingsQuery.isLoading || sendersQuery.isLoading || emailsQuery.isLoading || smsQuery.isLoading;
-  const optionError = settingsQuery.isError || sendersQuery.isError || emailsQuery.isError || smsQuery.isError;
   const methodNeedsEmail = form.method === "email" || form.method === "both";
   const methodNeedsSms = form.method === "sms" || form.method === "both";
+  const optionLoading = settingsQuery.isLoading
+    || (methodNeedsEmail && (sendersQuery.isLoading || emailsQuery.isLoading))
+    || (methodNeedsSms && smsQuery.isLoading);
+  const optionError = settingsQuery.isError
+    || (methodNeedsEmail && (sendersQuery.isError || emailsQuery.isError))
+    || (methodNeedsSms && smsQuery.isError);
   const methodLabel = (method?: string) =>
     method === "sms" ? tr("smsMethod") : method === "both" ? tr("bothMethod") : tr("emailMethod");
   const selectedEmail = emails.find((x: any) => String(x.id) === form.emailId);
