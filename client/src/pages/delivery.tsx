@@ -77,8 +77,11 @@ const deliveryCopy = {
     locationDenied: "دسترسی موقعیت برای این سایت مسدود است. در تنظیمات مرورگر، مجوز Location این سایت را روی Allow قرار دهید و دوباره تلاش کنید.",
     locationUnavailable: "گوشی نتوانست موقعیت فعلی را پیدا کند. GPS و اینترنت را بررسی کنید و دوباره تلاش کنید.",
     locationTimeout: "دریافت موقعیت بیش از حد طول کشید. در فضای بازتر دوباره تلاش کنید.",
-    route: "Route", noRoute: "بدون مسیر", routeLoading: "بررسی مسیر...",
+    route: "مسیر", noRoute: "بدون مسیر", routeLoading: "بررسی مسیر...",
     orderNotFound: "سفارش پیدا نشد", alreadyDelivered: "این سفارش قبلاً تحویل شده است",
+    invalidDeliveryCode: "کد تحویل اشتباه است",
+    invalidDeliveryStatus: "وضعیت سفارش برای تأیید تحویل معتبر نیست",
+    invalidDeliveryInput: "شماره سفارش، کد تحویل و موقعیت GPS معتبر الزامی است",
   },
   ar: {
     loginTitle: "تأكيد تسليم الطلب", loginSubtitle: "دخول شركة النقل",
@@ -95,8 +98,11 @@ const deliveryCopy = {
     locationDenied: "تم حظر إذن الموقع لهذا الموقع. غيّر إذن Location إلى Allow في إعدادات المتصفح ثم حاول مجدداً.",
     locationUnavailable: "تعذر على الهاتف تحديد موقعك الحالي. تحقق من GPS والإنترنت ثم حاول مجدداً.",
     locationTimeout: "استغرق تحديد الموقع وقتاً طويلاً. حاول مرة أخرى في مكان أكثر انفتاحاً.",
-    route: "Route", noRoute: "بدون مسار", routeLoading: "جارٍ التحقق من المسار...",
+    route: "المسار", noRoute: "بدون مسار", routeLoading: "جارٍ التحقق من المسار...",
     orderNotFound: "لم يتم العثور على الطلب", alreadyDelivered: "تم تسليم هذا الطلب مسبقاً",
+    invalidDeliveryCode: "رمز التسليم غير صحيح",
+    invalidDeliveryStatus: "حالة الطلب غير صالحة لتأكيد التسليم",
+    invalidDeliveryInput: "يلزم إدخال رقم طلب ورمز تسليم وموقع GPS صالح",
   },
   tr: {
     loginTitle: "Sipariş teslimatını onayla", loginSubtitle: "Taşıyıcı girişi",
@@ -113,8 +119,11 @@ const deliveryCopy = {
     locationDenied: "Bu site için konum izni engellenmiş. Tarayıcı ayarlarında Location iznini Allow yapıp tekrar deneyin.",
     locationUnavailable: "Telefon mevcut konumunuzu bulamadı. GPS ve internet bağlantısını kontrol edip tekrar deneyin.",
     locationTimeout: "Konum alınması çok uzun sürdü. Daha açık bir alanda tekrar deneyin.",
-    route: "Route", noRoute: "Rota yok", routeLoading: "Rota kontrol ediliyor...",
+    route: "Rota", noRoute: "Rota yok", routeLoading: "Rota kontrol ediliyor...",
     orderNotFound: "Sipariş bulunamadı", alreadyDelivered: "Bu sipariş daha önce teslim edildi",
+    invalidDeliveryCode: "Teslimat kodu yanlış",
+    invalidDeliveryStatus: "Sipariş durumu teslimat onayı için uygun değil",
+    invalidDeliveryInput: "Geçerli sipariş numarası, teslimat kodu ve GPS konumu gereklidir",
   },
   en: {
     loginTitle: "Confirm order delivery", loginSubtitle: "Carrier sign in",
@@ -133,6 +142,9 @@ const deliveryCopy = {
     locationTimeout: "Getting your location took too long. Move to a more open area and try again.",
     route: "Route", noRoute: "No route", routeLoading: "Checking route...",
     orderNotFound: "Order not found", alreadyDelivered: "This order has already been delivered",
+    invalidDeliveryCode: "The delivery code is incorrect",
+    invalidDeliveryStatus: "The order status is not valid for delivery confirmation",
+    invalidDeliveryInput: "A valid order number, delivery code, and GPS location are required",
   },
 } as const;
 
@@ -295,9 +307,12 @@ export default function DeliveryPage() {
 
     const verifyAtPosition = async ({ coords }: GeolocationPosition) => {
       try {
+        const normalizedDeliveryCode = deliveryCode.trim()
+          .replace(/[۰-۹]/g, digit => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)))
+          .replace(/[٠-٩]/g, digit => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)));
         const response = await fetch("/api/delivery/mobile/verify", {
           method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
-          body: JSON.stringify({ orderNumber: orderNumber.trim(), deliveryCode: deliveryCode.trim(),
+          body: JSON.stringify({ orderNumber: orderNumber.trim(), deliveryCode: normalizedDeliveryCode,
             latitude: coords.latitude, longitude: coords.longitude, accuracy: coords.accuracy }),
         });
         const data = await response.json();
@@ -309,7 +324,18 @@ export default function DeliveryPage() {
           setState("denied");
           throw new Error(copy.permissionDenied);
         }
-        if (!response.ok || !data.success) throw new Error(data.message || copy.submitFailed);
+        if (!response.ok || !data.success) {
+          const localizedMessage = data.code === "INVALID_DELIVERY_CODE" || response.status === 429
+            ? copy.invalidDeliveryCode
+            : data.code === "ALREADY_DELIVERED"
+              ? copy.alreadyDelivered
+              : data.code === "INVALID_DELIVERY_STATUS"
+                ? copy.invalidDeliveryStatus
+                : data.code === "INVALID_DELIVERY_INPUT"
+                  ? copy.invalidDeliveryInput
+                  : copy.submitFailed;
+          throw new Error(localizedMessage);
+        }
         setSuccess(true); setOrderNumber(""); setDeliveryCode(""); setRouteState("idle"); setRouteDestination(null);
       } catch (error: any) { setMessage(error.message || copy.submitFailed); }
       finally { setBusy(false); }

@@ -49591,17 +49591,21 @@ momtazchem.com
     const canonicalOrderNumber = /^\d+$/.test(normalizedOrderNumber)
       ? `M${normalizedOrderNumber}`
       : normalizedOrderNumber;
+    const normalizedDeliveryCode = String(deliveryCode || '')
+      .trim()
+      .replace(/[۰-۹]/g, digit => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)))
+      .replace(/[٠-٩]/g, digit => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)));
     const lat = Number(latitude), lng = Number(longitude), gpsAccuracy = Number(accuracy);
-    if (!canonicalOrderNumber || !deliveryCode ||
+    if (!canonicalOrderNumber || !normalizedDeliveryCode ||
       !Number.isFinite(lat) || lat < -90 || lat > 90 ||
       !Number.isFinite(lng) || lng < -180 || lng > 180 ||
       !Number.isFinite(gpsAccuracy) || gpsAccuracy < 0 || gpsAccuracy > 10000) {
-      return res.status(400).json({ success: false, message: 'شماره سفارش، کد تحویل و موقعیت GPS معتبر الزامی است' });
+      return res.status(400).json({ success: false, code: 'INVALID_DELIVERY_INPUT', message: 'Invalid delivery input' });
     }
     const session = req.session as any;
     const actor = String(session?.customUserId || '');
     const rate = checkDeliveryCodeRateLimit(actor, canonicalOrderNumber);
-    if (!rate.allowed) return res.status(429).json({ success: false, message: 'کد تحویل اشتباه است' });
+    if (!rate.allowed) return res.status(429).json({ success: false, code: 'INVALID_DELIVERY_CODE', message: 'Invalid delivery code' });
     const identity = await pool.query(`
       SELECT cu.id, cu.full_name, cu.phone
       FROM custom_users cu JOIN custom_roles cr ON cr.id = cu.role_id
@@ -49628,7 +49632,7 @@ momtazchem.com
           throw new Error('ALREADY_DELIVERED');
         }
         if (locked.currentStatus !== 'logistics_dispatched' && !isLegacyDispatch) throw new Error('INVALID_DELIVERY_STATUS');
-        if (!locked.deliveryCode || String(deliveryCode).trim() !== locked.deliveryCode) {
+        if (!locked.deliveryCode || normalizedDeliveryCode !== String(locked.deliveryCode).trim()) {
           throw new Error('INVALID_CODE');
         }
         const now = new Date();
@@ -49663,12 +49667,12 @@ momtazchem.com
     } catch (error: any) {
       if (error.message === 'ORDER_NOT_FOUND' || error.message === 'INVALID_CODE') {
         recordDeliveryCodeFailure(rate.key);
-        return res.status(400).json({ success: false, message: 'کد تحویل اشتباه است' });
+        return res.status(400).json({ success: false, code: 'INVALID_DELIVERY_CODE', message: 'Invalid delivery code' });
       }
-      if (error.message === 'ALREADY_DELIVERED') return res.status(409).json({ success: false, message: 'این تحویل قبلاً ثبت شده است' });
-      if (error.message === 'INVALID_DELIVERY_STATUS') return res.status(409).json({ success: false, message: 'وضعیت سفارش برای تأیید تحویل معتبر نیست' });
+      if (error.message === 'ALREADY_DELIVERED') return res.status(409).json({ success: false, code: 'ALREADY_DELIVERED', message: 'Delivery already recorded' });
+      if (error.message === 'INVALID_DELIVERY_STATUS') return res.status(409).json({ success: false, code: 'INVALID_DELIVERY_STATUS', message: 'Invalid delivery status' });
       console.error('Mobile delivery verification failed:', error);
-      return res.status(500).json({ success: false, message: 'خطا در ثبت تحویل' });
+      return res.status(500).json({ success: false, code: 'DELIVERY_VERIFICATION_FAILED', message: 'Delivery verification failed' });
     }
   });
 
