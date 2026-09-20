@@ -49461,16 +49461,22 @@ momtazchem.com
       const [order] = await db.select({
         gpsLatitude: customerOrders.gpsLatitude,
         gpsLongitude: customerOrders.gpsLongitude,
+        deliveredAt: customerOrders.deliveredAt,
+        currentStatus: orderManagement.currentStatus,
+        isVerified: orderManagement.isVerified,
+        verifiedAt: orderManagement.verifiedAt,
+        deliveryCode: orderManagement.deliveryCode,
       }).from(customerOrders)
         .innerJoin(orderManagement, eq(orderManagement.customerOrderId, customerOrders.id))
-        .where(and(
-          eq(customerOrders.orderNumber, canonicalOrderNumber),
-          eq(orderManagement.currentStatus, 'logistics_dispatched'),
-        ))
+        .where(eq(customerOrders.orderNumber, canonicalOrderNumber))
         .limit(1);
 
       if (!order) {
         return res.status(404).json({ success: false, message: 'سفارش پیدا نشد' });
+      }
+      const isLegacyDispatch = !order.isVerified && !order.verifiedAt && !order.deliveredAt && Boolean(order.deliveryCode);
+      if (order.currentStatus !== 'logistics_dispatched' && !isLegacyDispatch) {
+        return res.status(409).json({ success: false, message: 'وضعیت سفارش برای تحویل معتبر نیست' });
       }
       const latitude = order.gpsLatitude === null ? null : Number(order.gpsLatitude);
       const longitude = order.gpsLongitude === null ? null : Number(order.gpsLongitude);
@@ -49526,10 +49532,15 @@ momtazchem.com
         await tx.execute(sql`SELECT pg_advisory_xact_lock(${order.id})`);
         const [locked] = await tx.select().from(orderManagement).where(eq(orderManagement.id, order.id)).limit(1);
         if (!locked?.customerOrderId) throw new Error('ORDER_NOT_FOUND');
-        if (locked.isVerified || ['delivered', 'logistics_delivered', 'completed'].includes(locked.currentStatus)) {
+        const [customerOrder] = await tx.select({
+          deliveredAt: customerOrders.deliveredAt,
+        }).from(customerOrders).where(eq(customerOrders.id, locked.customerOrderId)).limit(1);
+        const isLegacyDispatch = !locked.isVerified && !locked.verifiedAt &&
+          !customerOrder?.deliveredAt && Boolean(locked.deliveryCode);
+        if ((locked.isVerified || ['delivered', 'logistics_delivered', 'completed'].includes(locked.currentStatus)) && !isLegacyDispatch) {
           throw new Error('ALREADY_DELIVERED');
         }
-        if (locked.currentStatus !== 'logistics_dispatched') throw new Error('INVALID_DELIVERY_STATUS');
+        if (locked.currentStatus !== 'logistics_dispatched' && !isLegacyDispatch) throw new Error('INVALID_DELIVERY_STATUS');
         if (!locked.deliveryCode || String(deliveryCode).trim() !== locked.deliveryCode) {
           throw new Error('INVALID_CODE');
         }
