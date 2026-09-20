@@ -49475,8 +49475,21 @@ momtazchem.com
         return res.status(404).json({ success: false, message: 'سفارش پیدا نشد' });
       }
       const isLegacyDispatch = !order.isVerified && !order.verifiedAt && !order.deliveredAt && Boolean(order.deliveryCode);
+      const isDelivered = Boolean(order.isVerified || order.verifiedAt || order.deliveredAt) ||
+        ['delivered', 'logistics_delivered', 'completed'].includes(order.currentStatus);
+      if (isDelivered && !isLegacyDispatch) {
+        return res.status(409).json({
+          success: false,
+          code: 'ALREADY_DELIVERED',
+          message: 'این سفارش قبلاً تحویل شده است',
+        });
+      }
       if (order.currentStatus !== 'logistics_dispatched' && !isLegacyDispatch) {
-        return res.status(409).json({ success: false, message: 'وضعیت سفارش برای تحویل معتبر نیست' });
+        return res.status(409).json({
+          success: false,
+          code: 'INVALID_DELIVERY_STATUS',
+          message: 'وضعیت سفارش برای تحویل معتبر نیست',
+        });
       }
       const latitude = order.gpsLatitude === null ? null : Number(order.gpsLatitude);
       const longitude = order.gpsLongitude === null ? null : Number(order.gpsLongitude);
