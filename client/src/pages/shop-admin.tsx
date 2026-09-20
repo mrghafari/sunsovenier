@@ -313,8 +313,20 @@ function ProformaDeadlineSettings() {
 
   const settingsQuery = useQuery({ queryKey: ["/api/shop/settings"], enabled: isAuthenticated });
   const remindersQuery = useQuery({ queryKey: ["/api/shop/proforma-reminders"], enabled: isAuthenticated });
-  const sendersQuery = useQuery({ queryKey: ["/api/shop/email-senders"], enabled: isAuthenticated });
-  const emailsQuery = useQuery({ queryKey: ["/api/shop/email-templates"], enabled: isAuthenticated });
+  const sendersQuery = useQuery({
+    queryKey: ["/api/shop/email-senders"],
+    queryFn: () => apiRequest("/api/shop/email-senders", undefined),
+    enabled: isAuthenticated,
+    staleTime: 0,
+    refetchOnMount: "always",
+  });
+  const emailsQuery = useQuery({
+    queryKey: ["/api/shop/email-templates"],
+    queryFn: () => apiRequest("/api/shop/email-templates", undefined),
+    enabled: isAuthenticated,
+    staleTime: 0,
+    refetchOnMount: "always",
+  });
   const smsQuery = useQuery({ queryKey: ["/api/shop/sms-templates"], enabled: isAuthenticated });
   const settingsResponse: any = settingsQuery.data;
   const remindersResponse: any = remindersQuery.data;
@@ -422,8 +434,8 @@ function ProformaDeadlineSettings() {
           <div className="space-y-2"><Label>{tr("sendTime")} (0–23)</Label><Input type="number" min="0" max="23" value={form.hour} onChange={e => setField("hour", e.target.value)} /></div>
           <div className="space-y-2"><Label>{tr("notificationMethod")}</Label><Select value={form.method} onValueChange={(v: any) => setField("method", v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="email">{tr("emailMethod")}</SelectItem><SelectItem value="sms">{tr("smsMethod")}</SelectItem><SelectItem value="both">{tr("bothMethod")}</SelectItem></SelectContent></Select></div>
           <div className="space-y-2"><Label>{tr("priority")}</Label><Input type="number" min="1" value={form.priority} onChange={e => setField("priority", e.target.value)} /></div>
-          {methodNeedsEmail && <><div className="space-y-2"><Label>{tr("emailTemplate")}</Label><Select value={form.emailId} onValueChange={v => setField("emailId", v)}><SelectTrigger><SelectValue placeholder={tr("chooseEmail")} /></SelectTrigger><SelectContent><SelectItem value="none">{tr("noTemplate")}</SelectItem>{emails.map((x: any) => <SelectItem key={x.id} value={String(x.id)}>{x.name} · {x.category}</SelectItem>)}</SelectContent></Select>{selectedEmail && <p className="text-xs text-muted-foreground truncate">{selectedEmail.subject}<br />{selectedEmail.htmlContent || selectedEmail.textContent}</p>}</div>
-          <div className="space-y-2"><Label>{tr("senderAddress")}</Label><Select value={form.senderKey} onValueChange={v => setField("senderKey", v)}><SelectTrigger><SelectValue placeholder={tr("chooseSender")} /></SelectTrigger><SelectContent><SelectItem value="none">{tr("noTemplate")}</SelectItem>{senders.map((x: any) => <SelectItem key={x.categoryKey} value={x.categoryKey}>{x.fromEmail} · {x.fromName}</SelectItem>)}</SelectContent></Select>{selectedSender && <p className="text-xs text-muted-foreground">{selectedSender.fromEmail} · {selectedSender.fromName}</p>}</div></>}
+          {methodNeedsEmail && <><div className="space-y-2"><Label>{tr("emailTemplate")} ({emails.length})</Label><select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" value={form.emailId} onChange={e => setField("emailId", e.target.value)} disabled={emailsQuery.isLoading || emailsQuery.isError}><option value="none">{emailsQuery.isLoading ? tr("loading") : tr("chooseEmail")}</option>{emails.map((x: any) => <option key={x.id} value={String(x.id)}>{x.name} · {x.category}</option>)}</select>{selectedEmail && <p className="text-xs text-muted-foreground truncate">{selectedEmail.subject}<br />{selectedEmail.htmlContent || selectedEmail.textContent}</p>}</div>
+          <div className="space-y-2"><Label>{tr("senderAddress")} ({senders.length})</Label><select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" value={form.senderKey} onChange={e => setField("senderKey", e.target.value)} disabled={sendersQuery.isLoading || sendersQuery.isError}><option value="none">{sendersQuery.isLoading ? tr("loading") : tr("chooseSender")}</option>{senders.map((x: any) => <option key={x.categoryKey} value={x.categoryKey}>{x.fromEmail} · {x.fromName}</option>)}</select>{selectedSender && <p className="text-xs text-muted-foreground">{selectedSender.fromEmail} · {selectedSender.fromName}</p>}</div></>}
           {methodNeedsSms && <div className="space-y-2"><Label>{tr("smsTemplate")}</Label><Select value={form.smsId} onValueChange={v => setField("smsId", v)}><SelectTrigger><SelectValue placeholder={tr("chooseSms")} /></SelectTrigger><SelectContent><SelectItem value="none">{tr("noTemplate")}</SelectItem>{sms.map((x: any) => <SelectItem key={x.id} value={String(x.id)}>{x.templateNumber} · {x.templateName}</SelectItem>)}</SelectContent></Select>{selectedSms && <p className="text-xs text-muted-foreground">{selectedSms.templateContent}</p>}</div>}
           <div className="flex items-center gap-2 pt-7"><Checkbox checked={form.active} onCheckedChange={v => setField("active", Boolean(v))} /><Label>{tr("activeStatus")}</Label></div>
         </div>}
