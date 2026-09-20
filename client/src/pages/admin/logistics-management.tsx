@@ -740,7 +740,7 @@ const LogisticsManagement = () => {
   const [expandedVehicleIds, setExpandedVehicleIds] = useState<Set<number>>(new Set());
   const [expandedOrderVehicleId, setExpandedOrderVehicleId] = useState<number | null>(null);
   const [expandedOrderAddressId, setExpandedOrderAddressId] = useState<number | null>(null);
-  const [expandedOrderNotesId, setExpandedOrderNotesId] = useState<number | null>(null);
+  const [expandedOrderDetailsId, setExpandedOrderDetailsId] = useState<number | null>(null);
   
   // States for enhanced suitable vehicles display
   const [isSuitableVehiclesOpen, setIsSuitableVehiclesOpen] = useState(false);
@@ -3296,10 +3296,10 @@ const LogisticsManagement = () => {
           <Card className="overflow-hidden border-slate-300 shadow-sm">
             <CardContent className="p-0">
               <div className="overflow-x-auto">
-                <Table className="min-w-[1480px] text-xs">
+                 <Table className="min-w-[1200px] text-xs">
                   <TableHeader className="sticky top-0 z-10 bg-slate-700">
                     <TableRow className="border-slate-700 hover:bg-slate-700">
-                      {[t('row'), t('order'), t('customer'), t('destination'), t('amount'), t('weight'), t('methodVehicle'), t('status'), t('date'), t('codeTracking'), t('actions')].map((label) => <TableHead key={label} className={`h-9 border-e border-slate-600 px-3 text-start font-semibold text-slate-50 ${label === t('date') ? 'w-[92px] max-w-[92px]' : ''}`}>{label}</TableHead>)}
+                       {[t('row'), t('order'), t('destination'), t('weight'), t('methodVehicle'), t('status'), t('date'), t('codeTracking'), t('actions')].map((label) => <TableHead key={label} className={`h-9 border-e border-slate-600 px-3 text-start font-semibold text-slate-50 ${label === t('date') ? 'w-[92px] max-w-[92px]' : ''}`}>{label}</TableHead>)}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -3312,7 +3312,7 @@ const LogisticsManagement = () => {
                       const vehicle = assignedVehicle(order);
                       const isVehicleExpanded = expandedOrderVehicleId === order.id;
                       const isAddressExpanded = expandedOrderAddressId === order.id;
-                      const isNotesExpanded = expandedOrderNotesId === order.id;
+                      const isDetailsExpanded = expandedOrderDetailsId === order.id;
                       const hasNotes = noteEntries.length > 0;
                       const hasAssignedVehicle = Boolean(order.vehiclePlate);
                       const deliveryAddress = checkoutAddress(order);
@@ -3322,19 +3322,17 @@ const LogisticsManagement = () => {
                         <TableCell className="border-e border-slate-200 px-3 py-2 font-semibold text-slate-900">
                           <button
                             type="button"
-                            disabled={!hasNotes}
-                            aria-expanded={hasNotes ? isNotesExpanded : undefined}
-                            onClick={() => hasNotes && setExpandedOrderNotesId(isNotesExpanded ? null : order.id)}
-                            className={`inline-flex items-center gap-1.5 rounded px-1 py-0.5 text-start ${hasNotes ? 'cursor-pointer hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500' : 'cursor-default'}`}
-                            title={hasNotes ? t('notes') : undefined}
+                             aria-expanded={isDetailsExpanded}
+                             onClick={() => setExpandedOrderDetailsId(isDetailsExpanded ? null : order.id)}
+                             className="inline-flex cursor-pointer items-center gap-1.5 rounded px-1 py-0.5 text-start hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                             title={t('details')}
                           >
                             {hasNotes && <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500 shadow-sm ring-2 ring-emerald-100" />}
                             <span>{order.orderNumber || `#${order.customerOrderId}`}</span>
-                            {hasNotes && (isNotesExpanded ? <ChevronUp className="h-3.5 w-3.5 text-emerald-700" /> : <ChevronDown className="h-3.5 w-3.5 text-emerald-700" />)}
+                             {isDetailsExpanded ? <ChevronUp className="h-3.5 w-3.5 text-emerald-700" /> : <ChevronDown className="h-3.5 w-3.5 text-emerald-700" />}
                           </button>
                           <div className="text-[11px] font-normal text-slate-500">{formatLogisticsDate(order.createdAt)}</div>
                         </TableCell>
-                        <TableCell className="max-w-[190px] border-e border-slate-200 px-3 py-2"><button className="text-start font-medium text-slate-800 underline-offset-2 hover:underline" onClick={() => handleShowOrderDetails(order)}>{customerName(order)}</button><div className="text-slate-500">{order.customerPhone || order.customer?.phone || t('unknown')}</div></TableCell>
                         <TableCell className="max-w-[220px] whitespace-normal border-e border-slate-200 px-3 py-2">
                           <button
                             type="button"
@@ -3348,7 +3346,6 @@ const LogisticsManagement = () => {
                             {isAddressExpanded ? <ChevronUp className="h-3.5 w-3.5 shrink-0" /> : <ChevronDown className="h-3.5 w-3.5 shrink-0" />}
                           </button>
                         </TableCell>
-                        <TableCell className="border-e border-slate-200 px-3 py-2 whitespace-nowrap"><span className="font-semibold">{formatLogisticsCurrency(order.totalAmount)}</span><div className="text-slate-500">{order.paymentMethod || t('paymentUnknown')}</div></TableCell>
                         <TableCell className="border-e border-slate-200 px-3 py-2 font-mono whitespace-nowrap">{weight(order)}</TableCell>
                         <TableCell className="max-w-[180px] whitespace-normal border-e border-slate-200 px-3 py-2">
                           <div className="mb-1 text-slate-600">{order.customerDeliveryMethod || order.deliveryMethod || t('unknown')}</div>
@@ -3388,15 +3385,25 @@ const LogisticsManagement = () => {
                           {gpsActions(order)}
                         </div></TableCell>
                       </TableRow>
-                      {isNotesExpanded && (
+                      {isDetailsExpanded && (
                         <TableRow className="border-b-2 border-emerald-200 bg-emerald-50/70 hover:bg-emerald-50">
-                          <TableCell colSpan={11} className="p-0">
+                           <TableCell colSpan={9} className="p-0">
                             <div className="border-s-4 border-emerald-500 px-4 py-4">
-                              <div className="mb-3 flex items-center gap-2 font-semibold text-slate-900">
-                                <FileText className="h-4 w-4 text-emerald-700" />
-                                {t('orderNotes')}
+                               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                                 {[
+                                   [t('customer'), customerName(order)],
+                                   [t('phone'), order.customerPhone || order.customer?.phone || t('unknown')],
+                                   [t('email'), order.customerEmail || order.customer?.email || t('notRegistered')],
+                                   [t('amount'), formatLogisticsCurrency(order.totalAmount)],
+                                   [t('paymentMethod'), order.paymentMethod || t('paymentUnknown')],
+                                 ].map(([label, value]) => (
+                                   <div key={label} className="rounded-lg border border-emerald-100 bg-white px-3 py-2 shadow-sm">
+                                     <div className="mb-0.5 text-[11px] font-medium text-slate-500">{label}</div>
+                                     <div className="break-words text-sm font-semibold text-slate-800">{value}</div>
+                                   </div>
+                                 ))}
                               </div>
-                              <div className="grid gap-3 md:grid-cols-3">
+                               {hasNotes && <div className="mt-4 grid gap-3 md:grid-cols-3">
                                 {noteEntries.map((entry) => (
                                   <div
                                     key={entry.key}
@@ -3412,14 +3419,14 @@ const LogisticsManagement = () => {
                                     <p className="whitespace-pre-wrap break-words text-sm leading-6 text-slate-900">{entry.value}</p>
                                   </div>
                                 ))}
-                              </div>
+                               </div>}
                             </div>
                           </TableCell>
                         </TableRow>
                       )}
                       {isAddressExpanded && (
                         <TableRow className="border-b-2 border-violet-200 bg-violet-50/70 hover:bg-violet-50">
-                          <TableCell colSpan={11} className="p-0">
+                           <TableCell colSpan={9} className="p-0">
                             <div className="border-s-4 border-violet-500 px-4 py-4">
                               <div className="flex items-start gap-3">
                                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-600 text-white">
@@ -3442,7 +3449,7 @@ const LogisticsManagement = () => {
                       )}
                       {isVehicleExpanded && (
                         <TableRow className="border-b-2 border-blue-200 bg-blue-50/70 hover:bg-blue-50">
-                          <TableCell colSpan={11} className="p-0">
+                           <TableCell colSpan={9} className="p-0">
                             <div className="border-s-4 border-blue-500 px-4 py-4">
                               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                                 <div className="flex items-center gap-2">
