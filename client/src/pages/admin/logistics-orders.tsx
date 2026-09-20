@@ -72,7 +72,7 @@ export default function LogisticsOrders() {
     hasNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ['/api/order-management/logistics'],
+    queryKey: ['/api/order-management/logistics', 'infinite'],
     queryFn: ({ pageParam = 0 }) => fetch(`/api/order-management/logistics?offset=${pageParam}`, {
       credentials: 'include',
       cache: 'no-cache'

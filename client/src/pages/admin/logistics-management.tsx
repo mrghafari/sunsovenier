@@ -1033,7 +1033,7 @@ const LogisticsManagement = () => {
     hasNextPage: hasNextLogisticsPage,
     isFetchingNextPage: isFetchingNextLogisticsPage,
   } = useInfiniteQuery({
-    queryKey: ['/api/order-management/logistics'],
+    queryKey: ['/api/order-management/logistics', 'infinite'],
     enabled: activeTab === 'orders',
     initialPageParam: 0,
     queryFn: ({ pageParam = 0 }) => fetch(`/api/order-management/logistics?offset=${pageParam}`, { credentials: 'include', cache: 'no-cache' }).then(res => {
@@ -1056,7 +1056,7 @@ const LogisticsManagement = () => {
     hasNextPage: hasNextDeliveredPage,
     isFetchingNextPage: isFetchingNextDeliveredPage,
   } = useInfiniteQuery({
-    queryKey: ['/api/order-management/delivered'],
+    queryKey: ['/api/order-management/delivered', 'infinite'],
     enabled: activeTab === 'delivered',
     initialPageParam: 0,
     queryFn: ({ pageParam = 0 }) => fetch(`/api/order-management/delivered?offset=${pageParam}`, { credentials: 'include' }).then(res => {
