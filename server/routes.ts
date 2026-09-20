@@ -5095,7 +5095,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         WHERE barcode = $1
         ORDER BY created_at DESC
       `, [barcode]);
-      
+
       res.json({
         success: true,
         barcode,
@@ -10947,6 +10947,8 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
     try {
       console.log('🔍 [ROUTES] Logistics endpoint called - using getOrdersByDepartment');
       const orders = await orderManagementStorage.getOrdersByDepartment('logistics');
+      const limit = 100;
+      const offset = Math.max(Number(req.query.offset) || 0, 0);
       
       console.log('🔍 [ROUTES] Received', orders.length, 'orders from logistics department');
       
@@ -10976,10 +10978,16 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         locationAccuracy: order.locationAccuracy,
         hasGpsLocation: !!(order.gpsLatitude && order.gpsLongitude)
       }));
+      const paginatedOrders = transformedOrders.slice(offset, offset + limit);
       
       res.json({ 
         success: true, 
-        orders: transformedOrders 
+        orders: paginatedOrders,
+        total: transformedOrders.length,
+        offset,
+        limit,
+        hasMore: offset + paginatedOrders.length < transformedOrders.length,
+        nextOffset: offset + paginatedOrders.length < transformedOrders.length ? offset + limit : null,
       });
     } catch (error) {
       console.error("Error fetching logistics orders:", error);
@@ -10994,6 +11002,8 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
   app.get("/api/order-management/delivered", requireAuth, async (req, res) => {
     try {
       console.log('🔍 [ROUTES] Delivered orders endpoint called');
+      const limit = 100;
+      const offset = Math.max(Number(req.query.offset) || 0, 0);
       
       // Get delivered orders from order_management table with customer_orders join
       const orders = await db
@@ -11090,9 +11100,15 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         calculatedWeight: order.totalWeight || '0'
       }));
       
+      const paginatedOrders = transformedOrders.slice(offset, offset + limit);
       res.json({ 
         success: true, 
-        orders: transformedOrders 
+        orders: paginatedOrders,
+        total: transformedOrders.length,
+        offset,
+        limit,
+        hasMore: offset + paginatedOrders.length < transformedOrders.length,
+        nextOffset: offset + paginatedOrders.length < transformedOrders.length ? offset + limit : null,
       });
     } catch (error) {
       console.error("Error fetching delivered orders:", error);
@@ -31243,6 +31259,9 @@ ${message ? `Additional Requirements:\n${message}` : ''}
   // Warehouse orders - Get orders approved by financial department
   app.get('/api/order-management/warehouse', requireAuth, async (req, res) => {
     try {
+      const limit = Math.min(Math.max(Number(req.query.limit) || 100, 1), 100);
+      const offset = Math.max(Number(req.query.offset) || 0, 0);
+      const view = req.query.view === 'history' ? 'history' : 'current';
       console.log('📦 [WAREHOUSE] Fetching warehouse orders...');
 
       const historyStatuses = [
@@ -31274,12 +31293,22 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         !activeStatuses.has(String(order.currentStatus || '').trim().toLowerCase()),
       );
 
+      const selectedOrders = view === 'history' ? historyOrders : orders;
+      const pagedOrders = selectedOrders.slice(offset, offset + limit);
       console.log('📦 [WAREHOUSE] Found warehouse orders:', {
         current: orders.length,
         history: historyOrders.length,
       });
       res.set('Cache-Control', 'no-store');
-      res.json({ success: true, orders, historyOrders });
+      res.json({
+        success: true,
+        orders: view === 'current' ? pagedOrders : [],
+        historyOrders: view === 'history' ? pagedOrders : [],
+        total: selectedOrders.length,
+        offset,
+        limit,
+        hasMore: offset + pagedOrders.length < selectedOrders.length,
+      });
     } catch (error) {
       console.error('📦 [WAREHOUSE] Error fetching warehouse orders:', error);
       res.status(500).json({
@@ -31322,9 +31351,12 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         !activeStatuses.has(String(order.currentStatus || '').trim().toLowerCase()),
       );
 
+      const limit = Math.min(Math.max(Number(req.query.limit) || 100, 1), 100);
+      const offset = Math.max(Number(req.query.offset) || 0, 0);
+      const pagedOrders = orders.slice(offset, offset + limit);
       console.log('📚 [WAREHOUSE HISTORY] Found historical warehouse orders:', orders.length);
       res.set('Cache-Control', 'no-store');
-      res.json({ success: true, orders });
+      res.json({ success: true, orders: pagedOrders, total: orders.length, offset, limit, hasMore: offset + pagedOrders.length < orders.length });
     } catch (error) {
       console.error('📚 [WAREHOUSE HISTORY] Error fetching warehouse history:', error);
       res.status(500).json({
@@ -34823,6 +34855,7 @@ ${message ? `Additional Requirements:\n${message}` : ''}
       const { pool } = await import('./db');
       const result = await pool.query(`
         SELECT 
+           COUNT(*) OVER()::int as total_count,
           co.id,
           co.order_number as "orderNumber",
           COALESCE(co.guest_name, 'نامشخص') as "customerName", 
@@ -34861,10 +34894,17 @@ ${message ? `Additional Requirements:\n${message}` : ''}
           -- 4. Bank transfer receipts uploaded but stuck in financial review
           (om.current_status = 'payment_uploaded' AND co.payment_method = 'bank_transfer_grace' AND co.payment_status = 'receipt_uploaded' AND co.updated_at < NOW() - INTERVAL '2 hours')
         )
-        ORDER BY co.created_at DESC
-      `);
-      
-      const orphanedOrders = result.rows;
+         ORDER BY co.created_at DESC
+         LIMIT $1 OFFSET $2
+       `, [
+         Math.min(Math.max(Number(req.query.limit) || 100, 1), 100),
+         Math.max(Number(req.query.offset) || 0, 0),
+       ]);
+
+       const orphanedOrders = result.rows;
+       const totalOrphaned = result.rows[0]?.total_count || 0;
+       const offset = Math.max(Number(req.query.offset) || 0, 0);
+       const limit = Math.min(Math.max(Number(req.query.limit) || 100, 1), 100);
       console.log(`🧟 [ORPHANED ORDERS] Found ${orphanedOrders.length} orphaned/problematic orders`);
       
       if (orphanedOrders.length > 0) {
@@ -34893,7 +34933,10 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         success: true, 
         orders: orphanedOrders,
         categorized: categorized,
-        totalOrphaned: orphanedOrders.length,
+         totalOrphaned,
+         offset,
+         limit,
+         hasMore: offset + orphanedOrders.length < totalOrphaned,
         stats: {
           total: orphanedOrders.length,
           trulyOrphaned: categorized.trulyOrphaned.length,
@@ -35168,17 +35211,22 @@ ${message ? `Additional Requirements:\n${message}` : ''}
   app.get('/api/financial/temporary-orders', async (req, res) => {
     try {
       const result = await customerPool.query(`
-        SELECT om.*, co.order_number, co.total_amount, co.currency,
+         SELECT om.*, co.order_number, co.total_amount, co.currency,
                co.guest_name, co.guest_email, 
-               co.created_at, co.shipping_address, co.billing_address
+                co.created_at, co.shipping_address, co.billing_address,
+                COUNT(*) OVER()::int AS total_count
         FROM order_management om
         LEFT JOIN customer_orders co ON om.customer_order_id = co.id
         WHERE co.order_number LIKE '%TEST%' 
            OR co.order_number LIKE '%DEMO%' 
            OR co.order_number LIKE '%TEMP%'
            OR om.current_status = 'temporary'
-        ORDER BY om.created_at DESC
-      `);
+         ORDER BY om.created_at DESC
+         LIMIT $1 OFFSET $2
+       `, [
+         Math.min(Math.max(Number(req.query.limit) || 100, 1), 100),
+         Math.max(Number(req.query.offset) || 0, 0),
+       ]);
       
       const transformedOrders = result.rows.map(row => ({
         id: row.id,
@@ -35194,7 +35242,17 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         billingAddress: row.billing_address
       }));
 
-      res.json({ success: true, orders: transformedOrders });
+       const total = result.rows[0]?.total_count || 0;
+       const offset = Math.max(Number(req.query.offset) || 0, 0);
+       const limit = Math.min(Math.max(Number(req.query.limit) || 100, 1), 100);
+       res.json({
+         success: true,
+         orders: transformedOrders,
+         total,
+         offset,
+         limit,
+         hasMore: offset + transformedOrders.length < total,
+       });
     } catch (error) {
       console.error('❌ [TEMPORARY ORDERS] Error:', error);
       res.status(500).json({ 
@@ -44402,7 +44460,7 @@ momtazchem.com
   });
 
   // Warehouse Department - Get orders approved by finance
-  app.get("/api/warehouse/orders", async (req: Request, res: Response) => {
+  app.get("/api/warehouse/orders", requireAuth, async (req: Request, res: Response) => {
     try {
       console.log('📦 [WAREHOUSE] Getting warehouse orders...');
       
@@ -44438,7 +44496,10 @@ momtazchem.com
         orderItems: order.orderItems || []
       }));
       
-      res.json(transformedOrders);
+      const limit = Math.min(Math.max(Number(req.query.limit) || 100, 1), 100);
+      const offset = Math.max(Number(req.query.offset) || 0, 0);
+      const ordersPage = transformedOrders.slice(offset, offset + limit);
+      res.json({ orders: ordersPage, total: transformedOrders.length, offset, limit, hasMore: offset + ordersPage.length < transformedOrders.length });
     } catch (error) {
       console.error('📦 [WAREHOUSE] Error fetching orders:', error);
       res.status(500).json({ 
@@ -44446,6 +44507,19 @@ momtazchem.com
         message: "خطا در دریافت سفارشات انبار",
         error: error instanceof Error ? error.message : 'Unknown error'
       });
+    }
+  });
+
+  app.get("/api/warehouse/sent-orders", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const sentStatuses = ['warehouse_approved', 'logistics_assigned', 'logistics_processing', 'logistics_dispatched', 'in_transit', 'shipped', 'delivered', 'completed'];
+      const orders = await orderManagementStorage.getOrdersByStatus(sentStatuses);
+      const limit = Math.min(Math.max(Number(req.query.limit) || 100, 1), 100);
+      const offset = Math.max(Number(req.query.offset) || 0, 0);
+      const ordersPage = orders.slice(offset, offset + limit);
+      res.json({ orders: ordersPage, total: orders.length, offset, limit, hasMore: offset + ordersPage.length < orders.length });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "خطا در دریافت سفارشات ارسال شده" });
     }
   });
 
@@ -51109,8 +51183,8 @@ momtazchem.com
       const startTime = Date.now();
       
       // 📄 PAGINATION PARAMETERS
-      const limit = parseInt(req.query.limit as string) || 100; // Default 100 orders
-      const offset = parseInt(req.query.offset as string) || 0;
+      const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 100, 1), 100); // Fixed pages of up to 100 orders
+      const offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
       
       console.log(`🔍 [PAGINATED ORDER API] Starting request with limit=${limit}, offset=${offset}...`);
 
@@ -56039,10 +56113,13 @@ momtazchem.com
     try {
       const { email } = req.params;
       const decodedEmail = decodeURIComponent(email);
+      const limit = Math.min(Math.max(Number.parseInt(String(req.query.limit || '100'), 10) || 100, 1), 100);
+      const offset = Math.max(Number.parseInt(String(req.query.offset || '0'), 10) || 0, 0);
       console.log(`🔍 [SUPER ADMIN] Fetching customer orders for email: ${decodedEmail}`);
       
       const result = await customerPool.query(`
         SELECT 
+          COUNT(*) OVER()::int as "_filteredTotal",
           co.id, 
           co.order_number as "orderNumber", 
           co.guest_name as "customerName", 
@@ -56069,14 +56146,20 @@ momtazchem.com
           OR crm.email = $1
         )
         ORDER BY co.created_at DESC
-      `, [decodedEmail]);
+        LIMIT $2 OFFSET $3
+      `, [decodedEmail, limit + 1, offset]);
       
       console.log(`✅ [SUPER ADMIN] Found ${result.rows.length} orders for email ${decodedEmail}`);
+      const hasMore = result.rows.length > limit;
+      const rows = result.rows.slice(0, limit);
+      const total = rows[0]?._filteredTotal ?? 0;
+      const data = rows.map(({ _filteredTotal, ...order }) => order);
 
       res.json({
         success: true,
-        data: result.rows,
-        searchEmail: decodedEmail
+        data,
+        searchEmail: decodedEmail,
+        pagination: { limit, offset, total, hasMore, nextOffset: hasMore ? offset + limit : null },
       });
 
     } catch (error) {

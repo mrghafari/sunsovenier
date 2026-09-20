@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useState, useEffect, useCallback } from "react";
+import { useInfiniteQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -64,15 +64,39 @@ export default function LogisticsOrders() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   // Get warehouse-approved orders for logistics processing
-  const { data: response = { orders: [] }, isLoading, refetch } = useQuery({
+  const {
+    data: ordersData,
+    isLoading,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
     queryKey: ['/api/order-management/logistics'],
-    queryFn: () => fetch('/api/order-management/logistics', { 
+    queryFn: ({ pageParam = 0 }) => fetch(`/api/order-management/logistics?offset=${pageParam}`, {
       credentials: 'include',
       cache: 'no-cache'
-    }).then(res => res.json())
+    }).then(res => {
+      if (!res.ok) throw new Error("خطا در دریافت سفارشات لجستیک");
+      return res.json();
+    }),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.nextOffset : undefined,
   });
   
-  const orders = response.orders || [];
+  const orders = ordersData?.pages.flatMap(page => page.orders || []) || [];
+
+  const handleScroll = useCallback(() => {
+    if (window.innerHeight + document.documentElement.scrollTop >= document.documentElement.offsetHeight - 700 &&
+      hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+
+  useEffect(() => {
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [handleScroll]);
   
   // Debug: Log the first order to check orderNumber field
   if (orders.length > 0) {
@@ -313,7 +337,7 @@ export default function LogisticsOrders() {
             </div>
           ) : (
             <div className="space-y-4">
-              {orders.map((order: Order) => (
+      {orders.map((order: Order) => (
                 <div key={order.id} className="border rounded-lg p-6 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-4">
@@ -419,6 +443,11 @@ export default function LogisticsOrders() {
                   </div>
                 </div>
               ))}
+              {isFetchingNextPage && (
+                <div className="flex items-center justify-center gap-2 py-5 text-sm text-gray-500">
+                  <RefreshCw className="h-4 w-4 animate-spin" /> در حال بارگذاری سفارشات بیشتر...
+                </div>
+              )}
             </div>
           )}
         </CardContent>

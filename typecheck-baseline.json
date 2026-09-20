@@ -1189,18 +1189,6 @@
       "count": 1
     },
     {
-      "key": "[\"client/src/pages/admin/warehouse-management.tsx\",7006,\"Parameter 'order' implicitly has an 'any' type.\",\"{filteredOrders.map((order) => (\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/admin/warehouse-management.tsx\",7006,\"Parameter 'order' implicitly has an 'any' type.\",\"const filteredOrders = orders?.filter(order => {\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/admin/warehouse-management.tsx\",7006,\"Parameter 'order' implicitly has an 'any' type.\",\"const transitOrders = orders.filter(order =>\"]",
-      "count": 2
-    },
-    {
       "key": "[\"client/src/pages/admin/warehouse-management.tsx\",7006,\"Parameter 'product' implicitly has an 'any' type.\",\"const excelData = unifiedProducts.map((product, index) => {\"]",
       "count": 1
     },

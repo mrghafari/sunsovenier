@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -402,26 +402,43 @@ const WarehouseManagement: React.FC = () => {
   });
 
   // Fetch orders pending warehouse processing (SECURE endpoint)
-  const { data: pendingOrdersData = [], isLoading: pendingOrdersLoading, refetch: refetchPendingOrders } = useQuery({
+  const { data: pendingOrdersData, isLoading: pendingOrdersLoading, refetch: refetchPendingOrders, fetchNextPage: fetchNextPendingPage, hasNextPage: hasNextPendingPage, isFetchingNextPage: isFetchingNextPendingPage } = useInfiniteQuery({
     queryKey: ['/api/warehouse/orders'],
-    queryFn: () => fetch('/api/warehouse/orders', { credentials: 'include' }).then(res => res.json()),
+    queryFn: ({ pageParam = 0 }) => fetch(`/api/warehouse/orders?limit=100&offset=${pageParam}`, { credentials: 'include' }).then(res => res.json()),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.offset + lastPage.limit : undefined,
     staleTime: 10000,
   });
   
   // Fetch orders sent to logistics (SECURE endpoint)
-  const { data: sentOrdersResponse, isLoading: sentOrdersLoading, refetch: refetchSentOrders } = useQuery({
+  const { data: sentOrdersResponse, isLoading: sentOrdersLoading, refetch: refetchSentOrders, fetchNextPage: fetchNextSentPage, hasNextPage: hasNextSentPage, isFetchingNextPage: isFetchingNextSentPage } = useInfiniteQuery({
     queryKey: ['/api/warehouse/sent-orders'],
-    queryFn: () => fetch('/api/warehouse/sent-orders', { credentials: 'include' }).then(res => res.json()),
+    queryFn: ({ pageParam = 0 }) => fetch(`/api/warehouse/sent-orders?limit=100&offset=${pageParam}`, { credentials: 'include' }).then(res => res.json()),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.offset + lastPage.limit : undefined,
     staleTime: 10000,
   });
   
-  const pendingOrders = Array.isArray(pendingOrdersData) ? pendingOrdersData : [];
-  const sentOrders = sentOrdersResponse?.orders || sentOrdersResponse || [];
+  const pendingOrders = pendingOrdersData?.pages.flatMap(page => page.orders || []) || [];
+  const sentOrders = sentOrdersResponse?.pages.flatMap(page => page.orders || []) || [];
   
   // Choose which orders to show based on sub-tab
   const orders = orderSubTab === 'pending' ? pendingOrders : sentOrders;
   const isLoading = orderSubTab === 'pending' ? pendingOrdersLoading : sentOrdersLoading;
   const refetchOrders = orderSubTab === 'pending' ? refetchPendingOrders : refetchSentOrders;
+  const hasNextOrders = orderSubTab === 'pending' ? hasNextPendingPage : hasNextSentPage;
+  const isFetchingNextOrders = orderSubTab === 'pending' ? isFetchingNextPendingPage : isFetchingNextSentPage;
+  const loadMoreOrders = orderSubTab === 'pending' ? fetchNextPendingPage : fetchNextSentPage;
+  const orderListEndRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const element = orderListEndRef.current;
+    if (!element || !hasNextOrders) return;
+    const observer = new IntersectionObserver(entries => {
+      if (entries[0]?.isIntersecting && !isFetchingNextOrders) loadMoreOrders();
+    }, { rootMargin: '300px' });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [hasNextOrders, isFetchingNextOrders, loadMoreOrders]);
 
 
   // Fetch unified products for inventory management
@@ -1383,6 +1400,8 @@ const WarehouseManagement: React.FC = () => {
                       ))}
                     </tbody>
                   </table>
+                  <div ref={orderListEndRef} className="h-2" aria-hidden="true" />
+                  {isFetchingNextOrders && <div className="py-3 text-center text-sm text-gray-500"><Loader2 className="mx-auto h-4 w-4 animate-spin" /></div>}
                 </div>
               )}
             </CardContent>

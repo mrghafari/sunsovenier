@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { 
@@ -703,6 +703,15 @@ const LogisticsManagement = () => {
       ...(withTime ? { hour: '2-digit', minute: '2-digit' } : {}),
     }).format(date);
   };
+  const formatLogisticsTime = (value?: string) => {
+    if (!value) return t('unknown');
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return t('unknown');
+    return new Intl.DateTimeFormat(locale, {
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date);
+  };
   const formatLogisticsCurrency = (value: string | number) => new Intl.NumberFormat(locale, {
     style: 'currency', currency: 'IQD', maximumFractionDigits: 0,
   }).format(Number(value) || 0);
@@ -1016,9 +1025,22 @@ const LogisticsManagement = () => {
   console.log('Company Info:', companyInfo);
 
   // Get orders that have reached logistics stage (warehouse approved)
-  const { data: logisticsOrdersResponse, isLoading: loadingLogisticsOrders, refetch: refetchLogisticsOrders } = useQuery({
+  const {
+    data: logisticsOrdersResponse,
+    isLoading: loadingLogisticsOrders,
+    refetch: refetchLogisticsOrders,
+    fetchNextPage: fetchNextLogisticsPage,
+    hasNextPage: hasNextLogisticsPage,
+    isFetchingNextPage: isFetchingNextLogisticsPage,
+  } = useInfiniteQuery({
     queryKey: ['/api/order-management/logistics'],
     enabled: activeTab === 'orders',
+    initialPageParam: 0,
+    queryFn: ({ pageParam = 0 }) => fetch(`/api/order-management/logistics?offset=${pageParam}`, { credentials: 'include', cache: 'no-cache' }).then(res => {
+      if (!res.ok) throw new Error('خطا در دریافت سفارشات لجستیک');
+      return res.json();
+    }),
+    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.nextOffset : undefined,
     staleTime: 0, // Always consider data stale
     gcTime: 0, // Don't cache at all - always fresh (v5 syntax)
     refetchOnWindowFocus: true, // Refetch when user comes back
@@ -1026,9 +1048,22 @@ const LogisticsManagement = () => {
   });
 
   // Get delivered orders for delivered tab
-  const { data: deliveredOrdersResponse, isLoading: loadingDeliveredOrders, refetch: refetchDeliveredOrders } = useQuery({
+  const {
+    data: deliveredOrdersResponse,
+    isLoading: loadingDeliveredOrders,
+    refetch: refetchDeliveredOrders,
+    fetchNextPage: fetchNextDeliveredPage,
+    hasNextPage: hasNextDeliveredPage,
+    isFetchingNextPage: isFetchingNextDeliveredPage,
+  } = useInfiniteQuery({
     queryKey: ['/api/order-management/delivered'],
     enabled: activeTab === 'delivered',
+    initialPageParam: 0,
+    queryFn: ({ pageParam = 0 }) => fetch(`/api/order-management/delivered?offset=${pageParam}`, { credentials: 'include' }).then(res => {
+      if (!res.ok) throw new Error('خطا در دریافت سفارشات تحویل‌شده');
+      return res.json();
+    }),
+    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.nextOffset : undefined,
     staleTime: 0, // Always consider data stale
     gcTime: 0, // Don't cache at all - always fresh (v5 syntax)
     refetchOnWindowFocus: true, // Refetch when user comes back
@@ -1048,7 +1083,20 @@ const LogisticsManagement = () => {
     });
   };
   
-  const logisticsOrders = (logisticsOrdersResponse as any)?.orders || [];
+  const logisticsOrders = logisticsOrdersResponse?.pages.flatMap((page: any) => page.orders || []) || [];
+  const deliveredOrders = deliveredOrdersResponse?.pages.flatMap((page: any) => page.orders || []) || [];
+
+  // Load the next 100 rows when the active order table approaches the bottom.
+  const loadMoreOrdersOnScroll = useCallback(() => {
+    if (window.innerHeight + window.scrollY < document.documentElement.scrollHeight - 700) return;
+    if (activeTab === 'orders' && hasNextLogisticsPage && !isFetchingNextLogisticsPage) fetchNextLogisticsPage();
+    if (activeTab === 'delivered' && hasNextDeliveredPage && !isFetchingNextDeliveredPage) fetchNextDeliveredPage();
+  }, [activeTab, fetchNextLogisticsPage, fetchNextDeliveredPage, hasNextLogisticsPage, hasNextDeliveredPage, isFetchingNextLogisticsPage, isFetchingNextDeliveredPage]);
+
+  useEffect(() => {
+    window.addEventListener('scroll', loadMoreOrdersOnScroll);
+    return () => window.removeEventListener('scroll', loadMoreOrdersOnScroll);
+  }, [loadMoreOrdersOnScroll]);
   
   // Debug: Log first order to check recipient data
   if (logisticsOrders.length > 0) {
@@ -2901,7 +2949,7 @@ const LogisticsManagement = () => {
   };
 
   const getConfirmingDeliveryOrder = () => {
-    const allOrders = (logisticsOrdersResponse as any)?.orders || [];
+    const allOrders = logisticsOrdersResponse?.pages.flatMap((page: any) => page.orders || []) || [];
     return allOrders.find((order: any) => order.id === confirmingDeliveryOrderId);
   };
 
@@ -3251,7 +3299,7 @@ const LogisticsManagement = () => {
                 <Table className="min-w-[1480px] text-xs">
                   <TableHeader className="sticky top-0 z-10 bg-slate-700">
                     <TableRow className="border-slate-700 hover:bg-slate-700">
-                      {[t('row'), t('order'), t('customer'), t('destination'), t('amount'), t('weight'), t('methodVehicle'), t('status'), t('date'), t('codeTracking'), t('actions')].map((label) => <TableHead key={label} className="h-9 border-e border-slate-600 px-3 text-start font-semibold text-slate-50">{label}</TableHead>)}
+                      {[t('row'), t('order'), t('customer'), t('destination'), t('amount'), t('weight'), t('methodVehicle'), t('status'), t('date'), t('codeTracking'), t('actions')].map((label) => <TableHead key={label} className={`h-9 border-e border-slate-600 px-3 text-start font-semibold text-slate-50 ${label === t('date') ? 'w-[92px] max-w-[92px]' : ''}`}>{label}</TableHead>)}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -3321,7 +3369,10 @@ const LogisticsManagement = () => {
                           )}
                         </TableCell>
                         <TableCell className="border-e border-slate-200 px-3 py-2"><Badge className="whitespace-normal bg-emerald-100 text-emerald-800">{getStatusDisplayName(order.currentStatus, language)}</Badge></TableCell>
-                        <TableCell className="border-e border-slate-200 px-3 py-2 whitespace-nowrap">{formatLogisticsDate(order.updatedAt || order.createdAt, true)}</TableCell>
+                        <TableCell className="w-[92px] max-w-[92px] whitespace-nowrap border-e border-slate-200 px-2 py-2 leading-4">
+                          <div>{formatLogisticsDate(order.updatedAt || order.createdAt)}</div>
+                          <div className="text-slate-500">{formatLogisticsTime(order.updatedAt || order.createdAt)}</div>
+                        </TableCell>
                         <TableCell className="border-e border-slate-200 px-3 py-2 font-mono">
                           {order.deliveryCode || order.trackingNumber || (
                             ['delivered', 'logistics_delivered', 'completed'].includes(order.currentStatus)
@@ -3919,7 +3970,6 @@ const LogisticsManagement = () => {
 
   // Delivered Orders Tab Component
   const DeliveredOrdersTab = () => {
-    const deliveredOrders = (deliveredOrdersResponse as any)?.orders || [];
     const [deliveredSearchQuery, setDeliveredSearchQuery] = useState('');
     const [deliveredSortBy, setDeliveredSortBy] = useState<'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc' | 'order_number'>('date_desc');
     const [expandedDeliveredVehicleId, setExpandedDeliveredVehicleId] = useState<number | null>(null);
@@ -3974,7 +4024,7 @@ const LogisticsManagement = () => {
         </div>
         {loadingDeliveredOrders ? <Card><CardContent className="py-12 text-center text-slate-500">{t('loading')}</CardContent></Card> : filtered.length === 0 ? <Card><CardContent className="py-12 text-center text-slate-500"><Package className="mx-auto mb-3 h-10 w-10 text-slate-300" />{t('noResults')}</CardContent></Card> : (
           <Card className="overflow-hidden border-slate-300 shadow-sm"><CardContent className="p-0"><div className="overflow-x-auto"><Table className="min-w-[1380px] text-xs">
-            <TableHeader className="bg-slate-700"><TableRow className="border-slate-700 hover:bg-slate-700">{[t('row'), t('order'), t('customer'), t('destination'), t('amount'), t('weight'), t('methodVehicle'), t('status'), t('date'), t('codeTracking'), t('actions')].map((label) => <TableHead key={label} className={`h-9 border-e border-slate-600 px-3 text-start font-semibold text-slate-50 ${label === t('codeTracking') ? 'w-[105px] max-w-[105px]' : ''}`}>{label}</TableHead>)}</TableRow></TableHeader>
+            <TableHeader className="bg-slate-700"><TableRow className="border-slate-700 hover:bg-slate-700">{[t('row'), t('order'), t('customer'), t('destination'), t('amount'), t('weight'), t('methodVehicle'), t('status'), t('date'), t('codeTracking'), t('actions')].map((label) => <TableHead key={label} className={`h-9 border-e border-slate-600 px-3 text-start font-semibold text-slate-50 ${label === t('date') ? 'w-[92px] max-w-[92px]' : ''} ${label === t('codeTracking') ? 'w-[105px] max-w-[105px]' : ''}`}>{label}</TableHead>)}</TableRow></TableHeader>
             <TableBody>{filtered.map((order: any, index: number) => {
               const vehicle = assignedDeliveredVehicle(order);
               const isVehicleExpanded = expandedDeliveredVehicleId === order.id;
@@ -4016,7 +4066,10 @@ const LogisticsManagement = () => {
                 ) : <div className="text-slate-500">{order.selectedVehicleName || t('noVehicle')}</div>}
               </TableCell>
               <TableCell className="border-e border-slate-200 px-3 py-2"><Badge className="bg-emerald-100 text-emerald-800">{getStatusDisplayName(order.currentStatus || 'delivered', language)}</Badge></TableCell>
-              <TableCell className="border-e border-slate-200 px-3 py-2 whitespace-nowrap">{formatLogisticsDate(order.actualDeliveryDate || order.createdAt, true)}</TableCell>
+              <TableCell className="w-[92px] max-w-[92px] whitespace-nowrap border-e border-slate-200 px-2 py-2 leading-4">
+                <div>{formatLogisticsDate(order.actualDeliveryDate || order.createdAt)}</div>
+                <div className="text-slate-500">{formatLogisticsTime(order.actualDeliveryDate || order.createdAt)}</div>
+              </TableCell>
               <TableCell className="w-[105px] max-w-[105px] break-all border-e border-slate-200 px-2 py-2 font-mono text-[11px] leading-4">
                 {order.deliveryCode || order.trackingNumber || (
                   ['delivered', 'logistics_delivered', 'completed'].includes(order.currentStatus || 'delivered')
@@ -4092,7 +4145,6 @@ const LogisticsManagement = () => {
   };
 
   const LegacyDeliveredOrdersTab = () => {
-    const deliveredOrders = (deliveredOrdersResponse as any)?.orders || [];
     const [deliveredSearchQuery, setDeliveredSearchQuery] = useState('');
     const [deliveredSortBy, setDeliveredSortBy] = useState<'date_desc' | 'date_asc' | 'amount_desc' | 'amount_asc' | 'order_number'>('date_desc');
     

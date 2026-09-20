@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -607,10 +607,11 @@ const WarehouseManagementFixed: React.FC = () => {
   const { user } = useAuth();
 
   // Queries
-  const { data: ordersResponse, isLoading: ordersLoading, refetch: refetchOrders } = useQuery({
-    queryKey: ['/api/order-management/warehouse'],
-    queryFn: async () => {
-      const response = await fetch('/api/order-management/warehouse', {
+  const { data: ordersResponse, isLoading: ordersLoading, refetch: refetchOrders, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
+    queryKey: ['/api/order-management/warehouse', orderView],
+    queryFn: async ({ pageParam = 0 }) => {
+      const view = orderView === 'history' ? 'history' : 'current';
+      const response = await fetch(`/api/order-management/warehouse?view=${view}&limit=100&offset=${pageParam}`, {
         credentials: 'include',
         cache: 'no-store',
         headers: { 'Cache-Control': 'no-cache' },
@@ -620,6 +621,8 @@ const WarehouseManagementFixed: React.FC = () => {
       }
       return response.json();
     },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.offset + lastPage.limit : undefined,
     staleTime: 0, // Always consider data stale
     gcTime: 0, // Don't cache at all - always fresh (v5 syntax)
     refetchOnWindowFocus: true, // Refetch when user comes back
@@ -638,12 +641,20 @@ const WarehouseManagementFixed: React.FC = () => {
     });
   };
 
-  const orders = orderView === 'history'
-    ? (ordersResponse as any)?.historyOrders || []
-    : (ordersResponse as any)?.orders || [];
-  const currentOrderCount = ((ordersResponse as any)?.orders || []).length;
-  const historyOrderCount = ((ordersResponse as any)?.historyOrders || []).length;
+  const orders = ordersResponse?.pages.flatMap((page: any) => orderView === 'history' ? (page.historyOrders || []) : (page.orders || [])) || [];
+  const currentOrderCount = orderView === 'current' ? ordersResponse?.pages[0]?.total || orders.length : 0;
+  const historyOrderCount = orderView === 'history' ? ordersResponse?.pages[0]?.total || orders.length : 0;
   const visibleOrdersLoading = ordersLoading;
+  const orderListEndRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const element = orderListEndRef.current;
+    if (!element || !hasNextPage) return;
+    const observer = new IntersectionObserver(entries => {
+      if (entries[0]?.isIntersecting && !isFetchingNextPage) fetchNextPage();
+    }, { rootMargin: '300px' });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
   const statusCounts = new Map<string, number>();
   orders.forEach((order: Order) => {
     const status = String(order.currentStatus || order.status || '').trim().toLowerCase();
@@ -1437,6 +1448,8 @@ const WarehouseManagementFixed: React.FC = () => {
                           })}
                        </tbody>
                      </table>
+                     <div ref={orderListEndRef} className="h-2" aria-hidden="true" />
+                     {isFetchingNextPage && <div className="py-3 text-center text-sm text-slate-500">{t('loadingOrders')}</div>}
                    </div>
                 )}
               </CardContent>

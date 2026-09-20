@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -66,6 +66,14 @@ interface FinancialOrder {
 }
 
 type PageLanguage = "en" | "fa" | "ar" | "tr";
+type FinancialOrdersPage = {
+  orders: FinancialOrder[];
+  total?: number;
+  totalOrphaned?: number;
+  offset: number;
+  limit: number;
+  hasMore: boolean;
+};
 type PageTranslationKey = keyof typeof pageTranslations.en;
 
 const pageTranslations = {
@@ -571,30 +579,54 @@ export default function FinancialWorkflowDashboard() {
   const [selectedOrder, setSelectedOrder] = useState<FinancialOrder | null>(null);
   const [approvalNotes, setApprovalNotes] = useState("");
   const [excessAmount, setExcessAmount] = useState("");
+  const [activeOrdersTab, setActiveOrdersTab] = useState("pending");
 
-  const { data: orders, isLoading } = useQuery<FinancialOrder[]>({
-    queryKey: ['/api/financial/pending-orders'],
-    refetchInterval: 30000
+  const pageQuery = (path: string, queryKey: string) => useInfiniteQuery<FinancialOrdersPage>({
+    queryKey: [path, queryKey],
+    queryFn: async ({ pageParam = 0 }) => {
+      const params = new URLSearchParams({ limit: "100", offset: String(pageParam) });
+      const response = await fetch(`${path}${path.includes("?") ? "&" : "?"}${params}`, { credentials: "include" });
+      if (!response.ok) throw new Error(`Failed to fetch ${queryKey} financial orders`);
+      return response.json();
+    },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.offset + lastPage.orders.length : undefined,
+    refetchInterval: 30000,
   });
 
-  const { data: approvedOrders, isLoading: isLoadingApproved } = useQuery<FinancialOrder[]>({
-    queryKey: ['/api/financial/approved-orders'],
-    refetchInterval: 30000
-  });
+  const pendingQuery = pageQuery("/api/financial/orders?view=pending", "pending");
+  const approvedQuery = pageQuery("/api/financial/approved-orders", "approved");
+  const temporaryQuery = pageQuery("/api/financial/temporary-orders", "temporary");
+  const orphanedQuery = pageQuery("/api/financial/orphaned-orders", "orphaned");
+  const orders = pendingQuery.data?.pages.flatMap(page => page.orders) || [];
+  const approvedOrders = approvedQuery.data?.pages.flatMap(page => page.orders) || [];
+  const temporaryOrders = temporaryQuery.data?.pages.flatMap(page => page.orders) || [];
+  const orphanedOrders = orphanedQuery.data?.pages.flatMap(page => page.orders) || [];
+  const totalOrphaned = orphanedQuery.data?.pages[0]?.totalOrphaned || 0;
+  const isLoading = pendingQuery.isLoading;
+  const isLoadingApproved = approvedQuery.isLoading;
+  const temporaryLoading = temporaryQuery.isLoading;
+  const orphanedLoading = orphanedQuery.isLoading;
 
-  const { data: temporaryResponse, isLoading: temporaryLoading } = useQuery<{orders: FinancialOrder[]}>({
-    queryKey: ['/api/financial/temporary-orders'],
-    refetchInterval: 30000
-  });
-
-  const { data: orphanedResponse, isLoading: orphanedLoading } = useQuery<{orders: FinancialOrder[], totalOrphaned: number}>({
-    queryKey: ['/api/financial/orphaned-orders'],
-    refetchInterval: 30000
-  });
-
-  const temporaryOrders = temporaryResponse?.orders || [];
-  const orphanedOrders = orphanedResponse?.orders || [];
-  const totalOrphaned = orphanedResponse?.totalOrphaned || 0;
+  useEffect(() => {
+    const onScroll = () => {
+      if (window.innerHeight + window.scrollY < document.documentElement.scrollHeight - 500) return;
+      const activeQuery = activeOrdersTab === "pending" ? pendingQuery
+        : activeOrdersTab === "approved" ? approvedQuery
+        : activeOrdersTab === "temporary" ? temporaryQuery
+        : activeOrdersTab === "orphaned" ? orphanedQuery
+        : null;
+      if (activeQuery?.hasNextPage && !activeQuery.isFetchingNextPage) void activeQuery.fetchNextPage();
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [
+    activeOrdersTab,
+    pendingQuery.hasNextPage, pendingQuery.isFetchingNextPage, pendingQuery.fetchNextPage,
+    approvedQuery.hasNextPage, approvedQuery.isFetchingNextPage, approvedQuery.fetchNextPage,
+    temporaryQuery.hasNextPage, temporaryQuery.isFetchingNextPage, temporaryQuery.fetchNextPage,
+    orphanedQuery.hasNextPage, orphanedQuery.isFetchingNextPage, orphanedQuery.fetchNextPage,
+  ]);
 
   const approveOrderMutation = useMutation({
     mutationFn: (data: { orderMgmtId: number; reviewerId: number; notes?: string; excessAmount?: number }) =>
@@ -604,7 +636,7 @@ export default function FinancialWorkflowDashboard() {
         title: `✅ ${t("approvalSuccess")}`,
         description: t("approvalSuccessDesc"),
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/financial/pending-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/financial/orders?view=pending', 'pending'] });
       setSelectedOrder(null);
       setApprovalNotes("");
       setExcessAmount("");
@@ -626,7 +658,7 @@ export default function FinancialWorkflowDashboard() {
         title: `🔧 ${t("repairSuccess")}`,
         description: t("repairSuccessDesc"),
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/financial/orphaned-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/financial/orphaned-orders', 'orphaned'] });
     },
     onError: (error: any) => {
       toast({
@@ -813,7 +845,7 @@ export default function FinancialWorkflowDashboard() {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="pending" className="w-full">
+      <Tabs value={activeOrdersTab} onValueChange={setActiveOrdersTab} className="w-full">
         <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="pending" className="text-xs md:text-sm">
             {t("pendingOrders")} ({formatNumber(orders?.length || 0)})
