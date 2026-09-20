@@ -56961,23 +56961,24 @@ momtazchem.com
   // Get all email templates for shop admin
   app.get('/api/shop/email-templates', requireAuth, async (req, res) => {
     try {
-      const { customerDb } = await import('./customer-db');
-      const { emailTemplates } = await import('../shared/customer-schema');
-      
-      const templates = await customerDb.select({
-        id: emailTemplates.id,
-        name: emailTemplates.name,
-         category: emailTemplates.category,
-         subject: emailTemplates.subject,
-         htmlContent: emailTemplates.htmlContent,
-         textContent: emailTemplates.textContent,
-         variables: emailTemplates.variables,
-         language: emailTemplates.language,
-         isDefault: emailTemplates.isDefault
-      })
-      .from(emailTemplates)
-      .where(eq(emailTemplates.isActive, true))
-      .orderBy(emailTemplates.createdAt);
+      const result = await pool.query(`
+        SELECT id, name, category, subject, html_content, text_content,
+               variables, language, is_default
+        FROM email_templates
+        WHERE is_active = true
+        ORDER BY created_at
+      `);
+      const templates = result.rows.map(row => ({
+        id: row.id,
+        name: row.name,
+        category: row.category,
+        subject: row.subject,
+        htmlContent: row.html_content,
+        textContent: row.text_content,
+        variables: row.variables,
+        language: row.language,
+        isDefault: row.is_default,
+      }));
 
       res.json({ success: true, data: templates });
     } catch (error) {
