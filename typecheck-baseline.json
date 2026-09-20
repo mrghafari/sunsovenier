@@ -1489,27 +1489,7 @@
       "count": 1
     },
     {
-      "key": "[\"client/src/pages/shop-admin.tsx\",2339,\"Property 'data' does not exist on type '{}'.\",\"{(!reminderSchedules?.data || reminderSchedules.data.length === 0) && (\"]",
-      "count": 2
-    },
-    {
-      "key": "[\"client/src/pages/shop-admin.tsx\",2339,\"Property 'data' does not exist on type '{}'.\",\"{reminderSchedules?.data?.map((schedule: any) => (\"]",
-      "count": 1
-    },
-    {
       "key": "[\"client/src/pages/shop-admin.tsx\",2339,\"Property 'data' does not exist on type '{}'.\",\"const discounts = discountsResponse?.data || [];\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/shop-admin.tsx\",2339,\"Property 'data' does not exist on type '{}'.\",\"const emailTemplates = emailTemplatesResponse?.data || [];\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/shop-admin.tsx\",2339,\"Property 'data' does not exist on type '{}'.\",\"const shopSettings = shopSettingsResponse?.data || [];\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/shop-admin.tsx\",2339,\"Property 'data' does not exist on type '{}'.\",\"const smsTemplates = smsTemplatesResponse?.data || [];\"]",
       "count": 1
     },
     {

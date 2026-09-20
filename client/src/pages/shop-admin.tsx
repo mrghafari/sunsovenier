@@ -256,6 +256,26 @@ const SHOP_TRANSLATIONS: Record<string, ShopTranslation> = {
   convertInvoiceFailed: { en: "Failed to convert proforma to invoice", ar: "فشل تحويل الفاتورة الأولية إلى فاتورة", tr: "Proforma faturaya dönüştürülemedi", fa: "تبدیل پیش‌فاکتور به فاکتور ناموفق بود" },
   editDiscount: { en: "Edit Discount", ar: "تعديل الخصم", tr: "İndirimi Düzenle", fa: "ویرایش تخفیف" },
   createNewDiscount: { en: "Create New Discount", ar: "إنشاء خصم جديد", tr: "Yeni İndirim Oluştur", fa: "ایجاد تخفیف جدید" },
+  reminderTimezone: { en: "Reminder timezone", ar: "المنطقة الزمنية للتذكير", tr: "Hatırlatma saat dilimi", fa: "منطقه زمانی یادآوری" },
+  notificationMethod: { en: "Notification method", ar: "طريقة الإشعار", tr: "Bildirim yöntemi", fa: "روش اعلان" },
+  emailMethod: { en: "Email", ar: "البريد الإلكتروني", tr: "E-posta", fa: "ایمیل" },
+  smsMethod: { en: "SMS", ar: "رسالة نصية", tr: "SMS", fa: "پیامک" },
+  bothMethod: { en: "Email + SMS", ar: "البريد الإلكتروني + الرسائل النصية", tr: "E-posta + SMS", fa: "ایمیل + پیامک" },
+  priority: { en: "Priority", ar: "الأولوية", tr: "Öncelik", fa: "اولویت" },
+  senderAddress: { en: "Sender address", ar: "عنوان المرسل", tr: "Gönderici adresi", fa: "آدرس فرستنده" },
+  chooseSender: { en: "Choose sender", ar: "اختر المرسل", tr: "Gönderici seçin", fa: "انتخاب فرستنده" },
+  activeStatus: { en: "Active", ar: "نشط", tr: "Aktif", fa: "فعال" },
+  deleteReminder: { en: "Delete this reminder?", ar: "هل تريد حذف هذا التذكير؟", tr: "Bu hatırlatıcı silinsin mi?", fa: "این یادآوری حذف شود؟" },
+  deadlineRangeError: { en: "Deadline must be a whole number between 1 and 30.", ar: "يجب أن تكون المهلة رقماً صحيحاً بين 1 و30.", tr: "Son tarih 1 ile 30 arasında tam sayı olmalıdır.", fa: "مهلت باید عددی صحیح بین ۱ و۳۰ باشد." },
+  reminderDaysRangeError: { en: "Reminder days must be between 0 and the deadline.", ar: "يجب أن تكون أيام التذكير بين 0 والمهلة.", tr: "Hatırlatma günleri 0 ile son tarih arasında olmalıdır.", fa: "روزهای یادآوری باید بین ۰ و مهلت باشند." },
+  hourRangeError: { en: "Send hour must be between 0 and 23.", ar: "يجب أن تكون ساعة الإرسال بين 0 و23.", tr: "Gönderim saati 0 ile 23 arasında olmalıdır.", fa: "ساعت ارسال باید بین ۰ و۲۳ باشد." },
+  priorityRangeError: { en: "Priority must be a positive whole number.", ar: "يجب أن تكون الأولوية رقماً صحيحاً موجباً.", tr: "Öncelik pozitif bir tam sayı olmalıdır.", fa: "اولویت باید عددی صحیح و مثبت باشد." },
+  emailRequiredError: { en: "Email template and sender are required.", ar: "قالب البريد والمرسل مطلوبان.", tr: "E-posta şablonu ve gönderici gereklidir.", fa: "قالب ایمیل و فرستنده الزامی هستند." },
+  smsRequiredError: { en: "SMS template is required.", ar: "قالب الرسائل النصية مطلوب.", tr: "SMS şablonu gereklidir.", fa: "قالب پیامک الزامی است." },
+  unavailableOptionError: { en: "A selected option is no longer available.", ar: "لم يعد أحد الخيارات المحددة متاحاً.", tr: "Seçili seçeneklerden biri artık kullanılamıyor.", fa: "یکی از گزینه‌های انتخاب‌شده دیگر در دسترس نیست." },
+  missingSavedOption: { en: "A saved template or sender is no longer available. Choose a replacement before saving.", ar: "لم يعد قالب أو مرسل محفوظ متاحاً. اختر بديلاً قبل الحفظ.", tr: "Kayıtlı şablon veya gönderici artık kullanılamıyor. Kaydetmeden önce yenisini seçin.", fa: "قالب یا فرستنده ذخیره‌شده دیگر در دسترس نیست؛ پیش از ذخیره جایگزین کنید." },
+  loadReminderOptionsError: { en: "Unable to load templates or sender options.", ar: "تعذر تحميل القوالب أو خيارات المرسل.", tr: "Şablonlar veya gönderici seçenekleri yüklenemedi.", fa: "بارگذاری قالب‌ها یا گزینه‌های فرستنده ممکن نیست." },
+  loadSchedulesError: { en: "Unable to load reminder schedules.", ar: "تعذر تحميل جداول التذكير.", tr: "Hatırlatma planları yüklenemedi.", fa: "بارگذاری برنامه‌های یادآوری ممکن نیست." },
 };
 
 function useShopTranslations() {
@@ -267,6 +287,156 @@ function useShopTranslations() {
   return { tr, direction, language };
 }
 
+type ReminderFormState = {
+  days: string;
+  hour: string;
+  method: "email" | "sms" | "both";
+  active: boolean;
+  priority: string;
+  smsId: string;
+  emailId: string;
+  senderKey: string;
+};
+
+function ProformaDeadlineSettings() {
+  const { tr, direction } = useShopTranslations();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { isAuthenticated } = useAuth();
+  const [deadline, setDeadline] = useState("3");
+  const [timezone, setTimezone] = useState("Asia/Baghdad");
+  const [form, setForm] = useState<ReminderFormState>({
+    days: "1", hour: "10", method: "email", active: true, priority: "1",
+    smsId: "none", emailId: "none", senderKey: "none",
+  });
+  const [editing, setEditing] = useState<any>(null);
+
+  const settingsQuery = useQuery({ queryKey: ["/api/shop/settings"], enabled: isAuthenticated });
+  const remindersQuery = useQuery({ queryKey: ["/api/shop/proforma-reminders"], enabled: isAuthenticated });
+  const sendersQuery = useQuery({ queryKey: ["/api/shop/email-senders"], enabled: isAuthenticated });
+  const emailsQuery = useQuery({ queryKey: ["/api/shop/email-templates"], enabled: isAuthenticated });
+  const smsQuery = useQuery({ queryKey: ["/api/shop/sms-templates"], enabled: isAuthenticated });
+  const settingsResponse: any = settingsQuery.data;
+  const remindersResponse: any = remindersQuery.data;
+  const sendersResponse: any = sendersQuery.data;
+  const emailsResponse: any = emailsQuery.data;
+  const smsResponse: any = smsQuery.data;
+  const settings = Array.isArray(settingsResponse?.data) ? settingsResponse.data : [];
+  const reminders = Array.isArray(remindersResponse?.data) ? remindersResponse.data : [];
+  const senders = Array.isArray(sendersResponse?.data) ? sendersResponse.data : [];
+  const emails = Array.isArray(emailsResponse?.data) ? emailsResponse.data : [];
+  const sms = Array.isArray(smsResponse?.data) ? smsResponse.data : [];
+
+  useEffect(() => {
+    const days = settings.find((s: any) => s.setting_key === "proforma_deadline_days")?.setting_value;
+    const zone = settings.find((s: any) => s.setting_key === "proforma_reminder_timezone")?.setting_value;
+    if (days != null) setDeadline(String(days));
+    if (zone) setTimezone(String(zone));
+  }, [settingsQuery.data]);
+
+  const setField = <K extends keyof ReminderFormState>(key: K, value: ReminderFormState[K]) =>
+    setForm((current) => ({ ...current, [key]: value }));
+  const optionLoading = settingsQuery.isLoading || sendersQuery.isLoading || emailsQuery.isLoading || smsQuery.isLoading;
+  const optionError = settingsQuery.isError || sendersQuery.isError || emailsQuery.isError || smsQuery.isError;
+  const methodNeedsEmail = form.method === "email" || form.method === "both";
+  const methodNeedsSms = form.method === "sms" || form.method === "both";
+  const methodLabel = (method?: string) =>
+    method === "sms" ? tr("smsMethod") : method === "both" ? tr("bothMethod") : tr("emailMethod");
+  const selectedEmail = emails.find((x: any) => String(x.id) === form.emailId);
+  const selectedSms = sms.find((x: any) => String(x.id) === form.smsId);
+  const selectedSender = senders.find((x: any) => x.categoryKey === form.senderKey);
+
+  const saveSettings = useMutation({
+    mutationFn: () => apiRequest("/api/shop/settings", { method: "POST", body: { settings: [
+      { setting_key: "proforma_deadline_days", setting_value: deadline, setting_type: "number", display_name: "Purchase Proforma Deadline (Days)", category: "payment", is_public: true },
+      { setting_key: "proforma_reminder_timezone", setting_value: timezone, setting_type: "string", display_name: "Proforma Reminder Timezone", category: "payment", is_public: false },
+    ] } }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/shop/settings"] }); toast({ title: tr("success"), description: tr("updated") }); },
+    onError: (e: any) => toast({ title: tr("error"), description: e.message || tr("error"), variant: "destructive" }),
+  });
+  const saveReminder = useMutation({
+    mutationFn: () => {
+      const body = {
+        reminderHour: Number(form.hour), daysBefore: Number(form.days), notificationMethod: form.method,
+        isActive: form.active, priority: Number(form.priority),
+        smsTemplateId: methodNeedsSms && form.smsId !== "none" ? Number(form.smsId) : null,
+        emailTemplateId: methodNeedsEmail && form.emailId !== "none" ? Number(form.emailId) : null,
+        senderCategoryKey: methodNeedsEmail && form.senderKey !== "none" ? form.senderKey : null,
+        messageTemplate: selectedSms?.templateContent || selectedEmail?.htmlContent || "",
+        messageSubject: selectedEmail?.subject || "",
+      };
+      return apiRequest(`/api/shop/proforma-reminders${editing ? `/${editing.id}` : ""}`, { method: editing ? "PUT" : "POST", body });
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/shop/proforma-reminders"] }); setEditing(null); toast({ title: tr("success"), description: editing ? tr("updated") : tr("add") }); },
+    onError: (e: any) => toast({ title: tr("error"), description: e.message || tr("error"), variant: "destructive" }),
+  });
+  const reset = () => setForm({ days: "1", hour: "10", method: "email", active: true, priority: "1", smsId: "none", emailId: "none", senderKey: "none" });
+  const validate = () => {
+    const days = Number(form.days), hour = Number(form.hour), priority = Number(form.priority), deadlineDays = Number(deadline);
+    if (!Number.isInteger(deadlineDays) || deadlineDays < 1 || deadlineDays > 30) return tr("deadlineRangeError");
+    if (!Number.isInteger(days) || days < 0 || days > deadlineDays) return tr("reminderDaysRangeError");
+    if (!Number.isInteger(hour) || hour < 0 || hour > 23) return tr("hourRangeError");
+    if (!Number.isInteger(priority) || priority < 1 || priority > 999) return tr("priorityRangeError");
+    if (methodNeedsEmail && (form.emailId === "none" || form.senderKey === "none")) return tr("emailRequiredError");
+    if (methodNeedsSms && form.smsId === "none") return tr("smsRequiredError");
+    if ((methodNeedsEmail && !selectedEmail) || (methodNeedsSms && !selectedSms) || (methodNeedsEmail && !selectedSender)) return tr("unavailableOptionError");
+    return null;
+  };
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault();
+      const error = validate();
+    if (error) { toast({ title: tr("error"), description: error, variant: "destructive" }); return; }
+    saveReminder.mutate();
+  };
+  const beginEdit = (schedule: any) => {
+    setEditing(schedule);
+    setForm({
+      days: String(schedule.days_before ?? 0), hour: String(schedule.reminder_hour ?? 0),
+      method: schedule.notification_method === "sms" || schedule.notification_method === "both" ? schedule.notification_method : "email",
+      active: schedule.is_active !== false, priority: String(schedule.priority ?? 1),
+      smsId: schedule.sms_template_id ? String(schedule.sms_template_id) : "none",
+      emailId: schedule.email_template_id ? String(schedule.email_template_id) : "none",
+      senderKey: schedule.sender_category_key || "none",
+    });
+  };
+  const retry = () => { settingsQuery.refetch(); remindersQuery.refetch(); sendersQuery.refetch(); emailsQuery.refetch(); smsQuery.refetch(); };
+  return (
+    <div className="space-y-6" dir={direction}>
+      <Alert><AlertCircle className="h-4 w-4" /><AlertDescription>{tr("deadlineAlert")}</AlertDescription></Alert>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="space-y-2"><Label>{tr("paymentDeadline")}</Label><Input type="number" min="1" max="30" value={deadline} onChange={e => setDeadline(e.target.value)} /><p className="text-xs text-muted-foreground">{tr("deadlineHint")}</p></div>
+        <div className="space-y-2"><Label>{tr("reminderTimezone")}</Label><Select value={timezone} onValueChange={setTimezone}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{["UTC", "Asia/Baghdad", "Asia/Tehran", "Europe/Istanbul", "Asia/Dubai"].map(z => <SelectItem key={z} value={z}>{z}</SelectItem>)}</SelectContent></Select></div>
+        <div className="rounded-md bg-muted p-4 text-sm"><Label>{tr("previewMessage")}</Label><p className="mt-2">{tr("deadlineDays", { days: deadline || "—" })}</p></div>
+      </div>
+      <div className="flex justify-end"><Button onClick={() => { const value = Number(deadline); if (!Number.isInteger(value) || value < 1 || value > 30) { toast({ title: tr("error"), description: tr("deadlineRangeError"), variant: "destructive" }); return; } saveSettings.mutate(); }} disabled={saveSettings.isPending || settingsQuery.isLoading}><Save className="h-4 w-4 mr-2" />{saveSettings.isPending ? tr("saving") : tr("saveSettings")}</Button></div>
+      <Separator />
+      <form onSubmit={submit} className="rounded-lg border p-4 space-y-4">
+        <div className="flex items-center justify-between"><h3 className="text-lg font-semibold flex items-center gap-2"><Clock className="w-5 h-5" />{tr("reminderSchedule")}</h3>{editing && <Button type="button" variant="ghost" onClick={() => { setEditing(null); reset(); }}>{tr("cancel")}</Button>}</div>
+        {optionError && <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertDescription>{tr("loadReminderOptionsError")} <Button type="button" variant="link" onClick={retry}>{tr("retry")}</Button></AlertDescription></Alert>}
+        {optionLoading ? <div className="h-24 animate-pulse rounded bg-muted" /> : <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="space-y-2"><Label>{tr("daysBeforeDeadline")}</Label><Input type="number" min="0" max="30" value={form.days} onChange={e => setField("days", e.target.value)} /></div>
+          <div className="space-y-2"><Label>{tr("sendTime")} (0–23)</Label><Input type="number" min="0" max="23" value={form.hour} onChange={e => setField("hour", e.target.value)} /></div>
+          <div className="space-y-2"><Label>{tr("notificationMethod")}</Label><Select value={form.method} onValueChange={(v: any) => setField("method", v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="email">{tr("emailMethod")}</SelectItem><SelectItem value="sms">{tr("smsMethod")}</SelectItem><SelectItem value="both">{tr("bothMethod")}</SelectItem></SelectContent></Select></div>
+          <div className="space-y-2"><Label>{tr("priority")}</Label><Input type="number" min="1" value={form.priority} onChange={e => setField("priority", e.target.value)} /></div>
+          {methodNeedsEmail && <><div className="space-y-2"><Label>{tr("emailTemplate")}</Label><Select value={form.emailId} onValueChange={v => setField("emailId", v)}><SelectTrigger><SelectValue placeholder={tr("chooseEmail")} /></SelectTrigger><SelectContent><SelectItem value="none">{tr("noTemplate")}</SelectItem>{emails.map((x: any) => <SelectItem key={x.id} value={String(x.id)}>{x.name} · {x.category}</SelectItem>)}</SelectContent></Select>{selectedEmail && <p className="text-xs text-muted-foreground truncate">{selectedEmail.subject}<br />{selectedEmail.htmlContent || selectedEmail.textContent}</p>}</div>
+          <div className="space-y-2"><Label>{tr("senderAddress")}</Label><Select value={form.senderKey} onValueChange={v => setField("senderKey", v)}><SelectTrigger><SelectValue placeholder={tr("chooseSender")} /></SelectTrigger><SelectContent><SelectItem value="none">{tr("noTemplate")}</SelectItem>{senders.map((x: any) => <SelectItem key={x.categoryKey} value={x.categoryKey}>{x.fromEmail} · {x.fromName}</SelectItem>)}</SelectContent></Select>{selectedSender && <p className="text-xs text-muted-foreground">{selectedSender.fromEmail} · {selectedSender.fromName}</p>}</div></>}
+          {methodNeedsSms && <div className="space-y-2"><Label>{tr("smsTemplate")}</Label><Select value={form.smsId} onValueChange={v => setField("smsId", v)}><SelectTrigger><SelectValue placeholder={tr("chooseSms")} /></SelectTrigger><SelectContent><SelectItem value="none">{tr("noTemplate")}</SelectItem>{sms.map((x: any) => <SelectItem key={x.id} value={String(x.id)}>{x.templateNumber} · {x.templateName}</SelectItem>)}</SelectContent></Select>{selectedSms && <p className="text-xs text-muted-foreground">{selectedSms.templateContent}</p>}</div>}
+          <div className="flex items-center gap-2 pt-7"><Checkbox checked={form.active} onCheckedChange={v => setField("active", Boolean(v))} /><Label>{tr("activeStatus")}</Label></div>
+        </div>}
+        <div className="flex justify-end"><Button type="submit" disabled={optionLoading || optionError || saveReminder.isPending}>{saveReminder.isPending ? tr("saving") : editing ? tr("update") : tr("add")}</Button></div>
+      </form>
+      {remindersQuery.isLoading ? <div className="h-32 animate-pulse rounded bg-muted" /> : remindersQuery.isError ? <Alert variant="destructive"><AlertCircle className="w-4 h-4" /><AlertDescription>{tr("loadSchedulesError")} <Button variant="link" onClick={retry}>{tr("retry")}</Button></AlertDescription></Alert> : <div className="space-y-3">{reminders.length === 0 ? <div className="text-center py-8 text-muted-foreground"><Clock className="w-8 h-8 mx-auto mb-2" />{tr("noReminders")}</div> : reminders.map((s: any) => {
+        const se = emails.find((x: any) => String(x.id) === String(s.email_template_id));
+        const ss = sms.find((x: any) => String(x.id) === String(s.sms_template_id));
+        const sender = senders.find((x: any) => x.categoryKey === s.sender_category_key);
+        const needsE = s.notification_method === "email" || s.notification_method === "both";
+        const needsS = s.notification_method === "sms" || s.notification_method === "both";
+        return <Card key={s.id}><CardContent className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-3"><div className="space-y-1"><div className="flex flex-wrap gap-2 items-center"><Badge>{methodLabel(s.notification_method)}</Badge><Badge variant={s.is_active === false ? "outline" : "default"}>{s.is_active === false ? tr("inactive") : tr("active")}</Badge><span className="text-sm">{tr("daysBeforeDeadline")} {s.days_before} · {tr("sendTime")} {s.reminder_hour}:00 · {tr("priority")} {s.priority ?? 1}</span></div><p className="text-sm">{needsE ? `${se?.name || tr("unavailableEmail")} · ${sender ? `${sender.fromEmail} (${sender.fromName})` : tr("unavailableOptionError")}` : ""}{needsE && needsS ? " · " : ""}{needsS ? (ss?.templateName || tr("unavailableSms")) : ""}</p>{((needsE && (!se || !sender)) || (needsS && !ss)) && <p className="text-xs text-amber-700 flex items-center gap-1"><AlertCircle className="h-3 w-3" />{tr("missingSavedOption")}</p>}</div><div className="flex gap-2"><Button size="sm" variant="outline" onClick={() => beginEdit(s)}><Edit className="w-4 h-4" /></Button><Button size="sm" variant="outline" onClick={() => { toast({ title: tr("deleteReminder"), description: tr("deleteReminder") }); apiRequest(`/api/shop/proforma-reminders/${s.id}`, { method: "DELETE" }).then(() => queryClient.invalidateQueries({ queryKey: ["/api/shop/proforma-reminders"] })).catch((e: any) => toast({ title: tr("error"), description: e.message || tr("error"), variant: "destructive" })); }}><Trash2 className="w-4 h-4" /></Button></div></CardContent></Card>;
+      })}</div>}
+    </div>
+  );
+}
+
 export default function ShopAdmin() {
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [orderStatusFilter, setOrderStatusFilter] = useState("all");
@@ -276,15 +446,6 @@ export default function ShopAdmin() {
   const [showReturnForm, setShowReturnForm] = useState(false);
   const [showReturnDialog, setShowReturnDialog] = useState(false);
   const [selectedReturn, setSelectedReturn] = useState<any>(null);
-  const [proformaDeadlineDays, setProformaDeadlineDays] = useState("3");
-  const [reminderDays, setReminderDays] = useState("1");
-  const [reminderHour, setReminderHour] = useState("10");
-  const [smsTemplateId, setSmsTemplateId] = useState("");
-  const [emailTemplateId, setEmailTemplateId] = useState("");
-  
-  // State for editing reminders
-  const [editingReminder, setEditingReminder] = useState<any>(null);
-  const [isEditReminderDialogOpen, setIsEditReminderDialogOpen] = useState(false);
   
   // State for proforma to invoice conversion
   const [isConvertingInvoice, setIsConvertingInvoice] = useState(false);
@@ -367,45 +528,6 @@ export default function ShopAdmin() {
   const [, setLocation] = useLocation();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
 
-  // Fetch email templates for reminder configuration
-  const { data: emailTemplatesResponse } = useQuery({
-    queryKey: ['/api/shop/email-templates'],
-    enabled: isAuthenticated
-  });
-
-  // Fetch SMS templates for reminder configuration
-  const { data: smsTemplatesResponse } = useQuery({
-    queryKey: ['/api/shop/sms-templates'],
-    enabled: isAuthenticated
-  });
-
-  // Fetch full email templates for content display
-  const { data: fullEmailTemplates } = useQuery({
-    queryKey: ['/api/email/templates/public'],
-    enabled: isAuthenticated
-  });
-
-  // Extract templates from response data
-  const emailTemplates = emailTemplatesResponse?.data || [];
-  const smsTemplates = smsTemplatesResponse?.data || [];
-  
-  // Helper functions to get template content for tooltips
-  const getEmailTemplateContent = (templateId: string | number) => {
-    if (!fullEmailTemplates || !Array.isArray(fullEmailTemplates)) return tr("unavailableEmail");
-    
-    const template = fullEmailTemplates.find(t => t.id === parseInt(templateId.toString()));
-    if (!template) return tr("unavailableEmail");
-    
-    return `${tr("emailSubject")} ${template.subject || tr("unknown")}\n\n${tr("emailContent")} ${template.htmlContent || template.textContent || tr("unknown")}`;
-  };
-  
-  const getSmsTemplateContent = (templateId: string | number) => {
-    if (!smsTemplates || !Array.isArray(smsTemplates)) return tr("unavailableSms");
-    
-    const template = smsTemplates.find(t => t.id === parseInt(templateId.toString()));
-    return template?.templateText || tr("unavailableSms");
-  };
-
   // Authentication check
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -459,12 +581,6 @@ export default function ShopAdmin() {
     enabled: isAuthenticated,
   });
 
-  // Fetch proforma reminders
-  const { data: reminderSchedules } = useQuery({
-    queryKey: ["/api/shop/proforma-reminders"],
-    enabled: isAuthenticated,
-  });
-
   // Fetch discount settings
   const { data: discountsResponse = {} } = useQuery({
     queryKey: ["/api/shop/discounts"],
@@ -495,175 +611,6 @@ export default function ShopAdmin() {
   const { data: transactions = [] } = useQuery({
     queryKey: ["/api/shop/financial-transactions"],
     enabled: isAuthenticated,
-  });
-
-  // Fetch shop settings for proforma deadline - properly type the response
-  const { data: shopSettingsResponse, isLoading: settingsLoading } = useQuery({
-    queryKey: ['/api/shop/settings'],
-    enabled: isAuthenticated,
-    staleTime: 0, // Always fetch fresh data
-    gcTime: 0, // Don't cache for debugging  
-    refetchOnMount: true,
-    refetchOnWindowFocus: true
-  });
-
-  // Extract the actual settings data from the response
-  const shopSettings = shopSettingsResponse?.data || [];
-
-  // Load existing proforma deadline settings
-  useEffect(() => {
-    console.log('📄 [PROFORMA DEADLINE] Raw response:', shopSettingsResponse);
-    console.log('📄 [PROFORMA DEADLINE] Parsed settings:', shopSettings);
-    if (Array.isArray(shopSettings) && shopSettings.length > 0) {
-      const proformaDeadline = shopSettings.find((s: any) => s.setting_key === 'proforma_deadline_days');
-      console.log('📄 [PROFORMA DEADLINE] Found setting:', proformaDeadline);
-      if (proformaDeadline) {
-        console.log('📄 [PROFORMA DEADLINE] Setting state to:', proformaDeadline.setting_value);
-        setProformaDeadlineDays(proformaDeadline.setting_value);
-      }
-    }
-  }, [shopSettingsResponse, shopSettings]);
-
-  // Save proforma deadline mutation
-  const saveProformaDeadlineMutation = useMutation({
-    mutationFn: async (days: string) => {
-      console.log('💾 [PROFORMA DEADLINE] Saving days:', days);
-      const settings = [{
-        setting_key: 'proforma_deadline_days',
-        setting_value: days,
-        setting_type: 'number',
-        display_name: 'Purchase Proforma Deadline (Days)',
-        description: 'Number of days for proforma payment deadline',
-        category: 'payment',
-        is_public: true,
-        validation_rule: 'min:1,max:30',
-        default_value: '3'
-      }];
-      console.log('💾 [PROFORMA DEADLINE] Settings to save:', settings);
-      const result = await apiRequest('/api/shop/settings', { method: 'POST', body: { settings } });
-      console.log('💾 [PROFORMA DEADLINE] Save result:', result);
-      return result;
-    },
-    onSuccess: () => {
-      toast({
-        title: tr("success"),
-        description: tr("updated"),
-      });
-      // Force refresh the settings data
-      queryClient.invalidateQueries({ queryKey: ['/api/shop/settings'] });
-      queryClient.refetchQueries({ queryKey: ['/api/shop/settings'] });
-      // Also invalidate related queries that might use this setting
-      queryClient.invalidateQueries({ queryKey: ['/api/public/payment-methods'] });
-    },
-    onError: (error: any) => {
-      toast({
-        title: tr("error"),
-        description: error.message || tr("updateFailed"),
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Add reminder mutation
-  const addReminderMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest(`/api/shop/proforma-reminders`, {
-        method: "POST",
-        body: {
-          reminderHour: parseInt(reminderHour),
-          daysBefore: parseInt(reminderDays),
-          messageTemplate: `یادآوری: مهلت پرداخت حواله شما ${reminderDays === "0" ? "امروز" : `${reminderDays} روز دیگر`} به پایان می‌رسد.`,
-          messageSubject: `یادآوری پرداخت حواله - ${reminderDays === "0" ? "روز پایان مهلت" : `${reminderDays} روز مانده`}`,
-          notificationMethod: "email",
-          isActive: true,
-          priority: parseInt(reminderDays) + 1,
-          smsTemplateId: smsTemplateId || null,
-          emailTemplateId: emailTemplateId || null
-        }
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/shop/proforma-reminders"] });
-      setReminderDays("1");
-      setReminderHour("10");
-      setSmsTemplateId("");
-      setEmailTemplateId("");
-      toast({
-        title: tr("success"),
-        description: tr("add"),
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: tr("error"),
-        description: error.message || tr("error"),
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Delete reminder mutation
-  const deleteReminderMutation = useMutation({
-    mutationFn: async (id: number) => {
-      return apiRequest(`/api/shop/proforma-reminders/${id}`, {
-        method: "DELETE",
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/shop/proforma-reminders"] });
-      toast({
-        title: tr("success"),
-        description: tr("deleteDiscount"),
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: tr("error"),
-        description: error.message || tr("error"),
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Update reminder mutation
-  const updateReminderMutation = useMutation({
-    mutationFn: async () => {
-      if (!editingReminder) return;
-      return apiRequest(`/api/shop/proforma-reminders/${editingReminder.id}`, {
-        method: "PUT",
-        body: {
-          reminderHour: parseInt(reminderHour),
-          daysBefore: parseInt(reminderDays),
-          messageTemplate: `یادآوری: مهلت پرداخت حواله شما ${reminderDays === "0" ? "امروز" : `${reminderDays} روز دیگر`} به پایان می‌رسد.`,
-          messageSubject: `یادآوری پرداخت حواله - ${reminderDays === "0" ? "روز پایان مهلت" : `${reminderDays} روز مانده`}`,
-          notificationMethod: "email",
-          isActive: true,
-          priority: parseInt(reminderDays) + 1,
-          smsTemplateId: smsTemplateId || null,
-          emailTemplateId: emailTemplateId || null
-        }
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/shop/proforma-reminders"] });
-      setEditingReminder(null);
-      setIsEditReminderDialogOpen(false);
-      setReminderDays("1");
-      setReminderHour("10");
-      setSmsTemplateId("");
-      setEmailTemplateId("");
-      toast({
-        title: tr("success"),
-        description: tr("updated"),
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: tr("error"),
-        description: error.message || tr("error"),
-        variant: "destructive",
-      });
-    },
   });
 
   // Update order status mutation
@@ -1235,419 +1182,7 @@ export default function ShopAdmin() {
 
           {/* Purchase Proforma Deadline Tab */}
           <TabsContent value="proforma-deadline" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="w-5 h-5" />
-                   {tr("deadlineSettings")}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                     {tr("deadlineAlert")}
-                  </AlertDescription>
-                </Alert>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                     <Label htmlFor="proforma_deadline">{tr("paymentDeadline")}</Label>
-                    <Input
-                      id="proforma_deadline"
-                      type="number"
-                      min="1"
-                      max="30"
-                      value={proformaDeadlineDays}
-                      onChange={(e) => setProformaDeadlineDays(e.target.value)}
-                      placeholder="3"
-                    />
-                    <p className="text-sm text-muted-foreground">
-                       {tr("deadlineHint")}
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                     <Label>{tr("previewMessage")}</Label>
-                    <div className="p-3 bg-muted rounded-md">
-                      <p className="text-sm">
-                         {tr("deadlineDays", { days: proformaDeadlineDays })}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                         {tr("deadlinePreviewHint")}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex justify-end mt-6">
-                  <Button 
-                    onClick={() => saveProformaDeadlineMutation.mutate(proformaDeadlineDays)}
-                    disabled={saveProformaDeadlineMutation.isPending}
-                    className="flex items-center gap-2"
-                  >
-                    {saveProformaDeadlineMutation.isPending ? (
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Save className="h-4 w-4" />
-                    )}
-                    {saveProformaDeadlineMutation.isPending ? tr("saving") : tr("saveSettings")}
-                  </Button>
-                </div>
-
-                <Separator className="my-6" />
-
-                {/* Reminder Schedule Section */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold flex items-center gap-2">
-                    <Clock className="w-5 h-5" />
-                     {tr("reminderSchedule")}
-                  </h3>
-                  
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-4 space-x-reverse p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center space-x-2 space-x-reverse">
-                         <Label htmlFor="reminder-days">{tr("daysBeforeDeadline")}</Label>
-                        <Input
-                          id="reminder-days"
-                          type="number"
-                          min="0"
-                          max="10"
-                          value={reminderDays}
-                          onChange={(e) => setReminderDays(e.target.value)}
-                          className="w-16"
-                        />
-                      </div>
-                      <div className="flex items-center space-x-2 space-x-reverse">
-                         <Label htmlFor="reminder-hour">{tr("sendTime")}</Label>
-                        <Input
-                          id="reminder-hour"
-                          type="number"
-                          min="0"
-                          max="23"
-                          value={reminderHour}
-                          onChange={(e) => setReminderHour(e.target.value)}
-                          className="w-16"
-                        />
-                      </div>
-                      <div className="flex items-center space-x-2 space-x-reverse">
-                         <Label htmlFor="sms-template">{tr("smsTemplate")}</Label>
-                        <Select value={smsTemplateId} onValueChange={setSmsTemplateId}>
-                          <SelectTrigger className="w-64">
-                             <SelectValue placeholder={tr("chooseSms")} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Array.isArray(smsTemplates) && smsTemplates.map((template: any) => (
-                              <TooltipProvider key={template.id}>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <SelectItem value={template.id.toString()}>
-                                      {template.templateNumber} - {template.templateName}
-                                    </SelectItem>
-                                  </TooltipTrigger>
-                                  <TooltipContent className="max-w-sm p-3" side="right">
-                                    <div className="space-y-1">
-                                       <p className="font-medium text-sm">{tr("smsContent")}</p>
-                                      <p className="text-xs text-gray-700 whitespace-pre-wrap">
-                                        {getSmsTemplateContent(template.id)}
-                                      </p>
-                                    </div>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="flex items-center space-x-2 space-x-reverse">
-                         <Label htmlFor="email-template">{tr("emailTemplate")}</Label>
-                        <Select value={emailTemplateId} onValueChange={setEmailTemplateId}>
-                          <SelectTrigger className="w-64">
-                             <SelectValue placeholder={tr("chooseEmail")} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Array.isArray(emailTemplates) && emailTemplates.map((template: any) => (
-                              <TooltipProvider key={template.id}>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <SelectItem value={template.id.toString()}>
-                                      {template.name} ({template.category})
-                                    </SelectItem>
-                                  </TooltipTrigger>
-                                  <TooltipContent className="max-w-sm p-3" side="right">
-                                    <div className="space-y-1">
-                                       <p className="font-medium text-sm">{tr("emailContent")}</p>
-                                      <p className="text-xs text-gray-700 whitespace-pre-wrap max-h-32 overflow-y-auto">
-                                        {getEmailTemplateContent(template.id)}
-                                      </p>
-                                    </div>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <Button 
-                        size="sm" 
-                        className="bg-blue-600 hover:bg-blue-700"
-                        onClick={() => addReminderMutation.mutate()}
-                        disabled={addReminderMutation.isPending}
-                      >
-                        {addReminderMutation.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                         {tr("add")}
-                      </Button>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      {reminderSchedules?.data?.map((schedule: any) => (
-                        <div key={schedule.id} className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                          <div className="flex items-center space-x-4 space-x-reverse">
-                            <Badge variant="outline" className="bg-blue-100">
-                               {schedule.days_before === 0 ? tr("daysBeforeDeadline") : `${schedule.days_before} ${tr("daysBeforeDeadline")}`}
-                            </Badge>
-                           <span className="text-sm">{tr("sendTime")} {schedule.reminder_hour}:00</span>
-                            <span className="text-sm text-gray-600">{schedule.message_subject}</span>
-                            {(schedule.sms_template_id || schedule.email_template_id) && (
-                              <div className="flex items-center space-x-1 space-x-reverse text-xs text-blue-600">
-                                {schedule.sms_template_id && (
-                                  <TooltipProvider>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <span className="bg-blue-100 px-2 py-1 rounded cursor-help">
-                                           {tr("smsTemplate")} {(() => {
-                                            const template = Array.isArray(smsTemplates) && smsTemplates.find((t: any) => t.id === schedule.sms_template_id);
-                                            return template ? `${template.templateNumber} - ${template.templateName}` : schedule.sms_template_id;
-                                          })()}
-                                        </span>
-                                      </TooltipTrigger>
-                                      <TooltipContent className="max-w-sm p-3" side="top">
-                                        <div className="space-y-1">
-                                           <p className="font-medium text-sm">{tr("smsContent")}</p>
-                                          <p className="text-xs text-gray-700 whitespace-pre-wrap">
-                                            {(() => {
-                                              const template = Array.isArray(smsTemplates) && smsTemplates.find((t: any) => t.id === schedule.sms_template_id);
-                                               return template?.templateText || tr("unavailableSms");
-                                            })()}
-                                          </p>
-                                        </div>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
-                                )}
-                                {schedule.email_template_id && (
-                                  <TooltipProvider>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <span className="bg-green-100 px-2 py-1 rounded cursor-help">
-                                   {tr("emailTemplate")} {(() => {
-                                            const template = Array.isArray(emailTemplates) && emailTemplates.find((t: any) => t.id === schedule.email_template_id);
-                                            return template ? `${template.name} (${template.category})` : schedule.email_template_id;
-                                          })()}
-                                        </span>
-                                      </TooltipTrigger>
-                                      <TooltipContent className="max-w-sm p-3" side="top">
-                                        <div className="space-y-1">
-                                           <p className="font-medium text-sm">{tr("emailSubject")}</p>
-                                          <p className="text-xs text-gray-700">
-                                            {(() => {
-                                              const template = Array.isArray(emailTemplates) && emailTemplates.find((t: any) => t.id === schedule.email_template_id);
-                                               return template?.subject || tr("unavailableSubject");
-                                            })()}
-                                          </p>
-                                           <p className="font-medium text-sm mt-2">{tr("emailContent")}</p>
-                                          <p className="text-xs text-gray-700 whitespace-pre-wrap max-h-32 overflow-y-auto">
-                                            {(() => {
-                                              const template = Array.isArray(emailTemplates) && emailTemplates.find((t: any) => t.id === schedule.email_template_id);
-                                               return template?.content || tr("unavailableEmail");
-                                            })()}
-                                          </p>
-                                        </div>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex items-center space-x-2 space-x-reverse">
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              className="text-blue-600 hover:text-blue-700"
-                              onClick={() => {
-                                setEditingReminder(schedule);
-                                setReminderDays(schedule.days_before.toString());
-                                setReminderHour(schedule.reminder_hour.toString());
-                                setSmsTemplateId(schedule.sms_template_id ? schedule.sms_template_id.toString() : "");
-                                setEmailTemplateId(schedule.email_template_id ? schedule.email_template_id.toString() : "");
-                                setIsEditReminderDialogOpen(true);
-                              }}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              className="text-red-600 hover:text-red-700"
-                              onClick={() => deleteReminderMutation.mutate(schedule.id)}
-                              disabled={deleteReminderMutation.isPending}
-                            >
-                              {deleteReminderMutation.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                      
-                      {(!reminderSchedules?.data || reminderSchedules.data.length === 0) && (
-                        <div className="text-center py-4 text-gray-500">
-                          <Clock className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                           <p className="text-sm">{tr("noReminders")}</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <p className="text-xs text-gray-500">
-                     {tr("reminderNote")}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Edit Reminder Dialog */}
-            <Dialog open={isEditReminderDialogOpen} onOpenChange={setIsEditReminderDialogOpen}>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle className="flex items-center gap-2">
-                    <Edit className="w-5 h-5" />
-                     {tr("editReminder")}
-                  </DialogTitle>
-                </DialogHeader>
-                
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                       <Label htmlFor="edit-reminder-days">{tr("daysBeforeDeadline")}</Label>
-                      <Input
-                        id="edit-reminder-days"
-                        type="number"
-                        min="0"
-                        max="10"
-                        value={reminderDays}
-                        onChange={(e) => setReminderDays(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                       <Label htmlFor="edit-reminder-hour">{tr("sendTime")}</Label>
-                      <Input
-                        id="edit-reminder-hour"
-                        type="number"
-                        min="0"
-                        max="23"
-                        value={reminderHour}
-                        onChange={(e) => setReminderHour(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                     <Label htmlFor="edit-sms-template">{tr("smsTemplate")}</Label>
-                    <Select value={smsTemplateId} onValueChange={setSmsTemplateId}>
-                      <SelectTrigger>
-                         <SelectValue placeholder={tr("chooseSms")} />
-                      </SelectTrigger>
-                      <SelectContent>
-                         <SelectItem value="">{tr("noTemplate")}</SelectItem>
-                        {Array.isArray(smsTemplates) && smsTemplates.map((template: any) => (
-                          <TooltipProvider key={template.id}>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <SelectItem value={template.id.toString()}>
-                                  {template.templateNumber} - {template.templateName}
-                                </SelectItem>
-                              </TooltipTrigger>
-                              <TooltipContent className="max-w-sm p-3" side="right">
-                                <div className="space-y-1">
-                                   <p className="font-medium text-sm">{tr("smsContent")}</p>
-                                  <p className="text-xs text-gray-700 whitespace-pre-wrap">
-                                    {getSmsTemplateContent(template.id)}
-                                  </p>
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                     <Label htmlFor="edit-email-template">{tr("emailTemplate")}</Label>
-                    <Select value={emailTemplateId} onValueChange={setEmailTemplateId}>
-                      <SelectTrigger>
-                         <SelectValue placeholder={tr("chooseEmail")} />
-                      </SelectTrigger>
-                      <SelectContent>
-                         <SelectItem value="">{tr("noTemplate")}</SelectItem>
-                        {Array.isArray(emailTemplates) && emailTemplates.map((template: any) => (
-                          <TooltipProvider key={template.id}>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <SelectItem value={template.id.toString()}>
-                                  {template.name} ({template.category})
-                                </SelectItem>
-                              </TooltipTrigger>
-                              <TooltipContent className="max-w-sm p-3" side="right">
-                                <div className="space-y-1">
-                                   <p className="font-medium text-sm">{tr("emailContent")}</p>
-                                  <p className="text-xs text-gray-700 whitespace-pre-wrap max-h-32 overflow-y-auto">
-                                    {getEmailTemplateContent(template.id)}
-                                  </p>
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="flex justify-end space-x-2 space-x-reverse pt-4">
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setIsEditReminderDialogOpen(false);
-                        setEditingReminder(null);
-                        setReminderDays("1");
-                        setReminderHour("10");
-                        setSmsTemplateId("");
-                        setEmailTemplateId("");
-                      }}
-                    >
-                       {tr("cancel")}
-                    </Button>
-                    <Button
-                      onClick={() => updateReminderMutation.mutate()}
-                      disabled={updateReminderMutation.isPending}
-                      className="bg-blue-600 hover:bg-blue-700"
-                    >
-                      {updateReminderMutation.isPending ? (
-                        <>
-                          <RefreshCw className="w-4 h-4 animate-spin ml-2" />
-                           {tr("updating")}
-                        </>
-                      ) : (
-                        <>
-                          <Save className="w-4 h-4 ml-2" />
-                           {tr("update")}
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-
+            <ProformaDeadlineSettings />
           </TabsContent>
 
           {/* Invoice Management Tab */}

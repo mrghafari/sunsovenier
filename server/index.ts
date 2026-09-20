@@ -457,12 +457,12 @@ app.use((req, res, next) => {
           
           // Start proforma reminder service
           import('./proforma-reminder-service').then(({ proformaReminderService }) => {
-            proformaReminderService.initializeLogTable();
-            // Process reminders every hour
-            setInterval(() => {
-              proformaReminderService.processReminders();
-            }, 60 * 60 * 1000);
-            log('📅 Proforma reminder service started');
+            // Migration must complete before the first run. Keep one interval.
+            proformaReminderService.initializeLogTable().then(() => {
+              proformaReminderService.processReminders().catch(err => console.error('Proforma reminder run failed:', err));
+              setInterval(() => { proformaReminderService.processReminders().catch(err => console.error('Proforma reminder run failed:', err)); }, 60 * 60 * 1000);
+              log('📅 Proforma reminder service started');
+            }).catch(err => console.error('Proforma reminder migration failed:', err));
           });
 
           // Start auto-invoice conversion service

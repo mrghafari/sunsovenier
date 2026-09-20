@@ -187,6 +187,7 @@ export const proformaReminderSchedule = pgTable("proforma_reminder_schedule", {
   priority: integer("priority").default(1), // Order of sending (1=first, 2=second, etc.)
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  senderCategoryKey: text("sender_category_key"),
 });
 
 export const insertProformaReminderScheduleSchema = createInsertSchema(proformaReminderSchedule);
@@ -198,9 +199,13 @@ export const proformaReminderLogs = pgTable("proforma_reminder_logs", {
   id: serial("id").primaryKey(),
   orderId: integer("order_id").notNull(), // Reference to the order
   scheduleId: integer("schedule_id").notNull(), // Reference to the schedule used
-  customerEmail: text("customer_email").notNull(), // Email address the reminder was sent to
+  customerEmail: text("customer_email"), // Legacy email column; recipient is channel-neutral
+  recipient: text("recipient"),
   sentAt: timestamp("sent_at").notNull().defaultNow(), // When the reminder was sent
   notificationType: varchar("notification_type", { length: 20 }).default("email"), // Type of notification (email, sms, etc.)
+  status: text("status").default("sent"),
+  providerMessageId: text("provider_message_id"),
+  errorMessage: text("error_message"),
 });
 
 export const insertProformaReminderLogsSchema = createInsertSchema(proformaReminderLogs);

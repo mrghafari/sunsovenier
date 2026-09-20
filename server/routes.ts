@@ -9688,6 +9688,16 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
 
       // Use upsert for each setting
       for (const setting of settings) {
+        const settingKey = setting.setting_key || setting.settingKey;
+        const settingValue = setting.setting_value ?? setting.settingValue;
+        if (settingKey === 'proforma_deadline_days' &&
+            (!/^\d+$/.test(String(settingValue)) || Number(settingValue) < 1 || Number(settingValue) > 30)) {
+          return res.status(400).json({ success: false, message: "مهلت پرداخت باید عدد صحیح بین ۱ تا ۳۰ باشد" });
+        }
+        if (settingKey === 'proforma_reminder_timezone') {
+          try { new Intl.DateTimeFormat('en-US', { timeZone: String(settingValue) }).format(); }
+          catch { return res.status(400).json({ success: false, message: "منطقه زمانی نامعتبر است" }); }
+        }
         await pool.query(`
           INSERT INTO shop_settings (
             setting_key, setting_value, setting_type, display_name, 
@@ -9707,8 +9717,8 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
             default_value = EXCLUDED.default_value,
             updated_at = NOW()
         `, [
-          setting.setting_key || setting.settingKey,
-          setting.setting_value || setting.settingValue,
+          settingKey,
+          settingValue,
           setting.setting_type || setting.settingType,
           setting.display_name || setting.displayName,
           setting.display_name_en || setting.displayNameEn,
@@ -9747,7 +9757,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       const result = await pool.query(`
         SELECT id, reminder_hour, days_before, message_template, 
                message_subject, notification_method, is_active, priority,
-               sms_template_id, email_template_id, created_at, updated_at
+               sms_template_id, email_template_id, sender_category_key, created_at, updated_at
         FROM proforma_reminder_schedule
         ORDER BY days_before ASC, reminder_hour ASC
       `);
@@ -9777,25 +9787,38 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         isActive,
         priority,
         smsTemplateId,
-        emailTemplateId
+         emailTemplateId,
+         senderCategoryKey
       } = req.body;
 
-      if (reminderHour === undefined || !daysBefore || !messageTemplate || !messageSubject) {
+       const scheduleCheck = (await import('./proforma-reminder-service')).validReminderSchedule({
+         reminderHour, daysBefore, notificationMethod: notificationMethod || 'email', priority: priority ?? 1
+       });
+       if (!scheduleCheck.ok || !messageTemplate || (notificationMethod !== 'sms' && !messageSubject)) {
         return res.status(400).json({
           success: false,
-          message: "تمام فیلدهای الزامی را پر کنید"
+           message: !scheduleCheck.ok ? scheduleCheck.error : "تمام فیلدهای الزامی را پر کنید"
         });
       }
 
       const { pool } = await import('./db');
+       const channels = (await import('./proforma-reminder-service')).channelsForMethod(notificationMethod || 'email');
+       if (channels.includes('email')) {
+         const check = await pool.query(`SELECT 1 FROM email_templates e JOIN email_categories c ON c.category_key=$2 JOIN smtp_settings s ON s.category_id=c.id WHERE e.id=$1 AND e.is_active=true AND c.is_active=true AND s.is_active=true AND s.from_email ~* '^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$'`, [emailTemplateId, senderCategoryKey]);
+         if (!emailTemplateId || !senderCategoryKey || !check.rowCount) return res.status(400).json({ success:false, message:'قالب ایمیل یا SMTP فعال یافت نشد' });
+       }
+       if (channels.includes('sms')) {
+         const check = await pool.query(`SELECT 1 FROM sms_templates WHERE id=$1 AND is_active=true`, [smsTemplateId]);
+         if (!smsTemplateId || !check.rowCount) return res.status(400).json({ success:false, message:'قالب پیامک فعال یافت نشد' });
+       }
       
       console.log(`📅 [PROFORMA REMINDERS] Creating new reminder schedule...`);
 
       const result = await pool.query(`
         INSERT INTO proforma_reminder_schedule (
           reminder_hour, days_before, message_template, message_subject,
-          notification_method, is_active, priority, sms_template_id, email_template_id, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+           notification_method, is_active, priority, sms_template_id, email_template_id, sender_category_key, updated_at
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
         RETURNING *
       `, [
         reminderHour,
@@ -9806,7 +9829,8 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         isActive !== false,
         priority || 1,
         smsTemplateId || null,
-        emailTemplateId || null
+         emailTemplateId || null,
+         senderCategoryKey || null
       ]);
 
       console.log(`✅ [PROFORMA REMINDERS] Created schedule ID: ${result.rows[0].id}`);
@@ -9838,10 +9862,28 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         isActive,
         priority,
         smsTemplateId,
-        emailTemplateId
+         emailTemplateId,
+         senderCategoryKey
       } = req.body;
 
-      const { pool } = await import('./db');
+       const scheduleCheck = (await import('./proforma-reminder-service')).validReminderSchedule({
+         reminderHour, daysBefore, notificationMethod: notificationMethod || 'email', priority: priority ?? 1
+       });
+       if (!scheduleCheck.ok) return res.status(400).json({ success: false, message: scheduleCheck.error });
+       const { pool } = await import('./db');
+       const channels = (await import('./proforma-reminder-service')).channelsForMethod(notificationMethod || 'email');
+       if (channels.includes('email')) {
+         const check = await pool.query(`SELECT 1 FROM email_templates e JOIN email_categories c ON c.category_key=$2
+           JOIN smtp_settings s ON s.category_id=c.id WHERE e.id=$1 AND e.is_active=true AND c.is_active=true
+           AND s.is_active=true AND s.host IS NOT NULL AND s.username IS NOT NULL AND s.password IS NOT NULL
+           AND s.from_email ~* '^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$'`,
+           [emailTemplateId, senderCategoryKey]);
+         if (!emailTemplateId || !senderCategoryKey || !check.rowCount) return res.status(400).json({ success:false, message:'قالب ایمیل یا فرستنده SMTP فعال یافت نشد' });
+       }
+       if (channels.includes('sms')) {
+         const check = await pool.query(`SELECT 1 FROM sms_templates WHERE id=$1 AND is_active=true`, [smsTemplateId]);
+         if (!smsTemplateId || !check.rowCount) return res.status(400).json({ success:false, message:'قالب پیامک فعال یافت نشد' });
+       }
       
       console.log(`📅 [PROFORMA REMINDERS] Updating schedule ID: ${id}`);
 
@@ -9849,8 +9891,8 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         UPDATE proforma_reminder_schedule 
         SET reminder_hour = $1, days_before = $2, message_template = $3,
             message_subject = $4, notification_method = $5, is_active = $6,
-            priority = $7, sms_template_id = $8, email_template_id = $9, updated_at = NOW()
-        WHERE id = $10
+             priority = $7, sms_template_id = $8, email_template_id = $9, sender_category_key = $10, updated_at = NOW()
+         WHERE id = $11
         RETURNING *
       `, [
         reminderHour,
@@ -9861,7 +9903,8 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         isActive !== false,
         priority || 1,
         smsTemplateId || null,
-        emailTemplateId || null,
+         emailTemplateId || null,
+         senderCategoryKey || null,
         id
       ]);
 
@@ -49681,7 +49724,7 @@ momtazchem.com
   // =============================================================================
 
   // Get grace period orders statistics
-  app.get("/api/orphan-orders/stats", async (req, res) => {
+  app.get("/api/orphan-orders/stats", requireAuth, async (req, res) => {
     try {
       const { pool } = await import('./db');
       
@@ -49718,7 +49761,7 @@ momtazchem.com
   });
 
   // Orphan Orders Notification Management APIs
-  app.get("/api/orphan-orders/notification-settings", async (req, res) => {
+  app.get("/api/orphan-orders/notification-settings", requireAuth, async (req, res) => {
     try {
       const { pool } = await import('./db');
       const result = await pool.query('SELECT * FROM orphan_order_notification_settings ORDER BY id DESC LIMIT 1');
@@ -49749,7 +49792,7 @@ momtazchem.com
     }
   });
 
-  app.put("/api/orphan-orders/notification-settings", async (req, res) => {
+  app.put("/api/orphan-orders/notification-settings", requireAuth, async (req, res) => {
     try {
       const { pool } = await import('./db');
       const {
@@ -49820,7 +49863,7 @@ momtazchem.com
     }
   });
 
-  app.get("/api/orphan-orders/templates", async (req, res) => {
+  app.get("/api/orphan-orders/templates", requireAuth, async (req, res) => {
     try {
       const { pool } = await import('./db');
       const result = await pool.query('SELECT * FROM orphan_order_templates ORDER BY is_default DESC, created_at DESC');
@@ -49835,7 +49878,7 @@ momtazchem.com
     }
   });
 
-  app.post("/api/orphan-orders/templates", async (req, res) => {
+  app.post("/api/orphan-orders/templates", requireAuth, async (req, res) => {
     try {
       const { pool } = await import('./db');
       const {
@@ -49874,7 +49917,7 @@ momtazchem.com
     }
   });
 
-  app.put("/api/orphan-orders/templates/:id", async (req, res) => {
+  app.put("/api/orphan-orders/templates/:id", requireAuth, async (req, res) => {
     try {
       const { pool } = await import('./db');
       const { id } = req.params;
@@ -49922,7 +49965,7 @@ momtazchem.com
     }
   });
 
-  app.delete("/api/orphan-orders/templates/:id", async (req, res) => {
+  app.delete("/api/orphan-orders/templates/:id", requireAuth, async (req, res) => {
     try {
       const { pool } = await import('./db');
       const { id } = req.params;
@@ -49939,7 +49982,7 @@ momtazchem.com
     }
   });
 
-  app.get("/api/orphan-orders/schedules", async (req, res) => {
+  app.get("/api/orphan-orders/schedules", requireAuth, async (req, res) => {
     try {
       // Return scheduled notification data
       res.json({
@@ -49969,7 +50012,7 @@ momtazchem.com
     }
   });
 
-  app.get("/api/orphan-orders/stats", async (req, res) => {
+  app.get("/api/orphan-orders/stats", requireAuth, async (req, res) => {
     try {
       const { pool } = await import('./db');
       
@@ -50019,7 +50062,7 @@ momtazchem.com
   });
 
   // Get active grace period orders
-  app.get("/api/orphan-orders/active", async (req, res) => {
+  app.get("/api/orphan-orders/active", requireAuth, async (req, res) => {
     try {
       const { db } = await import('./db');
       const { eq, and, gt } = await import('drizzle-orm');
@@ -50096,49 +50139,27 @@ momtazchem.com
   });
 
   // Send reminder notification for grace period order
-  app.post("/api/orphan-orders/:orderId/send-reminder", async (req, res) => {
+  app.post("/api/orphan-orders/:orderId/send-reminder", requireAuth, async (req, res) => {
     try {
       const { orderId } = req.params;
-      const { type } = req.body; // 'sms' or 'email'
-      
-      const { pool } = await import('./db');
-      
-      // Get order details
-      const orderResult = await pool.query(`
-        SELECT 
-          om.*,
-          co.total_amount,
-          co.currency,
-          co.recipient_name,
-          co.guest_email,
-          co.recipient_phone,
-          EXTRACT(EPOCH FROM (om.payment_grace_period_end - NOW()))/3600 as hours_remaining
-        FROM order_management om
-        LEFT JOIN customer_orders co ON om.customer_order_id = co.id
-        WHERE om.id = $1 AND om.current_status = 'payment_grace_period'
-      `, [orderId]);
-
-      if (orderResult.rows.length === 0) {
-        return res.status(404).json({
-          success: false,
-          message: "سفارش یافت نشد"
-        });
+      const { type } = req.body;
+      if (!['sms', 'email'].includes(type) || !/^\d+$/.test(orderId)) {
+        return res.status(400).json({ success: false, message: "نوع یادآور یا شناسه سفارش نامعتبر است" });
       }
 
-      const order = orderResult.rows[0];
-      
-      // Send reminder based on type
-      if (type === 'sms') {
-        // Send SMS reminder
-        // Implementation would go here
-      } else if (type === 'email') {
-        // Send email reminder
-        // Implementation would go here
+      const { ProformaReminderService } = await import('./proforma-reminder-service');
+      const result = await ProformaReminderService.getInstance().sendManualReminder(Number(orderId), type);
+      if (!result.success) {
+        return res.status(result.error?.startsWith('No active') ? 409 : 422).json({
+          success: false,
+          message: result.error || "ارسال یادآور ناموفق بود"
+        });
       }
 
       res.json({
         success: true,
-        message: `یادآور ${type} با موفقیت ارسال شد`
+        message: `یادآور ${type} با موفقیت پذیرفته شد`,
+        status: "accepted"
       });
       
     } catch (error) {
@@ -50146,128 +50167,6 @@ momtazchem.com
       res.status(500).json({
         success: false,
         message: "خطا در ارسال یادآور"
-      });
-    }
-  });
-
-  // Get notification settings
-  app.get("/api/orphan-orders/notification-settings", async (req, res) => {
-    try {
-      // Mock notification settings
-      const settings = {
-        emailEnabled: true,
-        smsEnabled: true,
-        reminderHours: [24, 12, 1],
-        maxReminders: 3
-      };
-
-      res.json({
-        success: true,
-        settings
-      });
-    } catch (error) {
-      console.error("Error fetching notification settings:", error);
-      res.status(500).json({
-        success: false,
-        message: "خطا در دریافت تنظیمات"
-      });
-    }
-  });
-
-  // Update notification settings
-  app.put("/api/orphan-orders/notification-settings", async (req, res) => {
-    try {
-      const { emailEnabled, smsEnabled, reminderHours, maxReminders } = req.body;
-      
-      // In a real implementation, save to database
-      
-      res.json({
-        success: true,
-        message: "تنظیمات بروزرسانی شد",
-        settings: {
-          emailEnabled,
-          smsEnabled,
-          reminderHours,
-          maxReminders
-        }
-      });
-    } catch (error) {
-      console.error("Error updating notification settings:", error);
-      res.status(500).json({
-        success: false,
-        message: "خطا در بروزرسانی تنظیمات"
-      });
-    }
-  });
-
-  // Get message templates
-  app.get("/api/orphan-orders/templates", async (req, res) => {
-    try {
-      // Mock templates
-      const templates = [
-        {
-          id: 1,
-          name: "یادآور 24 ساعته",
-          type: "email",
-          subject: "یادآوری پرداخت سفارش",
-          content: "سفارش شما تا 24 ساعت دیگر منقضی می‌شود",
-          isActive: true
-        },
-        {
-          id: 2,
-          name: "یادآور SMS",
-          type: "sms",
-          subject: "",
-          content: "سفارش {{orderNumber}} تا {{hours}} ساعت دیگر منقضی می‌شود",
-          isActive: true
-        }
-      ];
-
-      res.json({
-        success: true,
-        templates
-      });
-    } catch (error) {
-      console.error("Error fetching templates:", error);
-      res.status(500).json({
-        success: false,
-        message: "خطا در دریافت قالب‌ها"
-      });
-    }
-  });
-
-  // Get notification schedules
-  app.get("/api/orphan-orders/schedules", async (req, res) => {
-    try {
-      // Mock schedules
-      const schedules = [
-        {
-          id: 1,
-          name: "یادآور 24 ساعته",
-          triggerTime: "24 hours before expiry",
-          messageType: "Email + SMS",
-          maxSends: 1,
-          isActive: true
-        },
-        {
-          id: 2,
-          name: "یادآور 1 ساعته",
-          triggerTime: "1 hour before expiry",
-          messageType: "SMS only",
-          maxSends: 1,
-          isActive: true
-        }
-      ];
-
-      res.json({
-        success: true,
-        schedules
-      });
-    } catch (error) {
-      console.error("Error fetching schedules:", error);
-      res.status(500).json({ 
-        success: false, 
-        message: "خطا در دریافت برنامه‌ریزی" 
       });
     }
   });
@@ -57060,7 +56959,7 @@ momtazchem.com
   // =============================================================================
 
   // Get all email templates for shop admin
-  app.get('/api/shop/email-templates', async (req, res) => {
+  app.get('/api/shop/email-templates', requireAuth, async (req, res) => {
     try {
       const { customerDb } = await import('./customer-db');
       const { emailTemplates } = await import('../shared/customer-schema');
@@ -57068,8 +56967,13 @@ momtazchem.com
       const templates = await customerDb.select({
         id: emailTemplates.id,
         name: emailTemplates.name,
-        category: emailTemplates.category,
-        subject: emailTemplates.subject
+         category: emailTemplates.category,
+         subject: emailTemplates.subject,
+         htmlContent: emailTemplates.htmlContent,
+         textContent: emailTemplates.textContent,
+         variables: emailTemplates.variables,
+         language: emailTemplates.language,
+         isDefault: emailTemplates.isDefault
       })
       .from(emailTemplates)
       .where(eq(emailTemplates.isActive, true))
@@ -57083,12 +56987,12 @@ momtazchem.com
   });
 
   // Get all SMS templates for shop admin
-  app.get('/api/shop/sms-templates', async (req, res) => {
+  app.get('/api/shop/sms-templates', requireAuth, async (req, res) => {
     try {
       const { customerPool } = await import('./customer-db');
       
       const result = await customerPool.query(`
-        SELECT id, template_number, template_name, category_id 
+        SELECT id, template_number, template_name, template_content, variables, language, category_id
         FROM sms_templates 
         WHERE is_active = true 
         ORDER BY created_at
@@ -57098,7 +57002,8 @@ momtazchem.com
         id: row.id,
         templateNumber: row.template_number,
         templateName: row.template_name,
-        categoryId: row.category_id
+        categoryId: row.category_id,
+        templateContent: row.template_content, variables: row.variables, language: row.language
       }));
 
       res.json({ success: true, data: templates });
@@ -57108,8 +57013,25 @@ momtazchem.com
     }
   });
 
+  // Sender metadata only: never return SMTP credentials.
+  app.get('/api/shop/email-senders', requireAuth, async (_req, res) => {
+    try {
+      const result = await pool.query(`SELECT c.category_key AS "categoryKey",
+        c.category_name AS "categoryName", s.from_email AS "fromEmail", s.from_name AS "fromName"
+        FROM email_categories c JOIN smtp_settings s ON s.category_id = c.id
+        WHERE c.is_active = true AND s.is_active = true
+          AND s.host IS NOT NULL AND s.username IS NOT NULL AND s.password IS NOT NULL
+          AND s.from_email ~* '^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$'
+        ORDER BY c.category_name`);
+      res.json({ success: true, data: result.rows });
+    } catch (error) {
+      console.error('Error fetching email senders:', error);
+      res.status(500).json({ success: false, message: 'خطا در بارگذاری فرستنده‌های ایمیل' });
+    }
+  });
+
   // Manual trigger for proforma reminders (admin only)
-  app.post('/api/admin/trigger-proforma-reminders', async (req, res) => {
+  app.post('/api/admin/trigger-proforma-reminders', requireAuth, async (req, res) => {
     try {
       console.log('🔔 [MANUAL TRIGGER] Starting proforma reminder processing...');
       
