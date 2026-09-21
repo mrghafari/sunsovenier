@@ -2,9 +2,53 @@ import { Router } from 'express';
 import passport from './passport-config';
 import { db } from './db';
 import { customers } from '@shared/customer-schema';
-import { eq } from 'drizzle-orm';
+import { crmCustomers } from '@shared/schema';
+import { eq, sql } from 'drizzle-orm';
 
 const router = Router();
+
+async function findCrmCustomerByEmail(email: string) {
+  return db.query.crmCustomers.findFirst({
+    where: sql`lower(${crmCustomers.email}) = ${email.toLowerCase()}`,
+  });
+}
+
+async function ensureOAuthCrmCustomer(user: any, profile?: Record<string, string>) {
+  const existing = await findCrmCustomerByEmail(user.email);
+  if (existing) return existing;
+
+  const [created] = await db.insert(crmCustomers).values({
+    email: String(user.email).trim().toLowerCase(),
+    passwordHash: user.passwordHash || null,
+    firstName: user.firstName || 'Google',
+    lastName: user.lastName || 'User',
+    phone: profile?.phone || user.phone || null,
+    country: profile?.country || user.country || null,
+    province: profile?.province || user.province || null,
+    cityRegion: profile?.cityRegion || user.cityRegion || null,
+    address: profile?.address || user.address || null,
+    postalCode: profile?.postalCode || user.postalCode || null,
+    customerType: 'retail',
+    customerStatus: 'active',
+    customerSource: 'website',
+    emailEnabled: true,
+    isActive: true,
+    createdBy: 'google_oauth',
+  }).returning();
+  return created;
+}
+
+async function saveCrmCustomerSession(req: any, customer: typeof crmCustomers.$inferSelect) {
+  req.session.adminId = undefined;
+  req.session.customUserId = undefined;
+  req.session.customerId = customer.id;
+  req.session.customerEmail = customer.email;
+  req.session.crmCustomerId = customer.id;
+  req.session.isAuthenticated = true;
+  await new Promise<void>((resolve, reject) => {
+    req.session.save((error: Error | null) => error ? reject(error) : resolve());
+  });
+}
 
 // =============================================================================
 // GOOGLE OAUTH ROUTES
@@ -23,8 +67,20 @@ router.get('/google/callback',
   passport.authenticate('google', { 
     failureRedirect: '/customer/login?error=google_auth_failed' 
   }),
-  (req, res) => {
+  async (req, res) => {
     const user = req.user as any;
+    let crmCustomer = await findCrmCustomerByEmail(String(user.email));
+    if (crmCustomer?.isActive === false) {
+      return res.redirect('/customer/login?error=account_inactive');
+    }
+    if (!crmCustomer && user.profileCompleted) {
+      crmCustomer = await ensureOAuthCrmCustomer(user);
+    }
+    if (crmCustomer) {
+      await saveCrmCustomerSession(req, crmCustomer);
+      return res.redirect('/customer/profile');
+    }
+
     
     console.log('✅ [GOOGLE CALLBACK] User authenticated:', {
       id: user.id,
@@ -126,6 +182,22 @@ router.post('/complete-profile', async (req, res) => {
         updatedAt: new Date()
       })
       .where(eq(customers.id, user.id));
+
+    const crmCustomer = await ensureOAuthCrmCustomer(user, {
+      phone,
+      country,
+      province,
+      cityRegion,
+      address,
+      postalCode: postalCode || '',
+    });
+    if (crmCustomer.isActive === false) {
+      return res.status(403).json({
+        success: false,
+        message: 'Customer account is inactive',
+      });
+    }
+    await saveCrmCustomerSession(req, crmCustomer);
 
     console.log('✅ [PROFILE COMPLETION] Profile updated successfully');
 

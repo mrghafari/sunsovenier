@@ -119,9 +119,6 @@ export default function CustomerLogin() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
-  const [loginMethod, setLoginMethod] = useState<'password' | 'otp'>(() =>
-    new URLSearchParams(window.location.search).get('mode') === 'otp' ? 'otp' : 'password'
-  );
   const [otpChallengeId, setOtpChallengeId] = useState("");
   const [otpCode, setOtpCode] = useState("");
 
@@ -132,18 +129,27 @@ export default function CustomerLogin() {
       password: '',
     },
   });
+  const identifier = form.watch('identifier');
+  const isMobileLogin =
+    /^[+\d\s()-]+$/.test(identifier.trim()) &&
+    identifier.replace(/\D/g, '').length >= 7;
+
+  useEffect(() => {
+    setOtpChallengeId("");
+    setOtpCode("");
+  }, [identifier]);
 
   const onSubmit = async (data: LoginForm) => {
     setIsLoading(true);
     setLoginError(null);
 
     try {
-      if (loginMethod === 'password' && !data.password) {
+      if (!isMobileLogin && !data.password) {
         form.setError('password', { message: copy.passwordRequired });
         return;
       }
 
-      const response = loginMethod === 'password'
+      const response = !isMobileLogin
         ? await apiRequest('/api/customers/login', {
             method: 'POST',
             body: data,
@@ -158,7 +164,7 @@ export default function CustomerLogin() {
               body: { identifier: data.identifier },
             });
 
-      if (loginMethod === 'otp' && !otpChallengeId && response.success) {
+      if (isMobileLogin && !otpChallengeId && response.success) {
         setOtpChallengeId(response.challengeId);
         toast({ title: language === 'fa' ? 'کد ورود ارسال شد' : 'Login code sent' });
         return;
@@ -229,14 +235,6 @@ export default function CustomerLogin() {
 
           <CardContent>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid grid-cols-2 gap-2">
-                <Button type="button" variant={loginMethod === 'password' ? 'default' : 'outline'} onClick={() => { setLoginMethod('password'); setOtpChallengeId(''); }}>
-                  {language === 'fa' ? 'ورود با رمز' : 'Password'}
-                </Button>
-                <Button type="button" variant={loginMethod === 'otp' ? 'default' : 'outline'} onClick={() => { setLoginMethod('otp'); setOtpChallengeId(''); }}>
-                  {language === 'fa' ? 'ورود با کد' : 'OTP'}
-                </Button>
-              </div>
               {/* Error Display */}
               {loginError && (
                 <div className="bg-red-50 border border-red-200 rounded-md p-3 text-center">
@@ -264,7 +262,7 @@ export default function CustomerLogin() {
                 )}
               </div>
 
-              {loginMethod === 'password' && <div className="space-y-2">
+              {!isMobileLogin && <div className="space-y-2">
                 <Label htmlFor="password" className="block text-start">
                   {copy.password}
                 </Label>
@@ -295,7 +293,7 @@ export default function CustomerLogin() {
                 )}
               </div>}
 
-              {loginMethod === 'otp' && otpChallengeId && (
+              {isMobileLogin && otpChallengeId && (
                 <div className="space-y-2">
                   <Label htmlFor="otpCode">{language === 'fa' ? 'کد یک‌بارمصرف' : 'One-time code'}</Label>
                   <Input
@@ -315,9 +313,24 @@ export default function CustomerLogin() {
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3"
                 disabled={isLoading}
               >
-                {isLoading ? copy.loggingIn : loginMethod === 'otp' && !otpChallengeId
+                {isLoading ? copy.loggingIn : isMobileLogin && !otpChallengeId
                   ? (language === 'fa' ? 'ارسال کد ورود' : 'Send login code')
                   : copy.login}
+              </Button>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-white px-2 text-gray-500">{language === 'fa' ? 'یا' : 'or'}</span>
+                </div>
+              </div>
+              <Button type="button" variant="outline" className="w-full" onClick={() => { window.location.href = '/api/auth/google'; }}>
+                <svg className="me-2 h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
+                  <path fill="#4285F4" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.8 3-4.3 3-7.3Z"/>
+                  <path fill="#34A853" d="M12 22c2.7 0 5-.9 6.6-2.5L15.4 17c-.9.6-2 1-3.4 1a5.8 5.8 0 0 1-5.5-4H3.2v2.6A10 10 0 0 0 12 22Z"/>
+                  <path fill="#FBBC05" d="M6.5 14a6 6 0 0 1 0-3.9V7.5H3.2a10 10 0 0 0 0 9.1L6.5 14Z"/>
+                  <path fill="#EA4335" d="M12 6c1.5 0 2.8.5 3.9 1.5l2.8-2.8A9.5 9.5 0 0 0 3.2 7.5l3.3 2.6A5.8 5.8 0 0 1 12 6Z"/>
+                </svg>
+                {language === 'fa' ? 'ورود با حساب Google' : 'Continue with Google'}
               </Button>
 
               {/* Links */}
