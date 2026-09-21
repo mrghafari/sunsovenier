@@ -68,35 +68,36 @@ router.get('/google/callback',
     failureRedirect: '/customer/login?error=google_auth_failed' 
   }),
   async (req, res) => {
-    const user = req.user as any;
-    let crmCustomer = await findCrmCustomerByEmail(String(user.email));
-    if (crmCustomer?.isActive === false) {
-      return res.redirect('/customer/login?error=account_inactive');
-    }
-    if (!crmCustomer && user.profileCompleted) {
-      crmCustomer = await ensureOAuthCrmCustomer(user);
-    }
-    if (crmCustomer) {
-      await saveCrmCustomerSession(req, crmCustomer);
+    try {
+      const user = req.user as any;
+      let crmCustomer = await findCrmCustomerByEmail(String(user.email));
+      if (crmCustomer?.isActive === false) {
+        return res.redirect('/customer/login?error=account_inactive');
+      }
+      if (!crmCustomer && user.profileCompleted) {
+        crmCustomer = await ensureOAuthCrmCustomer(user);
+      }
+      if (crmCustomer) {
+        await saveCrmCustomerSession(req, crmCustomer);
+        return res.redirect('/customer/profile');
+      }
+
+      console.log('✅ [GOOGLE CALLBACK] User authenticated:', {
+        id: user.id,
+        email: user.email,
+        profileCompleted: user.profileCompleted
+      });
+
+      if (!user.profileCompleted) {
+        console.log('🔄 [GOOGLE CALLBACK] Redirecting to profile completion');
+        return res.redirect('/complete-profile');
+      }
+
       return res.redirect('/customer/profile');
+    } catch (error) {
+      console.error('❌ [GOOGLE CALLBACK] Failed to create customer session:', error);
+      return res.redirect('/customer/login?error=google_auth_failed');
     }
-
-    
-    console.log('✅ [GOOGLE CALLBACK] User authenticated:', {
-      id: user.id,
-      email: user.email,
-      profileCompleted: user.profileCompleted
-    });
-
-    // Check if user needs to complete profile
-    if (!user.profileCompleted) {
-      console.log('🔄 [GOOGLE CALLBACK] Redirecting to profile completion');
-      return res.redirect('/complete-profile');
-    }
-
-    // User has completed profile, redirect to dashboard
-    console.log('✅ [GOOGLE CALLBACK] Profile complete, redirecting to dashboard');
-    res.redirect('/customer/profile');
   }
 );
 
