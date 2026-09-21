@@ -50,56 +50,82 @@ async function saveCrmCustomerSession(req: any, customer: typeof crmCustomers.$i
   });
 }
 
+function getGoogleCallbackUrl(req: any) {
+  const forwardedProto = String(req.get('x-forwarded-proto') || '').split(',')[0].trim();
+  const protocol = forwardedProto || req.protocol;
+  return `${protocol}://${req.get('host')}/api/auth/google/callback`;
+}
+
+async function finishGoogleLogin(req: any, res: any, user: any) {
+  let crmCustomer = await findCrmCustomerByEmail(String(user.email));
+  if (crmCustomer?.isActive === false) {
+    return res.redirect('/customer/login?error=account_inactive');
+  }
+  if (!crmCustomer && user.profileCompleted) {
+    crmCustomer = await ensureOAuthCrmCustomer(user);
+  }
+  if (crmCustomer) {
+    await saveCrmCustomerSession(req, crmCustomer);
+    return res.redirect('/customer/profile');
+  }
+
+  console.log('✅ [GOOGLE CALLBACK] User authenticated:', {
+    id: user.id,
+    email: user.email,
+    profileCompleted: user.profileCompleted
+  });
+
+  if (!user.profileCompleted) {
+    return res.redirect('/complete-profile');
+  }
+
+  return res.redirect('/customer/profile');
+}
+
 // =============================================================================
 // GOOGLE OAUTH ROUTES
 // =============================================================================
 
 // Initiate Google OAuth login
-router.get('/google',
-  passport.authenticate('google', { 
+router.get('/google', (req, res, next) => {
+  const callbackURL = getGoogleCallbackUrl(req);
+  console.log('🔐 [GOOGLE AUTH] Starting OAuth with callback:', callbackURL);
+  return passport.authenticate('google', {
     scope: ['profile', 'email'],
-    prompt: 'select_account' // Always show account selection
-  })
-);
+    prompt: 'select_account',
+    callbackURL,
+  } as any)(req, res, next);
+});
 
 // Google OAuth callback
-router.get('/google/callback',
-  passport.authenticate('google', { 
-    failureRedirect: '/customer/login?error=google_auth_failed' 
-  }),
-  async (req, res) => {
-    try {
-      const user = req.user as any;
-      let crmCustomer = await findCrmCustomerByEmail(String(user.email));
-      if (crmCustomer?.isActive === false) {
-        return res.redirect('/customer/login?error=account_inactive');
-      }
-      if (!crmCustomer && user.profileCompleted) {
-        crmCustomer = await ensureOAuthCrmCustomer(user);
-      }
-      if (crmCustomer) {
-        await saveCrmCustomerSession(req, crmCustomer);
-        return res.redirect('/customer/profile');
-      }
-
-      console.log('✅ [GOOGLE CALLBACK] User authenticated:', {
-        id: user.id,
-        email: user.email,
-        profileCompleted: user.profileCompleted
+router.get('/google/callback', (req, res, next) => {
+  const callbackURL = getGoogleCallbackUrl(req);
+  return passport.authenticate('google', {
+    callbackURL,
+  } as any, (authError: Error | null, user: any) => {
+    if (authError || !user) {
+      console.error('❌ [GOOGLE CALLBACK] OAuth exchange failed:', {
+        message: authError?.message || 'Google did not return a user',
+        callbackURL,
       });
-
-      if (!user.profileCompleted) {
-        console.log('🔄 [GOOGLE CALLBACK] Redirecting to profile completion');
-        return res.redirect('/complete-profile');
-      }
-
-      return res.redirect('/customer/profile');
-    } catch (error) {
-      console.error('❌ [GOOGLE CALLBACK] Failed to create customer session:', error);
       return res.redirect('/customer/login?error=google_auth_failed');
     }
-  }
-);
+
+    req.logIn(user, async (loginError: Error | null) => {
+      if (loginError) {
+        console.error('❌ [GOOGLE CALLBACK] Passport session failed:', loginError);
+        return res.redirect('/customer/login?error=google_auth_failed');
+      }
+
+      try {
+        return await finishGoogleLogin(req, res, user);
+      } catch (error) {
+        console.error('❌ [GOOGLE CALLBACK] Failed to create customer session:', error);
+        return res.redirect('/customer/login?error=google_auth_failed');
+      }
+    });
+  })(req, res, next);
+});
 
 // =============================================================================
 // FACEBOOK OAUTH ROUTES
