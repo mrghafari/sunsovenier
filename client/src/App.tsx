@@ -123,7 +123,6 @@ import WarehouseInventoryManagement from "@/pages/admin/warehouse-inventory-mana
 import ContentManagement from "@/pages/content-management";
 
 import SecurityManagement from "@/pages/security-management-new";
-import OrderTrackingManagement from "@/pages/admin/order-tracking-management";
 import RemoteDesktop from "@/pages/admin/remote-desktop";
 import TawkToChat from "@/components/TawkToChat";
 
@@ -310,9 +309,9 @@ function Router() {
           <Route path="/mrg/email-logs" component={() => <AdminRoute><AdminEmailLogs /></AdminRoute>} />
           <Route path="/mrg/sms" component={() => <AdminRoute><AdminSmsManagement /></AdminRoute>} />
           <Route path="/mrg/widgets" component={() => <AdminRoute><WidgetRecommendations /></AdminRoute>} />
-          <Route path="/mrg/order-management" component={() => <AdminRoute><OrderTrackingManagement /></AdminRoute>} />
-          <Route path="/mrg/order-tracking" component={() => <AdminRoute><OrderTrackingManagement /></AdminRoute>} />
-          <Route path="/mrg/order-tracking-management" component={() => <AdminRoute><OrderTrackingManagement /></AdminRoute>} />
+          <Route path="/mrg/order-management" component={() => <AdminRoute><ShopAdmin /></AdminRoute>} />
+          <Route path="/mrg/order-tracking" component={() => <AdminRoute><ShopAdmin /></AdminRoute>} />
+          <Route path="/mrg/order-tracking-management" component={() => <AdminRoute><ShopAdmin /></AdminRoute>} />
           <Route path="/mrg/abandoned-cart-management" component={() => <AdminRoute><AbandonedCartManagement /></AdminRoute>} />
           <Route path="/site-management" component={() => <AdminRoute><SiteManagementFixed /></AdminRoute>} />
           <Route path="/mrg/site-management" component={() => <AdminRoute><SiteManagementFixed /></AdminRoute>} />

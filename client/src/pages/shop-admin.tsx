@@ -55,6 +55,7 @@ import InvoiceManagement from "@/pages/admin/invoice-management";
 import ShopInvoiceManagement from "@/components/ShopInvoiceManagement";
 import AbandonedCartManagement from "@/pages/abandoned-cart-management";
 import BulkPurchaseProductCard from "@/components/BulkPurchaseProductCard";
+import OrderTrackingManagement from "@/pages/admin/order-tracking-management";
 
 type ShopLanguage = "en" | "ar" | "tr" | "fa";
 type ShopTranslation = Partial<Record<ShopLanguage, string>>;
@@ -77,6 +78,8 @@ const SHOP_TRANSLATIONS: Record<string, ShopTranslation> = {
   abandonedCart: { en: "Abandoned Cart", ar: "السلة المتروكة", tr: "Terk Edilmiş Sepet", fa: "سبدهای رهاشده" },
   salesReports: { en: "Sales Reports", ar: "تقارير المبيعات", tr: "Satış Raporları", fa: "گزارش‌های فروش" },
   orderManagement: { en: "Order Management", ar: "إدارة الطلبات", tr: "Sipariş Yönetimi", fa: "مدیریت سفارش‌ها" },
+  workflowOrders: { en: "Workflow & tracking", ar: "سير العمل والتتبع", tr: "İş akışı ve takip", fa: "گردش کار و رهگیری" },
+  commerceOrderDetails: { en: "Commercial details", ar: "التفاصيل التجارية", tr: "Ticari ayrıntılar", fa: "جزئیات تجاری" },
   searchOrders: { en: "Search orders...", ar: "البحث في الطلبات...", tr: "Siparişlerde ara...", fa: "جستجوی سفارش‌ها..." },
   filterStatus: { en: "Filter by status", ar: "تصفية حسب الحالة", tr: "Duruma göre filtrele", fa: "فیلتر بر اساس وضعیت" },
   allOrders: { en: "All Orders", ar: "كل الطلبات", tr: "Tüm Siparişler", fa: "همه سفارش‌ها" },
@@ -846,7 +849,18 @@ export default function ShopAdmin() {
 
           {/* Orders Tab */}
           <TabsContent value="orders" className="space-y-6">
-            <Card>
+            <Tabs defaultValue="workflow" className="space-y-6">
+              <TabsList className="grid h-auto w-full max-w-xl grid-cols-2 gap-1 p-1">
+                <TabsTrigger value="workflow">{tr("workflowOrders")}</TabsTrigger>
+                <TabsTrigger value="commerce">{tr("commerceOrderDetails")}</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="workflow" className="mt-0">
+                <OrderTrackingManagement />
+              </TabsContent>
+
+              <TabsContent value="commerce" className="mt-0">
+                <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
@@ -1023,7 +1037,9 @@ export default function ShopAdmin() {
                   </div>
                 </div>
               </CardContent>
-            </Card>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
           {/* Inventory Tab */}

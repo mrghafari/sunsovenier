@@ -70,7 +70,6 @@ const adminTranslations: Record<Language, AdminTranslation> = {
       { key: "user_management", title: "User Management", description: "Role-based access control" },
       { key: "shop_management", title: "Shop", description: "E-commerce & inventory administration" },
       { key: "procedures", title: "Procedures", description: "Document & method management" },
-      { key: "order_management", title: "Order Management", description: "3-department workflow system" },
       { key: "product_management", title: "Products", description: "Showcase & shop catalog management" },
       { key: "payment_management", title: "Payment Settings", description: "Iraqi banking integration" },
       { key: "finance", title: "Financial Approval", description: "Financial order management & approvals" },
@@ -136,7 +135,6 @@ const adminTranslations: Record<Language, AdminTranslation> = {
       { key: "user_management", title: "مدیریت کاربران", description: "کنترل دسترسی مبتنی بر نقش" },
       { key: "shop_management", title: "فروشگاه", description: "مدیریت تجارت الکترونیک و موجودی" },
       { key: "procedures", title: "رویه‌ها", description: "مدیریت اسناد و روش‌ها" },
-      { key: "order_management", title: "مدیریت سفارش‌ها", description: "سامانه گردش کار سه‌واحدی" },
       { key: "product_management", title: "محصولات", description: "مدیریت کاتالوگ نمایشگاهی و فروشگاه" },
       { key: "payment_management", title: "تنظیمات پرداخت", description: "یکپارچه‌سازی بانکی عراق" },
       { key: "finance", title: "تأیید مالی", description: "مدیریت و تأیید سفارش‌های مالی" },
@@ -202,7 +200,6 @@ const adminTranslations: Record<Language, AdminTranslation> = {
       { key: "user_management", title: "إدارة المستخدمين", description: "التحكم بالوصول حسب الأدوار" },
       { key: "shop_management", title: "المتجر", description: "إدارة التجارة الإلكترونية والمخزون" },
       { key: "procedures", title: "الإجراءات", description: "إدارة الوثائق والأساليب" },
-      { key: "order_management", title: "إدارة الطلبات", description: "نظام سير عمل من ثلاثة أقسام" },
       { key: "product_management", title: "المنتجات", description: "إدارة كتالوج العرض والمتجر" },
       { key: "payment_management", title: "إعدادات الدفع", description: "تكامل الخدمات المصرفية العراقية" },
       { key: "finance", title: "الاعتماد المالي", description: "إدارة الطلبات المالية واعتمادها" },
@@ -268,7 +265,6 @@ const adminTranslations: Record<Language, AdminTranslation> = {
       { key: "user_management", title: "Kullanıcı Yönetimi", description: "Role dayalı erişim kontrolü" },
       { key: "shop_management", title: "Mağaza", description: "E-ticaret ve stok yönetimi" },
       { key: "procedures", title: "Prosedürler", description: "Belge ve yöntem yönetimi" },
-      { key: "order_management", title: "Sipariş Yönetimi", description: "3 departmanlı iş akışı sistemi" },
       { key: "product_management", title: "Ürünler", description: "Vitrin ve mağaza kataloğu yönetimi" },
       { key: "payment_management", title: "Ödeme Ayarları", description: "Irak bankacılık entegrasyonu" },
       { key: "finance", title: "Finansal Onay", description: "Finansal sipariş yönetimi ve onayları" },
@@ -303,7 +299,7 @@ const adminTranslations: Record<Language, AdminTranslation> = {
 // Function to get the actual Site Management modules count
 const getSiteManagementModulesCount = () => {
   const modules = [
-    "syncing_shop", "shop_management", "product_management", "order_management", 
+    "syncing_shop", "shop_management", "product_management",
     "warehouse_management", "crm", "wallet_management", "finance", "payment_management",
     "geography_analytics", "inquiries", "email_settings", "content_management", 
     "seo", "categories", "barcode", "database_backup", "ai_settings", 

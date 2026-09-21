@@ -429,14 +429,6 @@ export default function SiteManagement() {
       moduleId: "product_management"
     },
     {
-      id: "order-management",
-      ...getModuleText("order-management"),
-      icon: ShoppingCart,
-      onClick: () => trackButtonClick("order-management", () => setLocation("/admin/order-management")),
-      className: "border-orange-300 text-orange-600 hover:bg-orange-50 hover:text-orange-800",
-      moduleId: "order_management"
-    },
-    {
       id: "warehouse-management",
       ...getModuleText("warehouse-management"),
       icon: Warehouse,
