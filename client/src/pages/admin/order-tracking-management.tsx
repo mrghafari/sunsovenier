@@ -1,12 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { Fragment, useState, useEffect, useCallback } from 'react';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { 
-  Eye,
   Search,
   Clock,
   Package,
@@ -1151,14 +1149,24 @@ export default function OrderTrackingManagement() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto rounded-md border border-slate-300">
-            <table className="w-full min-w-[1180px] table-fixed border-collapse text-sm">
+          <div className="rounded-md border border-slate-300">
+            <table className="w-full table-fixed border-collapse text-xs">
+              <colgroup>
+                <col className="w-[5%]" />
+                <col className="w-[12%]" />
+                <col className="w-[14%]" />
+                <col className="w-[18%]" />
+                <col className="w-[12%]" />
+                <col className="w-[12%]" />
+                <col className="w-[17%]" />
+                <col className="w-[10%]" />
+              </colgroup>
               <thead className="sticky top-0 z-10">
                 <tr className="border-b-2 border-slate-400 bg-slate-100 text-slate-800">
-                  <th className="w-[52px] border border-slate-300 px-2 py-2.5 text-center font-semibold">
+                  <th className="border border-slate-300 px-1 py-2 text-center font-semibold">
                     {t('rowNumber')}
                   </th>
-                  <th className="w-[140px] border border-slate-300 px-3 py-2.5 font-semibold" style={{ textAlign: direction === 'rtl' ? 'right' : 'left' }}>
+                  <th className="border border-slate-300 px-2 py-2 font-semibold" style={{ textAlign: direction === 'rtl' ? 'right' : 'left' }}>
                     <button 
                       onClick={() => handleSort('orderNumber')}
                       className={`flex items-center w-full hover:text-blue-600 transition-colors ${direction === 'rtl' ? 'justify-end' : 'justify-start'}`}
@@ -1171,7 +1179,7 @@ export default function OrderTrackingManagement() {
                       )}
                     </button>
                   </th>
-                  <th className="w-[180px] border border-slate-300 px-3 py-2.5 font-semibold" style={{ textAlign: direction === 'rtl' ? 'right' : 'left' }}>
+                  <th className="border border-slate-300 px-2 py-2 font-semibold" style={{ textAlign: direction === 'rtl' ? 'right' : 'left' }}>
                     <button 
                       onClick={() => handleSort('customerName')}
                       className={`flex items-center w-full hover:text-blue-600 transition-colors ${direction === 'rtl' ? 'justify-end' : 'justify-start'}`}
@@ -1184,10 +1192,10 @@ export default function OrderTrackingManagement() {
                       )}
                     </button>
                   </th>
-                  <th className="w-[210px] border border-slate-300 px-3 py-2.5 font-semibold" style={{ textAlign: direction === 'rtl' ? 'right' : 'left' }}>
+                  <th className="border border-slate-300 px-2 py-2 font-semibold" style={{ textAlign: direction === 'rtl' ? 'right' : 'left' }}>
                     {t('contact')}
                   </th>
-                  <th className="w-[120px] border border-slate-300 px-3 py-2.5 font-semibold" style={{ textAlign: direction === 'rtl' ? 'right' : 'left' }}>
+                  <th className="border border-slate-300 px-2 py-2 font-semibold" style={{ textAlign: direction === 'rtl' ? 'right' : 'left' }}>
                     <button 
                       onClick={() => handleSort('totalAmount')}
                       className="flex w-full items-center hover:text-blue-600 transition-colors"
@@ -1200,10 +1208,10 @@ export default function OrderTrackingManagement() {
                       )}
                     </button>
                   </th>
-                  <th className="w-[150px] border border-slate-300 px-3 py-2.5 font-semibold" style={{ textAlign: direction === 'rtl' ? 'right' : 'left' }}>
+                  <th className="border border-slate-300 px-2 py-2 font-semibold" style={{ textAlign: direction === 'rtl' ? 'right' : 'left' }}>
                     {t('paymentMethod')}
                   </th>
-                  <th className="w-[230px] border border-slate-300 px-3 py-2.5 font-semibold" style={{ textAlign: direction === 'rtl' ? 'right' : 'left' }}>
+                  <th className="border border-slate-300 px-2 py-2 font-semibold" style={{ textAlign: direction === 'rtl' ? 'right' : 'left' }}>
                     <button 
                       onClick={() => handleSort('status')}
                       className="flex w-full items-center hover:text-blue-600 transition-colors"
@@ -1216,7 +1224,7 @@ export default function OrderTrackingManagement() {
                       )}
                     </button>
                   </th>
-                  <th className="w-[150px] border border-slate-300 px-3 py-2.5 font-semibold" style={{ textAlign: direction === 'rtl' ? 'right' : 'left' }}>
+                  <th className="border border-slate-300 px-2 py-2 font-semibold" style={{ textAlign: direction === 'rtl' ? 'right' : 'left' }}>
                     <button 
                       onClick={() => handleSort('createdAt')}
                       className="flex w-full items-center hover:text-blue-600 transition-colors"
@@ -1229,42 +1237,50 @@ export default function OrderTrackingManagement() {
                       )}
                     </button>
                   </th>
-                  <th className="w-[108px] border border-slate-300 px-3 py-2.5 text-center font-semibold">{t('actions')}</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredOrders.map((order, index) => (
-                  <tr key={order.id} className={`border-b border-slate-300 align-top odd:bg-white even:bg-slate-50 hover:bg-blue-50 ${
+                  <Fragment key={order.id}>
+                  <tr className={`border-b border-slate-300 align-top odd:bg-white even:bg-slate-50 hover:bg-blue-50 ${
+                    selectedOrder?.id === order.id ? 'bg-blue-50' : ''
+                  } ${
                     order.status === 'deleted' ? 'bg-orange-50/70 hover:bg-orange-100/70' : ''
                   }`}>
-                    <td className="border border-slate-300 px-2 py-2.5 text-center text-xs text-slate-500">
+                    <td className="border border-slate-300 px-1 py-2 text-center text-slate-500">
                       {index + 1}
                     </td>
-                    <td className="border border-slate-300 px-3 py-2.5" style={{ width: '140px' }}>
-                      <div className="font-medium text-blue-700">#{order.orderNumber || order.customerOrderId}</div>
+                    <td className="border border-slate-300 px-2 py-2">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedOrder(selectedOrder?.id === order.id ? null : order)}
+                        className="max-w-full break-words font-semibold text-blue-700 underline-offset-2 hover:text-blue-900 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                      >
+                        #{order.orderNumber || order.customerOrderId}
+                      </button>
                     </td>
-                    <td className="border border-slate-300 px-3 py-2.5" style={{ width: '180px' }}>
-                      <div className="font-medium">{order.customerName || t('unknown')}</div>
+                    <td className="border border-slate-300 px-2 py-2">
+                      <div className="break-words font-medium">{order.customerName || t('unknown')}</div>
                     </td>
-                    <td className="border border-slate-300 px-3 py-2.5 text-xs text-slate-600" style={{ width: '210px' }}>
+                    <td className="border border-slate-300 px-2 py-2 text-slate-600">
                       <div className="space-y-0.5 break-words">
                         <div>{order.customerPhone || t('unknown')}</div>
                         <div className="break-all">{order.customerEmail || t('unknown')}</div>
                       </div>
                     </td>
-                    <td className="border border-slate-300 px-3 py-2.5 text-end" style={{ width: '120px' }}>
-                      <div className="font-medium text-sm">
+                    <td className="border border-slate-300 px-2 py-2 text-end">
+                      <div className="break-words font-medium">
                         {formatAmount(order.totalAmount, order.currency || 'IQD')}
                       </div>
                     </td>
-                    <td className="border border-slate-300 px-3 py-2.5" style={{ width: '150px' }}>
+                    <td className="border border-slate-300 px-2 py-2">
                       {order.paymentMethod ? (
                         <PaymentMethodBadge paymentMethod={order.paymentMethod} showIcon={false} className="text-xs" />
                       ) : (
                         <span className="text-xs text-slate-500">{t('unknown')}</span>
                       )}
                     </td>
-                    <td className="border border-slate-300 px-3 py-2.5" style={{ width: '230px' }}>
+                    <td className="border border-slate-300 px-2 py-2">
                       {(() => {
                         const statusInfo = getStatusDisplay(order, t);
                         return (
@@ -1288,213 +1304,91 @@ export default function OrderTrackingManagement() {
                         );
                       })()}
                     </td>
-                    <td className="border border-slate-300 px-3 py-2.5 text-xs text-slate-600" style={{ width: '150px' }}>
-                      <div className="text-sm">
+                    <td className="border border-slate-300 px-2 py-2 text-slate-600">
+                      <div className="break-words">
                         {order.createdAt ? formatDate(order.createdAt, language, t('unknown')) : t('loading')}
                       </div>
                     </td>
-                    <td className="border border-slate-300 px-3 py-2.5 text-center" style={{ width: '108px' }}>
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <button
-                            className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
-                            onClick={() => setSelectedOrder(order)}
-                          >
-                            <Eye className="w-4 h-4" />
-                            {t('view')}
-                          </button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" dir={direction}>
-                          <DialogHeader>
-                            <div className="flex items-center justify-between">
-                              <DialogTitle className="flex items-center gap-2">
-                                <Package className="w-5 h-5" />
-                                {t('orderDetails')} {selectedOrder?.orderNumber || `#${selectedOrder?.customerOrderId}`}
-                              </DialogTitle>
-                              <button
-                                onClick={handlePrintOrder}
-                                className="flex items-center gap-2 px-3 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
-                                title={t('printTitle')}
-                              >
-                                <Printer className="w-4 h-4" />
-                                {t('print')}
+                  </tr>
+                  {selectedOrder?.id === order.id && (
+                    <tr className="bg-slate-50">
+                      <td colSpan={8} className="border border-slate-300 p-3">
+                        <div className="space-y-3 rounded-lg border border-blue-200 bg-white p-4 shadow-sm" dir={direction}>
+                          <div className="flex items-center justify-between gap-3">
+                            <h3 className="font-semibold text-slate-900">
+                              {t('orderDetails')} #{order.orderNumber || order.customerOrderId}
+                            </h3>
+                            <div className="flex gap-2">
+                              <button onClick={handlePrintOrder} className="flex items-center gap-1 rounded bg-green-600 px-3 py-1.5 text-white hover:bg-green-700">
+                                <Printer className="h-3.5 w-3.5" /> {t('print')}
+                              </button>
+                              <button onClick={() => setSelectedOrder(null)} className="rounded border px-3 py-1.5 hover:bg-slate-50">
+                                ×
                               </button>
                             </div>
-                          </DialogHeader>
-                          
-                          {selectedOrder && (
-                            <div className="space-y-6">
-                              {/* Customer Information */}
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <Card>
-                                  <CardHeader>
-                                    <CardTitle className="text-lg flex items-center gap-2">
-                                      <User className="w-5 h-5" />
-                                      {t('customerInfo')}
-                                    </CardTitle>
-                                  </CardHeader>
-                                  <CardContent className="space-y-2">
-                                    <div><strong>{t('name')}:</strong> {selectedOrder.customerName || t('unknown')}</div>
-                                    <div><strong>{t('email')}:</strong> {selectedOrder.customerEmail || t('unknown')}</div>
-                                    <div><strong>{t('phone')}:</strong> {selectedOrder.customerPhone || t('unknown')}</div>
-                                  </CardContent>
-                                </Card>
+                          </div>
 
-                                <Card>
-                                  <CardHeader>
-                                    <CardTitle className="text-lg flex items-center gap-2">
-                                      <CreditCard className="w-5 h-5" />
-                                      {t('financialInfo')}
-                                    </CardTitle>
-                                  </CardHeader>
-                                  <CardContent className="space-y-2">
-                                    <div><strong>{t('totalAmount')}:</strong> {formatAmount(selectedOrder.totalAmount, selectedOrder.currency)}</div>
-                                    <div className="flex items-center gap-2">
-                                      <strong>{t('paymentMethod')}:</strong>
-                                      {selectedOrder.paymentMethod ? (
-                                        <PaymentMethodBadge 
-                                          paymentMethod={selectedOrder.paymentMethod}
-                                          showIcon={true}
-                                          className="text-xs"
-                                        />
-                                      ) : (
-                                        <span>{t('unknown')}</span>
-                                      )}
-                                    </div>
-                                    <div><strong>{t('currentStatus')}:</strong>
-                                      {(() => {
-                                        const statusInfo = getStatusDisplay(selectedOrder, t);
-                                        return (
-                                          <div className="space-y-2 mt-2">
-                                            <div className="inline-flex items-center gap-2">
-                                              <div className={`px-3 py-1 rounded-full text-sm font-medium border ${statusInfo.color}`}>
-                                                {statusInfo.label}
-                                              </div>
-                                              <div className="px-2 py-1 bg-gray-100 rounded text-xs text-gray-700">
-                                                {statusInfo.department}
-                                              </div>
-                                            </div>
-                                            {/* Show detailed explanation for failed/problematic orders in dialog */}
-                                            {statusInfo.isProblematic && statusInfo.explanation && (
-                                              <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-                                                <div className="flex items-start gap-2">
-                                                  <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0 text-red-600" />
-                                                  <div>
-                                                    <div className="text-sm font-medium text-red-800 mb-1">{t('problemDetails')}</div>
-                                                    <div className="text-sm text-red-700">{statusInfo.explanation}</div>
-                                                  </div>
-                                                </div>
-                                              </div>
-                                            )}
-                                          </div>
-                                        );
-                                      })()}
-                                    </div>
-                                  </CardContent>
-                                </Card>
-                              </div>
-
-                              {/* Delivery Information */}
-                              <Card>
-                                <CardHeader>
-                                  <CardTitle className="text-lg flex items-center gap-2">
-                                    <Truck className="w-5 h-5" />
-                                    {t('deliveryInfo')}
-                                  </CardTitle>
-                                </CardHeader>
-                                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                  <div><strong>{t('deliveryCode')}:</strong> {selectedOrder.deliveryCode || t('notAssigned')}</div>
-                                  <div><strong>{t('trackingNumber')}:</strong> {selectedOrder.trackingNumber || t('notAssigned')}</div>
-                                  <div><strong>{t('estimatedDelivery')}:</strong> {selectedOrder.estimatedDeliveryDate ? formatDate(selectedOrder.estimatedDeliveryDate, language, t('unknown')) : t('notSet')}</div>
-                                  <div><strong>{t('actualDelivery')}:</strong> {selectedOrder.actualDeliveryDate ? formatDate(selectedOrder.actualDeliveryDate, language, t('unknown')) : t('notDelivered')}</div>
-                                  <div><strong>{t('deliveryPerson')}:</strong> {selectedOrder.deliveryPersonName || t('notAssigned')}</div>
-                                  <div><strong>{t('deliveryPhone')}:</strong> {selectedOrder.deliveryPersonPhone || t('notAssigned')}</div>
-                                </CardContent>
-                              </Card>
-
-                              {/* Department Notes */}
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <Card>
-                                  <CardHeader>
-                                    <CardTitle className="text-sm flex items-center gap-2">
-                                      <FileText className="w-4 h-4" />
-                                      {t('financialNotes')}
-                                    </CardTitle>
-                                  </CardHeader>
-                                  <CardContent>
-                                    <p className="text-sm text-gray-600">
-                                      {selectedOrder.financialNotes || t('noNotes')}
-                                    </p>
-                                  </CardContent>
-                                </Card>
-
-                                <Card>
-                                  <CardHeader>
-                                    <CardTitle className="text-sm flex items-center gap-2">
-                                      <Package className="w-4 h-4" />
-                                      {t('warehouseNotes')}
-                                    </CardTitle>
-                                  </CardHeader>
-                                  <CardContent>
-                                    <p className="text-sm text-gray-600">
-                                      {selectedOrder.warehouseNotes || t('noNotes')}
-                                    </p>
-                                  </CardContent>
-                                </Card>
-
-                                <Card>
-                                  <CardHeader>
-                                    <CardTitle className="text-sm flex items-center gap-2">
-                                      <Truck className="w-4 h-4" />
-                                      {t('logisticsNotes')}
-                                    </CardTitle>
-                                  </CardHeader>
-                                  <CardContent>
-                                    <p className="text-sm text-gray-600">
-                                      {selectedOrder.logisticsNotes || t('noNotes')}
-                                    </p>
-                                  </CardContent>
-                                </Card>
-                              </div>
-
-                              {/* Timestamps */}
-                              <Card>
-                                <CardHeader>
-                                  <CardTitle className="text-lg flex items-center gap-2">
-                                    <Clock className="w-5 h-5" />
-                                    {t('timestamps')}
-                                  </CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-3">
-                                  <div className="p-3 bg-green-50 rounded-lg">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <CheckCircle className="w-4 h-4 text-green-600" />
-                                      <strong className="text-green-800">{t('customerSubmitted')}</strong>
-                                    </div>
-                                    <div className="text-green-700 text-sm">
-                                      {formatDate(selectedOrder.createdAt, language, t('unknown'))}
-                                    </div>
-                                    <div className="text-xs text-green-600 mt-1">
-                                      {t('checkoutExactTime')}
-                                    </div>
-                                  </div>
-                                  <div className="p-3 bg-blue-50 rounded-lg">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      <Activity className="w-4 h-4 text-blue-600" />
-                                      <strong className="text-blue-800">{t('lastStatusUpdate')}</strong>
-                                    </div>
-                                    <div className="text-blue-700 text-sm">
-                                      {formatDate(selectedOrder.updatedAt, language, t('unknown'))}
-                                    </div>
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            </div>
-                          )}
-                        </DialogContent>
-                      </Dialog>
-                    </td>
-                  </tr>
+                          <div className="overflow-hidden rounded-md border border-slate-300">
+                            <table className="w-full table-fixed border-collapse">
+                              <tbody>
+                                <tr>
+                                  <th className="w-[13%] border bg-slate-100 p-2 text-start">{t('name')}</th>
+                                  <td className="w-[20%] border p-2">{order.customerName || t('unknown')}</td>
+                                  <th className="w-[13%] border bg-slate-100 p-2 text-start">{t('phone')}</th>
+                                  <td className="w-[20%] border p-2">{order.customerPhone || t('unknown')}</td>
+                                  <th className="w-[13%] border bg-slate-100 p-2 text-start">{t('email')}</th>
+                                  <td className="w-[21%] break-all border p-2">{order.customerEmail || t('unknown')}</td>
+                                </tr>
+                                <tr>
+                                  <th className="border bg-slate-100 p-2 text-start">{t('totalAmount')}</th>
+                                  <td className="border p-2 font-semibold">{formatAmount(order.totalAmount, order.currency)}</td>
+                                  <th className="border bg-slate-100 p-2 text-start">{t('paymentMethod')}</th>
+                                  <td className="border p-2">{order.paymentMethod ? <PaymentMethodBadge paymentMethod={order.paymentMethod} showIcon className="text-xs" /> : t('unknown')}</td>
+                                  <th className="border bg-slate-100 p-2 text-start">{t('currentStatus')}</th>
+                                  <td className="border p-2">{getStatusDisplay(order, t).label} — {getStatusDisplay(order, t).department}</td>
+                                </tr>
+                                <tr>
+                                  <th className="border bg-slate-100 p-2 text-start">{t('deliveryCode')}</th>
+                                  <td className="border p-2">{order.deliveryCode || t('notAssigned')}</td>
+                                  <th className="border bg-slate-100 p-2 text-start">{t('trackingNumber')}</th>
+                                  <td className="border p-2">{order.trackingNumber || t('notAssigned')}</td>
+                                  <th className="border bg-slate-100 p-2 text-start">{t('deliveryPerson')}</th>
+                                  <td className="border p-2">{order.deliveryPersonName || t('notAssigned')} — {order.deliveryPersonPhone || t('notAssigned')}</td>
+                                </tr>
+                                <tr>
+                                  <th className="border bg-slate-100 p-2 text-start">{t('estimatedDelivery')}</th>
+                                  <td className="border p-2">{order.estimatedDeliveryDate ? formatDate(order.estimatedDeliveryDate, language, t('unknown')) : t('notSet')}</td>
+                                  <th className="border bg-slate-100 p-2 text-start">{t('actualDelivery')}</th>
+                                  <td className="border p-2">{order.actualDeliveryDate ? formatDate(order.actualDeliveryDate, language, t('unknown')) : t('notDelivered')}</td>
+                                  <th className="border bg-slate-100 p-2 text-start">{t('customerSubmitted')}</th>
+                                  <td className="border p-2">{formatDate(order.createdAt, language, t('unknown'))}</td>
+                                </tr>
+                                <tr>
+                                  <th className="border bg-slate-100 p-2 text-start">{t('financialNotes')}</th>
+                                  <td className="border p-2">{order.financialNotes || t('noNotes')}</td>
+                                  <th className="border bg-slate-100 p-2 text-start">{t('warehouseNotes')}</th>
+                                  <td className="border p-2">{order.warehouseNotes || t('noNotes')}</td>
+                                  <th className="border bg-slate-100 p-2 text-start">{t('logisticsNotes')}</th>
+                                  <td className="border p-2">{order.logisticsNotes || t('noNotes')}</td>
+                                </tr>
+                                <tr>
+                                  <th className="border bg-slate-100 p-2 text-start">{t('lastStatusUpdate')}</th>
+                                  <td className="border p-2" colSpan={5}>{formatDate(order.updatedAt, language, t('unknown'))}</td>
+                                </tr>
+                                {getStatusDisplay(order, t).isProblematic && getStatusDisplay(order, t).explanation && (
+                                  <tr>
+                                    <th className="border bg-red-50 p-2 text-start text-red-800">{t('problemDetails')}</th>
+                                    <td className="border bg-red-50 p-2 text-red-700" colSpan={5}>{getStatusDisplay(order, t).explanation}</td>
+                                  </tr>
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  </Fragment>
                 ))}
               </tbody>
             </table>
