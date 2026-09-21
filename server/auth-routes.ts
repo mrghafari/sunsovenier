@@ -53,7 +53,17 @@ async function saveCrmCustomerSession(req: any, customer: typeof crmCustomers.$i
 function getGoogleCallbackUrl(req: any) {
   const forwardedProto = String(req.get('x-forwarded-proto') || '').split(',')[0].trim();
   const protocol = forwardedProto || req.protocol;
-  return `${protocol}://${req.get('host')}/api/auth/google/callback`;
+  const requestHost = String(req.get('host') || '').toLowerCase();
+  const isDevelopmentHost =
+    requestHost.includes('.replit.dev') ||
+    requestHost.startsWith('localhost') ||
+    requestHost.startsWith('127.0.0.1');
+
+  if (isDevelopmentHost) {
+    return `${protocol}://${requestHost}/api/auth/google/callback`;
+  }
+
+  return 'https://www.momtazchem.com/api/auth/google/callback';
 }
 
 async function finishGoogleLogin(req: any, res: any, user: any) {
