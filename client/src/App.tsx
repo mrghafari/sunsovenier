@@ -15,6 +15,7 @@ import Home from "@/pages/home";
 import About from "@/pages/about";
 import Services from "@/pages/services";
 import Contact from "@/pages/contact";
+import { PrivacyPolicy, TermsOfService } from "@/pages/legal-pages";
 import Shop from "@/pages/shop";
 import ShopProductPage from "@/pages/shop-product";
 import WishlistPage from "@/pages/wishlist";
@@ -221,6 +222,8 @@ function Router() {
           <Route path="/about" component={About} />
           <Route path="/services" component={Services} />
           <Route path="/contact" component={Contact} />
+          <Route path="/privacy" component={PrivacyPolicy} />
+          <Route path="/terms" component={TermsOfService} />
           <Route path="/user-guide" component={UserGuide} />
           <Route path="/help" component={UserGuide} />
           <Route path="/shop" component={Shop} />

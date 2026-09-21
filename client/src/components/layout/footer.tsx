@@ -115,7 +115,13 @@ const Footer = () => {
   const productLinks = parseLinks(footerSettings?.productLinks);
   const companyLinks = parseLinks(footerSettings?.companyLinks);
   const supportLinks = parseLinks(footerSettings?.supportLinks);
-  const legalLinks = parseLinks(footerSettings?.legalLinks);
+  const configuredLegalLinks = parseLinks(footerSettings?.legalLinks);
+  const legalLinks = configuredLegalLinks.length > 0
+    ? configuredLegalLinks
+    : [
+        { name: 'Privacy Policy', href: '/privacy' },
+        { name: 'Terms of Service', href: '/terms' },
+      ];
 
   // Social media configuration
   const socialMediaPlatforms = [
