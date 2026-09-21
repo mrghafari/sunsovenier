@@ -35,12 +35,20 @@ interface AbandonedCartSettings {
   autoDeleteAfterHours: number;
   notificationTitle: string;
   notificationMessage: string;
+  senderEmailCategory: string;
   buttonText: string;
   showDiscountOffer: boolean;
   discountPercentage: number;
   discountCode: string;
   maxNotifications: number;
   notificationIntervalMinutes: number;
+}
+
+interface EmailSender {
+  categoryKey: string;
+  categoryName: string;
+  fromEmail: string;
+  fromName: string;
 }
 
 interface CartSession {
@@ -67,6 +75,7 @@ interface AbandonedCartAnalytics {
 export default function AbandonedCartManagement() {
   const [activeTab, setActiveTab] = useState("settings");
   const [autoDeleteEnabled, setAutoDeleteEnabled] = useState(false);
+  const [senderEmailCategory, setSenderEmailCategory] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { t, language } = useLanguage();
@@ -75,6 +84,11 @@ export default function AbandonedCartManagement() {
   const { data: settings, isLoading: settingsLoading } = useQuery({
     queryKey: ['/api/admin/abandoned-cart/settings'],
     queryFn: () => apiRequest('/api/admin/abandoned-cart/settings'),
+  });
+
+  const { data: emailSenders, isLoading: emailSendersLoading } = useQuery({
+    queryKey: ['/api/shop/email-senders'],
+    queryFn: () => apiRequest('/api/shop/email-senders', undefined),
   });
 
   // Fetch abandoned carts
@@ -97,6 +111,10 @@ export default function AbandonedCartManagement() {
       setAutoDeleteEnabled(settings.data.autoDeleteEnabled);
     }
   }, [settings?.data?.autoDeleteEnabled]);
+
+  useEffect(() => {
+    setSenderEmailCategory(settings?.data?.senderEmailCategory || "");
+  }, [settings?.data?.senderEmailCategory]);
 
   // Update settings mutation
   const updateSettingsMutation = useMutation({
@@ -156,6 +174,7 @@ export default function AbandonedCartManagement() {
       autoDeleteAfterHours: parseInt(formData.get('autoDeleteAfterHours') as string) || 168,
       notificationTitle: formData.get('notificationTitle') as string,
       notificationMessage: formData.get('notificationMessage') as string,
+      senderEmailCategory,
       buttonText: formData.get('buttonText') as string,
       showDiscountOffer: formData.get('showDiscountOffer') === 'on',
       discountPercentage: parseInt(formData.get('discountPercentage') as string) || 0,
@@ -184,7 +203,7 @@ export default function AbandonedCartManagement() {
       notification: {
         title,
         message,
-        notificationType: 'browser',
+        notificationType: 'email',
       }
     });
   };
@@ -339,6 +358,37 @@ export default function AbandonedCartManagement() {
                       <h3 className="text-lg font-semibold">
                         {language === 'fa' ? 'محتوای پیام‌ها' : language === 'ar' ? 'محتوى الرسائل' : language === 'ku' ? 'ناوەڕۆکی پەیامەکان' : 'Message Content'}
                       </h3>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="senderEmailCategory">
+                          {language === 'fa' ? 'ایمیل فرستنده' : language === 'ar' ? 'البريد الإلكتروني للمرسل' : language === 'tr' ? 'Gönderen e-posta adresi' : 'Sender email'}
+                        </Label>
+                        <select
+                          id="senderEmailCategory"
+                          name="senderEmailCategory"
+                          value={senderEmailCategory}
+                          onChange={(event) => setSenderEmailCategory(event.target.value)}
+                          disabled={emailSendersLoading}
+                          required
+                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        >
+                          <option value="" disabled>
+                            {emailSendersLoading
+                              ? (language === 'fa' ? 'در حال بارگذاری ایمیل‌ها...' : 'Loading email addresses...')
+                              : (language === 'fa' ? 'یک ایمیل شرکت را انتخاب کنید' : language === 'ar' ? 'اختر بريد الشركة' : language === 'tr' ? 'Bir şirket e-postası seçin' : 'Select a company email')}
+                          </option>
+                          {(emailSenders?.data || []).map((sender: EmailSender) => (
+                            <option key={sender.categoryKey} value={sender.categoryKey}>
+                              {sender.fromEmail} — {sender.fromName || sender.categoryName}
+                            </option>
+                          ))}
+                        </select>
+                        {!emailSendersLoading && (emailSenders?.data || []).length === 0 && (
+                          <p className="text-sm text-red-600">
+                            {language === 'fa' ? 'هیچ ایمیل فعال شرکتی تنظیم نشده است. ابتدا یک SMTP فعال در مدیریت ایمیل‌ها ثبت کنید.' : 'No active company email is configured. Add an active SMTP sender in email management first.'}
+                          </p>
+                        )}
+                      </div>
                       
                       <div className="space-y-2">
                         <Label htmlFor="notificationTitle">{getMultilingualMessage(language, 'notification_title')}</Label>

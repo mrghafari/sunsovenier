@@ -1,7 +1,7 @@
 import nodemailer from 'nodemailer';
 import { CONFIG } from './config';
 import { db } from './db';
-import { smtpSettings, emailTemplates } from '../shared/email-schema';
+import { smtpSettings, emailTemplates, emailCategories } from '../shared/email-schema';
 import { eq, and } from 'drizzle-orm';
 import { getLocalizedMessage, getLocalizedEmailSubject } from './multilingual-messages';
 
@@ -18,6 +18,23 @@ interface EmailOptions {
 class EmailService {
   private async getSMTPConfig(category: string = 'admin') {
     try {
+      const [categoryConfig] = await db
+        .select({ smtp: smtpSettings })
+        .from(smtpSettings)
+        .innerJoin(emailCategories, eq(smtpSettings.categoryId, emailCategories.id))
+        .where(
+          and(
+            eq(emailCategories.categoryKey, category),
+            eq(emailCategories.isActive, true),
+            eq(smtpSettings.isActive, true),
+          ),
+        )
+        .limit(1);
+
+      if (categoryConfig?.smtp) {
+        return categoryConfig.smtp;
+      }
+
       // Map category strings to category IDs
       const categoryMap: { [key: string]: number } = {
         'admin': 1,
@@ -615,7 +632,7 @@ ${orderData.customerName} عزیز،
       const { transporter, config } = await this.createTransporter(category);
 
       await transporter.sendMail({
-        from: `"Momtaz Chemical" <${config.username}>`,
+        from: `"${config.fromName || 'Momtaz Chemical'}" <${config.fromEmail}>`,
         to: options.to,
         subject: options.subject,
         text: options.text,

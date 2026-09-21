@@ -31,6 +31,7 @@ export const abandonedCartSettings = pgTable("abandoned_cart_settings", {
   autoDeleteAfterHours: integer("auto_delete_after_hours").default(168),
   notificationTitle: text("notification_title").default("سبد خرید شما منتظر است!"),
   notificationMessage: text("notification_message").default("محصولات انتخابی شما در سبد خرید منتظر تکمیل خرید هستند. برای ادامه خرید کلیک کنید."),
+  senderEmailCategory: text("sender_email_category"),
   buttonText: text("button_text").default("ادامه خرید"),
   showDiscountOffer: boolean("show_discount_offer").default(false),
   discountPercentage: integer("discount_percentage").default(0),

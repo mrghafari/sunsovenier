@@ -48275,6 +48275,27 @@ momtazchem.com
   // Update abandoned cart settings
   app.put("/api/admin/abandoned-cart/settings", requireAuth, async (req: Request, res: Response) => {
     try {
+      const senderEmailCategory = String(req.body.senderEmailCategory || "").trim();
+      if (!senderEmailCategory) {
+        return res.status(400).json({ success: false, message: "Sender email is required" });
+      }
+      const senderResult = await pool.query(
+        `SELECT 1
+         FROM email_categories c
+         JOIN smtp_settings s ON s.category_id = c.id
+         WHERE c.category_key = $1
+           AND c.is_active = true
+           AND s.is_active = true
+           AND s.host IS NOT NULL
+           AND s.username IS NOT NULL
+           AND s.password IS NOT NULL
+           AND s.from_email ~* '^[^@[:space:]]+@[^@[:space:]]+[.][^@[:space:]]+$'
+         LIMIT 1`,
+        [senderEmailCategory],
+      );
+      if (senderResult.rowCount === 0) {
+        return res.status(400).json({ success: false, message: "Selected sender email is not available" });
+      }
       const settings = await cartStorage.updateAbandonedCartSettings(req.body);
       res.json({ success: true, data: settings });
     } catch (error) {
@@ -48365,7 +48386,7 @@ momtazchem.com
   app.post("/api/admin/abandoned-cart/notify/:cartId", requireAuth, async (req, res) => {
     try {
       const cartId = parseInt(req.params.cartId);
-      const { title, message, notificationType } = req.body;
+      const { notificationType } = req.body;
       
       // Get cart session info (check both active and abandoned carts)
       const [activeCarts, abandonedCarts] = await Promise.all([
@@ -48378,10 +48399,37 @@ momtazchem.com
         return res.status(404).json({ success: false, message: "Cart session not found" });
       }
 
+      const settings = await cartStorage.getAbandonedCartSettings();
+      if (!settings?.senderEmailCategory) {
+        return res.status(400).json({ success: false, message: "Sender email is not configured" });
+      }
+      const title = settings.notificationTitle?.trim();
+      const message = settings.notificationMessage?.trim();
+      if (!title || !message) {
+        return res.status(400).json({ success: false, message: "Notification content is not configured" });
+      }
+
+      const customer = await crmStorage.getCrmCustomerById(cartSession.customerId);
+      if (!customer?.email) {
+        return res.status(400).json({ success: false, message: "Customer email is not available" });
+      }
+
+      const emailSent = await emailService.sendEmail(
+        {
+          to: customer.email,
+          subject: title,
+          text: message,
+        },
+        settings.senderEmailCategory,
+      );
+      if (!emailSent) {
+        return res.status(502).json({ success: false, message: "Failed to send email" });
+      }
+
       await cartStorage.createNotification({
         cartSessionId: cartId,
         customerId: cartSession.customerId,
-        notificationType: notificationType || 'browser',
+        notificationType: notificationType || 'email',
         title,
         message
       });
