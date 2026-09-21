@@ -86,6 +86,9 @@ export default function AbandonedCartManagement() {
   const { data: abandonedCarts, isLoading: cartsLoading } = useQuery({
     queryKey: ['/api/admin/abandoned-cart/carts'],
     queryFn: () => apiRequest('/api/admin/abandoned-cart/carts'),
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchInterval: 30_000,
   });
 
   // Fetch analytics
@@ -113,6 +116,7 @@ export default function AbandonedCartManagement() {
         description: getMultilingualMessage(language, 'settings_saved_successfully'),
       });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/abandoned-cart/settings'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/abandoned-cart/carts'] });
     },
     onError: () => {
       toast({

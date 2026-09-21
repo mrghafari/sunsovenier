@@ -48286,7 +48286,12 @@ momtazchem.com
   // Get abandoned cart sessions
   app.get("/api/admin/abandoned-cart/carts", requireAuth, async (req: Request, res: Response) => {
     try {
-      const carts = await cartStorage.getAbandonedCarts();
+      const settings = await cartStorage.getAbandonedCartSettings();
+      const timeoutMinutes = Math.min(
+        10080,
+        Math.max(1, Number(settings?.timeoutMinutes) || 30),
+      );
+      const carts = await cartStorage.getAbandonedCarts(timeoutMinutes);
       res.json({ success: true, data: carts });
     } catch (error) {
       console.error("Error fetching abandoned carts:", error);
@@ -48297,8 +48302,13 @@ momtazchem.com
   // Get abandoned cart analytics
   app.get("/api/admin/abandoned-cart/analytics", requireAuth, async (req: Request, res: Response) => {
     try {
-      const analytics = await cartStorage.getAbandonedCartAnalytics();
-      res.json({ success: true, data: analytics });
+      const days = Math.min(
+        365,
+        Math.max(1, Number.parseInt(String(req.query.days ?? "30"), 10) || 30),
+      );
+      const analytics = await cartStorage.getCartRecoveryAnalytics(days);
+      const overallStats = await cartStorage.getOverallStats();
+      res.json({ success: true, data: { analytics, overallStats } });
     } catch (error) {
       console.error("Error fetching abandoned cart analytics:", error);
       res.status(500).json({ success: false, message: "Internal server error" });
@@ -48350,43 +48360,6 @@ momtazchem.com
   // =============================================================================
 
   // Track cart session activity (duplicate endpoint removed - merged with above)
-
-  // Get abandoned cart settings
-  app.get("/api/admin/abandoned-cart/settings", requireAuth, async (req, res) => {
-    try {
-      const settings = await cartStorage.getAbandonedCartSettings();
-      res.json({ success: true, data: settings });
-    } catch (error) {
-      console.error("Error fetching abandoned cart settings:", error);
-      res.status(500).json({ success: false, message: "Failed to fetch settings" });
-    }
-  });
-
-  // Update abandoned cart settings
-  app.put("/api/admin/abandoned-cart/settings", requireAuth, async (req, res) => {
-    try {
-      const settings = req.body;
-      await cartStorage.updateAbandonedCartSettings(settings);
-      res.json({ success: true, message: "Settings updated successfully" });
-    } catch (error) {
-      console.error("Error updating abandoned cart settings:", error);
-      res.status(500).json({ success: false, message: "Failed to update settings" });
-    }
-  });
-
-  // Get abandoned carts
-  app.get("/api/admin/abandoned-cart/carts", requireAuth, async (req, res) => {
-    try {
-      const { timeout } = req.query;
-      const timeoutMinutes = timeout ? parseInt(timeout as string) : 30;
-      
-      const abandonedCarts = await cartStorage.getAbandonedCarts(timeoutMinutes);
-      res.json({ success: true, data: abandonedCarts });
-    } catch (error) {
-      console.error("Error fetching abandoned carts:", error);
-      res.status(500).json({ success: false, message: "Failed to fetch abandoned carts" });
-    }
-  });
 
   // Send abandoned cart notification
   app.post("/api/admin/abandoned-cart/notify/:cartId", requireAuth, async (req, res) => {
@@ -48445,28 +48418,6 @@ momtazchem.com
     } catch (error) {
       console.error("Error marking notification as read:", error);
       res.status(500).json({ success: false, message: "Failed to mark notification as read" });
-    }
-  });
-
-  // Get abandoned cart analytics
-  app.get("/api/admin/abandoned-cart/analytics", requireAuth, async (req, res) => {
-    try {
-      const { days } = req.query;
-      const analyticsDays = days ? parseInt(days as string) : 30;
-      
-      const analytics = await cartStorage.getCartRecoveryAnalytics(analyticsDays);
-      const overallStats = await cartStorage.getOverallStats();
-      
-      res.json({ 
-        success: true, 
-        data: {
-          analytics,
-          overallStats
-        }
-      });
-    } catch (error) {
-      console.error("Error fetching abandoned cart analytics:", error);
-      res.status(500).json({ success: false, message: "Failed to fetch analytics" });
     }
   });
 
