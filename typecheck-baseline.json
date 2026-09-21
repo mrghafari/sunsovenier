@@ -549,35 +549,11 @@
       "count": 1
     },
     {
-      "key": "[\"client/src/pages/abandoned-cart-management.tsx\",2367,\"This comparison appears to be unintentional because the types '\\\"tr\\\" | \\\"en\\\"' and '\\\"ku\\\"' have no overlap.\",\"{language === 'fa' ? 'ارسال پیام یادآوری' : language === 'ar' ? 'إرسال رسالة تذكير' : language === 'ku' ? 'ناردنی پەیامی یادەوەری' : 'Send Reminder Message'}\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/abandoned-cart-management.tsx\",2367,\"This comparison appears to be unintentional because the types '\\\"tr\\\" | \\\"en\\\"' and '\\\"ku\\\"' have no overlap.\",\"{language === 'fa' ? 'ایمیل' : language === 'ar' ? 'بريد إلكتروني' : language === 'ku' ? 'ئیمەیل' : 'Email'}\"]",
-      "count": 1
-    },
-    {
       "key": "[\"client/src/pages/abandoned-cart-management.tsx\",2367,\"This comparison appears to be unintentional because the types '\\\"tr\\\" | \\\"en\\\"' and '\\\"ku\\\"' have no overlap.\",\"{language === 'fa' ? 'بازگشت موفق' : language === 'ar' ? 'الاسترداد الناجح' : language === 'ku' ? 'گەڕانەوەی سەرکەوتوو' : 'Successfully Recovered'}\"]",
       "count": 1
     },
     {
-      "key": "[\"client/src/pages/abandoned-cart-management.tsx\",2367,\"This comparison appears to be unintentional because the types '\\\"tr\\\" | \\\"en\\\"' and '\\\"ku\\\"' have no overlap.\",\"{language === 'fa' ? 'پیام مرورگر' : language === 'ar' ? 'رسالة المتصفح' : language === 'ku' ? 'پەیامی گەڕۆک' : 'Browser Message'}\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/abandoned-cart-management.tsx\",2367,\"This comparison appears to be unintentional because the types '\\\"tr\\\" | \\\"en\\\"' and '\\\"ku\\\"' have no overlap.\",\"{language === 'fa' ? 'پیامک' : language === 'ar' ? 'رسالة نصية' : language === 'ku' ? 'پەیامی دەقی' : 'SMS'}\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/abandoned-cart-management.tsx\",2367,\"This comparison appears to be unintentional because the types '\\\"tr\\\" | \\\"en\\\"' and '\\\"ku\\\"' have no overlap.\",\"{language === 'fa' ? 'پیام‌ها' : language === 'ar' ? 'الرسائل' : language === 'ku' ? 'پەیامەکان' : 'Messages'}\"]",
-      "count": 1
-    },
-    {
       "key": "[\"client/src/pages/abandoned-cart-management.tsx\",2367,\"This comparison appears to be unintentional because the types '\\\"tr\\\" | \\\"en\\\"' and '\\\"ku\\\"' have no overlap.\",\"{language === 'fa' ? 'پیام‌های ارسالی' : language === 'ar' ? 'الرسائل المرسلة' : language === 'ku' ? 'پەیامە نێردراوەکان' : 'Messages Sent'}\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/abandoned-cart-management.tsx\",2367,\"This comparison appears to be unintentional because the types '\\\"tr\\\" | \\\"en\\\"' and '\\\"ku\\\"' have no overlap.\",\"{language === 'fa' ? 'پیش‌نمایش پیام:' : language === 'ar' ? 'معاينة الرسالة:' : language === 'ku' ? 'پێشبینینی پەیام:' : 'Message Preview:'}\"]",
       "count": 1
     },
     {
@@ -621,27 +597,7 @@
       "count": 1
     },
     {
-      "key": "[\"client/src/pages/abandoned-cart-management.tsx\",2367,\"This comparison appears to be unintentional because the types '\\\"tr\\\" | \\\"en\\\"' and '\\\"ku\\\"' have no overlap.\",\"{language === 'fa' ? 'نوع پیام' : language === 'ar' ? 'نوع الرسالة' : language === 'ku' ? 'جۆری پەیام' : 'Message Type'}\"]",
-      "count": 1
-    },
-    {
       "key": "[\"client/src/pages/abandoned-cart-management.tsx\",2367,\"This comparison appears to be unintentional because the types '\\\"tr\\\" | \\\"en\\\"' and '\\\"ku\\\"' have no overlap.\",\"{language === 'fa' ? 'هیچ سبد خرید رها شده‌ای موجود نیست' : language === 'ar' ? 'لا توجد سلات مهجورة' : language === 'ku' ? 'هیچ سەبەتێکی بەجێهێڵراو نییە' : 'No abandoned carts found'}\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/abandoned-cart-management.tsx\",2367,\"This comparison appears to be unintentional because the types '\\\"tr\\\" | \\\"en\\\"' and '\\\"ku\\\"' have no overlap.\",\"{language === 'fa' ? 'واتساپ' : language === 'ar' ? 'واتساب' : language === 'ku' ? 'واتساپ' : 'WhatsApp'}\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/abandoned-cart-management.tsx\",2367,\"This comparison appears to be unintentional because the types '\\\"tr\\\" | \\\"en\\\"' and '\\\"ku\\\"' have no overlap.\",\"description: language === 'fa' ? \\\"عنوان و متن پیام الزامی است\\\" : language === 'ar' ? \\\"عنوان الإشعار والرسالة مطلوبان\\\" : language === 'ku' ? \\\"ناونیشان و دەقی پەیام پێویستە\\\" : \\\"Notification title and message are required\\\",\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/abandoned-cart-management.tsx\",2367,\"This comparison appears to be unintentional because the types '\\\"tr\\\" | \\\"en\\\"' and '\\\"ku\\\"' have no overlap.\",\"language === 'ku' ? 'دەقی پەیام بنووسە...' :\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/abandoned-cart-management.tsx\",2367,\"This comparison appears to be unintentional because the types '\\\"tr\\\" | \\\"en\\\"' and '\\\"ku\\\"' have no overlap.\",\"language === 'ku' ? 'ناونیشانی پەیام بنووسە...' :\"]",
       "count": 1
     },
     {

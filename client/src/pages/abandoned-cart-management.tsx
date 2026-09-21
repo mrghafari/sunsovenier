@@ -67,11 +67,6 @@ interface AbandonedCartAnalytics {
 export default function AbandonedCartManagement() {
   const [activeTab, setActiveTab] = useState("settings");
   const [autoDeleteEnabled, setAutoDeleteEnabled] = useState(false);
-  const [notificationForm, setNotificationForm] = useState({
-    title: '',
-    message: '',
-    notificationType: 'browser'
-  });
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { t, language } = useLanguage();
@@ -139,7 +134,6 @@ export default function AbandonedCartManagement() {
         title: getMultilingualMessage(language, 'notification_sent'),
         description: getMultilingualMessage(language, 'notification_sent_successfully'),
       });
-      setNotificationForm({ title: '', message: '', notificationType: 'browser' });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/abandoned-cart/carts'] });
     },
     onError: () => {
@@ -174,10 +168,12 @@ export default function AbandonedCartManagement() {
   };
 
   const handleSendNotification = (cartId: number) => {
-    if (!notificationForm.title || !notificationForm.message) {
+    const title = settings?.data?.notificationTitle?.trim();
+    const message = settings?.data?.notificationMessage?.trim();
+    if (!title || !message) {
       toast({
         title: getMultilingualMessage(language, 'error'),
-        description: language === 'fa' ? "عنوان و متن پیام الزامی است" : language === 'ar' ? "عنوان الإشعار والرسالة مطلوبان" : language === 'ku' ? "ناونیشان و دەقی پەیام پێویستە" : "Notification title and message are required",
+        description: language === 'fa' ? "ابتدا عنوان و متن پیام را در تنظیمات ذخیره کنید" : language === 'ar' ? "احفظ عنوان الإشعار ونصه في الإعدادات أولاً" : language === 'tr' ? "Önce bildirim başlığını ve mesajını ayarlara kaydedin" : "Save the notification title and message in settings first",
         variant: "destructive",
       });
       return;
@@ -185,7 +181,11 @@ export default function AbandonedCartManagement() {
 
     sendNotificationMutation.mutate({
       cartId,
-      notification: notificationForm
+      notification: {
+        title,
+        message,
+        notificationType: 'browser',
+      }
     });
   };
 
@@ -216,7 +216,7 @@ export default function AbandonedCartManagement() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="settings" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
               {getMultilingualMessage(language, 'abandoned_cart_settings')}
@@ -224,10 +224,6 @@ export default function AbandonedCartManagement() {
             <TabsTrigger value="carts" className="flex items-center gap-2">
               <ShoppingCart className="h-4 w-4" />
               {getMultilingualMessage(language, 'abandoned_carts')}
-            </TabsTrigger>
-            <TabsTrigger value="notifications" className="flex items-center gap-2">
-              <MessageCircle className="h-4 w-4" />
-              {language === 'fa' ? 'پیام‌ها' : language === 'ar' ? 'الرسائل' : language === 'ku' ? 'پەیامەکان' : 'Messages'}
             </TabsTrigger>
             <TabsTrigger value="analytics" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
@@ -504,91 +500,6 @@ export default function AbandonedCartManagement() {
                     )}
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Notifications Tab */}
-          <TabsContent value="notifications" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MessageCircle className="h-5 w-5" />
-                  {language === 'fa' ? 'ارسال پیام یادآوری' : language === 'ar' ? 'إرسال رسالة تذكير' : language === 'ku' ? 'ناردنی پەیامی یادەوەری' : 'Send Reminder Message'}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="notificationTitle">{getMultilingualMessage(language, 'notification_title')}</Label>
-                    <Input
-                      id="notificationTitle"
-                      value={notificationForm.title}
-                      onChange={(e) => setNotificationForm(prev => ({ ...prev, title: e.target.value }))}
-                      placeholder={
-                        language === 'fa' ? 'عنوان پیام را وارد کنید...' : 
-                        language === 'ar' ? 'أدخل عنوان الرسالة...' : 
-                        language === 'ku' ? 'ناونیشانی پەیام بنووسە...' : 
-                        'Enter message title...'
-                      }
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="notificationMessage">{getMultilingualMessage(language, 'notification_message')}</Label>
-                    <Textarea
-                      id="notificationMessage"
-                      value={notificationForm.message}
-                      onChange={(e) => setNotificationForm(prev => ({ ...prev, message: e.target.value }))}
-                      placeholder={
-                        language === 'fa' ? 'متن پیام را وارد کنید...' : 
-                        language === 'ar' ? 'أدخل نص الرسالة...' : 
-                        language === 'ku' ? 'دەقی پەیام بنووسە...' : 
-                        'Enter message text...'
-                      }
-                      rows={4}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="notificationType">
-                      {language === 'fa' ? 'نوع پیام' : language === 'ar' ? 'نوع الرسالة' : language === 'ku' ? 'جۆری پەیام' : 'Message Type'}
-                    </Label>
-                    <select
-                      id="notificationType"
-                      value={notificationForm.notificationType}
-                      onChange={(e) => setNotificationForm(prev => ({ ...prev, notificationType: e.target.value }))}
-                      className="w-full p-2 border rounded-md"
-                    >
-                      <option value="browser">
-                        {language === 'fa' ? 'پیام مرورگر' : language === 'ar' ? 'رسالة المتصفح' : language === 'ku' ? 'پەیامی گەڕۆک' : 'Browser Message'}
-                      </option>
-                      <option value="email">
-                        {language === 'fa' ? 'ایمیل' : language === 'ar' ? 'بريد إلكتروني' : language === 'ku' ? 'ئیمەیل' : 'Email'}
-                      </option>
-                      <option value="sms">
-                        {language === 'fa' ? 'پیامک' : language === 'ar' ? 'رسالة نصية' : language === 'ku' ? 'پەیامی دەقی' : 'SMS'}
-                      </option>
-                      <option value="whatsapp">
-                        {language === 'fa' ? 'واتساپ' : language === 'ar' ? 'واتساب' : language === 'ku' ? 'واتساپ' : 'WhatsApp'}
-                      </option>
-                    </select>
-                  </div>
-
-                  <div className="bg-blue-50 p-4 rounded-lg">
-                    <h4 className="font-medium mb-2">
-                      {language === 'fa' ? 'پیش‌نمایش پیام:' : language === 'ar' ? 'معاينة الرسالة:' : language === 'ku' ? 'پێشبینینی پەیام:' : 'Message Preview:'}
-                    </h4>
-                    <div className="bg-white p-3 rounded border">
-                      <div className="font-semibold text-blue-900">
-                        {notificationForm.title || getMultilingualMessage(language, 'notification_title')}
-                      </div>
-                      <div className="text-gray-700 mt-1">
-                        {notificationForm.message || getMultilingualMessage(language, 'notification_message')}
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </CardContent>
             </Card>
           </TabsContent>
