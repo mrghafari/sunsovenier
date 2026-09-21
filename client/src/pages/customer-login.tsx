@@ -15,8 +15,8 @@ import { Link } from 'wouter';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 type LoginForm = {
-  email: string;
-  password: string;
+  identifier: string;
+  password?: string;
 };
 
 const loginCopy = {
@@ -113,17 +113,22 @@ export default function CustomerLogin() {
   const { language, direction } = useLanguage();
   const copy = loginCopy[language];
   const loginSchema = z.object({
-    email: z.string().email(copy.invalidEmail),
-    password: z.string().min(1, copy.passwordRequired),
+    identifier: z.string().min(3, copy.invalidEmail),
+    password: z.string().optional(),
   });
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [loginMethod, setLoginMethod] = useState<'password' | 'otp'>(() =>
+    new URLSearchParams(window.location.search).get('mode') === 'otp' ? 'otp' : 'password'
+  );
+  const [otpChallengeId, setOtpChallengeId] = useState("");
+  const [otpCode, setOtpCode] = useState("");
 
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: '',
+      identifier: '',
       password: '',
     },
   });
@@ -133,10 +138,31 @@ export default function CustomerLogin() {
     setLoginError(null);
 
     try {
-      const response = await apiRequest('/api/customers/login', {
-        method: 'POST',
-        body: data,
-      });
+      if (loginMethod === 'password' && !data.password) {
+        form.setError('password', { message: copy.passwordRequired });
+        return;
+      }
+
+      const response = loginMethod === 'password'
+        ? await apiRequest('/api/customers/login', {
+            method: 'POST',
+            body: data,
+          })
+        : otpChallengeId
+          ? await apiRequest('/api/customers/login-otp/verify', {
+              method: 'POST',
+              body: { challengeId: otpChallengeId, code: otpCode },
+            })
+          : await apiRequest('/api/customers/login-otp/request', {
+              method: 'POST',
+              body: { identifier: data.identifier },
+            });
+
+      if (loginMethod === 'otp' && !otpChallengeId && response.success) {
+        setOtpChallengeId(response.challengeId);
+        toast({ title: language === 'fa' ? 'کد ورود ارسال شد' : 'Login code sent' });
+        return;
+      }
 
       if (response.success) {
         queryClient.setQueryData(['/api/customers/me'], response);
@@ -173,7 +199,7 @@ export default function CustomerLogin() {
     if (loginError) {
       setLoginError(null);
     }
-  }, [form.watch('email'), form.watch('password')]);
+  }, [form.watch('identifier'), form.watch('password')]);
 
   return (
     <div dir={direction} className="min-h-screen bg-gradient-to-br from-blue-50 to-sky-50 flex items-center justify-center p-4">
@@ -203,6 +229,14 @@ export default function CustomerLogin() {
 
           <CardContent>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <div className="grid grid-cols-2 gap-2">
+                <Button type="button" variant={loginMethod === 'password' ? 'default' : 'outline'} onClick={() => { setLoginMethod('password'); setOtpChallengeId(''); }}>
+                  {language === 'fa' ? 'ورود با رمز' : 'Password'}
+                </Button>
+                <Button type="button" variant={loginMethod === 'otp' ? 'default' : 'outline'} onClick={() => { setLoginMethod('otp'); setOtpChallengeId(''); }}>
+                  {language === 'fa' ? 'ورود با کد' : 'OTP'}
+                </Button>
+              </div>
               {/* Error Display */}
               {loginError && (
                 <div className="bg-red-50 border border-red-200 rounded-md p-3 text-center">
@@ -212,26 +246,25 @@ export default function CustomerLogin() {
 
               {/* Email Field */}
               <div className="space-y-2">
-                <Label htmlFor="email" className="block text-start">
-                  {copy.email}
+                <Label htmlFor="identifier" className="block text-start">
+                  {language === 'fa' ? 'ایمیل یا شماره موبایل' : 'Email or mobile'}
                 </Label>
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="example@email.com"
-                  {...form.register('email')}
+                  id="identifier"
+                  type="text"
+                  placeholder={language === 'fa' ? 'ایمیل یا شماره موبایل' : 'Email or mobile'}
+                  {...form.register('identifier')}
                   className="text-start"
                   dir="ltr"
                 />
-                {form.formState.errors.email && (
+                {form.formState.errors.identifier && (
                   <p className="text-red-500 text-sm text-start">
-                    {form.formState.errors.email.message}
+                    {form.formState.errors.identifier.message}
                   </p>
                 )}
               </div>
 
-              {/* Password Field */}
-              <div className="space-y-2">
+              {loginMethod === 'password' && <div className="space-y-2">
                 <Label htmlFor="password" className="block text-start">
                   {copy.password}
                 </Label>
@@ -260,7 +293,21 @@ export default function CustomerLogin() {
                     {form.formState.errors.password.message}
                   </p>
                 )}
-              </div>
+              </div>}
+
+              {loginMethod === 'otp' && otpChallengeId && (
+                <div className="space-y-2">
+                  <Label htmlFor="otpCode">{language === 'fa' ? 'کد یک‌بارمصرف' : 'One-time code'}</Label>
+                  <Input
+                    id="otpCode"
+                    value={otpCode}
+                    onChange={(event) => setOtpCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    dir="ltr"
+                  />
+                </div>
+              )}
 
               {/* Submit Button */}
               <Button
@@ -268,7 +315,9 @@ export default function CustomerLogin() {
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3"
                 disabled={isLoading}
               >
-                {isLoading ? copy.loggingIn : copy.login}
+                {isLoading ? copy.loggingIn : loginMethod === 'otp' && !otpChallengeId
+                  ? (language === 'fa' ? 'ارسال کد ورود' : 'Send login code')
+                  : copy.login}
               </Button>
 
               {/* Links */}

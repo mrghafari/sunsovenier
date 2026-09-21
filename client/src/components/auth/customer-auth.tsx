@@ -94,7 +94,7 @@ function getZodErrorMap(t: any): z.ZodErrorMap {
 // Form schemas - simplified without hardcoded messages
 // Error messages will be handled by the custom error map
 const loginSchema = z.object({
-  email: z.string().email(),
+  identifier: z.string().min(3),
   password: z.string().min(6),
 });
 
@@ -194,7 +194,7 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
   const loginForm = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "",
+      identifier: "",
       password: "",
     },
   });
@@ -395,7 +395,7 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
           setEmailExists(true);
           if (otpResult.duplicateField === 'email') {
             setDuplicateEmail(registerData.email);
-            loginForm.setValue("email", registerData.email);
+            loginForm.setValue("identifier", registerData.email);
           }
           setActiveTab("login");
           toast({
@@ -450,7 +450,7 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
             setEmailExists(true);
             setDuplicateEmail(data.email);
             setActiveTab("login");
-            loginForm.setValue("email", data.email);
+            loginForm.setValue("identifier", data.email);
             toast({
               title: t.auth.emailAlreadyRegistered,
               description: t.auth.emailAlreadyRegisteredDesc,
@@ -708,20 +708,31 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
               <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
                 <FormField
                   control={loginForm.control}
-                  name="email"
+                  name="identifier"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="flex items-center gap-2">
                         <Mail className="h-4 w-4" />
-                        {t.email}
+                        {language === 'fa' ? 'ایمیل یا شماره موبایل' : 'Email or mobile'}
                       </FormLabel>
                       <FormControl>
-                        <Input type="email" placeholder={t.auth.enterEmail} {...field} />
+                        <Input type="text" placeholder={language === 'fa' ? 'ایمیل یا شماره موبایل' : 'Email or mobile'} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    onOpenChange(false);
+                    window.location.href = '/customer/login?mode=otp';
+                  }}
+                >
+                  {language === 'fa' ? 'ورود با کد یک‌بارمصرف' : 'Login with one-time code'}
+                </Button>
                 <FormField
                   control={loginForm.control}
                   name="password"

@@ -1,14 +1,15 @@
 import { Router } from 'express';
 import { db } from './db';
-import { customersOtp, crmCustomers } from '../shared/schema';
+import { customersOtp, crmCustomers, customerLoginOtps } from '../shared/schema';
 import { emailTemplates, customerVerificationSettings } from '../shared/customer-schema';
-import { eq, and, gt, or } from 'drizzle-orm';
+import { eq, and, gt, or, sql, desc } from 'drizzle-orm';
 import { SmsService } from './sms-service';
 import { normalizeSmsLanguage, selectLocalizedSms } from './sms-language';
 import { WhatsAppService } from './whatsapp-service';
 import nodemailer from 'nodemailer';
 import { EmailStorage } from './email-storage';
 import bcrypt from 'bcryptjs';
+import { randomInt, randomUUID } from 'node:crypto';
 
 const router = Router();
 const emailStorage = new EmailStorage();
@@ -167,6 +168,157 @@ async function sendOtpEmail(email: string, code: string, name?: string): Promise
     return false;
   }
 }
+
+function normalizeLoginIdentifier(value: unknown): string {
+  return String(value || '').trim().toLowerCase();
+}
+
+function normalizePhone(value: string): string {
+  return value.replace(/\D/g, '');
+}
+
+async function saveCustomerSession(req: any, customer: typeof crmCustomers.$inferSelect) {
+  req.session.adminId = undefined;
+  req.session.customUserId = undefined;
+  req.session.customerId = customer.id;
+  req.session.customerEmail = customer.email;
+  req.session.crmCustomerId = customer.id;
+  req.session.isAuthenticated = true;
+  await new Promise<void>((resolve, reject) => {
+    req.session.save((error: Error | null) => error ? reject(error) : resolve());
+  });
+}
+
+router.post('/api/customers/login-otp/request', async (req, res) => {
+  try {
+    const identifier = normalizeLoginIdentifier(req.body.identifier);
+    if (identifier.length < 3) {
+      return res.status(400).json({ success: false, message: 'ایمیل یا شماره موبایل معتبر وارد کنید' });
+    }
+
+    const isEmail = identifier.includes('@');
+    const normalizedPhone = normalizePhone(identifier);
+    const customer = await db.query.crmCustomers.findFirst({
+      where: isEmail
+        ? sql`lower(${crmCustomers.email}) = ${identifier}`
+        : sql`regexp_replace(coalesce(${crmCustomers.phone}, ''), '[^0-9]', '', 'g') = ${normalizedPhone}`,
+    });
+
+    if (!customer || customer.isActive === false) {
+      return res.json({
+        success: true,
+        challengeId: randomUUID(),
+        message: 'اگر حساب فعالی وجود داشته باشد، کد ورود ارسال می‌شود',
+      });
+    }
+
+    const recentOtp = await db.query.customerLoginOtps.findFirst({
+      where: and(
+        eq(customerLoginOtps.customerId, customer.id),
+        gt(customerLoginOtps.createdAt, new Date(Date.now() - 60_000)),
+      ),
+      orderBy: [desc(customerLoginOtps.createdAt)],
+    });
+    if (recentOtp) {
+      return res.status(429).json({
+        success: false,
+        message: 'لطفاً یک دقیقه تا درخواست کد جدید صبر کنید',
+      });
+    }
+
+    const channel = isEmail ? 'email' : 'sms';
+    if ((channel === 'email' && customer.emailEnabled === false) ||
+        (channel === 'sms' && customer.smsEnabled === false)) {
+      return res.status(400).json({ success: false, message: 'این روش ورود برای حساب شما فعال نیست' });
+    }
+
+    const code = randomInt(100000, 1000000).toString();
+    const challengeId = randomUUID();
+    const codeHash = await bcrypt.hash(code, 10);
+    await db.insert(customerLoginOtps).values({
+      challengeId,
+      customerId: customer.id,
+      channel,
+      codeHash,
+      expiresAt: new Date(Date.now() + 5 * 60_000),
+    });
+
+    const sent = channel === 'email'
+      ? await sendOtpEmail(customer.email, code, customer.firstName)
+      : await sendOtpSms(customer.phone || identifier, code, customer.preferredLanguage);
+    if (!sent) {
+      await db.delete(customerLoginOtps).where(eq(customerLoginOtps.challengeId, challengeId));
+      return res.status(503).json({ success: false, message: 'ارسال کد ورود ناموفق بود. دوباره تلاش کنید' });
+    }
+
+    return res.json({
+      success: true,
+      challengeId,
+      channel,
+      message: 'کد ورود ارسال شد',
+    });
+  } catch (error) {
+    console.error('Customer login OTP request failed:', error);
+    return res.status(500).json({ success: false, message: 'خطا در ارسال کد ورود' });
+  }
+});
+
+router.post('/api/customers/login-otp/verify', async (req, res) => {
+  try {
+    const challengeId = String(req.body.challengeId || '');
+    const code = String(req.body.code || '').trim();
+    const otp = await db.query.customerLoginOtps.findFirst({
+      where: and(
+        eq(customerLoginOtps.challengeId, challengeId),
+        eq(customerLoginOtps.used, false),
+      ),
+    });
+
+    if (!otp || otp.expiresAt < new Date() || otp.attempts >= 5) {
+      return res.status(400).json({ success: false, message: 'کد ورود نامعتبر یا منقضی شده است' });
+    }
+
+    const valid = await bcrypt.compare(code, otp.codeHash);
+    if (!valid) {
+      await db.update(customerLoginOtps)
+        .set({ attempts: otp.attempts + 1 })
+        .where(eq(customerLoginOtps.id, otp.id));
+      return res.status(400).json({ success: false, message: 'کد ورود صحیح نیست' });
+    }
+
+    const [consumed] = await db.update(customerLoginOtps)
+      .set({ used: true })
+      .where(and(eq(customerLoginOtps.id, otp.id), eq(customerLoginOtps.used, false)))
+      .returning();
+    if (!consumed) {
+      return res.status(400).json({ success: false, message: 'این کد قبلاً استفاده شده است' });
+    }
+
+    const customer = await db.query.crmCustomers.findFirst({
+      where: and(eq(crmCustomers.id, otp.customerId), eq(crmCustomers.isActive, true)),
+    });
+    if (!customer) {
+      return res.status(401).json({ success: false, message: 'حساب مشتری فعال نیست' });
+    }
+
+    await saveCustomerSession(req, customer);
+    return res.json({
+      success: true,
+      message: 'ورود موفق',
+      customer: {
+        id: customer.id,
+        firstName: customer.firstName,
+        lastName: customer.lastName,
+        email: customer.email,
+        phone: customer.phone,
+        company: customer.company,
+      },
+    });
+  } catch (error) {
+    console.error('Customer login OTP verification failed:', error);
+    return res.status(500).json({ success: false, message: 'خطا در تأیید کد ورود' });
+  }
+});
 
 // POST /api/customers/send-otp
 router.post('/api/customers/send-otp', async (req, res) => {

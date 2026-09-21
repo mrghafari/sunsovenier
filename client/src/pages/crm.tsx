@@ -401,6 +401,7 @@ export default function CRM() {
   const [isCustomerDetailDialogOpen, setIsCustomerDetailDialogOpen] = useState(false);
   const [isEditCustomerDialogOpen, setIsEditCustomerDialogOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<CrmCustomer | null>(null);
+  const [originalEditingEmail, setOriginalEditingEmail] = useState("");
   const [sortField, setSortField] = useState<string>("createdAt");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [bulkActionsLoading, setBulkActionsLoading] = useState(false);
@@ -683,6 +684,7 @@ export default function CRM() {
   const handleEditCustomer = (customer: CrmCustomer) => {
     // Open CRM edit dialog instead of navigating to customer portal
     setEditingCustomer(customer);
+    setOriginalEditingEmail(customer.email);
     setIsEditCustomerDialogOpen(true);
   };
 
@@ -698,9 +700,10 @@ export default function CRM() {
 
     console.log("Frontend editingCustomer secondaryAddress value:", editingCustomer.secondaryAddress);
 
-    // Only send editable fields, exclude email and phone as they are read-only
+    // Keep the same customer ID so orders and activity history remain linked.
     // Include all fields even if they are null/undefined to ensure they get updated
     const updateData = {
+      email: editingCustomer.email,
       firstName: editingCustomer.firstName,
       lastName: editingCustomer.lastName,
       company: editingCustomer.company || null,
@@ -1665,9 +1668,13 @@ export default function CRM() {
                     id="editEmail"
                     type="email"
                     value={editingCustomer.email}
-                    disabled
-                    className="bg-gray-100 cursor-not-allowed"
+                    onChange={(e) => setEditingCustomer({ ...editingCustomer, email: e.target.value })}
                   />
+                  {editingCustomer.email !== originalEditingEmail && (
+                    <p className="mt-1 text-sm text-amber-700">
+                      ایمیل ورود تغییر می‌کند؛ سفارش‌ها و سوابق مشتری با همان شناسه حفظ می‌شوند.
+                    </p>
+                  )}
                 </div>
 
                 <div>

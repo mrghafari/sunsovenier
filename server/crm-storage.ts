@@ -24,6 +24,7 @@ export interface ICrmStorage {
   createCrmCustomer(customer: InsertCrmCustomer): Promise<CrmCustomer>;
   getCrmCustomerById(id: number): Promise<CrmCustomer | undefined>;
   getCrmCustomerByEmail(email: string): Promise<CrmCustomer | undefined>;
+  getCrmCustomerByLoginIdentifier(identifier: string): Promise<CrmCustomer | undefined>;
   getCrmCustomerByPhone(phone: string): Promise<CrmCustomer | undefined>;
   updateCrmCustomer(id: number, customer: Partial<InsertCrmCustomer>): Promise<CrmCustomer>;
   deleteCrmCustomer(id: number): Promise<void>;
@@ -134,7 +135,19 @@ export class CrmStorage implements ICrmStorage {
     const [customer] = await crmDb
       .select()
       .from(crmCustomers)
-      .where(eq(crmCustomers.email, email))
+      .where(sql`lower(${crmCustomers.email}) = ${email.trim().toLowerCase()}`)
+      .limit(1);
+    return customer;
+  }
+
+  async getCrmCustomerByLoginIdentifier(identifier: string): Promise<CrmCustomer | undefined> {
+    const normalizedIdentifier = identifier.trim().toLowerCase();
+    const [customer] = await crmDb
+      .select()
+      .from(crmCustomers)
+      .where(normalizedIdentifier.includes('@')
+        ? sql`lower(${crmCustomers.email}) = ${normalizedIdentifier}`
+        : sql`regexp_replace(coalesce(${crmCustomers.phone}, ''), '[^0-9]', '', 'g') = ${normalizedIdentifier.replace(/\D/g, '')}`)
       .limit(1);
     return customer;
   }

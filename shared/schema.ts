@@ -1797,6 +1797,20 @@ export const customersOtp = pgTable("customers_otp", {
   registrationData: json("registration_data"), // Customer registration data
 });
 
+export const customerLoginOtps = pgTable("customer_login_otps", {
+  id: serial("id").primaryKey(),
+  challengeId: text("challenge_id").notNull().unique(),
+  customerId: integer("customer_id").notNull().references(() => crmCustomers.id),
+  channel: text("channel").notNull(),
+  codeHash: text("code_hash").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  attempts: integer("attempts").notNull().default(0),
+  used: boolean("used").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export type CustomerLoginOtp = typeof customerLoginOtps.$inferSelect;
+
 export const insertCustomersOtpSchema = createInsertSchema(customersOtp).omit({
   id: true,
   createdAt: true,

@@ -17108,15 +17108,16 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
 
   app.post("/api/customers/login", async (req, res) => {
     try {
-      const { email, password } = req.body;
+      const identifier = String(req.body.identifier || req.body.email || '').trim();
+      const { password } = req.body;
       
       // ONLY authenticate via CRM (single source of truth)
-      const crmCustomer = await crmStorage.getCrmCustomerByEmail(email);
+      const crmCustomer = await crmStorage.getCrmCustomerByLoginIdentifier(identifier);
       
       if (!crmCustomer || !crmCustomer.passwordHash) {
         return res.status(401).json({ 
           success: false, 
-          message: "ایمیل یا رمز عبور اشتباه است" 
+          message: "ایمیل، موبایل یا رمز عبور اشتباه است"
         });
       }
       
@@ -17125,7 +17126,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       if (!isValidPassword) {
         return res.status(401).json({ 
           success: false, 
-          message: "ایمیل یا رمز عبور اشتباه است" 
+          message: "ایمیل، موبایل یا رمز عبور اشتباه است"
         });
       }
 
@@ -28284,13 +28285,72 @@ Leading Chemical Solutions Provider
   app.put("/api/crm/customers/:id", requireAuth, async (req, res) => {
     try {
       const customerId = parseInt(req.params.id);
-      const updateData = req.body;
+      const updateData = { ...req.body };
       
       console.log("🔧 [CRM UPDATE] Customer ID:", customerId);
       console.log("🔧 [CRM UPDATE] Update data received:", JSON.stringify(updateData, null, 2));
       console.log("🔧 [CRM UPDATE] cityRegion field:", updateData.cityRegion);
       console.log("🔧 [CRM UPDATE] province field:", updateData.province);
       
+      const currentCustomer = await crmStorage.getCrmCustomerById(customerId);
+      if (!currentCustomer) {
+        return res.status(404).json({ success: false, message: "Customer not found" });
+      }
+
+      if (typeof updateData.email === 'string') {
+        const normalizedEmail = updateData.email.trim().toLowerCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+          return res.status(400).json({ success: false, message: "آدرس ایمیل معتبر نیست" });
+        }
+
+        if (normalizedEmail !== currentCustomer.email.toLowerCase()) {
+          const client = await pool.connect();
+          try {
+            await client.query('BEGIN');
+            const duplicateCrm = await client.query(
+              'SELECT 1 FROM crm_customers WHERE lower(email) = $1 AND id <> $2 LIMIT 1',
+              [normalizedEmail, customerId],
+            );
+            const duplicatePortal = await client.query(
+              'SELECT 1 FROM customers WHERE lower(email) = $1 AND lower(email) <> $2 LIMIT 1',
+              [normalizedEmail, currentCustomer.email.toLowerCase()],
+            );
+            if (duplicateCrm.rowCount || duplicatePortal.rowCount) {
+              await client.query('ROLLBACK');
+              return res.status(409).json({ success: false, message: "این ایمیل قبلاً برای مشتری دیگری ثبت شده است" });
+            }
+
+            await client.query(
+              'UPDATE crm_customers SET email = $1, updated_at = now() WHERE id = $2',
+              [normalizedEmail, customerId],
+            );
+            await client.query(
+              'UPDATE customers SET email = $1, email_verified = false, updated_at = now() WHERE lower(email) = $2',
+              [normalizedEmail, currentCustomer.email.toLowerCase()],
+            );
+            await client.query('COMMIT');
+          } catch (emailUpdateError) {
+            await client.query('ROLLBACK');
+            throw emailUpdateError;
+          } finally {
+            client.release();
+          }
+
+          await crmStorage.logCustomerActivity({
+            customerId,
+            activityType: 'email_changed_by_admin',
+            description: 'آدرس ایمیل مشتری توسط مدیر تغییر کرد',
+            performedBy: `admin:${(req.session as any).adminId || 'unknown'}`,
+            activityData: {
+              previousEmail: currentCustomer.email,
+              newEmail: normalizedEmail,
+              changedAt: new Date().toISOString(),
+            },
+          });
+        }
+        delete updateData.email;
+      }
+
       const customer = await crmStorage.updateCrmCustomer(customerId, updateData);
       
       console.log("🔧 [CRM UPDATE] Updated customer:", JSON.stringify(customer, null, 2));
@@ -28303,7 +28363,7 @@ Leading Chemical Solutions Provider
     } catch (error: any) {
       console.error("Error updating CRM customer:", error);
       // Check if it's a duplicate error message
-      if (error.message && (error.message.includes("ایمیل تکراری است") || error.message.includes("شماره تلفن تکراری است"))) {
+      if (error.code === '23505' || (error.message && (error.message.includes("ایمیل تکراری است") || error.message.includes("شماره تلفن تکراری است")))) {
         return res.status(400).json({
           success: false,
           message: error.message
