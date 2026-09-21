@@ -116,11 +116,18 @@ const Footer = () => {
   const companyLinks = parseLinks(footerSettings?.companyLinks);
   const supportLinks = parseLinks(footerSettings?.supportLinks);
   const configuredLegalLinks = parseLinks(footerSettings?.legalLinks);
+  const defaultLegalNames = language === 'fa'
+    ? { privacy: 'حریم خصوصی', terms: 'شرایط استفاده' }
+    : language === 'ar'
+      ? { privacy: 'سياسة الخصوصية', terms: 'شروط الخدمة' }
+      : language === 'tr'
+        ? { privacy: 'Gizlilik Politikası', terms: 'Hizmet Şartları' }
+        : { privacy: 'Privacy Policy', terms: 'Terms of Service' };
   const legalLinks = configuredLegalLinks.length > 0
     ? configuredLegalLinks
     : [
-        { name: 'Privacy Policy', href: '/privacy' },
-        { name: 'Terms of Service', href: '/terms' },
+        { name: defaultLegalNames.privacy, href: '/privacy' },
+        { name: defaultLegalNames.terms, href: '/terms' },
       ];
 
   // Social media configuration
