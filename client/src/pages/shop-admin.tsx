@@ -533,6 +533,10 @@ export default function ShopAdmin() {
     };
     return labels[status.toLowerCase()] || status.replace(/_/g, " ");
   };
+  const orderStatusBadgeClass = (status?: string | null) =>
+    String(status ?? "").toLowerCase() === "deleted"
+      ? "border-red-200 bg-red-100 text-red-800 hover:bg-red-100"
+      : "";
   const formatStatusChangedAt = (value?: string | Date | null) => {
     if (!value) return tr("unknown");
     const date = new Date(value);
@@ -996,7 +1000,10 @@ export default function ShopAdmin() {
                             </td>
                             <td className="px-2 py-2">
                               <div className="flex flex-col items-start gap-1">
-                                <Badge variant={order.status === 'confirmed' ? 'default' : 'secondary'} className="text-xs">
+                                <Badge
+                                  variant={order.status === 'confirmed' ? 'default' : 'secondary'}
+                                  className={`text-xs ${orderStatusBadgeClass(order.status)}`}
+                                >
                                   {orderStatusLabel(order.status)}
                                 </Badge>
                                 <span
@@ -1057,7 +1064,14 @@ export default function ShopAdmin() {
                                           <TableHead className="bg-gray-50">{tr("orderDate")}</TableHead>
                                           <TableCell>{new Date(order.createdAt).toLocaleDateString(dateLocale)}</TableCell>
                                           <TableHead className="bg-gray-50">{tr("orderStatus")}</TableHead>
-                                          <TableCell><Badge variant={order.status === "confirmed" ? "default" : "secondary"}>{orderStatusLabel(order.status)}</Badge></TableCell>
+                                          <TableCell>
+                                            <Badge
+                                              variant={order.status === "confirmed" ? "default" : "secondary"}
+                                              className={orderStatusBadgeClass(order.status)}
+                                            >
+                                              {orderStatusLabel(order.status)}
+                                            </Badge>
+                                          </TableCell>
                                           <TableHead className="bg-gray-50">{tr("totalAmount")}</TableHead>
                                           <TableCell className="font-semibold text-green-700">{formatOrderMoney(order.totalAmount, order.currency ?? order.currency_code)}</TableCell>
                                         </TableRow>
