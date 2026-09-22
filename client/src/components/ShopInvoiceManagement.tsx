@@ -587,10 +587,10 @@ export default function ShopInvoiceManagement() {
           <div class="header">
             <div style="text-align: center; margin-bottom: 10px;">
               <img
-                src="${companyInfo?.data?.logoUrl || '/attached_assets/company-logo.png'}"
+                src="${companyInfo?.data?.logoUrl || companyInfo?.logoUrl || '/company-logo.png'}"
                 alt="لوگوی شرکت"
                 class="company-logo"
-                onerror="this.onerror=null;this.src='/attached_assets/company-logo.png'"
+                onerror="this.onerror=null;this.src='/company-logo.png'"
               />
             </div>
             <div class="company-name">${normalizeInvoiceCompanyName(companyInfo?.data?.companyNameAr || companyInfo?.data?.companyNameEn || 'ممتازشیمی')}</div>

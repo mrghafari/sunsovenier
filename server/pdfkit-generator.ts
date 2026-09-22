@@ -583,10 +583,10 @@ export async function generateInvoicePDF(data: any): Promise<Buffer> {
     fa: ['شماره ثبت', 'شماره مالیاتی', 'شرکت', 'کد پستی', 'کشور / شهر', 'بچ'],
   }[lang];
   const company = data.companyInfo || await getCompanyInformation() || {};
-  // Use the logo selected in Company Information for both invoices and
-  // proforma invoices. getCompanyLogo keeps the bundled logo as a fallback
-  // when the configured upload cannot be read.
-  const companyLogo = await getCompanyLogo(company);
+  // Resolve the logo from the server-side Company Information record instead
+  // of trusting a potentially stale or incomplete client snapshot. Keep the
+  // supplied company snapshot for invoice text and historical fields.
+  const companyLogo = await getCompanyLogo();
   const suffix = lang === 'en' ? 'En' : lang === 'ar' ? 'Ar' : lang === 'tr' ? 'Tr' : 'Fa';
   const localizedCompanyName = company[`companyName${suffix}`]
     || (lang === 'fa' ? company.companyNameAr : undefined)

@@ -118,6 +118,9 @@ const SHOP_TRANSLATIONS: Record<string, ShopTranslation> = {
   inactive: { en: "Inactive", ar: "غير فعال", tr: "Pasif", fa: "غیرفعال" },
   discountUpdated: { en: "Discount Updated", ar: "تم تحديث الخصم", tr: "İndirim Güncellendi", fa: "تخفیف به‌روزرسانی شد" },
   bulkConfiguration: { en: "Bulk Purchase Configuration", ar: "إعداد المشتريات بالجملة", tr: "Toplu Alım Yapılandırması", fa: "پیکربندی خرید عمده" },
+  bulkStatus: { en: "Bulk status", ar: "حالة الجملة", tr: "Toplu alım durumu", fa: "وضعیت عمده" },
+  minimumQuantity: { en: "Minimum quantity", ar: "الحد الأدنى للكمية", tr: "Minimum miktar", fa: "حداقل مقدار" },
+  bulkDiscounts: { en: "Discount tiers", ar: "مستويات الخصم", tr: "İndirim kademeleri", fa: "سطوح تخفیف" },
   noProducts: { en: "No products available", ar: "لا توجد منتجات", tr: "Ürün bulunamadı", fa: "محصولی موجود نیست" },
   inventoryId: { en: "ID", ar: "المعرّف", tr: "Kimlik", fa: "شناسه" },
   inventoryLoading: { en: "Loading inventory...", ar: "جارٍ تحميل المخزون...", tr: "Stok yükleniyor...", fa: "در حال بارگذاری موجودی..." },
@@ -1267,7 +1270,7 @@ export default function ShopAdmin() {
                 </Button>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
+                <div>
                   {discounts.length === 0 ? (
                     <div className="text-center py-8 text-gray-500">
                       <Percent className="w-12 h-12 mx-auto mb-4 text-gray-300" />
@@ -1336,19 +1339,37 @@ export default function ShopAdmin() {
                        <p className="text-sm">{tr("bulkHint")}</p>
                     </div>
                   ) : (
-                    products.map((product: any) => (
-                      <BulkPurchaseProductCard 
-                        key={product.id} 
-                        product={product}
-                        onUpdate={() => {
-                          queryClient.invalidateQueries({ queryKey: ["/api/shop/products"] });
-                          toast({
-                            title: tr("success"),
-                            description: tr("updated"),
-                          });
-                        }}
-                      />
-                    ))
+                    <div className="overflow-x-auto rounded-lg border">
+                      <table className="w-full min-w-[980px]">
+                        <thead className="bg-slate-50">
+                          <tr className="border-b text-xs uppercase tracking-wide text-slate-500">
+                            <th className="px-3 py-3 text-start">{tr("productName")}</th>
+                            <th className="px-3 py-3 text-start">{tr("sku")}</th>
+                            <th className="px-3 py-3 text-start">{tr("price")}</th>
+                            <th className="px-3 py-3 text-start">{tr("stock")}</th>
+                            <th className="px-3 py-3 text-start">{tr("bulkStatus")}</th>
+                            <th className="px-3 py-3 text-start">{tr("minimumQuantity")}</th>
+                            <th className="px-3 py-3 text-start">{tr("bulkDiscounts")}</th>
+                            <th className="px-3 py-3 text-end">{tr("actions")}</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y bg-white">
+                          {products.map((product: any) => (
+                            <BulkPurchaseProductCard
+                              key={product.id}
+                              product={product}
+                              onUpdate={() => {
+                                queryClient.invalidateQueries({ queryKey: ["/api/shop/products"] });
+                                toast({
+                                  title: tr("success"),
+                                  description: tr("updated"),
+                                });
+                              }}
+                            />
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   )}
                 </div>
               </CardContent>

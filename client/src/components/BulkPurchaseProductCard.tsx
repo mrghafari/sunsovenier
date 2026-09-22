@@ -1,13 +1,12 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Save, Edit3, Package, DollarSign, Plus, Trash2, Percent } from "lucide-react";
+import { Save, Edit3, Plus, Trash2, Percent } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -182,56 +181,41 @@ export default function BulkPurchaseProductCard({ product, onUpdate }: BulkPurch
   };
 
   const isBulkActive = product.bulkPurchaseEnabled || product.bulk_purchase_enabled;
+  const savedMinimumQuantity = product.bulkPurchaseMinQuantity || product.bulk_purchase_minimum_quantity || product.bulk_purchase_min_quantity;
 
   return (
-    <Card className="w-full" dir={direction}>
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Package className="w-5 h-5 text-blue-600" />
-            <span className="text-lg font-semibold">{product.name}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge variant={bulkEnabled ? "default" : "secondary"}>
-              {bulkEnabled ? tr('enabled') : tr('disabled')}
-            </Badge>
-            {!isEditing && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setIsEditing(true)}
-              >
-                <Edit3 className="w-4 h-4 mr-1" />
-                {tr('edit')}
-              </Button>
-            )}
-          </div>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-3 bg-gray-50 rounded-lg">
-          <div>
-            <Label className="text-xs text-gray-500">{tr('sku')}</Label>
-            <p className="text-sm font-medium">{product.sku || tr('notAvailable')}</p>
-          </div>
-          <div>
-            <Label className="text-xs text-gray-500">{tr('unitPrice')}</Label>
-            <p className="text-sm font-medium flex items-center">
-              <DollarSign className="w-3 h-3 mr-1" />
-              {formatNumber(product.unitPrice || product.price || 0)}
-            </p>
-          </div>
-          <div>
-            <Label className="text-xs text-gray-500">{tr('stock')}</Label>
-            <p className="text-sm font-medium">{formatNumber(product.stockQuantity || product.stock_quantity || 0)}</p>
-          </div>
-          <div>
-            <Label className="text-xs text-gray-500">{tr('category')}</Label>
-            <p className="text-sm font-medium">{product.category || tr('notAvailable')}</p>
-          </div>
-        </div>
+    <Fragment>
+      <tr dir={direction} className={isEditing ? "bg-blue-50/50" : "hover:bg-slate-50"}>
+        <td className="px-3 py-3">
+          <div className="font-medium text-slate-900">{product.name}</div>
+          <div className="mt-0.5 text-xs text-slate-500">{product.category || tr('notAvailable')}</div>
+        </td>
+        <td className="px-3 py-3 font-mono text-xs text-slate-600">{product.sku || tr('notAvailable')}</td>
+        <td className="px-3 py-3 text-sm">{formatNumber(product.unitPrice || product.price || 0)}</td>
+        <td className="px-3 py-3 text-sm">{formatNumber(product.stockQuantity || product.stock_quantity || 0)}</td>
+        <td className="px-3 py-3">
+          <Badge variant={isBulkActive ? "default" : "secondary"}>
+            {isBulkActive ? tr('enabled') : tr('disabled')}
+          </Badge>
+        </td>
+        <td className="px-3 py-3 text-sm">{savedMinimumQuantity ? formatNumber(savedMinimumQuantity) : "—"}</td>
+        <td className="px-3 py-3 text-sm">
+          {isBulkActive && discountTiers.length > 0
+            ? discountTiers.map((tier) => `${formatNumber(tier.minQty)}+ / ${formatNumber(Math.round(tier.discount * 100))}%`).join("، ")
+            : "—"}
+        </td>
+        <td className="px-3 py-3 text-end">
+          <Button size="sm" variant="outline" onClick={() => isEditing ? handleCancel() : setIsEditing(true)}>
+            <Edit3 className="me-1 h-4 w-4" />
+            {isEditing ? tr('cancel') : tr('edit')}
+          </Button>
+        </td>
+      </tr>
 
-        <div className="space-y-4">
+      {isEditing && (
+        <tr dir={direction} className="bg-slate-50">
+          <td colSpan={8} className="p-4">
+            <div className="space-y-4 rounded-lg border border-blue-200 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
               <Label htmlFor={`bulk-enabled-${product.id}`} className="text-sm font-medium">
@@ -351,10 +335,7 @@ export default function BulkPurchaseProductCard({ product, onUpdate }: BulkPurch
               </div>
             </>
           )}
-        </div>
-
-        {isEditing && (
-          <div className="flex items-center gap-2 pt-4 border-t">
+          <div className="flex items-center gap-2 border-t pt-4">
             <Button
               onClick={handleSave}
               disabled={updateBulkPurchaseMutation.isPending}
@@ -371,31 +352,10 @@ export default function BulkPurchaseProductCard({ product, onUpdate }: BulkPurch
               {tr('cancel')}
             </Button>
           </div>
-        )}
-
-        {!isEditing && isBulkActive && (
-          <div className="p-3 bg-green-50 border border-green-200 rounded-lg space-y-2">
-            <p className="text-sm font-medium text-green-800">
-              {tr('activeSummary', { quantity: formatNumber(product.bulkPurchaseMinQuantity || product.bulk_purchase_min_quantity || 0) })}
-            </p>
-            {discountTiers.length > 0 && (
-              <div className="space-y-1">
-                <p className="text-xs font-medium text-green-700">{tr('tierSummary')}</p>
-                {discountTiers.map((tier, i) => (
-                  <p key={i} className="text-xs text-green-600">
-                    {tr('unitsOff', { quantity: formatNumber(tier.minQty), discount: formatNumber(Math.round(tier.discount * 100)) })}
-                  </p>
-                ))}
-              </div>
-            )}
-            {(product.bulkPurchaseNotes || product.bulk_purchase_description) && (
-              <p className="text-xs text-green-600 mt-1">
-                {product.bulkPurchaseNotes || product.bulk_purchase_description}
-              </p>
-            )}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+            </div>
+          </td>
+        </tr>
+      )}
+    </Fragment>
   );
 }
