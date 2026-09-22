@@ -18037,14 +18037,16 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         cart: cartData || {}
       });
       
-      // Upsert cart data (insert or update)
+      // Opening the shop or restoring an unchanged cart is not cart activity.
+      // Preserve updated_at unless the actual JSON cart snapshot changed.
       await pool.query(`
         INSERT INTO persistent_carts (customer_id, cart_data, updated_at)
         VALUES ($1, $2, NOW())
         ON CONFLICT (customer_id)
         DO UPDATE SET 
-          cart_data = $2,
+          cart_data = EXCLUDED.cart_data,
           updated_at = NOW()
+        WHERE persistent_carts.cart_data IS DISTINCT FROM EXCLUDED.cart_data
       `, [customerId, JSON.stringify(cartData)]);
       
       console.log('✅ [PERSISTENT CART] Cart synced successfully');

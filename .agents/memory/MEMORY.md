@@ -28,4 +28,5 @@
 - [Delivery recipient snapshots](delivery-recipient-snapshots.md) — delivery must prefer the order’s checkout recipient address and phone over the customer profile.
 - [Google OAuth callback consistency](google-oauth-callback-consistency.md) — use the same absolute callback URL for both OAuth stages and handle Passport exchange errors explicitly.
 - [Abandoned-cart notification ordering](abandoned-cart-notification-ordering.md) — persist in-app warnings independently of delivery and never delete a cart in the same worker run as its final warning.
+- [Cart activity clock](cart-activity-clock.md) — viewing or restoring an unchanged cart must not postpone abandonment; only meaningful cart mutations reset activity.
 - [Grace-order expiry](grace-order-expiry.md) — expire timed orders from their stored deadline, catch up missed reminder hours, and audit the automated cancellation reason.

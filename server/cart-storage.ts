@@ -52,6 +52,14 @@ function cartsHaveSameItems(left: unknown, right: unknown): boolean {
   return JSON.stringify(normalizeCartItems(left)) === JSON.stringify(normalizeCartItems(right));
 }
 
+function totalsAreEqual(left: unknown, right: unknown): boolean {
+  const leftTotal = Number(left);
+  const rightTotal = Number(right);
+  return Number.isFinite(leftTotal) &&
+    Number.isFinite(rightTotal) &&
+    Math.abs(leftTotal - rightTotal) < 0.0001;
+}
+
 export class CartStorage {
   
   // =============================================================================
@@ -77,7 +85,10 @@ export class CartStorage {
     if (existing.length > 0) {
       // Loading an unchanged cart is not customer activity. Resetting the
       // abandonment clock here lets a stale cart avoid cleanup indefinitely.
-      if (cartsHaveSameItems(existing[0].cartData, data.cartData)) {
+      if (
+        cartsHaveSameItems(existing[0].cartData, data.cartData) &&
+        totalsAreEqual(existing[0].totalValue, data.totalValue)
+      ) {
         return existing[0].id;
       }
 
