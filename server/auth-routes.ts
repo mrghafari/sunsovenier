@@ -66,6 +66,15 @@ function getGoogleCallbackUrl(req: any) {
   return 'https://www.momtazchem.com/api/auth/google/callback';
 }
 
+function isGoogleDevelopmentHost(req: any) {
+  const requestHost = String(req.get('host') || '').toLowerCase();
+  return (
+    requestHost.includes('.replit.dev') ||
+    requestHost.startsWith('localhost') ||
+    requestHost.startsWith('127.0.0.1')
+  );
+}
+
 async function finishGoogleLogin(req: any, res: any, user: any) {
   let crmCustomer = await findCrmCustomerByEmail(String(user.email));
   if (crmCustomer?.isActive === false) {
@@ -98,11 +107,17 @@ async function finishGoogleLogin(req: any, res: any, user: any) {
 
 // Initiate Google OAuth login
 router.get('/google', (req, res, next) => {
+  const requestHost = String(req.get('host') || '').toLowerCase();
+  if (!isGoogleDevelopmentHost(req) && requestHost !== 'www.momtazchem.com') {
+    return res.redirect('https://www.momtazchem.com/api/auth/google');
+  }
+
   const callbackURL = getGoogleCallbackUrl(req);
   console.log('🔐 [GOOGLE AUTH] Starting OAuth with callback:', callbackURL);
   return passport.authenticate('google', {
     scope: ['profile', 'email'],
     prompt: 'select_account',
+    state: true,
     callbackURL,
   } as any)(req, res, next);
 });
@@ -112,6 +127,7 @@ router.get('/google/callback', (req, res, next) => {
   const callbackURL = getGoogleCallbackUrl(req);
   return passport.authenticate('google', {
     callbackURL,
+    state: true,
   } as any, (authError: Error | null, user: any) => {
     if (authError || !user) {
       console.error('❌ [GOOGLE CALLBACK] OAuth exchange failed:', {

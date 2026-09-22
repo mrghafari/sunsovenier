@@ -12,7 +12,8 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     callbackURL: '/api/auth/google/callback',
-    scope: ['profile', 'email']
+    scope: ['profile', 'email'],
+    state: true,
   },
   async (accessToken, refreshToken, profile, done) => {
     try {
