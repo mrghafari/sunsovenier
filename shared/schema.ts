@@ -963,6 +963,7 @@ export const crmCustomers = pgTable("crm_customers", {
   address: text("address"),
   secondaryAddress: text("secondary_address"),
   postalCode: text("postal_code"),
+  secondaryPostalCode: text("secondary_postal_code"),
   industry: text("industry"),
   businessType: text("business_type"), // manufacturer, distributor, retailer, end_user
   companySize: text("company_size"), // small, medium, large, enterprise
@@ -1354,12 +1355,22 @@ export type InsertSmsLog = z.infer<typeof insertSmsLogSchema>;
 export type SmsLog = typeof smsLogs.$inferSelect;
 
 // =============================================================================
-// IRAQI GEOGRAPHIC DATA SCHEMA
+// CENTRAL GEOGRAPHIC DATA SCHEMA
 // =============================================================================
 
-// Iraqi provinces table with trilingual support
+export const geographyCountries = pgTable("geography_countries", {
+  code: text("code").primaryKey(),
+  nameEnglish: text("name_english").notNull(),
+  nameArabic: text("name_arabic").notNull(),
+  namePersian: text("name_persian").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+});
+
+// Provinces/regions for all supported countries. The legacy table name is kept
+// so existing logistics foreign keys and Iraqi city IDs remain stable.
 export const iraqiProvinces = pgTable("iraqi_provinces", {
   id: serial("id").primaryKey(),
+  countryCode: text("country_code").notNull().default("IQ").references(() => geographyCountries.code),
   name: text("name").notNull(),
   nameArabic: text("name_arabic").notNull(),
   nameEnglish: text("name_english").notNull(),
@@ -1377,6 +1388,7 @@ export const iraqiProvinces = pgTable("iraqi_provinces", {
 // Iraqi cities table with comprehensive information
 export const iraqiCities = pgTable("iraqi_cities", {
   id: serial("id").primaryKey(),
+  countryCode: text("country_code").notNull().default("IQ").references(() => geographyCountries.code),
   name: text("name").notNull(),
   nameArabic: text("name_arabic").notNull(),
   nameEnglish: text("name_english").notNull(),

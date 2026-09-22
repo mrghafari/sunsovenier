@@ -16,7 +16,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { ArrowLeft, Save, Shield, Phone, Mail, Building, MapPin, User } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { iranProvinces } from "@/lib/iran-locations";
 
 const normalizeProfileCountry = (country?: string) => {
   const value = (country || "").trim().toLowerCase();
@@ -304,6 +303,7 @@ const createEditProfileSchema = (t: any) => z.object({
   address: z.string().min(1, t.address + " is required"),
   secondaryAddress: z.string().optional(),
   postalCode: z.string().optional(),
+  secondaryPostalCode: z.string().optional(),
   alternatePhone: z.string().optional(),
   industry: z.string().optional(),
   businessType: z.string().optional(),
@@ -370,46 +370,27 @@ export default function CustomerProfileEdit() {
     enabled: !isCreateMode, // Only fetch if not in create mode
   });
 
-  // Fetch provinces data
+  const [locationCountryCode, setLocationCountryCode] = useState("");
+  const [selectedRegionId, setSelectedRegionId] = useState("");
+
+  // Fetch all selectable locations from the central geography API.
   const { data: provincesData } = useQuery({
-    queryKey: ["/api/iraqi-provinces"],
+    queryKey: ["/api/geography/regions", locationCountryCode],
+    queryFn: () => fetch(`/api/geography/regions?country=${locationCountryCode}`).then(res => res.json()),
     retry: 1,
+    enabled: !!locationCountryCode,
   });
 
-  // State for selected province to filter cities
-  const [selectedProvinceId, setSelectedProvinceId] = useState<number | null>(18); // Default to Erbil (ID=18)
-  const [selectedIranProvinceId, setSelectedIranProvinceId] = useState<string | null>(null);
-
-  // Fetch cities data based on selected province
   const { data: citiesData } = useQuery({
-    queryKey: ["/api/iraqi-cities", selectedProvinceId],
-    queryFn: () => {
-      const url = selectedProvinceId 
-        ? `/api/iraqi-cities?provinceId=${selectedProvinceId}`
-        : '/api/iraqi-cities';
-      // console.log('🌍 [API] Fetching cities from:', url);
-      return fetch(url).then(res => res.json());
-    },
+    queryKey: ["/api/geography/cities", selectedRegionId],
+    queryFn: () => fetch(`/api/geography/cities?regionId=${selectedRegionId}`).then(res => res.json()),
     retry: 1,
-    enabled: true, // Always enabled to get initial data
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    enabled: !!selectedRegionId,
+    staleTime: 5 * 60 * 1000,
   });
 
-  const iraqiProvincesList = (provincesData && typeof provincesData === 'object' && 'data' in provincesData) ? provincesData.data as any[] : [];
-  let iraqiCitiesList = (citiesData && typeof citiesData === 'object' && 'data' in citiesData) ? citiesData.data as any[] : [];
-  
-  // Remove duplicates based on nameEnglish and filter by province
-  if (selectedProvinceId && iraqiCitiesList.length > 0) {
-    iraqiCitiesList = iraqiCitiesList.filter((city: any) => city.provinceId === selectedProvinceId);
-  }
-  
-  // Remove duplicates based on nameEnglish field
-  iraqiCitiesList = iraqiCitiesList.filter((city: any, index: number, arr: any[]) =>
-    arr.findIndex((c: any) => c.nameEnglish === city.nameEnglish) === index
-  );
-  
-  // Debug logging disabled for performance
-  // console.log('🌍 [FILTER] Total cities after deduplication:', cities.length);
+  const provinces = (provincesData && typeof provincesData === 'object' && 'data' in provincesData) ? provincesData.data as any[] : [];
+  const cities = (citiesData && typeof citiesData === 'object' && 'data' in citiesData) ? citiesData.data as any[] : [];
 
   const form = useForm<EditProfileForm>({
     resolver: zodResolver(editProfileSchema),
@@ -425,6 +406,7 @@ export default function CustomerProfileEdit() {
       address: "",
       secondaryAddress: "",
       postalCode: "",
+      secondaryPostalCode: "",
       alternatePhone: "",
       industry: "",
       businessType: "",
@@ -455,20 +437,6 @@ export default function CustomerProfileEdit() {
   const selectedCountry = form.watch("country");
   const isIran = selectedCountry === "ایران";
   const isIraq = selectedCountry === "عراق";
-  const provinces = isIran
-    ? iranProvinces.map((province) => ({
-        id: province.id,
-        nameEnglish: province.namePersian,
-        nameArabic: province.nameEnglish,
-      }))
-    : iraqiProvincesList;
-  const cities = isIran
-    ? (iranProvinces.find((province) => province.id === selectedIranProvinceId)?.cities || []).map((city) => ({
-        id: city,
-        nameEnglish: city,
-        nameArabic: city,
-      }))
-    : iraqiCitiesList;
 
   const smsForm = useForm<SmsVerificationForm>({
     resolver: zodResolver(smsVerificationSchema),
@@ -496,6 +464,7 @@ export default function CustomerProfileEdit() {
         address: customerData.address || "",
         secondaryAddress: customerData.state || customerData.secondaryAddress || "",
         postalCode: customerData.postalCode || "",
+        secondaryPostalCode: customerData.secondaryPostalCode || "",
         alternatePhone: customerData.alternatePhone || "",
         industry: customerData.industry || "",
         businessType: customerData.businessType || "",
@@ -522,6 +491,7 @@ export default function CustomerProfileEdit() {
         smsEnabled: customerData.smsEnabled || false,
         emailEnabled: customerData.emailEnabled || false,
       });
+      setLocationCountryCode(normalizeProfileCountry(customerData.country) === "ایران" ? "IR" : "IQ");
       
 
     }
@@ -539,15 +509,11 @@ export default function CustomerProfileEdit() {
       );
       
       if (customerProvince) {
-        if (normalizeProfileCountry(actualCustomer.country) === "ایران") {
-          setSelectedIranProvinceId(String(customerProvince.id));
-        } else {
-          setSelectedProvinceId(Number(customerProvince.id));
-        }
+        setSelectedRegionId(String(customerProvince.id));
         
         // Set form value if not already set correctly
         const currentFormValue = form.getValues('province');
-        const targetProvinceValue = customerProvince.nameEnglish || customerProvince.name;
+        const targetProvinceValue = customerProvince.namePersian || customerProvince.nameArabic || customerProvince.nameEnglish;
         
         if (currentFormValue !== targetProvinceValue) {
           form.setValue('province', targetProvinceValue, { 
@@ -931,8 +897,8 @@ export default function CustomerProfileEdit() {
                               field.onChange(value);
                               form.setValue("province", "");
                               form.setValue("city", "");
-                              setSelectedIranProvinceId(null);
-                              if (value === "عراق") setSelectedProvinceId(18);
+                              setLocationCountryCode(value === "ایران" ? "IR" : value === "عراق" ? "IQ" : "");
+                              setSelectedRegionId("");
                             }}
                           >
                             <FormControl>
@@ -961,13 +927,13 @@ export default function CustomerProfileEdit() {
                             onValueChange={(value) => {
                               field.onChange(value);
                               form.setValue("city", "");
-                              const selectedProvince = provinces.find((p: any) => p.nameEnglish === value || p.name === value);
+                              const selectedProvince = provinces.find((p: any) => p.id === value);
                               if (selectedProvince) {
-                                if (isIran) setSelectedIranProvinceId(String(selectedProvince.id));
-                                else setSelectedProvinceId(Number(selectedProvince.id));
+                                setSelectedRegionId(String(selectedProvince.id));
+                                field.onChange(selectedProvince.namePersian || selectedProvince.nameArabic || selectedProvince.nameEnglish);
                               }
                             }}
-                            value={field.value}
+                            value={selectedRegionId}
                           >
                             <FormControl>
                               <SelectTrigger>
@@ -976,8 +942,8 @@ export default function CustomerProfileEdit() {
                             </FormControl>
                             <SelectContent>
                               {provinces.map((province: any) => (
-                                <SelectItem key={province.id} value={province.nameEnglish}>
-                                  {province.nameEnglish} / {province.nameArabic}
+                                <SelectItem key={province.id} value={province.id}>
+                                  {province.namePersian} / {province.nameEnglish}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -1006,8 +972,8 @@ export default function CustomerProfileEdit() {
                             </FormControl>
                             <SelectContent>
                               {cities.map((city: any) => (
-                                <SelectItem key={city.id} value={city.nameEnglish}>
-                                  {isIran ? city.nameEnglish : `${city.nameEnglish} / ${city.nameArabic}`}
+                                <SelectItem key={city.id} value={city.namePersian}>
+                                  {city.namePersian} / {city.nameEnglish}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -1023,24 +989,39 @@ export default function CustomerProfileEdit() {
                   />
                 </div>
 
-                  <FormField
-                    control={form.control}
-                    name="address"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="flex items-center gap-2 required-field">
-                          <MapPin className="h-4 w-4" />
-                           {et.fullAddress} <span className="text-red-500">*</span>
-                        </FormLabel>
-                        <FormControl>
-                         <Textarea {...field} placeholder={et.fullAddress} rows={3} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="grid grid-cols-1 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-4">
+                    <FormField
+                      control={form.control}
+                      name="address"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2 required-field">
+                            <MapPin className="h-4 w-4" />
+                            {et.fullAddress} <span className="text-red-500">*</span>
+                          </FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder={et.fullAddress} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="postalCode"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{et.postalCode} ({et.fullAddress})</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder={et.postalCode} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-4">
                     <FormField
                       control={form.control}
                       name="secondaryAddress"
@@ -1056,10 +1037,10 @@ export default function CustomerProfileEdit() {
                     />
                     <FormField
                       control={form.control}
-                      name="postalCode"
+                      name="secondaryPostalCode"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{et.postalCode}</FormLabel>
+                          <FormLabel>{et.postalCode} ({et.secondaryAddress})</FormLabel>
                           <FormControl>
                             <Input {...field} placeholder={et.postalCode} />
                           </FormControl>

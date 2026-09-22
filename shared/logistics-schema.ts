@@ -509,6 +509,7 @@ export type VehicleCategorySelect = typeof vehicleCategories.$inferSelect;
 // Iraqi provinces table
 export const iraqiProvinces = pgTable("iraqi_provinces", {
   id: serial("id").primaryKey(),
+  countryCode: text("country_code").notNull().default("IQ"),
   name: text("name").notNull().unique(), // Province name
   nameArabic: text("name_arabic").notNull(), // Arabic name (محافظة بغداد)
   nameEnglish: text("name_english").notNull(), // English name (Baghdad Governorate)
@@ -530,6 +531,7 @@ export const iraqiProvinces = pgTable("iraqi_provinces", {
 // Iraqi cities table for shipping and freight calculation
 export const iraqiCities = pgTable("iraqi_cities", {
   id: serial("id").primaryKey(),
+  countryCode: text("country_code").notNull().default("IQ"),
   name: text("name").notNull(), // City name
   nameArabic: text("name_arabic"), // Arabic name
   nameEnglish: text("name_english"), // English name

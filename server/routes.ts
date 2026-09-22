@@ -40,6 +40,7 @@ import { sql, eq, and, or, ne, isNull, isNotNull, desc, gte, inArray, asc } from
 import { findCorruptedOrders, getDataIntegrityStats, validateOrderIntegrity, markCorruptedOrderAsDeleted } from './data-integrity-tools';
 import { z } from "zod";
 import * as schema from "@shared/schema";
+import { iranProvinces } from "../client/src/lib/iran-locations";
 const { crmCustomers, iraqiProvinces, iraqiCities, abandonedOrders, contentItems, footerSettings, paymentMethodSettings, shopSettings, aiApiSettings, insertAiApiSettingsSchema, vendors, postalServices } = schema;
 import { webrtcRooms, roomParticipants, chatMessages } from "@shared/webrtc-schema";
 import { orderManagement, shippingRates, deliveryMethods, paymentReceipts, consolidatedOrderData, orderStatusHistory } from "@shared/order-management-schema";
@@ -5149,7 +5150,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       const { db, showcaseDb } = await import('./db');
       const { shopProducts } = await import('../shared/shop-schema');
       const { showcaseProducts } = await import('../shared/showcase-schema');
-      const { eq } = await import('drizzle-orm');
+      const { eq, and } = await import('drizzle-orm');
       
       if (isNaN(shopProductId)) {
         return res.status(400).json({
@@ -5652,9 +5653,131 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
   });
 
   // =============================================================================
-  // IRAQI GEOGRAPHIC DATA API ENDPOINTS
+  // CENTRAL GEOGRAPHIC DATA API ENDPOINTS
   // =============================================================================
 
+  let geographySeedPromise: Promise<void> | null = null;
+  const ensureCentralGeography = () => {
+    if (geographySeedPromise) return geographySeedPromise;
+    geographySeedPromise = (async () => {
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        await client.query(`
+          INSERT INTO geography_countries (code, name_english, name_arabic, name_persian)
+          VALUES ('IQ', 'Iraq', 'العراق', 'عراق'), ('IR', 'Iran', 'إيران', 'ایران')
+          ON CONFLICT (code) DO UPDATE SET
+            name_english = EXCLUDED.name_english,
+            name_arabic = EXCLUDED.name_arabic,
+            name_persian = EXCLUDED.name_persian,
+            is_active = true
+        `);
+        await client.query(`UPDATE iraqi_provinces SET country_code = 'IQ' WHERE country_code IS NULL`);
+        await client.query(`UPDATE iraqi_cities SET country_code = 'IQ' WHERE country_code IS NULL`);
+        await client.query(`
+          SELECT setval(
+            pg_get_serial_sequence('iraqi_provinces', 'id'),
+            COALESCE((SELECT MAX(id) FROM iraqi_provinces), 1),
+            (SELECT COUNT(*) > 0 FROM iraqi_provinces)
+          )
+        `);
+        await client.query(`
+          SELECT setval(
+            pg_get_serial_sequence('iraqi_cities', 'id'),
+            COALESCE((SELECT MAX(id) FROM iraqi_cities), 1),
+            (SELECT COUNT(*) > 0 FROM iraqi_cities)
+          )
+        `);
+        for (const province of iranProvinces) {
+          const existingRegion = await client.query(
+            `SELECT id FROM iraqi_provinces WHERE country_code = 'IR' AND name_english = $1 LIMIT 1`,
+            [province.nameEnglish],
+          );
+          let provinceId = existingRegion.rows[0]?.id;
+          if (!provinceId) {
+            const inserted = await client.query(`
+              INSERT INTO iraqi_provinces
+                (country_code, name, name_arabic, name_english, capital, region, is_active)
+              VALUES ('IR', $1, $1, $2, $1, 'iran', true)
+              RETURNING id
+            `, [province.namePersian, province.nameEnglish]);
+            provinceId = inserted.rows[0].id;
+          }
+          for (const city of province.cities) {
+            await client.query(`
+              INSERT INTO iraqi_cities
+                (country_code, name, name_arabic, name_english, province_id, province_name, region, is_active)
+              SELECT 'IR', $2, $2, $2, $1, $3, 'iran', true
+              WHERE NOT EXISTS (
+                SELECT 1 FROM iraqi_cities
+                WHERE province_id = $1 AND country_code = 'IR' AND name = $2
+              )
+            `, [provinceId, city, province.namePersian]);
+          }
+        }
+        await client.query('COMMIT');
+      } catch (error) {
+        await client.query('ROLLBACK');
+        geographySeedPromise = null;
+        throw error;
+      } finally {
+        client.release();
+      }
+    })();
+    return geographySeedPromise;
+  };
+
+  app.get('/api/geography/countries', async (_req, res) => {
+    try {
+      await ensureCentralGeography();
+      const result = await pool.query(
+        'SELECT code, name_english AS "nameEnglish", name_arabic AS "nameArabic", name_persian AS "namePersian" FROM geography_countries WHERE is_active = true ORDER BY name_english'
+      );
+      res.json({ success: true, data: result.rows });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  app.get('/api/geography/regions', async (req, res) => {
+    try {
+      await ensureCentralGeography();
+      const country = String(req.query.country || '').toUpperCase();
+      if (!['IQ', 'IR'].includes(country)) return res.status(400).json({ success: false, message: 'Invalid country' });
+      const result = await pool.query(
+        `SELECT id, country_code AS "countryCode", name_english AS "nameEnglish",
+                name_arabic AS "nameArabic", name AS "namePersian"
+         FROM iraqi_provinces
+         WHERE country_code = $1 AND is_active = true
+         ORDER BY name`,
+        [country],
+      );
+      res.json({ success: true, data: result.rows });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  app.get('/api/geography/cities', async (req, res) => {
+    try {
+      await ensureCentralGeography();
+      const regionId = Number(req.query.regionId);
+      if (!Number.isInteger(regionId)) return res.status(400).json({ success: false, message: 'Invalid region' });
+      const result = await pool.query(
+        `SELECT id, province_id AS "regionId", country_code AS "countryCode",
+                name_english AS "nameEnglish", name_arabic AS "nameArabic", name AS "namePersian"
+         FROM iraqi_cities
+         WHERE province_id = $1 AND is_active = true
+         ORDER BY name`,
+        [regionId],
+      );
+      res.json({ success: true, data: result.rows });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // Legacy Iraqi endpoints remain available for logistics compatibility.
   // Get all Iraqi provinces with trilingual support
   app.get('/api/iraqi-provinces', async (req, res) => {
     try {
@@ -16703,6 +16826,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         address,
         secondaryAddress,
         postalCode,
+        secondaryPostalCode,
         alternatePhone,
         province,
         state,
@@ -16792,6 +16916,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         address,
         secondaryAddress: secondaryAddress || null,
         postalCode: postalCode || null,
+        secondaryPostalCode: secondaryPostalCode || null,
         industry: industry || null,
         businessType: businessType || null,
         companySize: companySize || null,
@@ -18521,6 +18646,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         address,
         secondaryAddress,
         postalCode,
+        secondaryPostalCode,
         industry,
         businessType,
         companySize,
@@ -18560,6 +18686,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           address,
           secondaryAddress: secondaryAddress || null,
           postalCode: postalCode || null,
+          secondaryPostalCode: secondaryPostalCode || null,
           industry: industry || null,
           businessType: businessType || null,
           companySize: companySize || null,
@@ -21558,7 +21685,10 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           isActive: iraqiProvinces.isActive
         })
         .from(iraqiProvinces)
-        .where(eq(iraqiProvinces.isActive, true))
+        .where(and(
+          eq(iraqiProvinces.countryCode, 'IQ'),
+          eq(iraqiProvinces.isActive, true)
+        ))
         .orderBy(iraqiProvinces.nameArabic);
       
       res.json({
@@ -21583,7 +21713,10 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       
       const provinceId = req.query.provinceId ? parseInt(req.query.provinceId as string) : null;
       
-      let whereConditions = [eq(iraqiCities.isActive, true)];
+      let whereConditions = [
+        eq(iraqiCities.countryCode, 'IQ'),
+        eq(iraqiCities.isActive, true)
+      ];
       
       // Add province filter if provided
       if (provinceId && !isNaN(provinceId)) {
@@ -21625,6 +21758,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         .select()
         .from(iraqiCities)
         .where(and(
+          eq(iraqiCities.countryCode, 'IQ'),
           eq(iraqiCities.provinceId, provinceId),
           eq(iraqiCities.isActive, true)
         ))
@@ -28672,6 +28806,7 @@ Leading Chemical Solutions Provider
         address,
         secondaryAddress,
         postalCode,
+        secondaryPostalCode,
         alternatePhone,
         industry,
         businessType,
@@ -28741,8 +28876,9 @@ Leading Chemical Solutions Provider
         address: address || currentCustomer.address,
         
         // Additional contact info
-        secondaryAddress: secondaryAddress || currentCustomer.secondaryAddress,
-        postalCode: postalCode || currentCustomer.postalCode,
+        secondaryAddress: secondaryAddress ?? currentCustomer.secondaryAddress,
+        postalCode: postalCode ?? currentCustomer.postalCode,
+        secondaryPostalCode: secondaryPostalCode ?? currentCustomer.secondaryPostalCode,
         alternatePhone: alternatePhone || currentCustomer.alternatePhone,
         
         // Business information
