@@ -178,23 +178,37 @@ function VerificationSettingsPanel() {
   );
 }
 
+const geographyCountryCode = (country?: string) => {
+  const value = (country || "").trim().toLowerCase();
+  if (["iraq", "عراق", "العراق"].includes(value)) return "IQ";
+  if (["iran", "ایران", "إيران"].includes(value)) return "IR";
+  if (["turkey", "ترکیه", "تركيا"].includes(value)) return "TR";
+  return "";
+};
+
 function ProvinceSelect({ editingCustomer, setEditingCustomer }: {
   editingCustomer: CrmCustomer | null;
   setEditingCustomer: (customer: CrmCustomer | null) => void;
 }) {
   const { language } = useLanguage();
-  const [selectedProvinceId, setSelectedProvinceId] = useState<number | null>(null);
+  const countryCode = geographyCountryCode(editingCustomer?.country);
+  const usesCentralRegions = countryCode === "IQ" || countryCode === "IR";
   
-  // Fetch provinces data only if country is Iraq
   const { data: provincesData } = useQuery({
-    queryKey: ["/api/iraqi-provinces"],
-    enabled: editingCustomer?.country === "Iraq",
+    queryKey: ["/api/geography/regions", countryCode],
+    queryFn: () => fetch(`/api/geography/regions?country=${countryCode}`).then(res => res.json()),
+    enabled: usesCentralRegions,
     retry: 1,
   });
 
   const provinces = (provincesData && typeof provincesData === 'object' && 'data' in provincesData) ? provincesData.data : [];
+  const selectedProvince = (provinces as any[]).find((province: any) =>
+    province.nameEnglish === editingCustomer?.province ||
+    province.nameArabic === editingCustomer?.province ||
+    province.namePersian === editingCustomer?.province
+  );
 
-  if (editingCustomer?.country !== "Iraq") {
+  if (!usesCentralRegions) {
     return (
       <div>
         <Label htmlFor="editProvince">{crmText(language, "provinceState")}</Label>
@@ -212,14 +226,14 @@ function ProvinceSelect({ editingCustomer, setEditingCustomer }: {
     <div>
       <Label htmlFor="editProvince">{crmText(language, "province")}</Label>
       <Select 
-        value={editingCustomer?.province || ""} 
+        value={selectedProvince ? String(selectedProvince.id) : ""}
         onValueChange={(value) => {
-          setEditingCustomer({ ...editingCustomer!, province: value });
-          // Find the selected province to get its ID for city filtering
-          const selectedProvince = (provinces as any[]).find((p: any) => p.nameEnglish === value || p.name === value);
-          if (selectedProvince) {
-            setSelectedProvinceId(selectedProvince.id);
-          }
+          const selectedProvince = (provinces as any[]).find((province: any) => String(province.id) === value);
+          setEditingCustomer({
+            ...editingCustomer!,
+            province: selectedProvince?.namePersian || selectedProvince?.nameArabic || selectedProvince?.nameEnglish || "",
+            cityRegion: "",
+          });
         }}
       >
         <SelectTrigger>
@@ -227,8 +241,8 @@ function ProvinceSelect({ editingCustomer, setEditingCustomer }: {
         </SelectTrigger>
         <SelectContent>
           {(provinces as any[]).map((province: any) => (
-            <SelectItem key={province.id} value={province.nameEnglish}>
-              {province.nameEnglish} / {province.nameArabic}
+            <SelectItem key={province.id} value={String(province.id)}>
+              {province.namePersian} / {province.nameEnglish}
             </SelectItem>
           ))}
         </SelectContent>
@@ -243,11 +257,14 @@ function CitySelect({ editingCustomer, setEditingCustomer }: {
 }) {
   const { language } = useLanguage();
   const [selectedProvinceId, setSelectedProvinceId] = useState<number | null>(null);
+  const countryCode = geographyCountryCode(editingCustomer?.country);
+  const usesCentralRegions = countryCode === "IQ" || countryCode === "IR";
   
   // Get province ID when province changes
   const { data: provincesData } = useQuery({
-    queryKey: ["/api/iraqi-provinces"],
-    enabled: editingCustomer?.country === "Iraq",
+    queryKey: ["/api/geography/regions", countryCode],
+    queryFn: () => fetch(`/api/geography/regions?country=${countryCode}`).then(res => res.json()),
+    enabled: usesCentralRegions,
     retry: 1,
   });
 
@@ -257,7 +274,9 @@ function CitySelect({ editingCustomer, setEditingCustomer }: {
   useEffect(() => {
     if (editingCustomer?.province && Array.isArray(provinces) && provinces.length > 0) {
       const selectedProvince = (provinces as any[]).find((p: any) => 
-        p.nameEnglish === editingCustomer.province || p.name === editingCustomer.province
+        p.nameEnglish === editingCustomer.province ||
+        p.nameArabic === editingCustomer.province ||
+        p.namePersian === editingCustomer.province
       );
       if (selectedProvince) {
         setSelectedProvinceId(selectedProvince.id);
@@ -267,20 +286,20 @@ function CitySelect({ editingCustomer, setEditingCustomer }: {
 
   // Fetch cities data based on selected province
   const { data: citiesData } = useQuery({
-    queryKey: ["/api/iraqi-cities", selectedProvinceId],
+    queryKey: ["/api/geography/cities", selectedProvinceId],
     queryFn: () => {
       const url = selectedProvinceId 
-        ? `/api/iraqi-cities?provinceId=${selectedProvinceId}`
-        : '/api/iraqi-cities';
+        ? `/api/geography/cities?regionId=${selectedProvinceId}`
+        : '';
       return fetch(url).then(res => res.json());
     },
-    enabled: editingCustomer?.country === "Iraq" && selectedProvinceId !== null,
+    enabled: usesCentralRegions && selectedProvinceId !== null,
     retry: 1,
   });
 
   const cities = (citiesData && typeof citiesData === 'object' && 'data' in citiesData) ? citiesData.data : [];
 
-  if (editingCustomer?.country !== "Iraq") {
+  if (!usesCentralRegions) {
     return (
       <div>
         <Label htmlFor="editCity">{crmText(language, "cityRequired")}</Label>
@@ -306,8 +325,8 @@ function CitySelect({ editingCustomer, setEditingCustomer }: {
         </SelectTrigger>
         <SelectContent>
           {cities.map((city: any) => (
-            <SelectItem key={city.id} value={city.nameEnglish}>
-              {city.nameEnglish} / {city.nameArabic}
+            <SelectItem key={city.id} value={city.namePersian}>
+              {city.namePersian} / {city.nameEnglish}
             </SelectItem>
           ))}
         </SelectContent>
@@ -416,6 +435,7 @@ export default function CRM() {
     company: "",
     phone: "",
     country: "",
+    province: "",
     cityRegion: "",
     address: "",
     secondaryAddress: "",
@@ -433,6 +453,26 @@ export default function CRM() {
   const queryClient = useQueryClient();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { language, direction } = useLanguage();
+  const [newCustomerRegionId, setNewCustomerRegionId] = useState("");
+  const { data: geographyCountriesData } = useQuery({
+    queryKey: ["/api/geography/countries"],
+    queryFn: () => fetch("/api/geography/countries").then(res => res.json()),
+  });
+  const geographyCountries = (geographyCountriesData as any)?.data || [];
+  const newCustomerCountryCode = geographyCountryCode(newCustomer.country);
+  const newCustomerUsesCentralRegions = ["IQ", "IR"].includes(newCustomerCountryCode);
+  const { data: newCustomerRegionsData } = useQuery({
+    queryKey: ["/api/geography/regions", newCustomerCountryCode],
+    queryFn: () => fetch(`/api/geography/regions?country=${newCustomerCountryCode}`).then(res => res.json()),
+    enabled: newCustomerUsesCentralRegions,
+  });
+  const newCustomerRegions = (newCustomerRegionsData as any)?.data || [];
+  const { data: newCustomerCitiesData } = useQuery({
+    queryKey: ["/api/geography/cities", newCustomerRegionId],
+    queryFn: () => fetch(`/api/geography/cities?regionId=${newCustomerRegionId}`).then(res => res.json()),
+    enabled: newCustomerUsesCentralRegions && !!newCustomerRegionId,
+  });
+  const newCustomerCities = (newCustomerCitiesData as any)?.data || [];
   const [, setLocation] = useLocation();
 
   useEffect(() => {
@@ -567,6 +607,7 @@ export default function CRM() {
         company: "",
         phone: "",
         country: "",
+        province: "",
         cityRegion: "",
         address: "",
         secondaryAddress: "",
@@ -1469,26 +1510,92 @@ export default function CRM() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-              <Label htmlFor="country">{crmText(language, "countryRequired")}</Label>
-                <Input
-                  id="country"
-                  required
-                  placeholder={crmText(language, "country")}
+                <Label htmlFor="country">{crmText(language, "countryRequired")}</Label>
+                <Select
                   value={newCustomer.country}
-                  onChange={(e) => setNewCustomer({ ...newCustomer, country: e.target.value })}
-                />
+                  onValueChange={(value) => {
+                    setNewCustomer({ ...newCustomer, country: value, province: "", cityRegion: "" });
+                    setNewCustomerRegionId("");
+                  }}
+                >
+                  <SelectTrigger id="country">
+                    <SelectValue placeholder={crmText(language, "selectCountry")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {geographyCountries.map((country: any) => (
+                      <SelectItem key={country.code} value={country.nameEnglish}>
+                        {country.namePersian} / {country.nameEnglish}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
-              <Label htmlFor="cityRegion">{crmText(language, "cityRegion")}</Label>
-                <Input
-                  id="cityRegion"
-                  required
-                  placeholder={crmText(language, "cityRegion")}
-                  value={newCustomer.cityRegion}
-                  onChange={(e) => setNewCustomer({ ...newCustomer, cityRegion: e.target.value })}
-                />
+                <Label htmlFor="province">{crmText(language, "provinceState")}</Label>
+                {newCustomerUsesCentralRegions ? (
+                  <Select
+                    value={newCustomerRegionId}
+                    onValueChange={(value) => {
+                      const region = newCustomerRegions.find((item: any) => String(item.id) === value);
+                      setNewCustomerRegionId(value);
+                      setNewCustomer({
+                        ...newCustomer,
+                        province: region?.namePersian || region?.nameArabic || region?.nameEnglish || "",
+                        cityRegion: "",
+                      });
+                    }}
+                  >
+                    <SelectTrigger id="province">
+                      <SelectValue placeholder={crmText(language, "selectProvince")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {newCustomerRegions.map((region: any) => (
+                        <SelectItem key={region.id} value={String(region.id)}>
+                          {region.namePersian} / {region.nameEnglish}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    id="province"
+                    required
+                    placeholder={crmText(language, "enterProvince")}
+                    value={newCustomer.province}
+                    onChange={(e) => setNewCustomer({ ...newCustomer, province: e.target.value })}
+                  />
+                )}
+              </div>
+              <div>
+                <Label htmlFor="cityRegion">{crmText(language, "cityRegion")}</Label>
+                {newCustomerUsesCentralRegions ? (
+                  <Select
+                    value={newCustomer.cityRegion}
+                    onValueChange={(value) => setNewCustomer({ ...newCustomer, cityRegion: value })}
+                    disabled={!newCustomerRegionId}
+                  >
+                    <SelectTrigger id="cityRegion">
+                      <SelectValue placeholder={crmText(language, "selectCity")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {newCustomerCities.map((city: any) => (
+                        <SelectItem key={city.id} value={city.namePersian}>
+                          {city.namePersian} / {city.nameEnglish}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    id="cityRegion"
+                    required
+                    placeholder={crmText(language, "cityRegion")}
+                    value={newCustomer.cityRegion}
+                    onChange={(e) => setNewCustomer({ ...newCustomer, cityRegion: e.target.value })}
+                  />
+                )}
               </div>
             </div>
 
@@ -1708,14 +1815,24 @@ export default function CRM() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                   <Label htmlFor="editCountry">{crmText(language, "countryRequired")}</Label>
-                    <Select value={editingCustomer.country || ""} onValueChange={(value) => setEditingCustomer({ ...editingCustomer, country: value })}>
+                    <Select
+                      value={editingCustomer.country || ""}
+                      onValueChange={(value) => setEditingCustomer({
+                        ...editingCustomer,
+                        country: value,
+                        province: "",
+                        cityRegion: "",
+                      })}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder={crmText(language, "selectCountry")} />
                       </SelectTrigger>
                       <SelectContent>
-                         {["Iraq", "Iran", "Turkey", "Syria", "Jordan", "Lebanon", "Kuwait", "Saudi Arabia", "UAE", "Other"].map((value) => (
-                           <SelectItem key={value} value={value}>{crmEnum(value, language)}</SelectItem>
-                         ))}
+                          {geographyCountries.map((country: any) => (
+                            <SelectItem key={country.code} value={country.nameEnglish}>
+                              {country.namePersian} / {country.nameEnglish}
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                   </div>
