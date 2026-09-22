@@ -668,6 +668,27 @@ export async function generateInvoicePDF(data: any): Promise<Buffer> {
         });
       }
     };
+    const rtlSentence = (value: any, x: number, y: number, width: number) => {
+      const words = str(value).trim().split(/\s+/);
+      const wordGap = doc.widthOfString(' ');
+      let cursor = x + width;
+      let lineY = y;
+
+      for (const word of words) {
+        const wordWidth = doc.widthOfString(word);
+        if (cursor - wordWidth < x && cursor < x + width) {
+          lineY += 13;
+          cursor = x + width;
+        }
+        cursor -= wordWidth;
+        doc.text(tx(word), cursor, lineY, {
+          width: wordWidth + 1,
+          align: 'right',
+          lineBreak: false,
+        });
+        cursor -= wordGap;
+      }
+    };
     if (companyLogo) {
       try {
         doc.image(companyLogo, 42, 32, { fit: [64, 48] });
@@ -734,7 +755,14 @@ export async function generateInvoicePDF(data: any): Promise<Buffer> {
     if (y > 650) { doc.addPage(); y = 42; }
     y += 14;
     totals.forEach((r: any, i: number) => { const isGrandTotal = i === totals.length - 1; doc.font(isGrandTotal ? 'VazirBold' : 'VazirRegular').fontSize(isGrandTotal ? 11 : 9); pair(r[0], `${fmt(r[1])} ${str(data.currency || 'IQD')}`, 42, y, 510); y += 19; });
-    doc.font('VazirRegular').fontSize(9).text(tx(data.invoiceType === 'PROFORMA' ? L[23] : L[24]), 42, y + 10, { width: 510, align: al }); doc.end();
+    doc.font('VazirRegular').fontSize(9);
+    const footerText = data.invoiceType === 'PROFORMA' ? L[23] : L[24];
+    if (rtl) {
+      rtlSentence(footerText, 42, y + 10, 510);
+    } else {
+      doc.text(footerText, 42, y + 10, { width: 510, align: 'left' });
+    }
+    doc.end();
   });
 }
 
