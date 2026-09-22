@@ -421,10 +421,14 @@ function Router() {
 function GlobalSiteOverlays() {
   const [location] = useLocation();
   if (location === "/delivery") return null;
+  const isCustomerShop =
+    location === "/shop" ||
+    /^\/shop\/product\/[^/]+$/.test(location);
+
   return (
     <>
       <TawkToChat />
-      <PWAInstallPrompt />
+      {isCustomerShop && <PWAInstallPrompt />}
     </>
   );
 }
