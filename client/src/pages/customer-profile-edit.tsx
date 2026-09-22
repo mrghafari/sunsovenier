@@ -16,6 +16,15 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { ArrowLeft, Save, Shield, Phone, Mail, Building, MapPin, User } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { iranProvinces } from "@/lib/iran-locations";
+
+const normalizeProfileCountry = (country?: string) => {
+  const value = (country || "").trim().toLowerCase();
+  if (["iran", "ir", "ایران", "إيران"].includes(value)) return "ایران";
+  if (["turkey", "turkiye", "türkiye", "tr", "ترکیه", "تركيا"].includes(value)) return "ترکیه";
+  if (["iraq", "iq", "عراق", "العراق"].includes(value)) return "عراق";
+  return country || "";
+};
 
 const EDIT_T = {
   en: {
@@ -369,6 +378,7 @@ export default function CustomerProfileEdit() {
 
   // State for selected province to filter cities
   const [selectedProvinceId, setSelectedProvinceId] = useState<number | null>(18); // Default to Erbil (ID=18)
+  const [selectedIranProvinceId, setSelectedIranProvinceId] = useState<string | null>(null);
 
   // Fetch cities data based on selected province
   const { data: citiesData } = useQuery({
@@ -385,16 +395,16 @@ export default function CustomerProfileEdit() {
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
-  const provinces = (provincesData && typeof provincesData === 'object' && 'data' in provincesData) ? provincesData.data as any[] : [];
-  let cities = (citiesData && typeof citiesData === 'object' && 'data' in citiesData) ? citiesData.data as any[] : [];
+  const iraqiProvincesList = (provincesData && typeof provincesData === 'object' && 'data' in provincesData) ? provincesData.data as any[] : [];
+  let iraqiCitiesList = (citiesData && typeof citiesData === 'object' && 'data' in citiesData) ? citiesData.data as any[] : [];
   
   // Remove duplicates based on nameEnglish and filter by province
-  if (selectedProvinceId && cities.length > 0) {
-    cities = cities.filter((city: any) => city.provinceId === selectedProvinceId);
+  if (selectedProvinceId && iraqiCitiesList.length > 0) {
+    iraqiCitiesList = iraqiCitiesList.filter((city: any) => city.provinceId === selectedProvinceId);
   }
   
   // Remove duplicates based on nameEnglish field
-  cities = cities.filter((city: any, index: number, arr: any[]) => 
+  iraqiCitiesList = iraqiCitiesList.filter((city: any, index: number, arr: any[]) =>
     arr.findIndex((c: any) => c.nameEnglish === city.nameEnglish) === index
   );
   
@@ -442,6 +452,24 @@ export default function CustomerProfileEdit() {
     },
   });
 
+  const selectedCountry = form.watch("country");
+  const isIran = selectedCountry === "ایران";
+  const isIraq = selectedCountry === "عراق";
+  const provinces = isIran
+    ? iranProvinces.map((province) => ({
+        id: province.id,
+        nameEnglish: province.namePersian,
+        nameArabic: province.nameEnglish,
+      }))
+    : iraqiProvincesList;
+  const cities = isIran
+    ? (iranProvinces.find((province) => province.id === selectedIranProvinceId)?.cities || []).map((city) => ({
+        id: city,
+        nameEnglish: city,
+        nameArabic: city,
+      }))
+    : iraqiCitiesList;
+
   const smsForm = useForm<SmsVerificationForm>({
     resolver: zodResolver(smsVerificationSchema),
     defaultValues: {
@@ -462,7 +490,7 @@ export default function CustomerProfileEdit() {
         phone: customerData.phone || "",
         email: customerData.email || "",
         company: customerData.company || "",
-        country: customerData.country || "",
+        country: normalizeProfileCountry(customerData.country),
         province: customerData.province || "",
         city: customerData.cityRegion || customerData.city || "", // CRITICAL: Use cityRegion from database
         address: customerData.address || "",
@@ -511,8 +539,11 @@ export default function CustomerProfileEdit() {
       );
       
       if (customerProvince) {
-        // Always set the province ID for city filtering
-        setSelectedProvinceId(customerProvince.id);
+        if (normalizeProfileCountry(actualCustomer.country) === "ایران") {
+          setSelectedIranProvinceId(String(customerProvince.id));
+        } else {
+          setSelectedProvinceId(Number(customerProvince.id));
+        }
         
         // Set form value if not already set correctly
         const currentFormValue = form.getValues('province');
@@ -526,7 +557,7 @@ export default function CustomerProfileEdit() {
         }
       }
     }
-  }, [customer?.customer?.province, provinces.length, form]);
+  }, [customer, provinces, form]);
 
   // CRITICAL FIX: City setting with stable dependencies
   useEffect(() => {
@@ -894,9 +925,27 @@ export default function CustomerProfileEdit() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="required-field">{et.country} <span className="text-red-500">*</span></FormLabel>
-                          <FormControl>
-                           <Input {...field} placeholder={et.country} />
-                          </FormControl>
+                          <Select
+                            value={field.value}
+                            onValueChange={(value) => {
+                              field.onChange(value);
+                              form.setValue("province", "");
+                              form.setValue("city", "");
+                              setSelectedIranProvinceId(null);
+                              if (value === "عراق") setSelectedProvinceId(18);
+                            }}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder={et.country} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="عراق">عراق / Iraq</SelectItem>
+                              <SelectItem value="ایران">ایران / Iran</SelectItem>
+                              <SelectItem value="ترکیه">ترکیه / Turkey</SelectItem>
+                            </SelectContent>
+                          </Select>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -907,34 +956,37 @@ export default function CustomerProfileEdit() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="required-field">{et.province} <span className="text-red-500">*</span></FormLabel>
-                        <Select 
-                          onValueChange={(value) => {
-                            console.log('🏛️ Province changing to:', value);
-                            field.onChange(value);
-                            // Find the selected province to get its ID for city filtering
-                            const selectedProvince = provinces.find((p: any) => p.nameEnglish === value || p.name === value);
-                            if (selectedProvince) {
-                              setSelectedProvinceId(selectedProvince.id);
-                              console.log('🏛️ Province ID set to:', selectedProvince.id);
-                            }
-                            // Don't clear city automatically - preserve data integrity
-                            console.log('🏛️ City preserved, will filter based on new province');
-                          }} 
-                          value={field.value}
-                        >
+                        {isIran || isIraq ? (
+                          <Select
+                            onValueChange={(value) => {
+                              field.onChange(value);
+                              form.setValue("city", "");
+                              const selectedProvince = provinces.find((p: any) => p.nameEnglish === value || p.name === value);
+                              if (selectedProvince) {
+                                if (isIran) setSelectedIranProvinceId(String(selectedProvince.id));
+                                else setSelectedProvinceId(Number(selectedProvince.id));
+                              }
+                            }}
+                            value={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                 <SelectValue placeholder={et.selectProvince} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {provinces.map((province: any) => (
+                                <SelectItem key={province.id} value={province.nameEnglish}>
+                                  {province.nameEnglish} / {province.nameArabic}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
                           <FormControl>
-                            <SelectTrigger>
-                               <SelectValue placeholder={et.selectProvince} />
-                            </SelectTrigger>
+                            <Input {...field} placeholder={et.province} />
                           </FormControl>
-                          <SelectContent>
-                            {provinces.map((province: any) => (
-                              <SelectItem key={province.id} value={province.nameEnglish}>
-                                {province.nameEnglish} / {province.nameArabic}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        )}
                         <FormMessage />
                       </FormItem>
                     )}
@@ -945,23 +997,26 @@ export default function CustomerProfileEdit() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="required-field">{et.city} <span className="text-red-500">*</span></FormLabel>
-                        <Select 
-                          onValueChange={field.onChange} 
-                          value={field.value}
-                        >
+                        {isIran || isIraq ? (
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                 <SelectValue placeholder={et.selectCity} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {cities.map((city: any) => (
+                                <SelectItem key={city.id} value={city.nameEnglish}>
+                                  {isIran ? city.nameEnglish : `${city.nameEnglish} / ${city.nameArabic}`}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
                           <FormControl>
-                            <SelectTrigger>
-                               <SelectValue placeholder={et.selectCity} />
-                            </SelectTrigger>
+                            <Input {...field} placeholder={et.city} />
                           </FormControl>
-                          <SelectContent>
-                            {cities.map((city: any) => (
-                              <SelectItem key={city.id} value={city.nameEnglish}>
-                                {city.nameEnglish} / {city.nameArabic}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        )}
                         <FormMessage />
                       </FormItem>
                     )}
