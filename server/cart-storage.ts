@@ -19,6 +19,39 @@ const databaseUrl = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
 const sql_client = neon(databaseUrl!);
 const cartDb = drizzle(sql_client);
 
+function normalizeCartItems(cartData: unknown): Array<[number, number]> {
+  let parsed = cartData;
+  if (typeof parsed === 'string') {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch {
+      return [];
+    }
+  }
+
+  const entries = Array.isArray(parsed)
+    ? parsed.map((item: any) => [
+        Number(item?.productId ?? item?.id),
+        Number(item?.quantity),
+      ] as [number, number])
+    : parsed && typeof parsed === 'object'
+      ? Object.entries(parsed as Record<string, unknown>).map(([productId, quantity]) => [
+          Number(productId),
+          Number(quantity),
+        ] as [number, number])
+      : [];
+
+  return entries
+    .filter(([productId, quantity]) =>
+      Number.isInteger(productId) && productId > 0 && Number.isFinite(quantity) && quantity > 0,
+    )
+    .sort(([leftId], [rightId]) => leftId - rightId);
+}
+
+function cartsHaveSameItems(left: unknown, right: unknown): boolean {
+  return JSON.stringify(normalizeCartItems(left)) === JSON.stringify(normalizeCartItems(right));
+}
+
 export class CartStorage {
   
   // =============================================================================
@@ -42,6 +75,12 @@ export class CartStorage {
       .limit(1);
 
     if (existing.length > 0) {
+      // Loading an unchanged cart is not customer activity. Resetting the
+      // abandonment clock here lets a stale cart avoid cleanup indefinitely.
+      if (cartsHaveSameItems(existing[0].cartData, data.cartData)) {
+        return existing[0].id;
+      }
+
       // Update existing session
       await cartDb
         .update(cartSessions)

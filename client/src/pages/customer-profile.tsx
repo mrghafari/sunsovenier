@@ -682,6 +682,10 @@ const CustomerProfile = () => {
     queryKey: ["/api/customers/abandoned-carts"],
     retry: 1,
     enabled: !!customerData?.success,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchInterval: 60 * 1000,
   });
 
   const { data: publicShopSettings } = useQuery<any>({
