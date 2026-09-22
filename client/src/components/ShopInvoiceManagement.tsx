@@ -586,11 +586,12 @@ export default function ShopInvoiceManagement() {
         <div class="invoice-container">
           <div class="header">
             <div style="text-align: center; margin-bottom: 10px;">
-              ${companyInfo?.data?.logoUrl ? `
-                <img src="${companyInfo.data.logoUrl}" alt="لوگوی شرکت" class="company-logo" 
-                     onload="console.log('Logo loaded successfully')" 
-                     onerror="console.log('Logo failed to load'); this.style.display='none'" />` : 
-                `<div style="width: 60px; height: 60px; border: 1px solid #ccc; border-radius: 4px; margin: 0 auto 8px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #666;">لوگو</div>`}
+              <img
+                src="${companyInfo?.data?.logoUrl || '/attached_assets/company-logo.png'}"
+                alt="لوگوی شرکت"
+                class="company-logo"
+                onerror="this.onerror=null;this.src='/attached_assets/company-logo.png'"
+              />
             </div>
             <div class="company-name">${normalizeInvoiceCompanyName(companyInfo?.data?.companyNameAr || companyInfo?.data?.companyNameEn || 'ممتازشیمی')}</div>
             <div class="invoice-title">فاکتور فروش</div>

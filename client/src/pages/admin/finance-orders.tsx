@@ -973,6 +973,7 @@ function FinanceOrders() {
           t('unknown');
         const customerEmail = orderDetails.customerEmail || orderDetails.customer?.email || t('unknown');
         const customerPhone = orderDetails.customerPhone || orderDetails.customer?.phone || t('unknown');
+        const companyLogoUrl = (companyInfo as any)?.data?.logoUrl || '/attached_assets/company-logo.png';
         const itemsSubtotal = orderDetails.items?.reduce((sum: number, item: any) => (
           sum + (parseFloat(item.unitPrice || item.price || 0) * parseInt(item.quantity || 1))
         ), 0) || 0;
@@ -999,6 +1000,7 @@ function FinanceOrders() {
                 * { box-sizing: border-box; }
                 body { font-family: Arial, Tahoma, sans-serif; direction: ${direction}; color: #111827; padding: 20px; margin: 0; }
                 .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #2563eb; padding-bottom: 14px; }
+                .company-logo { display: block; max-width: 120px; max-height: 80px; object-fit: contain; margin: 0 auto 10px; }
                 .header h2 { margin: 0 0 8px; }
                 .section { margin: 16px 0; padding: 14px; border: 1px solid #d1d5db; border-radius: 8px; break-inside: avoid; }
                 .section h3 { margin: 0 0 12px; color: #1d4ed8; font-size: 16px; }
@@ -1021,6 +1023,12 @@ function FinanceOrders() {
             </head>
             <body>
               <div class="header">
+                <img
+                  src="${escapeHtml(companyLogoUrl)}"
+                  alt="${escapeHtml(t('companyName'))}"
+                  class="company-logo"
+                  onerror="this.onerror=null;this.src='/attached_assets/company-logo.png'"
+                />
                 <h2>${escapeHtml(t('details'))} ${escapeHtml(t('order'))} #${escapeHtml(orderDetails.orderNumber)}</h2>
                 <div>${escapeHtml(t('date'))}: ${escapeHtml(formatDate(orderDetails.createdAt || new Date(), true))}</div>
               </div>
@@ -1091,7 +1099,21 @@ function FinanceOrders() {
         `);
         printWindow.document.close();
         printWindow.focus();
-        printWindow.setTimeout(() => printWindow.print(), 250);
+        const images = Array.from(printWindow.document.images);
+        const imagesReady = Promise.all(images.map((image) => (
+          image.complete
+            ? Promise.resolve()
+            : new Promise<void>((resolve) => {
+                image.addEventListener('load', () => resolve(), { once: true });
+                image.addEventListener('error', () => resolve(), { once: true });
+              })
+        )));
+        Promise.race([
+          imagesReady,
+          new Promise<void>((resolve) => printWindow.setTimeout(resolve, 2000)),
+        ]).then(() => {
+          if (!printWindow.closed) printWindow.print();
+        });
       }
     } catch (error) {
       toast({

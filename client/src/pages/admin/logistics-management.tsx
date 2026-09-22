@@ -2456,7 +2456,7 @@ const LogisticsManagement = () => {
         </head>
         <body>
           <div class="header">
-            <img src="${(companyInfo as any)?.data?.logoUrl || '/uploads/Logo_1753245273579.jpeg'}" alt="${t('companyName')}" style="max-width: 120px; max-height: 80px; margin-bottom: 15px;" onerror="this.style.display='none'">
+            <img src="${(companyInfo as any)?.data?.logoUrl || '/attached_assets/company-logo.png'}" alt="${t('companyName')}" style="max-width: 120px; max-height: 80px; margin-bottom: 15px;" onerror="this.onerror=null;this.src='/attached_assets/company-logo.png'">
             <h1>${t('logisticsOrderDetails')}</h1>
             <h2>${t('orderLabel')} ${selectedOrder.orderNumber}</h2>
             <p>${t('date')}: ${new Intl.DateTimeFormat(locale).format(new Date())}</p>
@@ -2720,7 +2720,7 @@ const LogisticsManagement = () => {
     </head>
     <body>
       <div class="header">
-        <img src="${(companyInfo as any)?.data?.logoUrl || '/uploads/Logo_1753245273579.jpeg'}" alt="${t('companyName')}" style="max-width: 120px; max-height: 80px; margin-bottom: 15px;" onerror="this.style.display='none'">
+        <img src="${(companyInfo as any)?.data?.logoUrl || '/attached_assets/company-logo.png'}" alt="${t('companyName')}" style="max-width: 120px; max-height: 80px; margin-bottom: 15px;" onerror="this.onerror=null;this.src='/attached_assets/company-logo.png'">
         <div class="company-name">${t('companyName')}</div>
         <div>${t('orderLabel')} ${t('details')}</div>
           <div style="font-size: 12px; color: #6b7280;">${t('date')}: ${new Intl.DateTimeFormat(locale).format(new Date())}</div>

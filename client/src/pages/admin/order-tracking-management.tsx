@@ -727,7 +727,7 @@ export default function OrderTrackingManagement() {
       </head>
       <body>
         <div class="header">
-          <img src="/uploads/Logo_1753245273579.jpeg" alt="لوگوی شرکت" class="company-logo" />
+          <img src="/attached_assets/company-logo.png" alt="لوگوی شرکت" class="company-logo" />
           <div class="company-name">شرکت ممتاز شیمی</div>
           <div class="order-title">جزئیات سفارش ${selectedOrder.orderNumber || `#${selectedOrder.customerOrderId}`}</div>
           <div style="font-size: 12px; margin-top: 10px;">تاریخ چاپ: ${new Date().toLocaleDateString('en-GB')}</div>

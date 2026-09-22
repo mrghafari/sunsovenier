@@ -442,7 +442,7 @@ const WarehouseManagementFixed: React.FC = () => {
       </head>
       <body>
         <div class="header">
-          <img src="/uploads/Logo_1753245273579.jpeg" alt="${t('warehouseManagement')}" class="company-logo" />
+          <img src="/attached_assets/company-logo.png" alt="${t('warehouseManagement')}" class="company-logo" />
           <div class="company-name">${t('companyName')}</div>
           <div class="order-title">${t('orderDetails')} ${orderDetails.orderNumber || `#${selectedOrder?.customerOrderId}`}</div>
           <div style="font-size: 12px; margin-top: 10px;">${t('printDate') || 'Print date'}: ${formatDate(new Date())}</div>
