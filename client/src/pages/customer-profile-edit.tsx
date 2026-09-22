@@ -925,9 +925,8 @@ export default function CustomerProfileEdit() {
                         {isIran || isIraq ? (
                           <Select
                             onValueChange={(value) => {
-                              field.onChange(value);
                               form.setValue("city", "");
-                              const selectedProvince = provinces.find((p: any) => p.id === value);
+                              const selectedProvince = provinces.find((province: any) => String(province.id) === value);
                               if (selectedProvince) {
                                 setSelectedRegionId(String(selectedProvince.id));
                                 field.onChange(selectedProvince.namePersian || selectedProvince.nameArabic || selectedProvince.nameEnglish);
@@ -942,7 +941,7 @@ export default function CustomerProfileEdit() {
                             </FormControl>
                             <SelectContent>
                               {provinces.map((province: any) => (
-                                <SelectItem key={province.id} value={province.id}>
+                                <SelectItem key={province.id} value={String(province.id)}>
                                   {province.namePersian} / {province.nameEnglish}
                                 </SelectItem>
                               ))}

@@ -198,7 +198,9 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
   // No need for verification settings anymore - OTP is always used
 
   // Find selected province ID 
-  const selectedProvinceData = Array.isArray(provinces) ? provinces.find((p: any) => p.id === selectedProvince) : null;
+  const selectedProvinceData = Array.isArray(provinces)
+    ? provinces.find((province: any) => String(province.id) === selectedProvince)
+    : null;
   
   // Fetch cities based on selected province
   const { data: citiesResponse } = useQuery({
