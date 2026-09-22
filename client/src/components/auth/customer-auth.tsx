@@ -174,11 +174,23 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
   const [additionalInfoOpen, setAdditionalInfoOpen] = useState(true);
 
   // Fetch provinces
-  const countryCode = selectedCountry === "Iran" ? "IR" : selectedCountry === "Iraq" ? "IQ" : "";
+  const { data: countriesResponse } = useQuery({
+    queryKey: ["/api/geography/countries"],
+    queryFn: () => fetch("/api/geography/countries").then(res => res.json()),
+  });
+  const countries = (countriesResponse as any)?.data || [];
+  const countryCode = selectedCountry === "Iran"
+    ? "IR"
+    : selectedCountry === "Iraq"
+      ? "IQ"
+      : selectedCountry === "Turkey"
+        ? "TR"
+        : "";
+  const hasCentralRegionList = countryCode === "IQ" || countryCode === "IR";
   const { data: provincesResponse } = useQuery({
     queryKey: ["/api/geography/regions", countryCode],
     queryFn: () => fetch(`/api/geography/regions?country=${countryCode}`).then(res => res.json()),
-    enabled: !!countryCode,
+    enabled: hasCentralRegionList,
   });
   
   const provinces = (provincesResponse as any)?.data || [];
@@ -1115,15 +1127,27 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>{t.country} *</FormLabel>
-                          <Select value={field.value} onValueChange={field.onChange}>
+                          <Select
+                            value={field.value}
+                            onValueChange={(value) => {
+                              field.onChange(value);
+                              setSelectedCountry(value);
+                              setSelectedProvince("");
+                              registerForm.setValue("province", "");
+                              registerForm.setValue("city", "");
+                            }}
+                          >
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder={t.auth.selectCountry} />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="Iraq">Iraq</SelectItem>
-                              <SelectItem value="Iran">Iran / ایران</SelectItem>
+                              {countries.map((country: any) => (
+                                <SelectItem key={country.code} value={country.nameEnglish}>
+                                  {country.namePersian} / {country.nameEnglish}
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -1138,7 +1162,8 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>{t.auth.province} *</FormLabel>
-                            <Select 
+                            {hasCentralRegionList ? (
+                            <Select
                               value={selectedProvince}
                               onValueChange={(value) => {
                                 setSelectedProvince(value);
@@ -1161,6 +1186,11 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
                                 ))}
                               </SelectContent>
                             </Select>
+                            ) : (
+                              <FormControl>
+                                <Input {...field} placeholder={t.auth.province} />
+                              </FormControl>
+                            )}
                             <FormMessage />
                           </FormItem>
                         )}
@@ -1171,6 +1201,7 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>{t.city} *</FormLabel>
+                            {hasCentralRegionList ? (
                             <Select value={field.value} onValueChange={field.onChange}>
                               <FormControl>
                                 <SelectTrigger>
@@ -1185,6 +1216,11 @@ export default function CustomerAuth({ open, onOpenChange, onLoginSuccess, onReg
                                 ))}
                               </SelectContent>
                             </Select>
+                            ) : (
+                              <FormControl>
+                                <Input {...field} placeholder={t.city} />
+                              </FormControl>
+                            )}
                             <FormMessage />
                           </FormItem>
                         )}

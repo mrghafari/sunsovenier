@@ -5665,7 +5665,10 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         await client.query('BEGIN');
         await client.query(`
           INSERT INTO geography_countries (code, name_english, name_arabic, name_persian)
-          VALUES ('IQ', 'Iraq', 'العراق', 'عراق'), ('IR', 'Iran', 'إيران', 'ایران')
+          VALUES
+            ('IQ', 'Iraq', 'العراق', 'عراق'),
+            ('IR', 'Iran', 'إيران', 'ایران'),
+            ('TR', 'Turkey', 'تركيا', 'ترکیه')
           ON CONFLICT (code) DO UPDATE SET
             name_english = EXCLUDED.name_english,
             name_arabic = EXCLUDED.name_arabic,
@@ -5743,7 +5746,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
     try {
       await ensureCentralGeography();
       const country = String(req.query.country || '').toUpperCase();
-      if (!['IQ', 'IR'].includes(country)) return res.status(400).json({ success: false, message: 'Invalid country' });
+      if (!['IQ', 'IR', 'TR'].includes(country)) return res.status(400).json({ success: false, message: 'Invalid country' });
       const result = await pool.query(
         `SELECT id, country_code AS "countryCode", name_english AS "nameEnglish",
                 name_arabic AS "nameArabic", name AS "namePersian"
