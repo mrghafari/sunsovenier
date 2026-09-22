@@ -259,44 +259,59 @@ export class CartStorage {
       console.log('🛒 [CART CLEANUP] Starting abandoned cart processing...');
       
       const now = new Date();
+      const settings = await this.getAbandonedCartSettings();
+      const timeoutMinutes = Math.min(
+        10080,
+        Math.max(1, Number(settings?.timeoutMinutes) || 30),
+      );
+      const notificationIntervalMinutes = Math.min(
+        10080,
+        Math.max(1, Number(settings?.notificationIntervalMinutes) || 60),
+      );
       
-      // Find carts that need first notification (1 hour)
-      const oneHourAgo = new Date(now.getTime() - (1 * 60 * 60 * 1000));
+      // Find carts that passed the configured inactivity timeout.
+      const abandonmentCutoff = new Date(now.getTime() - timeoutMinutes * 60 * 1000);
       const cartsForFirstNotification = await cartDb
         .select()
         .from(cartSessions)
         .where(and(
           eq(cartSessions.isActive, true),
           gte(cartSessions.itemCount, 1),
-          lte(cartSessions.lastActivity, oneHourAgo),
+          lte(cartSessions.lastActivity, abandonmentCutoff),
           eq(cartSessions.isAbandoned, false)
         ));
       
-      // Find carts that need second notification (3 hours)
-      const threeHoursAgo = new Date(now.getTime() - (3 * 60 * 60 * 1000));
+      // Find abandoned carts that passed the configured notification interval.
+      const secondNotificationCutoff = new Date(
+        now.getTime() - (timeoutMinutes + notificationIntervalMinutes) * 60 * 1000,
+      );
       const cartsForSecondNotification = await cartDb
         .select()
         .from(cartSessions)
         .where(and(
           eq(cartSessions.isActive, true),
           gte(cartSessions.itemCount, 1),
-          lte(cartSessions.lastActivity, threeHoursAgo),
+          lte(cartSessions.lastActivity, secondNotificationCutoff),
           eq(cartSessions.isAbandoned, true)
         ));
       
-      const settings = await this.getAbandonedCartSettings();
       const autoDeleteAfterHours = Math.min(
         8760,
         Math.max(1, Number(settings?.autoDeleteAfterHours) || 168),
       );
-      const deletionCutoff = new Date(now.getTime() - autoDeleteAfterHours * 60 * 60 * 1000);
+      const deletionCutoff = new Date(
+        now.getTime() - (
+          timeoutMinutes * 60 * 1000 +
+          autoDeleteAfterHours * 60 * 60 * 1000
+        ),
+      );
       const cartsToDelete = settings?.autoDeleteEnabled
         ? await cartDb
             .select()
             .from(cartSessions)
             .where(and(
               eq(cartSessions.isAbandoned, true),
-              sql`COALESCE(${cartSessions.abandonedAt}, ${cartSessions.lastActivity}) <= ${deletionCutoff.toISOString()}`,
+              lte(cartSessions.lastActivity, deletionCutoff),
             ))
         : [];
       
@@ -310,6 +325,7 @@ export class CartStorage {
         deletedCarts: cartsToDelete.length,
         autoDeleteEnabled: settings?.autoDeleteEnabled === true,
         autoDeleteAfterHours,
+        timeoutMinutes,
         cartsForFirstNotification,
         cartsForSecondNotification,
         cartsToDelete
@@ -323,6 +339,7 @@ export class CartStorage {
         deletedCarts: 0,
         autoDeleteEnabled: false,
         autoDeleteAfterHours: 168,
+        timeoutMinutes: 30,
         cartsForFirstNotification: [],
         cartsForSecondNotification: [],
         cartsToDelete: []
@@ -375,15 +392,43 @@ export class CartStorage {
   }
 
   async deleteAbandonedCart(cartId: number) {
-    await cartDb
-      .delete(abandonedCartNotifications)
-      .where(eq(abandonedCartNotifications.cartSessionId, cartId));
-    await cartDb
-      .delete(cartSessions)
-      .where(and(
-        eq(cartSessions.id, cartId),
-        eq(cartSessions.isAbandoned, true),
-      ));
+    const { pool } = await import('./db');
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const cartResult = await client.query(`
+        SELECT customer_id
+        FROM cart_sessions
+        WHERE id = $1 AND is_abandoned = true
+        FOR UPDATE
+      `, [cartId]);
+
+      if (cartResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return false;
+      }
+
+      const customerId = cartResult.rows[0].customer_id;
+      await client.query(
+        'DELETE FROM abandoned_cart_notifications WHERE cart_session_id = $1',
+        [cartId],
+      );
+      await client.query(
+        'DELETE FROM persistent_carts WHERE customer_id = $1',
+        [customerId],
+      );
+      await client.query(
+        'DELETE FROM cart_sessions WHERE id = $1 AND is_abandoned = true',
+        [cartId],
+      );
+      await client.query('COMMIT');
+      return true;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   // =============================================================================

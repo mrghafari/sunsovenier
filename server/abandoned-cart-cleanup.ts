@@ -14,10 +14,10 @@ class AbandonedCartCleanupService {
     console.log('🛒 [CART CLEANUP] Starting abandoned cart cleanup service');
     this.isRunning = true;
     
-    // Run every 30 minutes
+    // Run every minute so short admin-configured timeouts are respected.
     this.intervalId = setInterval(() => {
       this.processAbandonedCarts();
-    }, 30 * 60 * 1000);
+    }, 60 * 1000);
     
     // Run immediately
     setTimeout(() => {
@@ -45,18 +45,18 @@ class AbandonedCartCleanupService {
       
       const result = await this.cartStorage.processAbandonedCartCleanup();
       
-      // Process first notifications (1 hour)
+      // Process carts that passed the configured inactivity timeout.
       for (const cart of result.cartsForFirstNotification) {
         await this.sendFirstNotification(cart);
         await this.cartStorage.markCartAsAbandonedWithNotification(cart.id);
       }
       
-      // Process second notifications (3 hours) 
+      // Process carts that passed the configured notification interval.
       for (const cart of result.cartsForSecondNotification) {
         await this.sendSecondNotification(cart);
       }
       
-      // Permanently delete carts after the configured time since they were marked abandoned.
+      // Permanently delete both the tracked session and the customer-visible persistent cart.
       for (const cart of result.cartsToDelete) {
         const { releaseOwnerReservations, ownerKeyForRequest } =
           await import("./cart-inventory-reservation");
@@ -64,8 +64,10 @@ class AbandonedCartCleanupService {
           await releaseOwnerReservations(ownerKeyForRequest(cart.sessionId, cart.customerId));
           await releaseOwnerReservations(ownerKeyForRequest(cart.sessionId, null));
         }
-        await this.cartStorage.deleteAbandonedCart(cart.id);
-        console.log(`🛒 [CART CLEANUP] Permanently deleted cart ${cart.id} for customer ${cart.customerId} (${result.autoDeleteAfterHours}+ hours after abandonment)`);
+        const deleted = await this.cartStorage.deleteAbandonedCart(cart.id);
+        if (deleted) {
+          console.log(`🛒 [CART CLEANUP] Permanently deleted cart ${cart.id} for customer ${cart.customerId} (${result.timeoutMinutes} minutes inactivity + ${result.autoDeleteAfterHours} hours)`);
+        }
       }
       
       console.log(`🛒 [CART CLEANUP] Processed ${result.firstNotifications} first notifications, ${result.secondNotifications} second notifications, deleted ${result.deletedCarts} carts`);

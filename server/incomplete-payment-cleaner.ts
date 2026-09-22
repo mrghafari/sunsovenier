@@ -2,6 +2,9 @@ import { db } from './db';
 import { eq, and, lt } from 'drizzle-orm';
 import * as schema from '../shared/schema';
 
+const PAYMENT_DEADLINE_EXPIRED_REASON =
+  'مهلت واریز وجه این سفارش پایان یافته است و سفارش توسط سیستم لغو شد';
+
 export class IncompletePaymentCleaner {
   private static instance: IncompletePaymentCleaner;
   private cleanupTimer: NodeJS.Timeout | null = null;
@@ -246,7 +249,7 @@ export class IncompletePaymentCleaner {
       let cancellationReason: string;
       switch (orderType) {
         case 'grace_period_expired':
-          cancellationReason = 'سفارش پس از اتمام مهلت ۳ روزه پرداخت بانکی توسط سیستم لغو شد';
+          cancellationReason = PAYMENT_DEADLINE_EXPIRED_REASON;
           break;
         case 'online_payment':
           cancellationReason = 'عدم موفقیت در پرداخت آنلاین - سفارش توسط سیستم لغو شد';
@@ -255,10 +258,10 @@ export class IncompletePaymentCleaner {
           cancellationReason = 'عدم موفقیت در پرداخت بانکی - سفارش توسط سیستم لغو شد';
           break;
         case 'wallet_reservation_expired':
-          cancellationReason = 'رزرو کیف پول منقضی شد - پرداخت بانکی تکمیل نشد';
+          cancellationReason = PAYMENT_DEADLINE_EXPIRED_REASON;
           break;
         case 'wallet_partial_stale':
-          cancellationReason = 'عدم تکمیل پرداخت بانکی در مهلت ۳۰ دقیقه - سفارش توسط سیستم لغو شد';
+          cancellationReason = PAYMENT_DEADLINE_EXPIRED_REASON;
           break;
         default:
           cancellationReason = 'سفارش توسط سیستم لغو شد';
@@ -472,7 +475,7 @@ export class IncompletePaymentCleaner {
           
           // Also cancel the related order if it exists
           if (reservation.reference_id) {
-            const cancellationReason = 'رزرو کیف پول منقضی شد - پرداخت بانکی تکمیل نشد';
+            const cancellationReason = PAYMENT_DEADLINE_EXPIRED_REASON;
             
             // Get order info first
             const orderResult = await pool.query(`
