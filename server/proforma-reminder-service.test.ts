@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   channelsForMethod,
   localDateAndHour,
+  reminderWindowHasOpened,
   renderReminderTemplate,
   validReminderSchedule,
 } from "./proforma-reminder-service";
@@ -43,4 +44,10 @@ test("computes local date and hour in the configured timezone", () => {
   const instant = new Date("2026-09-20T10:30:00.000Z");
   assert.deepEqual(localDateAndHour(instant, "Asia/Tehran"), { date: "2026-09-20", hour: 14 });
   assert.deepEqual(localDateAndHour(instant, "UTC"), { date: "2026-09-20", hour: 10 });
+});
+
+test("catches up reminders after the configured hour instead of missing them", () => {
+  assert.equal(reminderWindowHasOpened(9, 10), false);
+  assert.equal(reminderWindowHasOpened(10, 10), true);
+  assert.equal(reminderWindowHasOpened(15, 10), true);
 });

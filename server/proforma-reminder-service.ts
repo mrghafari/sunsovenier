@@ -28,6 +28,10 @@ export function localDateAndHour(now: Date, timezone: string): { date: string; h
   return { date: `${get('year')}-${get('month')}-${get('day')}`, hour: Number(get('hour')) };
 }
 
+export function reminderWindowHasOpened(localHour: number, reminderHour: number): boolean {
+  return localHour >= reminderHour;
+}
+
 export function validReminderSchedule(input: any): { ok: true } | { ok: false; error: string } {
   const integer = (v: any) => typeof v === 'number' && Number.isInteger(v);
   if (!integer(input.reminderHour) || input.reminderHour < 0 || input.reminderHour > 23) return { ok: false, error: 'reminderHour must be an integer from 0 to 23' };
@@ -122,7 +126,9 @@ export class ProformaReminderService {
     const setting = await pool.query(`SELECT setting_value FROM shop_settings WHERE setting_key='proforma_reminder_timezone' LIMIT 1`);
     const timezone = setting.rows[0]?.setting_value || 'Asia/Baghdad';
     const local = localDateAndHour(new Date(), timezone);
-    if (local.hour !== schedule.reminder_hour) return [];
+    // Run hourly and catch up after the configured hour. Requiring an exact
+    // hour permanently misses orders created later on their reminder day.
+    if (!reminderWindowHasOpened(local.hour, schedule.reminder_hour)) return [];
     const r = await pool.query(`SELECT co.id, co.order_number,
       COALESCE(om.recipient_name, co.recipient_name, c.first_name || ' ' || c.last_name, co.guest_name) AS recipient_name,
       COALESCE(om.recipient_phone, co.recipient_phone, c.phone) AS recipient_phone,
@@ -139,7 +145,8 @@ export class ProformaReminderService {
         AND COALESCE(co.payment_status, 'pending') IN ('pending','unpaid','awaiting_payment')
         AND COALESCE(co.status, 'pending') NOT IN ('cancelled','deleted','paid','receipt_uploaded','processing','shipped','delivered')
         AND COALESCE(om.payment_receipt_url, '') = ''
-        AND (om.payment_grace_period_end AT TIME ZONE 'UTC' AT TIME ZONE $1)::date = ($2::date + $3::int)`,
+        AND om.payment_grace_period_end > NOW()
+        AND (om.payment_grace_period_end AT TIME ZONE 'UTC' AT TIME ZONE $1)::date <= ($2::date + $3::int)`,
       [timezone, local.date, schedule.days_before]);
     return r.rows;
   }
@@ -162,7 +169,7 @@ export class ProformaReminderService {
 
   private async already(orderId: number, scheduleId: number, channel: string) {
     const r = await pool.query(`SELECT 1 FROM proforma_reminder_logs
-      WHERE order_id=$1 AND schedule_id=$2 AND notification_type=$3 AND sent_at::date=CURRENT_DATE
+      WHERE order_id=$1 AND schedule_id=$2 AND notification_type=$3
         AND status IN ('accepted','sent') LIMIT 1`,
       [orderId, scheduleId, channel]);
     return (r.rowCount || 0) > 0;
