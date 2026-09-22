@@ -564,6 +564,12 @@ const SYSTEM_CANCELLATION_REASONS: Record<string, Record<string, string>> = {
     tr: "Banka havalesi için 3 günlük ödeme süresi dolduğundan sipariş sistem tarafından iptal edildi.",
     fa: "سفارش پس از اتمام مهلت ۳ روزه پرداخت بانکی توسط سیستم لغو شد",
   },
+  "سفارش پس از پایان مهلت پرداخت توسط سیستم لغو شد": {
+    en: "The order was cancelled automatically because its payment deadline expired.",
+    ar: "تم إلغاء الطلب تلقائيًا بسبب انتهاء مهلة الدفع.",
+    tr: "Ödeme süresi dolduğu için sipariş sistem tarafından otomatik olarak iptal edildi.",
+    fa: "سفارش به‌دلیل پایان مهلت پرداخت، به‌صورت خودکار توسط سیستم لغو شد.",
+  },
 };
 
 function getLocalizedCancellationReason(reason: unknown, language: string): string {
@@ -1540,6 +1546,23 @@ const CustomerProfile = () => {
                                     <div className="flex items-start gap-2">
                                       <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
                                       <div><h6 className="mb-1 text-sm font-medium text-red-800">{pt.orderRejectionReason}</h6><p className="text-sm text-red-700">{order.financialNotes}</p></div>
+                                    </div>
+                                  </div>
+                                )}
+                                {["cancelled", "deleted"].includes(
+                                  String(order.status || "").toLowerCase(),
+                                ) && order.cancellationReason && (
+                                  <div className="mb-3 rounded border border-red-200 bg-red-50 p-3">
+                                    <div className="flex items-start gap-2">
+                                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
+                                      <div>
+                                        <h6 className="mb-1 text-sm font-medium text-red-800">
+                                          {pt.orderCancellationReason}
+                                        </h6>
+                                        <p className="text-sm text-red-700">
+                                          {getLocalizedCancellationReason(order.cancellationReason, language)}
+                                        </p>
+                                      </div>
                                     </div>
                                   </div>
                                 )}

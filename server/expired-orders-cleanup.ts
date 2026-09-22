@@ -169,6 +169,7 @@ export class ExpiredOrdersCleanup {
               UPDATE customer_orders
               SET status = 'deleted',
                   notes = CONCAT_WS(' - ', NULLIF(notes, ''), $2),
+                  rejection_reason = 'سفارش پس از پایان مهلت پرداخت توسط سیستم لغو شد',
                   updated_at = NOW()
               WHERE id = $1
             `, [order.id, reason]);

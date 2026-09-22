@@ -20790,12 +20790,22 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       );
       const enrichedDetailedOrders = detailedOrders.map((order: any) => {
         const management = managementByOrderId.get(order.id);
+        const isExpiredGraceCancellation =
+          order.status === 'deleted' &&
+          (
+            order.paymentMethod === 'bank_transfer_grace' ||
+            order.paymentMethod === 'واریز بانکی با مهلت 3 روزه'
+          );
         const enrichedOrder = {
           ...order,
           financialReviewedAt: management?.financial_reviewed_at ?? null,
           financiallyApproved: management?.financial_reviewed_at != null,
           currentStatus: management?.current_status ?? order.status,
           managementStatus: management?.current_status ?? order.status,
+          cancellationReason: order.rejectionReason ||
+            (isExpiredGraceCancellation
+              ? 'سفارش پس از پایان مهلت پرداخت توسط سیستم لغو شد'
+              : null),
         };
         const terminalOrOutboundStatuses = new Set([
           'warehouse_approved',

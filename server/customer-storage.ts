@@ -320,13 +320,23 @@ export class CustomerStorage implements ICustomerStorage {
     abandonedCarts: any[],
     hasAbandonedCarts: boolean
   }> {
-    // Get all orders for the customer (excluding deleted orders)
+    // Keep expired grace-period orders as customer-visible cancellation history.
+    // Other deleted orders remain hidden from the profile.
     const allOrders = await customerDb
       .select()
       .from(customerOrders)
       .where(and(
         eq(customerOrders.customerId, customerId),
-        ne(customerOrders.status, 'deleted') // فیلتر کردن سفارشات حذف شده از نمایش پروفایل
+        or(
+          ne(customerOrders.status, 'deleted'),
+          and(
+            eq(customerOrders.status, 'deleted'),
+            or(
+              eq(customerOrders.paymentMethod, 'bank_transfer_grace'),
+              eq(customerOrders.paymentMethod, 'واریز بانکی با مهلت 3 روزه')
+            )
+          )
+        )
       ))
       .orderBy(desc(customerOrders.createdAt));
 
