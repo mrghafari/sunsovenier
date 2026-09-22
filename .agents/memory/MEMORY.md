@@ -27,3 +27,4 @@
 - [Legacy duplicate product SKUs](legacy-duplicate-product-skus.md) — preserve edits to legacy duplicate-SKU products; enforce uniqueness only when the SKU itself changes.
 - [Delivery recipient snapshots](delivery-recipient-snapshots.md) — delivery must prefer the order’s checkout recipient address and phone over the customer profile.
 - [Google OAuth callback consistency](google-oauth-callback-consistency.md) — use the same absolute callback URL for both OAuth stages and handle Passport exchange errors explicitly.
+- [Abandoned-cart notification ordering](abandoned-cart-notification-ordering.md) — persist in-app warnings independently of delivery and never delete a cart in the same worker run as its final warning.

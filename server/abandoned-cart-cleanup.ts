@@ -52,12 +52,22 @@ class AbandonedCartCleanupService {
       }
       
       // Process carts that passed the configured notification interval.
+      const cartsNotifiedThisRun = new Set<number>();
       for (const cart of result.cartsForSecondNotification) {
-        await this.sendSecondNotification(cart);
+        const notificationCreated = await this.sendSecondNotification(cart);
+        if (notificationCreated) {
+          cartsNotifiedThisRun.add(cart.id);
+        }
       }
       
       // Permanently delete both the tracked session and the customer-visible persistent cart.
       for (const cart of result.cartsToDelete) {
+        // When the final notification and deletion thresholds coincide, keep the
+        // cart until the next worker run so the warning is not deleted immediately.
+        if (cartsNotifiedThisRun.has(cart.id)) {
+          console.log(`🛒 [CART CLEANUP] Deferred deletion of cart ${cart.id} until the next run after final notification`);
+          continue;
+        }
         const { releaseOwnerReservations, ownerKeyForRequest } =
           await import("./cart-inventory-reservation");
         if (cart.sessionId) {
@@ -77,11 +87,50 @@ class AbandonedCartCleanupService {
     }
   }
 
+  private async createInAppNotification(
+    cart: any,
+    notificationType: 'first' | 'second',
+    title: string,
+    message: string,
+  ): Promise<boolean> {
+    const existingNotifications = await this.cartStorage.getNotificationsForCart(cart.id);
+    if (existingNotifications.some(
+      (notification) => notification.notificationType === notificationType,
+    )) {
+      return false;
+    }
+
+    await this.cartStorage.createNotification({
+      cartSessionId: cart.id,
+      customerId: cart.customerId,
+      notificationType,
+      title,
+      message,
+    });
+    return true;
+  }
+
   async sendFirstNotification(cart: any) {
     try {
+      const title = 'سبد خرید شما منتظر است!';
+      const message = 'محصولات انتخابی شما در سبد خرید منتظر تکمیل خرید هستند. برای ادامه خرید کلیک کنید.';
+      const notificationCreated = await this.createInAppNotification(
+        cart,
+        'first',
+        title,
+        message,
+      );
+      if (!notificationCreated) {
+        console.log(`🛒 [FIRST NOTIFICATION] Notification already exists for cart ${cart.id}`);
+        return;
+      }
+
       // Get customer information  
       const customer = await this.crmStorage.getCrmCustomerById(cart.customerId);
-      if (!customer) return;
+      if (!customer) {
+        console.warn(`🛒 [FIRST NOTIFICATION] Customer ${cart.customerId} not found; in-app notification was created`);
+        return;
+      }
       
       console.log(`🛒 [FIRST NOTIFICATION] Sending to customer ${customer.email} for cart ${cart.id}`);
       
@@ -119,8 +168,14 @@ class AbandonedCartCleanupService {
         }
       };
       
-      await UniversalEmailService.sendEmail(emailContent);
-      console.log(`✅ First notification sent successfully to ${customer.email}`);
+      const emailSent = customer.email
+        ? await UniversalEmailService.sendEmail(emailContent)
+        : false;
+      if (emailSent) {
+        console.log(`✅ First notification email sent successfully to ${customer.email}`);
+      } else {
+        console.warn(`⚠️ First notification email was not sent for cart ${cart.id}; in-app notification is available`);
+      }
       
       // Send SMS using Template #2
       await this.sendSMSNotification(customer, cart, 'first');
@@ -130,11 +185,27 @@ class AbandonedCartCleanupService {
     }
   }
 
-  async sendSecondNotification(cart: any) {
+  async sendSecondNotification(cart: any): Promise<boolean> {
     try {
+      const title = 'آخرین فرصت برای تکمیل خرید';
+      const message = 'سبد خرید شما به زودی حذف می‌شود. برای تکمیل خرید وارد فروشگاه شوید.';
+      const notificationCreated = await this.createInAppNotification(
+        cart,
+        'second',
+        title,
+        message,
+      );
+      if (!notificationCreated) {
+        console.log(`🛒 [SECOND NOTIFICATION] Notification already exists for cart ${cart.id}`);
+        return false;
+      }
+
       // Get customer information
       const customer = await this.crmStorage.getCrmCustomerById(cart.customerId);
-      if (!customer) return;
+      if (!customer) {
+        console.warn(`🛒 [SECOND NOTIFICATION] Customer ${cart.customerId} not found; in-app notification was created`);
+        return true;
+      }
       
       console.log(`🛒 [SECOND NOTIFICATION] Final warning to customer ${customer.email} for cart ${cart.id}`);
       
@@ -173,14 +244,22 @@ class AbandonedCartCleanupService {
         }
       };
       
-      await UniversalEmailService.sendEmail(emailContent);
-      console.log(`✅ Final notification sent successfully to ${customer.email}`);
+      const emailSent = customer.email
+        ? await UniversalEmailService.sendEmail(emailContent)
+        : false;
+      if (emailSent) {
+        console.log(`✅ Final notification email sent successfully to ${customer.email}`);
+      } else {
+        console.warn(`⚠️ Final notification email was not sent for cart ${cart.id}; in-app notification is available`);
+      }
       
       // Send SMS using Template #2
       await this.sendSMSNotification(customer, cart, 'second');
+      return true;
       
     } catch (error) {
       console.error(`🛒 [CART CLEANUP] Error sending second notification for cart ${cart.id}:`, error);
+      return false;
     }
   }
 
@@ -205,13 +284,7 @@ class AbandonedCartCleanupService {
       // For now, we'll log the SMS (can be connected to actual SMS service later)
       console.log(`🛒 [SMS TEMPLATE #2] To: ${customer.phone || customer.email}, Message: ${message}`);
       
-      const emailResult = { success: true }; // Placeholder for actual SMS implementation
-      
-      if (emailResult.success) {
-        console.log(`🛒 [CART CLEANUP] SMS template #2 sent successfully to ${customer.email} (${type} notification)`);
-      } else {
-        console.error(`🛒 [CART CLEANUP] Failed to send SMS template #2 to ${customer.email}`);
-      }
+      console.warn(`🛒 [CART CLEANUP] SMS delivery is not configured; template #2 was not sent (${type} notification)`);
       
     } catch (error) {
       console.error(`🛒 [CART CLEANUP] Error sending SMS notification:`, error);
