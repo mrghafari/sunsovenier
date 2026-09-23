@@ -1,6 +1,7 @@
 import { CartStorage } from './cart-storage';
 import { CrmStorage } from './crm-storage';
 import { UniversalEmailService } from './universal-email-service';
+import { abandonedCartEmailContent, abandonedCartShopUrl } from './abandoned-cart-email';
 
 class AbandonedCartCleanupService {
   private cartStorage = new CartStorage();
@@ -144,19 +145,21 @@ class AbandonedCartCleanupService {
       }
       
       const customerName = `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'مشتری گرامی';
-      const cartRestoreUrl = `${process.env.BASE_URL || 'https://momtazchem.com'}/shop/cart?restore=${cart.id}`;
+      const emailLink = abandonedCartEmailContent('سبد خرید شما در انتظار تکمیل است.');
+      const cartRestoreUrl = abandonedCartShopUrl();
       const lastActivity = new Date(cart.lastActivity).toLocaleDateString('fa-IR');
       
       const emailContent = {
         categoryKey: 'customers',
         to: [customer.email],
         subject: `یادآوری: سبد خرید شما در انتظار تکمیل است - ${items.length} محصول`,
-        templateNumber: '#02', // Template for abandoned cart reminder
+        text: emailLink.text,
         html: `<div dir="rtl" style="font-family: Tahoma, Arial, sans-serif;">
           <h2>سلام ${customerName}</h2>
           <p>سبد خرید شما با ${items.length} محصول در انتظار تکمیل است.</p>
           <p>آخرین فعالیت: ${lastActivity}</p>
           <p><a href="${cartRestoreUrl}" style="background-color: #10b981; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">ادامه خرید</a></p>
+          <p><a href="${cartRestoreUrl}">${cartRestoreUrl}</a></p>
           <p>با تشکر<br>مؤمتاز شیمی</p>
         </div>`,
         variables: {
@@ -219,19 +222,21 @@ class AbandonedCartCleanupService {
       }
       
       const customerName = `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'مشتری گرامی';
-      const cartRestoreUrl = `${process.env.BASE_URL || 'https://momtazchem.com'}/shop/cart?restore=${cart.id}`;
+      const emailLink = abandonedCartEmailContent('سبد خرید شما به زودی حذف می‌شود.');
+      const cartRestoreUrl = abandonedCartShopUrl();
       const lastActivity = new Date(cart.lastActivity).toLocaleDateString('fa-IR');
       
       const emailContent = {
         categoryKey: 'customers',
         to: [customer.email],
         subject: `آخرین فرصت: سبد خرید شما به زودی حذف می‌شود - ${items.length} محصول`,
-        templateNumber: '#02', // Template for abandoned cart reminder
+        text: emailLink.text,
         html: `<div dir="rtl" style="font-family: Tahoma, Arial, sans-serif;">
           <h2>سلام ${customerName}</h2>
           <p><strong>آخرین فرصت!</strong> سبد خرید شما با ${items.length} محصول به زودی حذف می‌شود.</p>
           <p>آخرین فعالیت: ${lastActivity}</p>
           <p><a href="${cartRestoreUrl}" style="background-color: #ef4444; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">تکمیل خرید</a></p>
+          <p><a href="${cartRestoreUrl}">${cartRestoreUrl}</a></p>
           <p>با تشکر<br>مؤمتاز شیمی</p>
         </div>`,
         variables: {

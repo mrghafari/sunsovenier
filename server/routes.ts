@@ -48625,11 +48625,13 @@ momtazchem.com
         return res.status(400).json({ success: false, message: "Customer email is not available" });
       }
 
+      const { abandonedCartEmailContent } = await import('./abandoned-cart-email');
+      const emailContent = abandonedCartEmailContent(message, settings.buttonText || 'ادامه خرید');
       const emailSent = await emailService.sendEmail(
         {
           to: customer.email,
           subject: title,
-          text: message,
+          ...emailContent,
         },
         settings.senderEmailCategory,
       );
