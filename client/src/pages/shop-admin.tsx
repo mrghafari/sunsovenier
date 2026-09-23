@@ -848,7 +848,7 @@ export default function ShopAdmin() {
             <TabsTrigger value="bulk-purchases" className="text-sm px-3 py-2">{tr("bulkPurchases")}</TabsTrigger>
             <TabsTrigger value="proforma-deadline" className="text-sm px-3 py-2">{tr("purchaseProformaDeadline")}</TabsTrigger>
             <TabsTrigger value="inventory" className="text-sm px-3 py-2">{tr("inventory")}</TabsTrigger>
-            <TabsTrigger value="invoices" className="text-sm px-3 py-2">{tr("invoiceManagement")}</TabsTrigger>
+            <TabsTrigger value="invoices" className="bg-green-600 text-white hover:bg-green-700 data-[state=active]:bg-green-700 data-[state=active]:text-white text-sm px-3 py-2">{tr("invoiceManagement")}</TabsTrigger>
             <TabsTrigger value="returns" className="text-sm px-3 py-2">{tr("returnedItems")}</TabsTrigger>
             <TabsTrigger value="abandoned-cart" className="text-sm px-3 py-2">{tr("abandonedCart")}</TabsTrigger>
             <TabsTrigger value="reports" className="text-sm px-3 py-2">{tr("salesReports")}</TabsTrigger>
