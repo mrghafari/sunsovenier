@@ -31,7 +31,7 @@ const copy: Record<Language, Record<string, string>> = {
     emailTemplate: 'Email template', smsTemplate: 'SMS template', default: 'Built-in default',
     sender: 'Sender category', senderDefault: 'Use the system default sender', senderHelp: 'Used to select the sender identity for email delivery.',
     save: 'Save settings', saving: 'Saving...', loading: 'Loading notification settings...', retry: 'Try again',
-    error: 'We could not load notification settings.', saveError: 'Settings could not be saved.', saved: 'Notification settings saved.',
+    error: 'We could not load notification settings.', accessDenied: 'You do not have permission to view warehouse notification settings.', loginRequired: 'Please sign in to view notification settings.', saveError: 'Settings could not be saved.', saved: 'Notification settings saved.',
     approval: 'Messages are sent after warehouse approval, when the customer basket is handed to logistics.',
   },
   fa: {
@@ -40,6 +40,7 @@ const copy: Record<Language, Record<string, string>> = {
     emailTemplate: 'قالب ایمیل', smsTemplate: 'قالب پیامک', default: 'پیش‌فرض داخلی', sender: 'دسته فرستنده',
     senderDefault: 'استفاده از فرستنده پیش‌فرض سیستم', senderHelp: 'برای انتخاب هویت فرستنده ایمیل استفاده می‌شود.', save: 'ذخیره تنظیمات', saving: 'در حال ذخیره...',
     loading: 'در حال بارگذاری تنظیمات اعلان...', retry: 'تلاش دوباره', error: 'بارگذاری تنظیمات اعلان ممکن نیست.',
+    accessDenied: 'برای مشاهده تنظیمات اعلان انبار دسترسی لازم را ندارید.', loginRequired: 'برای مشاهده تنظیمات اعلان وارد حساب خود شوید.',
     saveError: 'ذخیره تنظیمات ممکن نیست.', saved: 'تنظیمات اعلان ذخیره شد.',
     approval: 'پیام‌ها پس از تأیید انبار و تحویل سبد مشتری به لجستیک ارسال می‌شوند.',
   },
@@ -49,6 +50,7 @@ const copy: Record<Language, Record<string, string>> = {
     emailTemplate: 'قالب البريد', smsTemplate: 'قالب الرسائل', default: 'الافتراضي المدمج', sender: 'فئة المرسل',
     senderDefault: 'استخدام مرسل النظام الافتراضي', senderHelp: 'تُستخدم لاختيار هوية مرسل البريد.', save: 'حفظ الإعدادات', saving: 'جارٍ الحفظ...',
     loading: 'جارٍ تحميل إعدادات الإشعارات...', retry: 'حاول مرة أخرى', error: 'تعذر تحميل إعدادات الإشعارات.',
+    accessDenied: 'ليس لديك إذن لعرض إعدادات إشعارات المستودع.', loginRequired: 'يرجى تسجيل الدخول لعرض إعدادات الإشعارات.',
     saveError: 'تعذر حفظ الإعدادات.', saved: 'تم حفظ إعدادات الإشعارات.',
     approval: 'تُرسل الرسائل بعد اعتماد المستودع وتسليم سلة العميل إلى الخدمات اللوجستية.',
   },
@@ -58,6 +60,7 @@ const copy: Record<Language, Record<string, string>> = {
     emailTemplate: 'E-posta şablonu', smsTemplate: 'SMS şablonu', default: 'Yerleşik varsayılan', sender: 'Gönderici kategorisi',
     senderDefault: 'Sistem varsayılan göndericisini kullan', senderHelp: 'E-posta göndericisinin kimliğini seçmek için kullanılır.', save: 'Ayarları kaydet', saving: 'Kaydediliyor...',
     loading: 'Bildirim ayarları yükleniyor...', retry: 'Tekrar dene', error: 'Bildirim ayarları yüklenemedi.',
+    accessDenied: 'Depo bildirim ayarlarını görüntüleme yetkiniz yok.', loginRequired: 'Bildirim ayarlarını görüntülemek için giriş yapın.',
     saveError: 'Ayarlar kaydedilemedi.', saved: 'Bildirim ayarları kaydedildi.',
     approval: 'Mesajlar depo onayından ve müşteri sepetinin lojistiğe aktarılmasından sonra gönderilir.',
   },
@@ -73,12 +76,13 @@ export default function WarehouseReadyNotificationSettings() {
   const [options, setOptions] = useState<Options>({ smsTemplates: [], emailTemplates: [], emailCategories: [] });
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [loadErrorReason, setLoadErrorReason] = useState<'accessDenied' | 'loginRequired' | null>(null);
   const [saveError, setSaveError] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   const load = async () => {
-    setLoading(true); setLoadError(false); setSaveError(false);
+    setLoading(true); setLoadError(false); setLoadErrorReason(null); setSaveError(false);
     try {
       const [settingsResponse, optionsResponse] = await Promise.all([
         apiRequest('/api/warehouse/ready-notification-settings', undefined),
@@ -87,7 +91,11 @@ export default function WarehouseReadyNotificationSettings() {
       if (!settingsResponse?.success || !optionsResponse?.success) throw new Error('Request failed');
       setSettings({ ...initialSettings, ...settingsResponse.settings });
       setOptions({ smsTemplates: optionsResponse.smsTemplates || [], emailTemplates: optionsResponse.emailTemplates || [], emailCategories: optionsResponse.emailCategories || [] });
-    } catch { setLoadError(true); } finally { setLoading(false); }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '';
+      setLoadErrorReason(message.startsWith('403:') ? 'accessDenied' : message.startsWith('401:') ? 'loginRequired' : null);
+      setLoadError(true);
+    } finally { setLoading(false); }
   };
 
   useEffect(() => { void load(); }, []);
@@ -106,7 +114,7 @@ export default function WarehouseReadyNotificationSettings() {
 
   if (loading) return <Card><CardContent className="py-10 text-center text-muted-foreground">{t.loading}</CardContent></Card>;
   if (loadError) {
-    return <Card><CardContent className="flex flex-col items-center gap-3 py-10 text-center"><AlertCircle className="h-8 w-8 text-destructive" /><p>{t.error}</p><Button variant="outline" onClick={() => void load()}>{t.retry}</Button></CardContent></Card>;
+    return <Card><CardContent className="flex flex-col items-center gap-3 py-10 text-center"><AlertCircle className="h-8 w-8 text-destructive" /><p>{loadErrorReason ? t[loadErrorReason] : t.error}</p><Button variant="outline" onClick={() => void load()}>{t.retry}</Button></CardContent></Card>;
   }
 
   const templateLabel = (template: Template) => `${template.name}${template.language ? ` · ${template.language.toUpperCase()}` : ''}`;

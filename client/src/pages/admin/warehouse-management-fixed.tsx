@@ -1169,10 +1169,6 @@ const WarehouseManagementFixed: React.FC = () => {
           <p className="text-gray-600">
              {t('warehouseDescription')}
           </p>
-          <Button type="button" variant="outline" className="mt-4 gap-2" onClick={() => changeTab('settings')}>
-            <Bell className="h-4 w-4" />
-            {t('settings')}
-          </Button>
         </div>
 
         {/* Tabs */}

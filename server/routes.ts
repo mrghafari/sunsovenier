@@ -45084,7 +45084,7 @@ momtazchem.com
     }
   });
   // Warehouse Department - Approve order (items ready)
-  app.post("/api/warehouse/orders/:orderId/approve", requireAuth, attachUserDepartments, requireDepartment('warehouse'), async (req: Request, res: Response) => {
+  app.post("/api/warehouse/orders/:orderId/approve", requireModuleAccess('warehouse_management', 'edit'), async (req: Request, res: Response) => {
     try {
       const { db } = await import("./db");
       const { orderManagement, orderStatusHistory } = await import("../shared/order-management-schema");
@@ -45279,15 +45279,16 @@ momtazchem.com
 
   // Customer notification configuration for the warehouse -> logistics transition.
   // Settings are deliberately stored in the existing shop_settings table.
-  app.get("/api/warehouse/ready-notification-settings", requireAuth, attachUserDepartments as any, requireDepartment('warehouse') as any, async (_req, res) => {
+  app.get("/api/warehouse/ready-notification-settings", requireModuleAccess('warehouse_management', 'view'), async (_req, res) => {
     try {
       const { getReadyNotificationSettings } = await import("./warehouse-ready-notification");
       res.json({ success: true, settings: await getReadyNotificationSettings() });
     } catch (error) {
+      console.error("Error loading warehouse notification settings:", error);
       res.status(500).json({ success: false, message: "خطا در دریافت تنظیمات اعلان" });
     }
   });
-  app.put("/api/warehouse/ready-notification-settings", requireAuth, attachUserDepartments as any, requireDepartment('warehouse') as any, async (req, res) => {
+  app.put("/api/warehouse/ready-notification-settings", requireModuleAccess('warehouse_management', 'edit'), async (req, res) => {
     try {
       const { updateReadyNotificationSettings } = await import("./warehouse-ready-notification");
       const body = req.body || {};
@@ -45305,11 +45306,12 @@ momtazchem.com
       res.status(400).json({ success: false, message });
     }
   });
-  app.get("/api/warehouse/ready-notification-options", requireAuth, attachUserDepartments as any, requireDepartment('warehouse') as any, async (_req, res) => {
+  app.get("/api/warehouse/ready-notification-options", requireModuleAccess('warehouse_management', 'view'), async (_req, res) => {
     try {
       const { getReadyNotificationOptions } = await import("./warehouse-ready-notification");
       res.json({ success: true, ...(await getReadyNotificationOptions()) });
     } catch (error) {
+      console.error("Error loading warehouse notification options:", error);
       res.status(500).json({ success: false, message: "خطا در دریافت گزینه‌های اعلان" });
     }
   });
