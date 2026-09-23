@@ -116,7 +116,7 @@ const pageTranslations: Record<string, Record<PageLanguage, string>> = {
   low: { en: 'Low', fa: 'کم', ar: 'منخفض', tr: 'Düşük' },
   available: { en: 'Available', fa: 'موجود', ar: 'متوفر', tr: 'Mevcut' },
   lowStockSettings: { en: 'Low-stock notification settings', fa: 'تنظیمات اعلان کمبود موجودی', ar: 'إعدادات إشعارات انخفاض المخزون', tr: 'Düşük stok bildirim ayarları' },
-  settings: { en: 'Settings', fa: 'تنظیمات', ar: 'الإعدادات', tr: 'Ayarlar' },
+  settings: { en: 'Email & SMS settings', fa: 'تنظیمات ایمیل و پیامک', ar: 'إعدادات البريد والرسائل', tr: 'E-posta ve SMS ayarları' },
   notificationInterval: { en: 'Notification interval (hours)', fa: 'فاصله زمانی ارسال اعلان (ساعت)', ar: 'الفاصل الزمني للإشعار (ساعات)', tr: 'Bildirim aralığı (saat)' },
   notificationIntervalHelp: { en: 'Minimum interval between two notifications for a product (1 to 168 hours)', fa: 'حداقل فاصله بین دو اعلان برای یک محصول (1 تا 168 ساعت)', ar: 'الحد الأدنى للفاصل بين إشعارين لمنتج (من 1 إلى 168 ساعة)', tr: 'Bir ürün için iki bildirim arasındaki minimum süre (1-168 saat)' },
   maxNotifications: { en: 'Maximum notifications', fa: 'حداکثر تعداد اعلان', ar: 'الحد الأقصى للإشعارات', tr: 'Maksimum bildirim' },
@@ -328,7 +328,13 @@ const WarehouseManagementFixed: React.FC = () => {
   const [quickNoteText, setQuickNoteText] = useState('');
   const [savingNotes, setSavingNotes] = useState(false);
   const [expandedCustomerNoteOrderId, setExpandedCustomerNoteOrderId] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState("orders");
+  const [activeTab, setActiveTab] = useState(() => window.location.hash === '#notifications' ? 'settings' : 'orders');
+  const changeTab = (tab: string) => {
+    setActiveTab(tab);
+    window.history.replaceState(null, '', tab === 'settings'
+      ? `${window.location.pathname}${window.location.search}#notifications`
+      : `${window.location.pathname}${window.location.search}`);
+  };
   const [orderView, setOrderView] = useState<'current' | 'history'>('current');
   const [orderSort, setOrderSort] = useState<{ key: OrderSortKey; direction: SortDirection }>({
     key: 'orderNumber',
@@ -1163,10 +1169,14 @@ const WarehouseManagementFixed: React.FC = () => {
           <p className="text-gray-600">
              {t('warehouseDescription')}
           </p>
+          <Button type="button" variant="outline" className="mt-4 gap-2" onClick={() => changeTab('settings')}>
+            <Bell className="h-4 w-4" />
+            {t('settings')}
+          </Button>
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="orders" className="w-full">
+        <Tabs value={activeTab} onValueChange={changeTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3 mb-6">
             <TabsTrigger value="orders" className="flex items-center gap-2">
               <Package className="w-4 h-4" />
