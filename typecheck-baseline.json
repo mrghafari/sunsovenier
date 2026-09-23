@@ -549,23 +549,11 @@
       "count": 1
     },
     {
-      "key": "[\"client/src/pages/abandoned-cart-management.tsx\",2367,\"This comparison appears to be unintentional because the types '\\\"tr\\\" | \\\"en\\\"' and '\\\"ku\\\"' have no overlap.\",\"{language === 'fa' ? 'بازگشت موفق' : language === 'ar' ? 'الاسترداد الناجح' : language === 'ku' ? 'گەڕانەوەی سەرکەوتوو' : 'Successfully Recovered'}\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/abandoned-cart-management.tsx\",2367,\"This comparison appears to be unintentional because the types '\\\"tr\\\" | \\\"en\\\"' and '\\\"ku\\\"' have no overlap.\",\"{language === 'fa' ? 'پیام‌های ارسالی' : language === 'ar' ? 'الرسائل المرسلة' : language === 'ku' ? 'پەیامە نێردراوەکان' : 'Messages Sent'}\"]",
-      "count": 1
-    },
-    {
       "key": "[\"client/src/pages/abandoned-cart-management.tsx\",2367,\"This comparison appears to be unintentional because the types '\\\"tr\\\" | \\\"en\\\"' and '\\\"ku\\\"' have no overlap.\",\"{language === 'fa' ? 'تنظیمات تخفیف' : language === 'ar' ? 'إعدادات الخصم' : language === 'ku' ? 'ڕێکخستنەکانی داشکاندن' : 'Discount Settings'}\"]",
       "count": 1
     },
     {
       "key": "[\"client/src/pages/abandoned-cart-management.tsx\",2367,\"This comparison appears to be unintentional because the types '\\\"tr\\\" | \\\"en\\\"' and '\\\"ku\\\"' have no overlap.\",\"{language === 'fa' ? 'حداکثر تعداد پیام‌هایی که به هر سبد خرید ارسال می‌شود' : language === 'ar' ? 'الحد الأقصى لعدد الرسائل التي يتم إرسالها لكل سلة' : language === 'ku' ? 'زۆرترین ژمارەی پەیام کە بۆ هەر سەبەتێک دەنێردرێت' : 'Maximum number of messages sent to each cart'}\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/abandoned-cart-management.tsx\",2367,\"This comparison appears to be unintentional because the types '\\\"tr\\\" | \\\"en\\\"' and '\\\"ku\\\"' have no overlap.\",\"{language === 'fa' ? 'سبدهای رها شده' : language === 'ar' ? 'السلات المهجورة' : language === 'ku' ? 'سەبەتە بەجێهێڵراوەکان' : 'Abandoned Carts'}\"]",
       "count": 1
     },
     {
@@ -598,14 +586,6 @@
     },
     {
       "key": "[\"client/src/pages/abandoned-cart-management.tsx\",2367,\"This comparison appears to be unintentional because the types '\\\"tr\\\" | \\\"en\\\"' and '\\\"ku\\\"' have no overlap.\",\"{language === 'fa' ? 'هیچ سبد خرید رها شده‌ای موجود نیست' : language === 'ar' ? 'لا توجد سلات مهجورة' : language === 'ku' ? 'هیچ سەبەتێکی بەجێهێڵراو نییە' : 'No abandoned carts found'}\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/abandoned-cart-management.tsx\",2367,\"This comparison appears to be unintentional because the types '\\\"tr\\\" | \\\"en\\\"' and '\\\"ku\\\"' have no overlap.\",\"language === 'ku' ? 'هێمای تەحلیل لە وەشانەکانی دواتر زیاد دەکرێت' :\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"client/src/pages/abandoned-cart-management.tsx\",2554,\"Expected 2 arguments, but got 1.\",\"queryFn: () => apiRequest('/api/admin/abandoned-cart/analytics'),\"]",
       "count": 1
     },
     {

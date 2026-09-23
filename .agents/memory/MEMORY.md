@@ -31,3 +31,4 @@
 - [Cart activity clock](cart-activity-clock.md) — viewing or restoring an unchanged cart must not postpone abandonment; only meaningful cart mutations reset activity.
 - [Grace-order expiry](grace-order-expiry.md) — expire timed orders from their stored deadline, catch up missed reminder hours, and audit the automated cancellation reason.
 - [Central geography source](central-geography-source.md) — customer and logistics location selectors share the database-backed country, province, and city records.
+- [Abandoned cart analytics honesty](abandoned-cart-analytics-honesty.md) — retained carts and notifications support trends, but deleted history and unlinked purchases cannot prove recovery.

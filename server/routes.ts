@@ -48538,9 +48538,20 @@ momtazchem.com
         365,
         Math.max(1, Number.parseInt(String(req.query.days ?? "30"), 10) || 30),
       );
-      const analytics = await cartStorage.getCartRecoveryAnalytics(days);
-      const overallStats = await cartStorage.getOverallStats();
-      res.json({ success: true, data: { analytics, overallStats } });
+      const [analytics, overallStats] = await Promise.all([
+        cartStorage.getCartRecoveryAnalytics(days),
+        cartStorage.getOverallStats(days),
+      ]);
+      res.json({
+        success: true,
+        data: {
+          days,
+          analytics,
+          overallStats,
+          // No order-linked conversion event is recorded yet.
+          recoveryTrackingAvailable: false,
+        },
+      });
     } catch (error) {
       console.error("Error fetching abandoned cart analytics:", error);
       res.status(500).json({ success: false, message: "Internal server error" });

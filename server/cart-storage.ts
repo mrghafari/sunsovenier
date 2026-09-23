@@ -602,14 +602,37 @@ export class CartStorage {
   // =============================================================================
 
   async getCartRecoveryAnalytics(days: number = 30) {
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
-
-    return await cartDb
-      .select()
-      .from(cartRecoveryAnalytics)
-      .where(gte(cartRecoveryAnalytics.date, startDate))
-      .orderBy(desc(cartRecoveryAnalytics.date));
+    const { pool } = await import('./db');
+    const result = await pool.query(`
+      WITH dates AS (
+        SELECT generate_series(
+          CURRENT_DATE - ($1::integer - 1),
+          CURRENT_DATE,
+          INTERVAL '1 day'
+        )::date AS date
+      ),
+      abandoned AS (
+        SELECT abandoned_at::date AS date, COUNT(*)::integer AS total
+        FROM cart_sessions
+        WHERE abandoned_at >= CURRENT_DATE - ($1::integer - 1)
+          AND item_count > 0
+        GROUP BY abandoned_at::date
+      ),
+      notifications AS (
+        SELECT sent_at::date AS date, COUNT(*)::integer AS total
+        FROM abandoned_cart_notifications
+        WHERE sent_at >= CURRENT_DATE - ($1::integer - 1)
+        GROUP BY sent_at::date
+      )
+      SELECT dates.date::text AS date,
+             COALESCE(abandoned.total, 0) AS "totalAbandonedCarts",
+             COALESCE(notifications.total, 0) AS "notificationsRecorded"
+      FROM dates
+      LEFT JOIN abandoned USING (date)
+      LEFT JOIN notifications USING (date)
+      ORDER BY dates.date ASC
+    `, [days]);
+    return result.rows as Array<{ date: string; totalAbandonedCarts: number; notificationsRecorded: number }>;
   }
 
   async createDailyAnalytics(data: {
@@ -637,34 +660,22 @@ export class CartStorage {
       });
   }
 
-  async getOverallStats() {
-    const totalAbandonedQuery = await cartDb
-      .select({
-        count: sql<number>`count(*)`
-      })
-      .from(cartSessions)
-      .where(eq(cartSessions.isAbandoned, true));
-
-    const totalNotificationsQuery = await cartDb
-      .select({
-        count: sql<number>`count(*)`
-      })
-      .from(abandonedCartNotifications);
-
-    const totalRecoveredQuery = await cartDb
-      .select({
-        count: sql<number>`count(*)`
-      })
-      .from(abandonedCartNotifications)
-      .where(eq(abandonedCartNotifications.converted, true));
-
-    return {
-      totalAbandonedCarts: totalAbandonedQuery[0]?.count || 0,
-      totalNotificationsSent: totalNotificationsQuery[0]?.count || 0,
-      totalRecovered: totalRecoveredQuery[0]?.count || 0,
-      overallRecoveryRate: totalAbandonedQuery[0]?.count > 0 
-        ? ((totalRecoveredQuery[0]?.count || 0) / (totalAbandonedQuery[0]?.count || 1) * 100).toFixed(2)
-        : "0.00"
+  async getOverallStats(days: number = 30) {
+    const { pool } = await import('./db');
+    const result = await pool.query(`
+      SELECT
+        (SELECT COUNT(*)::integer FROM cart_sessions
+         WHERE abandoned_at >= CURRENT_DATE - ($1::integer - 1)
+           AND item_count > 0) AS "totalAbandonedCarts",
+        (SELECT COUNT(*)::integer FROM cart_sessions
+         WHERE is_abandoned = true AND is_active = true AND item_count > 0) AS "currentlyAbandoned",
+        (SELECT COUNT(*)::integer FROM abandoned_cart_notifications
+         WHERE sent_at >= CURRENT_DATE - ($1::integer - 1)) AS "notificationsRecorded"
+    `, [days]);
+    return result.rows[0] as {
+      totalAbandonedCarts: number;
+      currentlyAbandoned: number;
+      notificationsRecorded: number;
     };
   }
 }

@@ -67,13 +67,13 @@ interface CartSession {
 
 interface AbandonedCartAnalytics {
   totalAbandonedCarts: number;
-  totalNotificationsSent: number;
-  totalRecovered: number;
-  overallRecoveryRate: string;
+  currentlyAbandoned: number;
+  notificationsRecorded: number;
 }
 
 export default function AbandonedCartManagement() {
   const [activeTab, setActiveTab] = useState("settings");
+  const [analyticsDays, setAnalyticsDays] = useState(30);
   const [autoDeleteEnabled, setAutoDeleteEnabled] = useState(false);
   const [senderEmailCategory, setSenderEmailCategory] = useState("");
   const { toast } = useToast();
@@ -101,10 +101,21 @@ export default function AbandonedCartManagement() {
   });
 
   // Fetch analytics
-  const { data: analytics, isLoading: analyticsLoading } = useQuery({
-    queryKey: ['/api/admin/abandoned-cart/analytics'],
-    queryFn: () => apiRequest('/api/admin/abandoned-cart/analytics'),
+  const { data: analytics, isLoading: analyticsLoading, isError: analyticsError } = useQuery<{
+    success: boolean;
+    data: {
+      days: number;
+      analytics: Array<{ date: string; totalAbandonedCarts: number; notificationsRecorded: number }>;
+      overallStats: AbandonedCartAnalytics;
+      recoveryTrackingAvailable: boolean;
+    };
+  }>({
+    queryKey: ['/api/admin/abandoned-cart/analytics', analyticsDays],
+    queryFn: () => apiRequest(`/api/admin/abandoned-cart/analytics?days=${analyticsDays}`, undefined),
+    refetchInterval: 30_000,
   });
+  const dailyAnalytics = analytics?.data?.analytics || [];
+  const maxDailyCount = Math.max(1, ...dailyAnalytics.map(day => Math.max(day.totalAbandonedCarts, day.notificationsRecorded)));
 
   useEffect(() => {
     if (typeof settings?.data?.autoDeleteEnabled === 'boolean') {
@@ -130,6 +141,7 @@ export default function AbandonedCartManagement() {
       });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/abandoned-cart/settings'] });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/abandoned-cart/carts'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/abandoned-cart/analytics'] });
     },
     onError: () => {
       toast({
@@ -556,16 +568,35 @@ export default function AbandonedCartManagement() {
 
           {/* Analytics Tab */}
           <TabsContent value="analytics" className="space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-gray-600">
+                {language === 'fa' ? 'گزارش بر پایه سبدها و اعلان‌های ثبت‌شده در دیتابیس' : 'Report based on recorded carts and notifications'}
+              </p>
+              <div className="flex gap-2" aria-label={language === 'fa' ? 'بازه گزارش' : 'Report period'}>
+                {[7, 30, 90].map(days => (
+                  <Button key={days} type="button" size="sm"
+                    variant={analyticsDays === days ? 'default' : 'outline'}
+                    onClick={() => setAnalyticsDays(days)}>
+                    {days} {language === 'fa' ? 'روز' : 'days'}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            {analyticsError && (
+              <p role="alert" className="rounded border border-red-200 bg-red-50 p-3 text-red-700">
+                {language === 'fa' ? 'دریافت داده‌های آنالیتیکس ناموفق بود؛ آمار نمایش داده نمی‌شود.' : 'Failed to load analytics; figures are unavailable.'}
+              </p>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600">
-                        {language === 'fa' ? 'سبدهای رها شده' : language === 'ar' ? 'السلات المهجورة' : language === 'ku' ? 'سەبەتە بەجێهێڵراوەکان' : 'Abandoned Carts'}
+                        {language === 'fa' ? 'رهاشده در بازه' : 'Abandoned in period'}
                       </p>
                       <p className="text-2xl font-bold text-red-600">
-                        {analytics?.data?.overallStats?.totalAbandonedCarts || 0}
+                        {analyticsLoading || analyticsError ? '—' : analytics?.data?.overallStats?.totalAbandonedCarts ?? '—'}
                       </p>
                     </div>
                     <ShoppingCart className="h-8 w-8 text-red-500" />
@@ -578,10 +609,10 @@ export default function AbandonedCartManagement() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600">
-                        {language === 'fa' ? 'پیام‌های ارسالی' : language === 'ar' ? 'الرسائل المرسلة' : language === 'ku' ? 'پەیامە نێردراوەکان' : 'Messages Sent'}
+                        {language === 'fa' ? 'اعلان‌های ثبت‌شده در بازه' : 'Notifications recorded in period'}
                       </p>
                       <p className="text-2xl font-bold text-blue-600">
-                        {analytics?.data?.overallStats?.totalNotificationsSent || 0}
+                        {analyticsLoading || analyticsError ? '—' : analytics?.data?.overallStats?.notificationsRecorded ?? '—'}
                       </p>
                     </div>
                     <MessageCircle className="h-8 w-8 text-blue-500" />
@@ -594,10 +625,10 @@ export default function AbandonedCartManagement() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600">
-                        {language === 'fa' ? 'بازگشت موفق' : language === 'ar' ? 'الاسترداد الناجح' : language === 'ku' ? 'گەڕانەوەی سەرکەوتوو' : 'Successfully Recovered'}
+                        {language === 'fa' ? 'سبدهای رهاشدهٔ فعال' : 'Currently abandoned carts'}
                       </p>
                       <p className="text-2xl font-bold text-green-600">
-                        {analytics?.data?.overallStats?.totalRecovered || 0}
+                        {analyticsLoading || analyticsError ? '—' : analytics?.data?.overallStats?.currentlyAbandoned ?? '—'}
                       </p>
                     </div>
                     <TrendingUp className="h-8 w-8 text-green-500" />
@@ -613,7 +644,10 @@ export default function AbandonedCartManagement() {
                         {language === 'fa' ? 'نرخ بازگشت' : language === 'ar' ? 'معدل الاسترداد' : language === 'ku' ? 'ڕێژەی گەڕانەوە' : 'Recovery Rate'}
                       </p>
                       <p className="text-2xl font-bold text-purple-600">
-                        {analytics?.data?.overallStats?.overallRecoveryRate || "0.00"}%
+                        —
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {language === 'fa' ? 'خریدِ ناشی از بازگشت سبد ثبت نمی‌شود' : 'Order-linked recovery is not tracked'}
                       </p>
                     </div>
                     <BarChart3 className="h-8 w-8 text-purple-500" />
@@ -633,16 +667,41 @@ export default function AbandonedCartManagement() {
                   <div className="flex justify-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                   </div>
+                ) : analyticsError ? (
+                  <p role="alert" className="py-8 text-center text-red-700">
+                    {language === 'fa' ? 'گزارش در دسترس نیست.' : 'Report unavailable.'}
+                  </p>
+                ) : dailyAnalytics.every(day => day.totalAbandonedCarts === 0 && day.notificationsRecorded === 0) ? (
+                  <p className="py-8 text-center text-gray-500">
+                    {language === 'fa' ? 'در این بازه سبد رهاشده یا اعلانی در داده‌های موجود ثبت نشده است.' : 'No abandoned carts or notifications recorded in this period.'}
+                  </p>
                 ) : (
-                  <div className="text-center py-8">
-                    <BarChart3 className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                    <p className="text-gray-500">
-                      {language === 'fa' ? 'نمودار تحلیل‌ها در نسخه‌های آینده اضافه خواهد شد' : 
-                       language === 'ar' ? 'ستتم إضافة رسوم التحليل في الإصدارات المستقبلية' : 
-                       language === 'ku' ? 'هێمای تەحلیل لە وەشانەکانی دواتر زیاد دەکرێت' : 
-                       'Analytics charts will be added in future versions'}
+                  <>
+                    <div className="mb-4 flex flex-wrap gap-4 text-sm">
+                      <span className="flex items-center gap-2"><span className="h-3 w-3 rounded bg-red-500" />{language === 'fa' ? 'سبد رهاشده' : 'Abandoned carts'}</span>
+                      <span className="flex items-center gap-2"><span className="h-3 w-3 rounded bg-blue-500" />{language === 'fa' ? 'اعلان ثبت‌شده' : 'Notifications recorded'}</span>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <div className="flex h-48 items-end gap-1 border-b border-gray-200 pb-2" style={{ minWidth: `${dailyAnalytics.length * 36}px` }}
+                        role="img" aria-label={language === 'fa' ? 'نمودار روزانه سبدهای رهاشده و اعلان‌ها' : 'Daily abandoned carts and notifications chart'}>
+                        {dailyAnalytics.map(day => (
+                          <div key={day.date} className="flex min-w-8 flex-1 flex-col items-center gap-1"
+                            title={`${day.date}: ${day.totalAbandonedCarts} carts, ${day.notificationsRecorded} notifications`}>
+                            <div className="flex h-36 items-end gap-0.5">
+                              <div className="w-3 rounded-t bg-red-500" style={{ height: `${day.totalAbandonedCarts / maxDailyCount * 100}%` }} />
+                              <div className="w-3 rounded-t bg-blue-500" style={{ height: `${day.notificationsRecorded / maxDailyCount * 100}%` }} />
+                            </div>
+                            <span className="text-[10px] text-gray-500">{day.date.slice(5)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <p className="mt-4 text-xs text-gray-500">
+                      {language === 'fa'
+                        ? 'فقط رکوردهای موجود شمرده می‌شوند؛ سبدها و اعلان‌های حذف‌شده در تاریخچه قابل بازیابی نیستند. اعلان ثبت‌شده لزوماً به معنی تحویل ایمیل نیست.'
+                        : 'Only retained records are counted; deleted carts and notifications cannot be recovered. A recorded notification does not prove email delivery.'}
                     </p>
-                  </div>
+                  </>
                 )}
               </CardContent>
             </Card>
