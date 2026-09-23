@@ -58,7 +58,6 @@ import DeliveryServicesTab from '@/components/DeliveryServicesTab';
 import PostalShippingParamsTab from '@/components/PostalShippingParamsTab';
 import VehicleTemplateEditor from '@/components/admin/VehicleTemplateEditor';
 import InternationalGeographyTab from '@/components/InternationalGeographyTab';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, Car, Star, TrendingUp, Calendar as CalendarIcon, Search, Filter } from 'lucide-react';
 import { format } from 'date-fns';
@@ -340,53 +339,40 @@ function VehicleHistorySection() {
                   </Badge>
                 </div>
                 
-                <ScrollArea className="h-[400px]">
-                  <div className="grid gap-4">
-                    {statsData.data.map((stat: VehicleUsageStats) => (
-                      <Card key={stat.id} className="p-4 hover:shadow-md transition-shadow cursor-pointer"
-                            onClick={() => handlePlateClick(stat.plateNumber)}>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <Car className="h-8 w-8 text-blue-500" />
-                            <div>
-                              <h3 className="font-semibold text-lg">{stat.plateNumber}</h3>
-                              <p className="text-sm text-muted-foreground">
-                                {stat.totalDeliveries} {vehicleT('deliveries')} | {Math.round(Number(stat.totalDistance) || 0)} {vehicleT('unitKm')}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-lg font-bold">{formatCurrency(Number(stat.totalRevenue) || 0)}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {Math.round(Number(stat.onTimeDeliveryRate) || 0)}% {vehicleT('onTime')}
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="mt-4 grid grid-cols-3 gap-4 text-center">
-                          <div>
-                            <div className="text-lg font-semibold text-green-600">
-                              {stat.successfulDeliveries}
-                            </div>
-                              <div className="text-xs text-muted-foreground">{vehicleT('successful')}</div>
-                          </div>
-                          <div>
-                            <div className="text-lg font-semibold text-red-600">
-                              {stat.failedDeliveries}
-                            </div>
-                              <div className="text-xs text-muted-foreground">{vehicleT('failed')}</div>
-                          </div>
-                          <div>
-                            <div className="text-lg font-semibold text-yellow-600">
-                              {stat.averageRating ? Number(stat.averageRating).toFixed(1) : 'N/A'}
-                            </div>
-                              <div className="text-xs text-muted-foreground">{vehicleT('rating')}</div>
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                </ScrollArea>
+                <div className="max-h-[480px] overflow-auto rounded-md border">
+                  <Table className="min-w-[900px]">
+                    <TableHeader className="sticky top-0 z-10 bg-slate-100">
+                      <TableRow>
+                        <TableHead className="text-start">{vehicleT('plate')}</TableHead>
+                        <TableHead className="text-start">{vehicleT('deliveries')}</TableHead>
+                        <TableHead className="text-start">{vehicleT('successful')}</TableHead>
+                        <TableHead className="text-start">{vehicleT('failed')}</TableHead>
+                        <TableHead className="text-start">{vehicleT('distance')} ({vehicleT('unitKm')})</TableHead>
+                        <TableHead className="text-start">{vehicleT('revenue')}</TableHead>
+                        <TableHead className="text-start">{vehicleT('onTime')}</TableHead>
+                        <TableHead className="text-start">{vehicleT('rating')}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {statsData.data.map((stat: VehicleUsageStats) => (
+                        <TableRow key={stat.id} className="hover:bg-blue-50">
+                          <TableCell>
+                            <Button variant="link" className="h-auto p-0 font-semibold" onClick={() => handlePlateClick(stat.plateNumber)}>
+                              {stat.plateNumber}
+                            </Button>
+                          </TableCell>
+                          <TableCell>{stat.totalDeliveries}</TableCell>
+                          <TableCell className="text-green-700">{stat.successfulDeliveries}</TableCell>
+                          <TableCell className="text-red-700">{stat.failedDeliveries}</TableCell>
+                          <TableCell>{Math.round(Number(stat.totalDistance) || 0)}</TableCell>
+                          <TableCell className="whitespace-nowrap">{formatCurrency(Number(stat.totalRevenue) || 0)}</TableCell>
+                          <TableCell>{Math.round(Number(stat.onTimeDeliveryRate) || 0)}%</TableCell>
+                          <TableCell>{stat.averageRating ? Number(stat.averageRating).toFixed(1) : '—'}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
