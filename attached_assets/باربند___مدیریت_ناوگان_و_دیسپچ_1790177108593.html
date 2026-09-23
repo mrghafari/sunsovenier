@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>باربند | مدیریت ناوگان و دیسپچ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#15181c; --panel:#1d2126; --panel2:#242930; --line:#2c3138;
+  --amber:#e8a33d; --amber-dim:#8a6423; --text:#eceef0; --muted:#9aa3ac;
+  --good:#4caf7d; --bad:#e15554; --wait:#5b8fce;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  box-sizing:border-box;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#f3f2ee; --panel:#ffffff; --panel2:#f8f7f4; --line:#e2ded4;
+    --amber:#c9791f; --amber-dim:#e9c99a; --text:#211d17; --muted:#726b5c;
+    --good:#2f8a5c; --bad:#c23d3d; --wait:#3c6bb0;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15181c; --panel:#1d2126; --panel2:#242930; --line:#2c3138;
+  --amber:#e8a33d; --text:#eceef0; --muted:#9aa3ac;
+  --good:#4caf7d; --bad:#e15554; --wait:#5b8fce;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);}
+*{box-sizing:border-box;}
+body{
+  margin:0; font-family:'Vazirmatn',Tahoma,Arial,sans-serif; background:var(--bg); color:var(--text);
+  min-height:100%;
+}
+header{
+  padding:18px 22px calc(14px + env(safe-area-inset-top,0px));
+  border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--bg); z-index:5;
+  display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+}
+.brand{display:flex; align-items:center; gap:10px;}
+.brand .mark{
+  width:38px; height:38px; border-radius:9px; background:linear-gradient(155deg,var(--amber),#c97a1f);
+  display:flex; align-items:center; justify-content:center; font-size:20px; flex:none;
+}
+.brand h1{font-size:17px; margin:0; font-weight:800; letter-spacing:.2px;}
+.brand span{display:block; font-size:12px; color:var(--muted); font-weight:500;}
+nav{display:flex; gap:6px; flex-wrap:wrap;}
+nav button{
+  background:none; border:1px solid transparent; color:var(--muted); font-family:inherit; font-size:13.5px;
+  padding:8px 14px; border-radius:8px; cursor:pointer; font-weight:600; transition:.15s;
+}
+nav button:hover{color:var(--text); background:var(--panel2);}
+nav button.active{color:var(--bg); background:var(--amber); border-color:var(--amber);}
+main{max-width:980px; margin:0 auto; padding:22px 18px 60px;}
+.tab{display:none;}
+.tab.active{display:block; animation:fade .25s ease;}
+@keyframes fade{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;}}
+.card{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px 20px; margin-bottom:16px;}
+.card h2{font-size:15px; margin:0 0 4px; font-weight:700;}
+.card p.sub{color:var(--muted); font-size:13px; margin:0 0 14px;}
+.grid{display:grid; gap:12px;}
+.grid.cols-2{grid-template-columns:1fr 1fr;}
+.grid.cols-3{grid-template-columns:1fr 1fr 1fr;}
+@media (max-width:640px){.grid.cols-2,.grid.cols-3{grid-template-columns:1fr;}}
+label{display:block; font-size:12.5px; color:var(--muted); margin-bottom:5px; font-weight:600;}
+input,select{
+  width:100%; background:var(--panel2); border:1px solid var(--line); color:var(--text);
+  padding:9px 11px; border-radius:8px; font-family:inherit; font-size:13.5px;
+}
+input:focus,select:focus{outline:2px solid var(--amber); outline-offset:1px;}
+.field{margin-bottom:12px;}
+.btn{
+  background:var(--amber); color:#1a1400; border:none; padding:10px 18px; border-radius:9px;
+  font-family:inherit; font-weight:700; font-size:13.5px; cursor:pointer; transition:.15s;
+}
+.btn:hover{filter:brightness(1.08);}
+.btn.ghost{background:transparent; border:1px solid var(--line); color:var(--text);}
+.btn.small{padding:6px 12px; font-size:12.5px;}
+table{width:100%; border-collapse:collapse; font-size:13px;}
+th,td{padding:9px 8px; text-align:right; border-bottom:1px solid var(--line);}
+th{color:var(--muted); font-weight:600; font-size:12px;}
+.tag{display:inline-block; padding:3px 9px; border-radius:20px; font-size:11.5px; font-weight:700;}
+.tag.ok{background:rgba(76,175,125,.15); color:var(--good);}
+.tag.wait{background:rgba(91,143,206,.15); color:var(--wait);}
+.tag.bad{background:rgba(225,85,84,.15); color:var(--bad);}
+.tag.hold{background:rgba(232,163,61,.15); color:var(--amber);}
+.result{
+  margin-top:14px; padding:14px 16px; border-radius:10px; background:var(--panel2);
+  border:1px dashed var(--amber-dim,var(--amber)); font-size:14px;
+}
+.result b{color:var(--amber); font-size:20px;}
+.empty{color:var(--muted); font-size:13px; padding:14px 0; text-align:center;}
+.progress-outer{background:var(--panel2); border-radius:20px; height:10px; overflow:hidden; margin-top:6px;}
+.progress-inner{background:linear-gradient(90deg,var(--amber),var(--good)); height:100%; border-radius:20px; transition:width .6s;}
+.chip-row{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;}
+.chip{padding:6px 12px; border-radius:8px; background:var(--panel2); border:1px solid var(--line); font-size:12.5px; color:var(--muted); cursor:pointer;}
+.chip.on{background:var(--amber); color:#1a1400; border-color:var(--amber); font-weight:700;}
+.order-card{border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-bottom:10px; background:var(--panel2);}
+.order-card .row{display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;}
+.actions{display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;}
+footer.note{color:var(--muted); font-size:11.5px; text-align:center; padding:18px 10px 0;}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="mark">🚚</div>
+    <div><h1>باربند</h1><span>مدیریت ناوگان، دیسپچ و ردیابی</span></div>
+  </div>
+  <nav id="tabs">
+    <button data-tab="fleet" class="active">ناوگان و تطبیق بار</button>
+    <button data-tab="wage">دستمزد</button>
+    <button data-tab="dispatch">نوبت‌دهی</button>
+    <button data-tab="track">ردیابی</button>
+  </nav>
+</header>
+<main>
+
+<!-- FLEET & MATCHING -->
+<section id="tab-fleet" class="tab active">
+  <div class="card">
+    <h2>تطبیق بار با نوع کامیون</h2>
+    <p class="sub">نوع بار و وزن را وارد کنید تا کامیون‌های مناسب پیشنهاد شوند.</p>
+    <div class="grid cols-3">
+      <div class="field"><label>وزن بار (کیلوگرم)</label><input type="number" id="m-weight" placeholder="مثلاً ۸۰۰۰"></div>
+      <div class="field"><label>نوع بار</label>
+        <select id="m-cargo">
+          <option value="general">عمومی / بسته‌بندی‌شده</option>
+          <option value="perishable">فسادپذیر (نیاز به یخچال)</option>
+          <option value="hazardous">خطرناک / مایعات شیمیایی</option>
+          <option value="liquid">مایعات / سوخت</option>
+          <option value="construction">فله (شن، ماسه، خاک)</option>
+          <option value="heavy">ماشین‌آلات سنگین / حجیم</option>
+        </select>
+      </div>
+      <div class="field" style="display:flex; align-items:flex-end;"><button class="btn" onclick="matchTruck()">پیشنهاد کامیون</button></div>
+    </div>
+    <div id="match-result"></div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="display:flex; justify-content:space-between; align-items:center;">
+      <div><h2>پایگاه انواع کامیون</h2><p class="sub" style="margin-bottom:0;">مرجع دسته‌بندی مورد استفاده در موتور تطبیق</p></div>
+    </div>
+    <div style="overflow-x:auto; margin-top:10px;">
+      <table><thead><tr><th>نوع کامیون</th><th>ظرفیت</th><th>بار مناسب</th></tr></thead>
+      <tbody id="truck-types-body"></tbody></table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <div><h2 style="margin-bottom:0;">ناوگان فعلی</h2></div>
+      <button class="btn small" onclick="openAddTruck()">+ افزودن کامیون</button>
+    </div>
+    <div id="add-truck-box" style="display:none; margin-bottom:14px;">
+      <div class="grid cols-3">
+        <div class="field"><label>پلاک</label><input id="nt-plate" placeholder="مثلاً ایران ۱۲ ط ۳۴۵"></div>
+        <div class="field"><label>نوع کامیون</label><select id="nt-type"></select></div>
+        <div class="field"><label>وضعیت</label><select id="nt-status"><option value="available">در دسترس</option><option value="maintenance">تعمیر</option></select></div>
+      </div>
+      <button class="btn small" onclick="addTruck()">ثبت کامیون</button>
+    </div>
+    <div style="overflow-x:auto;">
+      <table><thead><tr><th>پلاک</th><th>نوع</th><th>وضعیت</th><th></th></tr></thead>
+      <tbody id="fleet-body"></tbody></table>
+    </div>
+  </div>
+</section>
+
+<!-- WAGE -->
+<section id="tab-wage" class="tab">
+  <div class="card">
+    <h2>محاسبه‌گر دستمزد راننده</h2>
+    <p class="sub">یک مدل دستمزد را انتخاب کنید و پارامترها را وارد کنید.</p>
+    <div class="chip-row" id="wage-modes">
+      <div class="chip on" data-mode="km">کیلومتری</div>
+      <div class="chip" data-mode="ton">تناژی</div>
+      <div class="chip" data-mode="percent">درصدی از کرایه</div>
+      <div class="chip" data-mode="combo">ترکیبی</div>
+    </div>
+    <div id="wage-fields" class="grid cols-3"></div>
+    <div class="result" id="wage-result">نتیجه محاسبه اینجا نمایش داده می‌شود.</div>
+  </div>
+</section>
+
+<!-- DISPATCH -->
+<section id="tab-dispatch" class="tab">
+  <div class="card">
+    <h2>ثبت سفارش حمل جدید</h2>
+    <div class="grid cols-3">
+      <div class="field"><label>مبدا</label><input id="o-origin" placeholder="مثلاً تهران"></div>
+      <div class="field"><label>مقصد</label><input id="o-dest" placeholder="مثلاً تبریز"></div>
+      <div class="field"><label>نام مشتری</label><input id="o-customer" placeholder="نام مشتری"></div>
+      <div class="field"><label>وزن بار (کیلوگرم)</label><input type="number" id="o-weight" placeholder="مثلاً ۱۲۰۰۰"></div>
+      <div class="field"><label>نوع بار</label>
+        <select id="o-cargo">
+          <option value="general">عمومی</option><option value="perishable">فسادپذیر</option>
+          <option value="hazardous">خطرناک/شیمیایی</option><option value="liquid">مایعات</option>
+          <option value="construction">فله ساختمانی</option><option value="heavy">ماشین‌آلات سنگین</option>
+        </select>
+      </div>
+      <div class="field"><label>مدت زمان تخمینی سفر (ساعت)</label><input type="number" id="o-duration" value="6"></div>
+    </div>
+    <button class="btn" onclick="createOrder()">ثبت سفارش و یافتن کامیون</button>
+  </div>
+
+  <div class="card">
+    <h2>تابلوی نوبت‌دهی و دیسپچ</h2>
+    <div id="orders-list"><div class="empty">هنوز سفارشی ثبت نشده است.</div></div>
+  </div>
+</section>
+
+<!-- TRACKING -->
+<section id="tab-track" class="tab">
+  <div class="card">
+    <h2>ردیابی زنده محموله‌ها (شبیه‌سازی)</h2>
+    <p class="sub">وضعیت سفرهایی که در مسیر هستند، بر اساس زمان سپری‌شده نسبت به مدت تخمینی نمایش داده می‌شود.</p>
+    <div id="track-list"><div class="empty">در حال حاضر محموله‌ای در مسیر نیست.</div></div>
+  </div>
+</section>
+
+</main>
+<footer class="note">نسخه نمایشی — داده‌ها فقط در همین مرورگر ذخیره می‌شوند.</footer>
+
+<script>
+const TRUCK_TYPES = [
+  {id:'pickup', name:'وانت / نیسان', cap:1500, tags:['general'], desc:'بار خرد، درون‌شهری، لوازم اداری'},
+  {id:'light', name:'کامیونت ۶ چرخ', cap:6000, tags:['general'], desc:'مواد غذایی، لوازم خانگی، بار بین‌شهری کوتاه'},
+  {id:'single10', name:'کامیون تک (۱۰ چرخ)', cap:15000, tags:['general','construction'], desc:'بار عمومی، مصالح ساختمانی سبک'},
+  {id:'flatbed', name:'تریلی کفی (فلت‌بک)', cap:27000, tags:['heavy','general'], desc:'آهن‌آلات، لوله، ماشین‌آلات، بار حجیم'},
+  {id:'box', name:'تریلی باکسی / کمپرسی', cap:25000, tags:['general'], desc:'کالای بسته‌بندی‌شده، کارتن، محصولات صنعتی'},
+  {id:'reefer', name:'تریلی یخچالی', cap:24000, tags:['perishable'], desc:'مواد غذایی فسادپذیر، دارو، لبنیات'},
+  {id:'dump', name:'کمپرسی (خاک‌بر)', cap:30000, tags:['construction'], desc:'شن، ماسه، خاک، نخاله ساختمانی'},
+  {id:'tanker', name:'تانکر', cap:25000, tags:['liquid','hazardous'], desc:'سوخت، مواد شیمیایی مایع، آب'},
+  {id:'heavyhaul', name:'لوبک / کفی سنگین', cap:45000, tags:['heavy','hazardous'], desc:'ماشین‌آلات سنگین، ترانسفورماتور، تجهیزات صنعتی'},
+];
+const CARGO_LABEL = {general:'عمومی', perishable:'فسادپذیر', hazardous:'خطرناک/شیمیایی', liquid:'مایعات', construction:'فله ساختمانی', heavy:'ماشین‌آلات سنگین'};
+
+let fleet = [], orders = [];
+function safeGet(k, fallback){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : fallback; }catch(e){ return fallback; } }
+function safeSet(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+
+function init(){
+  fleet = safeGet('barband_fleet', null);
+  if(!fleet){
+    fleet = [
+      {id:1, plate:'ایران ۱۲ ط ۳۴۵ ۱۱', type:'single10', status:'available'},
+      {id:2, plate:'ایران ۴۵ ب ۶۷۸ ۲۲', type:'flatbed', status:'available'},
+      {id:3, plate:'ایران ۷۸ ج ۹۰۱ ۳۳', type:'reefer', status:'available'},
+      {id:4, plate:'ایران ۳۳ د ۲۲۰ ۴۴', type:'dump', status:'maintenance'},
+    ];
+    safeSet('barband_fleet', fleet);
+  }
+  orders = safeGet('barband_orders', []);
+
+  document.querySelectorAll('#tabs button').forEach(b=>b.addEventListener('click', ()=>switchTab(b.dataset.tab)));
+  const ntType = document.getElementById('nt-type');
+  ntType.innerHTML = TRUCK_TYPES.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+  document.getElementById('truck-types-body').innerHTML = TRUCK_TYPES.map(t=>
+    `<tr><td>${t.name}</td><td>${t.cap.toLocaleString('fa-IR')} کیلوگرم</td><td>${t.desc}</td></tr>`).join('');
+
+  document.querySelectorAll('#wage-modes .chip').forEach(c=>c.addEventListener('click', ()=>setWageMode(c.dataset.mode)));
+  setWageMode('km');
+
+  renderFleet(); renderOrders(); renderTracking();
+  setInterval(renderTracking, 4000);
+}
+
+function switchTab(name){
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.id==='tab-'+name));
+}
+
+// ---- Fleet & matching ----
+function openAddTruck(){ const box=document.getElementById('add-truck-box'); box.style.display = box.style.display==='none'?'block':'none'; }
+function addTruck(){
+  const plate = document.getElementById('nt-plate').value.trim();
+  if(!plate){ alert('پلاک را وارد کنید'); return; }
+  const type = document.getElementById('nt-type').value;
+  const status = document.getElementById('nt-status').value;
+  fleet.push({id:Date.now(), plate, type, status});
+  safeSet('barband_fleet', fleet);
+  document.getElementById('nt-plate').value='';
+  document.getElementById('add-truck-box').style.display='none';
+  renderFleet();
+}
+function statusTag(status){
+  const map = {available:['در دسترس','ok'], on_trip:['در سفر','wait'], maintenance:['تعمیر','bad']};
+  const [label,cls] = map[status] || [status,'hold'];
+  return `<span class="tag ${cls}">${label}</span>`;
+}
+function renderFleet(){
+  document.getElementById('fleet-body').innerHTML = fleet.map(tr=>{
+    const t = TRUCK_TYPES.find(x=>x.id===tr.type);
+    return `<tr><td>${tr.plate}</td><td>${t?t.name:tr.type}</td><td>${statusTag(tr.status)}</td>
+      <td><button class="btn ghost small" onclick="removeTruck(${tr.id})">حذف</button></td></tr>`;
+  }).join('') || '<tr><td colspan="4" class="empty">کامیونی ثبت نشده</td></tr>';
+}
+function removeTruck(id){ fleet = fleet.filter(t=>t.id!==id); safeSet('barband_fleet', fleet); renderFleet(); }
+
+function suggestTypes(weight, cargo){
+  return TRUCK_TYPES.filter(t=> t.tags.includes(cargo) && t.cap >= weight)
+    .sort((a,b)=> a.cap - b.cap);
+}
+function matchTruck(){
+  const weight = parseFloat(document.getElementById('m-weight').value);
+  const cargo = document.getElementById('m-cargo').value;
+  const box = document.getElementById('match-result');
+  if(!weight || weight<=0){ box.innerHTML = '<div class="result">لطفاً وزن بار را وارد کنید.</div>'; return; }
+  const matches = suggestTypes(weight, cargo);
+  if(matches.length===0){ box.innerHTML = `<div class="result">برای بار «${CARGO_LABEL[cargo]}» با وزن ${weight.toLocaleString('fa-IR')} کیلوگرم، کامیون مناسبی در دسته‌بندی یافت نشد؛ نیاز به بررسی دستی دارد.</div>`; return; }
+  box.innerHTML = `<div class="result">مناسب‌ترین گزینه: <b>${matches[0].name}</b><br>
+    <span style="color:var(--muted); font-size:12.5px;">سایر گزینه‌های قابل استفاده: ${matches.slice(1).map(m=>m.name).join('، ') || '—'}</span></div>`;
+}
+
+// ---- Wage calculator ----
+const WAGE_FIELDS = {
+  km: [['w-base','حقوق پایه (تومان)',0],['w-dist','مسافت (کیلومتر)',0],['w-rate-km','نرخ هر کیلومتر (تومان)',0]],
+  ton: [['w-ton','تناژ بار (تن)',0],['w-rate-ton','نرخ هر تن (تومان)',0]],
+  percent: [['w-fare','کرایه کل سفر (تومان)',0],['w-percent','سهم راننده (٪)',75]],
+  combo: [['w-base','حقوق پایه (تومان)',0],['w-dist','مسافت (کیلومتر)',0],['w-rate-km','نرخ هر کیلومتر (تومان)',0],['w-ton','تناژ بار (تن)',0],['w-rate-ton','نرخ هر تن (تومان)',0]],
+};
+let wageMode = 'km';
+function setWageMode(mode){
+  wageMode = mode;
+  document.querySelectorAll('#wage-modes .chip').forEach(c=>c.classList.toggle('on', c.dataset.mode===mode));
+  const wrap = document.getElementById('wage-fields');
+  wrap.innerHTML = WAGE_FIELDS[mode].map(([id,label,def])=>
+    `<div class="field"><label>${label}</label><input type="number" id="${id}" value="${def}" oninput="calcWage()"></div>`).join('') +
+    `<div class="field" style="display:flex; align-items:flex-end;"><button class="btn" onclick="calcWage()">محاسبه دستمزد</button></div>`;
+  calcWage();
+}
+function num(id){ const el = document.getElementById(id); return el ? (parseFloat(el.value)||0) : 0; }
+function calcWage(){
+  let total = 0, detail = '';
+  if(wageMode==='km'){ total = num('w-base') + num('w-dist')*num('w-rate-km'); detail='حقوق پایه + (مسافت × نرخ هر کیلومتر)'; }
+  else if(wageMode==='ton'){ total = num('w-ton')*num('w-rate-ton'); detail='تناژ × نرخ هر تن'; }
+  else if(wageMode==='percent'){ total = num('w-fare')*(num('w-percent')/100); detail='کرایه کل × سهم درصدی راننده'; }
+  else if(wageMode==='combo'){ total = num('w-base') + num('w-dist')*num('w-rate-km') + num('w-ton')*num('w-rate-ton'); detail='حقوق پایه + (مسافت × نرخ کیلومتر) + (تناژ × نرخ تن)'; }
+  document.getElementById('wage-result').innerHTML = `فرمول: ${detail}<br>دستمزد این سفر: <b>${Math.round(total).toLocaleString('fa-IR')} تومان</b>`;
+}
+
+// ---- Dispatch ----
+function createOrder(){
+  const origin = document.getElementById('o-origin').value.trim();
+  const dest = document.getElementById('o-dest').value.trim();
+  const customer = document.getElementById('o-customer').value.trim() || 'بدون نام';
+  const weight = parseFloat(document.getElementById('o-weight').value);
+  const cargo = document.getElementById('o-cargo').value;
+  const duration = parseFloat(document.getElementById('o-duration').value) || 6;
+  if(!origin || !dest || !weight){ alert('مبدا، مقصد و وزن بار را وارد کنید'); return; }
+  orders.push({id:Date.now(), origin, dest, customer, weight, cargo, duration, status:'pending', truckId:null, startedAt:null});
+  safeSet('barband_orders', orders);
+  document.getElementById('o-origin').value=''; document.getElementById('o-dest').value=''; document.getElementById('o-customer').value=''; document.getElementById('o-weight').value='';
+  renderOrders();
+}
+const STATUS_LABEL = {pending:['در انتظار تخصیص','hold'], assigned:['بارگیری','wait'], in_transit:['در مسیر','wait'], delivered:['تحویل شده','ok']};
+function candidateTrucks(order){
+  const okTypes = suggestTypes(order.weight, order.cargo).map(t=>t.id);
+  return fleet.filter(t=> t.status==='available' && okTypes.includes(t.type));
+}
+function renderOrders(){
+  const wrap = document.getElementById('orders-list');
+  if(orders.length===0){ wrap.innerHTML = '<div class="empty">هنوز سفارشی ثبت نشده است.</div>'; return; }
+  wrap.innerHTML = orders.slice().reverse().map(o=>{
+    const [label,cls] = STATUS_LABEL[o.status];
+    let actionHtml = '';
+    if(o.status==='pending'){
+      const cands = candidateTrucks(o);
+      if(cands.length){
+        actionHtml = `<select id="pick-${o.id}">${cands.map(c=>{const t=TRUCK_TYPES.find(x=>x.id===c.type); return `<option value="${c.id}">${c.plate} — ${t.name}</option>`;}).join('')}</select>
+          <button class="btn small" onclick="assignOrder(${o.id})">تخصیص نوبت</button>`;
+      } else {
+        actionHtml = `<span style="color:var(--muted); font-size:12.5px;">کامیون مناسب در دسترس نیست</span>`;
+      }
+    } else if(o.status==='assigned'){
+      actionHtml = `<button class="btn small" onclick="advanceOrder(${o.id},'in_transit')">شروع حرکت</button>`;
+    } else if(o.status==='in_transit'){
+      actionHtml = `<button class="btn small" onclick="advanceOrder(${o.id},'delivered')">ثبت تحویل</button>`;
+    } else {
+      actionHtml = `<span style="color:var(--muted); font-size:12.5px;">تسویه شده</span>`;
+    }
+    return `<div class="order-card">
+      <div class="row"><b>${o.origin} → ${o.dest}</b><span class="tag ${cls}">${label}</span></div>
+      <div style="color:var(--muted); font-size:12.5px; margin-top:4px;">مشتری: ${o.customer} · بار: ${CARGO_LABEL[o.cargo]} · وزن: ${o.weight.toLocaleString('fa-IR')} کیلوگرم · مدت تخمینی: ${o.duration} ساعت</div>
+      <div class="actions">${actionHtml}</div>
+    </div>`;
+  }).join('');
+}
+function assignOrder(orderId){
+  const sel = document.getElementById('pick-'+orderId);
+  const truckId = parseInt(sel.value);
+  const order = orders.find(o=>o.id===orderId);
+  const truck = fleet.find(t=>t.id===truckId);
+  order.truckId = truckId; order.status='assigned';
+  truck.status='on_trip';
+  safeSet('barband_orders', orders); safeSet('barband_fleet', fleet);
+  renderOrders(); renderFleet();
+}
+function advanceOrder(orderId, next){
+  const order = orders.find(o=>o.id===orderId);
+  order.status = next;
+  if(next==='in_transit') order.startedAt = Date.now();
+  if(next==='delivered'){
+    const truck = fleet.find(t=>t.id===order.truckId);
+    if(truck) truck.status='available';
+    safeSet('barband_fleet', fleet); renderFleet();
+  }
+  safeSet('barband_orders', orders);
+  renderOrders(); renderTracking();
+}
+
+// ---- Tracking ----
+function renderTracking(){
+  const wrap = document.getElementById('track-list');
+  const active = orders.filter(o=>o.status==='in_transit');
+  if(active.length===0){ wrap.innerHTML = '<div class="empty">در حال حاضر محموله‌ای در مسیر نیست.</div>'; return; }
+  wrap.innerHTML = active.map(o=>{
+    const truck = fleet.find(t=>t.id===o.truckId);
+    const elapsedH = (Date.now() - (o.startedAt||Date.now())) / 3600000;
+    const pct = Math.min(100, Math.round((elapsedH / o.duration) * 100));
+    return `<div class="order-card">
+      <div class="row"><b>${o.origin} → ${o.dest}</b><span style="font-size:12.5px; color:var(--muted);">${truck?truck.plate:''}</span></div>
+      <div class="progress-outer"><div class="progress-inner" style="width:${pct}%"></div></div>
+      <div style="font-size:12px; color:var(--muted); margin-top:5px;">${pct}٪ مسیر طی شده · تخمین باقی‌مانده: ${Math.max(0,(o.duration - elapsedH)).toFixed(1)} ساعت</div>
+    </div>`;
+  }).join('');
+}
+
+init();
+</script>
+</body>
+</html>
