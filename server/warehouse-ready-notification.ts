@@ -1,0 +1,152 @@
+import { and, eq } from "drizzle-orm";
+import { db } from "./db";
+import { shopSettings, simpleSmsTemplates } from "@shared/schema";
+import { emailCategories, emailTemplates } from "@shared/email-schema";
+import { createSmsService } from "./sms-service";
+import { emailService } from "./email-service";
+
+export const READY_NOTIFICATION_CATEGORY = "warehouse_ready_notifications";
+const KEYS = {
+  emailEnabled: "warehouse_ready_email_enabled",
+  smsEnabled: "warehouse_ready_sms_enabled",
+  emailTemplateId: "warehouse_ready_email_template_id",
+  smsTemplateId: "warehouse_ready_sms_template_id",
+  senderCategoryKey: "warehouse_ready_sender_category_key",
+} as const;
+
+export type ReadyNotificationSettings = {
+  emailEnabled: boolean; smsEnabled: boolean;
+  emailTemplateId: number | null; smsTemplateId: number | null;
+  senderCategoryKey: string;
+};
+
+function bool(value: string | undefined, fallback = false) {
+  return value == null ? fallback : value === "true";
+}
+function id(value?: string) {
+  const n = value == null || value === "" ? NaN : Number(value);
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
+
+export async function getReadyNotificationSettings(): Promise<ReadyNotificationSettings> {
+  const rows = await db.select().from(shopSettings)
+    .where(eq(shopSettings.category, READY_NOTIFICATION_CATEGORY));
+  const values = Object.fromEntries(rows.map(row => [row.settingKey, row.settingValue]));
+  return {
+    emailEnabled: bool(values[KEYS.emailEnabled], true),
+    smsEnabled: bool(values[KEYS.smsEnabled], true),
+    emailTemplateId: id(values[KEYS.emailTemplateId]),
+    smsTemplateId: id(values[KEYS.smsTemplateId]),
+    senderCategoryKey: values[KEYS.senderCategoryKey] || "notifications",
+  };
+}
+
+export async function updateReadyNotificationSettings(input: Partial<ReadyNotificationSettings>) {
+  const current = await getReadyNotificationSettings();
+  const next = { ...current, ...input };
+  if (next.emailTemplateId != null) {
+    const [t] = await db.select({ id: emailTemplates.id }).from(emailTemplates)
+      .where(and(eq(emailTemplates.id, next.emailTemplateId), eq(emailTemplates.isActive, true))).limit(1);
+    if (!t) throw new Error("Selected email template is not active or does not exist");
+  }
+  if (next.smsTemplateId != null) {
+    const [t] = await db.select({ id: simpleSmsTemplates.id }).from(simpleSmsTemplates)
+      .where(and(eq(simpleSmsTemplates.id, next.smsTemplateId), eq(simpleSmsTemplates.isActive, true))).limit(1);
+    if (!t) throw new Error("Selected SMS template is not active or does not exist");
+  }
+  if (!/^[a-z0-9_-]+$/i.test(next.senderCategoryKey)) throw new Error("Invalid sender category key");
+  const [category] = await db.select({ key: emailCategories.categoryKey }).from(emailCategories)
+    .where(and(eq(emailCategories.categoryKey, next.senderCategoryKey), eq(emailCategories.isActive, true))).limit(1);
+  if (!category) throw new Error("Sender category is not active or does not exist");
+  const values: Record<string, string> = {
+    [KEYS.emailEnabled]: String(next.emailEnabled),
+    [KEYS.smsEnabled]: String(next.smsEnabled),
+    [KEYS.emailTemplateId]: next.emailTemplateId == null ? "" : String(next.emailTemplateId),
+    [KEYS.smsTemplateId]: next.smsTemplateId == null ? "" : String(next.smsTemplateId),
+    [KEYS.senderCategoryKey]: next.senderCategoryKey,
+  };
+  for (const [settingKey, settingValue] of Object.entries(values)) {
+    const [existing] = await db.select({ id: shopSettings.id }).from(shopSettings)
+      .where(eq(shopSettings.settingKey, settingKey)).limit(1);
+    if (existing) await db.update(shopSettings).set({ settingValue, updatedAt: new Date() }).where(eq(shopSettings.id, existing.id));
+    else await db.insert(shopSettings).values({
+      settingKey, settingValue, settingType: settingKey.includes("enabled") ? "boolean" : "text",
+      displayName: `Warehouse ready notification: ${settingKey}`, category: READY_NOTIFICATION_CATEGORY,
+      isPublic: false,
+    });
+  }
+  return next;
+}
+
+export async function getReadyNotificationOptions() {
+  const [sms, email, categories] = await Promise.all([
+    db.select({ id: simpleSmsTemplates.id, name: simpleSmsTemplates.templateName, language: simpleSmsTemplates.language })
+      .from(simpleSmsTemplates).where(eq(simpleSmsTemplates.isActive, true)),
+    db.select({ id: emailTemplates.id, name: emailTemplates.name, language: emailTemplates.language })
+      .from(emailTemplates).where(eq(emailTemplates.isActive, true)),
+    db.select({ categoryKey: emailCategories.categoryKey, name: emailCategories.categoryName })
+      .from(emailCategories).where(eq(emailCategories.isActive, true)),
+  ]);
+  return { smsTemplates: sms, emailTemplates: email, emailCategories: categories };
+}
+
+export async function dispatchWarehouseReadyNotification(order: {
+  orderNumber?: string; customerName: string; customerPhone?: string | null;
+  recipientPhone?: string | null; customerEmail?: string | null; language?: string;
+}) {
+  const settings = await getReadyNotificationSettings();
+  const language = order.language || "en";
+  const vars: Record<string, string> = {
+    customer_name: order.customerName, order_number: order.orderNumber || "",
+  };
+  const results: { channel: string; success: boolean; error?: string }[] = [];
+  if (settings.smsEnabled && (order.recipientPhone || order.customerPhone)) {
+    try {
+      const phone = order.recipientPhone || order.customerPhone!;
+      let message = ({ en: "Your order {{order_number}} is ready and has moved to logistics.", fa: "سفارش {{order_number}} شما آماده و به بخش لجستیک منتقل شد.", ar: "طلبك {{order_number}} جاهز وتم نقله إلى الخدمات اللوجستية.", tr: "{{order_number}} numaralı siparişiniz hazırlandı ve lojistiğe aktarıldı." } as Record<string, string>)[language] || "Your order {{order_number}} is ready for shipping.";
+      if (settings.smsTemplateId) {
+        const [template] = await db.select().from(simpleSmsTemplates).where(and(eq(simpleSmsTemplates.id, settings.smsTemplateId), eq(simpleSmsTemplates.isActive, true))).limit(1);
+        if (template && (template.language === language || template.language === "en")) message = template.templateContent;
+      }
+      for (const [key, value] of Object.entries(vars)) message = message.replace(new RegExp(`\\{\\{${key}\\}\\}`, "g"), value);
+      const result = await (await createSmsService()).sendSms({ to: phone, message });
+      results.push({ channel: "sms", success: result.success, error: result.error });
+    } catch (error) {
+      results.push({ channel: "sms", success: false, error: error instanceof Error ? error.message : "SMS provider failed" });
+    }
+  } else if (settings.smsEnabled) {
+    results.push({ channel: "sms", success: false, error: "No recipient phone number available" });
+  }
+  if (settings.emailEnabled && order.customerEmail) {
+    try {
+      let result: boolean;
+      if (settings.emailTemplateId) {
+        const [template] = await db.select().from(emailTemplates).where(and(eq(emailTemplates.id, settings.emailTemplateId), eq(emailTemplates.isActive, true))).limit(1);
+        if (template && (template.language === language || template.language === "en")) {
+          result = await emailService.sendEmail({ to: order.customerEmail, subject: replace(template.subject, vars), text: replace(template.textContent || template.htmlContent.replace(/<[^>]+>/g, ""), vars), html: replace(template.htmlContent, vars, true) }, settings.senderCategoryKey);
+        } else {
+          // A selected template in another language must not be sent to this customer.
+          const subject = ({ en: "Order ready for logistics", fa: "آماده شدن سفارش برای ارسال", ar: "الطلب جاهز للشحن", tr: "Siparişiniz lojistik için hazır" } as Record<string, string>)[language] || "Order ready for logistics";
+          const text = ({ en: `Your order ${order.orderNumber || ""} is ready and has moved to logistics.`, fa: `سفارش ${order.orderNumber || ""} شما آماده و به بخش لجستیک منتقل شد.`, ar: `طلبك ${order.orderNumber || ""} جاهز وتم نقله إلى الخدمات اللوجستية.`, tr: `${order.orderNumber || ""} numaralı siparişiniz hazırlandı ve lojistiğe aktarıldı.` } as Record<string, string>)[language] || `Your order ${order.orderNumber || ""} is ready for shipping.`;
+          result = await emailService.sendEmail({ to: order.customerEmail, subject, text, html: `<p>${escapeHtml(text)}</p>` }, settings.senderCategoryKey);
+        }
+      } else {
+        const subject = ({ en: "Order ready for logistics", fa: "آماده شدن سفارش برای ارسال", ar: "الطلب جاهز للشحن", tr: "Siparişiniz lojistik için hazır" } as Record<string, string>)[language] || "Order ready for logistics";
+        const text = ({ en: `Your order ${order.orderNumber || ""} is ready and has moved to logistics.`, fa: `سفارش ${order.orderNumber || ""} شما آماده و به بخش لجستیک منتقل شد.`, ar: `طلبك ${order.orderNumber || ""} جاهز وتم نقله إلى الخدمات اللوجستية.`, tr: `${order.orderNumber || ""} numaralı siparişiniz hazırlandı ve lojistiğe aktarıldı.` } as Record<string, string>)[language] || `Your order ${order.orderNumber || ""} is ready for shipping.`;
+        result = await emailService.sendEmail({ to: order.customerEmail, subject, text, html: `<p>${escapeHtml(text)}</p>` }, settings.senderCategoryKey);
+      }
+      results.push({ channel: "email", success: result, error: result ? undefined : "Email provider failed" });
+    } catch (error) {
+      results.push({ channel: "email", success: false, error: error instanceof Error ? error.message : "Email provider failed" });
+    }
+  } else if (settings.emailEnabled) {
+    results.push({ channel: "email", success: false, error: "No purchaser email available" });
+  }
+  return results;
+}
+function escapeHtml(value: string) {
+  return value.replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]!);
+}
+function replace(content: string, vars: Record<string, string>, html = false) {
+  return Object.entries(vars).reduce((text, [key, value]) => text.replace(new RegExp(`\\{\\{${key}\\}\\}`, "g"), () => html ? escapeHtml(value) : value), content);
+}

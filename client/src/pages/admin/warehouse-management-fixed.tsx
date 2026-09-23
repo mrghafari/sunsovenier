@@ -19,6 +19,7 @@ import PaymentMethodBadge from '@/components/PaymentMethodBadge';
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getOrderStatusLabel, resolveOrderStatus } from '@shared/order-status';
+import WarehouseReadyNotificationSettings from '@/components/WarehouseReadyNotificationSettings';
 
 type PageLanguage = 'en' | 'fa' | 'ar' | 'tr';
 
@@ -115,6 +116,7 @@ const pageTranslations: Record<string, Record<PageLanguage, string>> = {
   low: { en: 'Low', fa: 'کم', ar: 'منخفض', tr: 'Düşük' },
   available: { en: 'Available', fa: 'موجود', ar: 'متوفر', tr: 'Mevcut' },
   lowStockSettings: { en: 'Low-stock notification settings', fa: 'تنظیمات اعلان کمبود موجودی', ar: 'إعدادات إشعارات انخفاض المخزون', tr: 'Düşük stok bildirim ayarları' },
+  settings: { en: 'Settings', fa: 'تنظیمات', ar: 'الإعدادات', tr: 'Ayarlar' },
   notificationInterval: { en: 'Notification interval (hours)', fa: 'فاصله زمانی ارسال اعلان (ساعت)', ar: 'الفاصل الزمني للإشعار (ساعات)', tr: 'Bildirim aralığı (saat)' },
   notificationIntervalHelp: { en: 'Minimum interval between two notifications for a product (1 to 168 hours)', fa: 'حداقل فاصله بین دو اعلان برای یک محصول (1 تا 168 ساعت)', ar: 'الحد الأدنى للفاصل بين إشعارين لمنتج (من 1 إلى 168 ساعة)', tr: 'Bir ürün için iki bildirim arasındaki minimum süre (1-168 saat)' },
   maxNotifications: { en: 'Maximum notifications', fa: 'حداکثر تعداد اعلان', ar: 'الحد الأقصى للإشعارات', tr: 'Maksimum bildirim' },
@@ -814,23 +816,33 @@ const WarehouseManagementFixed: React.FC = () => {
   const updateOrderMutation = useMutation({
     mutationFn: async ({ orderId, status, notes }: { orderId: number; status: string; notes?: string }) => {
       setLoadingOrderId(orderId); // Set loading state for specific order
+      if (status === 'warehouse_approved') {
+        return await apiRequest(`/api/warehouse/orders/${orderId}/approve`, {
+          method: 'POST',
+          body: { notes }
+        });
+      }
       return await apiRequest(`/api/order-management/warehouse/${orderId}/process`, {
         method: 'PATCH',
         body: { status, notes }
       });
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['/api/order-management/warehouse'] });
       refetchOrders();
-      console.log({
-        title: t('orderUpdated'),
-        description: `${t('orderUpdatedDescription')} ${data.data?.status === 'warehouse_processing' ? t('processing') : data.data?.status === 'warehouse_approved' ? t('sendToLogistics') : t('updated')}.`,
+      const failedChannels = data.readyNotifications?.filter((result: { success: boolean }) => !result.success) ?? [];
+      toast({
+        title: failedChannels.length ? t('updateError') : t('orderUpdated'),
+        description: failedChannels.length
+          ? `${t('sendToLogistics')} — ${failedChannels.map((result: { channel: string }) => result.channel).join(', ')}: ${t('updateErrorDescription')}`
+          : `${t('orderUpdatedDescription')} ${variables.status === 'warehouse_processing' ? t('processing') : variables.status === 'warehouse_approved' ? t('sendToLogistics') : t('updated')}.`,
+        variant: failedChannels.length ? 'destructive' : 'default',
       });
       setShowOrderDetails(false);
       setLoadingOrderId(null); // Clear loading state
     },
     onError: (error: any) => {
-      console.log({
+      toast({
         title: t('updateError'),
         description: error.message || t('updateErrorDescription'),
         variant: "destructive",
@@ -1155,7 +1167,7 @@ const WarehouseManagementFixed: React.FC = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="orders" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsList className="grid w-full grid-cols-3 mb-6">
             <TabsTrigger value="orders" className="flex items-center gap-2">
               <Package className="w-4 h-4" />
               {t('orders')}
@@ -1163,6 +1175,10 @@ const WarehouseManagementFixed: React.FC = () => {
             <TabsTrigger value="inventory" className="flex items-center gap-2">
               <Package2 className="w-4 h-4" />
               {t('inventory')}
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center gap-2">
+              <Bell className="w-4 h-4" />
+              {t('settings')}
             </TabsTrigger>
           </TabsList>
 
@@ -1745,6 +1761,9 @@ const WarehouseManagementFixed: React.FC = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+          <TabsContent value="settings" className="space-y-6">
+            <WarehouseReadyNotificationSettings />
           </TabsContent>
         </Tabs>
 

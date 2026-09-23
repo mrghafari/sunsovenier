@@ -45098,7 +45098,7 @@ momtazchem.com
 
       // Get order details with customer information - NOW USING order_management.id (NOT customerOrderId)
       const { customerOrders } = await import("../shared/customer-schema");
-      const { crmCustomers } = await import("../shared/crm-schema");
+       const { crmCustomers } = schema;
       
       const orderDetailsQuery = await db
         .select({
@@ -45109,6 +45109,9 @@ momtazchem.com
           customerLastName: crmCustomers.lastName,
           customerEmail: crmCustomers.email,
           customerPhone: crmCustomers.phone,
+           customerLanguage: crmCustomers.preferredLanguage,
+           recipientPhone: orderManagement.recipientPhone,
+           orderNumber: customerOrders.orderNumber,
           totalAmount: customerOrders.totalAmount,
           currency: customerOrders.currency,
         })
@@ -45190,12 +45193,34 @@ momtazchem.com
 
       console.log(`✅ [WAREHOUSE] Order ${orderId} approved successfully`);
 
+      // Attempt customer messages as part of the successful transition. An
+      // autoscaled instance can stop before a detached post-response task runs.
+      let readyNotificationResults: { channel: string; success: boolean; error?: string }[] = [];
+      try {
+        const { dispatchWarehouseReadyNotification } = await import("./warehouse-ready-notification");
+        readyNotificationResults = await dispatchWarehouseReadyNotification({
+          orderNumber: order.orderNumber || undefined,
+          customerName: `${order.customerFirstName || ''} ${order.customerLastName || ''}`.trim() || 'مشتری',
+          customerPhone: order.customerPhone,
+          recipientPhone: order.recipientPhone,
+          customerEmail: order.customerEmail,
+          language: order.customerLanguage || undefined,
+        });
+        for (const result of readyNotificationResults) {
+          if (!result.success) console.error(`❌ [WAREHOUSE] ${result.channel} notification failed for order ${orderId}: ${result.error}`);
+        }
+      } catch (notificationError) {
+        console.error(`❌ [WAREHOUSE] Ready notification failed for order ${orderId}`, notificationError);
+        readyNotificationResults = [{ channel: 'notification', success: false, error: 'Notification service unavailable' }];
+      }
+
       // 🚀 ASYNC: Fire-and-forget delivery code generation and SMS
       // Response is sent immediately, background tasks continue
       res.json({ 
         success: true, 
         message: "کالا آماده شد",
-        deliveryCodeGenerated: true
+        deliveryCodeGenerated: true,
+        readyNotifications: readyNotificationResults
       });
 
       // BACKGROUND: Delivery code and SMS (after response sent)
@@ -45249,6 +45274,43 @@ momtazchem.com
         message: "خطا در تایید انبار",
         error: error instanceof Error ? error.message : 'Unknown error'
       });
+    }
+  });
+
+  // Customer notification configuration for the warehouse -> logistics transition.
+  // Settings are deliberately stored in the existing shop_settings table.
+  app.get("/api/warehouse/ready-notification-settings", requireAuth, attachUserDepartments as any, requireDepartment('warehouse') as any, async (_req, res) => {
+    try {
+      const { getReadyNotificationSettings } = await import("./warehouse-ready-notification");
+      res.json({ success: true, settings: await getReadyNotificationSettings() });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "خطا در دریافت تنظیمات اعلان" });
+    }
+  });
+  app.put("/api/warehouse/ready-notification-settings", requireAuth, attachUserDepartments as any, requireDepartment('warehouse') as any, async (req, res) => {
+    try {
+      const { updateReadyNotificationSettings } = await import("./warehouse-ready-notification");
+      const body = req.body || {};
+      const input: Record<string, unknown> = {};
+      for (const key of ['emailEnabled', 'smsEnabled', 'emailTemplateId', 'smsTemplateId', 'senderCategoryKey']) {
+        if (Object.prototype.hasOwnProperty.call(body, key)) input[key] = body[key];
+      }
+      if (typeof input.emailEnabled !== "undefined" && typeof input.emailEnabled !== "boolean") return res.status(400).json({ success: false, message: "emailEnabled must be boolean" });
+      if (typeof input.smsEnabled !== "undefined" && typeof input.smsEnabled !== "boolean") return res.status(400).json({ success: false, message: "smsEnabled must be boolean" });
+      for (const key of ['emailTemplateId', 'smsTemplateId']) if (key in input && input[key] !== null && (!Number.isInteger(input[key]) || Number(input[key]) <= 0)) return res.status(400).json({ success: false, message: `${key} is invalid` });
+      const settings = await updateReadyNotificationSettings(input as any);
+      res.json({ success: true, settings });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Invalid notification settings";
+      res.status(400).json({ success: false, message });
+    }
+  });
+  app.get("/api/warehouse/ready-notification-options", requireAuth, attachUserDepartments as any, requireDepartment('warehouse') as any, async (_req, res) => {
+    try {
+      const { getReadyNotificationOptions } = await import("./warehouse-ready-notification");
+      res.json({ success: true, ...(await getReadyNotificationOptions()) });
+    } catch (error) {
+      res.status(500).json({ success: false, message: "خطا در دریافت گزینه‌های اعلان" });
     }
   });
 

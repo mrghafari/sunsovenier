@@ -45,7 +45,8 @@ import {
   Minus,
   Save,
   Printer,
-  Loader2
+  Loader2,
+  FileText
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useOrderNotifications } from '@/hooks/useOrderNotifications';
