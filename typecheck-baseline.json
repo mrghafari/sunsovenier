@@ -1013,10 +1013,6 @@
       "count": 1
     },
     {
-      "key": "[\"client/src/pages/admin/warehouse-management.tsx\",2304,\"Cannot find name 'FileText'.\",\"<FileText className=\\\"w-4 h-4\\\" />\"]",
-      "count": 1
-    },
-    {
       "key": "[\"client/src/pages/admin/warehouse-management.tsx\",2339,\"Property 'currentStatus' does not exist on type 'Order'.\",\"<p className=\\\"mt-1\\\">{getStatusBadge(selectedOrder.currentStatus || selectedOrder.status)}</p>\"]",
       "count": 1
     },
@@ -1714,38 +1710,6 @@
     },
     {
       "key": "[\"client/src/pages/wishlist.tsx\",2339,\"Property 'wishlistEmptyDescription' does not exist on type '{ title: string; lowStockWarning: string; priceFilter: string; minPrice: string; maxPrice: string; inStock: string; outOfStock: string; volumeDeals: string; active: string; off: string; more: string; ... 51 more ...; products: string; }'.\",\"{t.shop?.wishlistEmptyDescription || \\\"Browse our products and add your favorites here\\\"}\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/ai-seo-enhanced.ts\",2304,\"Cannot find name 'aiProvider'.\",\"console.error(`Error analyzing SEO performance with ${aiProvider}:`, error);\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/ai-seo-enhanced.ts\",2304,\"Cannot find name 'aiProvider'.\",\"console.error(`Error generating AI SEO content with ${aiProvider}:`, error);\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/ai-seo-enhanced.ts\",2304,\"Cannot find name 'aiProvider'.\",\"console.error(`Error generating keyword research with ${aiProvider}:`, error);\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/ai-seo-enhanced.ts\",2304,\"Cannot find name 'aiProvider'.\",\"console.error(`Error optimizing content with ${aiProvider}:`, error);\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/ai-seo-enhanced.ts\",2304,\"Cannot find name 'aiProvider'.\",\"throw new Error(`Failed to analyze SEO performance with ${aiProvider}: ${error.message}`);\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/ai-seo-enhanced.ts\",2304,\"Cannot find name 'aiProvider'.\",\"throw new Error(`Failed to generate keyword research with ${aiProvider}: ${error.message}`);\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/ai-seo-enhanced.ts\",2304,\"Cannot find name 'aiProvider'.\",\"throw new Error(`Failed to generate SEO content with ${aiProvider}: ${error.message}`);\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/ai-seo-enhanced.ts\",2304,\"Cannot find name 'aiProvider'.\",\"throw new Error(`Failed to optimize content with ${aiProvider}: ${error.message}`);\"]",
       "count": 1
     },
     {
@@ -2694,10 +2658,6 @@
     },
     {
       "key": "[\"server/routes.ts\",2304,\"Cannot find name 'vatSettings'.\",\"exemptProductIds: vatSettings.exemptProductIds\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2307,\"Cannot find module '../shared/crm-schema' or its corresponding type declarations.\",\"const { crmCustomers } = await import(\\\"../shared/crm-schema\\\");\"]",
       "count": 1
     },
     {
