@@ -31516,52 +31516,16 @@ ${message ? `Additional Requirements:\n${message}` : ''}
       const limit = Math.min(Math.max(Number(req.query.limit) || 100, 1), 100);
       const offset = Math.max(Number(req.query.offset) || 0, 0);
       const view = req.query.view === 'history' ? 'history' : 'current';
-      console.log('📦 [WAREHOUSE] Fetching warehouse orders...');
-
-      const historyStatuses = [
-        'warehouse_rejected',
-        'logistics_assigned',
-        'logistics_processing',
-        'logistics_dispatched',
-        'shipped',
-        'in_transit',
-        'logistics_delivered',
-        'delivered',
-        'completed',
-      ];
-      const [orders, allWarehouseHistory] = await Promise.all([
-        orderManagementStorage.getOrdersByDepartment('warehouse'),
-        orderManagementStorage.getOrdersByDepartment('warehouse', historyStatuses as any, true),
-      ]);
-      const activeStatuses = new Set([
-        'financial_approved',
-        'warehouse_pending',
-        'warehouse_notified',
-        'warehouse_processing',
-        'warehouse_verified',
-        'warehouse_fulfilled',
-        'warehouse_approved',
-        'warehouse_ready',
-      ]);
-      const historyOrders = allWarehouseHistory.filter((order: any) =>
-        !activeStatuses.has(String(order.currentStatus || '').trim().toLowerCase()),
-      );
-
-      const selectedOrders = view === 'history' ? historyOrders : orders;
-      const pagedOrders = selectedOrders.slice(offset, offset + limit);
-      console.log('📦 [WAREHOUSE] Found warehouse orders:', {
-        current: orders.length,
-        history: historyOrders.length,
-      });
+      const { orders, total } = await orderManagementStorage.getWarehouseOrdersPage(view, limit, offset);
       res.set('Cache-Control', 'no-store');
       res.json({
         success: true,
-        orders: view === 'current' ? pagedOrders : [],
-        historyOrders: view === 'history' ? pagedOrders : [],
-        total: selectedOrders.length,
+        orders: view === 'current' ? orders : [],
+        historyOrders: view === 'history' ? orders : [],
+        total,
         offset,
         limit,
-        hasMore: offset + pagedOrders.length < selectedOrders.length,
+        hasMore: offset + limit < total,
       });
     } catch (error) {
       console.error('📦 [WAREHOUSE] Error fetching warehouse orders:', error);
@@ -31575,42 +31539,11 @@ ${message ? `Additional Requirements:\n${message}` : ''}
   // Warehouse order history - orders that have already left the warehouse.
   app.get('/api/order-management/warehouse/history', requireAuth, async (req, res) => {
     try {
-      const historyStatuses = [
-        'warehouse_rejected',
-        'logistics_assigned',
-        'logistics_processing',
-        'logistics_dispatched',
-        'shipped',
-        'in_transit',
-        'logistics_delivered',
-        'delivered',
-        'completed',
-      ];
-      const warehouseOrders = await orderManagementStorage.getOrdersByDepartment(
-        'warehouse',
-        historyStatuses as any,
-        true,
-      );
-      const activeStatuses = new Set([
-        'financial_approved',
-        'warehouse_pending',
-        'warehouse_notified',
-        'warehouse_processing',
-        'warehouse_verified',
-        'warehouse_fulfilled',
-        'warehouse_approved',
-        'warehouse_ready',
-      ]);
-      const orders = warehouseOrders.filter((order: any) =>
-        !activeStatuses.has(String(order.currentStatus || '').trim().toLowerCase()),
-      );
-
       const limit = Math.min(Math.max(Number(req.query.limit) || 100, 1), 100);
       const offset = Math.max(Number(req.query.offset) || 0, 0);
-      const pagedOrders = orders.slice(offset, offset + limit);
-      console.log('📚 [WAREHOUSE HISTORY] Found historical warehouse orders:', orders.length);
+      const { orders, total } = await orderManagementStorage.getWarehouseOrdersPage('history', limit, offset);
       res.set('Cache-Control', 'no-store');
-      res.json({ success: true, orders: pagedOrders, total: orders.length, offset, limit, hasMore: offset + pagedOrders.length < orders.length });
+      res.json({ success: true, orders, total, offset, limit, hasMore: offset + limit < total });
     } catch (error) {
       console.error('📚 [WAREHOUSE HISTORY] Error fetching warehouse history:', error);
       res.status(500).json({
@@ -45293,7 +45226,7 @@ momtazchem.com
       const { updateReadyNotificationSettings } = await import("./warehouse-ready-notification");
       const body = req.body || {};
       const input: Record<string, unknown> = {};
-      for (const key of ['emailEnabled', 'smsEnabled', 'emailTemplateId', 'smsTemplateId', 'senderCategoryKey']) {
+      for (const key of ['emailEnabled', 'smsEnabled', 'emailTemplateId', 'smsTemplateId', 'emailTemplateIds', 'smsTemplateIds', 'senderCategoryKey']) {
         if (Object.prototype.hasOwnProperty.call(body, key)) input[key] = body[key];
       }
       if (typeof input.emailEnabled !== "undefined" && typeof input.emailEnabled !== "boolean") return res.status(400).json({ success: false, message: "emailEnabled must be boolean" });

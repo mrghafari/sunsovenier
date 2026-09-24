@@ -617,10 +617,10 @@ const WarehouseManagementFixed: React.FC = () => {
 
   // Queries
   const { data: ordersResponse, isLoading: ordersLoading, refetch: refetchOrders, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
-    queryKey: ['/api/order-management/warehouse', orderView],
+    queryKey: ['/api/order-management/warehouse', orderView, orderView === 'history' ? 50 : 100],
     queryFn: async ({ pageParam = 0 }) => {
       const view = orderView === 'history' ? 'history' : 'current';
-      const response = await fetch(`/api/order-management/warehouse?view=${view}&limit=100&offset=${pageParam}`, {
+      const response = await fetch(`/api/order-management/warehouse?view=${view}&limit=${view === 'history' ? 50 : 100}&offset=${pageParam}`, {
         credentials: 'include',
         cache: 'no-store',
         headers: { 'Cache-Control': 'no-cache' },
@@ -632,18 +632,16 @@ const WarehouseManagementFixed: React.FC = () => {
     },
     initialPageParam: 0,
     getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.offset + lastPage.limit : undefined,
-    staleTime: 0, // Always consider data stale
-    gcTime: 0, // Don't cache at all - always fresh (v5 syntax)
-    refetchOnWindowFocus: true, // Refetch when user comes back
-    refetchInterval: 30000, // Auto-refresh every 30 seconds
+    staleTime: orderView === 'history' ? 60_000 : 0,
+    gcTime: 5 * 60_000,
+    refetchOnWindowFocus: orderView === 'current',
+    refetchInterval: orderView === 'current' ? 30000 : false,
   });
 
-  // Force refresh function that completely clears cache
+  // Refresh the visible view from its first page, without refetching every loaded history page twice.
   const forceRefreshOrders = async () => {
-    // Clear all cache first
-    await queryClient.invalidateQueries({ queryKey: ['/api/order-management/warehouse'] });
-    await queryClient.removeQueries({ queryKey: ['/api/order-management/warehouse'] });
-    await refetchOrders();
+    await queryClient.invalidateQueries({ queryKey: ['/api/order-management/warehouse'], refetchType: 'none' });
+    await queryClient.resetQueries({ queryKey: ['/api/order-management/warehouse', orderView] });
     console.log({
       title: `🔄 ${t('refreshed')}`,
       description: t('ordersRefreshed'),
@@ -1309,7 +1307,7 @@ const WarehouseManagementFixed: React.FC = () => {
                             <th scope="col" aria-sort={orderSort.key === 'amount' ? (orderSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className="border border-slate-300 px-3 py-2 text-end font-semibold">{sortableLabel(t('totalAmount'), orderSort.key === 'amount', orderSort.direction, () => toggleOrderSort('amount'))}</th>
                             <th scope="col" aria-sort={orderSort.key === 'status' ? (orderSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className="w-[130px] border border-slate-300 px-3 py-2 text-start font-semibold whitespace-normal break-words">{sortableLabel(t('status'), orderSort.key === 'status', orderSort.direction, () => toggleOrderSort('status'))}</th>
                             <th scope="col" aria-sort={orderSort.key === 'notes' ? (orderSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'} className="w-[140px] border border-slate-300 px-3 py-2 text-start font-semibold whitespace-normal break-words">{sortableLabel(t('notes'), orderSort.key === 'notes', orderSort.direction, () => toggleOrderSort('notes'))}</th>
-                           <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('actions')}</th>
+                           {orderView === 'current' && <th scope="col" className="border border-slate-300 px-3 py-2 text-start font-semibold">{t('actions')}</th>}
                          </tr>
                        </thead>
                        <tbody>
@@ -1417,7 +1415,7 @@ const WarehouseManagementFixed: React.FC = () => {
                                   )}
                                 </button>
                              </td>
-                             <td className="border border-slate-200 px-3 py-2">
+                             {orderView === 'current' && <td className="border border-slate-200 px-3 py-2">
                                <div className="flex flex-wrap items-center gap-1.5 whitespace-nowrap">
                                  {(order.currentStatus === 'financial_approved' || order.currentStatus === 'warehouse_pending') && (
                                    <Button
@@ -1468,18 +1466,18 @@ const WarehouseManagementFixed: React.FC = () => {
                                    </Button>
                                  )}
                                </div>
-                             </td>
+                             </td>}
                            </tr>
                              {showOrderDetails && selectedOrder?.id === order.id && (
                                <tr className="bg-blue-50/60">
-                                 <td colSpan={11} className="border border-blue-200 p-0">
+                                 <td colSpan={orderView === 'current' ? 11 : 10} className="border border-blue-200 p-0">
                                    {renderOrderDetailsInline()}
                                  </td>
                                </tr>
                              )}
                             {isCustomerNoteExpanded && (
                               <tr className="bg-emerald-50/70">
-                                <td colSpan={11} className="border border-emerald-200 p-0">
+                                <td colSpan={orderView === 'current' ? 11 : 10} className="border border-emerald-200 p-0">
                                   <div className="border-s-4 border-emerald-500 px-4 py-3">
                                     <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-emerald-800">
                                       <FileText className="h-4 w-4" aria-hidden="true" />

@@ -30,7 +30,7 @@ import { showcaseProducts as products } from "@shared/showcase-schema";
 import { shopProducts } from "@shared/shop-schema";
 import { db } from "./db";
 import { pool as dbPool } from "./db";
-import { eq, and, desc, asc, inArray, sql, isNotNull, or } from "drizzle-orm";
+import { eq, and, desc, asc, inArray, notInArray, sql, isNotNull, or } from "drizzle-orm";
 import ProformaInvoiceConverter from "./proforma-invoice-converter";
 import { AutoInvoiceConverter } from "./auto-invoice-converter";
 import { orderConsolidationService } from "./order-consolidation-service";
@@ -42,6 +42,29 @@ import {
   resolveOrderStatus,
 } from "@shared/order-status";
 import { finalizeOrderReservations } from "./cart-inventory-reservation";
+
+const WAREHOUSE_HISTORY_STATUSES: string[] = [
+  'warehouse_rejected', 'logistics_assigned', 'logistics_processing',
+  'logistics_dispatched', 'shipped', 'in_transit', 'logistics_delivered',
+  'delivered', 'completed',
+];
+const WAREHOUSE_ACTIVE_STATUSES = WAREHOUSE_VISIBLE_STATUSES.filter(status => status !== 'warehouse_rejected');
+
+function warehouseHistoryCondition(statuses: string[]) {
+  return or(
+    inArray(orderManagement.currentStatus, statuses),
+    isNotNull(orderManagement.warehouseProcessedAt),
+    sql`EXISTS (
+      SELECT 1 FROM order_status_history warehouse_history
+      WHERE warehouse_history.order_management_id = ${orderManagement.id}
+        AND (
+          warehouse_history.changed_by_department = 'warehouse'
+          OR warehouse_history.to_status LIKE 'warehouse_%'
+          OR warehouse_history.from_status LIKE 'warehouse_%'
+        )
+    )`,
+  );
+}
 
 export type OrderWeightItem = {
   quantity: string | number | null;
@@ -134,7 +157,8 @@ export interface IOrderManagementStorage {
   getNextValidStatuses(currentStatus: OrderStatus, department: Department): OrderStatus[];
   
   // Department filtering (respects sequence)
-  getOrdersByDepartment(department: Department, status?: OrderStatus[], includeWarehouseHistory?: boolean): Promise<OrderManagement[]>;
+  getOrdersByDepartment(department: Department, status?: string[], includeWarehouseHistory?: boolean, options?: { ids: number[] }): Promise<OrderManagement[]>;
+  getWarehouseOrdersPage(view: 'current' | 'history', limit: number, offset: number): Promise<{ orders: OrderManagement[]; total: number }>;
   getOrdersByStatus(status: OrderStatus | string | Array<OrderStatus | string>): Promise<OrderManagement[]>;
   getFinancialPendingOrders(): Promise<OrderManagement[]>;
   getFinancialApprovedOrders(): Promise<any[]>;
@@ -655,7 +679,32 @@ export class OrderManagementStorage implements IOrderManagementStorage {
     });
   }
   
-  async getOrdersByDepartment(department: Department, statuses?: OrderStatus[], includeWarehouseHistory = false): Promise<any[]> {
+  async getWarehouseOrdersPage(view: 'current' | 'history', limit: number, offset: number) {
+    const condition = view === 'history'
+      ? and(
+          warehouseHistoryCondition(WAREHOUSE_HISTORY_STATUSES),
+          notInArray(sql<string>`lower(trim(${orderManagement.currentStatus}))`, WAREHOUSE_ACTIVE_STATUSES),
+        )
+      : inArray(orderManagement.currentStatus, [...WAREHOUSE_VISIBLE_STATUSES]);
+    // Page IDs before joining receipt/customer data. Counting does not require those joins.
+    const [pageIds, [countRow]] = await Promise.all([
+      db.select({ id: orderManagement.id }).from(orderManagement)
+        .where(condition).orderBy(asc(orderManagement.createdAt), asc(orderManagement.id))
+        .limit(limit).offset(offset),
+      db.select({ total: sql<number>`count(*)::int` }).from(orderManagement).where(condition),
+    ]);
+    const orders = pageIds.length
+      ? await this.getOrdersByDepartment(
+          'warehouse',
+          view === 'history' ? WAREHOUSE_HISTORY_STATUSES : undefined,
+          view === 'history',
+          { ids: pageIds.map(row => row.id) },
+        )
+      : [];
+    return { orders, total: Number(countRow?.total || 0) };
+  }
+
+  async getOrdersByDepartment(department: Department, statuses?: string[], includeWarehouseHistory = false, options?: { ids: number[] }): Promise<any[]> {
     console.log('🔍 [DEPARTMENT] getOrdersByDepartment called with department:', department);
     
     let query = db.select({
@@ -747,6 +796,7 @@ export class OrderManagementStorage implements IOrderManagementStorage {
     .leftJoin(paymentReceipts, eq(paymentReceipts.customerOrderId, customerOrders.id))
     .$dynamic();
     
+    if (options?.ids.length === 0) return [];
     if (department === 'financial') {
       // بخش مالی فقط سفارشات در مراحل مالی را می‌بیند - جلوگیری از تکرار
       const financialStatuses = statuses || [...FINANCIAL_VISIBLE_STATUSES] as OrderStatus[];
@@ -754,43 +804,37 @@ export class OrderManagementStorage implements IOrderManagementStorage {
       console.log('🔍 [FINANCIAL] Searching for orders with statuses (financial stage only):', financialStatuses);
       console.log('🚫 [DUPLICATION FIX] Financial department shows only financial-stage orders to prevent duplication');
       
-      query = query.where(inArray(orderManagement.currentStatus, financialStatuses));
+      query = query.where(and(
+        inArray(orderManagement.currentStatus, financialStatuses),
+        options?.ids ? inArray(orderManagement.id, options.ids) : undefined,
+      ));
     } else if (department === 'warehouse') {
       // انبار فقط سفارشات در مراحل انبار را می‌بیند - جلوگیری از تکرار
       const warehouseStatuses = statuses || [...WAREHOUSE_VISIBLE_STATUSES] as OrderStatus[];
       console.log('🔍 [WAREHOUSE] Searching for orders with statuses (warehouse stage only):', warehouseStatuses);
-      query = query.where(
+      query = query.where(and(
         includeWarehouseHistory
-          ? or(
-              inArray(orderManagement.currentStatus, warehouseStatuses),
-              isNotNull(orderManagement.warehouseProcessedAt),
-              sql`EXISTS (
-                SELECT 1
-                FROM order_status_history warehouse_history
-                WHERE warehouse_history.order_management_id = ${orderManagement.id}
-                  AND (
-                    warehouse_history.changed_by_department = 'warehouse'
-                    OR warehouse_history.to_status LIKE 'warehouse_%'
-                    OR warehouse_history.from_status LIKE 'warehouse_%'
-                  )
-              )`,
-            )
+          ? warehouseHistoryCondition(warehouseStatuses)
           : inArray(orderManagement.currentStatus, warehouseStatuses),
-      );
+        options?.ids ? inArray(orderManagement.id, options.ids) : undefined,
+      ));
     } else if (department === 'logistics') {
       // لجستیک فقط سفارشات در مراحل لجستیک را می‌بیند - جلوگیری از تکرار
       const logisticsStatuses = statuses || [...LOGISTICS_VISIBLE_STATUSES] as OrderStatus[];
       console.log('🔍 [LOGISTICS] Searching for orders with statuses (logistics stage only):', logisticsStatuses);
       console.log('🚫 [DUPLICATION FIX] Logistics department shows only logistics-stage orders to prevent duplication');
-      query = query.where(inArray(orderManagement.currentStatus, logisticsStatuses));
+      query = query.where(and(
+        inArray(orderManagement.currentStatus, logisticsStatuses),
+        options?.ids ? inArray(orderManagement.id, options.ids) : undefined,
+      ));
     }
     
-    const results = await query.orderBy(asc(orderManagement.createdAt)); // سفارشات قدیمی‌تر در بالای لیست
+    const results = await query.orderBy(asc(orderManagement.createdAt), asc(orderManagement.id)); // سفارشات قدیمی‌تر در بالای لیست
     
     console.log('📊 [DEPARTMENT] Retrieved', results.length, 'orders for department:', department);
-    if (results.length > 0) {
+    if (results.length > 0 && !options?.ids) {
       console.log('📊 [DEPARTMENT] First order sample:', JSON.stringify(results[0], null, 2));
-    } else {
+    } else if (!options?.ids) {
       console.log('📊 [DEPARTMENT] No orders found - checking basic count...');
       const basicCount = await db.select({ count: sql`count(*)` }).from(orderManagement);
       console.log('📊 [DEPARTMENT] Total orders in order_management table:', basicCount[0]);

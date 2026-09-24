@@ -16,6 +16,8 @@ type Settings = {
   smsEnabled: boolean;
   emailTemplateId: number | null;
   smsTemplateId: number | null;
+  emailTemplateIds: Partial<Record<Language, number | null>>;
+  smsTemplateIds: Partial<Record<Language, number | null>>;
   senderCategoryKey: string;
 };
 type Template = { id: number; name: string; language: string; content?: string };
@@ -49,8 +51,9 @@ const copy: Record<Language, Record<string, string>> = {
     discardSms: 'Discard unsaved changes to this SMS template?',
     partialSave: 'The SMS template was updated in the library, but the notification settings were not saved.',
     senderAddress: 'Sending from:', senderUnavailable: 'No active sender email is configured for this category.',
-    previewLanguage: 'Recipient language for preview', emailSubject: 'Email subject', emailBody: 'Email text sent', smsPreview: 'SMS text sent',
-    previewNote: 'Placeholders such as {{order_number}} are filled in when sending. A template in another language falls back to the built-in text.',
+    previewLanguage: 'Recipient language for templates and preview', emailSubject: 'Email subject', emailBody: 'Email text sent', smsPreview: 'SMS text sent',
+    previewNote: 'Choose a template separately for each recipient language. Only templates in the selected language are listed; otherwise the built-in text is sent. {{order_number}} is filled in when sending.',
+    noTemplates: 'No library templates in this language; the built-in text will be used.',
     senderFallback: 'This category uses a fallback sender, not its own SMTP account.',
     smtpSetup: 'Connect or test an email address in Advanced Email Management → SMTP Settings',
     testSuccess: 'Last SMTP test succeeded', testFailed: 'Last SMTP test failed', testUntested: 'SMTP connection has not been tested',
@@ -71,8 +74,9 @@ const copy: Record<Language, Record<string, string>> = {
     discardSms: 'تغییرات ذخیره‌نشدهٔ این قالب پیامک کنار گذاشته شود؟',
     partialSave: 'قالب پیامک در مخزن به‌روزرسانی شد، اما تنظیمات اعلان ذخیره نشد.',
     senderAddress: 'ایمیل فرستنده:', senderUnavailable: 'برای این دسته ایمیل فرستندهٔ فعالی تنظیم نشده است.',
-    previewLanguage: 'زبان گیرنده برای پیش‌نمایش', emailSubject: 'موضوع ایمیل', emailBody: 'متن ارسالی ایمیل', smsPreview: 'متن ارسالی پیامک',
-    previewNote: 'متغیرهایی مانند {{order_number}} هنگام ارسال جایگزین می‌شوند. اگر زبان قالب با زبان مشتری سازگار نباشد، متن پیش‌فرض همان زبان ارسال می‌شود.',
+    previewLanguage: 'زبان گیرنده برای انتخاب قالب و پیش‌نمایش', emailSubject: 'موضوع ایمیل', emailBody: 'متن ارسالی ایمیل', smsPreview: 'متن ارسالی پیامک',
+    previewNote: 'برای هر زبان گیرنده، قالب را جدا انتخاب کنید. فقط قالب‌های همان زبان نمایش داده می‌شوند؛ در نبود قالب، متن پیش‌فرض آن زبان ارسال می‌شود. {{order_number}} هنگام ارسال جایگزین می‌شود.',
+    noTemplates: 'برای این زبان قالبی در مخزن نیست؛ متن پیش‌فرض همان زبان استفاده می‌شود.',
     senderFallback: 'این دسته SMTP اختصاصی ندارد و از فرستندهٔ جایگزین استفاده می‌کند.',
     smtpSetup: 'اتصال یا آزمون ایمیل در «مدیریت پیشرفته ایمیل ← تنظیمات SMTP»',
     testSuccess: 'آخرین آزمون SMTP موفق بوده', testFailed: 'آخرین آزمون SMTP ناموفق بوده', testUntested: 'اتصال SMTP هنوز آزمون نشده است',
@@ -93,8 +97,9 @@ const copy: Record<Language, Record<string, string>> = {
     discardSms: 'هل تريد تجاهل التغييرات غير المحفوظة لهذا القالب؟',
     partialSave: 'تم تحديث قالب الرسائل في المكتبة، لكن إعدادات الإشعارات لم تُحفظ.',
     senderAddress: 'البريد المرسل منه:', senderUnavailable: 'لم يُضبط بريد مرسل نشط لهذه الفئة.',
-    previewLanguage: 'لغة المستلم للمعاينة', emailSubject: 'موضوع البريد', emailBody: 'نص البريد المرسل', smsPreview: 'نص الرسالة المرسلة',
-    previewNote: 'تُستبدل المتغيرات مثل {{order_number}} عند الإرسال. إذا لم تتوافق لغة القالب مع لغة العميل، يُستخدم النص الافتراضي بلغته.',
+    previewLanguage: 'لغة المستلم لاختيار القالب والمعاينة', emailSubject: 'موضوع البريد', emailBody: 'نص البريد المرسل', smsPreview: 'نص الرسالة المرسلة',
+    previewNote: 'اختر قالباً مستقلاً لكل لغة مستلم. تظهر قوالب اللغة المحددة فقط؛ وإلا يُرسل النص الافتراضي بلغته. يُستبدل {{order_number}} عند الإرسال.',
+    noTemplates: 'لا توجد قوالب في المكتبة لهذه اللغة؛ سيُستخدم النص الافتراضي.',
     senderFallback: 'تستخدم هذه الفئة مرسلاً احتياطياً بدلاً من SMTP خاص بها.',
     smtpSetup: 'اتصل أو اختبر البريد في إدارة البريد المتقدمة ← إعدادات SMTP',
     testSuccess: 'نجح آخر اختبار SMTP', testFailed: 'فشل آخر اختبار SMTP', testUntested: 'لم يتم اختبار اتصال SMTP بعد',
@@ -115,15 +120,31 @@ const copy: Record<Language, Record<string, string>> = {
     discardSms: 'Bu SMS şablonundaki kaydedilmemiş değişiklikler silinsin mi?',
     partialSave: 'SMS şablonu kitaplıkta güncellendi, ancak bildirim ayarları kaydedilemedi.',
     senderAddress: 'Gönderen e-posta:', senderUnavailable: 'Bu kategori için etkin bir gönderen e-posta adresi yapılandırılmamış.',
-    previewLanguage: 'Önizleme için alıcı dili', emailSubject: 'E-posta konusu', emailBody: 'Gönderilen e-posta metni', smsPreview: 'Gönderilen SMS metni',
-    previewNote: '{{order_number}} gibi değişkenler gönderimde doldurulur. Şablon dili müşteri diliyle uyumsuzsa o dilin varsayılan metni kullanılır.',
+    previewLanguage: 'Şablon ve önizleme için alıcı dili', emailSubject: 'E-posta konusu', emailBody: 'Gönderilen e-posta metni', smsPreview: 'Gönderilen SMS metni',
+    previewNote: 'Her alıcı dili için ayrı şablon seçin. Yalnızca seçilen dilin şablonları gösterilir; yoksa o dilin yerleşik metni gönderilir. {{order_number}} gönderimde doldurulur.',
+    noTemplates: 'Bu dilde kitaplık şablonu yok; yerleşik metin kullanılır.',
     senderFallback: 'Bu kategori kendi SMTP hesabı yerine yedek göndereni kullanıyor.',
     smtpSetup: 'Gelişmiş E-posta Yönetimi → SMTP Ayarları bölümünde e-posta bağlayın veya test edin',
     testSuccess: 'Son SMTP testi başarılı', testFailed: 'Son SMTP testi başarısız', testUntested: 'SMTP bağlantısı henüz test edilmedi',
   },
 };
 
-const initialSettings: Settings = { emailEnabled: true, smsEnabled: true, emailTemplateId: null, smsTemplateId: null, senderCategoryKey: '' };
+const initialSettings: Settings = {
+  emailEnabled: true, smsEnabled: true, emailTemplateId: null, smsTemplateId: null,
+  emailTemplateIds: {}, smsTemplateIds: {}, senderCategoryKey: '',
+};
+
+function migrateLegacyTemplate(
+  ids: Settings['emailTemplateIds'], legacyId: number | null, templates: Template[],
+): Settings['emailTemplateIds'] {
+  const result = { ...ids };
+  const template = templates.find(item => item.id === legacyId);
+  if (template && ['en', 'fa', 'ar', 'tr'].includes(template.language) &&
+      !(template.language in result)) {
+    result[template.language as Language] = template.id;
+  }
+  return result;
+}
 
 export default function WarehouseReadyNotificationSettings() {
   const { language: contextLanguage, direction } = useLanguage();
@@ -144,16 +165,14 @@ export default function WarehouseReadyNotificationSettings() {
   const [saveErrorMessage, setSaveErrorMessage] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const selectedSmsTemplate = options.smsTemplates.find(template => template.id === settings.smsTemplateId);
-  const selectedEmailTemplate = options.emailTemplates.find(template => template.id === settings.emailTemplateId);
+  const selectedSmsTemplate = options.smsTemplates.find(template => template.id === settings.smsTemplateIds[previewLanguage] && template.language === previewLanguage);
+  const selectedEmailTemplate = options.emailTemplates.find(template => template.id === settings.emailTemplateIds[previewLanguage] && template.language === previewLanguage);
   const sender = settings.senderCategoryKey
     ? options.emailCategories.find(category => category.categoryKey === settings.senderCategoryKey)?.sender || emptySender
     : options.defaultSender;
-  const emailTemplateApplies = selectedEmailTemplate && (selectedEmailTemplate.language === previewLanguage || selectedEmailTemplate.language === 'en');
-  const smsTemplateApplies = selectedSmsTemplate && (selectedSmsTemplate.language === previewLanguage || selectedSmsTemplate.language === 'en');
-  const emailSubject = emailTemplateApplies ? selectedEmailTemplate.subject : options.defaultEmailSubjects[previewLanguage] || options.defaultEmailSubjects.en;
-  const emailText = emailTemplateApplies ? selectedEmailTemplate.content : options.defaultEmailTexts[previewLanguage] || options.defaultEmailTexts.en;
-  const smsText = smsTemplateApplies ? smsDraft : options.defaultSmsTexts[previewLanguage] || options.defaultSmsTexts.en;
+  const emailSubject = selectedEmailTemplate?.subject ?? options.defaultEmailSubjects[previewLanguage];
+  const emailText = selectedEmailTemplate?.content ?? options.defaultEmailTexts[previewLanguage];
+  const smsText = selectedSmsTemplate ? smsDraft : options.defaultSmsTexts[previewLanguage];
 
   const load = async () => {
     setLoading(true); setLoadError(false); setLoadErrorReason(null); setSaveError(false);
@@ -163,18 +182,26 @@ export default function WarehouseReadyNotificationSettings() {
         apiRequest('/api/warehouse/ready-notification-options', undefined),
       ]);
       if (!settingsResponse?.success || !optionsResponse?.success) throw new Error('Request failed');
-      setSettings({ ...initialSettings, ...settingsResponse.settings });
       const smsTemplates: Template[] = optionsResponse.smsTemplates || [];
+      const emailTemplates: EmailTemplate[] = optionsResponse.emailTemplates || [];
+      const loadedSettings: Settings = {
+        ...initialSettings, ...settingsResponse.settings,
+        // Existing one-template settings remain effective for their own language.
+        emailTemplateId: null, smsTemplateId: null,
+        emailTemplateIds: migrateLegacyTemplate(settingsResponse.settings.emailTemplateIds || {}, settingsResponse.settings.emailTemplateId, emailTemplates),
+        smsTemplateIds: migrateLegacyTemplate(settingsResponse.settings.smsTemplateIds || {}, settingsResponse.settings.smsTemplateId, smsTemplates),
+      };
+      setSettings(loadedSettings);
       setOptions({
         smsTemplates,
-        emailTemplates: optionsResponse.emailTemplates || [],
+        emailTemplates,
         emailCategories: optionsResponse.emailCategories || [],
         defaultSender: optionsResponse.defaultSender || emptySender,
         defaultSmsTexts: optionsResponse.defaultSmsTexts || {},
         defaultEmailSubjects: optionsResponse.defaultEmailSubjects || {},
         defaultEmailTexts: optionsResponse.defaultEmailTexts || {},
       });
-      setSmsDraft(smsTemplates.find(template => template.id === settingsResponse.settings.smsTemplateId)?.content || '');
+      setSmsDraft(smsTemplates.find(template => template.id === loadedSettings.smsTemplateIds[previewLanguage])?.content || '');
     } catch (error) {
       const message = error instanceof Error ? error.message : '';
       setLoadErrorReason(message.startsWith('403:') ? 'accessDenied' : message.startsWith('401:') ? 'loginRequired' : null);
@@ -231,7 +258,12 @@ export default function WarehouseReadyNotificationSettings() {
       <CardContent className="space-y-6 pt-6">
         <div className="flex flex-wrap items-center gap-3">
           <Label>{t.previewLanguage}</Label>
-          <Select value={previewLanguage} onValueChange={value => setPreviewLanguage(value as Language)}>
+          <Select value={previewLanguage} disabled={saving} onValueChange={value => {
+            if (selectedSmsTemplate && smsDraft !== selectedSmsTemplate.content && !window.confirm(t.discardSms)) return;
+            const nextLanguage = value as Language;
+            setPreviewLanguage(nextLanguage);
+            setSmsDraft(options.smsTemplates.find(template => template.id === settings.smsTemplateIds[nextLanguage])?.content || '');
+          }}>
             <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="fa">فارسی</SelectItem>
@@ -245,7 +277,7 @@ export default function WarehouseReadyNotificationSettings() {
         <div className="grid gap-4 md:grid-cols-2">
           <div className="rounded-lg border p-4">
             <div className="flex items-start justify-between gap-4"><div className="flex gap-3"><Mail className="mt-0.5 h-5 w-5 text-muted-foreground" /><div><Label className="text-base">{t.email}</Label><p className="mt-1 text-sm text-muted-foreground">{t.emailHelp}</p></div></div><Switch checked={settings.emailEnabled} onCheckedChange={(value) => setSettings((current) => ({ ...current, emailEnabled: value }))} /></div>
-            <div className="mt-4"><Label>{t.emailTemplate}</Label><Select value={settings.emailTemplateId?.toString() || 'default'} onValueChange={(value) => setSettings((current) => ({ ...current, emailTemplateId: value === 'default' ? null : Number(value) }))}><SelectTrigger className="mt-2"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="default">{t.default}</SelectItem>{options.emailTemplates.map((template) => <SelectItem key={template.id} value={String(template.id)}>{templateLabel(template)}</SelectItem>)}</SelectContent></Select></div>
+            <div className="mt-4"><Label>{t.emailTemplate} · {previewLanguage.toUpperCase()}</Label><Select value={settings.emailTemplateIds[previewLanguage]?.toString() || 'default'} disabled={saving} onValueChange={(value) => { setSettings((current) => ({ ...current, emailTemplateIds: { ...current.emailTemplateIds, [previewLanguage]: value === 'default' ? null : Number(value) } })); setSaved(false); }}><SelectTrigger className="mt-2"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="default">{t.default}</SelectItem>{options.emailTemplates.filter(template => template.language === previewLanguage).map((template) => <SelectItem key={template.id} value={String(template.id)}>{templateLabel(template)}</SelectItem>)}</SelectContent></Select>{!options.emailTemplates.some(template => template.language === previewLanguage) && <p className="mt-1 text-xs text-muted-foreground">{t.noTemplates}</p>}</div>
             <div className="mt-4 space-y-3 rounded-md border bg-muted/20 p-3" aria-live="polite">
               <div><p className="text-sm font-medium">{t.emailSubject}</p><p className="mt-1 break-words text-sm" dir="auto">{emailSubject}</p></div>
               <div><p className="text-sm font-medium">{t.emailBody}</p><p className="mt-1 whitespace-pre-wrap break-words text-sm" dir="auto">{emailText}</p></div>
@@ -254,17 +286,18 @@ export default function WarehouseReadyNotificationSettings() {
           <div className="rounded-lg border p-4">
             <div className="flex items-start justify-between gap-4"><div className="flex gap-3"><MessageSquare className="mt-0.5 h-5 w-5 text-muted-foreground" /><div><Label className="text-base">{t.sms}</Label><p className="mt-1 text-sm text-muted-foreground">{t.smsHelp}</p></div></div><Switch checked={settings.smsEnabled} onCheckedChange={(value) => setSettings((current) => ({ ...current, smsEnabled: value }))} /></div>
              <div className="mt-4">
-               <Label>{t.smsTemplate}</Label>
-               <Select value={settings.smsTemplateId?.toString() || 'default'} disabled={saving} onValueChange={(value) => {
+                <Label>{t.smsTemplate} · {previewLanguage.toUpperCase()}</Label>
+                <Select value={settings.smsTemplateIds[previewLanguage]?.toString() || 'default'} disabled={saving} onValueChange={(value) => {
                  if (selectedSmsTemplate && smsDraft !== selectedSmsTemplate.content && !window.confirm(t.discardSms)) return;
                  const id = value === 'default' ? null : Number(value);
-                 setSettings(current => ({ ...current, smsTemplateId: id }));
+                  setSettings(current => ({ ...current, smsTemplateIds: { ...current.smsTemplateIds, [previewLanguage]: id } }));
                  setSmsDraft(options.smsTemplates.find(template => template.id === id)?.content || '');
                  setSaved(false);
                }}>
                  <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
-                 <SelectContent><SelectItem value="default">{t.default}</SelectItem>{options.smsTemplates.map(template => <SelectItem key={template.id} value={String(template.id)}>{smsTemplateLabel(template)}</SelectItem>)}</SelectContent>
+                  <SelectContent><SelectItem value="default">{t.default}</SelectItem>{options.smsTemplates.filter(template => template.language === previewLanguage).map(template => <SelectItem key={template.id} value={String(template.id)}>{smsTemplateLabel(template)}</SelectItem>)}</SelectContent>
                </Select>
+                {!options.smsTemplates.some(template => template.language === previewLanguage) && <p className="mt-1 text-xs text-muted-foreground">{t.noTemplates}</p>}
                {selectedSmsTemplate && <p className="mt-2 text-sm font-medium text-muted-foreground">{t.templateNumber}{selectedSmsTemplate.id}</p>}
                {selectedSmsTemplate && <>
                  <Label htmlFor="warehouse-ready-sms-content" className="mt-4 block">{t.smsContent}</Label>

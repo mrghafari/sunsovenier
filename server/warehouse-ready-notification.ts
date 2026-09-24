@@ -29,14 +29,33 @@ const KEYS = {
   smsEnabled: "warehouse_ready_sms_enabled",
   emailTemplateId: "warehouse_ready_email_template_id",
   smsTemplateId: "warehouse_ready_sms_template_id",
+  emailTemplateIds: "warehouse_ready_email_template_ids_by_language",
+  smsTemplateIds: "warehouse_ready_sms_template_ids_by_language",
   senderCategoryKey: "warehouse_ready_sender_category_key",
 } as const;
+
+const LANGUAGES = ["en", "fa", "ar", "tr"] as const;
+type Language = typeof LANGUAGES[number];
+type TemplateIds = Partial<Record<Language, number | null>>;
 
 export type ReadyNotificationSettings = {
   emailEnabled: boolean; smsEnabled: boolean;
   emailTemplateId: number | null; smsTemplateId: number | null;
+  emailTemplateIds: TemplateIds; smsTemplateIds: TemplateIds;
   senderCategoryKey: string;
 };
+
+export function readyTemplateIdForLanguage(
+  settings: ReadyNotificationSettings, channel: "email" | "sms", language: Language,
+): number | null {
+  const ids = channel === "email" ? settings.emailTemplateIds : settings.smsTemplateIds;
+  if (Object.prototype.hasOwnProperty.call(ids, language)) return ids[language] ?? null;
+  return channel === "email" ? settings.emailTemplateId : settings.smsTemplateId;
+}
+
+export function readyTemplateMatchesLanguage(template: { language: string } | undefined, language: Language) {
+  return template?.language === language;
+}
 
 function bool(value: string | undefined, fallback = false) {
   return value == null ? fallback : value === "true";
@@ -44,6 +63,31 @@ function bool(value: string | undefined, fallback = false) {
 function id(value?: string) {
   const n = value == null || value === "" ? NaN : Number(value);
   return Number.isInteger(n) && n > 0 ? n : null;
+}
+function parseTemplateIds(value?: string): TemplateIds {
+  if (!value) return {};
+  const parsed: unknown = JSON.parse(value);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("Invalid language template settings");
+  const entries = Object.entries(parsed);
+  if (entries.some(([language, templateId]) =>
+    !LANGUAGES.includes(language as Language) ||
+    (templateId !== null && (!Number.isSafeInteger(templateId) || Number(templateId) <= 0))
+  )) throw new Error("Invalid language template settings");
+  return parsed as TemplateIds;
+}
+
+async function validateTemplateIds(
+  ids: TemplateIds, channel: "email" | "sms",
+) {
+  const table = channel === "email" ? emailTemplates : simpleSmsTemplates;
+  for (const [language, templateId] of Object.entries(ids)) {
+    if (templateId == null) continue;
+    const [template] = await db.select({ language: table.language }).from(table)
+      .where(and(eq(table.id, templateId), eq(table.isActive, true))).limit(1);
+    if (!template || template.language !== language) {
+      throw new Error(`Selected ${channel} template does not match ${language}`);
+    }
+  }
 }
 
 export async function getReadyNotificationSettings(): Promise<ReadyNotificationSettings> {
@@ -55,6 +99,8 @@ export async function getReadyNotificationSettings(): Promise<ReadyNotificationS
     smsEnabled: bool(values[KEYS.smsEnabled], true),
     emailTemplateId: id(values[KEYS.emailTemplateId]),
     smsTemplateId: id(values[KEYS.smsTemplateId]),
+    emailTemplateIds: parseTemplateIds(values[KEYS.emailTemplateIds]),
+    smsTemplateIds: parseTemplateIds(values[KEYS.smsTemplateIds]),
     senderCategoryKey: values[KEYS.senderCategoryKey] ?? "notifications",
   };
 }
@@ -72,6 +118,10 @@ export async function updateReadyNotificationSettings(input: Partial<ReadyNotifi
       .where(and(eq(simpleSmsTemplates.id, next.smsTemplateId), eq(simpleSmsTemplates.isActive, true))).limit(1);
     if (!t) throw new Error("Selected SMS template is not active or does not exist");
   }
+  const emailTemplateIds = parseTemplateIds(JSON.stringify(next.emailTemplateIds));
+  const smsTemplateIds = parseTemplateIds(JSON.stringify(next.smsTemplateIds));
+  await validateTemplateIds(emailTemplateIds, "email");
+  await validateTemplateIds(smsTemplateIds, "sms");
   const effectiveSenderCategoryKey = next.senderCategoryKey || "notifications";
   if (!/^[a-z0-9_-]+$/i.test(effectiveSenderCategoryKey)) throw new Error("Invalid sender category key");
   const [category] = await db.select({ key: emailCategories.categoryKey }).from(emailCategories)
@@ -82,6 +132,8 @@ export async function updateReadyNotificationSettings(input: Partial<ReadyNotifi
     [KEYS.smsEnabled]: String(next.smsEnabled),
     [KEYS.emailTemplateId]: next.emailTemplateId == null ? "" : String(next.emailTemplateId),
     [KEYS.smsTemplateId]: next.smsTemplateId == null ? "" : String(next.smsTemplateId),
+    [KEYS.emailTemplateIds]: JSON.stringify(emailTemplateIds),
+    [KEYS.smsTemplateIds]: JSON.stringify(smsTemplateIds),
     [KEYS.senderCategoryKey]: next.senderCategoryKey,
   };
   for (const [settingKey, settingValue] of Object.entries(values)) {
@@ -151,7 +203,7 @@ export async function dispatchWarehouseReadyNotification(order: {
   recipientPhone?: string | null; customerEmail?: string | null; language?: string;
 }) {
   const settings = await getReadyNotificationSettings();
-  const language = order.language || "en";
+  const language: Language = LANGUAGES.includes(order.language as Language) ? order.language as Language : "en";
   const vars: Record<string, string> = {
     customer_name: order.customerName, order_number: order.orderNumber || "",
   };
@@ -159,10 +211,11 @@ export async function dispatchWarehouseReadyNotification(order: {
   if (settings.smsEnabled && (order.recipientPhone || order.customerPhone)) {
     try {
       const phone = order.recipientPhone || order.customerPhone!;
-      let message = DEFAULT_READY_SMS_TEXT[language] || "Your order {{order_number}} is ready for shipping.";
-      if (settings.smsTemplateId) {
-        const [template] = await db.select().from(simpleSmsTemplates).where(and(eq(simpleSmsTemplates.id, settings.smsTemplateId), eq(simpleSmsTemplates.isActive, true))).limit(1);
-        if (template && (template.language === language || template.language === "en")) message = template.templateContent;
+      let message = DEFAULT_READY_SMS_TEXT[language];
+      const templateId = readyTemplateIdForLanguage(settings, "sms", language);
+      if (templateId) {
+        const [template] = await db.select().from(simpleSmsTemplates).where(and(eq(simpleSmsTemplates.id, templateId), eq(simpleSmsTemplates.isActive, true))).limit(1);
+        if (readyTemplateMatchesLanguage(template, language)) message = template.templateContent;
       }
       for (const [key, value] of Object.entries(vars)) message = message.replace(new RegExp(`\\{\\{${key}\\}\\}`, "g"), value);
       const result = await (await createSmsService()).sendSms({ to: phone, message });
@@ -176,19 +229,20 @@ export async function dispatchWarehouseReadyNotification(order: {
   if (settings.emailEnabled && order.customerEmail) {
     try {
       let result: boolean;
-      if (settings.emailTemplateId) {
-        const [template] = await db.select().from(emailTemplates).where(and(eq(emailTemplates.id, settings.emailTemplateId), eq(emailTemplates.isActive, true))).limit(1);
-        if (template && (template.language === language || template.language === "en")) {
+      const templateId = readyTemplateIdForLanguage(settings, "email", language);
+      if (templateId) {
+        const [template] = await db.select().from(emailTemplates).where(and(eq(emailTemplates.id, templateId), eq(emailTemplates.isActive, true))).limit(1);
+        if (readyTemplateMatchesLanguage(template, language)) {
           result = await emailService.sendEmail({ to: order.customerEmail, subject: replace(template.subject, vars), text: replace(template.textContent || template.htmlContent.replace(/<[^>]+>/g, ""), vars), html: replace(template.htmlContent, vars, true) }, settings.senderCategoryKey || "notifications");
         } else {
           // A selected template in another language must not be sent to this customer.
           const subject = DEFAULT_READY_EMAIL_SUBJECT[language] || DEFAULT_READY_EMAIL_SUBJECT.en;
-          const text = replace(DEFAULT_READY_EMAIL_TEXT[language] || "Your order {{order_number}} is ready for shipping.", vars);
+          const text = replace(DEFAULT_READY_EMAIL_TEXT[language], vars);
           result = await emailService.sendEmail({ to: order.customerEmail, subject, text, html: `<p>${escapeHtml(text)}</p>` }, settings.senderCategoryKey || "notifications");
         }
       } else {
         const subject = DEFAULT_READY_EMAIL_SUBJECT[language] || DEFAULT_READY_EMAIL_SUBJECT.en;
-        const text = replace(DEFAULT_READY_EMAIL_TEXT[language] || "Your order {{order_number}} is ready for shipping.", vars);
+        const text = replace(DEFAULT_READY_EMAIL_TEXT[language], vars);
         result = await emailService.sendEmail({ to: order.customerEmail, subject, text, html: `<p>${escapeHtml(text)}</p>` }, settings.senderCategoryKey || "notifications");
       }
       results.push({ channel: "email", success: result, error: result ? undefined : "Email provider failed" });
