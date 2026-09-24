@@ -49025,10 +49025,31 @@ momtazchem.com
 
   app.put('/api/logistics/companies/:id', requireAuth, async (req, res) => {
     try {
+      const id = Number(req.params.id);
+      if (!Number.isSafeInteger(id) || id < 1) {
+        return res.status(400).json({ success: false, message: 'شناسه شرکت نامعتبر است' });
+      }
+      const editableCompanySchema = insertTransportationCompanySchema.pick({
+        name: true,
+        contactPerson: true,
+        phone: true,
+        email: true,
+        address: true,
+        website: true,
+        maxWeight: true,
+        baseRate: true,
+        ratePerKm: true,
+        isActive: true,
+      }).partial().strict();
+      const parsed = editableCompanySchema.safeParse(req.body);
+      if (!parsed.success || Object.keys(parsed.data).length === 0 || (parsed.data.name !== undefined && !parsed.data.name.trim())) {
+        return res.status(400).json({ success: false, message: 'اطلاعات شرکت نامعتبر است' });
+      }
       const company = await logisticsStorage.updateTransportationCompany(
-        parseInt(req.params.id),
-        req.body
+        id,
+        parsed.data
       );
+      if (!company) return res.status(404).json({ success: false, message: 'شرکت حمل و نقل یافت نشد' });
       res.json({ success: true, data: company });
     } catch (error) {
       console.error('Error updating transportation company:', error);

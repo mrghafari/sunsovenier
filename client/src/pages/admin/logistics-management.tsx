@@ -548,14 +548,17 @@ const getStatusDisplayName = (status: string, language: LogisticsLanguage = 'en'
 interface TransportationCompany {
   id: number;
   name: string;
-  contactPerson?: string;
-  phone: string;
-  email?: string;
-  address?: string;
-  website?: string;
-  isActive: boolean;
-  rating?: number;
-  totalDeliveries: number;
+  contactPerson?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  website?: string | null;
+  maxWeight?: string | null;
+  baseRate?: string | null;
+  ratePerKm?: string | null;
+  isActive: boolean | null;
+  rating?: string | null;
+  totalDeliveries: number | null;
 }
 
 interface ReadyVehicle {
@@ -4422,6 +4425,8 @@ const LogisticsManagement = () => {
 
   const CompaniesTab = () => {
     const [showAddForm, setShowAddForm] = useState(false);
+    const [editingCompany, setEditingCompany] = useState<TransportationCompany | null>(null);
+    const [detailsCompany, setDetailsCompany] = useState<TransportationCompany | null>(null);
     const [companyFormData, setCompanyFormData] = useState({
       name: '',
       contactPerson: '',
@@ -4429,44 +4434,52 @@ const LogisticsManagement = () => {
       email: '',
       address: '',
       website: '',
-      contractEndDate: '',
       maxWeight: '',
       baseRate: '',
-      ratePerKm: ''
+      ratePerKm: '',
+      isActive: true,
     });
 
+    const resetCompanyForm = () => {
+      setShowAddForm(false);
+      setEditingCompany(null);
+      setCompanyFormData({
+        name: '', contactPerson: '', phone: '', email: '', address: '', website: '',
+        maxWeight: '', baseRate: '', ratePerKm: '', isActive: true,
+      });
+    };
+
     const addCompanyMutation = useMutation({
-      mutationFn: async (data: any) => {
-        const response = await fetch('/api/logistics/companies', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
-        if (!response.ok) throw new Error('Failed to create company');
-        return response.json();
+      mutationFn: async (data: Record<string, unknown>) => {
+        const result = await apiRequest('/api/logistics/companies', { method: 'POST', body: data });
+        if (!result?.success) throw new Error(result?.message || t('companySaveError'));
+        return result;
       },
       onSuccess: () => {
-        setShowAddForm(false);
-        setCompanyFormData({
-          name: '',
-          contactPerson: '',
-          phone: '',
-          email: '',
-          address: '',
-          website: '',
-          contractEndDate: '',
-          maxWeight: '',
-          baseRate: '',
-          ratePerKm: ''
-        });
+        resetCompanyForm();
         queryClient.invalidateQueries({ queryKey: ['/api/logistics/companies'] });
         toast({ title: t('success'), description: t('companyCreated') });
-      }
+      },
+      onError: (error: Error) => toast({ title: t('error'), description: error.message || t('companySaveError'), variant: 'destructive' }),
+    });
+
+    const updateCompanyMutation = useMutation({
+      mutationFn: async ({ id, data }: { id: number; data: Record<string, unknown> }) => {
+        const result = await apiRequest(`/api/logistics/companies/${id}`, { method: 'PUT', body: data });
+        if (!result?.success) throw new Error(result?.message || t('companySaveError'));
+        return result;
+      },
+      onSuccess: () => {
+        resetCompanyForm();
+        queryClient.invalidateQueries({ queryKey: ['/api/logistics/companies'] });
+        toast({ title: t('success'), description: t('companyUpdated') });
+      },
+      onError: (error: Error) => toast({ title: t('error'), description: error.message || t('companySaveError'), variant: 'destructive' }),
     });
 
     const handleSubmitCompany = (e: React.FormEvent) => {
       e.preventDefault();
-      if (!companyFormData.name || !companyFormData.phone) {
+      if (!companyFormData.name.trim() || !companyFormData.phone.trim()) {
         toast({ 
           title: t('error'),
           description: t('companyRequired'),
@@ -4474,25 +4487,40 @@ const LogisticsManagement = () => {
         });
         return;
       }
-      addCompanyMutation.mutate(companyFormData);
+      const data = {
+        name: companyFormData.name.trim(),
+        contactPerson: companyFormData.contactPerson.trim() || null,
+        phone: companyFormData.phone.trim(),
+        email: companyFormData.email.trim() || null,
+        address: companyFormData.address.trim() || null,
+        website: companyFormData.website.trim() || null,
+        maxWeight: companyFormData.maxWeight || null,
+        baseRate: companyFormData.baseRate || null,
+        ratePerKm: companyFormData.ratePerKm || null,
+        isActive: companyFormData.isActive,
+      };
+      if (editingCompany) {
+        updateCompanyMutation.mutate({ id: editingCompany.id, data });
+      } else {
+        addCompanyMutation.mutate(data);
+      }
     };
 
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h3 className="text-lg font-semibold">{t('transportCompanies')}</h3>
-          <Button onClick={() => setShowAddForm(true)}>
+          <Button onClick={() => { resetCompanyForm(); setShowAddForm(true); }}>
             <Plus className="w-4 h-4 mr-2" />
             {t('newCompany')}
           </Button>
         </div>
 
-        {showAddForm && (
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('registerCompany')}</CardTitle>
-            </CardHeader>
-            <CardContent>
+        <Dialog open={showAddForm} onOpenChange={(open) => { if (!open) resetCompanyForm(); else setShowAddForm(true); }}>
+          <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{editingCompany ? t('editCompany') : t('registerCompany')}</DialogTitle>
+            </DialogHeader>
               <form onSubmit={handleSubmitCompany} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -4560,18 +4588,77 @@ const LogisticsManagement = () => {
                   />
                 </div>
 
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  {([
+                    ['maxWeight', 'companyMaxWeight'],
+                    ['baseRate', 'companyBaseRate'],
+                    ['ratePerKm', 'companyRatePerKm'],
+                  ] as const).map(([field, label]) => (
+                    <div key={field}>
+                      <Label htmlFor={`company-${field}`}>{t(label)}</Label>
+                      <Input
+                        id={`company-${field}`}
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={companyFormData[field]}
+                        onChange={(e) => setCompanyFormData(prev => ({ ...prev, [field]: e.target.value }))}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch id="company-is-active" checked={companyFormData.isActive} onCheckedChange={(isActive) => setCompanyFormData(prev => ({ ...prev, isActive }))} />
+                  <Label htmlFor="company-is-active">{t('active')}</Label>
+                </div>
                 <div className="flex gap-2">
-                  <Button type="submit" disabled={addCompanyMutation.isPending}>
-                    {addCompanyMutation.isPending ? t('registering') : t('registered')}
+                  <Button type="submit" disabled={addCompanyMutation.isPending || updateCompanyMutation.isPending}>
+                    {addCompanyMutation.isPending || updateCompanyMutation.isPending ? t('saving') : editingCompany ? t('save') : t('registered')}
                   </Button>
-                  <Button type="button" variant="outline" onClick={() => setShowAddForm(false)}>
+                  <Button type="button" variant="outline" onClick={resetCompanyForm}>
                     {t('cancel')}
                   </Button>
                 </div>
               </form>
-            </CardContent>
-          </Card>
-        )}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={!!detailsCompany} onOpenChange={(open) => { if (!open) setDetailsCompany(null); }}>
+          <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{t('companyDetails')}: {detailsCompany?.name}</DialogTitle>
+            </DialogHeader>
+            {detailsCompany && (
+              <dl className="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-x-4 gap-y-3 text-sm">
+                {([
+                  ['contactPerson', t('contactPerson')],
+                  ['phone', t('phone')],
+                  ['email', t('email')],
+                  ['address', t('address')],
+                  ['website', t('website')],
+                  ['maxWeight', t('companyMaxWeight')],
+                  ['baseRate', t('companyBaseRate')],
+                  ['ratePerKm', t('companyRatePerKm')],
+                  ['rating', t('rating')],
+                  ['totalDeliveries', t('deliveries')],
+                ] as const).map(([field, label]) => (
+                  <React.Fragment key={field}>
+                    <dt className="font-medium text-slate-600">{label}</dt>
+                    <dd className="min-w-0 break-words">
+                      {field === 'email' && detailsCompany.email
+                        ? <a className="text-blue-700 underline" href={`mailto:${detailsCompany.email}`}>{detailsCompany.email}</a>
+                        : field === 'website' && detailsCompany.website
+                          ? <a className="text-blue-700 underline" href={detailsCompany.website} target="_blank" rel="noopener noreferrer">{detailsCompany.website}</a>
+                          : detailsCompany[field] ?? t('unknown')}
+                    </dd>
+                  </React.Fragment>
+                ))}
+                <dt className="font-medium text-slate-600">{t('status')}</dt>
+                <dd>{detailsCompany.isActive ? t('active') : t('inactive')}</dd>
+              </dl>
+            )}
+          </DialogContent>
+        </Dialog>
 
         <div>
           {loadingCompanies ? (
@@ -4602,7 +4689,9 @@ const LogisticsManagement = () => {
                           <TableCell className="border-e border-slate-200 px-3 py-2 font-semibold text-slate-900">{company.name}</TableCell>
                           <TableCell className="border-e border-slate-200 px-3 py-2">{company.contactPerson || t('unknown')}</TableCell>
                           <TableCell className="border-e border-slate-200 px-3 py-2 font-mono whitespace-nowrap">{company.phone || t('unknown')}</TableCell>
-                          <TableCell className="border-e border-slate-200 px-3 py-2">{company.email || t('unknown')}</TableCell>
+                          <TableCell className="border-e border-slate-200 px-3 py-2">
+                            {company.email ? <a href={`mailto:${company.email}`} className="break-all text-blue-700 hover:underline">{company.email}</a> : t('unknown')}
+                          </TableCell>
                           <TableCell className="max-w-[240px] whitespace-normal border-e border-slate-200 px-3 py-2">{company.address || t('noAddress')}</TableCell>
                           <TableCell className="max-w-[200px] border-e border-slate-200 px-3 py-2">
                             {company.website ? <a href={company.website} target="_blank" rel="noopener noreferrer" className="break-all text-blue-600 hover:underline">{company.website}</a> : t('unknown')}
@@ -4616,8 +4705,23 @@ const LogisticsManagement = () => {
                           </TableCell>
                           <TableCell className="px-3 py-2">
                             <div className="flex flex-wrap gap-1">
-                              <Button size="sm" variant="outline" className="h-7 px-2 text-xs"><Edit className="me-1 h-3.5 w-3.5" />{t('editAction')}</Button>
-                              <Button size="sm" variant="outline" className="h-7 px-2 text-xs"><Eye className="me-1 h-3.5 w-3.5" />{t('detailsAction')}</Button>
+                              <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => {
+                                setEditingCompany(company);
+                                setCompanyFormData({
+                                  name: company.name,
+                                  contactPerson: company.contactPerson || '',
+                                  phone: company.phone || '',
+                                  email: company.email || '',
+                                  address: company.address || '',
+                                  website: company.website || '',
+                                  maxWeight: company.maxWeight || '',
+                                  baseRate: company.baseRate || '',
+                                  ratePerKm: company.ratePerKm || '',
+                                  isActive: company.isActive ?? false,
+                                });
+                                setShowAddForm(true);
+                              }}><Edit className="me-1 h-3.5 w-3.5" />{t('editAction')}</Button>
+                              <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setDetailsCompany(company)}><Eye className="me-1 h-3.5 w-3.5" />{t('detailsAction')}</Button>
                             </div>
                           </TableCell>
                         </TableRow>
