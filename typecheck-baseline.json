@@ -2433,10 +2433,6 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",18046,\"'error' is of type 'unknown'.\",\"message: error.message || 'خطا در محاسبه هزینه حمل و نقل'\"]",
-      "count": 1
-    },
-    {
       "key": "[\"server/routes.ts\",18046,\"'error' is of type 'unknown'.\",\"message: error.message,\"]",
       "count": 1
     },
@@ -3549,10 +3545,6 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'where' does not exist on type 'Omit<PgSelectBase<\\\"iraqi_cities\\\", { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"iraqi_cities\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; notNull: true; hasDefault: true; isPrimaryKey: true; ... 5 more ...; generated: undefined; }, {}, {}>; ... 20 more ...; updatedAt: PgColumn<...>; },...'.\",\"query = query.where(eq(iraqiCities.provinceId, parseInt(provinceId as string)));\"]",
-      "count": 2
-    },
-    {
       "key": "[\"server/routes.ts\",2341,\"Property 'getNextSequentialCode' is private and only accessible within class 'LogisticsStorage'.\",\"const deliveryCode = await logisticsStorage.getNextSequentialCode();\"]",
       "count": 1
     },
@@ -3566,10 +3558,6 @@
     },
     {
       "key": "[\"server/routes.ts\",2345,\"Argument of type '{ email: any; passwordHash: string; firstName: any; lastName: any; company: any; phone: any; country: any; city: any; address: any; postalCode: any; isActive: boolean; }' is not assignable to parameter of type '{ address: string; email: string; country: string; province: string; firstName: string; lastName: string; phone: string; city: string; passwordHash: string; cityRegion: string; state?: string | null | undefined; ... 30 more ...; resetPasswordExpires?: Date | ... 1 more ... | undefined; }'.\\n  Type '{ email: any; passwordHash: string; firstName: any; lastName: any; company: any; phone: any; country: any; city: any; address: any; postalCode: any; isActive: boolean; }' is missing the following properties from type '{ address: string; email: string; country: string; province: string; firstName: string; lastName: string; phone: string; city: string; passwordHash: string; cityRegion: string; state?: string | null | undefined; ... 30 more ...; resetPasswordExpires?: Date | ... 1 more ... | undefined; }': province, cityRegion\",\"portalCustomer = await customerStorage.createCustomer(portalData);\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2345,\"Argument of type '{ email: string; firstName: any; lastName: any; company: string | null; phone: any; country: any; city: any; address: any; postalCode: any; orderValue: any; }' is not assignable to parameter of type '{ email: string; firstName: string; lastName: string; company?: string | undefined; phone: string; country: string; city: string; address: string; postalCode?: string | undefined; orderValue: number; }'.\\n  Types of property 'company' are incompatible.\\n    Type 'string | null' is not assignable to type 'string | undefined'.\\n      Type 'null' is not assignable to type 'string | undefined'.\",\"await crmStorage.createOrUpdateCustomerFromOrder(crmOrderData);\"]",
       "count": 1
     },
     {
@@ -3631,10 +3619,6 @@
     {
       "key": "[\"server/routes.ts\",2345,\"Argument of type 'null' is not assignable to parameter of type 'number | undefined'.\",\"null,\"]",
       "count": 4
-    },
-    {
-      "key": "[\"server/routes.ts\",2345,\"Argument of type 'number | \\\"0\\\"' is not assignable to parameter of type 'string'.\\n  Type 'number' is not assignable to type 'string'.\",\"const distance = parseFloat(destinationCity_data.distanceFromErbilKm || '0');\"]",
-      "count": 1
     },
     {
       "key": "[\"server/routes.ts\",2345,\"Argument of type 'number | null' is not assignable to parameter of type 'number'.\\n  Type 'null' is not assignable to type 'number'.\",\"return total + ((weightMap.get(item.productId) || 1) * qty);\"]",
@@ -3786,10 +3770,6 @@
     },
     {
       "key": "[\"server/routes.ts\",2353,\"Object literal may only specify known properties, and 'paymentGatewayId' does not exist in type 'Partial<{ customerId: number; orderNumber: string; totalAmount: string; shippingAddress: Json; currency?: string | undefined; status?: string | undefined; weightUnit?: string | null | undefined; ... 36 more ...; additionalDocumentsNote?: string | ... 1 more ... | undefined; }>'.\",\"paymentGatewayId: gatewayId\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2353,\"Object literal may only specify known properties, and 'paymentGracePeriodStart' does not exist in type '{ deliveryMethod: any; customerOrderId: number; customerId: any; currentStatus: string; currentDepartment: string; totalAmount: any; currency: any; notes: any; totalWeight: string | null; weightUnit: string; vehicleType: any; paymentMethod: any; }'.\",\"paymentGracePeriodStart: gracePeriodStart,\"]",
       "count": 1
     },
     {
@@ -4158,10 +4138,6 @@
     },
     {
       "key": "[\"server/routes.ts\",2769,\"No overload matches this call.\\n  Overload 1 of 2, '(value: { name: string | SQL<unknown> | Placeholder<string, any>; description: string | SQL<unknown> | Placeholder<string, any>; marketSize: string | SQL<unknown> | Placeholder<...>; ... 8 more ...; marketingApproach?: string | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.\\n    Argument of type '{ name: string; description: string; marketSize: string; customerProfile: string; isActive?: boolean | undefined; targetCountries?: { [x: number]: string; length: number; toString: () => string; ... 38 more ...; readonly [Symbol.unscopables]: { ...; }; } | undefined; productCategories?: { ...; } | undefined; competi...' is not assignable to parameter of type '{ name: string | SQL<unknown> | Placeholder<string, any>; description: string | SQL<unknown> | Placeholder<string, any>; marketSize: string | SQL<unknown> | Placeholder<...>; ... 8 more ...; marketingApproach?: string | ... 3 more ... | undefined; }'.\\n      Types of property 'targetCountries' are incompatible.\\n        Type '{ [x: number]: string; length: number; toString: () => string; toLocaleString: { (): string; (locales: string | string[], options?: (NumberFormatOptions & DateTimeFormatOptions) | undefined): string; }; ... 37 more ...; readonly [Symbol.unscopables]: { ...; }; } | undefined' is not assignable to type 'string[] | SQL<unknown> | Placeholder<string, any> | undefined'.\\n          Type '{ [x: number]: string; length: number; toString: () => string; toLocaleString: { (): string; (locales: string | string[], options?: (NumberFormatOptions & DateTimeFormatOptions) | undefined): string; }; ... 37 more ...; readonly [Symbol.unscopables]: { ...; }; }' is not assignable to type 'string[] | SQL<unknown> | Placeholder<string, any> | undefined'.\\n            Type '{ [x: number]: string; length: number; toString: () => string; toLocaleString: { (): string; (locales: string | string[], options?: (NumberFormatOptions & DateTimeFormatOptions) | undefined): string; }; ... 37 more ...; readonly [Symbol.unscopables]: { ...; }; }' is not assignable to type 'string[]'.\\n              The types returned by 'pop()' are incompatible between these types.\\n                Type 'unknown' is not assignable to type 'string | undefined'.\\n  Overload 2 of 2, '(values: { name: string | SQL<unknown> | Placeholder<string, any>; description: string | SQL<unknown> | Placeholder<string, any>; marketSize: string | SQL<unknown> | Placeholder<...>; ... 8 more ...; marketingApproach?: string | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.\\n    Argument of type '{ name: string; description: string; marketSize: string; customerProfile: string; isActive?: boolean | undefined; targetCountries?: { [x: number]: string; length: number; toString: () => string; ... 38 more ...; readonly [Symbol.unscopables]: { ...; }; } | undefined; productCategories?: { ...; } | undefined; competi...' is not assignable to parameter of type '{ name: string | SQL<unknown> | Placeholder<string, any>; description: string | SQL<unknown> | Placeholder<string, any>; marketSize: string | SQL<unknown> | Placeholder<...>; ... 8 more ...; marketingApproach?: string | ... 3 more ... | undefined; }[]'.\\n      Type '{ name: string; description: string; marketSize: string; customerProfile: string; isActive?: boolean | undefined; targetCountries?: { [x: number]: string; length: number; toString: () => string; ... 38 more ...; readonly [Symbol.unscopables]: { ...; }; } | undefined; productCategories?: { ...; } | undefined; competi...' is missing the following properties from type '{ name: string | SQL<unknown> | Placeholder<string, any>; description: string | SQL<unknown> | Placeholder<string, any>; marketSize: string | SQL<unknown> | Placeholder<...>; ... 8 more ...; marketingApproach?: string | ... 3 more ... | undefined; }[]': length, pop, push, concat, and 35 more.\",\"const [segment] = await db.insert(marketSegments).values(validatedData).returning();\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",2769,\"No overload matches this call.\\n  Overload 1 of 2, '(value: { orderNumber: string | SQL<unknown> | Placeholder<string, any>; basePrice: string | SQL<unknown> | Placeholder<string, any>; orderWeightKg: string | SQL<...> | Placeholder<...>; ... 18 more ...; adminUserId?: number | ... 3 more ... | undefined; }): PgInsertBase<...>', gave the following error.\\n    Argument of type '{ orderWeight: any; orderVolume: any; distance: any; specialRequirements: any; deliveryUrgency: any; selectedVehicleId: number; selectedVehicleName: string; selectionScore: number; alternativeVehicles: { ...; }[]; createdAt: Date; }' is not assignable to parameter of type '{ orderNumber: string | SQL<unknown> | Placeholder<string, any>; basePrice: string | SQL<unknown> | Placeholder<string, any>; orderWeightKg: string | SQL<...> | Placeholder<...>; ... 18 more ...; adminUserId?: number | ... 3 more ... | undefined; }'.\\n      Type '{ orderWeight: any; orderVolume: any; distance: any; specialRequirements: any; deliveryUrgency: any; selectedVehicleId: number; selectedVehicleName: string; selectionScore: number; alternativeVehicles: { ...; }[]; createdAt: Date; }' is missing the following properties from type '{ orderNumber: string | SQL<unknown> | Placeholder<string, any>; basePrice: string | SQL<unknown> | Placeholder<string, any>; orderWeightKg: string | SQL<...> | Placeholder<...>; ... 18 more ...; adminUserId?: number | ... 3 more ... | undefined; }': orderNumber, basePrice, orderWeightKg, routeType, and 3 more.\\n  Overload 2 of 2, '(values: { orderNumber: string | SQL<unknown> | Placeholder<string, any>; basePrice: string | SQL<unknown> | Placeholder<string, any>; orderWeightKg: string | SQL<...> | Placeholder<...>; ... 18 more ...; adminUserId?: number | ... 3 more ... | undefined; }[]): PgInsertBase<...>', gave the following error.\\n    Argument of type '{ orderWeight: any; orderVolume: any; distance: any; specialRequirements: any; deliveryUrgency: any; selectedVehicleId: number; selectedVehicleName: string; selectionScore: number; alternativeVehicles: { ...; }[]; createdAt: Date; }' is not assignable to parameter of type '{ orderNumber: string | SQL<unknown> | Placeholder<string, any>; basePrice: string | SQL<unknown> | Placeholder<string, any>; orderWeightKg: string | SQL<...> | Placeholder<...>; ... 18 more ...; adminUserId?: number | ... 3 more ... | undefined; }[]'.\\n      Type '{ orderWeight: any; orderVolume: any; distance: any; specialRequirements: any; deliveryUrgency: any; selectedVehicleId: number; selectedVehicleName: string; selectionScore: number; alternativeVehicles: { ...; }[]; createdAt: Date; }' is missing the following properties from type '{ orderNumber: string | SQL<unknown> | Placeholder<string, any>; basePrice: string | SQL<unknown> | Placeholder<string, any>; orderWeightKg: string | SQL<...> | Placeholder<...>; ... 18 more ...; adminUserId?: number | ... 3 more ... | undefined; }[]': length, pop, push, concat, and 35 more.\",\"await db.insert(vehicleSelectionHistory).values(selectionData);\"]",
       "count": 1
     },
     {

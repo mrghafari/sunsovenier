@@ -66,6 +66,13 @@ const createCheckoutFormSchema = (isLoggedIn: boolean, t: Translation) => z.obje
 
 type CheckoutFormData = z.infer<ReturnType<typeof createCheckoutFormSchema>>;
 
+const getShippingCenterKey = (center?: {countryCode?: string; provinceId?: number; cityId?: number} | null) =>
+  center ? `${center.countryCode || ''}|${center.provinceId || ''}|${center.cityId || ''}` : '';
+const isGenuinePickupMethod = (method: any) => {
+  const value = String(method?.value || method?.deliveryMethod || method?.delivery_method || '').toLowerCase();
+  return method?.isPickup === true || ['pickup', 'self_pickup', 'self-pickup'].includes(value);
+};
+
 interface CheckoutProps {
   cart: {[key: number]: number};
   products: any[];
@@ -135,6 +142,26 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
   // Ref to store selected vehicle for use in onSubmit (avoids stale closure issue)
   const selectedVehicleRef = useRef<any>(null);
   const [calculatedShippingCost, setCalculatedShippingCost] = useState(0);
+  const [shippingCalculationPending, setShippingCalculationPending] = useState(false);
+  const [shippingRouteUnavailable, setShippingRouteUnavailable] = useState(false);
+  const [pricedShippingDestination, setPricedShippingDestination] = useState('');
+  const [shippingQuote, setShippingQuote] = useState<{
+    token: string;
+    destination: string;
+    centerKey: string;
+    cartKey: string;
+    createdAt: number;
+  } | null>(null);
+  const [shippingQuoteRefreshKey, setShippingQuoteRefreshKey] = useState(0);
+  const [standardShippingQuote, setStandardShippingQuote] = useState<{
+    methodId: string;
+    cost: number;
+    key: string;
+    centerKey: string;
+    cartKey: string;
+    createdAt: number;
+  } | null>(null);
+  const shippingRequestSequenceRef = useRef(0);
   const [totalWeight, setTotalWeight] = useState(0);
   const [destinationCity, setDestinationCity] = useState('');
   const { toast } = useToast();
@@ -152,18 +179,6 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
     queryKey: ['/api/checkout/delivery-methods']
   });
 
-  // Get vehicle templates for smart selection
-  const { data: vehicleTemplates = [] } = useQuery<any[]>({
-    queryKey: ['/api/logistics/vehicle-templates'],
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-  });
-
-  // Get Iraqi cities for distance calculation
-  const { data: iraqiCities = [] } = useQuery<any[]>({
-    queryKey: ['/api/iraqi-cities'],
-    staleTime: 10 * 60 * 1000, // Cache for 10 minutes
-  });
-
   // Get payment method settings to determine enabled payment methods
   const { data: paymentSettingsResponse } = useQuery<{success: boolean, data: any[]}>({
     queryKey: ['/api/public/payment-methods'],
@@ -172,20 +187,44 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
   
   const paymentSettings = paymentSettingsResponse?.data || [];
 
-  // Iraqi provinces and cities queries for secondary address dropdowns
+  // Keep delivery destinations within the globally configured logistics center country.
+  const { data: shippingCenterResponse, refetch: refetchShippingCenter } = useQuery<{success?: boolean, data?: {countryCode?: string; provinceId?: number; cityId?: number}}>({
+    queryKey: ['/api/logistics/shipping-center'],
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnMount: 'always',
+  });
+  const shippingCenterKey = getShippingCenterKey(shippingCenterResponse?.data);
+  const shippingCenterKeyRef = useRef(shippingCenterKey);
+  const [pricedShippingCenterKey, setPricedShippingCenterKey] = useState('');
+  useEffect(() => {
+    shippingCenterKeyRef.current = shippingCenterKey;
+  }, [shippingCenterKey]);
+  const shippingCenterCountry = shippingCenterResponse?.data?.countryCode || '';
+  const { data: geographyCountriesResponse } = useQuery<{success?: boolean, data?: any[]}>({
+    queryKey: ['/api/geography/countries'],
+    staleTime: 15 * 60 * 1000,
+  });
+  const geographyCountries = geographyCountriesResponse?.data || [];
+  const resolveCountryCode = (country: string | undefined) => {
+    if (!country) return '';
+    const normalized = country.trim().toLowerCase();
+    const record = geographyCountries.find((item: any) =>
+      [item.code, item.countryCode, item.name, item.nameEn, item.nameEnglish, item.name_en, item.nameArabic, item.name_arabic, item.namePersian, item.nameFa, item.name_fa, item.nameTurkish, item.nameTr, item.name_tr]
+        .some((name: any) => typeof name === 'string' && name.trim().toLowerCase() === normalized)
+    );
+    return String(record?.code || record?.countryCode || (country.length <= 3 ? country : '')).toUpperCase();
+  };
+  const shippingCenterCountryCode = resolveCountryCode(shippingCenterCountry) || shippingCenterCountry.toUpperCase();
+
   const { data: provincesData, isLoading: provincesLoading } = useQuery<{success: boolean, data: any[]}>({
-    queryKey: ['/api/iraqi-provinces'],
+    queryKey: [`/api/geography/regions?country=${shippingCenterCountry}`],
+    enabled: !!shippingCenterCountry,
     staleTime: 15 * 60 * 1000, // Consider fresh for 15 minutes
   });
 
   const { data: citiesData, isLoading: citiesLoading } = useQuery<{success: boolean, data: any[]}>({
-    queryKey: ['/api/iraqi-cities', selectedSecondaryProvinceId],
-    queryFn: () => {
-      const url = selectedSecondaryProvinceId 
-        ? `/api/iraqi-cities?provinceId=${selectedSecondaryProvinceId}`
-        : '/api/iraqi-cities';
-      return fetch(url).then(res => res.json());
-    },
+    queryKey: [`/api/geography/cities?regionId=${selectedSecondaryProvinceId}`],
     enabled: selectedSecondaryProvinceId !== null,
     staleTime: 10 * 60 * 1000,
   });
@@ -193,6 +232,14 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
   // Extract provinces and cities arrays from API responses with proper type safety
   const provinces = (provincesData?.success && Array.isArray(provincesData.data)) ? provincesData.data : [];
   const secondaryCities = (citiesData?.success && Array.isArray(citiesData.data)) ? citiesData.data : [];
+  const geographyName = (place: any) => {
+    if (!place) return '';
+    if (language === 'fa') return place.namePersian || place.nameFa || place.name_fa || place.name || place.nameEn || place.nameEnglish || '';
+    if (language === 'ar') return place.nameArabic || place.name_arabic || place.name || place.nameEn || place.nameEnglish || '';
+    if (language === 'tr') return place.nameTurkish || place.nameTr || place.name_tr || place.name || place.nameEn || place.nameEnglish || '';
+    return place.nameEn || place.name_en || place.nameEnglish || place.name || place.nameArabic || '';
+  };
+  const canonicalGeographyName = (place: any) => place?.nameEnglish || place?.nameEn || place?.name_en || place?.name || geographyName(place);
 
   // Debug logging for dropdown data
   console.log('🔍 [DROPDOWN DEBUG] Provinces data:', {
@@ -228,7 +275,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
       billingCity: "",
       billingState: "",
       billingPostalCode: "",
-      billingCountry: "Iran",
+      billingCountry: shippingCenterCountry || "Iraq",
       sameAsShipping: true,
       shippingMethod: "",
       paymentMethod: "",
@@ -241,6 +288,15 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
       recipientMobile: "",
     },
   });
+
+  useEffect(() => {
+    if (shippingCenterCountry && !customerData?.customer) {
+      const currentCountry = form.getValues('billingCountry');
+      if (!currentCountry || currentCountry === 'Iraq' || currentCountry === 'Iran') {
+        form.setValue('billingCountry', shippingCenterCountry);
+      }
+    }
+  }, [shippingCenterCountry, customerData?.customer, form]);
 
   // Get selected delivery method details  
   const selectedMethodId = form.watch('shippingMethod');
@@ -446,6 +502,11 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
       totalPrice: discountedUnitPrice * quantity
     };
   }).filter(Boolean);
+  const shippingQuoteCartKey = JSON.stringify(
+    Object.entries(cart)
+      .map(([productId, quantity]) => [Number(productId), Number(quantity)])
+      .sort((a, b) => Number(a[0]) - Number(b[0]))
+  );
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.totalPrice, 0);
 
@@ -470,66 +531,35 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
     setTotalWeight(weight);
   }, [cartItems]);
   
-  // Smart vehicle selection based on weight and destination
-  const selectOptimalVehicle = useCallback((weight: number, destination: string) => {
-    if (!vehicleTemplates || vehicleTemplates.length === 0) return null;
-    
-    const vehicles = vehicleTemplates;
-    
-    // Filter vehicles that can handle the weight and flammable materials safety
-    const suitableVehicles = vehicles.filter((vehicle: any) => {
-      const canHandleWeight = vehicle.isActive && parseFloat(vehicle.maxWeightKg) >= weight;
-      
-      // If cart contains flammable materials, only allow vehicles that support flammable transport
-      if (containsFlammableProducts) {
-        const supportsFlammable = vehicle.supportsFlammable === true;
-        console.log('🚚 [VEHICLE FILTER] Flammable materials detected - filtering vehicle:', {
-          vehicleName: vehicle.name,
-          supportsFlammable,
-          canHandleWeight,
-          isSelected: canHandleWeight && supportsFlammable
-        });
-        return canHandleWeight && supportsFlammable;
-      }
-      
-      // For non-flammable materials, any active vehicle that can handle weight is suitable
-      return canHandleWeight;
-    });
-    
-    if (suitableVehicles.length === 0) return null;
-    
-    // Sort by cost efficiency (base cost + per km cost)
-    const sortedVehicles = suitableVehicles.sort((a: any, b: any) => {
-      const costA = parseFloat(a.basePrice) + parseFloat(a.pricePerKm);
-      const costB = parseFloat(b.basePrice) + parseFloat(b.pricePerKm);
-      return costA - costB;
-    });
-    
-    return sortedVehicles[0]; // Return most cost-effective vehicle
-  }, [vehicleTemplates, containsFlammableProducts]);
-
   // Calculate shipping cost with smart vehicle selection using backend API
   // Returns { cost, vehicle } object instead of just cost to avoid stale closure issue
   const calculateShippingCost = useCallback(async (weight: number, destination: string): Promise<{ cost: number; vehicle: any | null }> => {
     if (!destination || weight === 0) return { cost: 0, vehicle: null };
     
     try {
+      setPricedShippingCenterKey('');
+      setShippingQuote(null);
+      const refreshedCenter = await refetchShippingCenter();
+      const quoteCenterKey = getShippingCenterKey(refreshedCenter.data?.data);
+      if (refreshedCenter.isError || !quoteCenterKey) {
+        setShippingRouteUnavailable(true);
+        return { cost: 0, vehicle: null };
+      }
+      shippingCenterKeyRef.current = quoteCenterKey;
+
       // Look up the destination city to get its provinceId
-      const destCity = iraqiCities?.find((city: any) => 
-        city.nameEnglish?.toLowerCase() === destination.toLowerCase() ||
-        city.nameArabic === destination ||
-        city.name?.toLowerCase() === destination.toLowerCase() ||
-        city.nameEnglish?.toLowerCase().includes(destination.toLowerCase()) ||
-        city.nameArabic?.includes(destination) ||
-        city.name?.toLowerCase().includes(destination.toLowerCase())
+      const destCity = secondaryCities?.find((city: any) =>
+        [city.nameEn, city.name_en, city.nameEnglish, city.nameArabic, city.name_arabic, city.namePersian, city.nameFa, city.name_fa, city.nameTurkish, city.nameTr, city.name_tr, city.name]
+          .some((name) => name && name.toLowerCase() === destination.toLowerCase())
       );
       
-      const provinceId = destCity?.provinceId || null;
+      const provinceId = destCity?.regionId || destCity?.provinceId || null;
+      const destProvince = provinces.find((province: any) => Number(province.id) === Number(provinceId));
       
       console.log('🚚 [CHECKOUT] Using FLAMMABLE-AWARE delivery cost API:', { 
         weight, 
         destination,
-        resolvedCity: destCity?.name || destCity?.nameEnglish,
+        resolvedCity: destCity?.nameEnglish || destCity?.name || destination,
         provinceId,
         containsFlammableProducts,
         cartProducts: cartItems.map(item => ({ id: item.id, name: item.name, isFlammable: item.isFlammable }))
@@ -544,16 +574,18 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
         body: JSON.stringify({
           weight: weight,
           destinationCity: destination,
-          destinationProvince: provinceId || destination,
-          originCity: t.checkout_page.erbilCity,
+          destinationProvince: destProvince?.nameEnglish || destProvince?.name || destination,
+          ...(destCity?.id != null ? { destinationCityId: destCity.id } : {}),
           cart: Object.fromEntries(Object.entries(cart).map(([id, qty]) => [id, qty])),
           useSecondaryAddress: false
         })
       });
 
       if (!response.ok) {
-        console.error('🚚 [CHECKOUT] Delivery cost calculation failed:', response.status);
-        return fallbackLocalCalculation(weight, destination);
+        const errorResult = await response.json().catch(() => null);
+        console.error('🚚 [CHECKOUT] Delivery cost calculation failed:', response.status, errorResult);
+        setShippingRouteUnavailable(true);
+        return { cost: 0, vehicle: null };
       }
 
       const result = await response.json();
@@ -563,10 +595,19 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
         // Handle intercity bus response
         if (result.data.transportMethod === 'intercity_bus' && result.data.selectedOption) {
           const busOption = result.data.selectedOption;
+          const busCost = Number(busOption.totalCost);
+          if (!Number.isFinite(busCost) || busCost < 0) {
+            setShippingRouteUnavailable(true);
+            return { cost: 0, vehicle: null };
+          }
+          if (shippingCenterKeyRef.current !== quoteCenterKey) {
+            setShippingRouteUnavailable(true);
+            return { cost: 0, vehicle: null };
+          }
           const vehicleData = {
             name: busOption.transportName,
             type: 'intercity_bus',
-            cost: busOption.totalCost,
+            cost: busCost,
             restrictions: busOption.restrictions
           };
           setSelectedVehicle(vehicleData);
@@ -577,17 +618,38 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
             cost: busOption.totalCost,
             restrictions: busOption.restrictions
           });
+          setPricedShippingDestination(`${destination}|${weight}`);
+          setPricedShippingCenterKey(quoteCenterKey);
+          setShippingQuote(typeof result.data.shippingQuoteToken === 'string' && result.data.shippingQuoteToken
+            ? {
+                token: result.data.shippingQuoteToken,
+                destination: `${destination}|${weight}`,
+                centerKey: quoteCenterKey,
+                cartKey: shippingQuoteCartKey,
+                createdAt: Date.now()
+              }
+            : null);
+          setShippingRouteUnavailable(!(typeof result.data.shippingQuoteToken === 'string' && result.data.shippingQuoteToken));
           
-          return { cost: busOption.totalCost, vehicle: vehicleData };
+          return { cost: busCost, vehicle: vehicleData };
         }
         
         // Handle optimal vehicle response
         if (result.data.optimalVehicle) {
           const vehicleInfo = result.data.optimalVehicle;
+          const vehicleCost = Number(vehicleInfo.totalCost);
+          if (!Number.isFinite(vehicleCost) || vehicleCost < 0) {
+            setShippingRouteUnavailable(true);
+            return { cost: 0, vehicle: null };
+          }
+          if (shippingCenterKeyRef.current !== quoteCenterKey) {
+            setShippingRouteUnavailable(true);
+            return { cost: 0, vehicle: null };
+          }
           const vehicleData = {
             name: vehicleInfo.vehicleName,
             type: vehicleInfo.vehicleType,
-            cost: vehicleInfo.totalCost,
+            cost: vehicleCost,
             maxWeight: vehicleInfo.maxWeight,
             estimatedTime: vehicleInfo.estimatedTime
           };
@@ -600,135 +662,35 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
             vehicleType: vehicleInfo.vehicleType,
             safetyCompliant: true
           });
+          setPricedShippingDestination(`${destination}|${weight}`);
+          setPricedShippingCenterKey(quoteCenterKey);
+          setShippingQuote(typeof result.data.shippingQuoteToken === 'string' && result.data.shippingQuoteToken
+            ? {
+                token: result.data.shippingQuoteToken,
+                destination: `${destination}|${weight}`,
+                centerKey: quoteCenterKey,
+                cartKey: shippingQuoteCartKey,
+                createdAt: Date.now()
+              }
+            : null);
+          setShippingRouteUnavailable(!(typeof result.data.shippingQuoteToken === 'string' && result.data.shippingQuoteToken));
           
-          return { cost: vehicleInfo.totalCost, vehicle: vehicleData };
+          return { cost: vehicleCost, vehicle: vehicleData };
         }
       }
       
       console.error('🚚 [CHECKOUT] No suitable delivery option found in API response');
-      return fallbackLocalCalculation(weight, destination);
+      setShippingRouteUnavailable(true);
+      setShippingQuote(null);
+      return { cost: 0, vehicle: null };
       
     } catch (error) {
       console.error('🚚 [CHECKOUT] Delivery cost calculation error:', error);
-      
-      // Fallback to local calculation if API fails
-      return fallbackLocalCalculation(weight, destination);
-    }
-  }, [containsFlammableProducts, cart, cartItems, iraqiCities]);
-
-  // Fallback local calculation method (backup) - SAFETY COMPLIANT
-  const fallbackLocalCalculation = useCallback((weight: number, destination: string) => {
-    console.log('🚚 [CHECKOUT] Using FLAMMABLE-SAFE fallback calculation', {
-      weight,
-      destination,
-      containsFlammableProducts,
-      cartItemsWithFlammable: cartItems.filter(item => item?.isFlammable === true).map(item => item.name)
-    });
-    
-    // Find destination city in Iraqi cities
-    const destCity = iraqiCities?.find((city: any) => 
-      city.nameEnglish?.toLowerCase().includes(destination.toLowerCase()) ||
-      city.nameArabic?.includes(destination) ||
-      city.name?.toLowerCase().includes(destination.toLowerCase())
-    );
-    
-    if (!destCity) {
-      console.log('🚚 [FALLBACK] Destination city not found:', destination);
+      setShippingRouteUnavailable(true);
+      setShippingQuote(null);
       return { cost: 0, vehicle: null };
     }
-    
-    // CRITICAL: If cart contains flammable materials, ONLY allow heavy trucks with flammable authorization
-    if (containsFlammableProducts) {
-      console.log('🔥 [FALLBACK SAFETY] Flammable materials detected - applying safety restrictions');
-      
-      // Find heavy truck vehicles that support flammable materials
-      const flammableAuthorizedVehicles = vehicleTemplates?.filter((vehicle: any) => {
-        const canHandleWeight = vehicle.isActive && parseFloat(vehicle.maxWeightKg) >= weight;
-        const supportsFlammable = vehicle.supportsFlammable === true;
-        const isHeavyTruck = vehicle.name?.includes(t.checkout_page.heavyTruck) || vehicle.vehicleType === 'heavy_truck';
-        
-        console.log('🚛 [FALLBACK FLAMMABLE CHECK] Vehicle:', {
-          name: vehicle.name,
-          canHandleWeight,
-          supportsFlammable,
-          isHeavyTruck,
-          qualified: canHandleWeight && supportsFlammable && isHeavyTruck
-        });
-        
-        return canHandleWeight && supportsFlammable && isHeavyTruck;
-      }) || [];
-      
-      if (flammableAuthorizedVehicles.length === 0) {
-        console.error('🔥 [FALLBACK SAFETY] No flammable-authorized vehicles found for heavy materials');
-        return { cost: 617000, vehicle: null }; // Return heavy truck estimated cost as safety fallback
-      }
-      
-      // Select the most suitable heavy truck for flammable materials
-      const fallbackVehicle = flammableAuthorizedVehicles[0];
-      const vehicleData = {
-        ...fallbackVehicle,
-        name: fallbackVehicle.name + t.checkout_page.flammableSuffix,
-        type: 'heavy_truck_flammable'
-      };
-      setSelectedVehicle(vehicleData);
-      selectedVehicleRef.current = vehicleData;
-      
-      // Calculate cost for heavy truck
-      const baseCost = parseFloat(fallbackVehicle.basePrice || '350000');
-      const distanceCost = parseFloat(destCity.distanceFromErbilKm || '0') * parseFloat(fallbackVehicle.pricePerKm || '800');
-      const weightCost = weight * parseFloat(fallbackVehicle.pricePerKg || '200');
-      
-      const totalCost = baseCost + distanceCost + weightCost;
-      
-      console.log('🔥 [FALLBACK FLAMMABLE] Heavy truck selected for safety:', {
-        vehicle: fallbackVehicle.name,
-        baseCost,
-        distance: destCity.distanceFromErbilKm,
-        distanceCost,
-        weightCost,
-        totalCost,
-        safetyCompliant: true
-      });
-      
-      return { cost: totalCost, vehicle: vehicleData };
-    }
-    
-    // For non-flammable materials, use normal vehicle selection
-    const vehicle = selectOptimalVehicle(weight, destination);
-    if (!vehicle) {
-      console.log('🚚 [FALLBACK] No suitable vehicle found', { 
-        weight, 
-        destination, 
-        containsFlammableProducts,
-        totalVehicles: vehicleTemplates?.length || 0
-      });
-      return { cost: 0, vehicle: null };
-    }
-    
-    setSelectedVehicle(vehicle);
-    selectedVehicleRef.current = vehicle;
-    
-    // Calculate cost: base cost + (distance × cost per km) + (weight × cost per kg)
-    const baseCost = parseFloat(vehicle.basePrice || '0');
-    const distanceCost = parseFloat(destCity.distanceFromErbilKm || '0') * parseFloat(vehicle.pricePerKm || '0');
-    const weightCost = weight * parseFloat(vehicle.pricePerKg || '0');
-    
-    const totalCost = baseCost + distanceCost + weightCost;
-    
-    console.log('🚚 [FALLBACK] Standard calculation:', {
-      weight,
-      destination,
-      selectedVehicle: vehicle.name,
-      baseCost,
-      distance: destCity.distanceFromErbilKm,
-      distanceCost,
-      weightCost,
-      totalCost,
-      containsFlammableProducts
-    });
-    
-    return { cost: totalCost, vehicle: vehicle };
-  }, [iraqiCities, selectOptimalVehicle, containsFlammableProducts, cartItems, vehicleTemplates]);
+  }, [containsFlammableProducts, cart, shippingQuoteCartKey, secondaryCities, provinces, refetchShippingCenter]);
 
   // Watch for address changes to update destination
   useEffect(() => {
@@ -767,104 +729,185 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
     isUserLoggedIn
   ]);
 
-  // Calculate shipping cost when weight or destination changes
-  useEffect(() => {
-    if (totalWeight > 0 && destinationCity) {
-      // Use async function to handle the promise from calculateShippingCost
-      const updateShippingCost = async () => {
-        try {
-          console.log('🔄 [SHIPPING UPDATE] Starting calculation:', {
-            weight: totalWeight,
-            destination: destinationCity,
-            containsFlammableProducts,
-            cartItemsCount: cartItems.length
-          });
-          
-          // Clear any previous vehicle selection before new calculation
-          setSelectedVehicle(null);
-          setCalculatedShippingCost(0);
-          
-          // calculateShippingCost now returns { cost, vehicle } to avoid stale closure issues
-          const result = await calculateShippingCost(totalWeight, destinationCity);
-          const cost = result.cost;
-          const calculatedVehicle = result.vehicle;
-          
-          setCalculatedShippingCost(cost);
-          
-          // CRITICAL: Update selectedVehicle state AND ref with the calculated vehicle
-          // The ref is used in onSubmit to avoid stale closure issues
-          if (calculatedVehicle) {
-            setSelectedVehicle(calculatedVehicle);
-            selectedVehicleRef.current = calculatedVehicle;
-            console.log('🚗 [VEHICLE STATE + REF] Updated selectedVehicle:', {
-              name: calculatedVehicle.name,
-              type: calculatedVehicle.type,
-              refUpdated: true
-            });
-          }
-          
-          // Auto-select smart vehicle option when available and cost calculated
-          // Use calculatedVehicle from the result instead of stale selectedVehicle state
-          if (calculatedVehicle && cost > 0) {
-            form.setValue('shippingMethod', '7'); // Smart vehicle method ID
-            
-            console.log('✅ [AUTO-SELECT] Smart vehicle option selected:', {
-              vehicleName: calculatedVehicle.name,
-              vehicleType: calculatedVehicle.type,
-              cost: cost,
-              methodId: '7'
-            });
-          }
-          
-          console.log('💰 [SHIPPING FINAL] Cost calculation completed:', {
-            weight: totalWeight,
-            destination: destinationCity,
-            cost: cost,
-            selectedVehicle: calculatedVehicle?.name,
-            vehicleType: calculatedVehicle?.type,
-            autoSelected: true,
-            containsFlammableProducts
-          });
-        } catch (error) {
-          console.error('🚚 [CHECKOUT] Error updating shipping cost:', error);
-          setCalculatedShippingCost(0);
-          setSelectedVehicle(null);
-        }
-      };
-      
-      updateShippingCost();
-    } else {
-      setCalculatedShippingCost(0);
-      setSelectedVehicle(null);
-      // Clear smart vehicle selection if no longer valid
-      if (form.watch('shippingMethod') === '7') {
-        form.setValue('shippingMethod', '');
-      }
-    }
-  }, [totalWeight, destinationCity, calculateShippingCost, form, containsFlammableProducts, cartItems]);
+  const selectedShippingMethodId = form.watch('shippingMethod');
+  const currentShippingMethod = (deliveryMethods as any[])?.find((method: any) => method.id.toString() === selectedShippingMethodId);
+  const currentMethodValue = String(currentShippingMethod?.value || currentShippingMethod?.deliveryMethod || currentShippingMethod?.delivery_method || '').toLowerCase();
+  const isSmartVehicleShipping = currentMethodValue === 'smart_vehicle' || currentMethodValue.includes('bus');
+  const destinationProvince = isUserLoggedIn
+    ? (form.watch('secondDeliveryProvince') || selectedAddress?.province || customerData?.customer?.province || '')
+    : (form.watch('sameAsShipping') ? form.watch('billingState') : form.watch('shippingState') || form.watch('billingState') || '');
+  const destinationCountry = isUserLoggedIn
+    ? (selectedAddress?.country || customerData?.customer?.country || '')
+    : (form.watch('sameAsShipping') ? form.watch('billingCountry') : form.watch('shippingCountry') || form.watch('billingCountry') || '');
+  const standardQuoteKey = JSON.stringify([
+    selectedShippingMethodId,
+    destinationCity,
+    destinationProvince,
+    destinationCountry,
+    totalWeight,
+    shippingQuoteCartKey,
+  ]);
 
-  // Use calculated shipping cost or fallback to traditional method
-  let shippingCost = calculatedShippingCost;
-  
-  // Fallback to traditional delivery method if smart calculation not available
-  if (shippingCost === 0) {
-    const selectedMethod = (deliveryMethods as any[])?.find((method: any) => method.id.toString() === form.watch('shippingMethod'));
-    
-    if (selectedMethod) {
-      const baseCost = parseFloat(selectedMethod.baseCost || '0');
-      const freeShippingThreshold = parseFloat(selectedMethod.freeShippingThreshold || '0');
-      
-      if (freeShippingThreshold > 0 && subtotal >= freeShippingThreshold) {
-        shippingCost = 0; // Free shipping
-      } else {
-        shippingCost = baseCost;
-        // Add weight-based cost if available
-        if (selectedMethod.costPerKg) {
-          shippingCost += parseFloat(selectedMethod.costPerKg) * totalWeight;
-        }
-      }
+  // Requote the active delivery method whenever its route, cart, center, or method changes.
+  useEffect(() => {
+    const method = (deliveryMethods as any[])?.find((item: any) => item.id?.toString() === selectedShippingMethodId);
+    const methodValue = String(method?.value || method?.deliveryMethod || method?.delivery_method || '').toLowerCase();
+    const isPickup = isGenuinePickupMethod(method);
+    const isSmart = methodValue === 'smart_vehicle' || methodValue.includes('bus');
+    const requestSequence = ++shippingRequestSequenceRef.current;
+
+    setStandardShippingQuote(null);
+    setShippingQuote(null);
+    setPricedShippingDestination('');
+    setPricedShippingCenterKey('');
+    setSelectedVehicle(null);
+    selectedVehicleRef.current = null;
+    setCalculatedShippingCost(0);
+    setShippingRouteUnavailable(false);
+
+    if (!method || isPickup) {
+      setShippingCalculationPending(false);
+      return;
     }
+    if (!destinationCity || totalWeight <= 0) {
+      setShippingCalculationPending(false);
+      setShippingRouteUnavailable(!!method && !isPickup);
+      return;
+    }
+
+    setShippingCalculationPending(true);
+    const quoteDestinationCity = destinationCity;
+    const quoteProvince = destinationProvince;
+    const quoteCountryCode = resolveCountryCode(destinationCountry) || (destinationCountry.length <= 3 ? destinationCountry.toUpperCase() : '');
+    const quoteKey = standardQuoteKey;
+
+    const updatePrice = async () => {
+      try {
+        if (isSmart) {
+          const result = await calculateShippingCost(totalWeight, quoteDestinationCity);
+          if (requestSequence !== shippingRequestSequenceRef.current) return;
+          setCalculatedShippingCost(result.cost);
+          if (result.vehicle) {
+            setSelectedVehicle(result.vehicle);
+            selectedVehicleRef.current = result.vehicle;
+          }
+          return;
+        }
+
+        const refreshedCenter = await refetchShippingCenter();
+        const quoteCenterKey = getShippingCenterKey(refreshedCenter.data?.data);
+        if (refreshedCenter.isError || !quoteCenterKey) {
+          throw new Error('Shipping center is unavailable');
+        }
+        shippingCenterKeyRef.current = quoteCenterKey;
+
+        const matchingCity = secondaryCities?.find((city: any) =>
+          [city.nameEn, city.name_en, city.nameEnglish, city.nameArabic, city.name_arabic, city.namePersian, city.nameFa, city.name_fa, city.nameTurkish, city.nameTr, city.name_tr, city.name]
+            .some((name) => name && name.toLowerCase() === quoteDestinationCity.toLowerCase())
+        );
+        const response = await fetch('/api/shipping/quote-standard', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            cart: Object.fromEntries(Object.entries(cart).map(([id, quantity]) => [id, quantity])),
+            ...(matchingCity?.id != null ? { destinationCityId: matchingCity.id } : {}),
+            destinationCity: quoteDestinationCity,
+            ...(quoteProvince ? { destinationProvince: quoteProvince } : {}),
+            ...(quoteCountryCode ? { destinationCountryCode: quoteCountryCode } : {}),
+            shippingMethod: selectedShippingMethodId,
+          }),
+        });
+        const result = await response.json().catch(() => null);
+        const rawCost = result?.data?.shippingCost;
+        const cost = Number(rawCost);
+        if (!response.ok || !result?.success ||
+          (typeof rawCost !== 'number' && typeof rawCost !== 'string') ||
+          String(rawCost).trim() === '' || !Number.isFinite(cost) || cost < 0) {
+          throw new Error('No standard shipping quote for this route');
+        }
+        if (requestSequence !== shippingRequestSequenceRef.current || shippingCenterKeyRef.current !== quoteCenterKey) return;
+        setCalculatedShippingCost(cost);
+        setPricedShippingDestination(`${quoteDestinationCity}|${totalWeight}`);
+        setPricedShippingCenterKey(quoteCenterKey);
+        setStandardShippingQuote({
+          methodId: selectedShippingMethodId,
+          cost,
+          key: quoteKey,
+          centerKey: quoteCenterKey,
+          cartKey: shippingQuoteCartKey,
+          createdAt: Date.now(),
+        });
+        setShippingRouteUnavailable(false);
+      } catch (error) {
+        if (requestSequence !== shippingRequestSequenceRef.current) return;
+        console.error('[CHECKOUT] Shipping quote failed:', error);
+        setShippingRouteUnavailable(true);
+        setShippingQuote(null);
+        setStandardShippingQuote(null);
+      } finally {
+        if (requestSequence === shippingRequestSequenceRef.current) setShippingCalculationPending(false);
+      }
+    };
+
+    void updatePrice();
+  }, [
+    selectedShippingMethodId, deliveryMethods, destinationCity, destinationProvince, destinationCountry,
+    totalWeight, shippingCenterKey, calculateShippingCost, cart, shippingQuoteCartKey,
+    shippingQuoteRefreshKey, refetchShippingCenter, secondaryCities,
+  ]);
+
+  // Prices only come from a fresh server quote; never infer a standard method's price locally.
+  let shippingCost = calculatedShippingCost;
+  const isCurrentMethodGenuinePickup = isGenuinePickupMethod(currentShippingMethod);
+  const isCurrentMethodShippingDependent = !!currentShippingMethod && !isCurrentMethodGenuinePickup;
+  const currentVehicleQuoteIsFresh = !!shippingQuote?.token &&
+    shippingQuote.destination === `${destinationCity}|${totalWeight}` &&
+    shippingQuote.centerKey === shippingCenterKey &&
+    shippingQuote.cartKey === shippingQuoteCartKey &&
+    Date.now() - shippingQuote.createdAt < 4 * 60 * 1000;
+  const standardQuoteReady = !!standardShippingQuote &&
+    standardShippingQuote.methodId === selectedShippingMethodId &&
+    standardShippingQuote.key === standardQuoteKey &&
+    standardShippingQuote.centerKey === shippingCenterKey &&
+    standardShippingQuote.cartKey === shippingQuoteCartKey &&
+    Number.isFinite(standardShippingQuote.cost) &&
+    Date.now() - standardShippingQuote.createdAt < 4 * 60 * 1000;
+  const shippingQuoteReady = !shippingCalculationPending &&
+    !shippingRouteUnavailable &&
+    (isCurrentMethodGenuinePickup ||
+      (isSmartVehicleShipping
+        ? !!selectedVehicle && currentVehicleQuoteIsFresh &&
+          pricedShippingCenterKey === shippingCenterKey &&
+          pricedShippingDestination === `${destinationCity}|${totalWeight}`
+        : standardQuoteReady));
+  const shippingSelectionUnavailable = !isCurrentMethodGenuinePickup &&
+    (shippingCalculationPending || shippingRouteUnavailable || !shippingQuoteReady);
+  
+  if (isCurrentMethodGenuinePickup) {
+    shippingCost = 0;
+  } else if (isSmartVehicleShipping) {
+    if (!shippingQuoteReady) shippingCost = 0;
+  } else if (standardQuoteReady) {
+    shippingCost = standardShippingQuote!.cost;
+  } else {
+    shippingCost = 0;
   }
+
+  const shippingRouteUnavailableMessage = language === 'fa'
+    ? 'هزینه ارسال برای این مسیر در دسترس نیست. لطفاً روش ارسال دیگری انتخاب کنید.'
+    : language === 'ar'
+      ? 'تكلفة الشحن لهذا المسار غير متاحة. يرجى اختيار طريقة شحن أخرى.'
+      : language === 'tr'
+        ? 'Bu rota için teslimat ücreti mevcut değil. Lütfen başka bir teslimat yöntemi seçin.'
+        : 'Shipping is unavailable for this route. Please choose another delivery method.';
+  const shippingQuoteRefreshMessage = language === 'fa'
+    ? 'پیش‌فاکتور ارسال منقضی یا نامعتبر است؛ هزینه ارسال در حال به‌روزرسانی است. لطفاً دوباره ثبت سفارش را بزنید.'
+    : language === 'ar'
+      ? 'انتهت صلاحية عرض الشحن أو أنه غير صالح؛ يتم تحديث تكلفة الشحن. يرجى إعادة إرسال الطلب.'
+      : language === 'tr'
+        ? 'Kargo teklifi geçersiz veya süresi dolmuş; ücret yenileniyor. Lütfen siparişi tekrar gönderin.'
+        : 'The shipping quote is missing or expired. The quote is being refreshed; please submit your order again.';
   
   // Fetch tax settings for dynamic VAT calculation
   const { data: taxSettingsResponse } = useQuery({
@@ -1014,12 +1057,112 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
     },
   });
 
-  const onSubmit = (data: CheckoutFormData) => {
+  const onSubmit = async (data: CheckoutFormData) => {
     // CRITICAL VALIDATION: Ensure delivery address is specified before allowing order
     // Helper to check non-empty string
     const isValidField = (val: string | undefined | null): boolean => {
       return val !== undefined && val !== null && val.trim() !== '';
     };
+
+    const submittedShippingMethod = (deliveryMethods as any[])?.find((method: any) => method.id.toString() === data.shippingMethod);
+    const isSubmittedShippingDependent = !!submittedShippingMethod && !isGenuinePickupMethod(submittedShippingMethod);
+    const refreshedCenter = await refetchShippingCenter();
+    const freshCenterData = refreshedCenter.data?.data;
+    const freshCenterKey = getShippingCenterKey(freshCenterData);
+    if (freshCenterKey) shippingCenterKeyRef.current = freshCenterKey;
+
+    if (isSubmittedShippingDependent && (refreshedCenter.isError || !freshCenterKey)) {
+      setShippingRouteUnavailable(true);
+      toast({
+        title: shippingRouteUnavailableMessage,
+        description: shippingRouteUnavailableMessage,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const freshCenterCountryCode = resolveCountryCode(freshCenterData?.countryCode) || freshCenterData?.countryCode?.toUpperCase() || '';
+    const destinationCountry = isUserLoggedIn
+      ? (selectedAddress?.country || customerData?.customer?.country)
+      : (data.sameAsShipping ? data.billingCountry : data.shippingCountry || data.billingCountry);
+    const destinationCountryCode = resolveCountryCode(destinationCountry);
+    if (isSubmittedShippingDependent && freshCenterCountryCode && destinationCountryCode && freshCenterCountryCode !== destinationCountryCode) {
+      setShippingRouteUnavailable(true);
+      setCalculatedShippingCost(0);
+      setSelectedVehicle(null);
+      selectedVehicleRef.current = null;
+      setPricedShippingCenterKey('');
+      setPricedShippingDestination('');
+      setShippingQuote(null);
+      setStandardShippingQuote(null);
+      setShippingQuoteRefreshKey((key) => key + 1);
+      toast({
+        title: shippingRouteUnavailableMessage,
+        description: shippingRouteUnavailableMessage,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const submittedMethodValue = String(
+      submittedShippingMethod?.value ||
+      submittedShippingMethod?.deliveryMethod ||
+      submittedShippingMethod?.delivery_method ||
+      ''
+    ).toLowerCase();
+    const requiresShippingQuoteToken = isSubmittedShippingDependent &&
+      (submittedMethodValue === 'smart_vehicle' || submittedMethodValue.includes('bus'));
+    const shippingQuoteIsCurrent = !!shippingQuote?.token &&
+      shippingQuote.destination === `${destinationCity}|${totalWeight}` &&
+      shippingQuote.centerKey === freshCenterKey &&
+      shippingQuote.cartKey === shippingQuoteCartKey &&
+      Date.now() - shippingQuote.createdAt < 4 * 60 * 1000;
+    if (requiresShippingQuoteToken && !shippingQuoteIsCurrent) {
+      setShippingQuote(null);
+      setPricedShippingCenterKey('');
+      setPricedShippingDestination('');
+      setShippingQuoteRefreshKey((key) => key + 1);
+      toast({
+        title: shippingQuoteRefreshMessage,
+        description: shippingQuoteRefreshMessage,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const isSubmittedSmartMethod = submittedMethodValue === 'smart_vehicle' || submittedMethodValue.includes('bus');
+    const submittedStandardQuoteIsCurrent = !!standardShippingQuote &&
+      standardShippingQuote.methodId === data.shippingMethod &&
+      standardShippingQuote.key === standardQuoteKey &&
+      standardShippingQuote.centerKey === freshCenterKey &&
+      standardShippingQuote.cartKey === shippingQuoteCartKey &&
+      Number.isFinite(standardShippingQuote.cost) &&
+      Date.now() - standardShippingQuote.createdAt < 4 * 60 * 1000;
+    if (isSubmittedShippingDependent && (
+      shippingCalculationPending ||
+      shippingRouteUnavailable ||
+      pricedShippingCenterKey !== freshCenterKey ||
+      pricedShippingDestination !== `${destinationCity}|${totalWeight}` ||
+      (isSubmittedSmartMethod
+        ? !selectedVehicleRef.current || !shippingQuoteIsCurrent
+        : !submittedStandardQuoteIsCurrent)
+    )) {
+      setShippingRouteUnavailable(true);
+      setCalculatedShippingCost(0);
+      setSelectedVehicle(null);
+      selectedVehicleRef.current = null;
+      setPricedShippingCenterKey('');
+      setPricedShippingDestination('');
+      setShippingQuote(null);
+      setStandardShippingQuote(null);
+      setShippingQuoteRefreshKey((key) => key + 1);
+      toast({
+        title: shippingRouteUnavailableMessage,
+        description: shippingRouteUnavailableMessage,
+        variant: "destructive",
+      });
+      return;
+    }
     
     if (isUserLoggedIn && customerData?.customer) {
       const customer = customerData.customer;
@@ -1288,6 +1431,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                    selectedVehicleRef.current?.vehicleType || selectedVehicle?.vehicleType || null, // Customer's selected vehicle TYPE for logistics
       // CRITICAL: Send total weight calculated from cart items for logistics vehicle matching
       totalWeight: totalWeight > 0 ? totalWeight : null, // Total weight in kg for optimal vehicle selection
+      ...(requiresShippingQuoteToken ? { shippingQuoteToken: shippingQuote!.token } : {}),
     };
 
     // Debug logging for payment data
@@ -1770,7 +1914,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                         onValueChange={(value) => {
                                           field.onChange(value);
                                           // Find province ID and set it for city filtering
-                                          const selectedProvince = provinces.find((p: any) => p.nameEnglish === value || p.name === value);
+                                          const selectedProvince = provinces.find((p: any) => canonicalGeographyName(p) === value || geographyName(p) === value);
                                           if (selectedProvince) {
                                             setSelectedSecondaryProvinceId(selectedProvince.id);
                                             // Clear city selection when province changes
@@ -1786,8 +1930,8 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                         </FormControl>
                                         <SelectContent>
                                           {Array.isArray(provinces) && provinces.map((province: any) => (
-                                            <SelectItem key={province.id} value={province.nameEnglish || province.name}>
-                                              {province.nameEnglish} / {province.name}
+                                            <SelectItem key={province.id} value={canonicalGeographyName(province)}>
+                                              {geographyName(province)} / {canonicalGeographyName(province)}
                                             </SelectItem>
                                           ))}
                                         </SelectContent>
@@ -1815,8 +1959,8 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                         </FormControl>
                                         <SelectContent>
                                           {Array.isArray(secondaryCities) && secondaryCities.map((city: any) => (
-                                            <SelectItem key={city.id} value={city.nameEnglish || city.name}>
-                                              {city.nameEnglish} / {city.nameArabic || city.name}
+                                            <SelectItem key={city.id} value={canonicalGeographyName(city)}>
+                                              {geographyName(city)} / {canonicalGeographyName(city)}
                                             </SelectItem>
                                           ))}
                                         </SelectContent>
@@ -1910,7 +2054,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                               <SelectTrigger>
                                 <SelectValue 
                                   placeholder={
-                                    selectedVehicle && destinationCity && totalWeight > 0
+                                    selectedVehicle && destinationCity && totalWeight > 0 && shippingQuoteReady
                                       ? `🚚 ${selectedVehicle.name} - ${shippingCost.toLocaleString()} IQD (${destinationCity})`
                                       : t.checkout_page.selectShippingPlaceholder
                                   }
@@ -1921,7 +2065,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                 {(deliveryMethods as any[])?.map((method: any) => {
                                   // Handle smart_vehicle specially
                                   if (method.value === 'smart_vehicle') {
-                                    if (selectedVehicle && destinationCity && totalWeight > 0) {
+                                    if (selectedVehicle && destinationCity && totalWeight > 0 && shippingQuoteReady) {
                                       // Show calculated smart vehicle option
                                       return (
                                         <SelectItem key={method.id} value={method.id.toString()} className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
@@ -1936,15 +2080,6 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                             </div>
                                             <div className="text-xs text-emerald-600 dark:text-emerald-400 space-y-1">
                                               <div>📍 {t.checkout_page.destination} {destinationCity} • {t.checkout_page.weight} {totalWeight.toFixed(1)} {t.checkout_page.kg}</div>
-                                              <div>
-                                                💰 {t.checkout_page.basePrice} {parseFloat(selectedVehicle.basePrice || '0').toLocaleString()} • 
-                                                {t.checkout_page.distance} {(parseFloat(iraqiCities?.find((city: any) => 
-                                                  city.nameEnglish?.toLowerCase().includes(destinationCity.toLowerCase()) ||
-                                                  city.nameArabic?.includes(destinationCity) ||
-                                                  city.name?.toLowerCase().includes(destinationCity.toLowerCase())
-                                                )?.distanceFromErbilKm || '0') * parseFloat(selectedVehicle.pricePerKm || '0')).toLocaleString()} • 
-                                                {t.checkout_page.weight} {(totalWeight * parseFloat(selectedVehicle.pricePerKg || '0')).toLocaleString()} IQD
-                                              </div>
                                             </div>
                                           </div>
                                         </SelectItem>
@@ -1959,7 +2094,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                                 🚚 {method.label}
                                               </span>
                                               <span className="text-emerald-600 dark:text-emerald-400 text-xs">
-                                                {t.checkout_page.autoCalculate}
+                                                {shippingRouteUnavailable ? shippingRouteUnavailableMessage : t.checkout_page.autoCalculate}
                                               </span>
                                             </div>
                                             <div className="text-xs text-emerald-600 dark:text-emerald-400">
@@ -1973,8 +2108,24 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                     }
                                   }
                                   
+                                  if (isGenuinePickupMethod(method)) {
+                                    return (
+                                      <SelectItem key={method.id} value={method.id.toString()}>
+                                        <div className="flex items-center justify-between w-full">
+                                          <span>{method.label}</span>
+                                          <span className="ml-2 text-sm">{t.checkout_page.freeShipping}</span>
+                                        </div>
+                                      </SelectItem>
+                                    );
+                                  }
+
                                   // Handle freight_collect specially
                                   if (method.value === 'freight_collect') {
+                                    const freightStatus = shippingRouteUnavailable
+                                      ? shippingRouteUnavailableMessage
+                                      : shippingQuoteReady
+                                        ? (shippingCost === 0 ? t.checkout_page.freeShipping : `${shippingCost.toLocaleString()} IQD`)
+                                        : t.checkout_page.calculatingBestVehicle;
                                     return (
                                       <SelectItem key={method.id} value={method.id.toString()} className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800">
                                         <div className="flex flex-col gap-1 w-full">
@@ -1983,28 +2134,33 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                               🚚 {t.checkout_page.freightCollect}
                                             </span>
                                             <span className="text-orange-600 dark:text-orange-400 font-bold">
-                                              {t.checkout_page.freightCollectNote}
+                                              {freightStatus}
                                             </span>
                                           </div>
                                           <div className="text-xs text-orange-600 dark:text-orange-400">
-                                            {t.checkout_page.freightCollectDescription}
+                                            {!shippingQuoteReady || shippingRouteUnavailable
+                                              ? freightStatus
+                                              : `${t.checkout_page.freightCollectNote} · ${t.checkout_page.freightCollectDescription}`}
                                           </div>
                                         </div>
                                       </SelectItem>
                                     );
                                   }
 
-                                  // Handle standard delivery methods
-                                  const freeShippingThreshold = parseFloat(method.freeShippingThreshold || '0');
-                                  const qualifiesForFreeShipping = freeShippingThreshold > 0 && subtotal >= freeShippingThreshold;
-                                  const baseCost = parseFloat(method.baseCost || '0');
+                                  // Standard methods are priced exclusively by the server quote endpoint.
+                                  const methodHasCurrentQuote = method.id?.toString() === selectedShippingMethodId && standardQuoteReady;
+                                  const methodPriceText = shippingRouteUnavailable
+                                    ? shippingRouteUnavailableMessage
+                                    : methodHasCurrentQuote
+                                      ? (standardShippingQuote!.cost === 0 ? t.checkout_page.freeShipping : `${standardShippingQuote!.cost.toLocaleString()} IQD`)
+                                      : t.checkout_page.calculatingBestVehicle;
                                   
                                   return (
                                     <SelectItem key={method.id} value={method.id.toString()}>
                                       <div className="flex items-center justify-between w-full">
                                         <span>{method.label}</span>
                                         <span className="ml-2 text-sm">
-                                          {qualifiesForFreeShipping ? t.checkout_page.freeShipping : `${baseCost.toLocaleString()} IQD`}
+                                          {methodPriceText}
                                           {method.estimatedDays && ` (${method.estimatedDays} ${t.checkout_page.days})`}
                                         </span>
                                       </div>
@@ -2014,6 +2170,11 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                               </SelectContent>
                             </Select>
                           </FormControl>
+                          {isCurrentMethodShippingDependent && (shippingRouteUnavailable || shippingCalculationPending || !shippingQuoteReady) && (
+                            <p role="alert" className="text-sm text-destructive">
+                              {shippingRouteUnavailable ? shippingRouteUnavailableMessage : t.checkout_page.calculatingBestVehicle}
+                            </p>
+                          )}
                           <FormMessage />
                         </FormItem>
                       )}
@@ -2030,20 +2191,24 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                           <div className="flex justify-between items-center">
                             <span>{t.checkout_page.shippingCostLabel}</span>
                             <span className="font-medium">
-                              {selectedMethod.value === 'freight_collect' 
-                                ? t.checkout_page.freightCollectNote
+                              {shippingSelectionUnavailable
+                                ? (shippingRouteUnavailable ? shippingRouteUnavailableMessage : t.checkout_page.calculatingBestVehicle)
+                                : currentMethodValue === 'freight_collect'
+                                ? `${shippingCost === 0 ? t.checkout_page.freeShipping : `${shippingCost.toLocaleString()} IQD`} · ${t.checkout_page.freightCollectNote}`
                                 : (shippingCost === 0 ? t.checkout_page.freeShipping : `${shippingCost.toLocaleString()} IQD`)
                               }
                             </span>
                           </div>
-                          {selectedMethod.value === 'freight_collect' ? (
+                          {shippingSelectionUnavailable ? (
+                            <p role="alert" className="text-sm text-destructive">{shippingRouteUnavailable ? shippingRouteUnavailableMessage : t.checkout_page.calculatingBestVehicle}</p>
+                          ) : selectedMethod.value === 'freight_collect' ? (
                             <div className="bg-orange-100 dark:bg-orange-900/30 rounded p-2 border border-orange-300 dark:border-orange-700">
                               <div className="text-xs text-orange-700 dark:text-orange-300 space-y-1">
                                 <div className="font-medium">🚚 {t.checkout_page.freightCollectSelected}</div>
                                 <div>{t.checkout_page.freightCollectDescription}</div>
                               </div>
                             </div>
-                          ) : selectedMethod.value === 'smart_vehicle' && selectedVehicle ? (
+                          ) : isSmartVehicleShipping && selectedVehicle ? (
                             <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded p-2 border border-emerald-200 dark:border-emerald-800">
                               <div className="text-xs text-emerald-700 dark:text-emerald-300 space-y-1">
                                 <div className="font-medium">{t.checkout_page.smartSelectionDetails}</div>
@@ -2055,13 +2220,6 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                 {selectedVehicle.refrigeratedTransport && <div>{t.checkout_page.refrigeratedTransport}</div>}
                                 {selectedVehicle.fragileItems && <div>{t.checkout_page.fragileHandling}</div>}
                               </div>
-                            </div>
-                          ) : selectedMethod.freeShippingThreshold && parseFloat(selectedMethod.freeShippingThreshold) > 0 ? (
-                            <div className="text-xs text-green-600 dark:text-green-400">
-                              {subtotal >= parseFloat(selectedMethod.freeShippingThreshold) 
-                                ? `${t.checkout_page.freeShippingOver} ${parseFloat(selectedMethod.freeShippingThreshold).toLocaleString()} IQD`
-                                : `${(parseFloat(selectedMethod.freeShippingThreshold) - subtotal).toLocaleString()} IQD ${t.checkout_page.moreForFreeShipping}`
-                              }
                             </div>
                           ) : null}
                           {selectedMethod.description && (
@@ -2146,17 +2304,11 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                           <div className="flex justify-between items-center">
                             <span>{t.checkout_page.shippingCostLabel}</span>
                             <span className="font-medium">
-                              {shippingCost === 0 ? t.checkout_page.freeShipping : `${shippingCost.toLocaleString()} IQD`}
+                              {shippingSelectionUnavailable
+                                ? (shippingRouteUnavailable ? shippingRouteUnavailableMessage : t.checkout_page.calculatingBestVehicle)
+                                : (shippingCost === 0 ? t.checkout_page.freeShipping : `${shippingCost.toLocaleString()} IQD`)}
                             </span>
                           </div>
-                          {selectedMethod.freeShippingThreshold && parseFloat(selectedMethod.freeShippingThreshold) > 0 && (
-                            <div className="text-xs text-green-600 dark:text-green-400">
-                              {subtotal >= parseFloat(selectedMethod.freeShippingThreshold) 
-                                ? `${t.checkout_page.freeShippingOver} ${parseFloat(selectedMethod.freeShippingThreshold).toLocaleString()} IQD`
-                                : `${(parseFloat(selectedMethod.freeShippingThreshold) - subtotal).toLocaleString()} IQD ${t.checkout_page.moreForFreeShipping}`
-                              }
-                            </div>
-                          )}
                           {selectedMethod.description && (
                             <div className="text-xs text-muted-foreground">
                               {selectedMethod.description}
@@ -2367,7 +2519,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                   <Button 
                     type="submit" 
                     className="w-full"
-                    disabled={createOrderMutation.isPending}
+                    disabled={createOrderMutation.isPending || shippingSelectionUnavailable}
                   >
                     {createOrderMutation.isPending ? t.checkout_page.processingOrder : t.checkout_page.placeOrder}
                   </Button>
@@ -2588,7 +2740,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                     </div>
 
                     {/* Smart Vehicle Selection Display */}
-                    {selectedVehicle && destinationCity && (
+                    {selectedVehicle && destinationCity && shippingQuoteReady && (
                       <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg border border-green-200 dark:border-green-800">
                         <div className="text-xs font-medium text-green-800 dark:text-green-300 mb-2 flex items-center gap-1">
                           <Car className="w-3 h-3" />
@@ -2608,23 +2760,9 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                             <span className="font-semibold">{destinationCity}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span>{t.checkout_page.baseCostLabel}</span>
-                            <span>{parseFloat(selectedVehicle.basePrice || '0').toLocaleString()} {t.checkout_page.iqd}</span>
+                            <span>{t.checkout_page.shippingCostLabel}</span>
+                            <span>{shippingCost.toLocaleString()} {t.checkout_page.iqd}</span>
                           </div>
-                          {iraqiCities?.find((city: any) => 
-                            city.nameEnglish?.toLowerCase().includes(destinationCity.toLowerCase()) ||
-                            city.nameArabic?.includes(destinationCity) ||
-                            city.name?.toLowerCase().includes(destinationCity.toLowerCase())
-                          ) && (
-                            <div className="flex justify-between">
-                              <span>{t.checkout_page.distanceFromErbil}</span>
-                              <span>{iraqiCities.find((city: any) => 
-                                city.nameEnglish?.toLowerCase().includes(destinationCity.toLowerCase()) ||
-                                city.nameArabic?.includes(destinationCity) ||
-                                city.name?.toLowerCase().includes(destinationCity.toLowerCase())
-                              )?.distanceFromErbilKm} {t.checkout_page.kilometer}</span>
-                            </div>
-                          )}
                         </div>
                         <div className="mt-2 pt-2 border-t border-green-200 dark:border-green-700">
                           <div className="text-xs text-green-600 dark:text-green-400 italic flex items-center gap-1">
@@ -2686,7 +2824,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                       onValueChange={(value) => {
                                         field.onChange(value);
                                         // Find province ID and set it for city filtering
-                                        const selectedProvince = provinces.find((p: any) => p.nameEnglish === value || p.name === value);
+                                        const selectedProvince = provinces.find((p: any) => canonicalGeographyName(p) === value || geographyName(p) === value);
                                         if (selectedProvince) {
                                           setSelectedSecondaryProvinceId(selectedProvince.id);
                                           // Clear city selection when province changes
@@ -2702,8 +2840,8 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                       </FormControl>
                                       <SelectContent>
                                         {Array.isArray(provinces) && provinces.map((province: any) => (
-                                          <SelectItem key={province.id} value={province.nameEnglish || province.name}>
-                                            {province.nameEnglish} / {province.name}
+                                          <SelectItem key={province.id} value={canonicalGeographyName(province)}>
+                                            {geographyName(province)} / {canonicalGeographyName(province)}
                                           </SelectItem>
                                         ))}
                                       </SelectContent>
@@ -2733,8 +2871,8 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                       </FormControl>
                                       <SelectContent>
                                         {Array.isArray(secondaryCities) && secondaryCities.map((city: any) => (
-                                          <SelectItem key={city.id} value={city.nameEnglish || city.name}>
-                                            {city.nameEnglish} / {city.nameArabic || city.name}
+                                          <SelectItem key={city.id} value={canonicalGeographyName(city)}>
+                                            {geographyName(city)} / {canonicalGeographyName(city)}
                                           </SelectItem>
                                         ))}
                                       </SelectContent>
@@ -2858,7 +2996,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                         onValueChange={(value) => {
                                           field.onChange(value);
                                           // Find province ID and set it for city filtering
-                                          const selectedProvince = provinces.find((p: any) => p.nameEnglish === value || p.name === value);
+                                          const selectedProvince = provinces.find((p: any) => canonicalGeographyName(p) === value || geographyName(p) === value);
                                           if (selectedProvince) {
                                             setSelectedSecondaryProvinceId(selectedProvince.id);
                                             // Clear city selection when province changes
@@ -2874,8 +3012,8 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                         </FormControl>
                                         <SelectContent>
                                           {Array.isArray(provinces) && provinces.map((province: any) => (
-                                            <SelectItem key={province.id} value={province.nameEnglish || province.name}>
-                                              {province.nameEnglish} / {province.name}
+                                            <SelectItem key={province.id} value={canonicalGeographyName(province)}>
+                                              {geographyName(province)} / {canonicalGeographyName(province)}
                                             </SelectItem>
                                           ))}
                                         </SelectContent>
@@ -2901,8 +3039,8 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                         </FormControl>
                                         <SelectContent>
                                           {Array.isArray(secondaryCities) && secondaryCities.map((city: any) => (
-                                            <SelectItem key={city.id} value={city.nameEnglish || city.name}>
-                                              {city.nameEnglish} / {city.nameArabic || city.name}
+                                            <SelectItem key={city.id} value={canonicalGeographyName(city)}>
+                                              {geographyName(city)} / {canonicalGeographyName(city)}
                                             </SelectItem>
                                           ))}
                                         </SelectContent>
@@ -3168,7 +3306,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                       onValueChange={(value) => {
                                         field.onChange(value);
                                         // Find province ID and set it for city filtering
-                                        const selectedProvince = provinces.find((p: any) => p.nameEnglish === value || p.name === value);
+                                        const selectedProvince = provinces.find((p: any) => canonicalGeographyName(p) === value || geographyName(p) === value);
                                         if (selectedProvince) {
                                           setSelectedSecondaryProvinceId(selectedProvince.id);
                                           // Clear city selection when province changes
@@ -3184,8 +3322,8 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                       </FormControl>
                                       <SelectContent>
                                         {Array.isArray(provinces) && provinces.map((province: any) => (
-                                          <SelectItem key={province.id} value={province.nameEnglish || province.name}>
-                                            {province.nameEnglish} / {province.name}
+                                          <SelectItem key={province.id} value={canonicalGeographyName(province)}>
+                                            {geographyName(province)} / {canonicalGeographyName(province)}
                                           </SelectItem>
                                         ))}
                                       </SelectContent>
@@ -3211,8 +3349,8 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                       </FormControl>
                                       <SelectContent>
                                         {Array.isArray(secondaryCities) && secondaryCities.map((city: any) => (
-                                          <SelectItem key={city.id} value={city.nameEnglish || city.name}>
-                                            {city.nameEnglish} / {city.nameArabic || city.name}
+                                          <SelectItem key={city.id} value={canonicalGeographyName(city)}>
+                                            {geographyName(city)} / {canonicalGeographyName(city)}
                                           </SelectItem>
                                         ))}
                                       </SelectContent>
@@ -3322,7 +3460,11 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                   </div>
                   <div className="flex justify-between">
                     <span>{t.checkout_page.shippingCostSummary}</span>
-                    <span>{shippingCost === 0 ? t.checkout_page.free : `${shippingCost.toLocaleString()} ${t.checkout_page.iqd}`}</span>
+                    <span>
+                      {shippingSelectionUnavailable
+                        ? (shippingRouteUnavailable ? shippingRouteUnavailableMessage : t.checkout_page.calculatingBestVehicle)
+                        : (shippingCost === 0 ? t.checkout_page.free : `${shippingCost.toLocaleString()} ${t.checkout_page.iqd}`)}
+                    </span>
                   </div>
                   {vatAmount > 0 && (
                     <div className="flex justify-between">
@@ -3349,7 +3491,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                   </div>
                 </div>
 
-                {shippingCost === 0 && (
+                {!shippingSelectionUnavailable && shippingCost === 0 && (
                   <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg border border-green-200 dark:border-green-800">
                     <p className="text-sm text-green-800 dark:text-green-300">
                       {t.checkout_page.freeShippingEligible}

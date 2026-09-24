@@ -63,6 +63,8 @@ import { ArrowLeft, Car, Star, TrendingUp, Calendar as CalendarIcon, Search, Fil
 import { format } from 'date-fns';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { logisticsLocale, logisticsT, type LogisticsLanguage } from './logistics-translations';
+import LogisticsWorkspaceHeader from '@/components/admin/logistics-redesign/LogisticsWorkspaceHeader';
+import LogisticsCenterRouteEditor from '@/components/admin/logistics-redesign/LogisticsCenterRouteEditor';
 
 // Types for vehicle history
 interface VehicleDeliveryHistory {
@@ -4958,85 +4960,10 @@ const LogisticsManagement = () => {
     const [editingCity, setEditingCity] = useState<any>(null);
     const [isEditProvinceDialogOpen, setIsEditProvinceDialogOpen] = useState(false);
     const [isEditCityDialogOpen, setIsEditCityDialogOpen] = useState(false);
-    const [selectedOriginCity, setSelectedOriginCity] = useState<any>(null);
-    const [citySortField, setCitySortField] = useState<string | null>(null);
-    const [citySortDirection, setCitySortDirection] = useState<'asc' | 'desc'>('asc');
 
     const geographyProvinces = (geographyProvincesResponse as any)?.data || [];
     const geographyCities = (geographyCitiesResponse as any)?.data || [];
 
-    // Calculate dynamic distances based on selected origin city
-    const calculateDistance = (targetCity: any) => {
-      if (!selectedOriginCity) return targetCity.distance_from_erbil_km || 0;
-      
-      const originDistance = selectedOriginCity.distance_from_erbil_km || 0;
-      const targetDistance = targetCity.distance_from_erbil_km || 0;
-      
-      // Calculate relative distance using Erbil as common reference point
-      return Math.abs(targetDistance - originDistance);
-    };
-
-    // Handle sorting for cities table
-    const handleCitySort = (field: string) => {
-      if (citySortField === field) {
-        setCitySortDirection(citySortDirection === 'asc' ? 'desc' : 'asc');
-      } else {
-        setCitySortField(field);
-        setCitySortDirection('asc');
-      }
-    };
-
-    // Sort cities based on current sort field and direction
-    const sortedCities = [...geographyCities].sort((a: any, b: any) => {
-      if (!citySortField) return 0;
-      
-      let aValue, bValue;
-      
-      switch (citySortField) {
-        case 'id':
-          aValue = a.id || 0;
-          bValue = b.id || 0;
-          break;
-        case 'name':
-          aValue = a.name_arabic || a.name || '';
-          bValue = b.name_arabic || b.name || '';
-          break;
-        case 'province':
-          aValue = a.province_name || '';
-          bValue = b.province_name || '';
-          break;
-        case 'distance':
-          aValue = calculateDistance(a);
-          bValue = calculateDistance(b);
-          break;
-
-        default:
-          return 0;
-      }
-      
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        const result = aValue.localeCompare(bValue, 'ar');
-        return citySortDirection === 'asc' ? result : -result;
-      }
-      
-      if (typeof aValue === 'number' && typeof bValue === 'number') {
-        const result = aValue - bValue;
-        return citySortDirection === 'asc' ? result : -result;
-      }
-      
-      return 0;
-    });
-
-    // Calculate province distance (average of cities in province)
-    const calculateProvinceDistance = (province: any) => {
-      if (!selectedOriginCity) return 0;
-      
-      const provinceCities = geographyCities.filter((city: any) => city.province_id === province.id);
-      if (provinceCities.length === 0) return 0;
-      
-      const totalDistance = provinceCities.reduce((sum: number, city: any) => sum + calculateDistance(city), 0);
-      return Math.round(totalDistance / provinceCities.length);
-    };
 
     // Update province mutation
     const updateProvinceMutation = useMutation({
@@ -5126,63 +5053,6 @@ const LogisticsManagement = () => {
           </div>
         </div>
 
-        {/* Origin City Selection */}
-        <Card className="border-2 border-blue-200 bg-blue-50">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="bg-blue-600 p-2 rounded-full">
-                  <MapPin className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <h4 className="font-semibold text-blue-900">{t('originCity')}</h4>
-                  <p className="text-sm text-blue-700">
-                    {selectedOriginCity 
-                      ? `${t('originCity')}: ${selectedOriginCity.name_arabic || selectedOriginCity.name}`
-                      : `${t('originCity')}: Erbil`
-                    }
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <select
-                  value={selectedOriginCity?.id || ''}
-                  onChange={(e) => {
-                    const cityId = parseInt(e.target.value);
-                    const city = geographyCities.find((c: any) => c.id === cityId);
-                    setSelectedOriginCity(city || null);
-                  }}
-                  className="p-2 border rounded-md bg-white text-sm min-w-[200px]"
-                >
-                  <option value="">Erbil ({t('unknown')})</option>
-                  {geographyCities.map((city: any) => (
-                    <option key={city.id} value={city.id}>
-                      {city.name_arabic || city.name} - {city.province_name}
-                    </option>
-                  ))}
-                </select>
-                {selectedOriginCity && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setSelectedOriginCity(null)}
-                    className="text-blue-600 border-blue-600 hover:bg-blue-100"
-                  >
-                    {t('reset')}
-                  </Button>
-                )}
-              </div>
-            </div>
-            {selectedOriginCity && (
-              <div className="mt-3 p-3 bg-blue-100 rounded-md">
-                <p className="text-sm text-blue-800">
-                  <strong>{t('notes')}:</strong> {t('distanceHelp')}.
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
         <Card className="w-full">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -5213,50 +5083,20 @@ const LogisticsManagement = () => {
                       }}>
                       <TableRow className="bg-white" style={{ backgroundColor: 'white', position: 'relative', zIndex: 50 }}>
                         <TableHead className="text-right w-20 bg-white sticky top-0 z-50 border-b" style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 50 }}>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => handleCitySort('id')}
-                            className="flex items-center justify-end gap-1 p-0 h-auto font-medium text-right w-full"
-                          >
+                          <div className="font-medium text-right">
                             {t('rowNumber')}
-                            <ArrowUpDown className="h-3 w-3" />
-                          </Button>
+                          </div>
                         </TableHead>
                         <TableHead className="text-right w-48 bg-white sticky top-0 z-50 border-b" style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 50 }}>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => handleCitySort('name')}
-                            className="flex items-center justify-end gap-1 p-0 h-auto font-medium text-right w-full"
-                          >
+                          <div className="font-medium text-right">
                             {t('cityName')}
-                            <ArrowUpDown className="h-3 w-3" />
-                          </Button>
+                          </div>
                         </TableHead>
                         <TableHead className="text-right w-32 bg-white sticky top-0 z-50 border-b" style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 50 }}>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => handleCitySort('province')}
-                            className="flex items-center justify-end gap-1 p-0 h-auto font-medium text-right w-full"
-                          >
+                          <div className="font-medium text-right">
                             {t('province')}
-                            <ArrowUpDown className="h-3 w-3" />
-                          </Button>
+                          </div>
                         </TableHead>
-                        <TableHead className="text-right w-64 bg-white sticky top-0 z-50 border-b" style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 50 }}>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => handleCitySort('distance')}
-                            className="flex items-center justify-end gap-1 p-0 h-auto font-medium text-right w-full"
-                          >
-                            {t('distanceFromOrigin').replace('{city}', selectedOriginCity ? (selectedOriginCity.name_arabic || selectedOriginCity.name) : 'Erbil')}
-                            <ArrowUpDown className="h-3 w-3" />
-                          </Button>
-                        </TableHead>
-
                         <TableHead className="text-right w-32 bg-white sticky top-0 z-50 border-b" style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 50 }}>
                           <div className="flex items-center justify-end gap-1">
                             <Bus className="h-4 w-4 text-blue-600" />
@@ -5268,7 +5108,7 @@ const LogisticsManagement = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {sortedCities.map((city: any) => (
+                      {geographyCities.map((city: any) => (
                       <TableRow key={city.id}>
                         <TableCell className="font-medium text-right w-20">{city.id}</TableCell>
                         <TableCell className="text-right w-48">
@@ -5283,40 +5123,6 @@ const LogisticsManagement = () => {
                           </div>
                         </TableCell>
                         <TableCell className="text-right w-32">{city.province_name}</TableCell>
-                        <TableCell className="text-right w-64">
-                          <div className="flex justify-end items-center gap-2">
-                            <Badge 
-                              variant="outline" 
-                              className={selectedOriginCity?.id === city.id ? 
-                                "bg-yellow-100 border-yellow-500 text-yellow-700" : 
-                                "bg-green-50 border-green-200 text-green-700"
-                              }
-                            >
-                              {selectedOriginCity?.id === city.id ? 
-                                t('originZero') :
-                                `${calculateDistance(city)} ${t('unitKm')}`
-                              }
-                            </Badge>
-                            {!selectedOriginCity && (
-                              <button
-                                onClick={() => {
-                                  setEditingCity(city);
-                                  setIsEditCityDialogOpen(true);
-                                }}
-                                className="text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-1 py-0.5 rounded transition-colors"
-                                title={t('quickDistanceEdit')}
-                              >
-                                📍
-                              </button>
-                            )}
-                          </div>
-                          {!selectedOriginCity && (
-                            <div className="text-xs text-gray-500 mt-1 text-right">
-                              ({t('origin')}: {city.distance_from_erbil_km || 0} {t('unitKm')})
-                            </div>
-                          )}
-                        </TableCell>
-
                         <TableCell className="text-right w-32">
                           <div className="flex justify-end">
                             {city.has_intercity_bus_line ? (
@@ -5475,7 +5281,7 @@ const LogisticsManagement = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="distance_from_erbil_km" className="text-blue-700 font-medium">
-                      {t('originDistance')}
+                      {t('legacyErbilBaseline')}
                     </Label>
                     <div className="relative">
                       <Input 
@@ -5495,7 +5301,7 @@ const LogisticsManagement = () => {
                       </span>
                     </div>
                     <p className="text-xs text-gray-600 bg-blue-50 p-2 rounded">
-                      {t('distanceHelp')}
+                      {t('legacyErbilBaselineDescription')}
                     </p>
                   </div>
 
@@ -6140,23 +5946,21 @@ const LogisticsManagement = () => {
   };
 
   return (
-    <div className="container mx-auto min-h-[100dvh] p-4 md:p-6" dir={direction}>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">{t('title')}</h1>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline">
-            {mappedLogisticsOrders.length} {t('activeOrders')}
-          </Badge>
-          {orderCount > 0 && (
-            <Badge className="bg-orange-500 animate-pulse">
-              {orderCount} {t('newOrders')}
-            </Badge>
-          )}
-        </div>
-      </div>
+    <div className="min-h-[100dvh] bg-[#eef4f1] px-3 py-4 md:px-6 md:py-6" dir={direction}>
+      <div className="mx-auto max-w-[1680px]">
+      <LogisticsWorkspaceHeader
+        title={t('title')}
+        activeOrdersLabel={t('activeOrders')}
+        newOrdersLabel={t('newOrders')}
+        activeOrders={mappedLogisticsOrders.length}
+        newOrders={orderCount}
+        eyebrow={t('workspaceEyebrow')}
+        description={t('workspaceDescription')}
+        online={t('centerOnline')}
+      />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="flex w-full flex-wrap justify-start gap-1 border border-slate-200 bg-slate-100 p-1">
+        <TabsList className="sticky top-2 z-20 flex w-full flex-wrap justify-start gap-1 rounded-2xl border border-[#cddbd6] bg-[#e5efea]/95 p-1.5 shadow-[0_12px_30px_-22px_rgba(24,61,54,0.75)] backdrop-blur">
           <TabsTrigger value="orders">{t('orders')}</TabsTrigger>
           <TabsTrigger value="delivered">{t('delivered')}</TabsTrigger>
           <TabsTrigger value="companies">{t('tabTransportCompanies')}</TabsTrigger>
@@ -6195,6 +5999,7 @@ const LogisticsManagement = () => {
         </TabsContent>
 
         <TabsContent value="international">
+          <LogisticsCenterRouteEditor t={t} />
           <InternationalGeographyTab iraqContent={<GeographyTab />} />
         </TabsContent>
 
@@ -6210,6 +6015,7 @@ const LogisticsManagement = () => {
           <SettingsTab />
         </TabsContent>
       </Tabs>
+      </div>
 
       {/* Vehicle Assignment Dialog */}
       <Dialog open={isVehicleAssignmentOpen} onOpenChange={setIsVehicleAssignmentOpen}>

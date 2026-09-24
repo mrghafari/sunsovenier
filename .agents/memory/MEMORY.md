@@ -37,3 +37,5 @@
 - [Central geography source](central-geography-source.md) — customer and logistics location selectors share the database-backed country, province, and city records.
 - [Abandoned cart analytics honesty](abandoned-cart-analytics-honesty.md) — retained carts and notifications support trends, but deleted history and unlinked purchases cannot prove recovery.
 - [Financial note localization](financial-note-localization.md) — translate generated approval text and wallet adjustments together at display time; preserve staff-authored notes and stored history.
+- [Manual shipping routes](manual-shipping-routes.md) — only measured directional, same-country road distances are valid; changing center must not infer routes from Erbil.
+- [Shipping quote policy](shipping-quote-policy.md) — smart-vehicle quotes bind cart, route, center, method, and checkout flow; standard rates must work without vehicle templates.

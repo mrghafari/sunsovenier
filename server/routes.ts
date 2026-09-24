@@ -59,6 +59,22 @@ import { getAwsS3Service } from './aws-s3-service';
 import { sendOrderConfirmationEmail } from "./order-confirmation-email";
 import { resolveOrderStatus } from "@shared/order-status";
 import { marketingSubscribers, marketingSuppressions, marketingCampaigns, marketingCampaignRecipients } from "@shared/email-marketing-schema";
+import {
+  getOriginRouteDistances,
+  getRouteDestinationCities,
+  getRouteDistance,
+  getShippingCenter,
+  getShippingCenterCity,
+  resolveActiveCityByName,
+  resolveShippingRoute,
+  saveRouteDistance,
+  saveShippingCenter,
+  ShippingConfigurationError,
+} from "./shipping-center-service";
+import { parsePositiveIntegerId } from "./shipping-route-resolution";
+import { calculateAuthoritativeShippingCost } from "./order-shipping-pricing";
+import { assertShippingQuoteBindings, assertShippingQuoteCheckoutFlow, signShippingQuote, verifyShippingQuote, type ShippingQuoteClaims } from "./shipping-quote";
+import { isActivePickupShippingMethod, isPickupShippingMethod, isStandardShippingMethod } from "./shipping-method-policy";
 
 const INVOICE_LANGUAGES = ['en', 'ar', 'tr', 'fa'] as const;
 type InvoiceLanguage = typeof INVOICE_LANGUAGES[number];
@@ -537,6 +553,393 @@ const requireCustomerAuth = (req: Request, res: Response, next: NextFunction) =>
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  async function getCanonicalCheckoutCartFacts(cart: unknown) {
+    if (!cart || typeof cart !== "object" || Array.isArray(cart)) {
+      throw new ShippingConfigurationError("A product cart is required for a shipping quote.", 422);
+    }
+    const entries = Object.entries(cart as Record<string, unknown>)
+      .map(([id, quantity]) => ({ id: Number(id), quantity: Number(quantity) }))
+      .sort((a, b) => a.id - b.id);
+    if (!entries.length || entries.some((entry) =>
+      !Number.isSafeInteger(entry.id) || entry.id <= 0 || !Number.isSafeInteger(entry.quantity) || entry.quantity <= 0
+    )) {
+      throw new ShippingConfigurationError("Shipping quote cart must contain valid product IDs and quantities.", 422);
+    }
+    const products = await db.select().from(shopProducts).where(inArray(shopProducts.id, entries.map((entry) => entry.id)));
+    if (products.length !== entries.length) {
+      throw new ShippingConfigurationError("Shipping quotes are only available for active shop catalog products.", 422);
+    }
+    let totalWeightKg = 0;
+    const facts = entries.map(({ id, quantity }) => {
+      const product: any = products.find((candidate: any) => candidate.id === id);
+      const value = product.grossWeight ?? product.weight;
+      let weightKg = value == null || String(value).trim() === "" ? null : Number(value);
+      if (weightKg !== null) {
+        if (!Number.isFinite(weightKg) || weightKg < 0) {
+          throw new ShippingConfigurationError(`Product ${id} has an invalid shipping weight.`, 422);
+        }
+        const units: Record<string, number> = {
+          kg: 1, kilogram: 1, kilograms: 1, g: 0.001, gram: 0.001, grams: 0.001,
+          lb: 0.45359237, lbs: 0.45359237, pound: 0.45359237, pounds: 0.45359237,
+          oz: 0.028349523125, ounce: 0.028349523125, ounces: 0.028349523125,
+          t: 1000, ton: 1000, tonne: 1000,
+        };
+        const unit = String(product.weightUnit || "kg").trim().toLowerCase();
+        if (!(unit in units)) throw new ShippingConfigurationError(`Product ${id} uses an unsupported weight unit.`, 422);
+        weightKg *= units[unit];
+        totalWeightKg += weightKg * quantity;
+      }
+      const shippingClass = String(product.shippingClass || "").toLowerCase();
+      const isFlammable = product.isFlammable === true || shippingClass === "flammable";
+      return {
+        id,
+        quantity,
+        weightKg: weightKg === null ? null : Number(weightKg.toFixed(8)),
+        isFlammable,
+        isHazardous: shippingClass === "hazardous" && !isFlammable,
+      };
+    });
+    return {
+      cart: facts,
+      totalWeightKg: Number(totalWeightKg.toFixed(8)),
+      isFlammable: facts.some((item) => item.isFlammable),
+      isHazardous: facts.some((item) => item.isHazardous),
+    };
+  }
+
+  function issueCheckoutShippingQuote(input: {
+    cartFacts: Awaited<ReturnType<typeof getCanonicalCheckoutCartFacts>>;
+    center: { cityId: number; countryCode: string };
+    destinationCityId: number;
+    distanceKm: number;
+    method: string;
+    selectedVehicles: ShippingQuoteClaims["selectedVehicles"];
+    shippingCost: number;
+  }) {
+    if (!Number.isFinite(input.shippingCost) || input.shippingCost < 0) {
+      throw new ShippingConfigurationError("Vehicle quote has no valid server-side price.", 422);
+    }
+    return signShippingQuote({
+      center: { cityId: input.center.cityId, countryCode: input.center.countryCode },
+      destinationCityId: input.destinationCityId,
+      distanceKm: input.distanceKm,
+      cart: input.cartFacts.cart,
+      totalWeightKg: input.cartFacts.totalWeightKg,
+      isFlammable: input.cartFacts.isFlammable,
+      isHazardous: input.cartFacts.isHazardous,
+      method: input.method,
+      selectedVehicles: input.selectedVehicles,
+      shippingCost: input.shippingCost,
+    });
+  }
+
+  // Resolve checkout shipping from authoritative geography, catalog weights and
+  // active server-side rates. Client-calculated shipping prices are display-only.
+  async function validateAndPriceOrderShipping(input: {
+    methodSelector: unknown;
+    methodValue?: unknown;
+    selectorIsDeliveryMethod?: boolean;
+    checkoutFlow?: "shop" | "customers" | "standard_quote";
+    standardMethodsOnly?: boolean;
+    destinationCityId?: unknown;
+    destinationCity?: unknown;
+    destinationProvince?: unknown;
+    destinationCountry?: unknown;
+    cart: Record<string, unknown>;
+    shippingQuoteToken?: unknown;
+  }): Promise<{ shippingCost: number; itemSubtotal: number; totalWeight: number; productFacts: Map<number, any>; shippingQuoteVehicle?: any; destinationCityId?: number }> {
+    const productIds = Object.keys(input.cart || {}).map((id) => Number(id));
+    if (!productIds.length || productIds.some((id) => !Number.isSafeInteger(id) || id <= 0)) {
+      throw new ShippingConfigurationError("Order must contain valid products.", 422);
+    }
+    const products = await db.select().from(shopProducts).where(inArray(shopProducts.id, productIds));
+    const productFacts = new Map<number, any>();
+    let itemSubtotal = 0;
+    let totalWeight = 0;
+    for (const id of productIds) {
+      const product: any = products.find((candidate: any) => candidate.id === id);
+      if (!product) throw new ShippingConfigurationError(`Product ${id} is unavailable.`, 422);
+      const quantity = Number(input.cart[String(id)]);
+      if (!Number.isSafeInteger(quantity) || quantity <= 0) {
+        throw new ShippingConfigurationError(`Invalid quantity for product ${id}.`, 422);
+      }
+      const weightValue = product.grossWeight || product.weight;
+      let weight = weightValue == null || String(weightValue).trim() === "" ? null : Number(weightValue);
+      if (weight != null && (!Number.isFinite(weight) || weight < 0)) {
+        throw new ShippingConfigurationError(`Product ${id} has an invalid shipping weight.`, 422);
+      }
+      if (weight !== null) {
+        const unit = String(product.weightUnit || "kg").trim().toLowerCase();
+        const kgFactor: Record<string, number> = {
+          kg: 1, kilogram: 1, kilograms: 1, g: 0.001, gram: 0.001, grams: 0.001,
+          lb: 0.45359237, lbs: 0.45359237, pound: 0.45359237, pounds: 0.45359237,
+          oz: 0.028349523125, ounce: 0.028349523125, ounces: 0.028349523125,
+          t: 1000, ton: 1000, tonne: 1000,
+        };
+        if (!(unit in kgFactor)) throw new ShippingConfigurationError(`Product ${id} uses an unsupported weight unit.`, 422);
+        weight *= kgFactor[unit];
+      }
+      let unitPrice = Math.round(Number(product.price));
+      if (!Number.isFinite(unitPrice) || unitPrice < 0) {
+        throw new ShippingConfigurationError(`Product ${id} has an invalid catalog price.`, 422);
+      }
+      let discounts: any = product.bulkPurchaseEnabled ? product.bulkPurchaseDiscounts : product.quantityDiscounts;
+      if (typeof discounts === "string") {
+        try { discounts = JSON.parse(discounts); } catch { discounts = []; }
+      }
+      if (Array.isArray(discounts)) {
+        const applicable = discounts
+          .filter((discount: any) => quantity >= Number(discount.minQty ?? discount.min_qty ?? 0))
+          .sort((a: any, b: any) => Number(b.minQty ?? b.min_qty ?? 0) - Number(a.minQty ?? a.min_qty ?? 0))[0];
+        if (applicable) {
+          const discount = Number(applicable.discount ?? Number(applicable.discountPercent ?? applicable.discount_percent ?? 0) / 100);
+          if (Number.isFinite(discount) && discount >= 0 && discount <= 1) {
+            unitPrice = Math.round(unitPrice * (1 - discount));
+          }
+        }
+      }
+      itemSubtotal += unitPrice * quantity;
+      if (weight !== null) totalWeight += weight * quantity;
+      productFacts.set(id, { ...product, quantity, unitPrice, weight });
+    }
+    const hasHazardousProducts = [...productFacts.values()].some((product: any) =>
+      product.isFlammable === true
+      || ["hazardous", "flammable"].includes(String(product.shippingClass || "").toLowerCase()),
+    );
+
+    const selector = String(input.methodSelector ?? "").trim();
+    const methodValue = String(input.methodValue ?? "").trim();
+    let selectedRate: any = null;
+    let selectedMethod: any = null;
+    if (selector && /^[1-9]\d*$/.test(selector)) {
+      if (input.selectorIsDeliveryMethod) {
+        const methodRows = await db.select().from(deliveryMethods)
+          .where(and(eq(deliveryMethods.id, Number(selector)), eq(deliveryMethods.isActive, true))).limit(1);
+        selectedMethod = methodRows[0] || null;
+      } else {
+        const rateRows = await db.select().from(shippingRates)
+          .where(and(eq(shippingRates.id, Number(selector)), eq(shippingRates.isActive, true))).limit(1);
+        selectedRate = rateRows[0] || null;
+      }
+    }
+    if (selector && /^[1-9]\d*$/.test(selector) && !selectedRate && !selectedMethod) {
+      throw new ShippingConfigurationError("The selected delivery method is inactive or unavailable.", 422);
+    }
+    const canonicalMethod = String(selectedRate?.deliveryMethod || selectedMethod?.value || methodValue || selector).toLowerCase();
+    if (!canonicalMethod || canonicalMethod === "unknown") {
+      throw new ShippingConfigurationError("An active delivery method must be selected.", 422);
+    }
+    if (selectedRate) {
+      const parentMethod = await db.select().from(deliveryMethods)
+        .where(and(eq(deliveryMethods.value, canonicalMethod), eq(deliveryMethods.isActive, true))).limit(1);
+      if (!parentMethod[0]) throw new ShippingConfigurationError("The selected delivery method is inactive.", 422);
+      selectedMethod = parentMethod[0];
+    }
+    if (!selectedMethod) {
+      const methods = await db.select().from(deliveryMethods)
+        .where(and(eq(deliveryMethods.value, canonicalMethod), eq(deliveryMethods.isActive, true))).limit(1);
+      selectedMethod = methods[0] || null;
+    }
+    if (!selectedMethod) throw new ShippingConfigurationError("The selected delivery method is inactive or unavailable.", 422);
+    const isPickupMethod = isPickupShippingMethod(canonicalMethod);
+    if (hasHazardousProducts && canonicalMethod !== "smart_vehicle") {
+      throw new ShippingConfigurationError("Hazardous products require smart-vehicle delivery.", 422);
+    }
+    if (input.shippingQuoteToken != null && (isPickupMethod || canonicalMethod !== "smart_vehicle")) {
+      throw new ShippingConfigurationError("A vehicle quote is only valid for smart-vehicle delivery.", 422);
+    }
+    if (input.standardMethodsOnly && !isStandardShippingMethod(canonicalMethod)) {
+      throw new ShippingConfigurationError("Only active standard delivery methods can be quoted.", 422);
+    }
+    if (isPickupMethod) {
+      if (!isActivePickupShippingMethod(canonicalMethod, selectedMethod)) {
+        throw new ShippingConfigurationError("The selected pickup method is inactive or unavailable.", 422);
+      }
+      return { shippingCost: 0, itemSubtotal, totalWeight, productFacts };
+    }
+
+    const countryName = String(input.destinationCountry ?? "").trim();
+    let countryCode: string | undefined;
+    if (countryName) {
+      const countryResult = await pool.query(
+        `SELECT code FROM geography_countries
+         WHERE is_active = true
+           AND (UPPER(code) = UPPER($1)
+             OR LOWER(name_english) = LOWER($1)
+             OR LOWER(name_arabic) = LOWER($1)
+             OR LOWER(name_persian) = LOWER($1))
+         LIMIT 1`,
+        [countryName],
+      );
+      countryCode = countryResult.rows[0]?.code;
+      if (!countryCode) throw new ShippingConfigurationError("Destination country is not active or recognized.", 422);
+    }
+    const route = await resolveShippingRoute({
+      destinationCityId: input.destinationCityId,
+      destinationCity: input.destinationCity,
+      destinationProvince: input.destinationProvince,
+      destinationCountryCode: countryCode,
+    });
+    const cityResult = await pool.query(
+      `SELECT c.name, c.name_arabic, c.name_english,
+              p.name AS province_name, p.name_arabic AS province_name_arabic,
+              p.name_english AS province_name_english
+       FROM iraqi_cities c JOIN iraqi_provinces p ON p.id = c.province_id
+       WHERE c.id = $1 AND c.is_active = true AND p.is_active = true LIMIT 1`,
+      [route.destinationCityId],
+    );
+    if (!cityResult.rows[0]) throw new ShippingConfigurationError("Destination city is not active.", 422);
+    const destinationCity = cityResult.rows[0].name;
+    const destinationProvince = cityResult.rows[0].province_name;
+    const normalizedCityNames = [cityResult.rows[0].name, cityResult.rows[0].name_arabic, cityResult.rows[0].name_english]
+      .filter(Boolean).map((name: string) => name.trim().toLocaleLowerCase());
+    const normalizedProvinceNames = [
+      cityResult.rows[0].province_name,
+      cityResult.rows[0].province_name_arabic,
+      cityResult.rows[0].province_name_english,
+    ].filter(Boolean).map((name: string) => name.trim().toLocaleLowerCase());
+    const matchesRateDestination = (candidate: any) =>
+      (!candidate.cityName || normalizedCityNames.includes(candidate.cityName.trim().toLocaleLowerCase()))
+      && (!candidate.provinceName || normalizedProvinceNames.includes(candidate.provinceName.trim().toLocaleLowerCase()));
+
+    const needsVehicleQuote = hasHazardousProducts || canonicalMethod === "smart_vehicle";
+    if (needsVehicleQuote) {
+      let quote: ShippingQuoteClaims;
+      try {
+        quote = verifyShippingQuote(input.shippingQuoteToken);
+      } catch (error) {
+        throw new ShippingConfigurationError(error instanceof Error ? error.message : "A valid shipping quote is required.", 422);
+      }
+      if (!hasHazardousProducts && canonicalMethod !== "smart_vehicle") {
+        throw new ShippingConfigurationError("A vehicle quote is only valid for smart-vehicle or hazardous-goods delivery.", 422);
+      }
+      const center = await getShippingCenter();
+      const currentCart = [...productFacts.entries()].map(([id, product]: [number, any]) => ({
+        id,
+        quantity: product.quantity,
+        weightKg: product.weight === null ? null : Number(Number(product.weight).toFixed(8)),
+        isFlammable: product.isFlammable === true || String(product.shippingClass || "").toLowerCase() === "flammable",
+        isHazardous: String(product.shippingClass || "").toLowerCase() === "hazardous" && product.isFlammable !== true,
+      })).sort((a, b) => a.id - b.id);
+      const currentFlammable = currentCart.some((item) => item.isFlammable);
+      const currentHazardous = currentCart.some((item) => item.isHazardous);
+      try {
+        assertShippingQuoteBindings(quote, {
+          center,
+          destinationCityId: route.destinationCityId,
+          distanceKm: route.distanceKm,
+          cart: currentCart,
+          totalWeightKg: Number(totalWeight.toFixed(8)),
+          isFlammable: currentFlammable,
+          isHazardous: currentHazardous,
+          method: input.checkoutFlow === "shop" ? "vehicle_quote" : "smart_vehicle",
+        });
+        if (input.checkoutFlow === "shop" || input.checkoutFlow === "customers") {
+          assertShippingQuoteCheckoutFlow(quote, {
+            flow: input.checkoutFlow,
+            methodSelector: selector,
+            canonicalMethod,
+          });
+          if (input.checkoutFlow === "shop" && selectedMethod?.id !== 7) {
+            throw new Error("The shop checkout vehicle quote requires active delivery method 7.");
+          }
+        }
+        if (input.checkoutFlow === "standard_quote") {
+          throw new Error("Standard shipping quotes cannot be used for vehicle delivery.");
+        }
+      } catch (error) {
+        throw new ShippingConfigurationError(error instanceof Error ? error.message : "Shipping quote bindings do not match.", 422);
+      }
+      return {
+        shippingCost: quote.shippingCost,
+        itemSubtotal,
+        totalWeight,
+        productFacts,
+        shippingQuoteVehicle: quote.selectedVehicles,
+      };
+    }
+
+    if (input.standardMethodsOnly && !isStandardShippingMethod(canonicalMethod)) {
+      throw new ShippingConfigurationError("Only active standard delivery methods can be quoted.", 422);
+    }
+    let rate = selectedRate;
+    if (!rate) {
+      if (!selectedMethod) throw new ShippingConfigurationError("The selected delivery method is inactive or unavailable.", 422);
+      const rates = await db.select().from(shippingRates)
+        .where(and(eq(shippingRates.deliveryMethod, canonicalMethod), eq(shippingRates.isActive, true)));
+      rate = rates
+        .filter(matchesRateDestination)
+        .sort((a: any, b: any) =>
+          Number(Boolean(b.cityName)) - Number(Boolean(a.cityName))
+          || Number(Boolean(b.provinceName)) - Number(Boolean(a.provinceName)))[0] || null;
+    }
+    if (rate && !matchesRateDestination(rate)) {
+      throw new ShippingConfigurationError("The selected shipping rate does not cover the active destination city.", 422);
+    }
+    const pricing = rate || selectedMethod;
+    if (!pricing) throw new ShippingConfigurationError("No active server-side shipping rate is available for this destination.", 422);
+    const basePrice = rate?.basePrice ?? selectedMethod?.baseCost;
+    const pricePerKg = rate?.pricePerKg ?? selectedMethod?.costPerKg ?? 0;
+    if (pricePerKg > 0 && [...productFacts.values()].some((product: any) => product.weight === null)) {
+      throw new ShippingConfigurationError("Shipping price requires a catalog weight for every order item.", 422);
+    }
+    let shippingCost: number;
+    try {
+      shippingCost = calculateAuthoritativeShippingCost({
+        basePrice,
+        pricePerKg,
+        totalWeightKg: totalWeight,
+        itemSubtotal,
+        freeShippingThreshold: rate?.freeShippingThreshold ?? selectedMethod?.freeShippingThreshold,
+      });
+    } catch {
+      throw new ShippingConfigurationError("The selected delivery method has no valid server-side price.", 422);
+    }
+    return {
+      shippingCost,
+      itemSubtotal,
+      totalWeight,
+      productFacts,
+      ...(input.standardMethodsOnly ? { destinationCityId: route.destinationCityId } : {}),
+    };
+  }
+
+  // Public, read-only quote for active standard delivery methods. This shares
+  // the same catalog, route, and server-side rate validation as order creation.
+  app.post("/api/shipping/quote-standard", async (req, res) => {
+    try {
+      const { cart, destinationCityId, destinationCity, destinationProvince, destinationCountryCode, shippingMethod } = req.body || {};
+      if (!cart || typeof cart !== "object" || Array.isArray(cart) || shippingMethod == null) {
+        throw new ShippingConfigurationError("A cart and active standard shipping method are required.", 422);
+      }
+      const quote = await validateAndPriceOrderShipping({
+        methodSelector: shippingMethod,
+        selectorIsDeliveryMethod: true,
+        checkoutFlow: "standard_quote",
+        standardMethodsOnly: true,
+        destinationCityId,
+        destinationCity,
+        destinationProvince,
+        destinationCountry: destinationCountryCode,
+        cart,
+      });
+      return res.json({
+        success: true,
+        data: {
+          shippingCost: quote.shippingCost,
+          ...(quote.destinationCityId !== undefined ? { destinationCityId: quote.destinationCityId } : {}),
+        },
+      });
+    } catch (error) {
+      const statusCode = error instanceof ShippingConfigurationError && error.statusCode === 503 ? 503 : 422;
+      return res.status(statusCode).json({
+        success: false,
+        message: error instanceof Error ? error.message : "Unable to quote standard shipping.",
+        code: "SHIPPING_VALIDATION_FAILED",
+      });
+    }
+  });
+
   // Initialize sync service at startup
   console.log('🔄 [SYNC SERVICE] Initializing automatic table synchronization system...');
   try {
@@ -5821,14 +6224,12 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       console.log('[DEBUG] Iraqi cities endpoint called');
       const { provinceId } = req.query;
       
-      let query = db
+      const conditions = [eq(iraqiCities.isActive, true)];
+      if (provinceId) conditions.push(eq(iraqiCities.provinceId, parseInt(provinceId as string)));
+      const query = db
         .select()
         .from(iraqiCities)
-        .where(eq(iraqiCities.isActive, true));
-
-      if (provinceId) {
-        query = query.where(eq(iraqiCities.provinceId, parseInt(provinceId as string)));
-      }
+        .where(and(...conditions));
 
       const cities = await query.orderBy(iraqiCities.nameArabic);
 
@@ -6298,7 +6699,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         errorMessage = "احراز هویت مورد نیاز است";
       }
       
-      res.status(statusCode).json({ 
+      res.status(statusCode).json({
         success: false, 
         message: errorMessage
       });
@@ -18779,8 +19180,43 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
     try {
       const customerId = (req.session as any)?.customerId;
       const crmCustomerId = (req.session as any)?.crmCustomerId;
-      const { items, customerInfo, recipientInfo, totalAmount, shippingCost, notes, shippingMethod, paymentMethod, walletAmountUsed, remainingAmount, vatAmount, dutiesAmount, vehicleType, totalWeight } = req.body;
+      const { items, customerInfo, recipientInfo, totalAmount, shippingCost, notes, shippingMethod, paymentMethod, walletAmountUsed, remainingAmount, vatAmount, dutiesAmount, vehicleType, totalWeight, shippingQuoteToken } = req.body;
       const reservationItems = Array.isArray(items) ? items : [];
+      let shippingFacts: Awaited<ReturnType<typeof validateAndPriceOrderShipping>>;
+      try {
+        const checkoutCart = reservationItems.reduce((cart: Record<string, number>, item: any) => {
+          const productId = Number(item.productId);
+          const quantity = Number(item.quantity);
+          if (Number.isSafeInteger(productId) && productId > 0 && Number.isSafeInteger(quantity) && quantity > 0) {
+            cart[String(productId)] = (cart[String(productId)] || 0) + quantity;
+          }
+          return cart;
+        }, {});
+        shippingFacts = await validateAndPriceOrderShipping({
+          methodSelector: shippingMethod,
+          selectorIsDeliveryMethod: true,
+          checkoutFlow: "shop",
+          destinationCityId: recipientInfo?.deliveryCityId ?? recipientInfo?.cityId,
+          destinationCity: recipientInfo?.deliveryCity || customerInfo?.city,
+          destinationProvince: recipientInfo?.deliveryProvince || customerInfo?.province,
+          destinationCountry: recipientInfo?.deliveryCountry || customerInfo?.country,
+          cart: checkoutCart,
+          shippingQuoteToken,
+        });
+      } catch (shippingError) {
+        const statusCode = shippingError instanceof ShippingConfigurationError && shippingError.statusCode === 503 ? 503 : 422;
+        return res.status(statusCode).json({
+          success: false,
+          message: shippingError instanceof Error ? shippingError.message : "Unable to verify shipping for this order.",
+          code: "SHIPPING_VALIDATION_FAILED",
+        });
+      }
+      const serverVehicleType = shippingFacts.shippingQuoteVehicle?.[0]?.type ?? vehicleType ?? null;
+      const shopTax = await calculateOrderTaxes(shippingFacts.itemSubtotal);
+      const serverShippingCost = shippingFacts.shippingCost;
+      const serverVatAmount = Math.round(shopTax.vatAmount || 0);
+      const serverDutiesAmount = Math.round(shopTax.dutiesAmount || 0);
+      const serverTotalAmount = Math.round(shippingFacts.itemSubtotal + serverShippingCost + serverVatAmount + serverDutiesAmount);
       const reservationCart = reservationItems.reduce((cart: Record<number, number>, item: any) => {
         const productId = Number(item.productId);
         const quantity = Math.floor(Number(item.quantity));
@@ -18859,7 +19295,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           country: customerInfo.country,
           city: customerInfo.city,
           address: customerInfo.address,
-          orderValue: totalAmount,
+          orderValue: serverTotalAmount,
         };
 
         const crmCustomer = await crmStorage.createOrUpdateCustomerFromOrder(orderData);
@@ -18884,9 +19320,9 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
 
       // Process wallet payment if walletAmountUsed is provided (for all payment methods including hybrid)
       // Convert all amounts to whole numbers for IQD
-      const walletUsage = formatIQDAmount(walletAmountUsed || 0);
-      const remaining = formatIQDAmount(remainingAmount || totalAmount);
-      const formattedTotalAmount = formatIQDAmount(totalAmount);
+      const walletUsage = formatIQDAmount(Math.min(serverTotalAmount, Math.max(0, Number(walletAmountUsed) || 0)));
+      const remaining = formatIQDAmount(Math.max(0, serverTotalAmount - walletUsage));
+      const formattedTotalAmount = formatIQDAmount(serverTotalAmount);
       
       // Smart conversion for wallet_combined payment method
       if (paymentMethod === 'wallet_combined') {
@@ -19039,10 +19475,10 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       const orderData = {
         orderNumber, // Will be null for bank payments initially
         customerId: customerId || null,
-        totalAmount: Math.round(totalAmount).toString(),
-        shippingCost: Math.round(shippingCost || 0).toString(),
-        vatAmount: Math.round(vatAmount || 0).toString(), // Store frozen VAT amount from frontend calculation
-        surchargeAmount: Math.round(dutiesAmount || 0).toString(), // Store frozen duties amount from frontend calculation
+        totalAmount: Math.round(serverTotalAmount).toString(),
+        shippingCost: Math.round(serverShippingCost).toString(),
+        vatAmount: serverVatAmount.toString(),
+        surchargeAmount: serverDutiesAmount.toString(),
         status: 'pending' as const,
         // A paid transition is written only after items and exact batch
         // reservations are attached, so its trigger can finalize atomically.
@@ -19072,7 +19508,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         recipientName: recipientInfo?.recipientName || '',
         recipientPhone: recipientInfo?.recipientPhone || '',
         recipientAddress: recipientInfo?.recipientAddress || '',
-        vehicleType: vehicleType || null, // Customer's selected vehicle from checkout
+        vehicleType: serverVehicleType, // Signed server quote metadata for vehicle delivery
       };
 
       const order = await customerStorage.createOrder(orderData);
@@ -19092,7 +19528,8 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       }
       // Create order items and update stock - IQD whole numbers only
       for (const item of items) {
-        const unitPrice = Math.round(parseFloat(item.unitPrice || item.price || '0') || 0);
+        const authoritativeProduct = shippingFacts.productFacts.get(Number(item.productId));
+        const unitPrice = Math.round(authoritativeProduct?.unitPrice || 0);
         const quantity = parseInt(item.quantity || '1') || 1;
         
         await customerStorage.createOrderItem({
@@ -19120,10 +19557,10 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         await crmStorage.logCustomerActivity({
           customerId: finalCrmCustomerId,
           activityType: 'order_placed',
-          description: `سفارش جدید به مبلغ $${totalAmount} ثبت شد`,
+          description: `سفارش جدید به مبلغ $${serverTotalAmount} ثبت شد`,
           activityData: {
             orderId: order.id,
-            totalAmount,
+            totalAmount: serverTotalAmount,
             itemCount: items.length,
             source: 'website',
             orderDate: new Date().toISOString(),
@@ -19147,22 +19584,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       // Check if hybrid payment is required (wallet partially used + remaining amount)
       // CRITICAL FIX: Use the frontend's calculated remaining amount if provided, otherwise calculate
       let remainingAmountToPay;
-      if (remainingAmount !== undefined && remainingAmount !== null) {
-        // Frontend provided exact remaining amount - use it directly (format as whole number for IQD)
-        remainingAmountToPay = formatIQDAmount(remainingAmount);
-        console.log('💡 [REMAINING AMOUNT] Using frontend calculated value:', {
-          frontendRemaining: remainingAmount,
-          parsedValue: remainingAmountToPay
-        });
-      } else {
-        // Fallback: calculate remaining amount (format as whole number for IQD)
-        remainingAmountToPay = formatIQDAmount(Math.max(0, formattedTotalAmount - actualWalletUsed));
-        console.log('🔢 [REMAINING AMOUNT] Backend calculated value:', {
-          totalAmount: formattedTotalAmount,
-          actualWalletUsed,
-          calculatedRemaining: remainingAmountToPay
-        });
-      }
+      remainingAmountToPay = formatIQDAmount(Math.max(0, formattedTotalAmount - actualWalletUsed));
       
       // Critical fix: For full wallet payments, completely bypass bank payment logic
       const isFullWalletPayment = finalPaymentMethod === 'wallet_full';
@@ -19226,7 +19648,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
               currentStatus: 'finance_pending' as any,
               paymentMethod: 'wallet_full',
               deliveryMethod: shippingMethod || 'courier',
-              vehicleType: vehicleType || null,
+                vehicleType: serverVehicleType,
               totalWeight: totalWeight ? parseFloat(totalWeight).toFixed(3) : null,
               weightUnit: 'kg',
             });
@@ -19241,7 +19663,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
               notes: notes || "",
               totalWeight: totalWeight ? parseFloat(totalWeight).toFixed(3) : null,
               weightUnit: 'kg',
-              vehicleType: vehicleType || null,
+              vehicleType: serverVehicleType,
               paymentMethod: 'wallet_full' as const,
               deliveryMethod: shippingMethod || 'courier',
             });
@@ -19400,7 +19822,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       console.log('🔍 [DEBUG RAW] orderData.deliveryMethod =', JSON.stringify(orderData.deliveryMethod));
       console.log('🔍 [DEBUG RAW] typeof orderData.deliveryMethod =', typeof orderData.deliveryMethod);
       const checkoutDeliveryMethod = orderData.deliveryMethod || 'courier';
-      const checkoutVehicleType = orderData.vehicleType || null;
+      let checkoutVehicleType = orderData.vehicleType || null;
       console.log(`📦 [CHECKOUT PERSIST] Delivery method: ${checkoutDeliveryMethod}, vehicle: ${checkoutVehicleType}`);
       
       console.log('🚀 [ENDPOINT] Session data:', {
@@ -19455,6 +19877,29 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         phone: orderData.phone
       });
 
+      let shippingFacts: Awaited<ReturnType<typeof validateAndPriceOrderShipping>>;
+      try {
+        shippingFacts = await validateAndPriceOrderShipping({
+          methodSelector: orderData.selectedShippingMethod,
+          methodValue: orderData.deliveryMethod,
+          checkoutFlow: "customers",
+          destinationCityId: orderData.destinationCityId ?? orderData.cityId ?? orderData.activeDeliveryInfo?.activeCityId,
+          destinationCity: orderData.activeDeliveryInfo?.activeDeliveryCity || orderData.city,
+          destinationProvince: orderData.activeDeliveryInfo?.activeDeliveryProvince || orderData.province,
+          destinationCountry: orderData.activeDeliveryInfo?.activeDeliveryCountry || orderData.country,
+          cart: orderData.cart || {},
+          shippingQuoteToken: orderData.shippingQuoteToken,
+        });
+      } catch (shippingError) {
+        const statusCode = shippingError instanceof ShippingConfigurationError && shippingError.statusCode === 503 ? 503 : 422;
+        return res.status(statusCode).json({
+          success: false,
+          message: shippingError instanceof Error ? shippingError.message : "Unable to verify shipping for this order.",
+          code: "SHIPPING_VALIDATION_FAILED",
+        });
+      }
+      checkoutVehicleType = shippingFacts.shippingQuoteVehicle?.[0]?.type ?? checkoutVehicleType;
+
       // Extract customer information from form data
       const customerInfo = {
         name: orderData.customerName,
@@ -19466,43 +19911,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         notes: orderData.notes || '', // Add notes from form
       };
 
-      // Calculate total weight from cart items BEFORE creating order
-      let calculatedTotalWeight = 0;
-      try {
-        const cartItems = orderData.cart || {};
-        for (const [productIdStr, quantity] of Object.entries(cartItems)) {
-          const productId = parseInt(productIdStr);
-          const qty = typeof quantity === 'number' ? quantity : parseInt(String(quantity)) || 1;
-          
-          const productWeight = await db.select({ grossWeight: shopProducts.grossWeight, weight: shopProducts.weight })
-            .from(shopProducts)
-            .where(eq(shopProducts.id, productId))
-            .limit(1);
-          
-
-          if (productWeight.length > 0) {
-            // Use grossWeight if available, otherwise fallback to legacy weight column
-            const weightValue = productWeight[0].grossWeight || productWeight[0].weight;
-            if (weightValue) {
-              const weight = parseFloat(weightValue.toString());
-              calculatedTotalWeight += weight * qty;
-            }
-          }
-
-
-
-        }
-        console.log(`🏋️ [WEIGHT PRE-CALC] Calculated total weight before order creation: ${calculatedTotalWeight}kg`);
-      } catch (weightError) {
-        console.error(`⚠️ [WEIGHT PRE-CALC] Error calculating weight:`, weightError);
-      }
-      
-      // CRITICAL: Use frontend-provided weight if server calculation failed or returned 0
-      if (calculatedTotalWeight <= 0 && orderData.totalWeight && orderData.totalWeight > 0) {
-        calculatedTotalWeight = parseFloat(orderData.totalWeight.toString());
-        console.log(`🏋️ [WEIGHT FALLBACK] Using frontend-provided weight: ${calculatedTotalWeight}kg`);
-      }
-
+      const calculatedTotalWeight = shippingFacts.totalWeight;
 
       // 🔒 SEQUENTIAL: Generate M[YY][NNNNN] order number using transaction-safe system
       const { OrderManagementStorage } = await import('./order-management-storage');
@@ -19514,12 +19923,14 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       // Calculate order totals and taxes (using dynamic tax settings)
       // Note: orderData.totalAmount from frontend already includes all components
       // We need to extract the actual item subtotal for proper VAT calculation
-      const itemsSubtotal = orderData.subtotalAmount || 0;
-      const shippingAmount = orderData.shippingCost || 0;
+      const itemsSubtotal = shippingFacts.itemSubtotal;
+      const shippingAmount = shippingFacts.shippingCost;
       
       // Get current tax rates from tax_settings table and freeze them for this order
       const taxCalculation = await calculateOrderTaxes(itemsSubtotal);
-      const totalAmount = itemsSubtotal + shippingAmount + taxCalculation.vatAmount + taxCalculation.dutiesAmount;
+      taxCalculation.vatAmount = Math.round(taxCalculation.vatAmount);
+      taxCalculation.dutiesAmount = Math.round(taxCalculation.dutiesAmount);
+      const totalAmount = Math.round(itemsSubtotal + shippingAmount + taxCalculation.vatAmount + taxCalculation.dutiesAmount);
       
       console.log('💰 [ORDER TAX] Tax calculation for order:', {
         itemsSubtotal,
@@ -19605,8 +20016,11 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         // Generate order number immediately for wallet payments
         orderNumber = await orderManagementStorage.generateOrderNumberInTransaction();
         
-        walletAmountUsed = Math.round(parseFloat(orderData.walletAmountUsed || 0));
-        remainingAmount = Math.round(parseFloat(orderData.remainingAmount !== undefined && orderData.remainingAmount !== null ? orderData.remainingAmount : totalAmount));
+        walletAmountUsed = Math.min(
+          Math.round(totalAmount),
+          Math.max(0, Math.round(parseFloat(orderData.walletAmountUsed || 0))),
+        );
+        remainingAmount = Math.max(0, Math.round(totalAmount) - walletAmountUsed);
         
         console.log('💰 [PERMANENT WALLET ORDER] Processing wallet payment:', {
           orderNumber,
@@ -20022,7 +20436,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           email: customerForCrm?.email || `customer${finalCustomerId}@temp.local`,
           firstName: firstName,
           lastName: lastName,
-          company: customerForCrm?.company || null,
+          company: customerForCrm?.company || undefined,
           phone: customerInfo.phone,
           country: customerInfo.country || 'Iraq', // Use form country or default
           city: customerInfo.city || 'Unknown',
@@ -20141,7 +20555,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         }
 
 
-        let orderMgmtData = {
+        let orderMgmtData: any = {
           // CRITICAL: Add delivery method from checkout for logistics display
           deliveryMethod: checkoutDeliveryMethod,
           customerOrderId: order.id,
@@ -22547,15 +22961,99 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
     }
   });
 
+  // Shipping origin and directed road-distance administration.
+  app.get("/api/admin/logistics/shipping-center", requireModuleAccess('logistics_management', 'view'), async (_req, res) => {
+    try {
+      res.json({ success: true, data: await getShippingCenter() });
+    } catch (error) {
+      const statusCode = error instanceof ShippingConfigurationError ? error.statusCode : 500;
+      res.status(statusCode).json({ success: false, message: error instanceof Error ? error.message : "Failed to get shipping center" });
+    }
+  });
+
+  app.put("/api/admin/logistics/shipping-center", requireModuleAccess('logistics_management', 'edit'), async (req, res) => {
+    try {
+      res.json({ success: true, data: await saveShippingCenter(req.body) });
+    } catch (error) {
+      const statusCode = error instanceof ShippingConfigurationError ? error.statusCode : 500;
+      res.status(statusCode).json({ success: false, message: error instanceof Error ? error.message : "Failed to update shipping center" });
+    }
+  });
+
+  app.get("/api/logistics/shipping-center", async (_req, res) => {
+    try {
+      res.json({ success: true, data: await getShippingCenter() });
+    } catch (error) {
+      const statusCode = error instanceof ShippingConfigurationError ? error.statusCode : 500;
+      res.status(statusCode).json({ success: false, message: error instanceof Error ? error.message : "Shipping center is unavailable" });
+    }
+  });
+
+  app.get("/api/admin/logistics/route-distances", requireModuleAccess('logistics_management', 'view'), async (req, res) => {
+    try {
+      const originCityId = parsePositiveIntegerId(req.query.originCityId);
+      if (!originCityId) {
+        return res.status(400).json({ success: false, message: "originCityId must be a positive integer." });
+      }
+      const data = await getOriginRouteDistances(originCityId);
+      res.json({ success: true, data });
+    } catch (error) {
+      const statusCode = error instanceof ShippingConfigurationError ? error.statusCode : 500;
+      res.status(statusCode).json({ success: false, message: error instanceof Error ? error.message : "Failed to get route distances" });
+    }
+  });
+
+  app.get("/api/admin/logistics/route-destinations", requireModuleAccess('logistics_management', 'view'), async (req, res) => {
+    try {
+      const originCityId = parsePositiveIntegerId(req.query.originCityId);
+      if (!originCityId) {
+        return res.status(400).json({ success: false, message: "originCityId must be a positive integer." });
+      }
+      res.json({ success: true, data: await getRouteDestinationCities(originCityId) });
+    } catch (error) {
+      const statusCode = error instanceof ShippingConfigurationError ? error.statusCode : 500;
+      res.status(statusCode).json({ success: false, message: error instanceof Error ? error.message : "Failed to get route destinations" });
+    }
+  });
+
+  app.put("/api/admin/logistics/route-distances", requireModuleAccess('logistics_management', 'edit'), async (req, res) => {
+    try {
+      const data = await saveRouteDistance(req.body);
+      res.json({ success: true, data });
+    } catch (error) {
+      const statusCode = error instanceof ShippingConfigurationError ? error.statusCode : 500;
+      res.status(statusCode).json({ success: false, message: error instanceof Error ? error.message : "Failed to save route distance" });
+    }
+  });
+
   // Calculate shipping cost for a city and weight
   app.post("/api/logistics/calculate-shipping", async (req, res) => {
     try {
-      const { cityName, provinceName, weight, deliveryMethod, orderValue } = req.body;
+      const { cityName, provinceName, weight, deliveryMethod, orderValue, destinationCountryCode, countryCode } = req.body;
       
       if (!cityName || !weight) {
         return res.status(400).json({ 
           success: false, 
           message: "City name and weight are required" 
+        });
+      }
+
+      const center = await getShippingCenter();
+      const requestedCountry = destinationCountryCode ?? countryCode;
+      if (requestedCountry && String(requestedCountry).toUpperCase() !== center.countryCode.toUpperCase()) {
+        throw new ShippingConfigurationError("Cross-country shipping is unavailable; destination must be in the selected shipping center country.", 422);
+      }
+      const destination = await resolveActiveCityByName(
+        [String(cityName)],
+        provinceName ? [String(provinceName)] : [],
+        center.countryCode,
+      );
+      const route = await getRouteDistance(center.cityId, destination.id);
+      if (!route) {
+        return res.status(422).json({
+          success: false,
+          message: `Road distance is unavailable from the selected shipping center to ${cityName}.`,
+          code: "ROUTE_DISTANCE_UNAVAILABLE",
         });
       }
 
@@ -22621,9 +23119,10 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       });
     } catch (error) {
       console.error("Error calculating shipping cost:", error);
-      res.status(500).json({ 
+      const statusCode = error instanceof ShippingConfigurationError ? error.statusCode : 500;
+      res.status(statusCode).json({
         success: false, 
-        message: "Failed to calculate shipping cost" 
+        message: error instanceof Error ? error.message : "Failed to calculate shipping cost"
       });
     }
   });
@@ -31757,7 +32256,25 @@ ${message ? `Additional Requirements:\n${message}` : ''}
   // Shipping cost calculation endpoint
   app.post('/api/logistics/calculate-shipping', async (req, res) => {
     try {
-      const { deliveryMethod, city, province, orderTotal, weight } = req.body;
+      const { deliveryMethod, city, province, orderTotal, weight, destinationCountryCode, countryCode } = req.body;
+      const center = await getShippingCenter();
+      const requestedCountry = destinationCountryCode ?? countryCode;
+      if (requestedCountry && String(requestedCountry).toUpperCase() !== center.countryCode.toUpperCase()) {
+        throw new ShippingConfigurationError("Cross-country shipping is unavailable; destination must be in the selected shipping center country.", 422);
+      }
+      const destination = await resolveActiveCityByName(
+        [String(city ?? "")],
+        province ? [String(province)] : [],
+        center.countryCode,
+      );
+      const route = await getRouteDistance(center.cityId, destination.id);
+      if (!route) {
+        return res.status(422).json({
+          success: false,
+          message: `Road distance is unavailable from the selected shipping center to ${city}.`,
+          code: "ROUTE_DISTANCE_UNAVAILABLE",
+        });
+      }
       const shippingCost = await orderManagementStorage.calculateShippingCost({
         deliveryMethod,
         city,
@@ -31768,9 +32285,10 @@ ${message ? `Additional Requirements:\n${message}` : ''}
       res.json({ success: true, data: { shippingCost } });
     } catch (error) {
       console.error('Error calculating shipping cost:', error);
-      res.status(500).json({ 
+      const statusCode = error instanceof ShippingConfigurationError ? error.statusCode : 500;
+      res.status(statusCode).json({
         success: false, 
-        message: error.message || 'خطا در محاسبه هزینه حمل و نقل' 
+        message: error instanceof Error ? error.message : 'خطا در محاسبه هزینه حمل و نقل',
       });
     }
   });
@@ -32454,29 +32972,43 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         destinationProvince: rawDestinationProvince, 
         cart, 
         useSecondaryAddress, 
-        secondaryAddress, 
-        originCity: rawOriginCity = 'اربیل' 
+        secondaryAddress,
+        destinationCountryCode,
+        countryCode,
       } = req.body;
 
       // Standardize city and province names to Arabic format
       const destinationCity = standardizeCityName(rawDestinationCity);
       const destinationProvince = standardizeProvinceName(rawDestinationProvince);
-      const originCity = standardizeCityName(rawOriginCity);
+      const center = await getShippingCenter();
+      const originCityData = await getShippingCenterCity();
+      const checkoutCartFacts = cart && typeof cart === "object" && Object.keys(cart).length > 0
+        ? await getCanonicalCheckoutCartFacts(cart)
+        : null;
 
       console.log('🔤 [STANDARDIZATION] Name standardization:', {
-        raw: { originCity: rawOriginCity, destinationCity: rawDestinationCity, destinationProvince: rawDestinationProvince },
-        standardized: { originCity, destinationCity, destinationProvince }
+        raw: { destinationCity: rawDestinationCity, destinationProvince: rawDestinationProvince },
+        standardized: { originCity: originCityData.name, destinationCity, destinationProvince },
+        shippingCenter: center
       });
       
-      if (!weight || !destinationCity) {
+      if ((!weight && !checkoutCartFacts) || !destinationCity) {
         return res.status(400).json({
           success: false,
           message: "وزن محموله و شهر مقصد اجباری است"
         });
       }
+      const requestedDestinationCountry = destinationCountryCode ?? countryCode;
+      if (requestedDestinationCountry && String(requestedDestinationCountry).toUpperCase() !== center.countryCode.toUpperCase()) {
+        return res.status(422).json({
+          success: false,
+          message: "Cross-country shipping is unavailable; destination must be in the selected shipping center country.",
+          code: "CROSS_COUNTRY_SHIPPING_UNAVAILABLE",
+        });
+      }
 
       // Get vehicle templates  
-      const { vehicleTemplates: vehicleTemplatesTable, iraqiCities } = await import('@shared/logistics-schema');
+      const { vehicleTemplates: vehicleTemplatesTable } = await import('@shared/logistics-schema');
       
       const vehicleTemplates = await db.select().from(vehicleTemplatesTable).where(eq(vehicleTemplatesTable.isActive, true));
       
@@ -32487,52 +33019,37 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         });
       }
 
-      // Get origin and destination city data for distance calculation and bus line check
-      console.log('🔍 [DEBUG] Starting city queries for:', { originCity, destinationCity });
-      
-      let originCityData, destinationCityData;
+      // Use the persisted center and exact active country/province/city matches.
+      let destinationCityData;
       try {
-        console.log('🔍 [DEBUG] Schema available:', { hasIraqiCities: !!iraqiCities, hasDb: !!db, hasEq: !!eq });
-        
-        originCityData = await db.select().from(iraqiCities).where(eq(iraqiCities.nameArabic, originCity)).limit(1);
-        destinationCityData = await db.select().from(iraqiCities).where(eq(iraqiCities.nameArabic, destinationCity)).limit(1);
-        
-        console.log('🔍 [QUERY DEBUG]', {
-          originQuery: originCity,
-          destinationQuery: destinationCity,
-          originResult: originCityData.length,
-          destinationResult: destinationCityData.length
-        });
+        destinationCityData = await resolveActiveCityByName(
+          [String(rawDestinationCity ?? ""), String(destinationCity ?? "")],
+          [String(rawDestinationProvince ?? ""), String(destinationProvince ?? "")],
+          center.countryCode,
+        );
       } catch (error) {
         console.error('❌ [CITY QUERY ERROR]', error);
-        return res.status(500).json({
+        const statusCode = error instanceof ShippingConfigurationError ? error.statusCode : 500;
+        return res.status(statusCode).json({
           success: false,
-          message: "خطا در دریافت اطلاعات شهرها"
+          message: error instanceof Error ? error.message : "خطا در دریافت اطلاعات شهرها",
         });
       }
 
-      if (!destinationCityData || destinationCityData.length === 0) {
-        return res.status(400).json({
+      const route = await getRouteDistance(center.cityId, destinationCityData.id);
+      if (!route) {
+        return res.status(422).json({
           success: false,
-          message: "شهر مقصد در پایگاه داده یافت نشد"
+          message: `Road distance is unavailable from the selected shipping center to ${destinationCity}.`,
+          code: "ROUTE_DISTANCE_UNAVAILABLE",
         });
       }
-
-      if (!originCityData || originCityData.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: "شهر مبدا در پایگاه داده یافت نشد"
-        });
-      }
-
-      const originCity_data = originCityData[0];
-      const destinationCity_data = destinationCityData[0];
-      
-      const distance = parseFloat(destinationCity_data.distanceFromErbilKm || '0');
-      const weightKg = parseFloat(weight);
+      const distance = route.distanceKm;
+      const weightKg = checkoutCartFacts?.totalWeightKg ?? parseFloat(weight);
 
       // Check if cart contains flammable products FIRST (before checking bus lines)
-      let containsFlammableProducts = false;
+      let containsFlammableProducts = checkoutCartFacts?.isFlammable ?? false;
+      const containsHazardousProducts = checkoutCartFacts?.isHazardous ?? containsFlammableProducts;
       if (cart && typeof cart === 'object') {
         // Get product IDs from cart (cart is in format { productId: quantity })
         const productIds = Object.keys(cart).map(id => parseInt(id));
@@ -32595,9 +33112,10 @@ ${message ? `Additional Requirements:\n${message}` : ''}
       // SAFETY CHECK: Filter vehicles based on flammable materials
       console.log('🔥 [SAFETY FILTER] Applying flammable materials filtering');
       const safeVehicles = vehicleTemplates.filter(template => {
-        if (containsFlammableProducts) {
+        if (containsFlammableProducts || containsHazardousProducts) {
           // Only vehicles that support flammable materials
-          const isAuthorized = template.supportsFlammable === true;
+          const isAuthorized = (!containsFlammableProducts || template.supportsFlammable === true)
+            && (!containsHazardousProducts || template.supportsHazardous === true);
           console.log(`🚛 [VEHICLE] ${template.name}: ${isAuthorized ? '✅ AUTHORIZED' : '❌ EXCLUDED'} for flammable transport`);
           return isAuthorized;
         }
@@ -32636,7 +33154,8 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         }
 
         // Check flammable products compatibility
-        if (containsFlammableProducts && !template.supportsFlammable) {
+        if ((containsFlammableProducts && !template.supportsFlammable)
+          || (containsHazardousProducts && !template.supportsHazardous)) {
           console.log(`🔥 [FLAMMABLE CHECK] Vehicle ${template.name} cannot transport flammable materials`);
           return null; // Vehicle cannot transport flammable materials
         }
@@ -32874,6 +33393,21 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         cost: optimalVehicle.totalCost,
         alternativeCount: alternatives.length
       });
+      const shippingQuoteToken = checkoutCartFacts
+        ? issueCheckoutShippingQuote({
+          cartFacts: checkoutCartFacts,
+          center,
+          destinationCityId: destinationCityData.id,
+          distanceKm: distance,
+          method: "vehicle_quote",
+          selectedVehicles: optimalSolution.vehicles.map((vehicle: any) => ({
+            id: vehicle.vehicleId,
+            name: String(vehicle.vehicleName),
+            type: String(vehicle.vehicleType),
+          })),
+          shippingCost: optimalSolution.totalCost,
+        })
+        : undefined;
 
       // Track abandoned cart if customer information is available
       if (req.isAuthenticated && req.isAuthenticated()) {
@@ -32918,15 +33452,17 @@ ${message ? `Additional Requirements:\n${message}` : ''}
             destination: destinationCity,
             distance: distance,
             routeType: optimalVehicle.routeType
-          }
+          },
+          ...(shippingQuoteToken ? { shippingQuoteToken } : {}),
         }
       });
 
     } catch (error) {
       console.error('❌ [DELIVERY COST] Calculation error:', error);
-      res.status(500).json({
+      const statusCode = error instanceof ShippingConfigurationError ? error.statusCode : 500;
+      res.status(statusCode).json({
         success: false,
-        message: "خطا در محاسبه هزینه ارسال"
+        message: error instanceof Error ? error.message : "خطا در محاسبه هزینه ارسال"
       });
     }
   });
@@ -50749,7 +51285,15 @@ momtazchem.com
   // Optimal vehicle selection endpoint
   app.post("/api/logistics/optimal-vehicle-selection", requireAuth, async (req, res) => {
     try {
-      const { orderWeight, orderVolume, distance, specialRequirements, deliveryUrgency } = req.body;
+      const {
+        orderWeight,
+        orderVolume,
+        distance,
+        specialRequirements,
+        deliveryUrgency,
+        orderNumber,
+        routeType = "urban",
+      } = req.body;
 
       // Validate required fields
       if (!orderWeight || !orderVolume || !distance) {
@@ -50830,16 +51374,29 @@ momtazchem.com
       const alternatives = scoredVehicles.slice(1, 4); // Top 3 alternatives
 
       // Save selection to history
+      const basePrice = parseFloat(optimalVehicle.basePrice || "0");
+      const distanceCost = distance * parseFloat(optimalVehicle.pricePerKm || "0");
+      const totalCost = basePrice + distanceCost;
       const selectionData = {
-        orderWeight,
-        orderVolume,
-        distance,
-        specialRequirements: specialRequirements || null,
-        deliveryUrgency: deliveryUrgency || 'normal',
-        selectedVehicleId: optimalVehicle.id,
+        orderNumber: orderNumber || `QUOTE-${Date.now()}`,
+        orderWeightKg: String(orderWeight),
+        orderVolumeM3: String(orderVolume),
+        routeType,
+        distanceKm: String(distance),
+        isHazardous: false,
+        isFlammable: false,
+        isRefrigerated: false,
+        isFragile: false,
+        selectedVehicleTemplateId: optimalVehicle.id,
         selectedVehicleName: optimalVehicle.name,
-        selectionScore: optimalVehicle.score,
-        alternativeVehicles: alternatives.map(v => ({ id: v.id, name: v.name, score: v.score })),
+        basePrice: String(basePrice),
+        weightCost: "0",
+        distanceCost: String(distanceCost),
+        totalCost: String(totalCost),
+        alternativeOptions: alternatives.map(v => ({ id: v.id, name: v.name, score: v.score })),
+        selectionAlgorithm: "cost_optimization",
+        selectionCriteria: JSON.stringify({ specialRequirements: specialRequirements || null, deliveryUrgency: deliveryUrgency || "normal" }),
+        adminUserId: req.session?.adminId ? Number(req.session.adminId) : null,
         createdAt: new Date()
       };
 
@@ -50948,34 +51505,88 @@ momtazchem.com
         orderNumber,
         weightKg,
         orderWeightKg, 
-        destinationCity, 
-        routeType = 'urban',
-        isHazardous = false,
-        isRefrigerated = false,
-        isFragile = false,
-        distanceKm = 0
+        destinationCity,
+        destinationCityId,
+        destinationProvince,
+        destinationCountryCode,
+        countryCode,
+        routeType: requestedRouteType = 'urban',
+        isHazardous: requestedIsHazardous = false,
+        isRefrigerated: requestedIsRefrigerated = false,
+        isFragile: requestedIsFragile = false,
+        cart
       } = req.body;
 
-      // Handle both weightKg and orderWeightKg parameters
-      const finalWeightKg = weightKg || orderWeightKg;
+      const checkoutCartFacts = cart && typeof cart === "object" && Object.keys(cart).length > 0
+        ? await getCanonicalCheckoutCartFacts(cart)
+        : null;
+      // Checkout weight and hazardous flags come exclusively from shop catalog facts.
+      const finalWeightKg = checkoutCartFacts?.totalWeightKg ?? Number(weightKg || orderWeightKg);
+
+      let distance: number;
+      let resolvedDestinationCityId: number | null = null;
+      const hasDestination = destinationCityId != null || (typeof destinationCity === "string" && destinationCity.trim() !== "");
+      const isCheckoutRequest = req.body.checkout === true
+        || (typeof orderNumber === "string" && orderNumber.startsWith("CART-"))
+        || !!checkoutCartFacts;
+      if (isCheckoutRequest && !checkoutCartFacts) {
+        throw new ShippingConfigurationError("Checkout vehicle quotes require a server-verifiable cart.", 422);
+      }
+      // Preserve the authenticated logistics-admin estimator, which has no
+      // destination selector. Checkout requests must always resolve a DB route.
+      if (!hasDestination && !isCheckoutRequest && req.session?.adminId && req.body.distanceKm !== undefined) {
+        const adminDistance = Number(req.body.distanceKm);
+        if (!Number.isFinite(adminDistance) || adminDistance < 0) {
+          throw new ShippingConfigurationError("Admin estimate distance must be finite and nonnegative.");
+        }
+        distance = adminDistance;
+      } else {
+        const resolvedRoute = await resolveShippingRoute({
+          destinationCityId,
+          destinationCity,
+          destinationProvince: destinationProvince ?? req.body.province,
+          destinationCountryCode: destinationCountryCode ?? countryCode,
+        });
+        distance = resolvedRoute.distanceKm;
+        resolvedDestinationCityId = resolvedRoute.destinationCityId;
+      }
+      const routeType = checkoutCartFacts
+        ? (distance > 100 ? "highway" : distance > 30 ? "interurban" : "urban")
+        : requestedRouteType;
+      const isHazardous = checkoutCartFacts ? checkoutCartFacts.isHazardous : requestedIsHazardous;
+      // These product attributes are not represented in the shop catalog, so
+      // checkout quotes do not accept client-provided refrigeration/fragile flags.
+      const isRefrigerated = checkoutCartFacts ? false : requestedIsRefrigerated;
+      const isFragile = checkoutCartFacts ? false : requestedIsFragile;
+      const makeSmartQuoteToken = async (
+        selectedVehicles: ShippingQuoteClaims["selectedVehicles"],
+        shippingCost: number,
+      ) => checkoutCartFacts && resolvedDestinationCityId !== null
+        ? issueCheckoutShippingQuote({
+          cartFacts: checkoutCartFacts,
+          center: await getShippingCenter(),
+          destinationCityId: resolvedDestinationCityId,
+          distanceKm: distance,
+          method: "smart_vehicle",
+          selectedVehicles,
+          shippingCost,
+        })
+        : undefined;
 
       console.log('🚚 [SMART VEHICLE] Selection request:', {
         orderNumber,
         finalWeightKg,
         routeType,
-        distanceKm
+        resolvedDistanceKm: distance
       });
 
       // Validate required fields
-      if (!finalWeightKg || !distanceKm) {
+      if (!Number.isFinite(Number(finalWeightKg)) || Number(finalWeightKg) < 0) {
         return res.status(400).json({ 
           success: false, 
-          message: "وزن سفارش و مسافت الزامی است" 
+          message: "وزن سفارش الزامی است"
         });
       }
-
-      // Use provided distance directly
-      const distance = distanceKm;
 
       // Get all active vehicle templates
       const vehicles = await db.select().from(vehicleTemplates)
@@ -51008,6 +51619,7 @@ momtazchem.com
         let specialOk = true;
 
         if (isHazardous && !vehicle.supportsHazardous) specialOk = false;
+        if (checkoutCartFacts?.isFlammable && !vehicle.supportsFlammable) specialOk = false;
         if (isRefrigerated && !vehicle.hasRefrigeration) specialOk = false;
         if (isFragile && !vehicle.canTransportFragile) specialOk = false;
         
@@ -51043,10 +51655,18 @@ momtazchem.com
         const multiVehicleSolution = findOptimalVehicleCombination(suitableVehicles, finalWeightKg, distance, routeType, isHazardous, isRefrigerated, isFragile);
         
         if (multiVehicleSolution) {
+          const shippingQuoteToken = await makeSmartQuoteToken(
+            multiVehicleSolution.vehicles.map((item: any) => {
+              const template = vehicles.find((candidate: any) => candidate.id === item.id);
+              return { id: item.id, name: String(template?.name ?? item.name), type: String(template?.vehicleType ?? "") };
+            }),
+            multiVehicleSolution.totalCost,
+          );
           return res.json({
             success: true,
             multiVehicleRequired: true,
             solution: multiVehicleSolution,
+            ...(shippingQuoteToken ? { shippingQuoteToken } : {}),
             selectionCriteria: {
               orderWeightKg: finalWeightKg,
               distanceKm: distance,
@@ -51108,6 +51728,10 @@ momtazchem.com
 
       const selectedVehicle = scoredVehicles[0];
       const alternatives = scoredVehicles.slice(1, 4); // Top 3 alternatives
+      const shippingQuoteToken = await makeSmartQuoteToken(
+        [{ id: selectedVehicle.id, name: String(selectedVehicle.name), type: String(selectedVehicle.vehicleType) }],
+        selectedVehicle.totalCost,
+      );
 
       console.log('🚚 [SMART VEHICLE] Selected vehicle:', {
         name: selectedVehicle.name,
@@ -51153,6 +51777,7 @@ momtazchem.com
 
       res.json({
         success: true,
+        ...(shippingQuoteToken ? { shippingQuoteToken } : {}),
         selectedVehicle: {
           id: selectedVehicle.id,
           vehicleName: selectedVehicle.name,
@@ -51203,7 +51828,14 @@ momtazchem.com
 
     } catch (error) {
       console.error("🚚 [SMART VEHICLE] Selection error:", error);
-      res.status(500).json({ success: false, message: "خطا در انتخاب وسیله بهینه" });
+      const statusCode = error instanceof ShippingConfigurationError ? error.statusCode : 500;
+      res.status(statusCode).json({
+        success: false,
+        message: error instanceof Error ? error.message : "خطا در انتخاب وسیله بهینه",
+        ...(error instanceof ShippingConfigurationError && error.statusCode === 422
+          ? { code: "ROUTE_DISTANCE_UNAVAILABLE" }
+          : {}),
+      });
     }
   });
 
@@ -53873,14 +54505,12 @@ momtazchem.com
     try {
       const { provinceId } = req.query;
       
-      let query = db
+      const conditions = [eq(iraqiCities.isActive, true)];
+      if (provinceId) conditions.push(eq(iraqiCities.provinceId, parseInt(provinceId as string)));
+      const query = db
         .select()
         .from(iraqiCities)
-        .where(eq(iraqiCities.isActive, true));
-
-      if (provinceId) {
-        query = query.where(eq(iraqiCities.provinceId, parseInt(provinceId as string)));
-      }
+        .where(and(...conditions));
 
       const cities = await query.orderBy(iraqiCities.nameArabic);
 

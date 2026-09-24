@@ -1402,6 +1402,7 @@ export const iraqiCities = pgTable("iraqi_cities", {
   postalCode: text("postal_code"),
   economicActivity: text("economic_activity"),
   distanceFromBaghdad: integer("distance_from_baghdad"), // in kilometers
+  distanceFromErbilKm: integer("distance_from_erbil_km").default(0), // legacy Iraqi shipping baseline; read-only for route administration
   distanceFromProvinceCapital: integer("distance_from_province_capital"),
   isProvinceCapital: boolean("is_province_capital").default(false),
   hasIntercityBusLine: boolean("has_intercity_bus_line").default(false), // خط مسافربری بین شهری موجود است

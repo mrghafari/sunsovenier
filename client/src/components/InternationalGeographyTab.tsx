@@ -12,6 +12,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { GeographyLocalized, geographyText } from './international-geography-translations';
 import { 
   Globe, 
   MapPin, 
@@ -28,8 +30,7 @@ import {
   Flame,
   Snowflake,
   AlertTriangle,
-  ArrowUpDown,
-  RotateCcw
+  ArrowUpDown
 } from 'lucide-react';
 
 interface InternationalCountry {
@@ -139,12 +140,21 @@ const CountryDetailView: React.FC<CountryDetailViewProps> = ({
   setEditingCity,
   setIsEditCityOpen,
 }) => {
-  const [selectedOriginCity, setSelectedOriginCity] = useState<InternationalCity | null>(null);
+  const { language } = useLanguage();
+  const countryDisplayName = (country: InternationalCountry) => language === 'en'
+    ? country.nameEn || country.name
+    : language === 'fa' || language === 'ar'
+      ? country.name || country.nameLocal || country.nameEn
+      : country.nameLocal || country.nameEn || country.name;
+  const cityDisplayName = (city: InternationalCity) => language === 'en'
+    ? city.nameEn || city.name
+    : language === 'fa' || language === 'ar'
+      ? city.name || city.nameLocal || city.nameEn
+      : city.nameLocal || city.nameEn || city.name;
   const [citySortField, setCitySortField] = useState<string | null>('name');
   const [citySortDirection, setCitySortDirection] = useState<'asc' | 'desc'>('asc');
 
   useEffect(() => {
-    setSelectedOriginCity(null);
     setCitySortField('name');
     setCitySortDirection('asc');
   }, [selectedCountry]);
@@ -153,9 +163,9 @@ const CountryDetailView: React.FC<CountryDetailViewProps> = ({
   
   if (!selectedCountryData) {
     return (
-      <div className="text-center py-8 text-gray-500">
+      <GeographyLocalized language={language}><div className="text-center py-8 text-gray-500">
         لطفاً یک کشور از لیست بالا انتخاب کنید
-      </div>
+      </div></GeographyLocalized>
     );
   }
 
@@ -169,13 +179,6 @@ const CountryDetailView: React.FC<CountryDetailViewProps> = ({
     provinceGroups[province].push(city);
   });
   const provinces = Object.keys(provinceGroups).sort();
-
-  const calculateDistance = (targetCity: InternationalCity): number => {
-    if (!selectedOriginCity) return targetCity.distanceFromErbilKm || 0;
-    const originDistance = selectedOriginCity.distanceFromErbilKm || 0;
-    const targetDistance = targetCity.distanceFromErbilKm || 0;
-    return Math.abs(targetDistance - originDistance);
-  };
 
   const handleCitySort = (field: string) => {
     if (citySortField === field) {
@@ -197,16 +200,12 @@ const CountryDetailView: React.FC<CountryDetailViewProps> = ({
         bValue = b.id || 0;
         break;
       case 'name':
-        aValue = a.name || '';
-        bValue = b.name || '';
+        aValue = cityDisplayName(a) || '';
+        bValue = cityDisplayName(b) || '';
         break;
       case 'province':
         aValue = a.provinceState || '';
         bValue = b.provinceState || '';
-        break;
-      case 'distance':
-        aValue = calculateDistance(a);
-        bValue = calculateDistance(b);
         break;
       case 'cityType':
         aValue = a.cityType || '';
@@ -217,7 +216,7 @@ const CountryDetailView: React.FC<CountryDetailViewProps> = ({
     }
     
     if (typeof aValue === 'string' && typeof bValue === 'string') {
-      const result = aValue.localeCompare(bValue, 'fa');
+      const result = aValue.localeCompare(bValue, language);
       return citySortDirection === 'asc' ? result : -result;
     }
     
@@ -230,23 +229,30 @@ const CountryDetailView: React.FC<CountryDetailViewProps> = ({
   });
 
   return (
+    <GeographyLocalized language={language}>
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-lg font-semibold flex items-center gap-2">
             <Globe className="h-5 w-5" />
-            مدیریت جغرافیای {selectedCountryData.name}
+            {geographyText('مدیریت جغرافیای ', language)}{countryDisplayName(selectedCountryData)}
           </h3>
           <p className="text-sm text-gray-600 mt-1">
-            مدیریت {provinces.length} استان و {countryCities.length} شهر {selectedCountryData.nameEn} با قابلیت انتخاب مبدا
+            {language === 'fa'
+              ? `مدیریت ${provinces.length} استان و ${countryCities.length} شهر ${countryDisplayName(selectedCountryData)}`
+              : language === 'en'
+                ? `Managing ${provinces.length} provinces and ${countryCities.length} cities in ${countryDisplayName(selectedCountryData)}`
+                : language === 'ar'
+                  ? `إدارة ${provinces.length} محافظة و${countryCities.length} مدينة في ${countryDisplayName(selectedCountryData)}`
+                  : `${countryDisplayName(selectedCountryData)} içinde ${provinces.length} il ve ${countryCities.length} şehri yönetin`}
           </p>
         </div>
         <div className="flex gap-2">
           <Badge variant="outline" className="bg-blue-50">
-            {provinces.length} استان
+              {provinces.length} {language === 'fa' ? 'استان' : language === 'ar' ? 'محافظة' : language === 'tr' ? 'il' : 'provinces'}
           </Badge>
           <Badge variant="outline" className="bg-green-50">
-            {countryCities.length} شهر
+              {countryCities.length} {geographyText('شهر', language)}
           </Badge>
           <Button
             variant="outline"
@@ -262,74 +268,19 @@ const CountryDetailView: React.FC<CountryDetailViewProps> = ({
         </div>
       </div>
 
-      <Card className="border-2 border-blue-200 bg-blue-50">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-blue-600 p-2 rounded-full">
-                <MapPin className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-blue-900">انتخاب شهر مبدا برای محاسبه فواصل</h4>
-                <p className="text-sm text-blue-700">
-                  {selectedOriginCity 
-                    ? `مبدا انتخاب شده: ${selectedOriginCity.name}` 
-                    : 'مبدا پیش‌فرض: اربیل (تمام فاصله‌ها از اربیل محاسبه می‌شوند)'
-                  }
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <select
-                value={selectedOriginCity?.id || ''}
-                onChange={(e) => {
-                  const cityId = parseInt(e.target.value);
-                  const city = countryCities.find((c: InternationalCity) => c.id === cityId);
-                  setSelectedOriginCity(city || null);
-                }}
-                className="p-2 border rounded-md bg-white text-sm min-w-[200px]"
-              >
-                <option value="">اربیل (پیش‌فرض)</option>
-                {countryCities.map((city: InternationalCity) => (
-                  <option key={city.id} value={city.id}>
-                    {city.name} - {city.provinceState || 'بدون استان'}
-                  </option>
-                ))}
-              </select>
-              {selectedOriginCity && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setSelectedOriginCity(null)}
-                  className="text-blue-600 border-blue-600 hover:bg-blue-100"
-                >
-                  <RotateCcw className="h-4 w-4 ml-1" />
-                  بازنشانی
-                </Button>
-              )}
-            </div>
-          </div>
-          {selectedOriginCity && (
-            <div className="mt-3 p-3 bg-blue-100 rounded-md">
-              <p className="text-sm text-blue-800">
-                <strong>نکته:</strong> فاصله‌ها بر اساس تفاوت فاصله شهرها از اربیل محاسبه می‌شوند. 
-                شهر انتخابی به عنوان مبدا (0 کیلومتر) نمایش داده می‌شود.
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
       <Card className="w-full">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
                 <MapPin className="h-5 w-5" />
-                شهرهای {selectedCountryData.name} ({countryCities.length})
+                {language === 'fa' ? 'شهرهای' : language === 'ar' ? 'مدن' : language === 'tr' ? 'Şehirler' : 'Cities'} {countryDisplayName(selectedCountryData)} ({countryCities.length})
               </CardTitle>
               <CardDescription>
-                مدیریت شهرها با فاصله‌های قابل تنظیم بر اساس مبدا انتخابی
+                {language === 'fa' ? 'مدیریت شهرها و اطلاعات جغرافیایی این کشور'
+                  : language === 'ar' ? 'إدارة المدن والبيانات الجغرافية لهذه الدولة'
+                    : language === 'tr' ? 'Bu ülkenin şehirlerini ve coğrafi bilgilerini yönetin'
+                      : 'Manage this country’s cities and geographic details'}
               </CardDescription>
             </div>
             <Button onClick={() => {
@@ -397,17 +348,6 @@ const CountryDetailView: React.FC<CountryDetailViewProps> = ({
                           <ArrowUpDown className="h-3 w-3" />
                         </Button>
                       </TableHead>
-                      <TableHead className="text-right w-36 bg-white sticky top-0 z-50 border-b" style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 50 }}>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={() => handleCitySort('distance')}
-                          className="flex items-center justify-end gap-1 p-0 h-auto font-medium text-right w-full"
-                        >
-                          فاصله (کیلومتر)
-                          <ArrowUpDown className="h-3 w-3" />
-                        </Button>
-                      </TableHead>
                       <TableHead className="text-right w-32 bg-white sticky top-0 z-50 border-b" style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 50 }}>
                         <Button 
                           variant="ghost" 
@@ -429,30 +369,20 @@ const CountryDetailView: React.FC<CountryDetailViewProps> = ({
                   </TableHeader>
                   <TableBody>
                     {sortedCities.map((city: InternationalCity, index: number) => (
-                      <TableRow 
-                        key={city.id} 
-                        className={`${selectedOriginCity?.id === city.id ? 'bg-blue-100' : ''} hover:bg-gray-50`}
-                      >
+                      <TableRow key={city.id} className="hover:bg-gray-50">
                         <TableCell className="text-right font-medium">{index + 1}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex flex-col">
-                            <span className="font-medium">{city.name}</span>
-                            <span className="text-xs text-gray-500">{city.nameEn}</span>
+                            <span className="font-medium">{cityDisplayName(city)}</span>
+                            {city.nameEn !== cityDisplayName(city) && (
+                              <span className="text-xs text-gray-500">{city.nameEn}</span>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell className="text-right">{city.provinceState || '-'}</TableCell>
                         <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            {selectedOriginCity?.id === city.id ? (
-                              <Badge className="bg-blue-600">مبدا</Badge>
-                            ) : (
-                              <span>{calculateDistance(city).toLocaleString()} کیلومتر</span>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
                           <Badge variant="outline">
-                            {CITY_TYPES[city.cityType as keyof typeof CITY_TYPES] || city.cityType}
+                            {geographyText(CITY_TYPES[city.cityType as keyof typeof CITY_TYPES] || city.cityType, language)}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-center">
@@ -482,6 +412,7 @@ const CountryDetailView: React.FC<CountryDetailViewProps> = ({
         </CardContent>
       </Card>
     </div>
+    </GeographyLocalized>
   );
 };
 
@@ -491,6 +422,17 @@ interface InternationalGeographyTabProps {
 
 const InternationalGeographyTab: React.FC<InternationalGeographyTabProps> = ({ iraqContent }) => {
   const { toast } = useToast();
+  const { language } = useLanguage();
+  const countryDisplayName = (country: InternationalCountry) => language === 'en'
+    ? country.nameEn || country.name
+    : language === 'fa' || language === 'ar'
+      ? country.name || country.nameLocal || country.nameEn
+      : country.nameLocal || country.nameEn || country.name;
+  const cityDisplayName = (city: InternationalCity) => language === 'en'
+    ? city.nameEn || city.name
+    : language === 'fa' || language === 'ar'
+      ? city.name || city.nameLocal || city.nameEn
+      : city.nameLocal || city.nameEn || city.name;
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('countries');
   const [selectedCountry, setSelectedCountry] = useState<string>('iraq');
@@ -588,7 +530,7 @@ const InternationalGeographyTab: React.FC<InternationalGeographyTabProps> = ({ i
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/logistics/international-countries'] });
       setIsAddCountryOpen(false);
-      toast({ title: "کشور با موفقیت اضافه شد", variant: "default" });
+      toast({ title: geographyText("کشور با موفقیت اضافه شد", language), variant: "default" });
       setCountryForm({
         name: '',
         nameEn: '',
@@ -602,7 +544,7 @@ const InternationalGeographyTab: React.FC<InternationalGeographyTabProps> = ({ i
       });
     },
     onError: (error) => {
-      toast({ title: "خطا در ایجاد کشور", description: error.message, variant: "destructive" });
+      toast({ title: geographyText("خطا در ایجاد کشور", language), description: error.message, variant: "destructive" });
     }
   });
 
@@ -617,10 +559,10 @@ const InternationalGeographyTab: React.FC<InternationalGeographyTabProps> = ({ i
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/logistics/international-countries'] });
       setIsEditCountryOpen(false);
-      toast({ title: "کشور با موفقیت به‌روزرسانی شد", variant: "default" });
+      toast({ title: geographyText("کشور با موفقیت به‌روزرسانی شد", language), variant: "default" });
     },
     onError: (error) => {
-      toast({ title: "خطا در به‌روزرسانی کشور", description: error.message, variant: "destructive" });
+      toast({ title: geographyText("خطا در به‌روزرسانی کشور", language), description: error.message, variant: "destructive" });
     }
   });
 
@@ -633,10 +575,10 @@ const InternationalGeographyTab: React.FC<InternationalGeographyTabProps> = ({ i
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/logistics/international-countries'] });
-      toast({ title: "کشور با موفقیت حذف شد", variant: "default" });
+      toast({ title: geographyText("کشور با موفقیت حذف شد", language), variant: "default" });
     },
     onError: (error) => {
-      toast({ title: "خطا در حذف کشور", description: error.message, variant: "destructive" });
+      toast({ title: geographyText("خطا در حذف کشور", language), description: error.message, variant: "destructive" });
     }
   });
 
@@ -651,7 +593,7 @@ const InternationalGeographyTab: React.FC<InternationalGeographyTabProps> = ({ i
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/logistics/international-cities'] });
       setIsAddCityOpen(false);
-      toast({ title: "شهر با موفقیت اضافه شد", variant: "default" });
+      toast({ title: geographyText("شهر با موفقیت اضافه شد", language), variant: "default" });
       setCityForm({
         name: '',
         nameEn: '',
@@ -668,7 +610,7 @@ const InternationalGeographyTab: React.FC<InternationalGeographyTabProps> = ({ i
       });
     },
     onError: (error) => {
-      toast({ title: "خطا در ایجاد شهر", description: error.message, variant: "destructive" });
+      toast({ title: geographyText("خطا در ایجاد شهر", language), description: error.message, variant: "destructive" });
     }
   });
 
@@ -683,10 +625,10 @@ const InternationalGeographyTab: React.FC<InternationalGeographyTabProps> = ({ i
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/logistics/international-cities'] });
       setIsEditCityOpen(false);
-      toast({ title: "شهر با موفقیت به‌روزرسانی شد", variant: "default" });
+      toast({ title: geographyText("شهر با موفقیت به‌روزرسانی شد", language), variant: "default" });
     },
     onError: (error) => {
-      toast({ title: "خطا در به‌روزرسانی شهر", description: error.message, variant: "destructive" });
+      toast({ title: geographyText("خطا در به‌روزرسانی شهر", language), description: error.message, variant: "destructive" });
     }
   });
 
@@ -699,10 +641,10 @@ const InternationalGeographyTab: React.FC<InternationalGeographyTabProps> = ({ i
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/logistics/international-cities'] });
-      toast({ title: "شهر با موفقیت حذف شد", variant: "default" });
+      toast({ title: geographyText("شهر با موفقیت حذف شد", language), variant: "default" });
     },
     onError: (error) => {
-      toast({ title: "خطا در حذف شهر", description: error.message, variant: "destructive" });
+      toast({ title: geographyText("خطا در حذف شهر", language), description: error.message, variant: "destructive" });
     }
   });
 
@@ -717,7 +659,7 @@ const InternationalGeographyTab: React.FC<InternationalGeographyTabProps> = ({ i
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/logistics/international-shipping-rates'] });
       setIsAddRateOpen(false);
-      toast({ title: "نرخ حمل با موفقیت اضافه شد", variant: "default" });
+      toast({ title: geographyText("نرخ حمل با موفقیت اضافه شد", language), variant: "default" });
       setRateForm({
         countryId: 0,
         cityId: 0,
@@ -740,7 +682,7 @@ const InternationalGeographyTab: React.FC<InternationalGeographyTabProps> = ({ i
       });
     },
     onError: (error) => {
-      toast({ title: "خطا در ایجاد نرخ حمل", description: error.message, variant: "destructive" });
+      toast({ title: geographyText("خطا در ایجاد نرخ حمل", language), description: error.message, variant: "destructive" });
     }
   });
 
@@ -755,10 +697,10 @@ const InternationalGeographyTab: React.FC<InternationalGeographyTabProps> = ({ i
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/logistics/international-shipping-rates'] });
       setIsEditRateOpen(false);
-      toast({ title: "نرخ حمل با موفقیت به‌روزرسانی شد", variant: "default" });
+      toast({ title: geographyText("نرخ حمل با موفقیت به‌روزرسانی شد", language), variant: "default" });
     },
     onError: (error) => {
-      toast({ title: "خطا در به‌روزرسانی نرخ حمل", description: error.message, variant: "destructive" });
+      toast({ title: geographyText("خطا در به‌روزرسانی نرخ حمل", language), description: error.message, variant: "destructive" });
     }
   });
 
@@ -771,14 +713,15 @@ const InternationalGeographyTab: React.FC<InternationalGeographyTabProps> = ({ i
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/logistics/international-shipping-rates'] });
-      toast({ title: "نرخ حمل با موفقیت حذف شد", variant: "default" });
+      toast({ title: geographyText("نرخ حمل با موفقیت حذف شد", language), variant: "default" });
     },
     onError: (error) => {
-      toast({ title: "خطا در حذف نرخ حمل", description: error.message, variant: "destructive" });
+      toast({ title: geographyText("خطا در حذف نرخ حمل", language), description: error.message, variant: "destructive" });
     }
   });
 
   return (
+    <GeographyLocalized language={language}>
     <div className="space-y-6">
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-900/20 dark:to-green-900/20 rounded-lg p-6 border border-blue-200 dark:border-blue-800">
@@ -842,10 +785,10 @@ const InternationalGeographyTab: React.FC<InternationalGeographyTabProps> = ({ i
                         <SelectValue placeholder="انتخاب کشور" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="iraq">🇮🇶 عراق</SelectItem>
+                        <SelectItem value="iraq">{language === 'en' ? 'Iraq' : language === 'ar' ? 'العراق' : language === 'tr' ? 'Irak' : 'عراق'}</SelectItem>
                         {countries.map((country: InternationalCountry) => (
                           <SelectItem key={country.id} value={country.countryCode.toLowerCase()}>
-                            {country.name} ({country.nameEn})
+                            {countryDisplayName(country)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -864,8 +807,7 @@ const InternationalGeographyTab: React.FC<InternationalGeographyTabProps> = ({ i
                 <div className="space-y-4">
                   <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
                     <div className="flex items-center gap-2 text-amber-800">
-                      <span className="text-2xl">🇮🇶</span>
-                      <span className="font-bold">جمهوری عراق</span>
+                      <span className="font-bold">{geographyText('جمهوری عراق', language)}</span>
                       <Badge className="bg-amber-100 text-amber-800">کشور پیش‌فرض</Badge>
                     </div>
                     <p className="text-sm text-amber-700 mt-2">
@@ -942,21 +884,33 @@ const InternationalGeographyTab: React.FC<InternationalGeographyTabProps> = ({ i
                       <TableRow key={rate.id}>
                         <TableCell>
                           <div>
-                            <div className="font-medium">{rate.countryName}</div>
+                            <div className="font-medium">
+                              {countryDisplayName(countries.find((country: InternationalCountry) => country.id === rate.countryId) || {
+                                name: rate.countryName || '',
+                                nameEn: rate.countryName || '',
+                                nameLocal: rate.countryName || ''
+                              } as InternationalCountry)}
+                            </div>
                             {rate.cityName && (
-                              <div className="text-sm text-gray-500">{rate.cityName}</div>
+                              <div className="text-sm text-gray-500">
+                                {cityDisplayName(cities.find((city: InternationalCity) => city.id === rate.cityId) || {
+                                  name: rate.cityName || '',
+                                  nameEn: rate.cityName || '',
+                                  nameLocal: rate.cityName || ''
+                                } as InternationalCity)}
+                              </div>
                             )}
                           </div>
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline">
-                            {SHIPPING_METHODS[rate.shippingMethod as keyof typeof SHIPPING_METHODS] || rate.shippingMethod}
+                            {geographyText(SHIPPING_METHODS[rate.shippingMethod as keyof typeof SHIPPING_METHODS] || rate.shippingMethod, language)}
                           </Badge>
                         </TableCell>
                         <TableCell>{rate.transportProvider}</TableCell>
                         <TableCell>{rate.basePrice.toLocaleString()} {rate.currency}</TableCell>
                         <TableCell>{rate.pricePerKg.toLocaleString()} {rate.currency}</TableCell>
-                        <TableCell>{rate.estimatedDaysMin}-{rate.estimatedDaysMax} روز</TableCell>
+                        <TableCell>{rate.estimatedDaysMin}-{rate.estimatedDaysMax} {geographyText('روز', language)}</TableCell>
                         <TableCell>
                           <div className="flex gap-1">
                             {rate.supportsFlammable && (
@@ -1192,7 +1146,7 @@ const InternationalGeographyTab: React.FC<InternationalGeographyTabProps> = ({ i
                 <SelectContent>
                   {countries.map((country: InternationalCountry) => (
                     <SelectItem key={country.id} value={country.id.toString()}>
-                      {country.name} ({country.nameEn})
+                      {countryDisplayName(country)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -1330,7 +1284,7 @@ const InternationalGeographyTab: React.FC<InternationalGeographyTabProps> = ({ i
                 <SelectContent>
                   {countries.map((country: InternationalCountry) => (
                     <SelectItem key={country.id} value={country.id.toString()}>
-                      {country.name} ({country.nameEn})
+                      {countryDisplayName(country)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -1352,7 +1306,7 @@ const InternationalGeographyTab: React.FC<InternationalGeographyTabProps> = ({ i
                     .filter((city: InternationalCity) => city.countryId === rateForm.countryId)
                     .map((city: InternationalCity) => (
                       <SelectItem key={city.id} value={city.id.toString()}>
-                        {city.name} ({city.nameEn})
+                        {cityDisplayName(city)}
                       </SelectItem>
                     ))}
                 </SelectContent>
@@ -1769,7 +1723,7 @@ const InternationalGeographyTab: React.FC<InternationalGeographyTabProps> = ({ i
                     <SelectContent>
                       {countries.map((country: InternationalCountry) => (
                         <SelectItem key={country.id} value={country.id.toString()}>
-                          {country.name} ({country.nameEn})
+                          {countryDisplayName(country)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1929,7 +1883,7 @@ const InternationalGeographyTab: React.FC<InternationalGeographyTabProps> = ({ i
                     <SelectContent>
                       {countries.map((country: InternationalCountry) => (
                         <SelectItem key={country.id} value={country.id.toString()}>
-                          {country.name} ({country.nameEn})
+                          {countryDisplayName(country)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1948,7 +1902,7 @@ const InternationalGeographyTab: React.FC<InternationalGeographyTabProps> = ({ i
                         city.countryId === editingRate.countryId
                       ).map((city: InternationalCity) => (
                         <SelectItem key={city.id} value={city.id.toString()}>
-                          {city.name} ({city.nameEn})
+                          {cityDisplayName(city)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -2189,6 +2143,7 @@ const InternationalGeographyTab: React.FC<InternationalGeographyTabProps> = ({ i
         </DialogContent>
       </Dialog>
     </div>
+    </GeographyLocalized>
   );
 };
 
