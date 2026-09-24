@@ -122,7 +122,7 @@ class EmailService {
   }
 
   // Get template by number (e.g., "#05", "#13") - NEW METHOD
-  private async getEmailTemplateByNumber(templateNumber: string, language?: string) {
+  async getEmailTemplateByNumber(templateNumber: string, language?: string) {
     try {
       const { emailStorage } = await import("./email-storage");
       return await emailStorage.getTemplateByNumber(templateNumber, language);

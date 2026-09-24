@@ -75,6 +75,18 @@ import { parsePositiveIntegerId } from "./shipping-route-resolution";
 import { calculateAuthoritativeShippingCost } from "./order-shipping-pricing";
 import { assertShippingQuoteBindings, assertShippingQuoteCheckoutFlow, signShippingQuote, verifyShippingQuote, type ShippingQuoteClaims } from "./shipping-quote";
 import { isActivePickupShippingMethod, isPickupShippingMethod, isStandardShippingMethod } from "./shipping-method-policy";
+import {
+  getPostalApiSettings,
+  isPostalApiProviderKey,
+  PostalApiSettingsValidationError,
+  updatePostalApiSettings,
+} from "./postal-api-settings";
+import {
+  readSettings as readLogisticsDeliveryNotificationSettings,
+  updateSettings as updateLogisticsDeliveryNotificationSettings,
+  getOptions as getLogisticsDeliveryNotificationOptions,
+  LogisticsDeliveryNotificationValidationError,
+} from "./logistics-delivery-notification-settings";
 
 const INVOICE_LANGUAGES = ['en', 'ar', 'tr', 'fa'] as const;
 type InvoiceLanguage = typeof INVOICE_LANGUAGES[number];
@@ -22977,6 +22989,60 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
     } catch (error) {
       const statusCode = error instanceof ShippingConfigurationError ? error.statusCode : 500;
       res.status(statusCode).json({ success: false, message: error instanceof Error ? error.message : "Failed to update shipping center" });
+    }
+  });
+
+  app.get("/api/admin/logistics/postal-api-settings", requireModuleAccess('logistics_management', 'view'), async (_req, res) => {
+    try {
+      const data = await getPostalApiSettings(pool);
+      res.json({ success: true, data });
+    } catch {
+      res.status(500).json({ success: false, message: "Failed to fetch postal provider configuration." });
+    }
+  });
+
+  app.put("/api/admin/logistics/postal-api-settings/:providerKey", requireModuleAccess('logistics_management', 'edit'), async (req, res) => {
+    if (!isPostalApiProviderKey(req.params.providerKey)) {
+      return res.status(404).json({ success: false, message: "Unsupported postal provider." });
+    }
+    try {
+      const data = await updatePostalApiSettings(pool, req.params.providerKey, req.body);
+      res.json({ success: true, data });
+    } catch (error) {
+      if (error instanceof PostalApiSettingsValidationError) {
+        return res.status(400).json({ success: false, message: error.message });
+      }
+      res.status(500).json({ success: false, message: "Failed to update postal provider configuration." });
+    }
+  });
+
+  app.get("/api/admin/logistics/delivery-notification-settings", requireModuleAccess('logistics_management', 'view'), async (_req, res) => {
+    try {
+      res.json({ success: true, data: await readLogisticsDeliveryNotificationSettings() });
+    } catch (error) {
+      console.error("Failed to read logistics delivery notification settings:", error);
+      res.status(500).json({ success: false, message: "Failed to read delivery notification settings." });
+    }
+  });
+
+  app.put("/api/admin/logistics/delivery-notification-settings", requireModuleAccess('logistics_management', 'edit'), async (req, res) => {
+    try {
+      res.json({ success: true, data: await updateLogisticsDeliveryNotificationSettings(req.body) });
+    } catch (error) {
+      if (error instanceof LogisticsDeliveryNotificationValidationError) {
+        return res.status(400).json({ success: false, message: error.message });
+      }
+      console.error("Failed to save logistics delivery notification settings:", error);
+      res.status(500).json({ success: false, message: "Failed to save delivery notification settings." });
+    }
+  });
+
+  app.get("/api/admin/logistics/delivery-notification-options", requireModuleAccess('logistics_management', 'view'), async (_req, res) => {
+    try {
+      res.json({ success: true, data: await getLogisticsDeliveryNotificationOptions() });
+    } catch (error) {
+      console.error("Failed to read logistics delivery notification templates:", error);
+      res.status(500).json({ success: false, message: "Failed to read delivery notification templates." });
     }
   });
 
@@ -60150,7 +60216,12 @@ momtazchem.com
 
   console.log('✅ [FLEET] Fleet vehicles API registered');
   // Shop Settings API for shipping parameters
-  app.get("/api/admin/shop-settings/:category", requireAuth, async (req, res) => {
+  app.get("/api/admin/shop-settings/:category", requireAuth, (req, res, next) => {
+    if (req.params.category === "logistics_notifications" || req.params.category === "postal_provider_api") {
+      return requireModuleAccess("logistics_management", "view")(req, res, next);
+    }
+    next();
+  }, async (req, res) => {
     try {
       const { category } = req.params;
       const { shopSettings } = await import('@shared/schema');
@@ -60162,19 +60233,44 @@ momtazchem.com
     }
   });
 
-  app.put("/api/admin/shop-settings/:key", requireAuth, async (req, res) => {
+  app.put("/api/admin/shop-settings/:key", requireAuth, (req, res, next) => {
+    const key = req.params.key;
+    if (key.startsWith("postal_api_") || key.startsWith("logistics_delivery_")) {
+      return res.status(403).json({ success: false, message: "Use the dedicated logistics settings API." });
+    }
+    if (["logistics_notification_email", "logistics_notification_sms", "logistics_notification_whatsapp"].includes(key)) {
+      if (req.body?.setting_value !== "true" && req.body?.setting_value !== "false") {
+        return res.status(400).json({ success: false, message: "Notification channel setting must be true or false." });
+      }
+      return requireModuleAccess("logistics_management", "edit")(req, res, next);
+    }
+    next();
+  }, async (req, res) => {
     try {
       const { key } = req.params;
       const { setting_value } = req.body;
       const { shopSettings } = await import('@shared/schema');
-      
-      const result = await db.update(shopSettings)
-        .set({ 
-          settingValue: setting_value,
-          updatedAt: new Date()
-        })
-        .where(eq(shopSettings.settingKey, key))
-        .returning();
+      const logisticsChannelKeys = [
+        "logistics_notification_email",
+        "logistics_notification_sms",
+        "logistics_notification_whatsapp",
+      ];
+      const result = logisticsChannelKeys.includes(key)
+        ? await db.insert(shopSettings).values({
+            settingKey: key,
+            settingValue: setting_value,
+            settingType: "boolean",
+            displayName: key,
+            category: "logistics_notifications",
+            isPublic: false,
+          }).onConflictDoUpdate({
+            target: shopSettings.settingKey,
+            set: { settingValue: setting_value, category: "logistics_notifications", isPublic: false, updatedAt: new Date() },
+          }).returning()
+        : await db.update(shopSettings)
+            .set({ settingValue: setting_value, updatedAt: new Date() })
+            .where(eq(shopSettings.settingKey, key))
+            .returning();
       
       if (result.length === 0) {
         return res.status(404).json({ success: false, message: "تنظیم یافت نشد" });

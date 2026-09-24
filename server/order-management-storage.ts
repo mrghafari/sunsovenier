@@ -25,7 +25,8 @@ import {
   orderStatuses
 } from "@shared/order-management-schema";
 import { customerOrders, orderItems } from "@shared/customer-schema";
-import { crmCustomers, vendors } from "@shared/schema";
+import { crmCustomers, vendors, simpleSmsTemplates } from "@shared/schema";
+import { emailTemplates } from "@shared/email-schema";
 import { showcaseProducts as products } from "@shared/showcase-schema";
 import { shopProducts } from "@shared/shop-schema";
 import { db } from "./db";
@@ -1451,6 +1452,13 @@ export class OrderManagementStorage implements IOrderManagementStorage {
       const { createSmsService } = await import('./sms-service');
       const { pool } = await import('./db');
       const { resolveSmsLanguage, selectLocalizedSms } = await import('./sms-language');
+      const {
+        readSettings,
+        DEFAULT_DELIVERY_SMS_TEXTS,
+        renderDeliveryTemplate,
+        validateTemplateBody,
+        LogisticsDeliveryNotificationValidationError,
+      } = await import('./logistics-delivery-notification-settings');
       const smsService = await createSmsService();
       const customerResult = await pool.query(
         'SELECT customer_id FROM customer_orders WHERE id = $1 LIMIT 1',
@@ -1468,19 +1476,37 @@ export class OrderManagementStorage implements IOrderManagementStorage {
         tr: 'Değerli müşterimiz',
       }[language];
       const reference = orderNumber || String(customerOrderId);
-      const message = selectLocalizedSms({
-        en: `${recipient}, your delivery code for order ${reference} is ${deliveryCode}. Please provide this code to the driver upon delivery.`,
-        fa: `${recipient}، کد تحویل سفارش ${reference}: ${deliveryCode}. لطفاً این کد را هنگام تحویل به راننده ارائه دهید.`,
-        ar: `${recipient}، رمز تسليم الطلب ${reference} هو ${deliveryCode}. يرجى تقديم الرمز للسائق عند التسليم.`,
-        tr: `${recipient}, ${reference} numaralı siparişinizin teslimat kodu: ${deliveryCode}. Lütfen teslimat sırasında bu kodu sürücüye verin.`,
-      }, language)!;
+      const settings = await readSettings();
+      const selectedTemplateId = settings.smsTemplateIds[language];
+      let templateContent: string;
+      if (selectedTemplateId !== null) {
+        const [template] = await db.select({
+          language: simpleSmsTemplates.language,
+          content: simpleSmsTemplates.templateContent,
+        }).from(simpleSmsTemplates).where(and(
+          eq(simpleSmsTemplates.id, selectedTemplateId),
+          eq(simpleSmsTemplates.isActive, true),
+        )).limit(1);
+        if (!template || template.language !== language) {
+          throw new LogisticsDeliveryNotificationValidationError(
+            `Selected SMS delivery template for ${language} is missing, inactive, or has the wrong language`,
+          );
+        }
+        validateTemplateBody(template.content, "sms", language);
+        templateContent = template.content;
+      } else {
+        templateContent = selectLocalizedSms(DEFAULT_DELIVERY_SMS_TEXTS, language)!;
+      }
+      const message = renderDeliveryTemplate(templateContent, {
+        customer_name: recipient,
+        order_number: reference,
+        delivery_code: deliveryCode,
+      });
       const result = await smsService.sendSms({ to: customerPhone, message });
-      
-      console.log(`📱 [SMS TEMPLATE 3] Delivery code ${deliveryCode} sent to ${customerPhone} for order ${orderNumber}:`, result);
-      
       return result.success;
     } catch (error) {
-      console.error('❌ [SMS] Error sending delivery code using template 3:', error);
+      if (error instanceof Error && error.name === "LogisticsDeliveryNotificationValidationError") throw error;
+      console.error('[SMS] Delivery-code notification failed');
       return false;
     }
   }
@@ -1509,28 +1535,77 @@ export class OrderManagementStorage implements IOrderManagementStorage {
   async sendDeliveryCodeEmail(customerEmail: string, deliveryCode: string, customerName: string, orderNumber: string, language?: string): Promise<boolean> {
     try {
       const { emailService } = await import('./email-service');
-      const { normalizeSmsLanguage } = await import('./sms-language');
-      const normalizedLanguage = normalizeSmsLanguage(language);
+      const { pool } = await import('./db');
+      const { resolveEmailLanguage } = await import('./sms-language');
+      const {
+        readSettings,
+        renderDeliveryTemplate,
+        validateEmailTemplateBodies,
+        validateTemplatePlaceholders,
+        LogisticsDeliveryNotificationValidationError,
+      } = await import('./logistics-delivery-notification-settings');
+      const normalizedLanguage = await resolveEmailLanguage(pool, customerEmail, language);
       const recipient = customerName || {
         en: 'Dear customer',
         fa: 'مشتری گرامی',
         ar: 'عميلنا العزيز',
         tr: 'Değerli müşterimiz',
       }[normalizedLanguage];
-      
-      // Use template #20 for delivery verification code (قالب شماره 20 - کد تحویل سفارش)
-      // Template variables: customer_name, order_number, delivery_code
-      const result = await emailService.sendEmailWithTemplate('#20', {
+      const settings = await readSettings();
+      const selectedTemplateId = settings.emailTemplateIds[normalizedLanguage];
+      const variables = {
         customer_name: recipient,
         order_number: orderNumber,
-        delivery_code: deliveryCode
-      }, customerEmail, 'orders', normalizedLanguage);
-      
-      console.log(`📧 [EMAIL TEMPLATE #20] Delivery code ${deliveryCode} sent to ${customerEmail} for order ${orderNumber}:`, result);
-      
-      return result;
+        delivery_code: deliveryCode,
+      };
+      if (selectedTemplateId === null) {
+        // Preserve the existing localized delivery email template (#20) as the default.
+        const defaultTemplate = await emailService.getEmailTemplateByNumber('#20', normalizedLanguage);
+        if (!defaultTemplate) {
+          throw new LogisticsDeliveryNotificationValidationError(
+            `Default email delivery template #20 is unavailable for ${normalizedLanguage}`,
+          );
+        }
+        validateTemplatePlaceholders(defaultTemplate.subject, "email", normalizedLanguage);
+        validateEmailTemplateBodies(
+          defaultTemplate.htmlContent,
+          defaultTemplate.textContent,
+          normalizedLanguage,
+        );
+        return await emailService.sendEmailWithTemplate('#20', variables, customerEmail, 'orders', normalizedLanguage);
+      }
+
+      const [template] = await db.select({
+        language: emailTemplates.language,
+        subject: emailTemplates.subject,
+        htmlContent: emailTemplates.htmlContent,
+        textContent: emailTemplates.textContent,
+      }).from(emailTemplates).where(and(
+        eq(emailTemplates.id, selectedTemplateId),
+        eq(emailTemplates.isActive, true),
+      )).limit(1);
+      if (!template || template.language !== normalizedLanguage) {
+        throw new LogisticsDeliveryNotificationValidationError(
+          `Selected email delivery template for ${normalizedLanguage} is missing, inactive, or has the wrong language`,
+        );
+      }
+      validateTemplatePlaceholders(template.subject, "email", normalizedLanguage);
+      validateEmailTemplateBodies(template.htmlContent, template.textContent, normalizedLanguage);
+      const text = renderDeliveryTemplate(
+        template.textContent || template.htmlContent.replace(/<[^>]*>/g, ""),
+        variables,
+      );
+      const html = renderDeliveryTemplate(template.htmlContent, variables, true);
+      const subject = renderDeliveryTemplate(template.subject, variables);
+      return await emailService.sendEmail({
+        to: customerEmail,
+        subject,
+        text,
+        html,
+      }, 'orders');
     } catch (error) {
-      console.error('❌ [EMAIL] Error sending delivery code using template #20:', error);
+      if (error instanceof Error && error.name === "LogisticsDeliveryNotificationValidationError") throw error;
+      console.error('[EMAIL] Delivery-code notification failed');
       return false;
     }
   }

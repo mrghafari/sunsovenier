@@ -57,7 +57,6 @@ import PostalServicesTab from '@/components/PostalServicesTab';
 import DeliveryServicesTab from '@/components/DeliveryServicesTab';
 import PostalShippingParamsTab from '@/components/PostalShippingParamsTab';
 import VehicleTemplateEditor from '@/components/admin/VehicleTemplateEditor';
-import InternationalGeographyTab from '@/components/InternationalGeographyTab';
 import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, Car, Star, TrendingUp, Calendar as CalendarIcon, Search, Filter } from 'lucide-react';
 import { format } from 'date-fns';
@@ -65,6 +64,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { logisticsLocale, logisticsT, type LogisticsLanguage } from './logistics-translations';
 import LogisticsWorkspaceHeader from '@/components/admin/logistics-redesign/LogisticsWorkspaceHeader';
 import LogisticsCenterRouteEditor from '@/components/admin/logistics-redesign/LogisticsCenterRouteEditor';
+import CustomerNotificationSettings from '@/components/admin/logistics-redesign/CustomerNotificationSettings';
 
 // Types for vehicle history
 interface VehicleDeliveryHistory {
@@ -1133,18 +1133,7 @@ const LogisticsManagement = () => {
   // Iraqi provinces and cities data
   const { data: provincesResponse, isLoading: loadingProvinces } = useQuery({
     queryKey: ['/api/logistics/provinces'],
-    enabled: activeTab === 'cities' || activeTab === 'geography' || activeTab === 'international'
-  });
-
-  // Geography data for new geography tab (also enabled for international tab)
-  const { data: geographyProvincesResponse, isLoading: loadingGeographyProvinces } = useQuery({
-    queryKey: ['/api/logistics/provinces-detailed'],
-    enabled: activeTab === 'geography' || activeTab === 'international'
-  });
-
-  const { data: geographyCitiesResponse, isLoading: loadingGeographyCities } = useQuery({
-    queryKey: ['/api/logistics/cities-detailed'],
-    enabled: activeTab === 'geography' || activeTab === 'international'
+    enabled: activeTab === 'cities'
   });
 
   // Vehicle optimization states
@@ -1153,7 +1142,7 @@ const LogisticsManagement = () => {
 
   const { data: citiesResponse, isLoading: loadingCities } = useQuery({
     queryKey: ['/api/logistics/cities'],
-    enabled: activeTab === 'cities' || activeTab === 'geography' || activeTab === 'international'
+    enabled: activeTab === 'cities'
   });
 
 
@@ -3081,6 +3070,8 @@ const LogisticsManagement = () => {
     }
 
     return (
+      <CustomerNotificationSettings t={t} direction={direction} language={language} />
+      /*
       <div className="space-y-6" dir={direction}>
         <Card>
           <CardHeader>
@@ -3175,7 +3166,7 @@ const LogisticsManagement = () => {
           </CardContent>
         </Card>
       </div>
-    );
+    */);
   };
 
   const SettingsTab = () => (
@@ -3185,9 +3176,10 @@ const LogisticsManagement = () => {
         <TabsTrigger value="delivery-services">{t('tabDeliveryServices')}</TabsTrigger>
       </TabsList>
       <TabsContent value="notifications">
-        <NotificationSettingsTab />
+        <CustomerNotificationSettings t={t} direction={direction} language={language} />
       </TabsContent>
       <TabsContent value="delivery-services">
+        <LogisticsCenterRouteEditor t={t} />
         <DeliveryServicesTab language={language} />
       </TabsContent>
     </Tabs>
@@ -4954,15 +4946,16 @@ const LogisticsManagement = () => {
 
 
 
-  // New Geography Tab for provinces and cities management with editing capabilities
+  // Geography management UI is no longer rendered.
   const GeographyTab = () => {
     const [editingProvince, setEditingProvince] = useState<any>(null);
     const [editingCity, setEditingCity] = useState<any>(null);
     const [isEditProvinceDialogOpen, setIsEditProvinceDialogOpen] = useState(false);
     const [isEditCityDialogOpen, setIsEditCityDialogOpen] = useState(false);
 
-    const geographyProvinces = (geographyProvincesResponse as any)?.data || [];
-    const geographyCities = (geographyCitiesResponse as any)?.data || [];
+    const geographyProvinces: any[] = [];
+    const geographyCities: any[] = [];
+    const loadingGeographyCities = false;
 
 
     // Update province mutation
@@ -5964,7 +5957,6 @@ const LogisticsManagement = () => {
           <TabsTrigger value="orders">{t('orders')}</TabsTrigger>
           <TabsTrigger value="delivered">{t('delivered')}</TabsTrigger>
           <TabsTrigger value="companies">{t('tabTransportCompanies')}</TabsTrigger>
-          <TabsTrigger value="international">{t('tabGeography')}</TabsTrigger>
           <TabsTrigger value="vehicle-templates">{t('tabVehicleTemplates')}</TabsTrigger>
           <TabsTrigger value="fleet-vehicles">{t('tabFleet')}</TabsTrigger>
           <TabsTrigger value="vehicle-history">{t('tabVehicleHistory')}</TabsTrigger>
@@ -5996,11 +5988,6 @@ const LogisticsManagement = () => {
 
         <TabsContent value="vehicle-history">
           <VehicleHistorySection />
-        </TabsContent>
-
-        <TabsContent value="international">
-          <LogisticsCenterRouteEditor t={t} />
-          <InternationalGeographyTab iraqContent={<GeographyTab />} />
         </TabsContent>
 
         <TabsContent value="postal">
