@@ -642,15 +642,27 @@ const WarehouseManagementFixed: React.FC = () => {
   const forceRefreshOrders = async () => {
     await queryClient.invalidateQueries({ queryKey: ['/api/order-management/warehouse'], refetchType: 'none' });
     await queryClient.resetQueries({ queryKey: ['/api/order-management/warehouse', orderView] });
+    await queryClient.invalidateQueries({ queryKey: ['/api/order-management/warehouse', 'counts'] });
     console.log({
       title: `🔄 ${t('refreshed')}`,
       description: t('ordersRefreshed'),
     });
   };
 
+  const { data: warehouseCounts, isError: warehouseCountsError } = useQuery<{ success: boolean; current: number; history: number }>({
+    queryKey: ['/api/order-management/warehouse', 'counts'],
+    queryFn: async () => {
+      const response = await fetch('/api/order-management/warehouse/counts', { credentials: 'include', cache: 'no-store' });
+      if (!response.ok) throw new Error(`Failed to load warehouse counts (${response.status})`);
+      return response.json();
+    },
+    staleTime: 30_000,
+    refetchInterval: 30_000,
+  });
   const orders = ordersResponse?.pages.flatMap((page: any) => orderView === 'history' ? (page.historyOrders || []) : (page.orders || [])) || [];
-  const currentOrderCount = orderView === 'current' ? ordersResponse?.pages[0]?.total || orders.length : 0;
-  const historyOrderCount = orderView === 'history' ? ordersResponse?.pages[0]?.total || orders.length : 0;
+  const currentOrderCount = orderView === 'current' ? (ordersResponse?.pages[0]?.total ?? warehouseCounts?.current) : warehouseCounts?.current;
+  const historyOrderCount = orderView === 'history' ? (ordersResponse?.pages[0]?.total ?? warehouseCounts?.history) : warehouseCounts?.history;
+  const countPlaceholder = warehouseCountsError ? '—' : '…';
   const visibleOrdersLoading = ordersLoading;
   const orderListEndRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -1207,12 +1219,12 @@ const WarehouseManagementFixed: React.FC = () => {
                 <TabsTrigger value="current" className="flex items-center gap-2">
                   <Package className="w-4 h-4" />
                   {t('currentOrders')}
-                  <Badge variant="secondary" className="ms-1">{formatNumber(currentOrderCount)}</Badge>
+                  <Badge variant="secondary" className="ms-1">{currentOrderCount == null ? countPlaceholder : formatNumber(currentOrderCount)}</Badge>
                 </TabsTrigger>
                 <TabsTrigger value="history" className="flex items-center gap-2">
                   <Clock className="w-4 h-4" />
                   {t('orderHistory')}
-                  <Badge variant="secondary" className="ms-1">{formatNumber(historyOrderCount)}</Badge>
+                  <Badge variant="secondary" className="ms-1">{historyOrderCount == null ? countPlaceholder : formatNumber(historyOrderCount)}</Badge>
                 </TabsTrigger>
               </TabsList>
             </Tabs>

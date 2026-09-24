@@ -66,6 +66,15 @@ function warehouseHistoryCondition(statuses: string[]) {
   );
 }
 
+function warehouseViewCondition(view: 'current' | 'history') {
+  return view === 'history'
+    ? and(
+        warehouseHistoryCondition(WAREHOUSE_HISTORY_STATUSES),
+        notInArray(sql<string>`lower(trim(${orderManagement.currentStatus}))`, WAREHOUSE_ACTIVE_STATUSES),
+      )
+    : inArray(orderManagement.currentStatus, [...WAREHOUSE_VISIBLE_STATUSES]);
+}
+
 export type OrderWeightItem = {
   quantity: string | number | null;
   shopGrossWeight: string | number | null;
@@ -159,6 +168,7 @@ export interface IOrderManagementStorage {
   // Department filtering (respects sequence)
   getOrdersByDepartment(department: Department, status?: string[], includeWarehouseHistory?: boolean, options?: { ids: number[] }): Promise<OrderManagement[]>;
   getWarehouseOrdersPage(view: 'current' | 'history', limit: number, offset: number): Promise<{ orders: OrderManagement[]; total: number }>;
+  getWarehouseOrderCounts(): Promise<{ current: number; history: number }>;
   getOrdersByStatus(status: OrderStatus | string | Array<OrderStatus | string>): Promise<OrderManagement[]>;
   getFinancialPendingOrders(): Promise<OrderManagement[]>;
   getFinancialApprovedOrders(): Promise<any[]>;
@@ -680,12 +690,7 @@ export class OrderManagementStorage implements IOrderManagementStorage {
   }
   
   async getWarehouseOrdersPage(view: 'current' | 'history', limit: number, offset: number) {
-    const condition = view === 'history'
-      ? and(
-          warehouseHistoryCondition(WAREHOUSE_HISTORY_STATUSES),
-          notInArray(sql<string>`lower(trim(${orderManagement.currentStatus}))`, WAREHOUSE_ACTIVE_STATUSES),
-        )
-      : inArray(orderManagement.currentStatus, [...WAREHOUSE_VISIBLE_STATUSES]);
+    const condition = warehouseViewCondition(view);
     // Page IDs before joining receipt/customer data. Counting does not require those joins.
     const [pageIds, [countRow]] = await Promise.all([
       db.select({ id: orderManagement.id }).from(orderManagement)
@@ -702,6 +707,16 @@ export class OrderManagementStorage implements IOrderManagementStorage {
         )
       : [];
     return { orders, total: Number(countRow?.total || 0) };
+  }
+
+  async getWarehouseOrderCounts() {
+    const [[current], [history]] = await Promise.all([
+      db.select({ total: sql<number>`count(*)::int` }).from(orderManagement)
+        .where(warehouseViewCondition('current')),
+      db.select({ total: sql<number>`count(*)::int` }).from(orderManagement)
+        .where(warehouseViewCondition('history')),
+    ]);
+    return { current: Number(current.total), history: Number(history.total) };
   }
 
   async getOrdersByDepartment(department: Department, statuses?: string[], includeWarehouseHistory = false, options?: { ids: number[] }): Promise<any[]> {

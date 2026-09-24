@@ -31510,6 +31510,17 @@ ${message ? `Additional Requirements:\n${message}` : ''}
   // WAREHOUSE DEPARTMENT API ROUTES
   // =============================================================================
 
+  app.get('/api/order-management/warehouse/counts', requireAuth, async (_req, res) => {
+    try {
+      const counts = await orderManagementStorage.getWarehouseOrderCounts();
+      res.set('Cache-Control', 'no-store');
+      res.json({ success: true, ...counts });
+    } catch (error) {
+      console.error('📦 [WAREHOUSE] Error fetching warehouse counts:', error);
+      res.status(500).json({ success: false, message: 'خطا در دریافت تعداد سفارشات انبار' });
+    }
+  });
+
   // Warehouse orders - Get orders approved by financial department
   app.get('/api/order-management/warehouse', requireAuth, async (req, res) => {
     try {
