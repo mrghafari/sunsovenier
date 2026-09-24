@@ -3,6 +3,7 @@ import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-q
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { localizeFinanceNote, type WalletTextLanguage } from "@/lib/localize-wallet-text";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -916,7 +917,7 @@ export default function FinancialWorkflowDashboard() {
                       <td className="border-b px-3 py-2 whitespace-nowrap">
                         <div className="font-semibold text-blue-600">{formatCurrency(order.totalAmount)}</div>
                         <div className="text-xs text-green-600">{order.totalWeight ? `${formatDecimal(order.totalWeight)} ${order.weightUnit || t("unit")}` : "—"}</div>
-                        {order.financialNotes && <div className="text-xs text-blue-700">{t("note")}: {order.financialNotes}</div>}
+                        {order.financialNotes && <div className="text-xs text-blue-700">{t("note")}: {localizeFinanceNote(order.financialNotes, language as WalletTextLanguage)}</div>}
                         {parseFloat(order.excessAmountCredited || "0") > 0 && <div className="text-xs text-green-700">{t("excessDeposit")}: {formatCurrency(order.excessAmountCredited)}</div>}
                       </td>
                       <td className="border-b px-3 py-2 max-w-[240px]">
@@ -1123,7 +1124,7 @@ export default function FinancialWorkflowDashboard() {
                       <td className="border-b px-3 py-2"><div>{getStatusBadge(order.currentStatus)}</div><div className="text-xs text-gray-500 mt-1">{order.currentStatus}</div></td>
                       <td className="border-b px-3 py-2"><div>{getPaymentMethodLabel(order.paymentMethod)}</div><div className="text-xs text-gray-500">{order.paymentSourceLabel || "—"}</div></td>
                       <td className="border-b px-3 py-2 whitespace-nowrap"><div className="font-semibold text-green-600">{formatCurrency(order.totalAmount)}</div><div className="text-xs text-gray-600">{order.totalWeight ? `${formatDecimal(order.totalWeight)} ${order.weightUnit || t("unit")}` : "—"}</div></td>
-                      <td className="w-[170px] border-b px-3 py-2 align-top whitespace-normal break-words">{order.financialReviewedAt ? <><div>{formatDate(order.financialReviewedAt)}</div><div className="text-xs text-gray-600">{formatTime(order.financialReviewedAt)}</div>{order.financialNotes && <div className="mt-1 max-w-[170px] whitespace-normal break-words text-xs leading-5 text-gray-500">{t("note")}: {order.financialNotes}</div>}</> : "—"}</td>
+                      <td className="w-[170px] border-b px-3 py-2 align-top whitespace-normal break-words">{order.financialReviewedAt ? <><div>{formatDate(order.financialReviewedAt)}</div><div className="text-xs text-gray-600">{formatTime(order.financialReviewedAt)}</div>{order.financialNotes && <div className="mt-1 max-w-[170px] whitespace-normal break-words text-xs leading-5 text-gray-500">{t("note")}: {localizeFinanceNote(order.financialNotes, language as WalletTextLanguage)}</div>}</> : "—"}</td>
                       <td className="border-b px-3 py-2">{order.invoiceType ? <><div>{order.invoiceType === "official_invoice" ? t("officialInvoice") : t("temporaryInvoice")}</div>{order.invoiceConvertedAt && <div className="text-xs text-gray-600">{t("conversionDate")}: {formatDate(order.invoiceConvertedAt)}</div>}</> : "—"}</td>
                       <td className="border-b px-3 py-2 max-w-[240px]">{order.shippingAddress ? <><div>{order.shippingAddress.city}</div><div className="text-xs text-gray-600">{order.shippingAddress.address}</div></> : "—"}</td>
                     </tr>

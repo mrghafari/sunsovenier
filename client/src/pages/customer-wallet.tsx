@@ -17,6 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Wallet, Plus, ArrowUpCircle, ArrowDownCircle, Clock, CheckCircle, XCircle, DollarSign, CreditCard, Banknote, Shield, Building2, RefreshCw, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { localizeWalletTransactionDescription } from "@/lib/localize-wallet-text";
 
 interface WalletSummary {
   wallet?: {
@@ -430,7 +431,7 @@ export default function CustomerWallet() {
     const normalized = transaction.description?.trim().toLowerCase();
     const isOrderPayment = transaction.referenceType === 'order'
       || ['پرداخت سفارش', 'order payment', 'دفع الطلب', 'sipariş ödemesi'].includes(normalized);
-    return isOrderPayment ? wt.orderPayment : transaction.description;
+    return isOrderPayment ? wt.orderPayment : localizeWalletTransactionDescription(transaction.description, language);
   };
 
   const getTransactionIcon = (type: string) => {

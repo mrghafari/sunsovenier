@@ -20,26 +20,9 @@ import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getOrderStatusLabel, resolveOrderStatus } from '@shared/order-status';
 import WarehouseReadyNotificationSettings from '@/components/WarehouseReadyNotificationSettings';
+import { localizeFinanceNote } from '@/lib/localize-wallet-text';
 
 type PageLanguage = 'en' | 'fa' | 'ar' | 'tr';
-
-const localizeFinancialNote = (note: string, language: PageLanguage): string => {
-  return note.replace(
-    /مبلغ\s+([\d۰-۹٠-٩,.٬،]+)\s+دینار\s+از\s+کیف\s+پول\s+کسر\s+شد/g,
-    (_match, amount: string) => {
-      switch (language) {
-        case 'en':
-          return `${amount} IQD was deducted from the wallet`;
-        case 'ar':
-          return `تم خصم ${amount} دينار عراقي من المحفظة`;
-        case 'tr':
-          return `Cüzdandan ${amount} IQD düşüldü`;
-        default:
-          return `مبلغ ${amount} دینار از کیف پول کسر شد`;
-      }
-    },
-  );
-};
 
 const pageTranslations: Record<string, Record<PageLanguage, string>> = {
   warehouseManagement: { en: 'Warehouse management', fa: 'مدیریت انبار', ar: 'إدارة المستودع', tr: 'Depo yönetimi' },
@@ -1946,7 +1929,7 @@ const WarehouseManagementFixed: React.FC = () => {
                           </tr>}
                           {(orderDetails.financialNotes || orderDetails.orderManagement?.financialNotes) && <tr>
                             <th scope="row" className="w-32 bg-blue-50 px-2 py-1.5 text-start font-medium">{t('finance')} · {t('paymentNote')}</th>
-                            <td className="whitespace-pre-wrap break-words px-2 py-1.5">{localizeFinancialNote(
+                            <td className="whitespace-pre-wrap break-words px-2 py-1.5">{localizeFinanceNote(
                               orderDetails.financialNotes || orderDetails.orderManagement?.financialNotes || '', language,
                             )}</td>
                           </tr>}

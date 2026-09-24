@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AlertTriangle, CheckCircle, Clock, CreditCard, DollarSign, RefreshCw, Timer, ChevronRight, ChevronDown, ChevronUp, XCircle, FileText, Eye, Download, Truck, MapPin, ZoomIn, ZoomOut, RotateCw, Move, X, Wallet, Calculator, ArrowUpDown, ArrowUp, ArrowDown, Loader2, Save } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { localizeFinanceNote } from "@/lib/localize-wallet-text";
 import { getOrderStatusLabel, resolveOrderStatus } from "@shared/order-status";
 import DatePickerModule, { type DateObject } from "react-multi-date-picker";
 import persian from "react-date-object/calendars/persian";
@@ -357,6 +358,7 @@ function FinanceOrders() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [reviewNotes, setReviewNotes] = useState("");
   const [financialNoteDrafts, setFinancialNoteDrafts] = useState<Record<number, string>>({});
+  const [editingFinancialNoteId, setEditingFinancialNoteId] = useState<number | null>(null);
   const [expandedCustomerNoteOrderId, setExpandedCustomerNoteOrderId] = useState<number | null>(null);
   const [receiptAmount, setReceiptAmount] = useState("");
   const [walletBalance, setWalletBalance] = useState<number>(0);
@@ -1438,7 +1440,9 @@ function FinanceOrders() {
                 <td className="w-[150px] border border-slate-200 px-3 py-2 align-top whitespace-normal">
                   <div className="space-y-1.5">
                     <Textarea
-                      value={noteDraft}
+                      value={editingFinancialNoteId === order.customerOrderId ? noteDraft : localizeFinanceNote(noteDraft, language)}
+                      onFocus={() => setEditingFinancialNoteId(order.customerOrderId)}
+                      onBlur={() => setEditingFinancialNoteId(null)}
                       onChange={(event) => setFinancialNoteDrafts((current) => ({
                         ...current,
                         [order.customerOrderId]: event.target.value,
