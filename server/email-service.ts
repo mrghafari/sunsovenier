@@ -16,9 +16,20 @@ interface EmailOptions {
 }
 
 class EmailService {
-  async getSenderAddress(category: string): Promise<string | null> {
+  async getSenderDetails(category: string) {
     const config = await this.getSMTPConfig(category);
-    return config?.fromEmail || null;
+    if (!config) return { email: null, direct: false, testStatus: null };
+    const [direct] = await db
+      .select({ id: smtpSettings.id })
+      .from(smtpSettings)
+      .innerJoin(emailCategories, eq(smtpSettings.categoryId, emailCategories.id))
+      .where(and(
+        eq(emailCategories.categoryKey, category),
+        eq(emailCategories.isActive, true),
+        eq(smtpSettings.isActive, true),
+      ))
+      .limit(1);
+    return { email: config.fromEmail, direct: direct?.id === config.id, testStatus: config.testStatus };
   }
 
   private async getSMTPConfig(category: string = 'admin') {
