@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
-import { Package, Search, Filter, ArrowLeft, FileText, Clock, CheckCircle, XCircle, Plus, Edit3, Trash2, Download, Upload, RefreshCw, AlertTriangle, Calendar, Users, TrendingUp, TrendingDown, Eye, BarChart3, Package2, Truck, Weight, Calculator, FileSpreadsheet, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, Printer, Bell, Mail, MessageSquare, Phone, Save, Edit, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { Package, Search, Filter, ArrowLeft, FileText, Clock, CheckCircle, XCircle, Plus, Edit3, Trash2, Download, Upload, RefreshCw, AlertTriangle, Calendar, Users, TrendingUp, TrendingDown, BarChart3, Package2, Truck, Weight, Calculator, FileSpreadsheet, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, Printer, Bell, Mail, MessageSquare, Phone, Save, Edit, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import SafeModal from '@/components/SafeModal';
 import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/useAuth';
@@ -323,6 +323,7 @@ const WarehouseManagementFixed: React.FC = () => {
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showOrderDetails, setShowOrderDetails] = useState(false);
+  const detailRequestId = useRef(0);
   const [warehouseNotes, setWarehouseNotes] = useState('');
   const [quickNoteOrder, setQuickNoteOrder] = useState<Order | null>(null);
   const [quickNoteText, setQuickNoteText] = useState('');
@@ -1121,23 +1122,37 @@ const WarehouseManagementFixed: React.FC = () => {
 
   // Fetch complete order details with items
   const fetchOrderDetails = async (customerOrderId: number) => {
+    const requestId = ++detailRequestId.current;
     setLoadingOrderDetails(true);
     try {
       const response = await apiRequest(`/api/order-management/warehouse/${customerOrderId}/details`, {
         method: 'GET'
       });
-      setOrderDetails(response.order);
-      console.log('Order details fetched:', response.order);
+      if (requestId === detailRequestId.current) setOrderDetails(response.order);
     } catch (error) {
+      if (requestId !== detailRequestId.current) return;
       console.error('Error fetching order details:', error);
-      console.log({
+      toast({
         title: t('loadOrderError'),
         description: t('loadOrderErrorDescription'),
         variant: "destructive",
       });
     } finally {
-      setLoadingOrderDetails(false);
+      if (requestId === detailRequestId.current) setLoadingOrderDetails(false);
     }
+  };
+
+  const toggleOrderDetails = (order: Order) => {
+    if (showOrderDetails && selectedOrder?.id === order.id) {
+      detailRequestId.current++;
+      setShowOrderDetails(false);
+      return;
+    }
+    setSelectedOrder(order);
+    setWarehouseNotes(order.warehouseNotes || '');
+    setOrderDetails(null);
+    setShowOrderDetails(true);
+    void fetchOrderDetails(order.customerOrderId);
   };
 
   const detailWorkflowStatus =
@@ -1305,27 +1320,45 @@ const WarehouseManagementFixed: React.FC = () => {
 
                             return (
                             <React.Fragment key={order.id}>
-                            <tr className="odd:bg-white even:bg-slate-50 hover:bg-blue-50">
+                            <tr
+                              className="odd:bg-white even:bg-slate-50 hover:bg-blue-50 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500"
+                              tabIndex={0}
+                              aria-expanded={showOrderDetails && selectedOrder?.id === order.id}
+                              aria-label={`${t('orderDetails')} ${order.orderNumber || `#${order.id}`}`}
+                              onClick={(event) => {
+                                if (event.target instanceof Element && event.target.closest('button, a, input, select, textarea, [role="button"]')) return;
+                                toggleOrderDetails(order);
+                              }}
+                              onKeyDown={(event) => {
+                                if (event.target !== event.currentTarget || (event.key !== 'Enter' && event.key !== ' ')) return;
+                                event.preventDefault();
+                                toggleOrderDetails(order);
+                              }}
+                            >
                              <th scope="row" className="border border-slate-200 px-3 py-2 text-center font-medium text-slate-600">{index + 1}</th>
                              <td className="border border-slate-200 px-3 py-2 font-medium whitespace-nowrap">
                                 <button
                                   type="button"
-                                  disabled={!hasCustomerNote}
-                                  aria-expanded={hasCustomerNote ? isCustomerNoteExpanded : undefined}
-                                  onClick={() => hasCustomerNote && setExpandedCustomerNoteOrderId(isCustomerNoteExpanded ? null : order.id)}
-                                  className={`inline-flex items-center gap-1.5 rounded px-1 py-0.5 font-bold text-blue-600 ${hasCustomerNote ? 'hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500' : 'cursor-default'}`}
-                                  title={hasCustomerNote ? t('customerNote') : undefined}
+                                   aria-expanded={showOrderDetails && selectedOrder?.id === order.id}
+                                   onClick={() => toggleOrderDetails(order)}
+                                   className="inline-flex items-center gap-1.5 rounded px-1 py-0.5 font-bold text-blue-600 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                                   title={t('orderDetails')}
                                 >
-                                  {hasCustomerNote && (
-                                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-100" aria-hidden="true" />
-                                  )}
                                   <span>{order.orderNumber || `#${order.id}`}</span>
-                                  {hasCustomerNote && (
-                                    isCustomerNoteExpanded
-                                      ? <ChevronUp className="h-3.5 w-3.5 text-emerald-700" aria-hidden="true" />
-                                      : <ChevronDown className="h-3.5 w-3.5 text-emerald-700" aria-hidden="true" />
-                                  )}
                                 </button>
+                                 {hasCustomerNote && (
+                                   <button
+                                     type="button"
+                                     aria-label={`${t('customerNote')} ${order.orderNumber || order.id}`}
+                                     aria-expanded={isCustomerNoteExpanded}
+                                     onClick={() => setExpandedCustomerNoteOrderId(isCustomerNoteExpanded ? null : order.id)}
+                                     className="ms-1 inline-flex items-center gap-1 rounded px-1 py-0.5 text-emerald-700 hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                                     title={t('customerNote')}
+                                   >
+                                     <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-100" aria-hidden="true" />
+                                     {isCustomerNoteExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                                   </button>
+                                 )}
                              </td>
                              <td className="border border-slate-200 px-3 py-2">
                                <span className="font-medium text-slate-800 break-words">{
@@ -1386,21 +1419,6 @@ const WarehouseManagementFixed: React.FC = () => {
                              </td>
                              <td className="border border-slate-200 px-3 py-2">
                                <div className="flex flex-wrap items-center gap-1.5 whitespace-nowrap">
-                                 <Button
-                                   size="sm"
-                                   variant="outline"
-                                   onClick={() => {
-                                     setSelectedOrder(order);
-                                     setWarehouseNotes(order.warehouseNotes || ''); // Load existing notes
-                                     setShowOrderDetails(true);
-                                     // Fetch complete order details
-                                     fetchOrderDetails(order.customerOrderId);
-                                   }}
-                                   className="h-7 px-2 text-xs"
-                                 >
-                                   <Eye className="w-3.5 h-3.5 mr-1" />
-                                    {t('details')}
-                                 </Button>
                                  {(order.currentStatus === 'financial_approved' || order.currentStatus === 'warehouse_pending') && (
                                    <Button
                                      size="sm"
@@ -1452,6 +1470,13 @@ const WarehouseManagementFixed: React.FC = () => {
                                </div>
                              </td>
                            </tr>
+                             {showOrderDetails && selectedOrder?.id === order.id && (
+                               <tr className="bg-blue-50/60">
+                                 <td colSpan={11} className="border border-blue-200 p-0">
+                                   {renderOrderDetailsInline()}
+                                 </td>
+                               </tr>
+                             )}
                             {isCustomerNoteExpanded && (
                               <tr className="bg-emerald-50/70">
                                 <td colSpan={11} className="border border-emerald-200 p-0">
@@ -1823,15 +1848,21 @@ const WarehouseManagementFixed: React.FC = () => {
             </div>
           </div>
         </SafeModal>
+      </div>
+    </div>
+  );
 
-        {/* Order Details Modal - Using SafeModal (No React Portal Issues) */}
-        <SafeModal
-          isOpen={showOrderDetails}
-          onClose={() => setShowOrderDetails(false)}
-           title={`${t('orderDetails')} ${selectedOrder?.orderNumber || `#${selectedOrder?.customerOrderId}` || ''}`}
-          maxWidth="max-w-4xl"
-          maxHeight="max-h-[80vh]"
-        >
+  function renderOrderDetailsInline() {
+    return (
+      <div className="space-y-4 p-4 md:p-6">
+        <div className="flex items-center justify-between gap-4">
+          <h3 className="text-lg font-semibold text-slate-900">
+            {t('orderDetails')} {selectedOrder?.orderNumber || `#${selectedOrder?.customerOrderId}`}
+          </h3>
+          <Button type="button" variant="outline" size="sm" onClick={() => setShowOrderDetails(false)}>
+            {t('cancel')}
+          </Button>
+        </div>
             {loadingOrderDetails ? (
               <div className="text-center py-8">
                 <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -2092,10 +2123,9 @@ const WarehouseManagementFixed: React.FC = () => {
                  <p className="text-gray-600">{t('loadOrderError')}</p>
               </div>
             )}
-        </SafeModal>
       </div>
-    </div>
-  );
+    );
+  }
 };
 
 export default WarehouseManagementFixed;

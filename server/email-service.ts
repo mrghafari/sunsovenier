@@ -16,6 +16,11 @@ interface EmailOptions {
 }
 
 class EmailService {
+  async getSenderAddress(category: string): Promise<string | null> {
+    const config = await this.getSMTPConfig(category);
+    return config?.fromEmail || null;
+  }
+
   private async getSMTPConfig(category: string = 'admin') {
     try {
       const [categoryConfig] = await db

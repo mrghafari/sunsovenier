@@ -45315,6 +45315,23 @@ momtazchem.com
       res.status(500).json({ success: false, message: "خطا در دریافت گزینه‌های اعلان" });
     }
   });
+  app.put("/api/warehouse/ready-notification-sms-template/:id", requireModuleAccess('warehouse_management', 'edit'), async (req, res) => {
+    const id = Number(req.params.id);
+    const { content, expectedContent } = req.body || {};
+    if (!Number.isSafeInteger(id) || id <= 0 || typeof content !== "string" ||
+        !content.trim() || content.length > 4000 || typeof expectedContent !== "string") {
+      return res.status(400).json({ success: false, message: "Invalid SMS template content" });
+    }
+    try {
+      const { updateReadySmsTemplate } = await import("./warehouse-ready-notification");
+      const template = await updateReadySmsTemplate(id, content, expectedContent);
+      if (!template) return res.status(409).json({ success: false, message: "SMS template was changed or removed. Reload before editing." });
+      res.json({ success: true, template });
+    } catch (error) {
+      console.error("Error updating warehouse SMS template:", error);
+      res.status(500).json({ success: false, message: "خطا در ذخیره قالب پیامک" });
+    }
+  });
 
   app.post("/api/warehouse/orders/:orderId/reject", requireAuth, attachUserDepartments, requireDepartment('warehouse'), async (req: Request, res: Response) => {
     try {
