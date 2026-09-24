@@ -373,77 +373,80 @@ const WarehouseManagementFixed: React.FC = () => {
         <meta charset="UTF-8">
         <title>${t('orderDetails')} ${orderDetails.orderNumber || `#${selectedOrder?.customerOrderId}`}</title>
         <style>
-          body { font-family: 'Tahoma', sans-serif; margin: 20px; direction: ${direction}; }
-          .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 20px; }
-          .company-logo { max-width: 150px; height: auto; margin-bottom: 10px; }
-          .company-name { font-size: 24px; font-weight: bold; color: #1a365d; }
-          .order-title { font-size: 18px; margin-top: 10px; }
-          .section { margin-bottom: 20px; }
-          .section-title { font-size: 16px; font-weight: bold; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 10px; }
-          .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
-          .info-item { border: 1px solid #ddd; padding: 10px; border-radius: 4px; }
-          .info-label { font-weight: bold; color: #666; font-size: 12px; }
-          .info-value { margin-top: 5px; font-size: 14px; }
-          .items-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-          .items-table th, .items-table td { border: 1px solid #ddd; padding: 8px; text-align: start; }
+           body { font-family: 'Tahoma', sans-serif; margin: 12px; direction: ${direction}; line-height: 1.25; }
+           .header { display: flex; direction: ltr; align-items: flex-start; gap: 10px; text-align: start; border-bottom: 1px solid #333; padding-bottom: 6px; margin-bottom: 8px; }
+           .company-logo { width: 58px; height: 58px; object-fit: contain; flex: none; }
+           .header-text { flex: 1; min-width: 0; direction: ${direction}; text-align: start; }
+           .company-name { font-size: 17px; font-weight: bold; color: #1a365d; }
+           .order-title { font-size: 14px; margin-top: 2px; }
+           .print-date { font-size: 11px; margin-top: 2px; }
+           .section { margin-bottom: 9px; }
+           .section-title { font-size: 14px; font-weight: bold; border-bottom: 1px solid #ccc; padding-bottom: 2px; margin-bottom: 4px; }
+           .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 4px; }
+           .info-item { border: 1px solid #ddd; padding: 5px; border-radius: 3px; break-inside: avoid; }
+           .info-label { font-weight: bold; color: #666; font-size: 11px; }
+           .info-value { margin-top: 2px; font-size: 12px; }
+           .items-table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+           .items-table th, .items-table td { border: 1px solid #ddd; padding: 4px; text-align: start; }
           .items-table th { background-color: #f5f5f5; font-weight: bold; }
-          .summary-box { background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 15px; }
-          .status-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 10px; }
-          .status-item { padding: 10px; border-radius: 4px; text-align: center; border: 1px solid #ddd; }
+           .summary-box { background-color: #f8f9fa; padding: 7px; border-radius: 4px; margin-top: 4px; break-inside: avoid; }
+           .status-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-top: 4px; }
+           .status-item { padding: 5px; border-radius: 3px; text-align: center; border: 1px solid #ddd; break-inside: avoid; }
           .status-approved { background-color: #d4edda; border-color: #c3e6cb; }
           .status-pending { background-color: #f8f9fa; border-color: #dee2e6; }
-          .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
+           .warehouse-notes { background-color: #f8f9fa; padding: 7px; border-radius: 4px; border: 1px solid #dee2e6; }
+           .footer { margin-top: 10px; text-align: center; font-size: 11px; color: #666; }
+           .footer p { margin: 2px 0; }
           @media print { 
             body { 
               margin: 0; 
-              padding: 15mm 10mm 15mm 10mm; 
+               padding: 0;
               box-sizing: border-box;
-              font-size: 12pt;
-              line-height: 1.4;
+               font-size: 10pt;
+               line-height: 1.25;
               -webkit-print-color-adjust: exact;
               print-color-adjust: exact;
             }
             .header { 
-              margin-bottom: 15mm; 
-              page-break-after: avoid;
+               margin-bottom: 3mm;
+               break-after: avoid;
             }
             .section { 
-              margin-bottom: 8mm; 
-              page-break-inside: avoid;
+               margin-bottom: 3mm;
             }
             .info-grid { 
               grid-template-columns: 1fr 1fr; 
-              gap: 5mm;
+               gap: 2mm;
             }
             .info-item { 
-              padding: 3mm; 
-              margin-bottom: 2mm;
+               padding: 2mm;
             }
             .items-table { 
-              page-break-inside: avoid;
-              margin-top: 5mm;
+               margin-top: 2mm;
             }
+             .items-table thead { display: table-header-group; }
+             .items-table tr { break-inside: avoid; }
             .items-table th, .items-table td { 
-              padding: 2mm; 
-              font-size: 10pt;
+               padding: 1.5mm;
+               font-size: 9pt;
             }
             .summary-box { 
-              padding: 5mm; 
-              margin-top: 5mm;
+               padding: 2mm;
+               margin-top: 2mm;
             }
             .status-grid { 
               grid-template-columns: 1fr 1fr 1fr; 
-              gap: 3mm;
+               gap: 2mm;
             }
             .status-item { 
-              padding: 3mm;
+               padding: 2mm;
             }
             .footer { 
-              margin-top: 10mm; 
-              page-break-inside: avoid;
+               margin-top: 3mm;
+               break-inside: avoid;
             }
             @page {
-              margin: 15mm 10mm 15mm 10mm;
+               margin: 8mm 10mm 9mm;
               size: A4;
             }
           }
@@ -452,9 +455,11 @@ const WarehouseManagementFixed: React.FC = () => {
       <body>
         <div class="header">
           <img src="/attached_assets/company-logo.png" alt="${t('warehouseManagement')}" class="company-logo" />
-          <div class="company-name">${t('companyName')}</div>
-          <div class="order-title">${t('orderDetails')} ${orderDetails.orderNumber || `#${selectedOrder?.customerOrderId}`}</div>
-          <div style="font-size: 12px; margin-top: 10px;">${t('printDate') || 'Print date'}: ${formatDate(new Date())}</div>
+           <div class="header-text">
+             <div class="company-name">${t('companyName')}</div>
+             <div class="order-title">${t('orderDetails')} ${orderDetails.orderNumber || `#${selectedOrder?.customerOrderId}`}</div>
+             <div class="print-date">${t('printDate') || 'Print date'}: ${formatDate(new Date())}</div>
+           </div>
         </div>
 
         <div class="section">
@@ -482,18 +487,18 @@ const WarehouseManagementFixed: React.FC = () => {
         <div class="section">
           <div class="section-title">${t('orderSummary')}</div>
           <div class="summary-box">
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; text-align: center;">
+             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; text-align: center;">
               <div>
                 <div class="info-label">${t('itemCount')}</div>
-                <div style="font-size: 18px; font-weight: bold; color: #1d4ed8;">${formatNumber(orderDetails.totalItems || 0)}</div>
+                 <div style="font-size: 14px; font-weight: bold; color: #1d4ed8;">${formatNumber(orderDetails.totalItems || 0)}</div>
               </div>
               <div>
                 <div class="info-label">${t('grossWeight')}</div>
-                <div style="font-size: 18px; font-weight: bold; color: #1d4ed8;">${orderDetails.totalWeight ? `${formatNumber(parseFloat(orderDetails.totalWeight), 1)} ${t('kilogram')}` : t('notCalculated')}</div>
+                 <div style="font-size: 14px; font-weight: bold; color: #1d4ed8;">${orderDetails.totalWeight ? `${formatNumber(parseFloat(orderDetails.totalWeight), 1)} ${t('kilogram')}` : t('notCalculated')}</div>
               </div>
               <div>
                 <div class="info-label">${t('orderDate')}</div>
-                <div style="font-size: 14px; font-weight: bold;">${formatDate(orderDetails.orderDate)}</div>
+                 <div style="font-size: 12px; font-weight: bold;">${formatDate(orderDetails.orderDate)}</div>
               </div>
             </div>
           </div>
@@ -546,7 +551,7 @@ const WarehouseManagementFixed: React.FC = () => {
         ${orderDetails.warehouseNotes ? `
           <div class="section">
             <div class="section-title">${t('warehouseNotes')}</div>
-            <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #dee2e6;">
+             <div class="warehouse-notes">
               ${orderDetails.warehouseNotes}
             </div>
           </div>
