@@ -89,7 +89,6 @@ const PROFILE_T = {
     paymentDeadlineOrder: (d: number) => `Order with ${d}-day payment deadline`,
     specialDeadline: "Special Deadline",
     waitingForTransfer: "Waiting for bank transfer — please upload receipt",
-    uploadBankTransfer: "Upload Bank Transfer",
     paymentDeadlineHours: (h: number) => `Payment deadline: ${h} hours from order time`,
     transferUploaded: "Transfer Uploaded",
     waitingFinancialReview: "Awaiting financial review",
@@ -220,7 +219,6 @@ const PROFILE_T = {
     paymentDeadlineOrder: (d: number) => `طلب بمهلة دفع ${d} أيام`,
     specialDeadline: "مهلة خاصة",
     waitingForTransfer: "في انتظار التحويل البنكي — يرجى رفع الإيصال",
-    uploadBankTransfer: "رفع الحوالة البنكية",
     paymentDeadlineHours: (h: number) => `مهلة الدفع: ${h} ساعة من وقت الطلب`,
     transferUploaded: "تم رفع الحوالة",
     waitingFinancialReview: "في انتظار المراجعة المالية",
@@ -347,7 +345,6 @@ const PROFILE_T = {
     paymentDeadlineOrder: (d: number) => `${d} günlük ödeme süreli sipariş`,
     specialDeadline: "Özel Süre",
     waitingForTransfer: "Banka havalesi bekleniyor — lütfen makbuzu yükleyin",
-    uploadBankTransfer: "Banka Havalesi Yükle",
     paymentDeadlineHours: (h: number) => `Ödeme süresi: Sipariş tarihinden itibaren ${h} saat`,
     transferUploaded: "Havale Yüklendi",
     waitingFinancialReview: "Finansal inceleme bekleniyor",
@@ -481,7 +478,6 @@ const PROFILE_T_WITH_FA = {
     paymentDeadlineOrder: (d: number) => `سفارش با مهلت پرداخت ${d} روزه`,
     specialDeadline: "مهلت ویژه",
     waitingForTransfer: "در انتظار انتقال بانکی — لطفاً رسید را بارگذاری کنید",
-    uploadBankTransfer: "بارگذاری رسید انتقال بانکی",
     paymentDeadlineHours: (h: number) => `مهلت پرداخت: ${h} ساعت پس از ثبت سفارش`,
     transferUploaded: "رسید انتقال بارگذاری شد",
     waitingFinancialReview: "در انتظار بررسی واحد مالی",
@@ -1531,10 +1527,6 @@ const CustomerProfile = () => {
                                     {!order.receiptPath ? (
                                       <div className="flex flex-wrap items-center gap-2">
                                         <p className="text-xs text-orange-800">{pt.waitingForTransfer}</p>
-                                        <Button size="sm" className="bg-orange-600 text-xs text-white hover:bg-orange-700" onClick={() => handleOpenBankReceiptModal(order.orderNumber)}>
-                                          <Upload className="mr-1 h-3 w-3" />
-                                          {pt.uploadBankTransfer}
-                                        </Button>
                                         <span className="text-xs text-orange-700">{pt.paymentDeadlineHours(gracePeriodDays * 24)}</span>
                                       </div>
                                     ) : (
