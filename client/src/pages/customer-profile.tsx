@@ -115,6 +115,7 @@ const PROFILE_T = {
     downloadOfficialInvoice: "Official Invoice",
     downloadProforma: "Proforma Invoice",
     invoice: "Invoice",
+    bankDocuments: "Bank documents",
     status: "Status",
     details: "Details",
     // buttons
@@ -245,6 +246,7 @@ const PROFILE_T = {
     downloadOfficialInvoice: "الفاتورة الرسمية",
     downloadProforma: "الفاتورة المبدئية",
     invoice: "الفاتورة",
+    bankDocuments: "المستندات البنكية",
     status: "الحالة",
     details: "التفاصيل",
     viewFullPurchaseHistory: "عرض سجل المشتريات الكامل",
@@ -371,6 +373,7 @@ const PROFILE_T = {
     downloadOfficialInvoice: "Resmi Fatura",
     downloadProforma: "Proforma Fatura",
     invoice: "Fatura",
+    bankDocuments: "Banka belgeleri",
     status: "Durum",
     details: "Detaylar",
     viewFullPurchaseHistory: "Tam Satın Alma Geçmişini Görüntüle",
@@ -504,6 +507,7 @@ const PROFILE_T_WITH_FA = {
     downloadOfficialInvoice: "فاکتور رسمی",
     downloadProforma: "پیش‌فاکتور",
     invoice: "فاکتور",
+    bankDocuments: "مدارک بانکی",
     status: "وضعیت",
     details: "جزئیات",
     viewFullPurchaseHistory: "مشاهده کامل سابقه خرید",
@@ -1390,14 +1394,15 @@ const CustomerProfile = () => {
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
-                       <div className="min-w-[1040px]">
-                        <div className="sticky top-0 z-10 grid grid-cols-[44px_1.4fr_1fr_1fr_1fr_1.7fr] border-b border-slate-700 bg-slate-700 text-[11px] font-semibold uppercase tracking-wide text-slate-50">
+                        <div className="min-w-[1180px]">
+                         <div className="sticky top-0 z-10 grid grid-cols-[44px_1.4fr_1fr_1fr_1fr_1.6fr_1.4fr] border-b border-slate-700 bg-slate-700 text-[11px] font-semibold uppercase tracking-wide text-slate-50">
                          <div className="border-e border-slate-600 px-3 py-2">#</div>
                          <div className="border-e border-slate-600 px-3 py-2">{pt.orderLabel("order")}</div>
                          <div className="border-e border-slate-600 px-3 py-2">{pt.orderItems}</div>
                          <div className="border-e border-slate-600 px-3 py-2">{pt.status}</div>
                          <div className="border-e border-slate-600 px-3 py-2">{pt.totalAmount}</div>
-                         <div className="px-3 py-2">{pt.invoice}</div>
+                          <div className="border-e border-slate-600 px-3 py-2">{pt.invoice}</div>
+                          <div className="px-3 py-2">{pt.bankDocuments}</div>
                        </div>
                        <div className="space-y-0">
                       {visibleOrders.map((order: any, orderIndex: number) => {
@@ -1408,7 +1413,7 @@ const CustomerProfile = () => {
                         return (
                           <div
                             key={order.id}
-                            className={`grid grid-cols-[44px_1.4fr_1fr_1fr_1fr_1.7fr] gap-0 border-b border-x-0 border-slate-200 text-xs ${
+                            className={`grid grid-cols-[44px_1.4fr_1fr_1fr_1fr_1.6fr_1.4fr] gap-0 border-b border-x-0 border-slate-200 text-xs ${
                               is3DayBankTransfer
                                 ? "border-orange-300 bg-orange-50"
                                 : order.status === "pending" || order.status === "payment_grace_period"
@@ -1465,7 +1470,7 @@ const CustomerProfile = () => {
                               <div className="col-start-5 row-start-1 flex min-w-0 items-center border-e border-slate-200 px-3 py-2">
                                 <span className="font-semibold text-slate-900">{Math.floor(getOrderTotal(order))} IQD</span>
                               </div>
-                              <div className="col-start-6 row-start-1 flex min-w-0 items-center px-3 py-2">
+                               <div className="col-start-6 row-start-1 flex min-w-0 items-center border-e border-slate-200 px-3 py-2">
                                 {!["cancelled", "financial_rejected", "finance_rejected", "rejected"].includes(
                                   String(order.currentStatus || order.managementStatus || order.status || "").toLowerCase(),
                                 ) &&
@@ -1494,8 +1499,26 @@ const CustomerProfile = () => {
                                   <span className="text-slate-400" aria-label={pt.invoice}>—</span>
                                 )}
                               </div>
+                               <div className="col-start-7 row-start-1 flex min-w-0 items-center px-2 py-2">
+                                 {isUnpaidGraceOrder(order) ? (
+                                   <Button
+                                     type="button"
+                                     size="sm"
+                                     variant="outline"
+                                     className="h-auto min-h-8 whitespace-normal text-start text-xs"
+                                     onClick={() => handleOpenBankReceiptModal(order.orderNumber)}
+                                   >
+                                     <Upload className="me-1 h-3.5 w-3.5 shrink-0" />
+                                     {pt.uploadBankReceiptBtn}
+                                   </Button>
+                                 ) : is3DayBankTransfer && order.receiptPath ? (
+                                   <Badge className="whitespace-normal bg-green-100 text-green-800">{pt.transferUploaded}</Badge>
+                                 ) : (
+                                   <span className="text-slate-400" aria-label={pt.bankDocuments}>—</span>
+                                 )}
+                               </div>
                             {expandedOrderId === order.id && (
-                              <div id={`order-details-${order.id}`} className="col-span-6 min-w-0 border-t border-slate-300 bg-slate-50 p-3">
+                               <div id={`order-details-${order.id}`} className="col-span-7 min-w-0 border-t border-slate-300 bg-slate-50 p-3">
                                 {is3DayBankTransfer && (order.status === "pending" || order.status === "payment_grace_period") && (
                                   <div className="mb-3 rounded border border-orange-300 bg-orange-100 p-3">
                                     <div className="mb-2 flex items-center justify-between">
@@ -1761,6 +1784,7 @@ const CustomerProfile = () => {
         open={showBankReceiptModal}
         onOpenChange={setShowBankReceiptModal}
         orderNumber={selectedOrderNumber}
+        orderFromProfile={baseOrders.find((order: any) => order.orderNumber === selectedOrderNumber)}
         onSuccess={handleModalSuccess}
       />
     </>

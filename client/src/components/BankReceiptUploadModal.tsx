@@ -17,6 +17,7 @@ interface BankReceiptUploadModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   orderNumber: string;
+  orderFromProfile?: { orderNumber: string; totalAmount: string; receiptPath?: string | null };
   onSuccess?: () => void;
 }
 
@@ -147,6 +148,7 @@ export function BankReceiptUploadModal({
   open, 
   onOpenChange, 
   orderNumber,
+  orderFromProfile,
   onSuccess
 }: BankReceiptUploadModalProps) {
   const { toast } = useToast();
@@ -160,15 +162,16 @@ export function BankReceiptUploadModal({
   const [securityStatus, setSecurityStatus] = useState<string>("");
 
   // Fetch order details
-  const { data: order, isLoading: isLoadingOrder } = useQuery({
+  const { data: fetchedOrder, isLoading: isLoadingOrder } = useQuery({
     queryKey: [`/api/customers/orders/${orderNumber}`],
     queryFn: async () => {
       const response = await apiRequest('/api/customers/orders', { method: 'GET' });
       const orders = response.orders || [];
       return orders.find((o: any) => o.orderNumber === orderNumber || o.id.toString() === orderNumber) || null;
     },
-    enabled: open && !!orderNumber,
+    enabled: open && !!orderNumber && orderFromProfile?.orderNumber !== orderNumber,
   });
+  const order = orderFromProfile?.orderNumber === orderNumber ? orderFromProfile : fetchedOrder;
 
   // Fetch company banking information
   const { data: companyInfo, isLoading: isLoadingCompanyInfo } = useQuery({
