@@ -875,6 +875,7 @@ function FinanceOrders() {
         return;
       }
       console.log('✅ [IMAGE MODAL] Image verified accessible:', processedUrl);
+      setSelectedFileMimeType(response.headers.get('Content-Type')?.split(';')[0]?.trim().toLowerCase() || "");
     } catch (error) {
       console.error('❌ [IMAGE MODAL] Failed to verify image:', error);
       toast({
@@ -886,7 +887,6 @@ function FinanceOrders() {
     }
     
     setSelectedImageUrl(processedUrl);
-    setSelectedFileMimeType("");
     setImageModalOpen(true);
     // Reset zoom and pan when opening new image
     setZoomLevel(1);

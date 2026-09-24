@@ -115,6 +115,7 @@ const PROFILE_T = {
     downloadProforma: "Proforma Invoice",
     invoice: "Invoice",
     bankDocuments: "Bank documents",
+    viewBankReceipt: "View receipt",
     status: "Status",
     details: "Details",
     // buttons
@@ -245,6 +246,7 @@ const PROFILE_T = {
     downloadProforma: "الفاتورة المبدئية",
     invoice: "الفاتورة",
     bankDocuments: "المستندات البنكية",
+    viewBankReceipt: "عرض الإيصال",
     status: "الحالة",
     details: "التفاصيل",
     viewFullPurchaseHistory: "عرض سجل المشتريات الكامل",
@@ -371,6 +373,7 @@ const PROFILE_T = {
     downloadProforma: "Proforma Fatura",
     invoice: "Fatura",
     bankDocuments: "Banka belgeleri",
+    viewBankReceipt: "Dekontu görüntüle",
     status: "Durum",
     details: "Detaylar",
     viewFullPurchaseHistory: "Tam Satın Alma Geçmişini Görüntüle",
@@ -504,6 +507,7 @@ const PROFILE_T_WITH_FA = {
     downloadProforma: "پیش‌فاکتور",
     invoice: "فاکتور",
     bankDocuments: "مدارک بانکی",
+    viewBankReceipt: "مشاهده فیش",
     status: "وضعیت",
     details: "جزئیات",
     viewFullPurchaseHistory: "مشاهده کامل سابقه خرید",
@@ -1508,7 +1512,24 @@ const CustomerProfile = () => {
                                      {pt.uploadBankReceiptBtn}
                                    </Button>
                                  ) : is3DayBankTransfer && order.receiptPath ? (
-                                   <Badge className="whitespace-normal bg-green-100 text-green-800">{pt.transferUploaded}</Badge>
+                                   <div className="flex flex-wrap items-center gap-1">
+                                     <Badge className="whitespace-normal bg-green-100 text-green-800">{pt.transferUploaded}</Badge>
+                                     <Button
+                                       type="button"
+                                       size="sm"
+                                       variant="link"
+                                       className="h-auto px-1 text-xs"
+                                       onClick={() => {
+                                         const receiptPath = String(order.receiptPath);
+                                         const receiptUrl = /^https?:\/\//i.test(receiptPath)
+                                           ? receiptPath
+                                           : `/${receiptPath.replace(/^\/+/, "")}`;
+                                         window.open(receiptUrl, "_blank", "noopener,noreferrer");
+                                       }}
+                                     >
+                                       {pt.viewBankReceipt}
+                                     </Button>
+                                   </div>
                                  ) : (
                                    <span className="text-slate-400" aria-label={pt.bankDocuments}>—</span>
                                  )}

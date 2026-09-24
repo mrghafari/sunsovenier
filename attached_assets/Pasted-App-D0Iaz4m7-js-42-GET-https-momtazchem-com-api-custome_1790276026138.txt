@@ -1,0 +1,47 @@
+App-D0Iaz4m7.js:42  GET https://momtazchem.com/api/customers/me 401 (Unauthorized)
+queryFn @ App-D0Iaz4m7.js:42
+fetchFn @ queryClient-C76wM52K.js:1
+h @ queryClient-C76wM52K.js:1
+start @ queryClient-C76wM52K.js:1
+fetch @ queryClient-C76wM52K.js:1
+#h @ label-D-I1b_RO.js:1
+(anonymous) @ label-D-I1b_RO.js:1
+App-D0Iaz4m7.js:700 🔍 [WALLET DEBUG] Starting wallet fetch for order: M2601296
+App-D0Iaz4m7.js:700 🔍 [WALLET DEBUG] Order details response status: 200
+App-D0Iaz4m7.js:700 🔍 [WALLET DEBUG] Order data received: {success: true, order: {…}, documents: Array(2)}
+App-D0Iaz4m7.js:700 🔍 [WALLET DEBUG] Order object: {id: 733, customerOrderId: 733, customerId: 8, orderNumber: 'M2601296', totalAmount: '250009.00', …}
+App-D0Iaz4m7.js:700 🔍 [WALLET DEBUG] customerId value: 8
+App-D0Iaz4m7.js:700 🔍 [WALLET DEBUG] Found customer ID: 8
+App-D0Iaz4m7.js:700 🔍 [WALLET DEBUG] Wallet response status: 200
+App-D0Iaz4m7.js:700 🔍 [WALLET DEBUG] Wallet result: {success: true, data: {…}}
+App-D0Iaz4m7.js:700 🔍 [WALLET DEBUG] Final balance: 43721336915
+App-D0Iaz4m7.js:700 🖼️ [IMAGE MODAL] Opening image modal with URL: /objects/uploads/a39f7da9-a401-4b09-86a2-1856da9adb85
+App-D0Iaz4m7.js:700  HEAD https://momtazchem.com/objects/uploads/a39f7da9-a401-4b09-86a2-1856da9adb85 500 (Internal Server Error)
+(anonymous) @ App-D0Iaz4m7.js:700
+onClick @ App-D0Iaz4m7.js:813
+mt @ index-CqVR5Z3h.js:6
+bt @ index-CqVR5Z3h.js:6
+xt @ index-CqVR5Z3h.js:6
+xi @ index-CqVR5Z3h.js:6
+Si @ index-CqVR5Z3h.js:6
+(anonymous) @ index-CqVR5Z3h.js:6
+Cl @ index-CqVR5Z3h.js:9
+ut @ index-CqVR5Z3h.js:6
+Di @ index-CqVR5Z3h.js:6
+Mn @ index-CqVR5Z3h.js:6
+An @ index-CqVR5Z3h.js:6
+App-D0Iaz4m7.js:700 ❌ [IMAGE MODAL] Image not accessible: /objects/uploads/a39f7da9-a401-4b09-86a2-1856da9adb85 Status: 500
+(anonymous) @ App-D0Iaz4m7.js:700
+await in (anonymous)
+onClick @ App-D0Iaz4m7.js:813
+mt @ index-CqVR5Z3h.js:6
+bt @ index-CqVR5Z3h.js:6
+xt @ index-CqVR5Z3h.js:6
+xi @ index-CqVR5Z3h.js:6
+Si @ index-CqVR5Z3h.js:6
+(anonymous) @ index-CqVR5Z3h.js:6
+Cl @ index-CqVR5Z3h.js:9
+ut @ index-CqVR5Z3h.js:6
+Di @ index-CqVR5Z3h.js:6
+Mn @ index-CqVR5Z3h.js:6
+An @ index-CqVR5Z3h.js:6

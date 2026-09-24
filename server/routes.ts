@@ -4623,16 +4623,25 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       // the same stable app URL while serving migrated copies from private S3.
       if (/^[a-f0-9-]{36}$/i.test(fileId)) {
         try {
-          const fallbackKey = `legacy-object-uploads/${fileId}.pdf`;
-          const fallbackFile = await getAwsS3Service().getFile(fallbackKey);
-          if (fallbackFile) {
-            res.set({
-              'Content-Type': 'application/pdf',
-              'Content-Length': String(fallbackFile.length),
-              'Content-Disposition': 'inline',
-              'Cache-Control': 'private, max-age=300',
-            });
-            return res.send(fallbackFile);
+          const legacyTypes = [
+            ['pdf', 'application/pdf'],
+            ['png', 'image/png'],
+            ['jpg', 'image/jpeg'],
+            ['jpeg', 'image/jpeg'],
+            ['webp', 'image/webp'],
+          ] as const;
+          for (const [extension, contentType] of legacyTypes) {
+            const fallbackFile = await getAwsS3Service().getFile(`legacy-object-uploads/${fileId}.${extension}`);
+            if (fallbackFile) {
+              res.set({
+                'Content-Type': contentType,
+                'Content-Length': String(fallbackFile.length),
+                'Content-Disposition': 'inline',
+                'Cache-Control': 'private, max-age=300',
+                'X-Content-Type-Options': 'nosniff',
+              });
+              return res.send(fallbackFile);
+            }
           }
         } catch (fallbackError) {
           console.error('❌ [FILE SERVE] S3 fallback failed:', fallbackError);
