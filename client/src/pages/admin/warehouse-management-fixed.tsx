@@ -1854,9 +1854,9 @@ const WarehouseManagementFixed: React.FC = () => {
 
   function renderOrderDetailsInline() {
     return (
-      <div className="space-y-4 p-4 md:p-6">
+      <div className="space-y-3 p-3 md:p-4">
         <div className="flex items-center justify-between gap-4">
-          <h3 className="text-lg font-semibold text-slate-900">
+          <h3 className="text-base font-semibold text-slate-900">
             {t('orderDetails')} {selectedOrder?.orderNumber || `#${selectedOrder?.customerOrderId}`}
           </h3>
           <Button type="button" variant="outline" size="sm" onClick={() => setShowOrderDetails(false)}>
@@ -1869,71 +1869,46 @@ const WarehouseManagementFixed: React.FC = () => {
                  <p className="mt-4 text-gray-600">{t('loadOrderDetails')}</p>
               </div>
             ) : orderDetails ? (
-              <div className="space-y-6">
-                {/* Customer Information */}
-                <div>
-                   <h3 className="font-semibold mb-3 text-lg">{t('customerInfo')}</h3>
-                  <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
-                    <div>
-                       <Label className="text-sm font-medium text-gray-700">{t('name')}</Label>
-                      <p className="text-sm mt-1 font-medium">{
-                        orderDetails.customer?.firstName && orderDetails.customer?.lastName 
-                          ? `${orderDetails.customer.firstName} ${orderDetails.customer.lastName}` 
-                           : t('unknown')
-                      }</p>
-                    </div>
-                    <div>
-                       <Label className="text-sm font-medium text-gray-700">{t('mobile')}</Label>
-                       <p className="text-sm mt-1 font-medium">{orderDetails.customer?.phone || t('unknownPhone')}</p>
-                    </div>
-                    <div>
-                       <Label className="text-sm font-medium text-gray-700">{t('email')}</Label>
-                       <p className="text-sm mt-1 font-medium">{orderDetails.customer?.email || t('unknownEmail')}</p>
-                    </div>
-                    <div>
-                       <Label className="text-sm font-medium text-gray-700">{t('totalAmount')}</Label>
-                      <p className="text-sm mt-1 font-medium text-green-600">{formatCurrency(parseFloat(orderDetails.totalAmount) || 0)}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Order Summary */}
-                <div>
-                   <h3 className="font-semibold mb-3 text-lg">{t('orderSummary')}</h3>
-                  <div className="grid grid-cols-3 gap-4 bg-blue-50 p-4 rounded-lg">
-                    <div className="text-center">
-                       <Label className="text-sm font-medium text-gray-700">{t('itemCount')}</Label>
-                       <p className="text-2xl font-bold text-blue-600">{formatNumber(orderDetails.totalItems || 0)}</p>
-                    </div>
-                    <div className="text-center">
-                       <Label className="text-sm font-medium text-gray-700">{t('grossWeight')}</Label>
-                       <p className="text-2xl font-bold text-blue-600">{orderDetails.totalWeight ? `${formatNumber(parseFloat(orderDetails.totalWeight), 1)} ${t('kilogram')}` : t('notCalculated')}</p>
-                    </div>
-                    <div className="text-center">
-                       <Label className="text-sm font-medium text-gray-700">{t('orderDate')}</Label>
-                       <p className="text-sm font-medium text-gray-900">{formatDate(orderDetails.orderDate)}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Current workflow location and exact stage */}
+              <div className="space-y-3">
+                {/* Customer, order and workflow details share one compact table. */}
                 {(() => {
                   const currentStatus = orderDetails.currentStatus || orderDetails.orderManagement?.currentStatus || selectedOrder?.currentStatus || '';
                   const resolved = resolveOrderStatus({ workflowStatus: currentStatus });
                   return (
-                    <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                          <Label className="text-xs font-medium text-indigo-700">{t('currentLocation')}</Label>
-                          <p className="mt-1 font-semibold text-indigo-950">{getDepartmentLabel(currentStatus)}</p>
-                        </div>
-                        <div>
-                          <Label className="text-xs font-medium text-indigo-700">{t('currentStage')}</Label>
-                          <div className="mt-1">
-                            <Badge className={resolved.badgeClass}>{getOrderStatusLabel(resolved, language)}</Badge>
-                          </div>
-                        </div>
-                      </div>
+                    <div className="overflow-x-auto rounded-md border border-slate-200 bg-white">
+                      <table className="w-full min-w-[580px] border-collapse text-xs sm:text-sm" aria-label={`${t('customerInfo')} / ${t('orderSummary')}`}>
+                        <tbody className="[&_tr:not(:last-child)]:border-b [&_tr]:border-slate-200">
+                          <tr>
+                            <th scope="row" className="w-[14%] bg-slate-50 px-2 py-1.5 text-start font-medium">{t('name')}</th>
+                            <td className="w-[36%] px-2 py-1.5 font-medium">{orderDetails.customer?.firstName && orderDetails.customer?.lastName
+                              ? `${orderDetails.customer.firstName} ${orderDetails.customer.lastName}` : t('unknown')}</td>
+                            <th scope="row" className="w-[14%] bg-slate-50 px-2 py-1.5 text-start font-medium">{t('mobile')}</th>
+                            <td className="w-[36%] px-2 py-1.5" dir="ltr">{orderDetails.customer?.phone || t('unknownPhone')}</td>
+                          </tr>
+                          <tr>
+                            <th scope="row" className="bg-slate-50 px-2 py-1.5 text-start font-medium">{t('email')}</th>
+                            <td className="break-all px-2 py-1.5" dir="ltr">{orderDetails.customer?.email || t('unknownEmail')}</td>
+                            <th scope="row" className="bg-slate-50 px-2 py-1.5 text-start font-medium">{t('totalAmount')}</th>
+                            <td className="px-2 py-1.5 font-semibold text-green-700">{formatCurrency(parseFloat(orderDetails.totalAmount) || 0)}</td>
+                          </tr>
+                          <tr>
+                            <th scope="row" className="bg-slate-50 px-2 py-1.5 text-start font-medium">{t('itemCount')}</th>
+                            <td className="px-2 py-1.5">{formatNumber(orderDetails.totalItems || 0)}</td>
+                            <th scope="row" className="bg-slate-50 px-2 py-1.5 text-start font-medium">{t('grossWeight')}</th>
+                            <td className="px-2 py-1.5">{orderDetails.totalWeight ? `${formatNumber(parseFloat(orderDetails.totalWeight), 1)} ${t('kilogram')}` : t('notCalculated')}</td>
+                          </tr>
+                          <tr>
+                            <th scope="row" className="bg-slate-50 px-2 py-1.5 text-start font-medium">{t('orderDate')}</th>
+                            <td className="px-2 py-1.5">{formatDate(orderDetails.orderDate)}</td>
+                            <th scope="row" className="bg-slate-50 px-2 py-1.5 text-start font-medium">{t('currentLocation')}</th>
+                            <td className="px-2 py-1.5">{getDepartmentLabel(currentStatus)}</td>
+                          </tr>
+                          <tr>
+                            <th scope="row" className="bg-slate-50 px-2 py-1.5 text-start font-medium">{t('currentStage')}</th>
+                            <td colSpan={3} className="px-2 py-1.5"><Badge className={resolved.badgeClass}>{getOrderStatusLabel(resolved, language)}</Badge></td>
+                          </tr>
+                        </tbody>
+                      </table>
                     </div>
                   );
                 })()}
@@ -1942,83 +1917,65 @@ const WarehouseManagementFixed: React.FC = () => {
                 {((orderDetails.customerNotes || orderDetails.notes) ||
                   (orderDetails.financialNotes || orderDetails.orderManagement?.financialNotes) ||
                   (orderDetails.warehouseNotes || orderDetails.orderManagement?.warehouseNotes)) && (
-                  <div className="space-y-3">
-                    <h3 className="font-semibold text-lg flex items-center gap-2">
-                      <FileText className="w-5 h-5" />
+                  <div>
+                    <h4 className="mb-1 flex items-center gap-1.5 text-sm font-semibold">
+                      <FileText className="h-4 w-4" />
                       {t('notesTitle')}
-                    </h3>
-                    
-                    {/* یادداشت مشتری از چک‌اوت */}
-                    {(orderDetails.customerNotes || orderDetails.notes) && (
-                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="bg-amber-200 text-amber-800 px-2 py-0.5 rounded text-xs font-medium">{t('customer')}</span>
-                          <span className="text-xs text-amber-600">{t('checkoutNote')}</span>
-                        </div>
-                        <p className="text-amber-900">{orderDetails.customerNotes || orderDetails.notes}</p>
-                      </div>
-                    )}
-                    
-                    {/* یادداشت بخش مالی */}
-                    {(orderDetails.financialNotes || orderDetails.orderManagement?.financialNotes) && (
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="bg-blue-200 text-blue-800 px-2 py-0.5 rounded text-xs font-medium">{t('finance')}</span>
-                          <span className="text-xs text-blue-600">{t('paymentNote')}</span>
-                        </div>
-                        <p className="text-blue-900">
-                          {localizeFinancialNote(
-                            orderDetails.financialNotes || orderDetails.orderManagement?.financialNotes || '',
-                            language,
-                          )}
-                        </p>
-                      </div>
-                    )}
-
-                    {/* یادداشت بخش انبار */}
-                    {(orderDetails.warehouseNotes || orderDetails.orderManagement?.warehouseNotes) && (
-                      <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="bg-purple-200 text-purple-800 px-2 py-0.5 rounded text-xs font-medium">{t('warehouseDepartment')}</span>
-                          <span className="text-xs text-purple-600">{t('warehouseNotes')}</span>
-                        </div>
-                        <p className="text-purple-900 whitespace-pre-wrap">{orderDetails.warehouseNotes || orderDetails.orderManagement?.warehouseNotes}</p>
-                      </div>
-                    )}
+                    </h4>
+                    <div className="overflow-x-auto rounded-md border border-slate-200 bg-white">
+                      <table className="w-full min-w-[480px] border-collapse text-xs sm:text-sm" aria-label={t('notesTitle')}>
+                        <tbody className="[&_tr:not(:last-child)]:border-b [&_tr]:border-slate-200">
+                          {(orderDetails.customerNotes || orderDetails.notes) && <tr>
+                            <th scope="row" className="w-32 bg-amber-50 px-2 py-1.5 text-start font-medium">{t('customer')} · {t('checkoutNote')}</th>
+                            <td className="whitespace-pre-wrap break-words px-2 py-1.5">{orderDetails.customerNotes || orderDetails.notes}</td>
+                          </tr>}
+                          {(orderDetails.financialNotes || orderDetails.orderManagement?.financialNotes) && <tr>
+                            <th scope="row" className="w-32 bg-blue-50 px-2 py-1.5 text-start font-medium">{t('finance')} · {t('paymentNote')}</th>
+                            <td className="whitespace-pre-wrap break-words px-2 py-1.5">{localizeFinancialNote(
+                              orderDetails.financialNotes || orderDetails.orderManagement?.financialNotes || '', language,
+                            )}</td>
+                          </tr>}
+                          {(orderDetails.warehouseNotes || orderDetails.orderManagement?.warehouseNotes) && <tr>
+                            <th scope="row" className="w-32 bg-purple-50 px-2 py-1.5 text-start font-medium">{t('warehouseDepartment')} · {t('warehouseNotes')}</th>
+                            <td className="whitespace-pre-wrap break-words px-2 py-1.5">{orderDetails.warehouseNotes || orderDetails.orderManagement?.warehouseNotes}</td>
+                          </tr>}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 )}
 
                 {/* Order Items */}
                 <div>
-                   <h3 className="font-semibold mb-3 text-lg">{t('orderItems')}</h3>
-                  <div className="border rounded-lg overflow-hidden">
-                    <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
-                      <thead className="bg-gray-50">
+                   <h4 className="mb-1 text-sm font-semibold">{t('orderItems')}</h4>
+                  <div className="overflow-x-auto rounded-md border border-slate-200 bg-white">
+                    <table className="w-full min-w-[680px] border-collapse text-xs sm:text-sm" aria-label={t('orderItems')}>
+                      <thead className="bg-slate-50">
                         <tr>
-                          <th className="text-right p-3 text-sm font-medium text-gray-700" style={{ width: '35%' }}>{t('productName')}</th>
-                          <th className="text-right p-3 text-sm font-medium text-gray-700" style={{ width: '20%' }}>{t('productCode')}</th>
-                          <th className="text-center p-3 text-sm font-medium text-gray-700" style={{ width: '15%' }}>{t('quantity')}</th>
-                          <th className="text-right p-3 text-sm font-medium text-gray-700" style={{ width: '15%' }}>{t('unitPrice')}</th>
-                          <th className="text-right p-3 text-sm font-medium text-gray-700" style={{ width: '15%' }}>{t('totalPrice')}</th>
+                          <th scope="col" className="px-2 py-1.5 text-start font-semibold">{t('productName')}</th>
+                          <th scope="col" className="px-2 py-1.5 text-start font-semibold">{t('productCode')}</th>
+                          <th scope="col" className="px-2 py-1.5 text-center font-semibold">{t('quantity')}</th>
+                          <th scope="col" className="px-2 py-1.5 text-end font-semibold">{t('unitPrice')}</th>
+                          <th scope="col" className="px-2 py-1.5 text-end font-semibold">{t('totalPrice')}</th>
                         </tr>
                       </thead>
-                      <tbody>
+                      <tbody className="divide-y divide-slate-100">
                         {orderDetails.items?.map((item: any, index: number) => (
-                          <tr key={item.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                            <td className="p-3 text-sm" style={{ width: '35%' }}>
-                              <div className="flex items-center gap-2">
-                                <span className="truncate" title={item.productName}>{item.productName}</span>
+                          <tr key={item.id ?? index} className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}>
+                            <td className="px-2 py-1.5">
+                              <div className="flex flex-wrap items-center gap-1">
+                                <span className="break-words">{item.productName}</span>
                                 {item.vendorName && (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200 whitespace-nowrap">
+                                  <span className="inline-flex items-center rounded bg-purple-100 px-1 text-xs font-medium text-purple-800">
                                     🏪 {item.vendorName}
                                   </span>
                                 )}
                               </div>
                             </td>
-                            <td className="p-3 text-sm font-mono text-gray-600 truncate" style={{ width: '20%' }} title={item.productSku}>{item.productSku}</td>
-                            <td className="p-3 text-sm text-center font-medium" style={{ width: '15%' }}>{item.quantity}</td>
-                            <td className="p-3 text-sm truncate" style={{ width: '15%' }}>{formatCurrency(parseFloat(item.unitPrice) || 0)}</td>
-                            <td className="p-3 text-sm font-medium truncate" style={{ width: '15%' }}>{formatCurrency(parseFloat(item.totalPrice) || 0)}</td>
+                            <td className="px-2 py-1.5 font-mono text-slate-600">{item.productSku}</td>
+                            <td className="px-2 py-1.5 text-center font-medium">{item.quantity}</td>
+                            <td className="whitespace-nowrap px-2 py-1.5 text-end">{formatCurrency(parseFloat(item.unitPrice) || 0)}</td>
+                            <td className="whitespace-nowrap px-2 py-1.5 text-end font-medium">{formatCurrency(parseFloat(item.totalPrice) || 0)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -2028,44 +1985,26 @@ const WarehouseManagementFixed: React.FC = () => {
 
                 {/* Order Status */}
                 <div>
-                  <h3 className="font-semibold mb-3 text-lg">{t('orderStatus')}</h3>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className={`p-3 rounded-lg border ${orderDetails.financialApproved ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
-                      <div className="flex items-center gap-2">
-                        {orderDetails.financialApproved ? (
-                          <CheckCircle className="w-5 h-5 text-green-600" />
-                        ) : (
-                          <Clock className="w-5 h-5 text-gray-400" />
-                        )}
-                        <span className={`text-sm font-medium ${orderDetails.financialApproved ? 'text-green-800' : 'text-gray-600'}`}>
-                          {t('financialApproval')}
-                        </span>
-                      </div>
-                    </div>
-                    <div className={`p-3 rounded-lg border ${orderDetails.warehouseProcessed ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
-                      <div className="flex items-center gap-2">
-                        {orderDetails.warehouseProcessed ? (
-                          <CheckCircle className="w-5 h-5 text-green-600" />
-                        ) : (
-                          <Clock className="w-5 h-5 text-gray-400" />
-                        )}
-                        <span className={`text-sm font-medium ${orderDetails.warehouseProcessed ? 'text-green-800' : 'text-gray-600'}`}>
-                          {t('warehouseProcessing')}
-                        </span>
-                      </div>
-                    </div>
-                    <div className={`p-3 rounded-lg border ${logisticsProcessed ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
-                      <div className="flex items-center gap-2">
-                        {logisticsProcessed ? (
-                          <CheckCircle className="w-5 h-5 text-green-600" />
-                        ) : (
-                          <Clock className="w-5 h-5 text-gray-400" />
-                        )}
-                        <span className={`text-sm font-medium ${logisticsProcessed ? 'text-green-800' : 'text-gray-600'}`}>
-                          {t('logisticsProcessing')}
-                        </span>
-                      </div>
-                    </div>
+                  <h4 className="mb-1 text-sm font-semibold">{t('orderStatus')}</h4>
+                  <div className="overflow-x-auto rounded-md border border-slate-200 bg-white">
+                    <table className="w-full min-w-[480px] border-collapse text-xs sm:text-sm" aria-label={t('orderStatus')}>
+                      <thead className="bg-slate-50">
+                        <tr>
+                          <th scope="col" className="px-2 py-1.5 text-start font-medium">{t('financialApproval')}</th>
+                          <th scope="col" className="px-2 py-1.5 text-start font-medium">{t('warehouseProcessing')}</th>
+                          <th scope="col" className="px-2 py-1.5 text-start font-medium">{t('logisticsProcessing')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          {[orderDetails.financialApproved, orderDetails.warehouseProcessed, logisticsProcessed].map((done, index) =>
+                            <td key={index} className={`border-t border-slate-200 px-2 py-1.5 font-medium ${done ? 'text-green-700' : 'text-slate-500'}`}>
+                              {done ? t('approved') : t('pending')}
+                            </td>
+                          )}
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
                 </div>
 
