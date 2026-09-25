@@ -16,14 +16,15 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { getGuestDeliveryFields } from "@/lib/guest-delivery-fields";
 import { useLocation } from "wouter";
-import AddressSelector from "@/components/checkout/address-selector";
 import AuthModal from "@/components/checkout/auth-modal";
 import OrderReviewDialog from "@/components/checkout/order-review-dialog";
-import { loadCustomerAddresses, saveSecondaryCustomerAddress } from "@/lib/customer-addresses";
+import ContractSelector, { type ShopContract } from "@/components/checkout/contract-selector";
+import { loadCustomerAddresses, saveCustomerAddress } from "@/lib/customer-addresses";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { translations, type Translation } from "@/lib/i18n";
 
 const EMPTY_SHIPPING_OPTIONS: any[] = [];
+const EMPTY_PAYMENT_SETTINGS: any[] = [];
 
 // Dynamic checkout form validation schema - required fields only if not logged in
 const createCheckoutFormSchema = (isLoggedIn: boolean, t: Translation) => z.object({
@@ -95,20 +96,25 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
   const [orderNumber, setOrderNumber] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState<any>(null);
-  const [manualAddressSelection, setManualAddressSelection] = useState(false);
+  const [deliveryAddressChoice, setDeliveryAddressChoice] = useState('primary');
+  const [newAddressTitle, setNewAddressTitle] = useState('');
+  const [newAddressPhone, setNewAddressPhone] = useState('');
+  const [newAddressCountry, setNewAddressCountry] = useState('');
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewAddressId, setReviewAddressId] = useState('primary');
   const [secondAddressDraft, setSecondAddressDraft] = useState<{
     address: string; city: string; province: string; postalCode: string;
+    title: string; phone: string; country: string;
   } | null>(null);
   const [pendingReview, setPendingReview] = useState<{ signature: string } | null>(null);
   const [isConfirmingOrder, setIsConfirmingOrder] = useState(false);
   const confirmingOrderRef = useRef(false);
   const orderSubmissionLockRef = useRef(false);
-  const [useSecondaryAddress, setUseSecondaryAddress] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [walletBalance, setWalletBalance] = useState(0);
+  const [selectedContractId, setSelectedContractId] = useState<number | null>(null);
+  const [selectedContractSnapshot, setSelectedContractSnapshot] = useState<ShopContract | undefined>();
   const [walletAmountToUse, setWalletAmountToUse] = useState(0);
   const [useWallet, setUseWallet] = useState(false);
   const [secondaryPaymentMethod, setSecondaryPaymentMethod] = useState('');
@@ -116,7 +122,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
   const [showRecipientFields, setShowRecipientFields] = useState(true); // Default to open for testing
   const [showPurchaseOrder, setShowPurchaseOrder] = useState(true);
   const [showCartManagement, setShowCartManagement] = useState(true);
-  const [showSecondAddress, setShowSecondAddress] = useState(true); // Default to open for testing
+  const [showSecondAddress, setShowSecondAddress] = useState(false);
   const [showRecipientMobile, setShowRecipientMobile] = useState(false);
   
   // Draggable card states
@@ -204,7 +210,24 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
   
-  const paymentSettings = paymentSettingsResponse?.data || [];
+  const paymentSettings = paymentSettingsResponse?.data || EMPTY_PAYMENT_SETTINGS;
+  const isWalletPaymentMethod = (method: unknown) => {
+    const value = String(method || '').toLowerCase();
+    return value === 'wallet' || value.startsWith('wallet_');
+  };
+  const getSupportedNonWalletPaymentMethod = () => {
+    const availableMethod = paymentSettings.find((setting: any) =>
+      setting.enabled && !isWalletPaymentMethod(setting.methodKey)
+    );
+    return availableMethod?.methodKey || (paymentSettings.length === 0 ? 'bank_receipt' : '');
+  };
+  const contractNonWalletPaymentNote = language === 'fa'
+    ? 'برای سفارش قراردادی پرداخت با کیف پول مجاز نیست؛ لطفاً یک روش پرداخت غیرکیف‌پولی انتخاب کنید.'
+    : language === 'ar'
+      ? 'لا يُسمح بالدفع من المحفظة للطلبات التعاقدية؛ يرجى اختيار طريقة دفع أخرى غير المحفظة.'
+      : language === 'tr'
+        ? 'Sözleşmeli siparişlerde cüzdanla ödeme kullanılamaz; lütfen cüzdan dışı bir ödeme yöntemi seçin.'
+        : 'Wallet payment is not available for contract orders. Please choose a non-wallet payment method.';
 
   // Keep delivery destinations within the globally configured logistics center country.
   const { data: shippingCenterResponse, refetch: refetchShippingCenter } = useQuery<{success?: boolean, data?: {countryCode?: string; provinceId?: number; cityId?: number}}>({
@@ -280,6 +303,33 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
 
   // Determine if user is logged in first
   const isUserLoggedIn = (customerData?.success && customerData.customer) || isLoggedIn;
+  const {
+    data: contracts = [],
+    isLoading: contractsLoading,
+    isError: contractsError,
+    refetch: refetchContracts,
+  } = useQuery<ShopContract[]>({
+    queryKey: ['/api/shop/contracts/mine'],
+    queryFn: async () => {
+      const response: any = await apiRequest('/api/shop/contracts/mine', { method: 'GET' });
+      if (response?.success === false) {
+        throw new Error(response.message || 'Could not load customer contracts');
+      }
+      const results = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.data)
+          ? response.data
+          : Array.isArray(response?.contracts)
+            ? response.contracts
+            : response?.data?.contracts;
+      if (!Array.isArray(results)) throw new Error('Invalid contracts response');
+      return results;
+    },
+    enabled: !!isUserLoggedIn,
+    retry: false,
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: true,
+  });
   
   const form = useForm<CheckoutFormData>({
     resolver: zodResolver(createCheckoutFormSchema(!!isUserLoggedIn, t)),
@@ -502,19 +552,64 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
     return Math.round(val * 100);
   };
 
+  const selectedContractFromQuery = selectedContractId === null
+    ? undefined
+    : contracts.find(contract => Number(contract.id) === Number(selectedContractId));
+  const selectedContract = selectedContractFromQuery || (selectedContractId === null ? undefined : selectedContractSnapshot);
+  useEffect(() => {
+    if (selectedContractFromQuery) setSelectedContractSnapshot(selectedContractFromQuery);
+    else if (selectedContractId === null) setSelectedContractSnapshot(undefined);
+  }, [selectedContractFromQuery, selectedContractId]);
+  const getContractValidationError = (
+    contractId: number | null,
+    availableContracts: ShopContract[],
+    isLoading: boolean,
+    hasError: boolean,
+  ): string | null => {
+    if (contractId === null) return null;
+    if (isLoading) return 'Verifying the selected contract. Please wait before continuing.';
+    if (hasError) return 'The selected contract could not be verified. Please retry before continuing.';
+    const contract = availableContracts.find(item => Number(item.id) === Number(contractId));
+    if (!contract || !contract.isActive) return 'The selected contract is no longer available or active. Select another purchase type.';
+    for (const [productId, quantity] of Object.entries(cart)) {
+      const item = contract.items?.find(contractItem => Number(contractItem.productId) === Number(productId));
+      if (!item) return `Product ${productId} is not listed in contract #${contract.number}. Remove it or choose a normal purchase.`;
+      if (!products.some(product => Number(product.id) === Number(productId))) {
+        return `Product ${productId} is unavailable. Refresh the cart before using this contract.`;
+      }
+      if (!Number.isFinite(Number(item.remainingQuantity)) || Number(item.remainingQuantity) < 0 ||
+        Number(quantity) > Number(item.remainingQuantity)) {
+        return `${item.productName} exceeds the remaining contract quantity (${item.remainingQuantity}).`;
+      }
+      if (!Number.isFinite(Number(item.unitPrice)) || Number(item.unitPrice) < 0) {
+        return `The contract price for ${item.productName} is invalid. Please contact support.`;
+      }
+    }
+    return null;
+  };
+  const contractValidationError = getContractValidationError(
+    selectedContractId,
+    contracts,
+    contractsLoading,
+    contractsError,
+  );
+
   // Calculate order totals
   const cartItems = Object.entries(cart).map(([productId, quantity]) => {
     const product = products.find(p => p.id === parseInt(productId));
     if (!product) return null;
-    const discountedUnitPrice = getDiscountedPrice(product, quantity);
+    const contractItem = selectedContract?.items?.find(item => Number(item.productId) === Number(product.id));
+    const discountedUnitPrice = contractItem
+      ? Number(contractItem.unitPrice)
+      : getDiscountedPrice(product, quantity);
     const basePrice = parseFloat(product.price || '0');
-    const hasDiscount = discountedUnitPrice < basePrice;
+    const hasDiscount = !contractItem && discountedUnitPrice < basePrice;
     return {
       ...product,
       quantity,
       discountedUnitPrice,
       hasDiscount,
-      originalUnitPrice: basePrice,
+      originalUnitPrice: contractItem ? discountedUnitPrice : basePrice,
       totalPrice: discountedUnitPrice * quantity
     };
   }).filter(Boolean);
@@ -725,13 +820,11 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
     shippingPostalCode: form.watch('shippingPostalCode'),
   });
   const enteredSecondAddress = form.watch('secondDeliveryAddress')?.trim() || '';
-  const enteredRecipientAddress = form.watch('recipientAddress')?.trim() || '';
-  // The optional second-address editor starts open for some customers.
-  // Only entered content, not editor visibility, changes the chosen destination.
-  const usingEnteredDeliveryAddress = !!(isUserLoggedIn && (enteredSecondAddress || enteredRecipientAddress));
+  const usingEnteredDeliveryAddress = !!(isUserLoggedIn &&
+    (deliveryAddressChoice === 'new' || deliveryAddressChoice === 'legacy'));
   const activeDeliveryAddress = isUserLoggedIn
     ? (usingEnteredDeliveryAddress
-      ? enteredRecipientAddress || enteredSecondAddress
+      ? enteredSecondAddress
       : selectedAddress ? selectedAddress.address || '' : customerData?.customer?.address || '')
     : (form.watch('sameAsShipping') ? form.watch('billingAddress1') : form.watch('shippingAddress1')) || '';
   const destinationCity = isUserLoggedIn
@@ -752,7 +845,9 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
       : selectedAddress ? selectedAddress.state || '' : customerData?.customer?.province || '')
     : guestDeliveryFields.province;
   const destinationCountry = isUserLoggedIn
-    ? (selectedAddress ? selectedAddress.country || '' : customerData?.customer?.country || '')
+    ? (deliveryAddressChoice === 'new' || deliveryAddressChoice === 'legacy'
+      ? newAddressCountry || ''
+      : selectedAddress ? selectedAddress.country || '' : customerData?.customer?.country || '')
     : guestDeliveryFields.country;
   const deliveryAddressReady = !!activeDeliveryAddress.trim() &&
     !!destinationCity.trim() && !!destinationCountry.trim();
@@ -763,6 +858,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
     : 'Choose a delivery address and city first.';
   const standardQuoteKey = JSON.stringify([
     selectedShippingMethodId,
+    selectedContractId,
     activeDeliveryAddress,
     destinationCity,
     destinationProvince,
@@ -788,6 +884,15 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
     selectedVehicleRef.current = null;
     setCalculatedShippingCost(0);
     setShippingRouteUnavailable(false);
+
+    if (contractValidationError) {
+      setShippingCalculationPending(false);
+      setShippingRouteUnavailable(true);
+      return () => {
+        if (shippingRequestSequenceRef.current === requestSequence) shippingRequestSequenceRef.current++;
+        quoteController.abort();
+      };
+    }
 
     if (!method || isPickup) {
       setShippingCalculationPending(false);
@@ -858,6 +963,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
             signal: quoteController.signal,
             body: JSON.stringify({
               cart: Object.fromEntries(Object.entries(cart).map(([id, quantity]) => [id, quantity])),
+              contractId: selectedContractId,
               ...(matchingCity?.id != null ? { destinationCityId: matchingCity.id } : {}),
               destinationCity: quoteDestinationCity,
               ...(quoteProvince ? { destinationProvince: quoteProvince } : {}),
@@ -916,7 +1022,8 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
     selectedShippingMethodId, deliveryMethods, destinationCity, destinationProvince, destinationCountry,
     activeDeliveryAddress, deliveryAddressReady,
     totalWeight, shippingCenterKey, calculateShippingCost, cart, shippingQuoteCartKey,
-    shippingQuoteRefreshKey, refetchShippingCenter, secondaryCities,
+    shippingQuoteRefreshKey, refetchShippingCenter, secondaryCities, selectedContractId,
+    contractValidationError,
   ]);
 
   // Prices only come from a fresh server quote; never infer a standard method's price locally.
@@ -946,7 +1053,8 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
         : standardQuoteReady));
   const shippingSelectionUnavailable = !isCurrentMethodGenuinePickup &&
     (!deliveryAddressReady || shippingCalculationPending || shippingRouteUnavailable || !shippingQuoteReady);
-  const finalPriceReady = !!currentShippingMethod && (isCurrentMethodGenuinePickup || shippingQuoteReady);
+  const finalPriceReady = !contractValidationError && !!currentShippingMethod &&
+    (isCurrentMethodGenuinePickup || shippingQuoteReady);
   
   if (isCurrentMethodGenuinePickup) {
     shippingCost = 0;
@@ -1017,6 +1125,20 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
   // Auto-enable wallet usage when wallet payment method is selected
   useEffect(() => {
     const paymentMethod = form.watch('paymentMethod');
+    if (selectedContractId !== null) {
+      setUseWallet(false);
+      setWalletAmountToUse(0);
+      setSecondaryPaymentMethod('');
+      const paymentMethodSupported = paymentSettings.length === 0
+        ? ['bank_receipt', 'online_payment'].includes(paymentMethod)
+        : paymentSettings.some((setting: any) =>
+          setting.enabled && !isWalletPaymentMethod(setting.methodKey) && setting.methodKey === paymentMethod
+        );
+      if (isWalletPaymentMethod(paymentMethod) || !paymentMethodSupported) {
+        form.setValue('paymentMethod', getSupportedNonWalletPaymentMethod());
+      }
+      return;
+    }
     if (paymentMethod === 'wallet_combined') {
       setUseWallet(true);
       // Always suggest full payment amount if wallet has sufficient balance
@@ -1043,11 +1165,13 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
       setUseWallet(false);
       setWalletAmountToUse(0);
     }
-  }, [form.watch('paymentMethod'), walletBalance, beforeWalletTotal]);
+  }, [form.watch('paymentMethod'), walletBalance, beforeWalletTotal, selectedContractId, paymentSettings]);
   
   // Calculate wallet usage
   const maxWalletUsage = Math.min(walletBalance, beforeWalletTotal);
-  const actualWalletUsage = useWallet ? Math.min(walletAmountToUse, maxWalletUsage) : 0;
+  const actualWalletUsage = selectedContractId === null && useWallet
+    ? Math.min(walletAmountToUse, maxWalletUsage)
+    : 0;
   const totalAmount = beforeWalletTotal - actualWalletUsage;
   
   // Debug wallet calculation
@@ -1131,8 +1255,74 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
     if (isFinalConfirmation) orderSubmissionLockRef.current = true;
     let handedToMutation = false;
     try {
+    if (selectedContractId !== null && (
+      isWalletPaymentMethod(data.paymentMethod) ||
+      isWalletPaymentMethod(form.getValues('paymentMethod')) ||
+      useWallet ||
+      walletAmountToUse > 0 ||
+      actualWalletUsage > 0
+    )) {
+      setUseWallet(false);
+      setWalletAmountToUse(0);
+      setSecondaryPaymentMethod('');
+      form.setValue('paymentMethod', getSupportedNonWalletPaymentMethod());
+      setPendingReview(null);
+      const walletGuardTitle = language === 'fa'
+        ? 'پرداخت کیف پول برای سفارش قراردادی مجاز نیست'
+        : language === 'ar'
+          ? 'الدفع من المحفظة غير مسموح للطلبات التعاقدية'
+          : language === 'tr'
+            ? 'Sözleşmeli siparişlerde cüzdanla ödeme kullanılamaz'
+            : 'Wallet payment is not allowed for contract orders';
+      toast({ title: walletGuardTitle, description: contractNonWalletPaymentNote, variant: 'destructive' });
+      return;
+    }
+    if (selectedContractId !== null) {
+      const refreshedContracts = await refetchContracts();
+      const verifiedContracts = refreshedContracts.data || [];
+      const freshContractError = getContractValidationError(
+        selectedContractId,
+        verifiedContracts,
+        refreshedContracts.isFetching,
+        refreshedContracts.isError,
+      );
+      if (freshContractError) {
+        setPendingReview(null);
+        toast({ title: 'Contract cannot be used', description: freshContractError, variant: 'destructive' });
+        return;
+      }
+      const freshContract = verifiedContracts.find(contract => Number(contract.id) === Number(selectedContractId));
+      const previousContract = selectedContract;
+      const contractPricesChanged = Object.entries(cart).some(([productId]) => {
+        const oldPrice = previousContract?.items?.find(item => Number(item.productId) === Number(productId))?.unitPrice;
+        const newPrice = freshContract?.items?.find(item => Number(item.productId) === Number(productId))?.unitPrice;
+        return Number(oldPrice) !== Number(newPrice);
+      });
+      if (contractPricesChanged) {
+        setPendingReview(null);
+        toast({
+          title: 'Contract terms changed',
+          description: 'The contract price was updated. Review the new order total before submitting.',
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
     if (data.secondDeliveryAddress?.trim() && !data.secondDeliveryCity?.trim()) {
-      toast({ title: language === 'fa' ? 'شهر آدرس دوم را انتخاب کنید' : 'Select a city for the second address', variant: 'destructive' });
+      toast({ title: language === 'fa' ? 'شهر آدرس را انتخاب کنید' : 'Select a city for the address', variant: 'destructive' });
+      return;
+    }
+    if ((deliveryAddressChoice === 'new' || deliveryAddressChoice === 'legacy') &&
+      (!data.secondDeliveryAddress?.trim() || !data.secondDeliveryCity?.trim() ||
+        !data.secondDeliveryProvince?.trim() || !newAddressCountry.trim() ||
+        (deliveryAddressChoice === 'new' && (!newAddressTitle.trim() || !newAddressPhone.trim())))) {
+      toast({
+        title: language === 'fa' ? 'اطلاعات جغرافیایی آدرس را کامل کنید' : 'Complete the address geography',
+        description: language === 'fa'
+          ? 'برای آدرس انتخاب‌شده، استان، شهر و کشور را جداگانه انتخاب کنید.'
+          : 'Select the province, city, and country explicitly for this address.',
+        variant: 'destructive',
+      });
       return;
     }
     // CRITICAL VALIDATION: Ensure delivery address is specified before allowing order
@@ -1160,7 +1350,9 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
 
     const freshCenterCountryCode = resolveCountryCode(freshCenterData?.countryCode) || freshCenterData?.countryCode?.toUpperCase() || '';
     const destinationCountry = isUserLoggedIn
-      ? (selectedAddress?.country || customerData?.customer?.country)
+      ? (deliveryAddressChoice === 'new' || deliveryAddressChoice === 'legacy'
+        ? newAddressCountry
+        : selectedAddress?.country || customerData?.customer?.country)
       : getGuestDeliveryFields(data).country;
     const destinationCountryCode = resolveCountryCode(destinationCountry);
     if (isSubmittedShippingDependent && freshCenterCountryCode && destinationCountryCode && freshCenterCountryCode !== destinationCountryCode) {
@@ -1263,7 +1455,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
       if (!hasDefaultAddress && !hasSecondAddress && !hasSelectedAddress) {
         toast({
           title: "آدرس تحویل الزامی است",
-          description: "لطفاً آدرس تحویل را مشخص کنید. می‌توانید از پروفایل، آدرس دوم، یا آدرس انتخابی استفاده کنید.",
+          description: "لطفاً آدرس تحویل را از آدرس‌های ذخیره‌شده انتخاب کنید یا یک آدرس جدید وارد کنید.",
           variant: "destructive",
         });
         console.log('🚫 [CHECKOUT] Order blocked - no valid delivery address', {
@@ -1330,18 +1522,20 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
     if (isUserLoggedIn && customerData?.customer) {
       const customer = customerData.customer;
       
-      const explicitRecipientAddress = data.recipientAddress?.trim();
       const secondDeliveryAddress = data.secondDeliveryAddress?.trim();
-      const explicitRecipientPhone = data.recipientMobile?.trim() || data.recipientPhone?.trim();
+      const explicitRecipientPhone = (deliveryAddressChoice === 'new' ? newAddressPhone.trim() : '') ||
+        data.recipientMobile?.trim() || data.recipientPhone?.trim() || selectedAddress?.phone || '';
 
       // The recipient snapshot entered at checkout is authoritative for delivery.
-      if (explicitRecipientAddress || secondDeliveryAddress) {
-        deliveryAddress = explicitRecipientAddress || secondDeliveryAddress || '';
+      if (secondDeliveryAddress && (deliveryAddressChoice === 'new' || deliveryAddressChoice === 'legacy')) {
+        deliveryAddress = secondDeliveryAddress;
         deliveryCity = data.secondDeliveryCity || '';
         deliveryProvince = data.secondDeliveryProvince || customer.province || customer.state || '';
-        deliveryCountry = selectedAddress?.country || customer.country || '';
+        deliveryCountry = deliveryAddressChoice === 'new' || deliveryAddressChoice === 'legacy'
+          ? newAddressCountry
+          : selectedAddress?.country || customer.country || '';
         deliveryPostalCode = data.secondDeliveryPostalCode || '';
-        activeDeliveryInfo.addressSource = explicitRecipientAddress ? 'recipient_address' : 'second_address';
+        activeDeliveryInfo.addressSource = deliveryAddressChoice === 'legacy' ? 'legacy_crm_address' : 'new_address';
         activeDeliveryInfo.isSecondAddress = true;
       } else if (selectedAddress) {
         deliveryAddress = selectedAddress.address || '';
@@ -1375,7 +1569,8 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
       }
       
       // Use customer name as default recipient unless different name specified
-      recipientName = data.recipientName || `${customer.firstName} ${customer.lastName}`;
+      recipientName = selectedAddress?.recipientName || data.recipientName ||
+        `${customer.firstName} ${customer.lastName}`;
     } else {
       // For non-logged in users, use form data
       const guestDeliveryFields = getGuestDeliveryFields(data);
@@ -1454,6 +1649,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
     });
 
     const orderData = {
+      contractId: selectedContractId,
       customerInfo,
       recipientInfo: {
         recipientName: recipientName,
@@ -1492,6 +1688,11 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
       notes: data.notes || '',
       shippingMethod: data.shippingMethod,
       paymentMethod: (() => {
+        if (selectedContractId !== null) {
+          return isWalletPaymentMethod(data.paymentMethod)
+            ? getSupportedNonWalletPaymentMethod()
+            : data.paymentMethod;
+        }
         // Let backend handle wallet_combined conversion
         if (data.paymentMethod === 'wallet_combined') {
           console.log('📤 [FRONTEND] Sending wallet_combined to backend for smart conversion');
@@ -1507,8 +1708,8 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
           return data.paymentMethod;
         }
       })(),
-      secondaryPaymentMethod: secondaryPaymentMethod, // Send user's choice for remaining amount payment method
-      walletAmountUsed: actualWalletUsage,
+      secondaryPaymentMethod: selectedContractId === null ? secondaryPaymentMethod : '',
+      walletAmountUsed: selectedContractId === null ? actualWalletUsage : 0,
       remainingAmount: beforeWalletTotal - actualWalletUsage, // Fix: Send actual remaining amount after wallet deduction
       // Use ref to get current vehicle (avoids stale closure in callbacks)
       // CRITICAL: Send vehicle TYPE (like "van", "motorcycle") NOT vehicle name (like "وانت")
@@ -1554,6 +1755,8 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
       shippingMethod: orderData.shippingMethod, shippingCost: orderData.shippingCost,
       total: orderData.totalAmount, payment: orderData.paymentMethod,
       walletAmount: orderData.walletAmountUsed, cart: shippingQuoteCartKey,
+      contractId: orderData.contractId,
+      addressTitle: deliveryAddressChoice === 'new' ? newAddressTitle.trim() : '',
     });
     if (!isFinalConfirmation || !pendingReview || pendingReview.signature !== signature) {
       if (isUserLoggedIn) {
@@ -1564,10 +1767,16 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
         }
       }
       if (!reviewOpen) {
-        setReviewAddressId(data.secondDeliveryAddress?.trim() ? 'second' : selectedAddress ? `saved:${selectedAddress.id}` : 'primary');
+        setReviewAddressId(deliveryAddressChoice === 'new'
+          ? 'new'
+          : deliveryAddressChoice === 'legacy'
+            ? 'legacy'
+            : selectedAddress ? `saved:${selectedAddress.id}` : 'primary');
         setSecondAddressDraft({
           address: data.secondDeliveryAddress || '', city: data.secondDeliveryCity || '',
           province: data.secondDeliveryProvince || '', postalCode: data.secondDeliveryPostalCode || '',
+          title: newAddressTitle, phone: deliveryAddressChoice === 'new' ? newAddressPhone : data.recipientMobile || '',
+          country: newAddressCountry,
         });
       }
       setPendingReview({ signature });
@@ -1576,13 +1785,32 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
     }
     setIsConfirmingOrder(true);
     try {
-      if (isUserLoggedIn && data.secondDeliveryAddress?.trim()) {
-        await saveSecondaryCustomerAddress({
-          address: data.secondDeliveryAddress.trim(), city: data.secondDeliveryCity?.trim() || '',
-          state: data.secondDeliveryProvince?.trim(), country: deliveryCountry,
-          postalCode: data.secondDeliveryPostalCode?.trim(), phone: recipientPhone,
+      if (isUserLoggedIn && deliveryAddressChoice === 'new' && data.secondDeliveryAddress?.trim()) {
+        const savedAddress = await saveCustomerAddress({
+          title: newAddressTitle.trim(),
+          address: data.secondDeliveryAddress.trim(),
+          city: data.secondDeliveryCity?.trim() || '',
+          state: data.secondDeliveryProvince?.trim(),
+          country: newAddressCountry.trim(),
+          postalCode: data.secondDeliveryPostalCode?.trim(),
+          phone: newAddressPhone.trim(),
           recipientName: recipientName || customerData?.customer?.firstName || 'Customer',
         });
+        // Keep the just-confirmed snapshot stable while handing it to the order
+        // mutation. The saved row has exactly the same destination, so switching
+        // the selection does not change the route or recalculate the quote.
+        setSelectedAddress(savedAddress);
+        setDeliveryAddressChoice(`saved:${savedAddress.id}`);
+        setReviewAddressId(`saved:${savedAddress.id}`);
+        form.setValue('recipientMobile', savedAddress.phone || '');
+        form.setValue('recipientName', savedAddress.recipientName || recipientName);
+        setNewAddressTitle('');
+        setNewAddressPhone('');
+        setSecondAddressDraft(null);
+        queryClient.setQueryData(['structuredCustomerAddresses'], (current: any[] | undefined) => [
+          ...(current || []).filter(address => Number(address.id) !== Number(savedAddress.id)),
+          savedAddress,
+        ]);
         await refetchSavedCustomerAddresses();
         await queryClient.invalidateQueries({ queryKey: ['/api/customers/addresses'] });
       }
@@ -1592,7 +1820,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
       createOrderMutation.mutate(orderData);
     } catch (error: any) {
       orderSubmissionLockRef.current = false;
-      toast({ title: language === 'fa' ? 'ذخیره آدرس دوم ناموفق بود' : 'Could not save the second address',
+      toast({ title: language === 'fa' ? 'ذخیره آدرس ناموفق بود' : 'Could not save the address',
         description: error?.message, variant: 'destructive' });
     } finally {
       setIsConfirmingOrder(false);
@@ -1797,79 +2025,153 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                   <CardContent>
                     {isUserLoggedIn ? (
                       <div className="space-y-6">
-                        <AddressSelector
-                          selectedAddressId={selectedAddress?.id ?? (manualAddressSelection ? -1 : undefined)}
-                          onAddressSelect={(address) => {
-                            setManualAddressSelection(false);
-                            setSelectedAddress(address);
-                            // Auto-fill form fields from selected address
-                            form.setValue('billingAddress1', address.address);
-                            form.setValue('billingCity', address.city);
-                            form.setValue('billingState', address.state || '');
-                            form.setValue('billingPostalCode', address.postalCode || '');
-                            form.setValue('billingCountry', address.country);
-                          }}
-                        />
-                        
-                        {/* Secondary Address Option */}
-                        {customerInfo?.secondaryAddress && (
-                          <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                            <div className="flex items-center space-x-2 space-x-reverse">
+                        <div role="radiogroup" aria-label={language === 'fa' ? 'آدرس تحویل' : 'Delivery address'} className="space-y-2">
+                          {[
+                            {
+                              id: 'primary',
+                              title: language === 'fa' ? 'آدرس اصلی' : 'Primary address',
+                              address: customerData?.customer?.address || '',
+                              city: customerData?.customer?.city || customerData?.customer?.cityRegion || '',
+                              state: customerData?.customer?.province || customerData?.customer?.state || '',
+                              country: customerData?.customer?.country || '',
+                              postalCode: customerData?.customer?.postalCode || '',
+                              phone: customerData?.customer?.phone || '',
+                            },
+                            ...savedCustomerAddresses.map((address: any) => ({
+                              id: `saved:${address.id}`, title: address.title || (language === 'fa' ? 'آدرس ذخیره‌شده' : 'Saved address'),
+                              address: address.address, city: address.city, state: address.state || '',
+                              country: address.country, postalCode: address.postalCode || '', phone: address.phone || '',
+                            })),
+                            ...((customerInfo?.secondaryAddress || customerData?.customer?.secondaryAddress) ? [{
+                              id: 'legacy', title: language === 'fa' ? 'آدرس قدیمی CRM' : 'Legacy CRM address',
+                              address: customerInfo?.secondaryAddress || customerData?.customer?.secondaryAddress, city: '', state: '',
+                              country: '', postalCode: '', phone: customerInfo?.alternatePhone || customerData?.customer?.alternatePhone || customerData?.customer?.phone || '',
+                            }] : []),
+                          ].map((address: any) => (
+                            <label key={address.id} className={`flex cursor-pointer gap-3 rounded-md border p-3 ${deliveryAddressChoice === address.id ? 'border-primary bg-primary/5' : 'border-border'}`}>
                               <input
-                                type="checkbox"
-                                id="useSecondaryAddress"
-                                checked={useSecondaryAddress}
-                                onChange={(e) => {
-                                  setUseSecondaryAddress(e.target.checked);
-                                  if (e.target.checked && customerInfo?.secondaryAddress) {
-                                    // Legacy CRM records only have a free-form address.
-                                    // Let the customer choose its city before getting a quote.
-                                    setShowSecondAddress(true);
-                                    setManualAddressSelection(true);
-                                    setSelectedAddress(null);
-                                    form.setValue('secondDeliveryAddress', customerInfo.secondaryAddress);
+                                type="radio"
+                                name="checkout-delivery-address"
+                                checked={deliveryAddressChoice === address.id}
+                                onChange={() => {
+                                  setDeliveryAddressChoice(address.id);
+                                  setSelectedAddress(address.id.startsWith('saved:') ? savedCustomerAddresses.find((item: any) => `saved:${item.id}` === address.id) : null);
+                                  if (address.id === 'legacy') {
+                                    setNewAddressTitle(address.title);
+                                    setNewAddressCountry('');
+                                    form.setValue('secondDeliveryAddress', address.address);
                                     form.setValue('secondDeliveryProvince', '');
                                     form.setValue('secondDeliveryCity', '');
-                                    form.setValue('billingAddress1', customerInfo.secondaryAddress);
-                                    form.setValue('billingCity', customerInfo.city || '');
-                                    form.setValue('billingState', customerInfo.state || '');
-                                    form.setValue('billingPostalCode', customerInfo.postalCode || '');
-                                    form.setValue('billingCountry', customerInfo.country || 'Iraq');
+                                    form.setValue('secondDeliveryPostalCode', '');
+                                    form.setValue('recipientMobile', address.phone);
+                                  } else if (address.id.startsWith('saved:')) {
+                                    const saved = savedCustomerAddresses.find((item: any) => `saved:${item.id}` === address.id);
+                                    form.setValue('secondDeliveryAddress', saved?.address || '');
+                                    form.setValue('secondDeliveryProvince', saved?.state || '');
+                                    form.setValue('secondDeliveryCity', saved?.city || '');
+                                    form.setValue('secondDeliveryPostalCode', saved?.postalCode || '');
+                                    setNewAddressCountry(saved?.country || '');
+                                    form.setValue('recipientMobile', saved?.phone || '');
+                                    const region = provinces.find((item: any) => canonicalGeographyName(item) === saved?.state || geographyName(item) === saved?.state);
+                                    setSelectedSecondaryProvinceId(region?.id ?? null);
                                   } else {
-                                    setShowSecondAddress(false);
+                                    setNewAddressCountry('');
                                     form.setValue('secondDeliveryAddress', '');
                                     form.setValue('secondDeliveryProvince', '');
                                     form.setValue('secondDeliveryCity', '');
                                     form.setValue('secondDeliveryPostalCode', '');
-                                  }
-                                  if (!e.target.checked && selectedAddress) {
-                                    // Revert to selected primary address
-                                    form.setValue('billingAddress1', selectedAddress.address);
-                                    form.setValue('billingCity', selectedAddress.city);
-                                    form.setValue('billingState', selectedAddress.state || '');
-                                    form.setValue('billingPostalCode', selectedAddress.postalCode || '');
-                                    form.setValue('billingCountry', selectedAddress.country);
+                                    form.setValue('recipientMobile', customerData?.customer?.phone || '');
                                   }
                                 }}
-                                className="rounded"
+                                className="mt-1 accent-primary"
                               />
-                              <label htmlFor="useSecondaryAddress" className="text-sm font-medium text-blue-700 dark:text-blue-300 cursor-pointer">
-                                {t.checkout_page.useSecondaryAddress}
-                              </label>
-                            </div>
-                            {useSecondaryAddress && (
-                              <div className="mt-3 p-3 bg-white dark:bg-gray-800 rounded border text-sm">
-                                <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
-                                  <MapPin className="w-4 h-4" />
-                                  <span className="font-medium">{t.checkout_page.secondaryAddressSelected}</span>
-                                </div>
-                                <p className="mt-1 text-gray-700 dark:text-gray-300">{customerInfo.secondaryAddress}</p>
-                              </div>
+                              <span className="min-w-0">
+                                <span className="block font-medium">{address.title}</span>
+                                <span className="block text-sm text-muted-foreground">
+                                  {[address.address, address.city, address.state, address.postalCode, address.country].filter(Boolean).join(', ')}
+                                </span>
+                                {address.phone && <span className="block text-xs text-muted-foreground">{address.phone}</span>}
+                                {address.id === 'legacy' && <span className="block text-xs text-amber-700">{language === 'fa' ? 'استان، شهر و کشور را جداگانه مشخص کنید.' : 'Select province, city, and country explicitly.'}</span>}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                        <Button
+                          type="button"
+                          variant="link"
+                          className="h-auto p-0"
+                          onClick={() => {
+                            setDeliveryAddressChoice('new');
+                            setSelectedAddress(null);
+                            setNewAddressTitle('');
+                            setNewAddressPhone('');
+                            setNewAddressCountry(shippingCenterCountry || customerData?.customer?.country || '');
+                            setSelectedSecondaryProvinceId(null);
+                            form.setValue('secondDeliveryAddress', '');
+                            form.setValue('secondDeliveryProvince', '');
+                            form.setValue('secondDeliveryCity', '');
+                            form.setValue('secondDeliveryPostalCode', '');
+                            form.setValue('recipientMobile', '');
+                          }}
+                        >
+                          + {language === 'fa' ? 'آدرس جدید' : 'New address'}
+                        </Button>
+                        {(deliveryAddressChoice === 'new' || deliveryAddressChoice === 'legacy') && (
+                          <div className="space-y-4 rounded-md border bg-muted/20 p-4">
+                            {deliveryAddressChoice === 'new' && (
+                              <>
+                                <FormItem>
+                                  <FormLabel>{language === 'fa' ? 'عنوان آدرس' : 'Address title'} *</FormLabel>
+                                  <Input value={newAddressTitle} onChange={(event) => setNewAddressTitle(event.target.value)} required />
+                                </FormItem>
+                                <FormItem>
+                                  <FormLabel>{language === 'fa' ? 'موبایل گیرنده' : 'New mobile'} *</FormLabel>
+                                  <Input type="tel" value={newAddressPhone} onChange={(event) => setNewAddressPhone(event.target.value)} required />
+                                </FormItem>
+                              </>
                             )}
+                            <FormField control={form.control} name="secondDeliveryAddress" render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>{t.checkout_page.fullAddressLabel} *</FormLabel>
+                                <FormControl><Textarea {...field} /></FormControl>
+                              </FormItem>
+                            )} />
+                            <div className="grid gap-3 sm:grid-cols-2">
+                              <FormItem>
+                                <FormLabel>{t.checkout_page.provinceLabel} *</FormLabel>
+                                <Select value={form.watch('secondDeliveryProvince') || ''} onValueChange={(value) => {
+                                  form.setValue('secondDeliveryProvince', value);
+                                  form.setValue('secondDeliveryCity', '');
+                                  const region = provinces.find((item: any) => canonicalGeographyName(item) === value);
+                                  setSelectedSecondaryProvinceId(region?.id ?? null);
+                                }}>
+                                  <SelectTrigger><SelectValue placeholder={t.checkout_page.selectProvincePlaceholder} /></SelectTrigger>
+                                  <SelectContent>{provinces.map((province: any) => <SelectItem key={province.id} value={canonicalGeographyName(province)}>{geographyName(province)}</SelectItem>)}</SelectContent>
+                                </Select>
+                              </FormItem>
+                              <FormItem>
+                                <FormLabel>{t.checkout_page.citySelectLabel} *</FormLabel>
+                                <Select value={form.watch('secondDeliveryCity') || ''} onValueChange={(value) => form.setValue('secondDeliveryCity', value)} disabled={!selectedSecondaryProvinceId}>
+                                  <SelectTrigger><SelectValue placeholder={t.checkout_page.selectCityPlaceholder} /></SelectTrigger>
+                                  <SelectContent>{secondaryCities.map((city: any) => <SelectItem key={city.id} value={canonicalGeographyName(city)}>{geographyName(city)}</SelectItem>)}</SelectContent>
+                                </Select>
+                              </FormItem>
+                              <FormItem>
+                                <FormLabel>{language === 'fa' ? 'کشور' : 'Country'} *</FormLabel>
+                                <Select value={newAddressCountry} onValueChange={setNewAddressCountry}>
+                                  <SelectTrigger><SelectValue placeholder={language === 'fa' ? 'کشور را انتخاب کنید' : 'Select country'} /></SelectTrigger>
+                                  <SelectContent>{geographyCountries.map((country: any) => {
+                                    const code = String(country.code || country.countryCode || country.nameEn || country.name || '');
+                                    return <SelectItem key={code} value={String(country.nameEn || country.nameEnglish || country.name || code)}>{geographyName(country)}</SelectItem>;
+                                  })}</SelectContent>
+                                </Select>
+                              </FormItem>
+                              <FormField control={form.control} name="secondDeliveryPostalCode" render={({ field }) => (
+                                <FormItem><FormLabel>{t.checkout_page.postalCodeLabel}</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>
+                              )} />
+                            </div>
                           </div>
                         )}
-                        
-
                       </div>
                     ) : (
                       <div className="space-y-4">
@@ -1978,19 +2280,21 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                             )}
                           />
                           
-                          <FormField
-                            control={form.control}
-                            name="recipientAddress"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>{t.checkout_page.recipientAddressLabel}</FormLabel>
-                                <FormControl>
-                                  <Textarea {...field} placeholder={t.checkout_page.recipientAddressPlaceholder} className="min-h-[80px]" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                          {!isUserLoggedIn && (
+                            <FormField
+                              control={form.control}
+                              name="recipientAddress"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>{t.checkout_page.recipientAddressLabel}</FormLabel>
+                                  <FormControl>
+                                    <Textarea {...field} placeholder={t.checkout_page.recipientAddressPlaceholder} className="min-h-[80px]" />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          )}
                         </div>
                       )}
                     </div>
@@ -1998,7 +2302,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                 </Card>
 
                 {/* Second Address and Alternative Mobile - Only for logged in users */}
-                {isUserLoggedIn && (
+                {false && isUserLoggedIn && (
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
@@ -2409,10 +2713,61 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                   </CardContent>
                 </Card>
 
+                {isUserLoggedIn && (
+                  <div className="space-y-3">
+                    <ContractSelector
+                      contracts={contracts}
+                      selectedContractId={selectedContractId}
+                      language={language}
+                      disabled={contractsLoading && contracts.length === 0}
+                      onSelect={(id) => {
+                        if (id === selectedContractId) return;
+                        if (id !== null) {
+                          setUseWallet(false);
+                          setWalletAmountToUse(0);
+                          setSecondaryPaymentMethod('');
+                          if (isWalletPaymentMethod(form.getValues('paymentMethod'))) {
+                            form.setValue('paymentMethod', getSupportedNonWalletPaymentMethod());
+                          }
+                        }
+                        shippingRequestSequenceRef.current++;
+                        setSelectedContractId(id);
+                        setSelectedContractSnapshot(id === null
+                          ? undefined
+                          : contracts.find(contract => Number(contract.id) === Number(id)));
+                        setPendingReview(null);
+                        setStandardShippingQuote(null);
+                        setShippingQuote(null);
+                        setCalculatedShippingCost(0);
+                        setPricedShippingDestination('');
+                        setPricedShippingCenterKey('');
+                        setShippingRouteUnavailable(false);
+                      }}
+                    />
+                    {contractValidationError && (
+                      <p role="alert" className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
+                        {contractValidationError}
+                      </p>
+                    )}
+                    {selectedContractId !== null && (
+                      <p role="note" className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+                        {contractNonWalletPaymentNote}
+                      </p>
+                    )}
+                    {contractsError && selectedContractId === null && (
+                      <p role="alert" className="text-sm text-destructive">
+                        Could not load contracts. You can still continue with a normal purchase.
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 {/* Payment is available only after delivery and its price are known. */}
                 {!finalPriceReady && (
                   <p role="status" className="rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
-                    {!currentShippingMethod
+                    {contractValidationError
+                      ? 'Resolve the selected contract issue before requesting shipping or continuing to payment.'
+                      : !currentShippingMethod
                       ? (language === 'fa' ? 'ابتدا روش ارسال را انتخاب کنید.' : 'Choose a delivery method first.')
                       : !deliveryAddressReady && !isCurrentMethodGenuinePickup
                       ? deliveryAddressPrompt
@@ -2441,7 +2796,10 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                               <SelectContent>
                                 {/* Dynamic payment methods based on admin settings */}
                                 {paymentSettings
-                                  .filter((setting: any) => setting.enabled)
+                                  .filter((setting: any) =>
+                                    setting.enabled &&
+                                    !(selectedContractId !== null && isWalletPaymentMethod(setting.methodKey))
+                                  )
                                   .sort((a: any, b: any) => (b.priority || 0) - (a.priority || 0))
                                   .map((setting: any) => {
                                     // Get localized method name
@@ -2483,7 +2841,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                     />
 
                     {/* Wallet Payment Section */}
-                    {isUserLoggedIn && walletBalance > 0 && form.watch('paymentMethod') === 'wallet_combined' && (
+                    {selectedContractId === null && isUserLoggedIn && walletBalance > 0 && form.watch('paymentMethod') === 'wallet_combined' && (
                       <div className="p-4 bg-green-50 rounded-lg space-y-4">
                         <div className="flex items-center justify-between">
                           <div>
@@ -2542,7 +2900,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                     )}
 
                     {/* Secondary Payment Method for Combined Payments */}
-                    {form.watch('paymentMethod') === 'wallet_combined' && (
+                    {selectedContractId === null && form.watch('paymentMethod') === 'wallet_combined' && (
                       <div className="space-y-4">
                         {/* Remaining Amount Card */}
                         {totalAmount > 0 && (
@@ -2871,8 +3229,8 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                       </div>
                     )}
                     
-                    {/* Second Address Option */}
-                    <div className="space-y-2">
+                    {/* Legacy free-form address editor replaced by the titled address selector above. */}
+                    <div className="hidden">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Second Address (Optional)</span>
                         <Button
@@ -3047,7 +3405,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                     
                     {/* Second Delivery Address Section in Purchase Order */}
                     {isUserLoggedIn && (
-                      <div className="space-y-3 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                      <div className="hidden space-y-3 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
                         <h4 className="text-sm font-medium text-gray-800 dark:text-gray-200">{t.checkout_page.secondAddressTitle}</h4>
                         
                         {/* Second Address Option */}
@@ -3357,7 +3715,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
 
                   {/* Second Delivery Address Section in Cart Management */}
                   {isUserLoggedIn && (
-                    <div className="space-y-3 pt-3 border-t">
+                    <div className="hidden space-y-3 pt-3 border-t">
                       <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">{t.checkout_page.secondAddressTitle}</h4>
                       
                       {/* Second Address Option */}
@@ -3644,17 +4002,21 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
             city: isUserLoggedIn ? (customerData?.customer?.city || customerData?.customer?.cityRegion || '') : (form.getValues('billingCity') || ''),
             province: isUserLoggedIn ? (customerData?.customer?.province || '') : (form.getValues('billingState') || ''),
             country: isUserLoggedIn ? (customerData?.customer?.country || '') : (form.getValues('billingCountry') || ''),
-            postalCode: isUserLoggedIn ? (customerData?.customer?.postalCode || '') : (form.getValues('billingPostalCode') || '') },
-          ...(secondAddressDraft?.address.trim() && secondAddressDraft.city.trim()
-            ? [{ id: 'second', label: language === 'fa' ? 'آدرس دوم واردشده' : 'Second address',
+            postalCode: isUserLoggedIn ? (customerData?.customer?.postalCode || '') : (form.getValues('billingPostalCode') || ''),
+            phone: isUserLoggedIn ? (customerData?.customer?.phone || '') : (form.getValues('phone') || '') },
+          ...(secondAddressDraft?.address.trim() && secondAddressDraft.city.trim() &&
+            (deliveryAddressChoice === 'new' || deliveryAddressChoice === 'legacy')
+            ? [{ id: deliveryAddressChoice, label: secondAddressDraft.title || (deliveryAddressChoice === 'legacy'
+                  ? (language === 'fa' ? 'آدرس قدیمی CRM' : 'Legacy CRM address')
+                  : (language === 'fa' ? 'آدرس جدید' : 'New address')),
                 address: secondAddressDraft.address, city: secondAddressDraft.city,
                 province: secondAddressDraft.province, postalCode: secondAddressDraft.postalCode,
-                country: customerData?.customer?.country || form.getValues('billingCountry') }]
+                country: secondAddressDraft.country, phone: secondAddressDraft.phone }]
             : []),
           ...savedCustomerAddresses.map(address => ({
             id: `saved:${address.id}`, label: address.title || (language === 'fa' ? 'آدرس ذخیره‌شده' : 'Saved address'),
             address: address.address, city: address.city, province: address.state || '',
-            country: address.country, postalCode: address.postalCode || '',
+            country: address.country, postalCode: address.postalCode || '', phone: address.phone || '',
           })),
         ]}
         selectedAddressId={reviewAddressId}
@@ -3663,15 +4025,16 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
           setReviewAddressId(key);
           setPendingReview(null);
           if (key === 'primary') {
-            setManualAddressSelection(true);
+            setDeliveryAddressChoice('primary');
             setSelectedAddress(null);
             setShowSecondAddress(false);
-            setUseSecondaryAddress(false);
+            setNewAddressCountry('');
             form.setValue('secondDeliveryAddress', '');
             form.setValue('secondDeliveryCity', '');
             form.setValue('secondDeliveryProvince', '');
             form.setValue('secondDeliveryPostalCode', '');
             form.setValue('recipientAddress', '');
+            form.setValue('recipientMobile', customerData?.customer?.phone || '');
             form.setValue('sameAsShipping', true);
             if (isUserLoggedIn && customerData?.customer) {
               const primary = customerData.customer;
@@ -3687,21 +4050,30 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
               ? { address: saved.address, city: saved.city, province: saved.state || '', postalCode: saved.postalCode || '' }
               : secondAddressDraft;
             if (next) {
-              setManualAddressSelection(!saved);
+              setDeliveryAddressChoice(key);
               setSelectedAddress(saved || null);
-              setShowSecondAddress(true);
-              setUseSecondaryAddress(false);
               form.setValue('secondDeliveryAddress', next.address);
               form.setValue('secondDeliveryCity', next.city);
               form.setValue('secondDeliveryProvince', next.province);
               form.setValue('secondDeliveryPostalCode', next.postalCode);
               form.setValue('recipientAddress', '');
               if (saved) {
+                setNewAddressCountry(saved.country || '');
+                const region = provinces.find((item: any) => canonicalGeographyName(item) === saved.state || geographyName(item) === saved.state);
+                setSelectedSecondaryProvinceId(region?.id ?? null);
+                form.setValue('recipientMobile', saved.phone || '');
                 form.setValue('billingCountry', saved.country);
                 form.setValue('billingAddress1', saved.address);
                 form.setValue('billingCity', saved.city);
                 form.setValue('billingState', saved.state || '');
                 form.setValue('billingPostalCode', saved.postalCode || '');
+              } else if (secondAddressDraft) {
+                setNewAddressCountry(secondAddressDraft.country);
+                setNewAddressTitle(secondAddressDraft.title);
+                setNewAddressPhone(key === 'new' ? secondAddressDraft.phone : '');
+                form.setValue('recipientMobile', key === 'legacy' ? secondAddressDraft.phone : '');
+                const region = provinces.find((item: any) => canonicalGeographyName(item) === next.province || geographyName(item) === next.province);
+                setSelectedSecondaryProvinceId(region?.id ?? null);
               }
             }
           }
@@ -3714,7 +4086,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
           confirmingOrderRef.current = false;
           void form.handleSubmit(onSubmit)();
         }}
-        confirmDisabled={isConfirmingOrder || createOrderMutation.isPending || !pendingReview}
+        confirmDisabled={isConfirmingOrder || createOrderMutation.isPending || !pendingReview || !!contractValidationError}
         confirming={isConfirmingOrder || createOrderMutation.isPending}
         needsRefresh={!pendingReview || shippingCalculationPending || shippingSelectionUnavailable}
         refreshPending={shippingCalculationPending}

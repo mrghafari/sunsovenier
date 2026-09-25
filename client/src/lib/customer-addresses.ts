@@ -19,31 +19,22 @@ export async function loadCustomerAddresses(): Promise<SavedCustomerAddress[]> {
   return body.addresses;
 }
 
-export async function saveSecondaryCustomerAddress(details: {
+export async function saveCustomerAddress(details: {
+  title: string;
+  phone: string;
+  recipientName: string;
   address: string;
   city: string;
   state?: string;
   country: string;
   postalCode?: string;
-  phone: string;
-  recipientName: string;
-}): Promise<void> {
-  const addresses = await loadCustomerAddresses();
-  const same = (value: string | null | undefined) => (value || '').trim().toLocaleLowerCase();
-  if (addresses.some(item =>
-    same(item.address) === same(details.address) &&
-    same(item.city) === same(details.city) &&
-    same(item.country) === same(details.country) &&
-    same(item.state) === same(details.state) &&
-    same(item.postalCode) === same(details.postalCode)
-  )) return;
-
+}): Promise<SavedCustomerAddress> {
   const response = await fetch('/api/customers/addresses', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
     body: JSON.stringify({
-      title: 'آدرس دوم',
+      title: details.title,
       recipientName: details.recipientName,
       phone: details.phone,
       country: details.country,
@@ -56,6 +47,10 @@ export async function saveSecondaryCustomerAddress(details: {
   });
   const body = await response.json().catch(() => ({}));
   if (!response.ok || body.success !== true) {
-    throw new Error(body.message || 'Unable to save the second address');
+    throw new Error(body.message || 'Unable to save the address');
   }
+  if (!body.address || typeof body.address !== 'object') {
+    throw new Error('The address was saved but the server did not return it');
+  }
+  return body.address as SavedCustomerAddress;
 }

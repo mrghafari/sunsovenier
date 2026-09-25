@@ -56,6 +56,7 @@ import ShopInvoiceManagement from "@/components/ShopInvoiceManagement";
 import AbandonedCartManagement from "@/pages/abandoned-cart-management";
 import BulkPurchaseProductCard from "@/components/BulkPurchaseProductCard";
 import OrderTrackingManagement from "@/pages/admin/order-tracking-management";
+import ShopContracts from "@/components/admin/shop-contracts";
 
 type ShopLanguage = "en" | "ar" | "tr" | "fa";
 type ShopTranslation = Partial<Record<ShopLanguage, string>>;
@@ -842,10 +843,11 @@ export default function ShopAdmin() {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="orders" className="space-y-6">
-          <TabsList className="grid grid-cols-5 gap-1 h-auto p-2 bg-gray-100 rounded-lg">
+          <TabsList className="flex flex-wrap gap-1 h-auto p-2 bg-gray-100 rounded-lg">
             <TabsTrigger value="orders" className="text-sm px-3 py-2">{tr("orders")}</TabsTrigger>
             <TabsTrigger value="discounts" className="text-sm px-3 py-2">{tr("discountSettings")}</TabsTrigger>
             <TabsTrigger value="bulk-purchases" className="text-sm px-3 py-2">{tr("bulkPurchases")}</TabsTrigger>
+            <TabsTrigger value="contracts" className="text-sm px-3 py-2">{language === "fa" ? "قراردادها" : language === "ar" ? "العقود" : language === "tr" ? "Sözleşmeler" : "Contracts"}</TabsTrigger>
             <TabsTrigger value="proforma-deadline" className="text-sm px-3 py-2">{tr("purchaseProformaDeadline")}</TabsTrigger>
             <TabsTrigger value="inventory" className="text-sm px-3 py-2">{tr("inventory")}</TabsTrigger>
             <TabsTrigger value="invoices" className="bg-green-600 text-white hover:bg-green-700 data-[state=active]:bg-green-700 data-[state=active]:text-white text-sm px-3 py-2">{tr("invoiceManagement")}</TabsTrigger>
@@ -1177,6 +1179,9 @@ export default function ShopAdmin() {
           </TabsContent>
 
           {/* Inventory Tab */}
+          <TabsContent value="contracts" className="space-y-6">
+            <ShopContracts />
+          </TabsContent>
           <TabsContent value="inventory" className="space-y-6">
             <Card className="overflow-hidden border-slate-300 shadow-sm">
               <CardHeader className="border-b border-slate-300 bg-white px-4 py-3 sm:px-5">

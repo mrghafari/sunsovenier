@@ -1,7 +1,7 @@
 import { pgTable, text, serial, timestamp, decimal, boolean, integer, json } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-import { crmCustomers } from "./schema";
+import { crmCustomers, shopContracts } from "./schema";
 
 // =============================================================================
 // CUSTOMER PORTAL SCHEMA
@@ -124,7 +124,12 @@ export const insertCustomerAddressSchema = createInsertSchema(customerAddresses)
   updatedAt: true,
 }).extend({
   // Ensure recipient name defaults to customer's full name if not provided
-  recipientName: z.string().min(1, "نام تحویل‌گیرنده الزامی است"),
+  recipientName: z.string().trim().min(1, "نام تحویل‌گیرنده الزامی است"),
+  title: z.string().trim().min(1, "عنوان آدرس الزامی است"),
+  phone: z.string().trim().min(1, "شماره تلفن الزامی است"),
+  address: z.string().trim().min(1, "نشانی الزامی است"),
+  city: z.string().trim().min(1, "شهر الزامی است"),
+  country: z.string().trim().min(1, "کشور الزامی است"),
 });
 
 export type InsertCustomerAddress = z.infer<typeof insertCustomerAddressSchema>;
@@ -134,6 +139,7 @@ export type CustomerAddress = typeof customerAddresses.$inferSelect;
 export const customerOrders = pgTable("customer_orders", {
   id: serial("id").primaryKey(),
   customerId: integer("customer_id").notNull(),
+  contractId: integer("contract_id").references(() => shopContracts.id, { onDelete: "set null" }),
   orderNumber: text("order_number").notNull().unique(),
   status: text("status").notNull().default("pending"), // pending, confirmed, processing, shipped, delivered, cancelled
   priority: text("priority").notNull().default("normal"), // low, normal, high, urgent

@@ -16,8 +16,9 @@ import { Label } from "@/components/ui/label";
 import { MapPin, Globe, X, ShoppingCart, Plus, Minus, Trash2, Wallet, CreditCard, Upload, Clock, Flame, Move, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { loadCustomerAddresses, saveSecondaryCustomerAddress } from "@/lib/customer-addresses";
+import { loadCustomerAddresses, saveCustomerAddress, type SavedCustomerAddress } from "@/lib/customer-addresses";
 import OrderReviewDialog from "@/components/checkout/order-review-dialog";
+import ContractSelector, { type ShopContract } from "@/components/checkout/contract-selector";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { formatIQDAmount, displayCurrencyAmountWithSymbol } from "@/lib/currency-utils";
 import { shippingWeightKg } from "@/lib/shipping-weight";
@@ -109,12 +110,14 @@ const translations = {
     shippingCost: "Shipping Cost",
     freeShipping: "Free Shipping",
     
-    // Second address and recipient mobile options
-    secondDeliveryAddress: "Second Delivery Address",
-    addSecondAddress: "Add Second Address",
-    removeSecondAddress: "Remove Second Address",
-    secondAddressPlaceholder: "Enter different delivery address...",
-    secondAddressInstruction: "If delivery address differs from above, please enter new address",
+    // Delivery address choices
+    deliveryAddressChoices: "Delivery address",
+    newAddress: "New address",
+    addressTitle: "Address title",
+    addressTitlePlaceholder: "e.g. Home, Office, Factory",
+    newAddressInstruction: "Add a named address with its complete destination details",
+    legacyAddress: "Legacy CRM address",
+    destinationRequired: "Choose a country, province, and city for this address",
     recipientMobileNumber: "Recipient Mobile Number",
     addRecipientMobile: "Add Recipient Mobile",
     removeRecipientMobile: "Remove Recipient Mobile",
@@ -247,12 +250,14 @@ const translations = {
     shippingCost: "تكلفة الشحن",
     freeShipping: "شحن مجاني",
     
-    // Second address and recipient mobile options
-    secondDeliveryAddress: "عنوان التسليم الثاني",
-    addSecondAddress: "إضافة عنوان ثاني",
-    removeSecondAddress: "إزالة العنوان الثاني", 
-    secondAddressPlaceholder: "عنوان بديل للتسليم (مثل: بغداد، شارع الرشيد)",
-    secondAddressInstruction: "إذا كان عنوان استلام البضائع مختلفًا عن العنوان أعلاه، يرجى إدخال العنوان الجديد",
+    // Delivery address and recipient mobile options
+    deliveryAddressChoices: "عنوان التسليم",
+    newAddress: "عنوان جديد",
+    addressTitle: "اسم العنوان",
+    addressTitlePlaceholder: "مثل: المنزل، المكتب، المصنع",
+    newAddressInstruction: "أضف عنواناً باسم واضح وتفاصيل وجهة كاملة",
+    legacyAddress: "عنوان CRM قديم",
+    destinationRequired: "يرجى تحديد الدولة والمحافظة والمدينة لهذا العنوان",
     recipientMobileNumber: "رقم موبايل المستلم",
     addRecipientMobile: "إضافة رقم المستلم",
     removeRecipientMobile: "إزالة رقم المستلم",
@@ -368,11 +373,13 @@ const translations = {
     selectDeliveryMethod: "روش تحویل را انتخاب کنید",
     shippingCost: "هزینه ارسال",
     freeShipping: "ارسال رایگان",
-    secondDeliveryAddress: "آدرس دوم تحویل",
-    addSecondAddress: "افزودن آدرس دوم",
-    removeSecondAddress: "حذف آدرس دوم",
-    secondAddressPlaceholder: "آدرس متفاوت تحویل را وارد کنید...",
-    secondAddressInstruction: "اگر آدرس تحویل با آدرس بالا متفاوت است، آدرس جدید را وارد کنید",
+    deliveryAddressChoices: "نشانی تحویل",
+    newAddress: "نشانی جدید",
+    addressTitle: "عنوان نشانی",
+    addressTitlePlaceholder: "مثلاً: خانه، دفتر، کارخانه",
+    newAddressInstruction: "نشانی نام‌گذاری‌شده را همراه با جزئیات کامل مقصد اضافه کنید",
+    legacyAddress: "نشانی قدیمی CRM",
+    destinationRequired: "کشور، استان و شهر این نشانی را انتخاب کنید",
     recipientMobileNumber: "شماره تلفن همراه گیرنده",
     addRecipientMobile: "افزودن تلفن همراه گیرنده",
     removeRecipientMobile: "حذف تلفن همراه گیرنده",
@@ -513,7 +520,6 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
   const [paymentSectionTarget, setPaymentSectionTarget] = useState<HTMLDivElement | null>(null);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewAddressId, setReviewAddressId] = useState('primary');
-  const [secondAddressDraft, setSecondAddressDraft] = useState<{address: string; city: string; province: string; postalCode: string} | null>(null);
   const [pendingReview, setPendingReview] = useState<{ data: any; signature: string } | null>(null);
   const [isConfirmingOrder, setIsConfirmingOrder] = useState(false);
   const confirmingOrderRef = useRef(false);
@@ -625,6 +631,22 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
+  const { data: customerContracts = [], isLoading: isLoadingContracts, isFetching: isFetchingContracts, isError: contractsError } = useQuery<ShopContract[]>({
+    queryKey: ['/api/shop/contracts/mine'],
+    queryFn: async () => {
+      const response = await fetch('/api/shop/contracts/mine', { credentials: 'include' });
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.success || !Array.isArray(result.contracts)) {
+        throw new Error(result?.message || `Unable to load contracts (HTTP ${response.status})`);
+      }
+      return result.contracts;
+    },
+    enabled: customerData?.success === true,
+    retry: false,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
+  });
+  const [selectedContractId, setSelectedContractId] = useState<number | null>(null);
   const { data: savedCustomerAddresses = [], refetch: refetchSavedCustomerAddresses } = useQuery({
     queryKey: ['structuredCustomerAddresses'],
     queryFn: loadCustomerAddresses,
@@ -674,11 +696,16 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     refetchOnMount: true, // Always refetch on mount for fresh data
   });
 
-  // State for second address province/city selection (must be declared before API queries)
+  // Explicit destination geography fields (must be declared before API queries)
   const [selectedSecondaryProvinceId, setSelectedSecondaryProvinceId] = useState<number | null>(null);
   const [secondProvince, setSecondProvince] = useState('');
   const [secondCity, setSecondCity] = useState('');
   const [secondPostalCode, setSecondPostalCode] = useState('');
+  const [selectedDeliveryAddressId, setSelectedDeliveryAddressId] = useState('primary');
+  const [newAddressTitle, setNewAddressTitle] = useState('');
+  const [newAddressPhone, setNewAddressPhone] = useState('');
+  const [newAddressCountry, setNewAddressCountry] = useState('');
+  const [legacyAddressCountry, setLegacyAddressCountry] = useState('');
 
   // Load delivery regions from the configured logistics-center country.
   const { data: shippingCenterResponse, refetch: refetchShippingCenter } = useQuery<{ success?: boolean; data?: { countryCode?: string; provinceId?: number; cityId?: number } }>({
@@ -1005,7 +1032,6 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       
       // Enhanced address mapping for CRM customers - check multiple address fields
       const customerAddress = customerToUse.address || 
-                             customerToUse.secondaryAddress || 
                              customerToUse.primaryAddress ||
                              customerToUse.deliveryAddress ||
                              customerToUse.fullAddress ||
@@ -1085,7 +1111,6 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
   }, [shippingCenterCountry, existingCustomer, crmCustomerData, customerData?.customer, form]);
 
   // State for additional recipient fields - CRM conditional logic (must be declared before use)
-  const [showSecondAddress, setShowSecondAddress] = useState(false);
   const [showRecipientMobile, setShowRecipientMobile] = useState(false);  
   const [secondAddress, setSecondAddress] = useState('');
   const [recipientMobile, setRecipientMobile] = useState('');
@@ -1096,9 +1121,9 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
   const isRTL = direction === 'rtl';
   
   // Conditional graying out logic for CRM fields
-  const isPrimaryAddressDisabled = showSecondAddress && secondAddress.trim().length > 0;
+  const isPrimaryAddressDisabled = selectedDeliveryAddressId !== 'primary';
   const isPrimaryMobileDisabled = showRecipientMobile && recipientMobile.trim().length > 0;
-  const isPrimaryPostalCodeDisabled = secondPostalCode.trim().length > 0; // Separate logic for postal code
+  const isPrimaryPostalCodeDisabled = selectedDeliveryAddressId !== 'primary';
   const hasCrmData = !!(crmCustomerData || (customerData?.success && customerData.customer));
 
 
@@ -1151,13 +1176,48 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
   };
 
 
+  const selectedContract = selectedContractId === null
+    ? null
+    : customerContracts.find(contract => contract.id === selectedContractId && contract.isActive) || null;
+  const getCartUnitPrice = (product: any, quantity: number) => {
+    if (selectedContractId !== null) {
+      const item = selectedContract?.items.find(contractItem => Number(contractItem.productId) === Number(product.id));
+      return item && item.unitPrice != null && String(item.unitPrice).trim() !== '' && Number.isFinite(Number(item.unitPrice))
+        ? Number(item.unitPrice)
+        : 0;
+    }
+    return getDiscountedPrice(product, quantity);
+  };
+  const contractCartErrors = useMemo(() => {
+    if (selectedContractId === null) return [];
+    if (isLoadingContracts || isFetchingContracts) return [language === 'fa' ? 'در حال بررسی وضعیت قرارداد...' : language === 'ar' ? 'جارٍ التحقق من حالة العقد...' : 'Checking contract status...'];
+    if (contractsError) return [language === 'fa' ? 'بارگذاری قرارداد ناموفق بود. دوباره تلاش کنید.' : language === 'ar' ? 'تعذر تحميل العقود. يرجى المحاولة مجدداً.' : 'Could not verify the contract. Please retry.'];
+    if (!selectedContract) return [language === 'fa' ? 'این قرارداد دیگر فعال یا در دسترس نیست. قرارداد دیگری انتخاب کنید.' : language === 'ar' ? 'هذا العقد لم يعد نشطاً أو متاحاً. اختر عقداً آخر.' : 'This contract is no longer active or available. Choose another contract.'];
+    return Object.entries(cart).flatMap(([productId, quantity]) => {
+      const item = selectedContract.items.find(contractItem => Number(contractItem.productId) === Number(productId));
+      const product = products.find(candidate => Number(candidate.id) === Number(productId));
+      if (!item) return [`${product?.name || `Product #${productId}`} is not included in contract #${selectedContract.number}.`];
+      const errors: string[] = [];
+      if (item.remainingQuantity == null || !Number.isFinite(Number(item.remainingQuantity)) || Number(item.remainingQuantity) < 0) {
+        errors.push(`${product?.name || item.productName}: contract availability is unavailable.`);
+      } else if (Number(quantity) > Number(item.remainingQuantity)) {
+        errors.push(`${product?.name || item.productName}: quantity ${quantity} exceeds contract remaining quantity ${item.remainingQuantity}.`);
+      }
+      if (item.unitPrice == null || String(item.unitPrice).trim() === '' || !Number.isFinite(Number(item.unitPrice)) || Number(item.unitPrice) < 0) {
+        errors.push(`${product?.name || item.productName}: contract price is unavailable.`);
+      }
+      return errors;
+    });
+  }, [selectedContractId, selectedContract, cart, products, isLoadingContracts, isFetchingContracts, contractsError, language]);
+  const hasContractCartError = contractCartErrors.length > 0;
+
 
   // Calculate subtotal with discounts - IQD whole numbers only
   const subtotalAmount = Math.round(Object.entries(cart).reduce((sum, [productId, quantity]) => {
     const product = products.find(p => p.id === parseInt(productId));
-    if (product && product.price) {
-      const discountedPrice = getDiscountedPrice(product, quantity);
-      return sum + (discountedPrice * quantity);
+    if (product) {
+      const unitPrice = getCartUnitPrice(product, quantity);
+      return sum + (unitPrice * quantity);
     }
     return sum;
   }, 0));
@@ -1280,17 +1340,60 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
   );
 
   // Calculate shipping cost - prioritize smart delivery over regular shipping
-  const activePricingAddress = showSecondAddress
-    ? secondAddress.trim()
-    : (crmCustomerData?.address || customerData?.customer?.address || form.watch('address') || '').trim();
-  const activePricingCity = showSecondAddress
-    ? secondCity.trim()
-    : (crmCustomerData?.cityRegion || crmCustomerData?.city || customerData?.customer?.cityRegion || customerData?.customer?.city || form.watch('city') || '').trim();
-  const activePricingProvince = showSecondAddress
-    ? secondProvince.trim()
-    : (crmCustomerData?.province || customerData?.customer?.province || '');
-  const activePricingCountry = form.watch('country') || crmCustomerData?.country || customerData?.customer?.country || '';
-  const hasCompleteDeliveryAddress = !!activePricingAddress && !!activePricingCity && !!activePricingCountry.trim();
+  const legacySecondaryAddress = String(crmCustomerData?.secondaryAddress || customerData?.customer?.secondaryAddress || '').trim();
+  const selectedSavedAddress = selectedDeliveryAddressId.startsWith('saved:')
+    ? savedCustomerAddresses.find(address => String(address.id) === selectedDeliveryAddressId.slice(6))
+    : undefined;
+  const isNewAddressSelected = selectedDeliveryAddressId === 'new';
+  const isLegacyAddressSelected = selectedDeliveryAddressId === 'legacy';
+  const isAlternateAddressSelected = isNewAddressSelected || isLegacyAddressSelected || !!selectedSavedAddress;
+  const primaryPricingAddress = (crmCustomerData?.address || customerData?.customer?.address || form.watch('address') || '').trim();
+  const primaryPricingCity = (crmCustomerData?.cityRegion || crmCustomerData?.city || customerData?.customer?.cityRegion || customerData?.customer?.city || form.watch('city') || '').trim();
+  const primaryPricingProvince = crmCustomerData?.province || customerData?.customer?.province || '';
+  const activePricingAddress = selectedSavedAddress
+    ? selectedSavedAddress.address
+    : isLegacyAddressSelected
+      ? legacySecondaryAddress
+      : isNewAddressSelected
+        ? secondAddress.trim()
+        : primaryPricingAddress;
+  const activePricingCity = selectedSavedAddress
+    ? selectedSavedAddress.city || ''
+    : isAlternateAddressSelected ? secondCity.trim() : primaryPricingCity;
+  const activePricingProvince = selectedSavedAddress
+    ? selectedSavedAddress.state || ''
+    : isAlternateAddressSelected ? secondProvince.trim() : primaryPricingProvince;
+  const activePricingCountry = selectedSavedAddress
+    ? selectedSavedAddress.country || ''
+    : isNewAddressSelected
+      ? newAddressCountry.trim()
+      : isLegacyAddressSelected
+        ? legacyAddressCountry.trim()
+        : (form.watch('country') || crmCustomerData?.country || customerData?.customer?.country || '');
+  const activePricingPostalCode = selectedSavedAddress
+    ? selectedSavedAddress.postalCode || ''
+    : isAlternateAddressSelected ? secondPostalCode.trim() : (form.watch('postalCode') || '');
+  const activePricingPhone = selectedSavedAddress
+    ? selectedSavedAddress.phone || ''
+    : isNewAddressSelected
+      ? newAddressPhone.trim()
+      : (showRecipientMobile && recipientMobile.trim() ? recipientMobile.trim() : form.watch('phone') || '');
+  const activeRecipientName = selectedSavedAddress
+    ? selectedSavedAddress.recipientName || ''
+    : form.watch('customerName') || '';
+  const selectDeliveryAddress = (addressId: string) => {
+    if (addressId === 'legacy') {
+      setSecondCity('');
+      setSecondProvince('');
+      setSecondPostalCode('');
+      setSelectedSecondaryProvinceId(null);
+      setLegacyAddressCountry('');
+    }
+    setSelectedDeliveryAddressId(addressId);
+    setPendingReview(null);
+  };
+  const hasCompleteDeliveryAddress = !!activePricingAddress && !!activePricingCity &&
+    !!activePricingCountry.trim() && (!isAlternateAddressSelected || !!activePricingProvince);
   const currentSmartDeliveryPricedKey = `${activePricingAddress}|${activePricingCity}|${activePricingProvince}|${activePricingCountry}|${totalWeight}|${shippingQuoteCartKey}`;
   const selectedShippingRate = shippingRatesData?.find((rate: any) => rate.id === selectedShippingMethod);
   const activeDeliveryMethodValue = String(selectedShippingRate?.deliveryMethod || selectedShippingRate?.delivery_method || '').toLowerCase();
@@ -1298,6 +1401,9 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
   const isPickupShippingMethod = ['pickup', 'self_pickup', 'self-pickup'].includes(activeDeliveryMethodValue);
   const standardShippingQuoteKey = JSON.stringify([
     selectedShippingMethod,
+    selectedContractId,
+    selectedContract,
+    subtotalAmount,
     activePricingAddress,
     activePricingCity,
     activePricingProvince,
@@ -1359,6 +1465,14 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
   // Check if wallet is enabled in admin settings
   const isWalletEnabledInSettings = availablePaymentMethods.some((method: any) => method.methodKey === 'wallet');
   const canUseWallet = walletBalance > 0 && (existingCustomer || (customerData as any)?.success) && isWalletEnabledInSettings;
+  const isWalletPaymentMethod = ['wallet', 'wallet_full', 'wallet_partial', 'wallet_combined'].includes(paymentMethod);
+  const supportedNonWalletPaymentMethod = (() => {
+    const supported = availablePaymentMethods
+      .map((method: any) => method.methodKey)
+      .filter((methodKey: string) => ['fib_online', 'online_payment', 'bank_transfer_grace', 'bank_receipt'].includes(methodKey));
+    if (supported.includes(paymentMethod)) return paymentMethod;
+    return ['fib_online', 'online_payment', 'bank_transfer_grace', 'bank_receipt'].find(methodKey => supported.includes(methodKey)) || null;
+  })();
   const maxWalletAmount = Math.min(walletBalance, totalAmount);
   const remainingAfterWallet = totalAmount - (paymentMethod === 'wallet' ? totalAmount : 0);
   
@@ -1378,6 +1492,12 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       setWalletAmount(0);
     }
   }, [paymentMethod, walletBalance, totalAmount]);
+
+  useEffect(() => {
+    if (selectedContractId === null || (!isWalletPaymentMethod && walletAmount <= 0)) return;
+    setWalletAmount(0);
+    setPaymentMethod((supportedNonWalletPaymentMethod || 'fib_online') as typeof paymentMethod);
+  }, [selectedContractId, isWalletPaymentMethod, walletAmount, supportedNonWalletPaymentMethod]);
 
   console.log('💳 [WALLET DEBUG] Complete wallet analysis:', { 
     walletData, 
@@ -1437,6 +1557,13 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
 
   // Calculate smart delivery cost
   const calculateSmartDeliveryCost = async (destinationCity: string, destinationProvince: string, destinationCityId: number | undefined, requestId: number) => {
+    if (hasContractCartError) {
+      setSmartDeliveryLoading(false);
+      setSmartDeliveryError(contractCartErrors[0]);
+      setOptimalVehicle(null);
+      setShippingQuote(null);
+      return;
+    }
     if (unavailableCartProductIds.length > 0) {
       setSmartDeliveryLoading(false);
       setSmartDeliveryError(t.unavailableCartWarning);
@@ -1648,6 +1775,14 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
         quoteController.abort();
       };
     }
+    if (hasContractCartError) {
+      setStandardShippingLoading(false);
+      setStandardShippingError(contractCartErrors[0]);
+      return () => {
+        if (standardShippingRequestRef.current === requestId) standardShippingRequestRef.current++;
+        quoteController.abort();
+      };
+    }
     if (unavailableCartProductIds.length > 0) {
       setStandardShippingLoading(false);
       setStandardShippingError(t.unavailableCartWarning);
@@ -1714,6 +1849,8 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
             signal: quoteController.signal,
             body: JSON.stringify({
               cart: shippingQuoteCart,
+              contractId: selectedContractId,
+              subtotalAmount,
               ...(matchingCity?.id != null ? { destinationCityId: matchingCity.id } : {}),
               destinationCity: quoteCity,
               ...(quoteProvince ? { destinationProvince: quoteProvince } : {}),
@@ -1768,6 +1905,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     activePricingAddress, activePricingCity, activePricingProvince, activePricingCountry, hasCompleteDeliveryAddress, totalWeight, standardShippingQuoteKey,
     shippingQuoteCartKey, shippingQuoteRefreshKey, secondaryCities, shippingCenterKey, refetchShippingCenter,
     standardShippingUnavailableMessage, unavailableCartProductIds.length,
+    hasContractCartError, contractCartErrors, selectedContractId, subtotalAmount,
   ]);
 
   // Watch for changes in destination to recalculate delivery cost
@@ -1779,7 +1917,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     const finalDestinationProvince = activePricingProvince;
 
     console.log('🚚 [DELIVERY CALCULATION] Final destination determined:', {
-      showSecondAddress,
+      selectedDeliveryAddressId,
       secondCity,
       secondProvince,
       crmCityRegion: crmCustomerData?.cityRegion,
@@ -1815,6 +1953,16 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       setShippingQuote(null);
       setSmartDeliveryPricedKey('');
       setSmartDeliveryError(t.unavailableCartWarning);
+      return;
+    }
+
+    if (hasContractCartError) {
+      setSmartDeliveryLoading(false);
+      setSmartDeliveryCost(0);
+      setOptimalVehicle(null);
+      setShippingQuote(null);
+      setSmartDeliveryPricedKey('');
+      setSmartDeliveryError(contractCartErrors[0]);
       return;
     }
     
@@ -1863,7 +2011,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
         totalWeight
       });
     }
-  }, [selectedShippingMethod, isSmartShippingMethod, hasCompleteDeliveryAddress, activePricingAddress, activePricingCity, activePricingProvince, activePricingCountry, totalWeight, cart, shippingQuoteRefreshKey, secondaryCities, shippingCenterKey]);
+  }, [selectedShippingMethod, isSmartShippingMethod, hasCompleteDeliveryAddress, activePricingAddress, activePricingCity, activePricingProvince, activePricingCountry, totalWeight, cart, shippingQuoteRefreshKey, secondaryCities, shippingCenterKey, hasContractCartError, contractCartErrors]);
 
 
 
@@ -2090,8 +2238,8 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
         
         // Redirect to bank payment gateway
         setTimeout(() => {
-          const totalAmount = response.totalAmount || response.remainingAmount || (products.reduce((sum, p) => sum + (parseFloat(p.price || '0') * (cart[p.id] || 0)), 0) + shippingCost);
-          window.location.href = `/payment?orderId=${response.orderId || response.order?.id}&amount=${totalAmount}&method=bank`;
+          const redirectAmount = response.totalAmount || response.remainingAmount || totalAmount;
+          window.location.href = `/payment?orderId=${response.orderId || response.order?.id}&amount=${redirectAmount}&method=bank`;
         }, 1500);
         return;
       }
@@ -2125,8 +2273,23 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     if (isFinalConfirmation) orderSubmissionLockRef.current = true;
     let handedToMutation = false;
     try {
-    if (showSecondAddress && secondAddress.trim() && !secondCity.trim()) {
-      toast({ title: t.selectCity, variant: "destructive" });
+    if (isAlternateAddressSelected && (
+      !activePricingCity.trim() ||
+      !activePricingProvince.trim() ||
+      !activePricingCountry.trim()
+    )) {
+      toast({ title: t.destinationRequired, variant: "destructive" });
+      return;
+    }
+    if (isNewAddressSelected && (
+      !newAddressTitle.trim() ||
+      !activePricingAddress.trim() ||
+      activePricingAddress.trim().length < 10 ||
+      !activePricingCountry.trim() ||
+      !activePricingPhone.trim() ||
+      activePricingPhone.trim().length < 10
+    )) {
+      toast({ title: t.addressRequired, description: t.phoneRequired, variant: "destructive" });
       return;
     }
     if (unavailableCartProductIds.length > 0) {
@@ -2135,6 +2298,28 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     }
     if (missingWeightProductIds.length > 0) {
       toast({ title: t.missingCartWeight, variant: "destructive" });
+      return;
+    }
+    if (hasContractCartError) {
+      toast({ title: contractCartErrors[0], variant: "destructive" });
+      return;
+    }
+    if (selectedContractId !== null && (isWalletPaymentMethod || walletAmount > 0)) {
+      setWalletAmount(0);
+      setPaymentMethod((supportedNonWalletPaymentMethod || 'fib_online') as typeof paymentMethod);
+      toast({
+        title: language === 'fa' ? 'پرداخت از کیف پول برای قرارداد مجاز نیست' : language === 'ar' ? 'الدفع من المحفظة غير متاح للعقود' : language === 'tr' ? 'Sözleşmeli alışverişte cüzdanla ödeme kullanılamaz' : 'Wallet payment is not available for contract orders',
+        description: language === 'fa' ? 'برای سفارش قراردادی، یک روش پرداخت غیر از کیف پول انتخاب کنید.' : language === 'ar' ? 'يرجى اختيار طريقة دفع غير المحفظة لطلب العقد.' : language === 'tr' ? 'Lütfen sözleşme siparişi için cüzdan dışında bir ödeme yöntemi seçin.' : 'Choose a non-wallet payment method for this contract order.',
+        variant: "destructive",
+      });
+      return;
+    }
+    if (selectedContractId !== null && !supportedNonWalletPaymentMethod) {
+      toast({
+        title: language === 'fa' ? 'روش پرداخت غیرکیف پول در دسترس نیست' : language === 'ar' ? 'لا توجد طريقة دفع غير المحفظة متاحة' : language === 'tr' ? 'Cüzdan dışı ödeme yöntemi kullanılamıyor' : 'No non-wallet payment method is available',
+        description: language === 'fa' ? 'برای ثبت سفارش قراردادی، فروشگاه باید یک روش پرداخت غیرکیف پول فعال کند.' : language === 'ar' ? 'يجب تفعيل طريقة دفع غير المحفظة من المتجر لإتمام طلب العقد.' : language === 'tr' ? 'Sözleşme siparişini tamamlamak için mağazanın cüzdan dışı bir ödeme yöntemi etkinleştirmesi gerekir.' : 'The shop must enable a non-wallet payment method to place a contract order.',
+        variant: "destructive",
+      });
       return;
     }
     console.log('🚀 [SUBMIT DEBUG] onSubmit function called');
@@ -2195,7 +2380,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     }
 
     const freshCenterCountryCode = resolveCountryCode(freshCenterData?.countryCode) || freshCenterData?.countryCode?.toUpperCase() || '';
-    const destinationCountryCode = resolveCountryCode(data.country);
+    const destinationCountryCode = resolveCountryCode(activePricingCountry);
     if (isShippingDependentForValidation && freshCenterCountryCode && destinationCountryCode && freshCenterCountryCode !== destinationCountryCode) {
       setShippingQuote(null);
       toast({
@@ -2263,30 +2448,18 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       return;
     }
 
-    // Determine active delivery info based on conditional logic
+    // Snapshot the selected destination (including the saved recipient) into this order.
     const activeDeliveryInfo = {
-      // Address determination - use second address if provided, otherwise primary
-      activeAddress: (showSecondAddress && secondAddress.trim()) 
-        ? secondAddress.trim() 
-        : data.address,
-      activeCity: (showSecondAddress && secondCity.trim()) 
-        ? secondCity.trim() 
-        : data.city,
-      activeProvince: (showSecondAddress && secondProvince.trim()) 
-        ? secondProvince.trim() 
-        : (crmCustomerData?.province || ''),
-      activePostalCode: secondPostalCode.trim() 
-        ? secondPostalCode.trim() 
-        : data.postalCode,
-      
-      // Phone determination - use recipient mobile if provided, otherwise primary
-      activePhone: (showRecipientMobile && recipientMobile.trim()) 
-        ? recipientMobile.trim() 
-        : data.phone,
-      
-      // Source tracking for logistics
-      isUsingSecondAddress: !!(showSecondAddress && secondAddress.trim()),
-      isUsingRecipientMobile: !!(showRecipientMobile && recipientMobile.trim()),
+      activeAddress: activePricingAddress,
+      activeCity: activePricingCity,
+      activeProvince: activePricingProvince,
+      activeCountry: activePricingCountry,
+      activePostalCode: activePricingPostalCode,
+      activePhone: activePricingPhone,
+      activeRecipientName,
+      isUsingSecondAddress: isAlternateAddressSelected,
+      isUsingRecipientMobile: isNewAddressSelected || (!!selectedSavedAddress && !!activePricingPhone) ||
+        (showRecipientMobile && recipientMobile.trim().length > 0),
     };
 
     // Get the selected shipping rate to extract deliveryMethod
@@ -2295,15 +2468,16 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     
     let orderData = {
       ...data,
-      // The API validates these canonical fields. Populate them from the
-      // destination and phone the customer actively selected, including the
-      // optional second address and recipient mobile.
+      // The API validates these canonical fields from the selected destination.
       address: activeDeliveryInfo.activeAddress,
       city: activeDeliveryInfo.activeCity,
       province: activeDeliveryInfo.activeProvince,
       postalCode: activeDeliveryInfo.activePostalCode,
       phone: activeDeliveryInfo.activePhone,
+      recipientName: activeDeliveryInfo.activeRecipientName,
+      country: activeDeliveryInfo.activeCountry,
       cart: shippingQuoteCart,
+      contractId: selectedContractId,
       totalAmount,
       subtotalAmount,
       shippingCost: finalShippingCost,
@@ -2314,8 +2488,8 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       deliveryMethod: selectedDeliveryMethod,
       currency: 'IQD',
       paymentMethod,
-      walletAmountUsed: Math.round(walletAmount), // Use actual wallet amount in integer format
-      remainingAmount: Math.round(Math.max(0, totalAmount - walletAmount)), // Calculate remaining in integer format
+      walletAmountUsed: selectedContractId !== null ? 0 : Math.round(walletAmount), // Use actual wallet amount in integer format
+      remainingAmount: Math.round(Math.max(0, totalAmount - (selectedContractId !== null ? 0 : walletAmount))), // Calculate remaining in integer format
       
       // Customer's selected vehicle from smart delivery calculation - CRITICAL for logistics
       vehicleType: optimalVehicle?.vehicleName || optimalVehicle?.name || optimalVehicle?.vehicleType || null,
@@ -2325,17 +2499,17 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       ...(requiresShippingQuoteToken ? { shippingQuoteToken: shippingQuote!.token } : {}),
       
       // Enhanced delivery information
-      secondDeliveryAddress: showSecondAddress ? secondAddress : null,
-      secondDeliveryCity: showSecondAddress ? secondCity : null, 
-      secondDeliveryProvince: showSecondAddress ? secondProvince : null,
-      secondDeliveryPostalCode: showSecondAddress ? secondPostalCode : null,
-      recipientMobile: showRecipientMobile ? recipientMobile : null,
+      secondDeliveryAddress: isAlternateAddressSelected ? activeDeliveryInfo.activeAddress : null,
+      secondDeliveryCity: isAlternateAddressSelected ? activeDeliveryInfo.activeCity : null,
+      secondDeliveryProvince: isAlternateAddressSelected ? activeDeliveryInfo.activeProvince : null,
+      secondDeliveryPostalCode: isAlternateAddressSelected ? activeDeliveryInfo.activePostalCode : null,
+      recipientMobile: activeDeliveryInfo.isUsingRecipientMobile ? activeDeliveryInfo.activePhone : null,
       
       // Active delivery logistics data
       activeDeliveryInfo,
       
       // Add warehouse notes for logistics clarity
-      warehouseNotes: `تحویل فعال: ${activeDeliveryInfo.isUsingSecondAddress ? 'آدرس دوم' : 'آدرس اول'} | تماس فعال: ${activeDeliveryInfo.isUsingRecipientMobile ? 'موبایل گیرنده' : 'موبایل اصلی'}`
+      warehouseNotes: `تحویل فعال: ${activeDeliveryInfo.isUsingSecondAddress ? 'نشانی انتخاب‌شده' : 'نشانی اصلی'} | تماس فعال: ${activeDeliveryInfo.isUsingRecipientMobile ? 'موبایل گیرنده' : 'موبایل اصلی'}`
     };
 
     console.log('🚚 [DELIVERY LOGIC] Active delivery information:', activeDeliveryInfo);
@@ -2426,9 +2600,12 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     const signature = JSON.stringify({
       cart: orderData.cart, address: orderData.address, city: orderData.city,
       province: orderData.province, country: orderData.country,
-      phone: orderData.phone, shipping: orderData.selectedShippingMethod,
+      phone: orderData.phone, recipientName: orderData.recipientName, addressChoice: selectedDeliveryAddressId,
+      shipping: orderData.selectedShippingMethod,
       shippingCost: orderData.shippingCost, total: orderData.totalAmount,
       payment: orderData.paymentMethod, walletAmount: orderData.walletAmountUsed,
+      contractId: orderData.contractId,
+      contractItems: selectedContract?.items,
     });
     if (!isFinalConfirmation || !pendingReview || pendingReview.signature !== signature) {
       if (customerData?.success) {
@@ -2439,23 +2616,113 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
         }
       }
       if (!reviewOpen) {
-        setReviewAddressId(showSecondAddress && secondAddress.trim() ? 'second' : 'primary');
-        setSecondAddressDraft({ address: secondAddress, city: secondCity, province: secondProvince, postalCode: secondPostalCode });
+        setReviewAddressId(selectedDeliveryAddressId);
       }
       setPendingReview({ data: orderData, signature });
       setReviewOpen(true);
       return;
     }
 
+    if (selectedContractId !== null) {
+      const contractAsPresented = selectedContract;
+      try {
+        const response = await fetch('/api/shop/contracts/mine', {
+          method: 'GET',
+          credentials: 'include',
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' },
+        });
+        const result = await response.json().catch(() => null);
+        if (!response.ok || !result?.success || !Array.isArray(result.contracts)) {
+          throw new Error(result?.message || `Contract verification failed (HTTP ${response.status})`);
+        }
+
+        const freshContracts = result.contracts as ShopContract[];
+        const freshContract = freshContracts.find(contract => contract.id === selectedContractId);
+        const normalizeItems = (items: ShopContract['items']) => [...items]
+          .sort((a, b) => Number(a.productId) - Number(b.productId))
+          .map(item => ({
+            productId: Number(item.productId),
+            productName: item.productName,
+            maxQuantity: Number(item.maxQuantity),
+            usedQuantity: Number(item.usedQuantity),
+            remainingQuantity: Number(item.remainingQuantity),
+            unitPrice: Number(item.unitPrice),
+          }));
+        const contractChanged = !contractAsPresented ||
+          !freshContract ||
+          !freshContract.isActive ||
+          freshContract.customerId !== contractAsPresented.customerId ||
+          freshContract.number !== contractAsPresented.number ||
+          freshContract.terms !== contractAsPresented.terms ||
+          freshContract.customerName !== contractAsPresented.customerName ||
+          JSON.stringify(normalizeItems(freshContract.items)) !== JSON.stringify(normalizeItems(contractAsPresented.items)) ||
+          Object.entries(cart).some(([productId, quantity]) => {
+            const item = freshContract.items.find(candidate => Number(candidate.productId) === Number(productId));
+            return !item ||
+              !Number.isFinite(Number(item.remainingQuantity)) ||
+              Number(item.remainingQuantity) < Number(quantity) ||
+              !Number.isFinite(Number(item.unitPrice)) ||
+              Number(item.unitPrice) < 0;
+          });
+
+        if (contractChanged) {
+          queryClient.setQueryData<ShopContract[]>(['/api/shop/contracts/mine'], freshContracts);
+          setReviewOpen(false);
+          setPendingReview(null);
+          toast({
+            title: language === 'fa' ? 'اطلاعات قرارداد به‌روزرسانی شد' : language === 'ar' ? 'تم تحديث بيانات العقد' : language === 'tr' ? 'Sözleşme bilgileri güncellendi' : 'Contract details were updated',
+            description: language === 'fa'
+              ? 'قیمت یا محدودیت قرارداد تغییر کرده است. مبلغ‌های به‌روزشده را بررسی کنید و دوباره سفارش را تأیید کنید.'
+              : language === 'ar'
+                ? 'تغير سعر العقد أو حدوده. يرجى مراجعة الإجماليات المحدّثة وتأكيد الطلب مجدداً.'
+                : language === 'tr'
+                  ? 'Sözleşme fiyatı veya limitleri değişti. Lütfen güncellenen toplamları inceleyip siparişi yeniden onaylayın.'
+                  : 'Contract pricing, ownership, or limits changed. Review the refreshed totals and confirm the order again.',
+            variant: 'destructive',
+          });
+          orderSubmissionLockRef.current = false;
+          return;
+        }
+      } catch (error) {
+        toast({
+          title: language === 'fa' ? 'بررسی قرارداد ناموفق بود' : language === 'ar' ? 'تعذر التحقق من العقد' : language === 'tr' ? 'Sözleşme doğrulanamadı' : 'Could not verify the contract',
+          description: language === 'fa'
+            ? 'سفارش ثبت نشد زیرا قیمت و موجودی قرارداد قابل بررسی نبود. لطفاً دوباره تلاش کنید.'
+            : language === 'ar'
+              ? 'لم يتم إرسال الطلب لتعذر التحقق من سعر العقد وتوفره. يرجى المحاولة مجدداً.'
+              : language === 'tr'
+                ? 'Sözleşme fiyatı ve kullanılabilirliği doğrulanamadığı için sipariş gönderilmedi. Lütfen tekrar deneyin.'
+                : 'The order was not submitted because current contract pricing and availability could not be verified. Please retry.',
+          variant: 'destructive',
+        });
+        orderSubmissionLockRef.current = false;
+        return;
+      }
+    }
+
     setIsConfirmingOrder(true);
     try {
-      if (customerData?.success && orderData.activeDeliveryInfo.isUsingSecondAddress) {
-        await saveSecondaryCustomerAddress({
-          address: secondAddress.trim(), city: secondCity.trim(),
-          state: secondProvince.trim(), country: data.country,
-          postalCode: secondPostalCode.trim(), phone: orderData.phone,
-          recipientName: data.customerName || customerData.customer?.firstName || 'Customer',
+      if (customerData?.success && isNewAddressSelected) {
+        const savedAddress = await saveCustomerAddress({
+          title: newAddressTitle.trim(),
+          address: orderData.address,
+          city: orderData.city,
+          state: orderData.province,
+          country: orderData.country,
+          postalCode: orderData.postalCode,
+          phone: orderData.phone,
+          recipientName: orderData.recipientName || data.customerName || customerData.customer?.firstName || 'Customer',
         });
+        queryClient.setQueryData<SavedCustomerAddress[]>(['structuredCustomerAddresses'], current => {
+          const addresses = current || [];
+          const existingIndex = addresses.findIndex(address => Number(address.id) === Number(savedAddress.id));
+          if (existingIndex < 0) return [...addresses, savedAddress];
+          return addresses.map((address, index) => index === existingIndex ? savedAddress : address);
+        });
+        const savedAddressId = `saved:${savedAddress.id}`;
+        setSelectedDeliveryAddressId(savedAddressId);
+        setReviewAddressId(savedAddressId);
         await refetchSavedCustomerAddresses();
         await queryClient.invalidateQueries({ queryKey: ['/api/customers/addresses'] });
       }
@@ -2465,7 +2732,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       submitOrderMutation.mutate(orderData);
     } catch (error: any) {
       orderSubmissionLockRef.current = false;
-      toast({ title: language === 'fa' ? 'ذخیره آدرس دوم ناموفق بود' : 'Could not save the second address',
+      toast({ title: language === 'fa' ? 'ذخیره نشانی ناموفق بود' : 'Could not save the address',
         description: error?.message, variant: 'destructive' });
     } finally {
       setIsConfirmingOrder(false);
@@ -2532,7 +2799,8 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                 }
                 
                 const basePrice = Math.round(parseFloat(product.price || '0'));
-                const discountedPrice = getDiscountedPrice(product, quantity);
+                const discountedPrice = getCartUnitPrice(product, quantity);
+                const usesContractPrice = selectedContractId !== null;
                 const itemTotal = Math.round(discountedPrice * quantity);
                 
                 return (
@@ -2567,11 +2835,11 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                         </div>
                         <p className="text-xs text-muted-foreground">{product.category}</p>
                         <p className="text-sm font-medium mt-1">
-                          {discountedPrice < basePrice && (
+                          {!usesContractPrice && discountedPrice < basePrice && (
                             <span className="line-through text-gray-400 mr-2">{formatCurrency(basePrice)}</span>
                           )}
                           {formatCurrency(discountedPrice)} {t.each}
-                          {discountedPrice < basePrice && basePrice > 0 && (
+                          {!usesContractPrice && discountedPrice < basePrice && basePrice > 0 && (
                             <span className="text-[10px] text-green-600 font-semibold ml-1">
                               {(product.bulk_purchase_enabled || product.bulkPurchaseEnabled) ? '📦' : '🏷️'} {getActualDiscountPercent(product, quantity)}%
                             </span>
@@ -2663,7 +2931,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                         <span className="text-sm text-muted-foreground">{language === 'en' ? 'Item Total' : language === 'fa' ? 'مجموع کالا' : 'إجمالي العنصر'}</span>
                         <span className="font-medium">{formatCurrency(itemTotal)}</span>
                       </div>
-                      {discountedPrice < basePrice && (
+                      {!usesContractPrice && discountedPrice < basePrice && (
                         <div className="flex justify-between items-center text-xs text-green-600">
                           <span>{t.discountApplied}</span>
                           <span>-{formatCurrency((basePrice - discountedPrice) * quantity)}</span>
@@ -3021,13 +3289,25 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                 <h3 className="font-medium text-blue-900 dark:text-blue-100">{t.paymentMethod}</h3>
               </div>
               
+              {selectedContractId !== null && (
+                <p className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900" role="note">
+                  {language === 'fa'
+                    ? 'برای سفارش قراردادی، پرداخت از کیف پول در دسترس نیست. لطفاً یک روش پرداخت غیر از کیف پول انتخاب کنید.'
+                    : language === 'ar'
+                      ? 'الدفع من المحفظة غير متاح لطلبات العقود. يرجى اختيار طريقة دفع أخرى غير المحفظة.'
+                      : language === 'tr'
+                        ? 'Sözleşmeli siparişlerde cüzdanla ödeme kullanılamaz. Lütfen cüzdan dışında bir ödeme yöntemi seçin.'
+                        : 'Wallet payment is unavailable for contract orders. Please choose a non-wallet payment method.'}
+                </p>
+              )}
+
               {/* Wallet Balance Display */}
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border">
+              {selectedContractId === null && <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">{t.walletBalance}:</span>
                   <span className="font-semibold text-green-600">{formatCurrency(walletBalance)}</span>
                 </div>
-              </div>
+              </div>}
 
               {/* Payment Options */}
               <RadioGroup value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as any)} className="space-y-3">
@@ -3059,7 +3339,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                 })}
                 
                 {/* دوم: پرداخت از کیف پول (تمام یا بخش از آن) */}
-                {canUseWallet && isWalletEnabledInSettings && (
+                {selectedContractId === null && canUseWallet && isWalletEnabledInSettings && (
                   <div className="flex items-center space-x-2 space-x-reverse">
                     <RadioGroupItem value="wallet_combined" id="wallet_combined" />
                     <Label htmlFor="wallet_combined" className="flex items-center gap-2 cursor-pointer">
@@ -3105,7 +3385,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
               </RadioGroup>
 
               {/* Partial Payment Amount Input */}
-              {paymentMethod === 'wallet_combined' && (
+              {selectedContractId === null && paymentMethod === 'wallet_combined' && (
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="walletAmount">{t.amountFromWallet} {formatIQDAmount(Math.min(walletBalance, totalAmount))} IQD)</Label>
@@ -3160,7 +3440,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
               )}
 
               {/* Payment Summary */}
-              {(paymentMethod === 'wallet' || paymentMethod === 'wallet_full' || paymentMethod === 'wallet_partial' || paymentMethod === 'wallet_combined') && (
+              {selectedContractId === null && (paymentMethod === 'wallet' || paymentMethod === 'wallet_full' || paymentMethod === 'wallet_partial' || paymentMethod === 'wallet_combined') && (
                 <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 border border-green-200 dark:border-green-800">
                   <div className="space-y-1 text-sm">
                     <div className="flex justify-between">
@@ -3205,6 +3485,28 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
             
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                {customerData?.success === true && (
+                  <div className="space-y-2">
+                    <ContractSelector
+                      contracts={customerContracts}
+                      selectedContractId={selectedContractId}
+                      onSelect={setSelectedContractId}
+                      language={language}
+                      disabled={isLoadingContracts || isFetchingContracts || contractsError}
+                    />
+                    {(isLoadingContracts || isFetchingContracts) && <p className="text-sm text-muted-foreground" role="status">{t.loading}</p>}
+                    {contractsError && (
+                      <p className="text-sm text-red-700" role="alert">
+                        {language === 'fa' ? 'بارگذاری قراردادها ناموفق بود. لطفاً دوباره تلاش کنید.' : language === 'ar' ? 'تعذر تحميل العقود. يرجى المحاولة مجدداً.' : 'Unable to load contracts. Please retry.'}
+                      </p>
+                    )}
+                    {hasContractCartError && (
+                      <div className="space-y-1 rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-700" role="alert">
+                        {contractCartErrors.map((message, index) => <p key={`${index}-${message}`}>{message}</p>)}
+                      </div>
+                    )}
+                  </div>
+                )}
                 {/* Customer Name */}
                 <FormField
                   control={form.control}
@@ -3330,151 +3632,149 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                   />
                 )}
 
-                {/* Second Address Option - Only show for CRM customers */}
-                {hasCrmData && (
-                  <div className="space-y-3 p-4 bg-blue-50 rounded-lg border">
-
-                    
-                    <div className="flex items-center justify-between">
-                      <label className={`text-sm font-medium ${isRTL ? 'text-right' : 'text-left'}`}>
-                        {t.secondDeliveryAddress}
-                      </label>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowSecondAddress(!showSecondAddress)}
-                        className="text-blue-600 border-blue-200 hover:bg-blue-100"
-                      >
-                        <Plus className="w-4 h-4 mr-1" />
-                        {showSecondAddress ? t.removeSecondAddress : t.addSecondAddress}
-                      </Button>
-                    </div>
-                    {showSecondAddress && (
-                      <div className="space-y-3">
-                        <FormItem>
-                          <FormControl>
-                            <Textarea 
-                              value={secondAddress}
-                              onChange={(e) => setSecondAddress(e.target.value)}
-                              rows={2}
-                              placeholder={t.secondAddressPlaceholder}
-                              className={`${isRTL ? 'text-right' : 'text-left'} bg-white`}
-                            />
-                          </FormControl>
-                        </FormItem>
-                        
-                        {/* Province and City Dropdowns for Second Address */}
-                        <div className="grid grid-cols-3 gap-3">
-                          {/* Province Dropdown */}
-                          <div>
-                            <label className={`block text-sm font-medium mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>
-                              {t.province}
-                            </label>
-                            <Select 
-                              onValueChange={(value) => {
-                                // Keep the canonical database name for API lookups.
-                                const selectedProvince = (provinces as any)?.data?.find((p: any) => 
-                                  canonicalGeographyName(p) === value || geographyName(p) === value
-                                );
-                                
-                                if (selectedProvince) {
-                                  const provinceName = canonicalGeographyName(selectedProvince) || value;
-                                  setSecondProvince(provinceName);
-                                  setSelectedSecondaryProvinceId(selectedProvince.id);
-                                  // Clear city selection when province changes
-                                  setSecondCity("");
-                                  
-                                  console.log('🏛️ [BILINGUAL] Province selected:', {
-                                    displayValue: value,
-                                    canonicalName: provinceName,
-                                    provinceId: selectedProvince.id
-                                  });
-                                }
-                              }} 
-                              value={secondProvince}
-                              disabled={isLoadingProvinces}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder={
-                                  isLoadingProvinces 
-                                    ? t.loading
-                                    : t.selectProvince
-                                } />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {(provinces as any)?.data && Array.isArray((provinces as any).data) && (provinces as any).data.map((province: any) => (
-                                  <SelectItem key={province.id} value={canonicalGeographyName(province)}>
-                                    {geographyName(province)} / {canonicalGeographyName(province)}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          {/* City Dropdown */}
-                          <div>
-                            <label className={`block text-sm font-medium mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>
-                              {t.city}
-                            </label>
-                            <Select 
-                              onValueChange={(value) => {
-                                // Keep the canonical city name and use its DB id when pricing.
-                                const selectedCity = secondaryCities?.find((city: any) => 
-                                  canonicalGeographyName(city) === value || geographyName(city) === value
-                                );
-                                
-                                const cityName = selectedCity ? canonicalGeographyName(selectedCity) : value;
-                                setSecondCity(cityName);
-                                
-                                console.log('🏙️ [BILINGUAL] City selected:', {
-                                  displayValue: value,
-                                  canonicalName: cityName,
-                                  selectedCity: selectedCity
-                                });
-                              }} 
-                              value={
-                                secondCity
-                              }
-                              disabled={!selectedSecondaryProvinceId || isLoadingSecondaryCities}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder={
-                                  !selectedSecondaryProvinceId 
-                                    ? t.selectProvinceFirst
-                                    : isLoadingSecondaryCities
-                                    ? t.loading
-                                    : t.selectCity
-                                } />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {secondaryCities && Array.isArray(secondaryCities) && secondaryCities.map((city: any) => (
-                                  <SelectItem key={city.id} value={canonicalGeographyName(city)}>
-                                    {geographyName(city)} / {canonicalGeographyName(city)}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          {/* Postal Code */}
-                          <div>
-                            <label className={`block text-sm font-medium mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>
-                              {t.postalCode}
-                            </label>
-                            <Input 
-                              value={secondPostalCode}
-                              onChange={(e) => setSecondPostalCode(e.target.value)}
-                              placeholder="12345"
-                              className={`${isRTL ? 'text-right' : 'text-left'} bg-white`}
-                            />
-                          </div>
-                        </div>
-
-                      </div>
+                <section className="space-y-3 rounded-lg border bg-muted/20 p-4" aria-label={t.deliveryAddressChoices}>
+                  <h3 className="text-sm font-semibold">{t.deliveryAddressChoices}</h3>
+                  <div className="grid gap-2">
+                    <button type="button" onClick={() => selectDeliveryAddress('primary')}
+                      aria-pressed={selectedDeliveryAddressId === 'primary'}
+                      className={`rounded-md border bg-background p-3 text-left transition-colors ${selectedDeliveryAddressId === 'primary' ? 'border-primary ring-1 ring-primary' : 'hover:border-primary/60'}`}>
+                      <span className="block font-medium">{language === 'fa' ? 'آدرس اصلی' : 'Primary address'}</span>
+                      <span className="mt-1 block text-sm text-muted-foreground">
+                        {[primaryPricingAddress, primaryPricingCity, primaryPricingProvince, form.getValues('country')].filter(Boolean).join(', ')}
+                      </span>
+                      <span className="mt-1 block text-xs text-muted-foreground">{form.getValues('phone')}</span>
+                    </button>
+                    {legacySecondaryAddress && (
+                      <button type="button" onClick={() => selectDeliveryAddress('legacy')}
+                        aria-pressed={selectedDeliveryAddressId === 'legacy'}
+                        className={`rounded-md border bg-background p-3 text-left transition-colors ${selectedDeliveryAddressId === 'legacy' ? 'border-primary ring-1 ring-primary' : 'hover:border-primary/60'}`}>
+                        <span className="block font-medium">{t.legacyAddress}</span>
+                        <span className="mt-1 block text-sm text-muted-foreground">{legacySecondaryAddress}</span>
+                        <span className="mt-1 block text-xs text-muted-foreground">{crmCustomerData?.phone || customerData?.customer?.phone || ''}</span>
+                      </button>
                     )}
+                    {savedCustomerAddresses.map(address => {
+                      const key = `saved:${address.id}`;
+                      return (
+                        <button key={key} type="button" onClick={() => selectDeliveryAddress(key)}
+                          aria-pressed={selectedDeliveryAddressId === key}
+                          className={`rounded-md border bg-background p-3 text-left transition-colors ${selectedDeliveryAddressId === key ? 'border-primary ring-1 ring-primary' : 'hover:border-primary/60'}`}>
+                          <span className="block font-medium">{address.title}</span>
+                          <span className="mt-1 block text-sm text-muted-foreground">
+                            {[address.address, address.city, address.state, address.postalCode, address.country].filter(Boolean).join(', ')}
+                          </span>
+                          <span className="mt-1 block text-xs text-muted-foreground">{address.phone}</span>
+                        </button>
+                      );
+                    })}
+                    <button type="button" onClick={() => selectDeliveryAddress('new')}
+                      aria-pressed={isNewAddressSelected}
+                      className={`flex w-full items-center gap-2 rounded-md border border-dashed bg-background p-3 text-left font-medium text-primary transition-colors hover:border-primary ${isNewAddressSelected ? 'border-primary ring-1 ring-primary' : ''}`}>
+                      <Plus className="h-4 w-4" aria-hidden="true" /> {t.newAddress}
+                    </button>
                   </div>
-                )}
+
+                  {(isNewAddressSelected || isLegacyAddressSelected) && (
+                    <div className="space-y-3 border-t pt-3">
+                      {isNewAddressSelected && (
+                        <>
+                          <p className="text-sm text-muted-foreground">{t.newAddressInstruction}</p>
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <div>
+                              <Label htmlFor="new-address-title">{t.addressTitle}</Label>
+                              <Input id="new-address-title" value={newAddressTitle} onChange={event => setNewAddressTitle(event.target.value)}
+                                placeholder={t.addressTitlePlaceholder} />
+                            </div>
+                            <div>
+                              <Label htmlFor="new-address-phone">{t.deliveryPhone}</Label>
+                              <Input id="new-address-phone" value={newAddressPhone} onChange={event => setNewAddressPhone(event.target.value)}
+                                placeholder={t.phonePlaceholder} />
+                            </div>
+                          </div>
+                          <Textarea value={secondAddress} onChange={event => setSecondAddress(event.target.value)}
+                            rows={2} placeholder={t.addressPlaceholder} className={isRTL ? 'text-right' : 'text-left'} />
+                          <div>
+                            <Label htmlFor="new-address-country">Country</Label>
+                            <Input id="new-address-country" value={newAddressCountry} onChange={event => setNewAddressCountry(event.target.value)}
+                              placeholder={form.getValues('country') || 'Country'} />
+                          </div>
+                        </>
+                      )}
+                      {isLegacyAddressSelected && (
+                        <>
+                          <div className="rounded-md bg-amber-50 p-3 text-sm text-amber-900">
+                            {t.destinationRequired}: {legacySecondaryAddress}
+                          </div>
+                          <div>
+                            <Label htmlFor="legacy-address-country">Country</Label>
+                            <Select value={legacyAddressCountry} onValueChange={setLegacyAddressCountry}>
+                              <SelectTrigger id="legacy-address-country">
+                                <SelectValue placeholder="Select country" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {geographyCountries.map((country: any) => {
+                                  const countryName = canonicalGeographyName(country);
+                                  const countryValue = countryName || country.code || country.countryCode;
+                                  return countryValue ? (
+                                    <SelectItem key={country.id || country.code || countryValue} value={countryValue}>
+                                      {geographyName(country) || countryValue}
+                                    </SelectItem>
+                                  ) : null;
+                                })}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </>
+                      )}
+                      <div className="grid gap-3 sm:grid-cols-3">
+                        <div>
+                          <Label>{t.province}</Label>
+                          <Select onValueChange={value => {
+                            const selectedProvince = (provinces as any)?.data?.find((province: any) =>
+                              canonicalGeographyName(province) === value || geographyName(province) === value
+                            );
+                            const provinceName = selectedProvince ? canonicalGeographyName(selectedProvince) : value;
+                            setSecondProvince(provinceName);
+                            setSelectedSecondaryProvinceId(selectedProvince?.id || null);
+                            setSecondCity('');
+                          }} value={secondProvince} disabled={isLoadingProvinces}>
+                            <SelectTrigger><SelectValue placeholder={isLoadingProvinces ? t.loading : t.selectProvince} /></SelectTrigger>
+                            <SelectContent>
+                              {(provinces as any)?.data?.map((province: any) => (
+                                <SelectItem key={province.id} value={canonicalGeographyName(province)}>
+                                  {geographyName(province)} / {canonicalGeographyName(province)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>{t.city}</Label>
+                          <Select onValueChange={value => {
+                            const selectedCity = secondaryCities.find((city: any) =>
+                              canonicalGeographyName(city) === value || geographyName(city) === value
+                            );
+                            setSecondCity(selectedCity ? canonicalGeographyName(selectedCity) : value);
+                          }} value={secondCity} disabled={!selectedSecondaryProvinceId || isLoadingSecondaryCities}>
+                            <SelectTrigger><SelectValue placeholder={!selectedSecondaryProvinceId ? t.selectProvinceFirst : isLoadingSecondaryCities ? t.loading : t.selectCity} /></SelectTrigger>
+                            <SelectContent>
+                              {secondaryCities.map((city: any) => (
+                                <SelectItem key={city.id} value={canonicalGeographyName(city)}>
+                                  {geographyName(city)} / {canonicalGeographyName(city)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="delivery-postal-code">{t.postalCode}</Label>
+                          <Input id="delivery-postal-code" value={secondPostalCode} onChange={event => setSecondPostalCode(event.target.value)}
+                            placeholder={t.postalCodePlaceholder} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </section>
 
                 {/* Recipient Mobile Number - Only show for CRM customers */}
                 {hasCrmData && (
@@ -3583,6 +3883,8 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                     type="submit"
                     disabled={
                       unavailableCartProductIds.length > 0 ||
+                      hasContractCartError ||
+                      (selectedContractId !== null && !supportedNonWalletPaymentMethod) ||
                       submitOrderMutation.isPending ||
                       !paymentMethod ||
                       (() => {
@@ -3611,44 +3913,31 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
         onOpenChange={(open) => { setReviewOpen(open); if (!open) setPendingReview(null); }}
         addresses={[
           { id: 'primary', label: language === 'fa' ? 'آدرس اصلی' : 'Primary address',
-            address: crmCustomerData?.address || form.getValues('address') || '',
-            city: crmCustomerData?.cityRegion || form.getValues('city') || '',
-            country: crmCustomerData?.country || customerData?.customer?.country || form.getValues('country'),
-            postalCode: form.getValues('postalCode') || '' },
-          ...(secondAddressDraft?.address.trim() && secondAddressDraft.city.trim()
-            ? [{ id: 'second', label: language === 'fa' ? 'آدرس دوم واردشده' : 'Second address',
-                address: secondAddressDraft.address, city: secondAddressDraft.city,
-                province: secondAddressDraft.province, postalCode: secondAddressDraft.postalCode,
-                country: crmCustomerData?.country || customerData?.customer?.country || form.getValues('country') }]
+            address: primaryPricingAddress, city: primaryPricingCity, province: primaryPricingProvince,
+            country: form.getValues('country') || crmCustomerData?.country || customerData?.customer?.country,
+            postalCode: form.getValues('postalCode') || '', phone: form.getValues('phone') || '' },
+          ...(legacySecondaryAddress
+            ? [{ id: 'legacy', label: t.legacyAddress, address: legacySecondaryAddress, city: secondCity,
+                province: secondProvince, postalCode: secondPostalCode,
+                country: legacyAddressCountry,
+                phone: crmCustomerData?.phone || customerData?.customer?.phone || '' }]
+            : []),
+          ...(isNewAddressSelected && secondAddress.trim()
+            ? [{ id: 'new', label: newAddressTitle.trim() || t.newAddress, address: secondAddress.trim(),
+                city: secondCity, province: secondProvince, postalCode: secondPostalCode,
+                country: newAddressCountry, phone: newAddressPhone }]
             : []),
           ...savedCustomerAddresses.map(address => ({
-            id: `saved:${address.id}`, label: address.title || (language === 'fa' ? 'آدرس ذخیره‌شده' : 'Saved address'),
+            id: `saved:${address.id}`, label: address.title,
             address: address.address, city: address.city, province: address.state || '',
-            country: address.country, postalCode: address.postalCode || '',
+            country: address.country, postalCode: address.postalCode || '', phone: address.phone,
           })),
         ]}
         selectedAddressId={reviewAddressId}
         onSelectAddress={(id) => {
           const key = String(id);
-          setPendingReview(null);
           setReviewAddressId(key);
-          if (key === 'primary') {
-            setShowSecondAddress(false);
-            form.setValue('country', crmCustomerData?.country || customerData?.customer?.country || form.getValues('country'));
-          } else {
-            const saved = savedCustomerAddresses.find(address => key === `saved:${address.id}`);
-            const next = saved
-              ? { address: saved.address, city: saved.city, province: saved.state || '', postalCode: saved.postalCode || '' }
-              : secondAddressDraft;
-            if (next) {
-              setShowSecondAddress(true);
-              setSecondAddress(next.address);
-              setSecondCity(next.city);
-              setSecondProvince(next.province);
-              setSecondPostalCode(next.postalCode);
-              form.setValue('country', saved?.country || crmCustomerData?.country || customerData?.customer?.country || form.getValues('country'));
-            }
-          }
+          selectDeliveryAddress(key);
         }}
         onConfirm={() => {
           confirmingOrderRef.current = true;
@@ -3664,7 +3953,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
         refreshPending={smartDeliveryLoading || standardShippingLoading}
         items={Object.entries(cart).map(([id, quantity]) => {
           const product = products.find(item => item.id === Number(id));
-          return { id, name: product?.name || id, quantity, unitPrice: Number(product?.price || 0) };
+          return { id, name: product?.name || id, quantity, unitPrice: product ? getCartUnitPrice(product, quantity) : 0 };
         })}
         shippingMethod={selectedShippingRate?.name || selectedShippingRate?.description || selectedShippingRate?.deliveryMethod || ''}
         shippingCost={finalShippingCost}

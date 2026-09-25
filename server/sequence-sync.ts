@@ -9,6 +9,7 @@ interface SequenceInfo {
 
 const CRITICAL_SEQUENCES: SequenceInfo[] = [
   { tableName: 'customer_orders', sequenceName: 'customer_orders_id_seq', idColumn: 'id' },
+  { tableName: 'customer_addresses', sequenceName: 'customer_addresses_id_seq', idColumn: 'id' },
   { tableName: 'vehicle_selection_history', sequenceName: 'vehicle_selection_history_id_seq', idColumn: 'id' },
   { tableName: 'order_management', sequenceName: 'order_management_id_seq', idColumn: 'id' },
   { tableName: 'customer_activities', sequenceName: 'customer_activities_id_seq', idColumn: 'id' },

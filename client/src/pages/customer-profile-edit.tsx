@@ -33,7 +33,7 @@ const EDIT_T = {
     emailPlaceholder: "Email address", company: "Company name", companyOptional: "Company name (optional)",
     addressInfo: "Address information", country: "Country", province: "Province", city: "City",
     selectProvince: "Select province", selectCity: "Select city", fullAddress: "Full address",
-    secondaryAddress: "Secondary address (optional)", secondaryPlaceholder: "Secondary address or workplace",
+    secondaryAddress: "Other addresses (optional)", secondaryPlaceholder: "Other address or workplace",
     postalCode: "Postal code", additionalContact: "Additional contact information",
     alternatePhone: "Second phone number (optional)", alternatePlaceholder: "Second landline or mobile number",
     businessInfo: "Business information", industry: "Industry", selectIndustry: "Select industry",
@@ -88,7 +88,7 @@ const EDIT_T = {
     emailPlaceholder: "عنوان البريد الإلكتروني", company: "اسم الشركة", companyOptional: "اسم الشركة (اختياري)",
     addressInfo: "معلومات العنوان", country: "الدولة", province: "المحافظة", city: "المدينة",
     selectProvince: "اختر المحافظة", selectCity: "اختر المدينة", fullAddress: "العنوان الكامل",
-    secondaryAddress: "العنوان الثاني (اختياري)", secondaryPlaceholder: "العنوان الثاني أو مكان العمل",
+    secondaryAddress: "عناوين أخرى (اختياري)", secondaryPlaceholder: "عنوان آخر أو مكان العمل",
     postalCode: "الرمز البريدي", additionalContact: "معلومات اتصال إضافية",
     alternatePhone: "رقم الهاتف الثاني (اختياري)", alternatePlaceholder: "رقم الهاتف الأرضي أو المحمول الثاني",
     businessInfo: "معلومات العمل", industry: "مجال النشاط", selectIndustry: "اختر مجال النشاط",
@@ -137,7 +137,7 @@ const EDIT_T = {
     firstName: "Ad", lastName: "Soyad", phone: "Telefon numarası", email: "E-posta", emailPlaceholder: "E-posta adresi",
     company: "Şirket adı", companyOptional: "Şirket adı (isteğe bağlı)", addressInfo: "Adres bilgileri", country: "Ülke",
     province: "İl", city: "Şehir", selectProvince: "İl seçin", selectCity: "Şehir seçin", fullAddress: "Tam adres",
-    secondaryAddress: "İkinci adres (isteğe bağlı)", secondaryPlaceholder: "İkinci adres veya iş yeri", postalCode: "Posta kodu",
+    secondaryAddress: "Diğer adresler (isteğe bağlı)", secondaryPlaceholder: "Diğer adres veya iş yeri", postalCode: "Posta kodu",
     additionalContact: "Ek iletişim bilgileri", alternatePhone: "İkinci telefon numarası (isteğe bağlı)",
     alternatePlaceholder: "İkinci sabit veya mobil telefon", businessInfo: "İşletme bilgileri", industry: "Sektör",
     selectIndustry: "Sektör seçin", businessType: "İşletme türü", selectBusinessType: "İşletme türü seçin", companySize: "Şirket büyüklüğü",
@@ -201,8 +201,8 @@ const PERSIAN_EDIT_T = {
   selectProvince: "انتخاب استان",
   selectCity: "انتخاب شهر",
   fullAddress: "آدرس کامل",
-  secondaryAddress: "آدرس دوم (اختیاری)",
-  secondaryPlaceholder: "آدرس دوم یا محل کار",
+  secondaryAddress: "سایر آدرس‌ها (اختیاری)",
+  secondaryPlaceholder: "آدرس دیگر یا محل کار",
   postalCode: "کد پستی",
   additionalContact: "اطلاعات تماس تکمیلی",
   alternatePhone: "شماره تلفن دوم (اختیاری)",
@@ -1020,33 +1020,18 @@ export default function CustomerProfileEdit() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-4">
-                    <FormField
-                      control={form.control}
-                      name="secondaryAddress"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{et.secondaryAddress}</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder={et.secondaryPlaceholder} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="secondaryPostalCode"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{et.postalCode} ({et.secondaryAddress})</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder={et.postalCode} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                  <input type="hidden" {...form.register("secondaryAddress")} />
+                  <input type="hidden" {...form.register("secondaryPostalCode")} />
+                  <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-600">
+                    <p>{et.secondaryAddress} {et.secondaryPlaceholder}</p>
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="h-auto px-0 pt-2 text-sm"
+                      onClick={() => setLocation("/customer/profile")}
+                    >
+                      {language === "fa" ? "مدیریت در دفتر آدرس" : language === "ar" ? "إدارة العناوين في دفتر العناوين" : language === "tr" ? "Adres defterinde yönet" : "Manage in address book"}
+                    </Button>
                   </div>
                 </div>
 

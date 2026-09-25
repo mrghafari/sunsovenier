@@ -1,8 +1,9 @@
-import { pgTable, text, serial, timestamp, decimal, boolean, integer, bigint, json, varchar, uuid, date } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, decimal, boolean, integer, bigint, json, varchar, uuid, date, check, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { sql } from "drizzle-orm";
 import { customers, insertCustomerSchema, type InsertCustomer, type Customer } from "./customer-schema";
+import { shopProducts } from "./shop-schema";
 
 // =============================================================================
 // MAIN CRM & ADMIN SYSTEM SCHEMA
@@ -2040,3 +2041,51 @@ export type PostalService = typeof postalServices.$inferSelect;
 
 // Re-export marketing schema
 export * from './marketing-schema';
+
+// Customer-specific shop pricing contracts. Lifecycle constraints and release
+// behavior are also enforced by the additive SQL migration.
+export const shopContracts = pgTable("shop_contracts", {
+  id: serial("id").primaryKey(),
+  number: text("number").notNull().unique(),
+  customerId: integer("customer_id").notNull().references(() => crmCustomers.id),
+  terms: text("terms").notNull().default(""),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const shopContractItems = pgTable("shop_contract_items", {
+  id: serial("id").primaryKey(),
+  contractId: integer("contract_id").notNull().references(() => shopContracts.id, { onDelete: "cascade" }),
+  productId: integer("product_id").notNull().references(() => shopProducts.id),
+  maxQuantity: integer("max_quantity").notNull(),
+  usedQuantity: integer("used_quantity").notNull().default(0),
+  unitPrice: integer("unit_price").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  contractProductUnique: uniqueIndex("shop_contract_items_contract_product_uidx").on(table.contractId, table.productId),
+  positiveMaxQuantity: check("shop_contract_items_max_quantity_ck", sql`${table.maxQuantity} > 0`),
+  nonnegativeUsedQuantity: check("shop_contract_items_used_quantity_ck", sql`${table.usedQuantity} >= 0`),
+  nonnegativeUnitPrice: check("shop_contract_items_unit_price_ck", sql`${table.unitPrice} >= 0`),
+}));
+
+export const shopContractHolds = pgTable("shop_contract_holds", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  contractId: integer("contract_id").notNull().references(() => shopContracts.id),
+  customerId: integer("customer_id").notNull().references(() => crmCustomers.id),
+  orderId: integer("order_id"),
+  status: text("status").notNull().default("active"),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const shopContractHoldItems = pgTable("shop_contract_hold_items", {
+  id: serial("id").primaryKey(),
+  holdId: uuid("hold_id").notNull().references(() => shopContractHolds.id, { onDelete: "cascade" }),
+  productId: integer("product_id").notNull().references(() => shopProducts.id),
+  quantity: integer("quantity").notNull(),
+}, (table) => ({
+  holdProductUnique: uniqueIndex("shop_contract_hold_items_hold_product_uidx").on(table.holdId, table.productId),
+  positiveQuantity: check("shop_contract_hold_items_quantity_ck", sql`${table.quantity} > 0`),
+}));

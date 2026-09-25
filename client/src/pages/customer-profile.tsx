@@ -11,6 +11,7 @@ import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import PaymentMethodBadge from "@/components/PaymentMethodBadge";
+import AddressSelector from "@/components/checkout/address-selector";
 import { BankReceiptUploadModal } from "@/components/BankReceiptUploadModal";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getOrderStatusLabel, resolveOrderStatus, type OrderStatusLanguage } from "@shared/order-status";
@@ -1096,6 +1097,20 @@ const CustomerProfile = () => {
               </div>
             )}
           </header>
+
+          <section aria-labelledby="address-book-title">
+            <Card className="overflow-hidden border-slate-300 shadow-sm">
+              <CardHeader className="border-b border-slate-300 bg-slate-50 px-4 py-3">
+                <CardTitle id="address-book-title" className="flex items-center gap-2 text-base text-slate-800">
+                  <MapPin className="h-4 w-4 text-slate-500" />
+                  {language === "fa" ? "دفتر آدرس" : language === "ar" ? "دفتر العناوين" : language === "tr" ? "Adres defteri" : "Address book"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <AddressSelector managementMode />
+              </CardContent>
+            </Card>
+          </section>
 
             {/* Orders */}
             <div>

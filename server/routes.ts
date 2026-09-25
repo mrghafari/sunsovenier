@@ -658,12 +658,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     destinationCountry?: unknown;
     cart: Record<string, unknown>;
     shippingQuoteToken?: unknown;
+    contractId?: unknown;
+    customerId?: unknown;
   }): Promise<{ shippingCost: number; itemSubtotal: number; totalWeight: number; productFacts: Map<number, any>; shippingQuoteVehicle?: any; destinationCityId?: number }> {
     const productIds = Object.keys(input.cart || {}).map((id) => Number(id));
     if (!productIds.length || productIds.some((id) => !Number.isSafeInteger(id) || id <= 0)) {
       throw new ShippingConfigurationError("Order must contain valid products.", 422);
     }
     const products = await db.select().from(shopProducts).where(inArray(shopProducts.id, productIds));
+    let contractPricing: Awaited<ReturnType<typeof import("./shop-contracts")["loadContractPricing"]>> | null = null;
+    if (input.contractId !== undefined && input.contractId !== null) {
+      const contractId = Number(input.contractId);
+      const customerId = Number(input.customerId);
+      if (!Number.isSafeInteger(contractId) || contractId <= 0 || !Number.isSafeInteger(customerId) || customerId <= 0) {
+        throw new ShippingConfigurationError("A valid customer login and contract are required for contract purchases.", 422);
+      }
+      try {
+        const { loadContractPricing } = await import("./shop-contracts");
+        contractPricing = await loadContractPricing(contractId, customerId, input.cart as Record<string, number>);
+      } catch (error) {
+        throw new ShippingConfigurationError(error instanceof Error ? error.message : "Contract is unavailable.", 422);
+      }
+    }
     const productFacts = new Map<number, any>();
     let itemSubtotal = 0;
     let totalWeight = 0;
@@ -708,6 +724,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             unitPrice = Math.round(unitPrice * (1 - discount));
           }
         }
+      }
+      if (contractPricing) {
+        const contractItem = contractPricing.items.get(id);
+        if (!contractItem) throw new ShippingConfigurationError(`Product ${id} is not covered by this contract.`, 422);
+        unitPrice = contractItem.unitPrice;
       }
       itemSubtotal += unitPrice * quantity;
       if (weight !== null) totalWeight += weight * quantity;
@@ -923,6 +944,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Mount OAuth routes
   const authRoutes = (await import('./auth-routes')).default;
   app.use('/api/auth', authRoutes);
+  const { registerShopContractRoutes } = await import("./shop-contracts");
+  registerShopContractRoutes(app);
   console.log('✅ [OAUTH] Authentication routes registered at /api/auth');
   
   // Import department auth functions
@@ -19219,11 +19242,30 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
 
   // Create shop order and integrate with CRM
   app.post("/api/shop/orders", async (req, res) => {
+    let contractHoldId: string | null = null;
+    let contractOrderId: number | null = null;
     try {
+      if (req.body?.contractId != null &&
+          (String(req.body.paymentMethod || "").toLowerCase().includes("wallet") ||
+            Number(req.body.walletAmountUsed ?? 0) !== 0)) {
+        return res.status(422).json({
+          success: false,
+          code: "CONTRACT_WALLET_UNSUPPORTED",
+          message: "پرداخت کیف پول برای خرید قراردادی در دسترس نیست. لطفاً روش پرداخت دیگری انتخاب کنید.",
+        });
+      }
       const customerId = (req.session as any)?.customerId;
       const crmCustomerId = (req.session as any)?.crmCustomerId;
       const { items, customerInfo, recipientInfo, totalAmount, shippingCost, notes, shippingMethod, paymentMethod, walletAmountUsed, remainingAmount, vatAmount, dutiesAmount, vehicleType, totalWeight, shippingQuoteToken } = req.body;
       const reservationItems = Array.isArray(items) ? items : [];
+      if (req.body.contractId != null && (
+        !reservationItems.length ||
+        reservationItems.some((item: any) =>
+          !Number.isSafeInteger(Number(item.productId)) || Number(item.productId) <= 0 ||
+          !Number.isSafeInteger(Number(item.quantity)) || Number(item.quantity) <= 0)
+      )) {
+        return res.status(422).json({ success: false, message: "Contract order contains invalid items." });
+      }
       let shippingFacts: Awaited<ReturnType<typeof validateAndPriceOrderShipping>>;
       try {
         const checkoutCart = reservationItems.reduce((cart: Record<string, number>, item: any) => {
@@ -19243,6 +19285,8 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           destinationCountry: recipientInfo?.deliveryCountry || customerInfo?.country,
           cart: checkoutCart,
           shippingQuoteToken,
+          contractId: req.body.contractId,
+          customerId: crmCustomerId ?? customerId,
         });
       } catch (shippingError) {
         const statusCode = shippingError instanceof ShippingConfigurationError && shippingError.statusCode === 503 ? 503 : 422;
@@ -19287,6 +19331,17 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           });
         }
         throw reservationError;
+      }
+      if (req.body.contractId != null) {
+        try {
+          const { claimContractCart } = await import("./shop-contracts");
+          contractHoldId = await claimContractCart(
+            Number(req.body.contractId), Number(crmCustomerId ?? customerId), reservationCart,
+            new Map([...shippingFacts.productFacts].map(([id, product]) => [id, product.unitPrice])),
+          );
+        } catch (error) {
+          return res.status(409).json({ success: false, message: error instanceof Error ? error.message : "Contract allocation failed." });
+        }
       }
       
       console.log('🛒 [ORDER DEBUG] Order data received:', {
@@ -19516,6 +19571,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       const orderData = {
         orderNumber, // Will be null for bank payments initially
         customerId: customerId || null,
+        ...(contractHoldId !== null ? { currency: "IQD" } : {}),
         totalAmount: Math.round(serverTotalAmount).toString(),
         shippingCost: Math.round(serverShippingCost).toString(),
         vatAmount: serverVatAmount.toString(),
@@ -19550,9 +19606,11 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         recipientPhone: recipientInfo?.recipientPhone || '',
         recipientAddress: recipientInfo?.recipientAddress || '',
         vehicleType: serverVehicleType, // Signed server quote metadata for vehicle delivery
+        ...(req.body.contractId != null ? { contractId: Number(req.body.contractId) } : {}),
       };
 
       const order = await customerStorage.createOrder(orderData);
+      if (contractHoldId !== null) contractOrderId = order.id;
       const reservationOwnerKey = reservationModule.ownerKeyForRequest(req.sessionID, customerId);
       const attachedReservations = await reservationModule.attachOwnerReservationsToOrder(
         reservationOwnerKey,
@@ -19585,6 +19643,10 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
 
         // Physical showcase stock is finalized by cart reservations on payment.
         // Never run the legacy read/modify/write inventory reducer here.
+      }
+      if (contractHoldId !== null) {
+        const { attachContractHold } = await import("./shop-contracts");
+        await attachContractHold(contractHoldId, order.id);
       }
       if (finalPaymentStatus === "paid") {
         await db
@@ -19844,17 +19906,53 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         success: false,
         message: "خطا در ثبت سفارش"
       });
+    } finally {
+      if (contractOrderId !== null && (res.statusCode < 200 || res.statusCode >= 300)) {
+        try {
+          await db
+            .update(customerOrders)
+            .set({ status: "cancelled", paymentStatus: "failed", updatedAt: new Date() })
+            .where(eq(customerOrders.id, contractOrderId));
+        } catch (recoveryError) {
+          console.error(`Failed to mark contract order ${contractOrderId} as cancelled/failed:`, recoveryError);
+        }
+        try {
+          const reservationModule = await import("./cart-inventory-reservation");
+          await reservationModule.releaseOrderReservations(contractOrderId);
+        } catch (recoveryError) {
+          console.error(`Failed to release inventory reservations for contract order ${contractOrderId}:`, recoveryError);
+        }
+      }
+      if (contractHoldId !== null && (res.statusCode < 200 || res.statusCode >= 300)) {
+        try {
+          const { releaseContractHold } = await import("./shop-contracts");
+          await releaseContractHold(contractHoldId);
+        } catch (recoveryError) {
+          console.error("Failed to release contract allocation:", recoveryError);
+        }
+      }
     }
   });
 
   // Create customer order (from BilingualPurchaseForm)
   app.post("/api/customers/orders", async (req, res) => {
+    let contractHoldId: string | null = null;
+    let contractOrderId: number | null = null;
     console.log('🚀 [ENDPOINT] /api/customers/orders called with timestamp:', req.query.t);
     console.log('🚀 [ENDPOINT] Request method:', req.method);
     console.log('🚀 [ENDPOINT] Request URL:', req.url);
     console.log('🚀 [ENDPOINT] Request headers:', JSON.stringify(req.headers, null, 2));
     
     try {
+      if (req.body?.contractId != null &&
+          (String(req.body.paymentMethod || "").toLowerCase().includes("wallet") ||
+            Number(req.body.walletAmountUsed ?? 0) !== 0)) {
+        return res.status(422).json({
+          success: false,
+          code: "CONTRACT_WALLET_UNSUPPORTED",
+          message: "پرداخت کیف پول برای خرید قراردادی در دسترس نیست. لطفاً روش پرداخت دیگری انتخاب کنید.",
+        });
+      }
       const customerId = (req.session as any)?.customerId;
       const crmCustomerId = (req.session as any)?.crmCustomerId;
       const orderData = req.body;
@@ -19929,6 +20027,8 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           destinationCountry: orderData.activeDeliveryInfo?.activeDeliveryCountry || orderData.country,
           cart: orderData.cart || {},
           shippingQuoteToken: orderData.shippingQuoteToken,
+          contractId: orderData.contractId,
+          customerId: crmCustomerId ?? customerId,
         });
       } catch (shippingError) {
         const statusCode = shippingError instanceof ShippingConfigurationError && shippingError.statusCode === 503 ? 503 : 422;
@@ -20018,6 +20118,17 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           });
         }
         throw reservationError;
+      }
+      if (orderData.contractId != null) {
+        try {
+          const { claimContractCart } = await import("./shop-contracts");
+          contractHoldId = await claimContractCart(
+            Number(orderData.contractId), Number(crmCustomerId ?? customerId), reservationCart,
+            new Map([...shippingFacts.productFacts].map(([id, product]) => [id, product.unitPrice])),
+          );
+        } catch (error) {
+          return res.status(409).json({ success: false, message: error instanceof Error ? error.message : "Contract allocation failed." });
+        }
       }
 
       // Handle payment method processing
@@ -20140,6 +20251,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
 
       const order = await customerStorage.createOrder({
         customerId: finalCustomerId,
+        ...(orderData.contractId != null ? { contractId: Number(orderData.contractId) } : {}),
         orderNumber,
         status: "pending",
         // Keep the header pending until order items and reservations exist.
@@ -20147,7 +20259,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         paymentMethod: finalPaymentMethod,
         totalAmount: Math.round(totalAmount).toString(),
         shippingCost: Math.round(shippingAmount).toString(),
-        currency: orderData.currency || "IQD",
+        currency: contractHoldId !== null ? "IQD" : (orderData.currency || "IQD"),
         notes: orderData.notes || "",
           // Add calculated weight
           totalWeight: calculatedTotalWeight > 0 ? calculatedTotalWeight.toFixed(3) : null,
@@ -20202,6 +20314,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         carrier: null,
 
       });
+      if (contractHoldId !== null) contractOrderId = order.id;
 
       const reservationOwnerKey = reservationModule.ownerKeyForRequest(req.sessionID, customerId);
       const requestedProductIds = Object.keys(reservationCart).map(Number);
@@ -20230,68 +20343,9 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         activeDeliveryInfo: orderData.activeDeliveryInfo
       });
 
-      // Save secondary address and alternate phone to CRM customer profile if provided
-      if (finalCustomerId && (orderData.activeDeliveryInfo?.isSecondAddressUsed || orderData.recipientInfo?.recipientPhone)) {
-        try {
-          const { pool } = await import('./db');
-          const updateFields: string[] = [];
-          const updateValues: any[] = [];
-          let paramIndex = 1;
-          
-          // Save second address if used
-          if (orderData.activeDeliveryInfo?.isSecondAddressUsed && orderData.recipientInfo?.recipientAddress) {
-            updateFields.push(`secondary_address = $${paramIndex++}`);
-            updateValues.push(orderData.recipientInfo.recipientAddress);
-          }
-          
-          // Save alternate phone if different from primary
-          if (orderData.activeDeliveryInfo?.isDifferentPhoneUsed && orderData.recipientInfo?.recipientPhone) {
-            updateFields.push(`alternate_phone = $${paramIndex++}`);
-            updateValues.push(orderData.recipientInfo.recipientPhone);
-          }
-          
-          if (updateFields.length > 0) {
-            updateValues.push(finalCustomerId);
-            await pool.query(
-              `UPDATE crm_customers SET ${updateFields.join(', ')} WHERE id = $${paramIndex}`,
-              updateValues
-            );
-            console.log(`📋 [CRM UPDATE] Saved secondary address/phone for customer ${finalCustomerId}`);
-          }
-        } catch (crmUpdateError) {
-          console.error('⚠️ [CRM UPDATE] Failed to save secondary address/phone:', crmUpdateError);
-        }
-      }
-
-      // Server-side discount calculation matching frontend logic
-      const getServerDiscountedPrice = (product: any, qty: number): number => {
-        const basePrice = Math.round(parseFloat(product.price || '0'));
-        if (basePrice <= 0) return 0;
-
-        let discounts: any[] = [];
-        if (product.bulkPurchaseEnabled || product.bulk_purchase_enabled) {
-          let bulk = product.bulkPurchaseDiscounts || product.bulk_purchase_discounts;
-          if (typeof bulk === 'string') { try { bulk = JSON.parse(bulk); } catch { bulk = []; } }
-          discounts = Array.isArray(bulk) ? bulk : [];
-        } else {
-          let general = product.quantityDiscounts || product.quantity_discounts;
-          if (typeof general === 'string') { try { general = JSON.parse(general); } catch { general = []; } }
-          discounts = Array.isArray(general) ? general : [];
-        }
-
-        if (discounts.length > 0) {
-          const applicable = discounts
-            .filter((d: any) => qty >= parseInt(d.minQty || d.min_qty || '0'))
-            .sort((a: any, b: any) => parseInt(b.minQty || b.min_qty || '0') - parseInt(a.minQty || a.min_qty || '0'));
-
-          if (applicable.length > 0) {
-            const d = applicable[0];
-            const discountValue = d.discount || (parseFloat(d.discountPercent || d.discount_percent || '0') / 100);
-            return Math.round(basePrice * (1 - discountValue));
-          }
-        }
-        return basePrice;
-      };
+      // Delivery details belong to this order's snapshot. New titled
+      // addresses are saved through /api/customers/addresses; a checkout must
+      // not overwrite the customer's single legacy CRM secondary-address slot.
 
       // Create order items from cart
       if (orderData.cart) {
@@ -20300,7 +20354,10 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
             const product = await shopStorage.getShopProductById(parseInt(productId as string));
             if (product) {
               const qty = quantity as number;
-              const discountedUnitPrice = getServerDiscountedPrice(product, qty);
+              const discountedUnitPrice = shippingFacts.productFacts.get(Number(productId))?.unitPrice;
+              if (!Number.isSafeInteger(discountedUnitPrice) || qty !== shippingFacts.productFacts.get(Number(productId))?.quantity) {
+                throw new Error(`Authoritative price or quantity is missing for product ${productId}`);
+              }
               console.log(`💰 [DISCOUNT CALC] Product ${product.name}: base=${product.price}, discounted=${discountedUnitPrice}, qty=${qty}`);
 
               await customerStorage.createOrderItem({
@@ -20439,9 +20496,14 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
             }
           } catch (productError) {
             console.error(`Error processing product ${productId}:`, productError);
+            if (contractHoldId !== null) throw productError;
             // Continue with other products even if one fails
           }
         }
+      }
+      if (contractHoldId !== null) {
+        const { attachContractHold } = await import("./shop-contracts");
+        await attachContractHold(contractHoldId, order.id);
       }
       if (finalPaymentStatus === "paid") {
         await db
@@ -20844,7 +20906,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         } else {
           // 🗑️ DELETE ORDER: Bank routing failed
           console.log(`🗑️ [ORDER CLEANUP] Deleting order ${order.id} - bank routing failed`);
-          await customerStorage.deleteTemporaryOrder(order.id);
+          if (contractHoldId === null) await customerStorage.deleteTemporaryOrder(order.id);
           
           return res.status(400).json({
             success: false,
@@ -21136,7 +21198,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           } else {
             // 🗑️ DELETE ORDER: Bank routing failed
             console.log(`🗑️ [ORDER CLEANUP] Deleting order ${order.id} - bank routing failed`);
-            await customerStorage.deleteTemporaryOrder(order.id);
+            if (contractHoldId === null) await customerStorage.deleteTemporaryOrder(order.id);
             
             return res.status(400).json({
               success: false,
@@ -21203,6 +21265,31 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         success: false,
         message: "Failed to create order"
       });
+    } finally {
+      if (contractOrderId !== null && (res.statusCode < 200 || res.statusCode >= 300)) {
+        try {
+          await db
+            .update(customerOrders)
+            .set({ status: "cancelled", paymentStatus: "failed", updatedAt: new Date() })
+            .where(eq(customerOrders.id, contractOrderId));
+        } catch (recoveryError) {
+          console.error(`Failed to mark contract order ${contractOrderId} as cancelled/failed:`, recoveryError);
+        }
+        try {
+          const reservationModule = await import("./cart-inventory-reservation");
+          await reservationModule.releaseOrderReservations(contractOrderId);
+        } catch (recoveryError) {
+          console.error(`Failed to release inventory reservations for contract order ${contractOrderId}:`, recoveryError);
+        }
+      }
+      if (contractHoldId !== null && (res.statusCode < 200 || res.statusCode >= 300)) {
+        try {
+          const { releaseContractHold } = await import("./shop-contracts");
+          await releaseContractHold(contractHoldId);
+        } catch (recoveryError) {
+          console.error("Failed to release contract allocation:", recoveryError);
+        }
+      }
     }
   });
 
@@ -23048,6 +23135,8 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         destinationProvince: req.body.destinationProvince,
         destinationCountry: req.body.destinationCountryCode ?? req.body.destinationCountry,
         cart,
+        contractId: req.body.contractId,
+        customerId: (req.session as any)?.crmCustomerId ?? (req.session as any)?.customerId,
       });
       res.json({
         success: true,
@@ -31156,6 +31245,9 @@ ${message ? `Additional Requirements:\n${message}` : ''}
       if (!req.session?.customerId) {
         return res.status(401).json({ success: false, message: "احراز هویت نشده" });
       }
+      if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) {
+        return res.status(400).json({ success: false, message: "اطلاعات آدرس نامعتبر است" });
+      }
 
       // Get customer info to auto-fill firstName and lastName
       const customer = await crmStorage.getCrmCustomerById(req.session.customerId);
@@ -31173,6 +31265,9 @@ ${message ? `Additional Requirements:\n${message}` : ''}
       const newAddress = await customerAddressStorage.createAddress(addressData);
       res.json({ success: true, address: newAddress, message: "آدرس جدید با موفقیت ایجاد شد" });
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ success: false, message: "اطلاعات آدرس نامعتبر است", errors: error.errors });
+      }
       console.error("Error creating address:", error);
       res.status(500).json({ success: false, message: "خطا در ایجاد آدرس جدید" });
     }
@@ -31185,16 +31280,36 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         return res.status(401).json({ success: false, message: "احراز هویت نشده" });
       }
 
-      const addressId = parseInt(req.params.id);
+      const addressId = Number(req.params.id);
+      if (!/^[1-9]\d*$/.test(req.params.id) || !Number.isSafeInteger(addressId)) {
+        return res.status(400).json({ success: false, message: "شناسه آدرس نامعتبر است" });
+      }
       const existingAddress = await customerAddressStorage.getAddressById(addressId);
       
       if (!existingAddress || existingAddress.customerId !== req.session.customerId) {
         return res.status(404).json({ success: false, message: "آدرس یافت نشد" });
       }
 
-      const updatedAddress = await customerAddressStorage.updateAddress(addressId, req.body);
+      if (!req.body || typeof req.body !== "object" || Array.isArray(req.body) ||
+          ["id", "customerId", "isDefault", "default"].some((key) => Object.prototype.hasOwnProperty.call(req.body, key))) {
+        return res.status(400).json({ success: false, message: "تغییر مالکیت یا آدرس پیش‌فرض مجاز نیست" });
+      }
+
+      const validatedAddress = insertCustomerAddressSchema.parse({ ...existingAddress, ...req.body });
+      const {
+        customerId: _customerId,
+        isDefault: _isDefault,
+        ...addressData
+      } = validatedAddress;
+      const updatedAddress = await customerAddressStorage.updateAddress(addressId, req.session.customerId, addressData);
+      if (!updatedAddress) {
+        return res.status(404).json({ success: false, message: "آدرس یافت نشد" });
+      }
       res.json({ success: true, address: updatedAddress, message: "آدرس با موفقیت بروزرسانی شد" });
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ success: false, message: "اطلاعات آدرس نامعتبر است", errors: error.errors });
+      }
       console.error("Error updating address:", error);
       res.status(500).json({ success: false, message: "خطا در بروزرسانی آدرس" });
     }
@@ -31207,14 +31322,20 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         return res.status(401).json({ success: false, message: "احراز هویت نشده" });
       }
 
-      const addressId = parseInt(req.params.id);
+      const addressId = Number(req.params.id);
+      if (!/^[1-9]\d*$/.test(req.params.id) || !Number.isSafeInteger(addressId)) {
+        return res.status(400).json({ success: false, message: "شناسه آدرس نامعتبر است" });
+      }
       const existingAddress = await customerAddressStorage.getAddressById(addressId);
       
       if (!existingAddress || existingAddress.customerId !== req.session.customerId) {
         return res.status(404).json({ success: false, message: "آدرس یافت نشد" });
       }
 
-      await customerAddressStorage.deleteAddress(addressId);
+      const deleted = await customerAddressStorage.deleteAddress(addressId, req.session.customerId);
+      if (!deleted) {
+        return res.status(404).json({ success: false, message: "آدرس یافت نشد" });
+      }
       res.json({ success: true, message: "آدرس با موفقیت حذف شد" });
     } catch (error) {
       console.error("Error deleting address:", error);
@@ -31229,14 +31350,20 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         return res.status(401).json({ success: false, message: "احراز هویت نشده" });
       }
 
-      const addressId = parseInt(req.params.id);
+      const addressId = Number(req.params.id);
+      if (!/^[1-9]\d*$/.test(req.params.id) || !Number.isSafeInteger(addressId)) {
+        return res.status(400).json({ success: false, message: "شناسه آدرس نامعتبر است" });
+      }
       const existingAddress = await customerAddressStorage.getAddressById(addressId);
       
       if (!existingAddress || existingAddress.customerId !== req.session.customerId) {
         return res.status(404).json({ success: false, message: "آدرس یافت نشد" });
       }
 
-      await customerAddressStorage.setDefaultAddress(req.session.customerId, addressId);
+      const updated = await customerAddressStorage.setDefaultAddress(req.session.customerId, addressId);
+      if (!updated) {
+        return res.status(404).json({ success: false, message: "آدرس یافت نشد" });
+      }
       res.json({ success: true, message: "آدرس پیش‌فرض تنظیم شد" });
     } catch (error) {
       console.error("Error setting default address:", error);
