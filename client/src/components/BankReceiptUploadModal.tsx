@@ -159,7 +159,7 @@ export function BankReceiptUploadModal({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [notes, setNotes] = useState("");
   const [receiptAmount, setReceiptAmount] = useState("");
-  const [securityStatus, setSecurityStatus] = useState<string>("");
+  const [securityValidated, setSecurityValidated] = useState(false);
 
   // Fetch order details
   const { data: fetchedOrder, isLoading: isLoadingOrder } = useQuery({
@@ -218,7 +218,7 @@ export function BankReceiptUploadModal({
       setUploadProgress(0);
       setNotes("");
       setReceiptAmount("");
-      setSecurityStatus("");
+      setSecurityValidated(false);
       
       // Refresh orders data
       queryClient.invalidateQueries({ queryKey: ['/api/customers/orders'] });
@@ -227,10 +227,10 @@ export function BankReceiptUploadModal({
       onSuccess?.();
       onOpenChange(false);
     },
-    onError: (error: any) => {
+    onError: () => {
       toast({
-        title: bt.uploadError,
-        description: error.message || bt.uploadErrorDesc,
+        title: bt.submitError,
+        description: bt.submitErrorDesc,
         variant: "destructive",
       });
       setUploadProgress(0);
@@ -241,11 +241,11 @@ export function BankReceiptUploadModal({
   const handleUploadComplete = (fileUrl: string) => {
     setUploadedFileUrl(fileUrl);
     setUploadProgress(100);
-    setSecurityStatus(bt.securityValidated);
+    setSecurityValidated(true);
   };
 
   // Handle secure upload
-  const handleSecureUpload = async () => {
+  const handleSecureUpload = () => {
     if (!uploadedFileUrl) {
       toast({
         title: bt.fileRequired,
@@ -274,20 +274,12 @@ export function BankReceiptUploadModal({
       return;
     }
 
-    try {
-      const secureObjectPath = uploadedFileUrl.split('?')[0];
-      await uploadMutation.mutateAsync({
-        receiptUrl: secureObjectPath,
-        orderId: orderNumber,
-        notes: notes + (receiptAmount ? bt.receiptAmountNote(receiptAmount) : ''),
-      });
-    } catch (error: any) {
-      toast({
-        title: bt.submitError,
-        description: error.message || bt.submitErrorDesc,
-        variant: "destructive",
-      });
-    }
+    const secureObjectPath = uploadedFileUrl.split('?')[0];
+    uploadMutation.mutate({
+      receiptUrl: secureObjectPath,
+      orderId: orderNumber,
+      notes: notes + (receiptAmount ? bt.receiptAmountNote(receiptAmount) : ''),
+    });
   };
 
   const formatCurrency = (amount: number) => {
@@ -472,9 +464,9 @@ export function BankReceiptUploadModal({
               />
 
             {/* Security Status */}
-            {securityStatus && (
+             {securityValidated && (
               <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200">
-                <p className="text-sm text-blue-800 dark:text-blue-200">{securityStatus}</p>
+                 <p className="text-sm text-blue-800 dark:text-blue-200">{bt.securityValidated}</p>
               </div>
             )}
 
