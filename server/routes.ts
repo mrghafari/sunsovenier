@@ -74,6 +74,11 @@ import {
 import { parsePositiveIntegerId } from "./shipping-route-resolution";
 import { calculateAuthoritativeShippingCost } from "./order-shipping-pricing";
 import { assertShippingQuoteBindings, signShippingQuote, verifyShippingQuote, type ShippingQuoteClaims } from "./shipping-quote";
+import {
+  normalizeProductWeightUpdates,
+  type ProductWeightField,
+} from "./product-weight-sync";
+import { syncCanonicalKardexWeightsToShop } from "./product-weight-shop-sync";
 
 const INVOICE_LANGUAGES = ['en', 'ar', 'tr', 'fa'] as const;
 type InvoiceLanguage = typeof INVOICE_LANGUAGES[number];
@@ -83,6 +88,13 @@ function parseInvoiceLanguage(value: unknown): InvoiceLanguage | null {
   return (INVOICE_LANGUAGES as readonly string[]).includes(language)
     ? language as InvoiceLanguage
     : null;
+}
+
+async function syncProductWeightsToShop(
+  product: any,
+  changedFields: ProductWeightField[],
+): Promise<void> {
+  await syncCanonicalKardexWeightsToShop(product, changedFields);
 }
 
 import { 
@@ -5892,6 +5904,26 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           }
         }
       }
+
+      let changedWeightFields: ProductWeightField[] = [];
+      try {
+        const hasWeightChanges =
+          productData.netWeight !== undefined || productData.grossWeight !== undefined;
+        const existingForWeightValidation = hasWeightChanges
+          ? await storage.getProductById(id)
+          : undefined;
+        const weightUpdates = normalizeProductWeightUpdates(
+          productData,
+          existingForWeightValidation,
+        );
+        changedWeightFields = Object.keys(weightUpdates) as ProductWeightField[];
+        Object.assign(productData, weightUpdates);
+      } catch (weightError) {
+        return res.status(400).json({
+          success: false,
+          message: weightError instanceof Error ? weightError.message : "Invalid product weight",
+        });
+      }
       
       // Handle inventory addition without batch (add to existing stock)
       if (productData.inventoryAddition && Number(productData.inventoryAddition) > 0 && !productData.newBatchNumber?.trim()) {
@@ -5967,6 +5999,14 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
               ? { model3dUploadDate: product.model3dUploadDate }
               : {})
           });
+        }
+      }
+
+      if (changedWeightFields.length > 0) {
+        try {
+          await syncProductWeightsToShop(product, changedWeightFields);
+        } catch (weightSyncError) {
+          console.error(`Failed to sync product weights to shop for product ${id}:`, weightSyncError);
         }
       }
 
@@ -6268,11 +6308,20 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           message: "Invalid product ID" 
         });
       }
+      const hasOwnership = await verifyVendorOwnsProduct(req, id);
+      if (!hasOwnership) {
+        console.log(`🚫 [VENDOR SECURITY] Vendor attempted to modify product they dont own: ${id}`);
+        return res.status(403).json({
+          success: false,
+          message: "شما مجاز به ویرایش این محصول نیستید"
+        });
+      }
 
       const productData = req.body;
       
       // Handle sync toggle requests (skip all validations)
       const isSyncToggle = Object.keys(productData).length === 1 && 'syncWithShop' in productData;
+      let changedWeightFields: ProductWeightField[] = [];
       
       // Handle batch addition requests (skip all validations except batch-specific ones)
       const isBatchAddition = productData.inventoryAddition && productData.newBatchNumber;
@@ -6322,6 +6371,25 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           return res.status(400).json({ 
             success: false, 
             message: "نام محصول اجباری است" 
+          });
+        }
+
+        try {
+          const hasWeightChanges =
+            productData.netWeight !== undefined || productData.grossWeight !== undefined;
+          const existingForWeightValidation = hasWeightChanges
+            ? await storage.getProductById(id)
+            : undefined;
+          const weightUpdates = normalizeProductWeightUpdates(
+            productData,
+            existingForWeightValidation,
+          );
+          changedWeightFields = Object.keys(weightUpdates) as ProductWeightField[];
+          Object.assign(productData, weightUpdates);
+        } catch (weightError) {
+          return res.status(400).json({
+            success: false,
+            message: weightError instanceof Error ? weightError.message : "Invalid product weight",
           });
         }
         
@@ -6614,6 +6682,16 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         console.log(`🔄 Auto-sync completed after updating product ${id}:`, result.message);
       } catch (syncError) {
         console.log("Auto-sync failed after update:", syncError);
+      }
+
+      if (changedWeightFields.length > 0) {
+        try {
+          // Apply the edited Kardex batch's weights after barcode-level sync so
+          // a different batch cannot overwrite the explicit edit in the shop.
+          await syncProductWeightsToShop(product, changedWeightFields);
+        } catch (weightSyncError) {
+          console.error(`Failed to sync product weights to shop for product ${id}:`, weightSyncError);
+        }
       }
       
       const responseProduct = product;

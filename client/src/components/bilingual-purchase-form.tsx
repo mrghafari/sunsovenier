@@ -51,6 +51,8 @@ const translations = {
     
     // Cart management
     cartManagement: "Cart Management",
+    unavailableCartProduct: "This product is no longer in the shop:",
+    unavailableCartWarning: "Remove unavailable products from your cart before calculating shipping or placing an order.",
     each: "each",
     subtotal: "Subtotal:",
     totalAmount: "Total Amount",
@@ -210,6 +212,8 @@ const translations = {
     
     // Cart management
     cartManagement: "إدارة السلة",
+    unavailableCartProduct: "هذا المنتج لم يعد متاحاً في المتجر:",
+    unavailableCartWarning: "احذف المنتجات غير المتاحة من السلة قبل حساب الشحن أو إتمام الطلب.",
     each: "للوحدة",
     subtotal: "المجموع الفرعي:",
     totalAmount: "المبلغ الإجمالي",
@@ -317,6 +321,8 @@ const translations = {
     cancel: "لغو",
     loading: "در حال بارگذاری...",
     cartManagement: "مدیریت سبد خرید",
+    unavailableCartProduct: "این کالا دیگر در فروشگاه موجود نیست:",
+    unavailableCartWarning: "پیش از محاسبهٔ ارسال یا ثبت سفارش، کالاهای ناموجود را از سبد حذف کنید.",
     each: "هر عدد",
     subtotal: "جمع جزء:",
     totalAmount: "مبلغ کل",
@@ -1223,6 +1229,10 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     totalTaxAmount
   });
   
+  const unavailableCartProductIds = Object.keys(cart).filter(productId =>
+    !products.some(product => product.id === Number(productId))
+  );
+
   // Calculate total weight of all products in cart
   const totalWeight = Object.entries(cart).reduce((sum, [productId, quantity]) => {
     const product = products.find(p => p.id === parseInt(productId));
@@ -1387,6 +1397,13 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
 
   // Calculate smart delivery cost
   const calculateSmartDeliveryCost = async (destinationCity: string, destinationProvince: string, destinationCityId?: number) => {
+    if (unavailableCartProductIds.length > 0) {
+      setSmartDeliveryLoading(false);
+      setSmartDeliveryError(t.unavailableCartWarning);
+      setOptimalVehicle(null);
+      setShippingQuote(null);
+      return;
+    }
     if (!destinationCity || totalWeight <= 0) {
       console.log('🚚 [SMART DELIVERY] Skipping calculation - missing city or zero weight');
       return;
@@ -1581,6 +1598,14 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
         quoteController.abort();
       };
     }
+    if (unavailableCartProductIds.length > 0) {
+      setStandardShippingLoading(false);
+      setStandardShippingError(t.unavailableCartWarning);
+      return () => {
+        if (standardShippingRequestRef.current === requestId) standardShippingRequestRef.current++;
+        quoteController.abort();
+      };
+    }
     if (!activePricingCity || totalWeight <= 0) {
       setStandardShippingLoading(false);
       setStandardShippingError(standardShippingUnavailableMessage);
@@ -1682,7 +1707,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     selectedShippingMethod, selectedShippingRate, isPickupShippingMethod, isSmartShippingMethod,
     activePricingCity, activePricingProvince, activePricingCountry, totalWeight, standardShippingQuoteKey,
     shippingQuoteCartKey, shippingQuoteRefreshKey, secondaryCities, shippingCenterKey, refetchShippingCenter,
-    standardShippingUnavailableMessage,
+    standardShippingUnavailableMessage, unavailableCartProductIds.length,
   ]);
 
   // Watch for changes in destination to recalculate delivery cost
@@ -1723,6 +1748,16 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       setSmartDeliveryPricedKey('');
       setPricedShippingCenterKey('');
       setShippingQuote(null);
+      return;
+    }
+
+    if (unavailableCartProductIds.length > 0) {
+      setSmartDeliveryLoading(false);
+      setSmartDeliveryCost(0);
+      setOptimalVehicle(null);
+      setShippingQuote(null);
+      setSmartDeliveryPricedKey('');
+      setSmartDeliveryError(t.unavailableCartWarning);
       return;
     }
     
@@ -2020,6 +2055,10 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
   });
 
   const onSubmit = async (data: any) => {
+    if (unavailableCartProductIds.length > 0) {
+      toast({ title: t.unavailableCartWarning, variant: "destructive" });
+      return;
+    }
     console.log('🚀 [SUBMIT DEBUG] onSubmit function called');
     console.log('🚀 [SUBMIT DEBUG] Form data received:', data);
     console.log('🚀 [SUBMIT DEBUG] Selected shipping method:', selectedShippingMethod);
@@ -2343,7 +2382,19 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
             <div className="space-y-3">
               {Object.entries(cart).map(([productId, quantity]) => {
                 const product = products.find(p => p.id === parseInt(productId));
-                if (!product) return null;
+                if (!product) {
+                  return (
+                    <div key={productId} role="alert" className="flex items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                      <span>{t.unavailableCartProduct} #{productId} ({quantity})</span>
+                      {onRemoveItem && (
+                        <Button type="button" size="sm" variant="outline" onClick={() => onRemoveItem(Number(productId))}>
+                          <Trash2 className="w-3 h-3 mr-1" />
+                          {t.removeItem}
+                        </Button>
+                      )}
+                    </div>
+                  );
+                }
                 
                 const basePrice = Math.round(parseFloat(product.price || '0'));
                 const discountedPrice = getDiscountedPrice(product, quantity);
@@ -2666,12 +2717,6 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                                     </div>
                                   )}
                                 </div>
-                                {smartDeliveryError && (
-                                  <p role="alert" className="text-sm text-red-600">
-                                    {smartDeliveryUnavailableMessage}
-                                    {smartDeliveryError !== smartDeliveryUnavailableMessage ? ` ${smartDeliveryError}` : ''}
-                                  </p>
-                                )}
                               </div>
                             );
                           }
@@ -3362,6 +3407,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                   <Button
                     type="submit"
                     disabled={
+                      unavailableCartProductIds.length > 0 ||
                       submitOrderMutation.isPending ||
                       !paymentMethod ||
                       (() => {

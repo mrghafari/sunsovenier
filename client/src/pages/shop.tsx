@@ -1057,18 +1057,6 @@ const Shop = () => {
                 >
                   <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
                   <span className="hidden sm:inline">{shopCopy.cart}</span> ({getTotalItems()})
-                  {getTotalItems() > 0 && (
-                    <div className="flex items-center gap-1 sm:gap-2">
-                      <Badge variant="secondary" className="text-xs px-1 sm:px-2">
-                        {getTotalPrice().toFixed(0)}
-                      </Badge>
-                      {getTotalSavings() > 0 && (
-                        <Badge variant="default" className="bg-green-600 text-xs px-1 sm:px-2">
-                          <span className="hidden sm:inline">{shopCopy.save}</span> {getTotalSavings().toFixed(0)}
-                        </Badge>
-                      )}
-                    </div>
-                  )}
                 </Button>
               </div>
             </div>

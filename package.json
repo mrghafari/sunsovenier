@@ -15,6 +15,7 @@
     "check:raw": "tsc --noEmit",
     "check:baseline:update": "node scripts/typecheck-baseline.mjs --update",
     "test:order-weight": "tsx --test server/order-management-storage.test.ts",
+    "test:product-weight": "tsx --test server/product-weight-sync.test.ts",
     "db:push": "drizzle-kit push"
   },
   "dependencies": {

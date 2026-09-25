@@ -18,6 +18,11 @@ import { storage } from "./storage";
 import { UniversalEmailService } from "./universal-email-service";
 import { CONFIG } from "./config";
 import { insertShowcaseProductSchema, showcaseProducts } from "@shared/showcase-schema";
+import {
+  normalizeProductWeightUpdates,
+  type ProductWeightField,
+} from "./product-weight-sync";
+import { syncCanonicalKardexWeightsToShop } from "./product-weight-shop-sync";
 
 const vendorProductCreateSchema = insertShowcaseProductSchema.pick({
   name: true,
@@ -748,6 +753,18 @@ export function createVendorRouter() {
 
       // Extract product data from body and IGNORE any vendorId sent by client
       const { vendorId: _ignored, id: _id, createdAt: _createdAt, inventoryAddition, newBatchNumber, ...bodyData } = req.body;
+
+      let changedWeightFields: ProductWeightField[] = [];
+      try {
+        const weightUpdates = normalizeProductWeightUpdates(bodyData, existingProduct);
+        changedWeightFields = Object.keys(weightUpdates) as ProductWeightField[];
+        Object.assign(bodyData, weightUpdates);
+      } catch (weightError) {
+        return res.status(400).json({
+          success: false,
+          message: weightError instanceof Error ? weightError.message : "Invalid product weight",
+        });
+      }
       
       // Handle inventory addition without batch (add to existing stock)
       if (inventoryAddition && Number(inventoryAddition) > 0 && !newBatchNumber?.trim()) {
@@ -767,6 +784,14 @@ export function createVendorRouter() {
         .set(updateData)
         .where(eq(products.id, productId))
         .returning();
+
+      if (changedWeightFields.length > 0) {
+        try {
+          await syncCanonicalKardexWeightsToShop(product, changedWeightFields);
+        } catch (weightSyncError) {
+          console.error(`Failed to sync vendor product weights to shop for ${productId}:`, weightSyncError);
+        }
+      }
 
       res.json({
         success: true,

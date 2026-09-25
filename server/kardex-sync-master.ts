@@ -6,6 +6,12 @@
 import { shopStorage } from "./shop-storage";
 import { storage } from "./storage";
 import type { ShowcaseProduct } from "../shared/showcase-schema";
+import {
+  aggregateSyncEnabledProductsByBarcode,
+  kardexWeightsDiffer,
+  kardexWeightsToShop,
+  kardexWeightUnitsDiffer,
+} from "./product-weight-sync";
 
 export class KardexSyncMaster {
   
@@ -27,35 +33,7 @@ export class KardexSyncMaster {
       
       // مرحله 1: دریافت محصولات کاردکس و تجمیع بر اساس barcode
       const allKardexProducts = await storage.getProducts();
-      
-      // تجمیع محصولات بر اساس بارکد (برای batch های مختلف) - محاسبه مجموع موجودی همه batches
-      const kardexWithBarcode = allKardexProducts.filter(p => 
-        p.barcode && p.barcode.trim() !== ''
-      );
-      
-      const uniqueKardexBarcodes = new Map<string, any>();
-      const barcodeStockTotals = new Map<string, number>();
-      
-      for (const product of kardexWithBarcode) {
-        const barcode = product.barcode.trim();
-        const stockQuantity = product.stockQuantity || 0;
-        
-        if (!uniqueKardexBarcodes.has(barcode)) {
-          // برای اولین batch از این barcode، محصول پایه را ذخیره می‌کنیم
-          uniqueKardexBarcodes.set(barcode, product);
-          barcodeStockTotals.set(barcode, stockQuantity);
-        } else {
-          // برای batch های بعدی، فقط موجودی را جمع می‌کنیم
-          const currentTotal = barcodeStockTotals.get(barcode) || 0;
-          barcodeStockTotals.set(barcode, currentTotal + stockQuantity);
-        }
-      }
-      
-      // بروزرسانی محصولات با مجموع موجودی صحیح
-      const kardexProducts = Array.from(uniqueKardexBarcodes.values()).map(product => ({
-        ...product,
-        stockQuantity: barcodeStockTotals.get(product.barcode.trim()) || 0
-      }));
+      const kardexProducts = aggregateSyncEnabledProductsByBarcode(allKardexProducts);
       console.log(`📋 [KARDEX-SYNC] ${kardexProducts.length} محصول تجمیع شده (یونیک) در کاردکس`);
       
       // مرحله 2: پاک کردن کامل فروشگاه با تأیید
@@ -266,41 +244,23 @@ export class KardexSyncMaster {
       
       // فیلتر کردن محصولات کاردکس که بارکد دارند و syncWithShop فعال است
       // 🔒 CRITICAL: محصولاتی که syncWithShop = false هستند نباید در فروشگاه نمایش داده شوند
-      const kardexWithBarcode = kardexProducts.filter(p => 
-        p.barcode && p.barcode.trim() !== '' && p.syncWithShop !== false
+      const kardexWithBarcode = kardexProducts.filter(p =>
+        p.barcode && p.barcode.trim() !== ''
       );
       
       // لیست بارکدهای محصولات مخفی شده
+      const enabledBarcodes = new Set(kardexWithBarcode.map(p => p.barcode!.trim()));
       const hiddenBarcodes = new Set(
         kardexProducts
-          .filter(p => p.barcode && p.barcode.trim() !== '' && p.syncWithShop === false)
+          .filter(p =>
+            p.barcode && p.barcode.trim() !== '' &&
+            p.syncWithShop === false &&
+            !enabledBarcodes.has(p.barcode.trim())
+          )
           .map(p => p.barcode.trim())
       );
       
-      // تجمیع محصولات بر اساس بارکد (برای batch های مختلف) - محاسبه مجموع موجودی همه batches
-      const uniqueKardexBarcodes = new Map<string, any>();
-      const barcodeStockTotals = new Map<string, number>();
-      
-      for (const product of kardexWithBarcode) {
-        const barcode = product.barcode.trim();
-        const stockQuantity = product.stockQuantity || 0;
-        
-        if (!uniqueKardexBarcodes.has(barcode)) {
-          // برای اولین batch از این barcode، محصول پایه را ذخیره می‌کنیم
-          uniqueKardexBarcodes.set(barcode, product);
-          barcodeStockTotals.set(barcode, stockQuantity);
-        } else {
-          // برای batch های بعدی، فقط موجودی را جمع می‌کنیم
-          const currentTotal = barcodeStockTotals.get(barcode) || 0;
-          barcodeStockTotals.set(barcode, currentTotal + stockQuantity);
-        }
-      }
-      
-      // بروزرسانی محصولات با مجموع موجودی صحیح
-      const syncEnabledKardex = Array.from(uniqueKardexBarcodes.values()).map(product => ({
-        ...product,
-        stockQuantity: barcodeStockTotals.get(product.barcode.trim()) || 0
-      }));
+      const syncEnabledKardex = aggregateSyncEnabledProductsByBarcode(kardexWithBarcode);
       
       // محصولاتی که در کاردکس هستند و باید در فروشگاه باشند (بر اساس بارکد EAN-13)
       const kardexBarcodes = new Set(syncEnabledKardex.map(p => p.barcode.trim()));
@@ -423,8 +383,7 @@ export class KardexSyncMaster {
         lowStockThreshold: 10,
         sku: uniqueSku,
         barcode: kardexProduct.barcode || '',
-        weight: kardexProduct.weight ? parseFloat(kardexProduct.weight) : null,
-        weightUnit: kardexProduct.weightUnit || 'kg',
+        ...kardexWeightsToShop(kardexProduct),
         // 🖼️ ترکیب تصاویر از هر دو فیلد imageUrl و imageUrls کاردکس
         imageUrls: this.combineProductImages(kardexProduct),
         thumbnailUrl: this.getFirstProductImage(kardexProduct),
@@ -470,8 +429,7 @@ export class KardexSyncMaster {
         maxStockLevel: kardexProduct.maxStockLevel || 100,
         sku: kardexProduct.sku || `UP-${kardexProduct.id}-${Date.now().toString().slice(-6)}`,
         barcode: kardexProduct.barcode || '',
-        weight: kardexProduct.weight ? parseFloat(kardexProduct.weight) : null,
-        weightUnit: kardexProduct.weightUnit || 'kg',
+        ...kardexWeightsToShop(kardexProduct),
         // 🖼️ ترکیب تصاویر از هر دو فیلد imageUrl و imageUrls کاردکس
         imageUrls: this.combineProductImages(kardexProduct),
         thumbnailUrl: this.getFirstProductImage(kardexProduct),
@@ -515,6 +473,8 @@ export class KardexSyncMaster {
       kardexProduct.unitPrice?.toString() !== shopProduct.price ||
       (kardexProduct.currency || 'IQD') !== shopProduct.priceUnit ||
       kardexProduct.stockQuantity !== shopProduct.stockQuantity ||
+      kardexWeightsDiffer(kardexProduct, shopProduct) ||
+      kardexWeightUnitsDiffer(kardexProduct, shopProduct) ||
       // 🖼️ مقایسه کامل تصاویر ترکیب شده به جای فقط imageUrl
       JSON.stringify(this.combineProductImages(kardexProduct)) !== JSON.stringify(shopProduct.imageUrls || []) ||
       kardexProduct.isActive !== shopProduct.isActive ||

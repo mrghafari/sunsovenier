@@ -39,3 +39,5 @@
 - [Financial note localization](financial-note-localization.md) — translate generated approval text and wallet adjustments together at display time; preserve staff-authored notes and stored history.
 - [Manual shipping routes](manual-shipping-routes.md) — only measured directional, same-country road distances are valid; changing center must not infer routes from Erbil.
 - [Shipping quote policy](shipping-quote-policy.md) — smart-vehicle quotes bind cart, route, center, method, and checkout flow; standard rates must work without vehicle templates.
+- [Barcode-level shop weights](barcode-shop-weights.md) — the shop has one weight per barcode; editing another Kardex batch must not change the shared checkout weight.
+- [Legacy persistent carts](legacy-persistent-carts.md) — inspect the live cart storage shape before querying; some environments retain JSON cart snapshots despite newer schema declarations.

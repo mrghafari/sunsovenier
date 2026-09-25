@@ -2050,14 +2050,6 @@
     },
     {
       "key": "[\"server/kardex-sync-master.ts\",18047,\"'product.barcode' is possibly 'null'.\",\"const barcode = product.barcode.trim();\"]",
-      "count": 3
-    },
-    {
-      "key": "[\"server/kardex-sync-master.ts\",2345,\"Argument of type '{ name: string; category: string; description: string; shortDescription: string; price: string; priceUnit: string; stockQuantity: number; minStockLevel: number; maxStockLevel: number; lowStockThreshold: number; ... 17 more ...; inStock: boolean; }' is not assignable to parameter of type '{ name: string; description: string; price: string; category: string; priceUnit: string; sku: string; sortOrder?: number | null | undefined; inStock?: boolean | null | undefined; tags?: Json | undefined; ... 54 more ...; bulkPurchaseDiscounts?: Json | undefined; }'.\\n  Types of property 'weight' are incompatible.\\n    Type 'number | null' is not assignable to type 'string | null | undefined'.\\n      Type 'number' is not assignable to type 'string'.\",\"await shopStorage.createShopProduct(shopProductData);\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/kardex-sync-master.ts\",2345,\"Argument of type '{ name: string; category: string; description: string; shortDescription: string; price: string; priceUnit: string; stockQuantity: number; minStockLevel: number; maxStockLevel: number; sku: string; ... 16 more ...; inStock: boolean; }' is not assignable to parameter of type 'Partial<{ name: string; description: string; price: string; category: string; priceUnit: string; sku: string; sortOrder?: number | null | undefined; inStock?: boolean | null | undefined; tags?: Json | undefined; ... 54 more ...; bulkPurchaseDiscounts?: Json | undefined; }>'.\\n  Types of property 'weight' are incompatible.\\n    Type 'number | null' is not assignable to type 'string | null | undefined'.\\n      Type 'number' is not assignable to type 'string'.\",\"await shopStorage.updateShopProduct(shopProductId, updateData);\"]",
       "count": 1
     },
     {

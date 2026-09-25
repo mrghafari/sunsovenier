@@ -325,6 +325,13 @@ export default function ProductsPage() {
       }
 
       const group = barcodeMap.get(product.barcode)!;
+      const currentMain = group.mainProduct;
+      if (
+        (currentMain.syncWithShop === false && product.syncWithShop !== false) ||
+        ((currentMain.syncWithShop === false) === (product.syncWithShop === false) && product.id < currentMain.id)
+      ) {
+        group.mainProduct = product;
+      }
       group.batches.push({
         id: product.id,
         batchNumber: product.batchNumber || t.productManagement.noBarcode,
@@ -754,16 +761,22 @@ export default function ProductsPage() {
       return;
     }
     
+    // Unchanged legacy weights may be empty; do not clear them during unrelated edits.
+    const { netWeight: _netWeight, grossWeight: _grossWeight, ...dataWithoutWeights } = data;
     // Convert numeric fields to strings for API compatibility
     const processedData = {
-      ...data,
+      ...dataWithoutWeights,
       unitPrice: data.unitPrice ? data.unitPrice.toString() : "0",
       stockQuantity: Number(data.stockQuantity) || 0,
       minStockLevel: Number(data.minStockLevel) || 0,
       maxStockLevel: Number(data.maxStockLevel) || 0,
       // For batch additions, keep weight fields but preserve image fields
-      netWeight: isBatchAddition ? null : (data.netWeight ? data.netWeight.toString() : null),
-      grossWeight: isBatchAddition ? null : (data.grossWeight ? data.grossWeight.toString() : null),
+      ...(!editingProduct || form.getFieldState('netWeight').isDirty
+        ? { netWeight: isBatchAddition ? null : (data.netWeight ? data.netWeight.toString() : null) }
+        : {}),
+      ...(!editingProduct || form.getFieldState('grossWeight').isDirty
+        ? { grossWeight: isBatchAddition ? null : (data.grossWeight ? data.grossWeight.toString() : null) }
+        : {}),
       imageUrl: data.imageUrl, // Always include images (whether batch addition or not)
       imageUrls: data.imageUrls, // Always include images (whether batch addition or not)
       batchNumber: selectedBatchId === 'new'
@@ -2886,16 +2899,16 @@ export default function ProductsPage() {
                       name="netWeight"
                       render={({ field }) => {
                         const isBatchAddition = !!((form.watch('inventoryAddition') || 0) > 0 && form.watch('newBatchNumber')?.trim());
-                        const isDisabled = !!form.watch('isNonChemical') || isBatchAddition || !!editingProduct;
+                         const isDisabled = isBatchAddition || (!editingProduct && !!form.watch('isNonChemical'));
                         const originalNetWeight = editingProduct?.netWeight || 0;
                         const weightUnit = editingProduct?.weightUnit || 'kg';
                         return (
                         <FormItem>
                           <FormLabel className={`text-sm font-medium flex items-center gap-2 ${validationErrors.netWeight ? 'text-red-600' : ''} ${isDisabled ? 'text-gray-400' : ''}`}>
 {t.netWeight}
-                            {(isBatchAddition || editingProduct) && (
+                             {isBatchAddition && (
                               <Badge variant="secondary" className="text-xs">
-                                {isBatchAddition ? `${originalNetWeight} ${weightUnit}` : t.productManagement.initialFixedValue}
+                                 {`${originalNetWeight} ${weightUnit}`}
                               </Badge>
                             )}
                             <Tooltip>
@@ -2934,16 +2947,16 @@ export default function ProductsPage() {
                       name="grossWeight"
                       render={({ field }) => {
                         const isBatchAddition = !!((form.watch('inventoryAddition') || 0) > 0 && form.watch('newBatchNumber')?.trim());
-                        const isDisabled = !!form.watch('isNonChemical') || isBatchAddition || !!editingProduct;
+                         const isDisabled = isBatchAddition || (!editingProduct && !!form.watch('isNonChemical'));
                         const originalGrossWeight = editingProduct?.grossWeight || 0;
                         const weightUnit = editingProduct?.weightUnit || 'kg';
                         return (
                         <FormItem>
                           <FormLabel className={`text-sm font-medium flex items-center gap-2 ${validationErrors.grossWeight ? 'text-red-600' : ''} ${isDisabled ? 'text-gray-400' : ''}`}>
 {t.grossWeight}
-                            {(isBatchAddition || editingProduct) && (
+                             {isBatchAddition && (
                               <Badge variant="secondary" className="text-xs">
-                                {isBatchAddition ? `${originalGrossWeight} ${weightUnit}` : t.productManagement.initialFixedValue}
+                                 {`${originalGrossWeight} ${weightUnit}`}
                               </Badge>
                             )}
                             <Tooltip>
@@ -2983,7 +2996,7 @@ export default function ProductsPage() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-sm font-medium">{t.weightUnit}</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value || "kg"}>
+                           <Select onValueChange={field.onChange} value={field.value || "kg"}>
                             <FormControl>
                               <SelectTrigger className="h-9">
                                 <SelectValue placeholder={t.productManagement.selectWeightUnit} />
