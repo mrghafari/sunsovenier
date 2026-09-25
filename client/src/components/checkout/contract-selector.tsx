@@ -1,14 +1,6 @@
+import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Badge } from '@/components/ui/badge';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import type { IncotermCode } from '@shared/incoterms';
 
 export type ShopContract = {
@@ -43,92 +35,32 @@ const copy = {
     description: 'Choose a normal purchase or an active contract.',
     normal: 'Normal purchase',
     normalDescription: 'Purchase at standard prices without contract limits.',
-    contract: 'Contract',
-    active: 'Active',
-    customer: 'Customer',
-    terms: 'Terms',
-    deliveryTerm: 'Delivery term',
-    selection: 'Select',
-    contractNumber: 'Contract',
-    product: 'Product',
-    unitPrice: 'Agreed unit price',
-    quantity: 'Remaining / maximum',
-    noContracts: 'No active contracts are available.',
-    products: 'Contract products and limits',
-    fixedPrice: 'Fixed price',
-    remaining: 'Remaining',
-    of: 'of',
-    onlyListed: 'Only the products listed in this contract can be ordered using contract pricing.',
-    iqd: 'IQD',
+    contract: 'Contract purchase',
+    remainingQuantity: 'Total remaining quantity',
   },
   fa: {
     title: 'نوع خرید',
     description: 'خرید عادی یا یکی از قراردادهای فعال را انتخاب کنید.',
     normal: 'خرید عادی',
     normalDescription: 'خرید با قیمت‌های معمول و بدون محدودیت قرارداد.',
-    contract: 'قرارداد',
-    active: 'فعال',
-    customer: 'مشتری',
-    terms: 'شرایط',
-    deliveryTerm: 'شرط تحویل',
-    selection: 'انتخاب',
-    contractNumber: 'قرارداد',
-    product: 'محصول',
-    unitPrice: 'قیمت واحد توافقی',
-    quantity: 'باقی‌مانده / حداکثر',
-    noContracts: 'هیچ قرارداد فعالی در دسترس نیست.',
-    products: 'محصولات و محدودیت‌های قرارداد',
-    fixedPrice: 'قیمت ثابت',
-    remaining: 'باقی‌مانده',
-    of: 'از',
-    onlyListed: 'با قیمت قراردادی فقط می‌توان محصولات فهرست‌شده در همین قرارداد را سفارش داد.',
-    iqd: 'د.ع',
+    contract: 'خرید قراردادی',
+    remainingQuantity: 'مجموع مقدار باقی‌مانده',
   },
   ar: {
     title: 'نوع الشراء',
     description: 'اختر شراءً عادياً أو عقداً سارياً.',
     normal: 'شراء عادي',
     normalDescription: 'شراء بالأسعار المعتادة دون قيود العقد.',
-    contract: 'عقد',
-    active: 'ساري',
-    customer: 'العميل',
-    terms: 'الشروط',
-    deliveryTerm: 'شرط التسليم',
-    selection: 'اختيار',
-    contractNumber: 'العقد',
-    product: 'المنتج',
-    unitPrice: 'سعر الوحدة المتفق عليه',
-    quantity: 'المتبقي / الحد الأقصى',
-    noContracts: 'لا توجد عقود سارية متاحة.',
-    products: 'منتجات العقد وحدوده',
-    fixedPrice: 'السعر الثابت',
-    remaining: 'المتبقي',
-    of: 'من',
-    onlyListed: 'يمكن طلب المنتجات المدرجة في هذا العقد فقط باستخدام أسعار العقد.',
-    iqd: 'د.ع',
+    contract: 'شراء بموجب عقد',
+    remainingQuantity: 'إجمالي الكمية المتبقية',
   },
   tr: {
     title: 'Satın alma türü',
     description: 'Normal satın almayı veya etkin bir sözleşmeyi seçin.',
     normal: 'Normal satın alma',
     normalDescription: 'Sözleşme sınırı olmadan standart fiyatlarla satın alın.',
-    contract: 'Sözleşme',
-    active: 'Etkin',
-    customer: 'Müşteri',
-    terms: 'Koşullar',
-    deliveryTerm: 'Teslim şekli',
-    selection: 'Seç',
-    contractNumber: 'Sözleşme',
-    product: 'Ürün',
-    unitPrice: 'Anlaşılan birim fiyat',
-    quantity: 'Kalan / maksimum',
-    noContracts: 'Etkin sözleşme bulunmuyor.',
-    products: 'Sözleşme ürünleri ve limitleri',
-    fixedPrice: 'Sabit fiyat',
-    remaining: 'Kalan',
-    of: '/',
-    onlyListed: 'Sözleşme fiyatıyla yalnızca bu sözleşmede listelenen ürünler sipariş edilebilir.',
-    iqd: 'IQD',
+    contract: 'Sözleşmeli satın alma',
+    remainingQuantity: 'Toplam kalan miktar',
   },
 };
 
@@ -142,12 +74,29 @@ export function ContractSelector({
   const lang = language.toLowerCase().split('-')[0] as keyof typeof copy;
   const text = copy[lang] || copy.en;
   const isRtl = lang === 'fa' || lang === 'ar';
-  const activeContracts = contracts.filter((contract) => contract.isActive);
-  const selectedValue = selectedContractId === null ? 'normal' : String(selectedContractId);
+  const activeContracts = useMemo(
+    () => contracts.filter((contract) => contract.isActive),
+    [contracts],
+  );
+  const hasSelectedActiveContract = activeContracts.some(
+    (contract) => Number(contract.id) === Number(selectedContractId),
+  );
+  const [saleType, setSaleType] = useState<'normal' | 'contract'>(
+    selectedContractId !== null && hasSelectedActiveContract ? 'contract' : 'normal',
+  );
   const numberLocale = lang === 'fa' || lang === 'ar' ? lang : lang === 'tr' ? 'tr-TR' : 'en-US';
-  const formatNumber = (value: number) => new Intl.NumberFormat(numberLocale).format(value);
-  const formatPrice = (value: number) =>
-    `${new Intl.NumberFormat(numberLocale, { maximumFractionDigits: 2 }).format(value)} ${text.iqd}`;
+  const formatNumber = (value: number) =>
+    new Intl.NumberFormat(numberLocale, { maximumFractionDigits: 2 }).format(value);
+
+  useEffect(() => {
+    setSaleType(selectedContractId !== null && hasSelectedActiveContract ? 'contract' : 'normal');
+  }, [selectedContractId, hasSelectedActiveContract]);
+
+  const totalRemainingQuantity = (contract: ShopContract) =>
+    contract.items.reduce((total, item) => {
+      const remaining = Number(item.remainingQuantity);
+      return total + (Number.isFinite(remaining) && remaining > 0 ? remaining : 0);
+    }, 0);
 
   return (
     <Card dir={isRtl ? 'rtl' : 'ltr'}>
@@ -158,15 +107,23 @@ export function ContractSelector({
       <CardContent>
         <RadioGroup
           aria-label={text.title}
-          value={selectedValue}
-          onValueChange={(value) => onSelect(value === 'normal' ? null : Number(value))}
+          value={saleType}
+          onValueChange={(value) => {
+            if (value === 'normal') {
+              setSaleType('normal');
+              onSelect(null);
+            } else if (activeContracts.length > 0) {
+              // Selecting the sale type alone must not choose a contract.
+              setSaleType('contract');
+            }
+          }}
           disabled={disabled}
           className="space-y-3"
         >
           <label
             htmlFor="contract-option-normal"
             className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors hover:bg-muted/50 ${
-              selectedValue === 'normal' ? 'border-primary bg-primary/5' : ''
+              saleType === 'normal' ? 'border-primary bg-primary/5' : ''
             } ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
           >
             <RadioGroupItem id="contract-option-normal" value="normal" className="mt-1" />
@@ -176,118 +133,54 @@ export function ContractSelector({
             </span>
           </label>
 
-          <div className="overflow-hidden rounded-lg border">
-            <div className="overflow-x-auto">
-              <Table className="min-w-[760px]">
-                <TableHeader>
-                  <TableRow className="bg-muted/35 hover:bg-muted/35">
-                    <TableHead className="w-16 text-center">{text.selection}</TableHead>
-                    <TableHead>{text.contractNumber}</TableHead>
-                    <TableHead>{text.customer}</TableHead>
-                    <TableHead>{text.deliveryTerm}</TableHead>
-                    <TableHead>{text.terms}</TableHead>
-                    <TableHead>{text.products}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {activeContracts.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
-                        {text.noContracts}
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    activeContracts.map((contract) => {
-                      const value = String(contract.id);
-                      const selected = selectedValue === value;
-
-                      return (
-                        <TableRow
-                          key={contract.id}
-                          data-state={selected ? 'selected' : undefined}
-                          className={`cursor-pointer align-top ${selected ? 'bg-primary/5' : ''} ${
-                            disabled ? 'cursor-not-allowed opacity-60' : ''
-                          }`}
-                          onClick={() => {
-                            if (!disabled) onSelect(contract.id);
-                          }}
-                        >
-                          <TableCell className="text-center">
-                            <RadioGroupItem
-                              id={`contract-option-${contract.id}`}
-                              value={value}
-                              aria-label={`${text.contract} ${contract.number}`}
-                              disabled={disabled}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <label
-                              htmlFor={`contract-option-${contract.id}`}
-                              className="cursor-pointer font-semibold whitespace-nowrap"
-                            >
-                              {contract.number}
-                            </label>
-                            <Badge variant="secondary" className="mt-2 block w-fit text-[11px]">
-                              {text.active}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="max-w-[190px] whitespace-normal">
-                            {contract.customerName}
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap font-medium">
-                            {contract.deliveryTerm || '—'}
-                          </TableCell>
-                          <TableCell className="max-w-[230px] whitespace-pre-wrap text-muted-foreground">
-                            {contract.terms || '—'}
-                          </TableCell>
-                          <TableCell className="max-w-[230px] whitespace-normal text-muted-foreground">
-                            {contract.items.length} {text.products.toLowerCase()}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-
-          {selectedContractId !== null && (() => {
-            const selectedContract = activeContracts.find((contract) => contract.id === selectedContractId);
-            if (!selectedContract) return null;
-
-            return (
-              <div className="rounded-lg border bg-muted/20 p-4">
-                <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-                  <p className="text-sm font-semibold">{text.products}</p>
-                  <p className="text-xs text-muted-foreground">{text.onlyListed}</p>
-                </div>
-                <div className="overflow-x-auto rounded-md border bg-background">
-                  <Table className="min-w-[560px]">
-                    <TableHeader>
-                      <TableRow className="bg-muted/30 hover:bg-muted/30">
-                        <TableHead>{text.product}</TableHead>
-                        <TableHead>{text.unitPrice}</TableHead>
-                        <TableHead>{text.quantity}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {selectedContract.items.map((item) => (
-                        <TableRow key={item.productId}>
-                          <TableCell className="font-medium">{item.productName}</TableCell>
-                          <TableCell className="whitespace-nowrap">{formatPrice(item.unitPrice)}</TableCell>
-                          <TableCell className="whitespace-nowrap text-muted-foreground">
-                            {formatNumber(item.remainingQuantity)} {text.of} {formatNumber(item.maxQuantity)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            );
-          })()}
+          {activeContracts.length > 0 && (
+            <label
+              htmlFor="contract-option-contract"
+              className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors hover:bg-muted/50 ${
+                saleType === 'contract' ? 'border-primary bg-primary/5' : ''
+              } ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
+            >
+              <RadioGroupItem id="contract-option-contract" value="contract" className="mt-1" />
+              <span className="font-medium">{text.contract}</span>
+            </label>
+          )}
         </RadioGroup>
+
+        {saleType === 'contract' && activeContracts.length > 0 && (
+          <RadioGroup
+            aria-label={text.contract}
+            value={selectedContractId === null ? undefined : String(selectedContractId)}
+            onValueChange={(value) => onSelect(Number(value))}
+            disabled={disabled}
+            className="mt-3 space-y-2 border-s-2 border-primary/20 ps-4"
+          >
+            {activeContracts.map((contract) => {
+              const value = String(contract.id);
+              const selected = value === String(selectedContractId);
+              return (
+                <label
+                  key={contract.id}
+                  htmlFor={`contract-option-${contract.id}`}
+                  className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50 ${
+                    selected ? 'border-primary bg-primary/5' : ''
+                  } ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
+                >
+                  <RadioGroupItem
+                    id={`contract-option-${contract.id}`}
+                    value={value}
+                    aria-label={`${text.contract}: ${contract.number}`}
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-semibold">{contract.number}</span>
+                    <span className="block text-sm text-muted-foreground">
+                      {text.remainingQuantity}: {formatNumber(totalRemainingQuantity(contract))}
+                    </span>
+                  </span>
+                </label>
+              );
+            })}
+          </RadioGroup>
+        )}
       </CardContent>
     </Card>
   );

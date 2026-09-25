@@ -489,6 +489,29 @@ export function registerShopContractRoutes(app: Express): void {
       errorResponse(res, error);
     }
   });
+
+  app.post("/api/admin/shop/contracts/:id/end", requireShopManagement, async (req, res) => {
+    try {
+      const id = parsePositiveId(req.params.id, "Contract id");
+      const contract = await inTransaction(async (client) => {
+        // The conditional update serializes with checkout's contract row lock:
+        // once this commits, no new contract cart can claim capacity.
+        const updated = await client.query(
+          `UPDATE shop_contracts SET is_active = false, updated_at = now()
+             WHERE id = $1 AND is_active = true RETURNING id`,
+          [id],
+        );
+        if (!updated.rowCount) {
+          const existing = await client.query("SELECT id FROM shop_contracts WHERE id = $1", [id]);
+          throw new ContractError(existing.rowCount ? "Contract has already ended." : "Contract not found.", existing.rowCount ? 409 : 404);
+        }
+        return (await loadContractRows(client, id))[0];
+      });
+      res.json({ success: true, contract });
+    } catch (error) {
+      errorResponse(res, error);
+    }
+  });
 }
 
 export async function loadContractPricing(

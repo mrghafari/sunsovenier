@@ -655,6 +655,10 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     staleTime: 0,
   });
   const [selectedContractId, setSelectedContractId] = useState<number | null>(initialContractId);
+  const [showContractProducts, setShowContractProducts] = useState(false);
+  useEffect(() => {
+    setShowContractProducts(false);
+  }, [selectedContractId]);
   const [isFilteringContractCart, setIsFilteringContractCart] = useState(false);
   const filteringContractCartRef = useRef(false);
   const selectContract = async (id: number | null) => {
@@ -3622,10 +3626,12 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                         {contractCartErrors.map((message, index) => <p key={`${index}-${message}`}>{message}</p>)}
                       </div>
                     )}
-                    {selectedContract && (
+                    {selectedContract && selectedContract.items.some(item => !(cart[item.productId] > 0)) && (
                       <div className="rounded-md border p-3 space-y-3">
-                        <h3 className="text-sm font-medium">{language === 'fa' ? 'افزودن کالاهای قرارداد' : language === 'ar' ? 'إضافة منتجات العقد' : language === 'tr' ? 'Sözleşme ürünleri ekle' : 'Add contract products'}</h3>
-                        {selectedContract.items.filter(item => !(cart[item.productId] > 0)).map(item => {
+                        <Button type="button" variant="outline" size="sm" aria-expanded={showContractProducts} onClick={() => setShowContractProducts(open => !open)}>
+                          {language === 'fa' ? 'افزودن کالاهای قرارداد' : language === 'ar' ? 'إضافة منتجات العقد' : language === 'tr' ? 'Sözleşme ürünleri ekle' : 'Add contract products'}
+                        </Button>
+                        {showContractProducts && selectedContract.items.filter(item => !(cart[item.productId] > 0)).map(item => {
                           const product = products.find(candidate => Number(candidate.id) === Number(item.productId));
                           const limit = contractQuantityLimit(item);
                           const stock = Number(product?.stockQuantity) || 0;

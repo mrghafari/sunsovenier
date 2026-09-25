@@ -50,3 +50,4 @@
 - [Destination-local delivery appointments](destination-local-delivery-appointments.md) — dispatcher-selected times follow the delivery destination; actual dispatch events remain separate.
 - [Contract number namespace](contract-number-namespace.md) — contract numbers mirror the order format with C, but must not consume the M order counter.
 - [Retiring used contract lines](retiring-used-contract-lines.md) — removed used lines stop future sales while preserving historical allocation records.
+- [React SSR smoke tests](react-ssr-smoke-tests.md) — standalone TSX rendering must match Vite's automatic JSX transform and normalize hydration comments.
