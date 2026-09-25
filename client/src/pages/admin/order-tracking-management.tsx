@@ -558,7 +558,7 @@ export default function OrderTrackingManagement() {
   }, [handleScroll]);
 
   // Fetch order statistics - Manual refresh only
-  const { data: stats, isLoading: isLoadingStats, refetch: refetchStats } = useQuery({
+  const { data: stats, isLoading: isLoadingStats } = useQuery({
     queryKey: ['order-management-statistics-updated'],
     queryFn: async () => {
       const response = await fetch('/api/order-management/statistics', {
@@ -1120,28 +1120,6 @@ export default function OrderTrackingManagement() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Real-time Update Indicator */}
-      <div className="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg p-3">
-        <div className="flex items-center gap-2">
-          <Activity className="w-4 h-4 text-blue-600" />
-          <span className="text-sm text-blue-800 font-medium">
-            {t('manualStats')}
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <button 
-            onClick={() => refetchStats()}
-            className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
-          >
-            {t('refreshNow')}
-          </button>
-          {isLoadingStats && (
-            <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
-          )}
-        </div>
-      </div>
-
 
       {/* Search and Filter */}
       <div className="flex flex-col sm:flex-row gap-4">

@@ -1,4 +1,4 @@
-import { Fragment, useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
@@ -49,7 +49,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { apiRequest } from "@/lib/queryClient";
-import type { ShopProduct, Customer, Order } from "@shared/shop-schema";
+import type { ShopProduct, Customer } from "@shared/shop-schema";
 import SalesReport from "@/pages/sales-report";
 import InvoiceManagement from "@/pages/admin/invoice-management";
 import ShopInvoiceManagement from "@/components/ShopInvoiceManagement";
@@ -83,8 +83,6 @@ const SHOP_TRANSLATIONS: Record<string, ShopTranslation> = {
   abandonedCart: { en: "Abandoned Cart", ar: "السلة المتروكة", tr: "Terk Edilmiş Sepet", fa: "سبدهای رهاشده" },
   salesReports: { en: "Sales Reports", ar: "تقارير المبيعات", tr: "Satış Raporları", fa: "گزارش‌های فروش" },
   orderManagement: { en: "Order Management", ar: "إدارة الطلبات", tr: "Sipariş Yönetimi", fa: "مدیریت سفارش‌ها" },
-  workflowOrders: { en: "Workflow & tracking", ar: "سير العمل والتتبع", tr: "İş akışı ve takip", fa: "گردش کار و رهگیری" },
-  commerceOrderDetails: { en: "Commercial details", ar: "التفاصيل التجارية", tr: "Ticari ayrıntılar", fa: "جزئیات تجاری" },
   searchOrders: { en: "Search orders...", ar: "البحث في الطلبات...", tr: "Siparişlerde ara...", fa: "جستجوی سفارش‌ها..." },
   filterStatus: { en: "Filter by status", ar: "تصفية حسب الحالة", tr: "Duruma göre filtrele", fa: "فیلتر بر اساس وضعیت" },
   allOrders: { en: "All Orders", ar: "كل الطلبات", tr: "Tüm Siparişler", fa: "همه سفارش‌ها" },
@@ -476,10 +474,10 @@ function ProformaDeadlineSettings() {
   );
 }
 
-const storeSalesTabs = ["orders", "discounts", "inventory", "invoices", "returns", "abandoned-cart", "reports", "bulk-purchases", "proforma-deadline"];
+const storeSalesTabs = ["orders", "discounts", "inventory", "invoices", "returns", "abandoned-cart", "bulk-purchases", "proforma-deadline"];
 const contractSalesTabs = ["contracts"];
 const formerProcurementTabs = ["bulk-purchases", "proforma-deadline"];
-type SalesSection = "store" | "contractual";
+type SalesSection = "store" | "contractual" | "reports";
 
 function commercialSelectionFromUrl(search: string): { section: SalesSection; tab: string } {
   const params = new URLSearchParams(search);
@@ -489,6 +487,7 @@ function commercialSelectionFromUrl(search: string): { section: SalesSection; ta
     return { section: "store", tab: tab || "bulk-purchases" };
   }
   if (unit === "sales") {
+    if (tab === "reports" || (!tab && params.get("group") === "reports")) return { section: "reports", tab: "reports" };
     if (tab && storeSalesTabs.includes(tab)) return { section: "store", tab };
     if (tab && contractSalesTabs.includes(tab)) return { section: "contractual", tab };
     if (!tab && params.get("group") === "contractual") return { section: "contractual", tab: "contracts" };
@@ -500,96 +499,15 @@ export default function ShopAdmin() {
   const initialUrlSelection = commercialSelectionFromUrl(typeof window === "undefined" ? "" : window.location.search);
   const [activeSection, setActiveSection] = useState<SalesSection>(initialUrlSelection.section);
   const [activeTab, setActiveTab] = useState(initialUrlSelection.tab);
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
-  const [orderStatusFilter, setOrderStatusFilter] = useState("all");
-  const [searchTerm, setSearchTerm] = useState("");
   const [editingDiscount, setEditingDiscount] = useState<any>(null);
   const [isDiscountDialogOpen, setIsDiscountDialogOpen] = useState(false);
   const [showReturnForm, setShowReturnForm] = useState(false);
   const [showReturnDialog, setShowReturnDialog] = useState(false);
   const [selectedReturn, setSelectedReturn] = useState<any>(null);
   
-  // State for proforma to invoice conversion
-  const [isConvertingInvoice, setIsConvertingInvoice] = useState(false);
   const { toast } = useToast();
   const { tr, direction, language } = useShopTranslations();
   const dateLocale = language === "fa" ? "fa-IR" : language === "ar" ? "ar" : language === "tr" ? "tr-TR" : "en-US";
-  const paymentMethodLabel = (method?: string | null) => {
-    if (!method) return tr("unknown");
-    const labels: Record<string, string> = {
-      wallet_full: tr("wallet"),
-      wallet_partial: tr("partialWallet"),
-      wallet: tr("wallet"),
-      wallet_combined: tr("hybridPayment"),
-      online_payment: tr("onlinePayment"),
-      bank_transfer: tr("bankTransfer"),
-      bank_transfer_grace: tr("graceBankTransfer"),
-      hybrid: tr("hybridPayment"),
-      cash: tr("cash"),
-      credit: tr("credit"),
-    };
-    return labels[method.toLowerCase()] || method;
-  };
-  const paymentStatusLabel = (status?: string | null) => {
-    const labels: Record<string, string> = {
-      paid: tr("paid"),
-      confirmed: tr("paid"),
-      pending: tr("pendingPayment"),
-      pending_payment: tr("pendingPayment"),
-      failed: tr("failed"),
-      refunded: tr("refundedPayment"),
-      partial: tr("partialPayment"),
-    };
-    return labels[String(status ?? "").toLowerCase()] ?? tr("unknown");
-  };
-  const formatOrderMoney = (value: unknown, currency?: unknown) => {
-    const amount = Number(value ?? 0);
-    const code = String(currency ?? "USD").toUpperCase();
-    return new Intl.NumberFormat(
-      language === "fa" ? "fa-IR" : language === "ar" ? "ar" : language === "tr" ? "tr-TR" : "en-US",
-      { style: "currency", currency: code, currencyDisplay: "symbol", maximumFractionDigits: 2 },
-    ).format(Number.isFinite(amount) ? amount : 0);
-  };
-  const orderStatusLabel = (status?: string | null) => {
-    if (!status) return tr("unknown");
-    const labels: Record<string, string> = {
-      pending: tr("pending"),
-      confirmed: tr("confirmed"),
-      processing: tr("processing"),
-      shipped: tr("shipped"),
-      delivered: tr("delivered"),
-      cancelled: tr("cancelled"),
-      deleted: tr("deleted"),
-      failed: tr("failed"),
-    };
-    return labels[status.toLowerCase()] || status.replace(/_/g, " ");
-  };
-  const orderStatusBadgeClass = (status?: string | null) =>
-    String(status ?? "").toLowerCase() === "deleted"
-      ? "border-red-200 bg-red-100 text-red-800 hover:bg-red-100"
-      : "";
-  const formatStatusChangedAt = (value?: string | Date | null) => {
-    if (!value) return tr("unknown");
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return tr("unknown");
-
-    const locale =
-      language === "fa"
-        ? "fa-IR-u-ca-persian"
-        : language === "ar"
-          ? "ar-u-ca-gregory"
-          : language === "tr"
-            ? "tr-TR-u-ca-gregory"
-            : "en-US-u-ca-gregory";
-
-    return new Intl.DateTimeFormat(locale, {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(date);
-  };
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -624,35 +542,6 @@ export default function ShopAdmin() {
   const { data: stats = {} } = useQuery({
     queryKey: ["/api/shop/statistics"],
     enabled: isAuthenticated,
-  });
-
-  // Fetch orders
-  const { data: orders = [], isLoading: ordersLoading } = useQuery<Order[]>({
-    queryKey: ["/api/orders/all"],
-    enabled: isAuthenticated,
-  });
-
-  const normalizedOrderSearch = searchTerm.trim().toLowerCase();
-  const filteredOrders = orders.filter((order: any) => {
-    const matchesStatus =
-      orderStatusFilter === "all" ||
-      String(order.status || "").toLowerCase() === orderStatusFilter;
-    if (!matchesStatus) return false;
-    if (!normalizedOrderSearch) return true;
-
-    return [
-      order.orderNumber,
-      order.id,
-      order.customerName,
-      order.customer?.firstName,
-      order.customer?.lastName,
-      order.customer?.phone,
-      order.mobileNumber,
-      order.customer?.email,
-      order.email,
-    ].some((value) =>
-      String(value ?? "").toLowerCase().includes(normalizedOrderSearch)
-    );
   });
 
   // Fetch products for inventory management
@@ -698,28 +587,6 @@ export default function ShopAdmin() {
     enabled: isAuthenticated,
   });
 
-  // Update order status mutation
-  const updateOrderMutation = useMutation({
-    mutationFn: async ({ orderId, updates }: { orderId: number; updates: any }) => {
-      return apiRequest(`/api/shop/orders/${orderId}`, { method: "PATCH", body: updates });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/orders/all"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/shop/statistics"] });
-      toast({
-        title: tr("updated"),
-        description: tr("orderUpdated"),
-      });
-    },
-    onError: () => {
-      toast({
-        title: tr("updateFailed"),
-        description: tr("orderUpdateFailed"),
-        variant: "destructive",
-      });
-    },
-  });
-
   // Update discount mutation
   const updateDiscountMutation = useMutation({
     mutationFn: async ({ discountId, updates }: { discountId: number; updates: any }) => {
@@ -761,30 +628,6 @@ export default function ShopAdmin() {
       });
     },
   });
-
-  // Convert proforma to invoice mutation
-  const convertToInvoiceMutation = useMutation({
-    mutationFn: async (orderNumber: string) => {
-      return await apiRequest(`/api/admin/orders/${orderNumber}/convert-to-invoice`, { 
-        method: 'POST' 
-      });
-    },
-    onSuccess: (data: any) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/orders/all"] });
-      toast({
-        title: tr("success"),
-        description: data.message || tr("convertInvoice"),
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: tr("error"),
-        description: error?.message || tr("convertInvoiceFailed"),
-        variant: "destructive",
-      });
-    },
-  });
-
 
   // Returns handlers
   const handleDeleteReturn = async (returnId: number) => {
@@ -905,11 +748,19 @@ export default function ShopAdmin() {
           >
             {tr("contractSales")}
           </Button>
+          <Button
+            type="button"
+            variant={activeSection === "reports" ? "default" : "outline"}
+            onClick={() => setCommercialSelection("reports", "reports")}
+          >
+            {tr("salesReports")}
+          </Button>
           </div>
         </div>
 
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={(tab) => setCommercialSelection(activeSection, tab)} className="space-y-6">
+          {activeSection !== "reports" && (
           <TabsList className="flex flex-wrap gap-1 h-auto p-2 bg-gray-100 rounded-lg">
             {activeSection === "store" ? (
               <>
@@ -919,7 +770,6 @@ export default function ShopAdmin() {
                 <TabsTrigger value="invoices" className="bg-green-600 text-white hover:bg-green-700 data-[state=active]:bg-green-700 data-[state=active]:text-white text-sm px-3 py-2">{tr("invoiceManagement")}</TabsTrigger>
                 <TabsTrigger value="returns" className="text-sm px-3 py-2">{tr("returnedItems")}</TabsTrigger>
                 <TabsTrigger value="abandoned-cart" className="text-sm px-3 py-2">{tr("abandonedCart")}</TabsTrigger>
-                <TabsTrigger value="reports" className="text-sm px-3 py-2">{tr("salesReports")}</TabsTrigger>
                 <TabsTrigger value="bulk-purchases" className="text-sm px-3 py-2">{tr("bulkPurchases")}</TabsTrigger>
                 <TabsTrigger value="proforma-deadline" className="text-sm px-3 py-2">{tr("purchaseProformaDeadline")}</TabsTrigger>
               </>
@@ -927,327 +777,11 @@ export default function ShopAdmin() {
               <TabsTrigger value="contracts" className="text-sm px-3 py-2">{tr("salesContracts")}</TabsTrigger>
             )}
           </TabsList>
+          )}
 
           {/* Orders Tab */}
           <TabsContent value="orders" className="space-y-6">
-            <Tabs defaultValue="workflow" className="space-y-6">
-              <TabsList className="grid h-auto w-full max-w-xl grid-cols-2 gap-1 p-1">
-                <TabsTrigger value="workflow">{tr("workflowOrders")}</TabsTrigger>
-                <TabsTrigger value="commerce">{tr("commerceOrderDetails")}</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="workflow" className="mt-0">
-                <OrderTrackingManagement />
-              </TabsContent>
-
-              <TabsContent value="commerce" className="mt-0">
-                <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <ShoppingCart className="w-5 h-5" />
-                    {tr("orderManagement")}
-                  </CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {/* Orders filters and search */}
-                <div className="flex gap-4 mb-6">
-                  <div className="flex-1">
-                    <Input
-                      placeholder={tr("searchOrders")}
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="max-w-sm"
-                    />
-                  </div>
-                  <Select value={orderStatusFilter} onValueChange={setOrderStatusFilter}>
-                    <SelectTrigger className="w-48">
-                      <SelectValue placeholder={tr("filterStatus")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                       <SelectItem value="all">{tr("allOrders")}</SelectItem>
-                       <SelectItem value="pending">{tr("pending")}</SelectItem>
-                       <SelectItem value="confirmed">{tr("confirmed")}</SelectItem>
-                       <SelectItem value="processing">{tr("processing")}</SelectItem>
-                       <SelectItem value="shipped">{tr("shipped")}</SelectItem>
-                       <SelectItem value="delivered">{tr("delivered")}</SelectItem>
-                       <SelectItem value="cancelled">{tr("cancelled")}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Orders table fitted to the available width */}
-                <div className="border rounded-lg overflow-hidden">
-                  <div className="max-h-[600px] overflow-y-auto">
-                    <table className="w-full table-fixed">
-                      <colgroup>
-                        <col className="w-[13%]" />
-                        <col className="w-[15%]" />
-                        <col className="w-[12%]" />
-                        <col className="w-[17%]" />
-                        <col className="w-[11%]" />
-                        <col className="w-[13%]" />
-                        <col className="w-[9%]" />
-                        <col className="w-[10%]" />
-                      </colgroup>
-                      <thead className="bg-gray-50 sticky top-0 z-10">
-                        <tr>
-                          <th className="px-2 py-2 text-left text-[11px] font-medium text-gray-500 uppercase leading-tight">
-                            {tr("orderNumber")}
-                          </th>
-                          <th className="px-2 py-2 text-left text-[11px] font-medium text-gray-500 uppercase leading-tight">
-                            {tr("customerName")}
-                          </th>
-                          <th className="px-2 py-2 text-left text-[11px] font-medium text-gray-500 uppercase leading-tight">
-                            {tr("mobile")}
-                          </th>
-                          <th className="px-2 py-2 text-left text-[11px] font-medium text-gray-500 uppercase leading-tight">
-                            {tr("email")}
-                          </th>
-                          <th className="px-2 py-2 text-left text-[11px] font-medium text-gray-500 uppercase leading-tight">
-                            {tr("totalAmount")}
-                          </th>
-                          <th className="px-2 py-2 text-left text-[11px] font-medium text-gray-500 uppercase leading-tight">
-                            {tr("status")}
-                          </th>
-                          <th className="px-2 py-2 text-left text-[11px] font-medium text-gray-500 uppercase leading-tight">
-                            {tr("invoiceType")}
-                          </th>
-                          <th className="px-2 py-2 text-left text-[11px] font-medium text-gray-500 uppercase leading-tight">
-                            {tr("date")}
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {filteredOrders.length > 0 ? filteredOrders.map((order: any) => (
-                          <Fragment key={order.id}>
-                          <tr className={`hover:bg-gray-50 ${selectedOrder?.id === order.id ? "bg-blue-50" : ""}`}>
-                            <td className="px-2 py-2 text-xs font-medium text-gray-900">
-                              <div className="flex flex-col items-start gap-1">
-                                <button
-                                  type="button"
-                                  onClick={() => setSelectedOrder(selectedOrder?.id === order.id ? null : order)}
-                                  className="max-w-full truncate text-left font-semibold text-blue-600 underline-offset-2 hover:text-blue-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                                  title={tr("details")}
-                                >
-                                  #{order.orderNumber || order.id}
-                                </button>
-                                {(order.status === 'shipped' || order.status === 'delivered') && order.invoiceType === 'proforma' && (
-                                  <Button
-                                    size="sm"
-                                    variant="default"
-                                    onClick={() => convertToInvoiceMutation.mutate(order.orderNumber || order.id.toString())}
-                                    disabled={convertToInvoiceMutation.isPending}
-                                    className="h-6 px-1.5 py-0 text-[10px] bg-green-600 hover:bg-green-700"
-                                    title={tr("convertInvoice")}
-                                  >
-                                    {convertToInvoiceMutation.isPending ? (
-                                      <RefreshCw className="w-3 h-3 animate-spin" />
-                                    ) : (
-                                      tr("invoice")
-                                    )}
-                                  </Button>
-                                )}
-                              </div>
-                            </td>
-                            <td className="px-2 py-2 text-xs text-gray-900">
-                              <div className="truncate">
-                                {order.customerName ||
-                                  (order.customer
-                                    ? [order.customer.firstName, order.customer.lastName].filter(Boolean).join(" ")
-                                    : "") ||
-                                  tr("unknown")}
-                              </div>
-                            </td>
-                            <td className="px-2 py-2 text-xs text-gray-900">
-                              <div className="truncate">
-                                {order.customer?.phone || order.mobileNumber || tr("unknown")}
-                              </div>
-                            </td>
-                            <td className="px-2 py-2 text-xs text-gray-900">
-                              <div className="truncate">
-                                {order.customer?.email || order.email || tr("unknown")}
-                              </div>
-                            </td>
-                            <td className="px-2 py-2 text-xs text-gray-900">
-                              <div className="truncate font-medium">
-                                ${order.totalAmount || 0}
-                              </div>
-                            </td>
-                            <td className="px-2 py-2">
-                              <div className="flex flex-col items-start gap-1">
-                                <Badge
-                                  variant={order.status === 'confirmed' ? 'default' : 'secondary'}
-                                  className={`text-xs ${orderStatusBadgeClass(order.status)}`}
-                                >
-                                  {orderStatusLabel(order.status)}
-                                </Badge>
-                                <span
-                                  className="text-[10px] leading-3 text-gray-500"
-                                  title={tr("lastStatusChange")}
-                                >
-                                  {tr("lastStatusChange")}: {formatStatusChangedAt(order.statusChangedAt || order.updatedAt)}
-                                </span>
-                              </div>
-                            </td>
-                            <td className="px-2 py-2 text-xs text-gray-900">
-                              <Badge 
-                                variant={order.invoiceType === 'invoice' ? 'default' : 'secondary'} 
-                                className={`text-xs ${order.invoiceType === 'invoice' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}`}
-                              >
-                                 {order.invoiceType === 'invoice' ? tr("invoice") : tr("proforma")}
-                              </Badge>
-                            </td>
-                            <td className="px-2 py-2 text-xs text-gray-900">
-                              <div className="truncate">
-                                 {new Date(order.createdAt).toLocaleDateString(dateLocale)}
-                              </div>
-                            </td>
-                          </tr>
-                          {selectedOrder?.id === order.id && (
-                            <tr className="bg-slate-50">
-                              <td colSpan={8} className="p-3">
-                                <div className="space-y-4 rounded-lg border border-blue-200 bg-white p-4 shadow-sm">
-                                  <div className="flex items-center justify-between">
-                                    <h3 className="font-semibold text-gray-900">
-                                      {tr("orderDetails")} #{order.orderNumber || order.id}
-                                    </h3>
-                                    <Button size="sm" variant="ghost" onClick={() => setSelectedOrder(null)}>
-                                      {tr("close")}
-                                    </Button>
-                                  </div>
-
-                                  <div className="overflow-hidden rounded-md border">
-                                    <Table>
-                                      <TableBody>
-                                        <TableRow>
-                                          <TableHead className="w-[14%] bg-gray-50">{tr("customerName")}</TableHead>
-                                          <TableCell>{order.customerName || (order.customer ? [order.customer.firstName, order.customer.lastName].filter(Boolean).join(" ") : "") || tr("unknown")}</TableCell>
-                                          <TableHead className="w-[12%] bg-gray-50">{tr("mobile")}</TableHead>
-                                          <TableCell>{order.customer?.phone || order.mobileNumber || tr("unknown")}</TableCell>
-                                          <TableHead className="w-[10%] bg-gray-50">{tr("email")}</TableHead>
-                                          <TableCell className="break-all">{order.customer?.email || order.email || tr("unknown")}</TableCell>
-                                        </TableRow>
-                                        <TableRow>
-                                          <TableHead className="bg-gray-50">{tr("company")}</TableHead>
-                                          <TableCell>{order.customer?.company || tr("unknown")}</TableCell>
-                                          <TableHead className="bg-gray-50">{tr("city")}</TableHead>
-                                          <TableCell>{order.customer?.city || tr("unknown")}</TableCell>
-                                          <TableHead className="bg-gray-50">{tr("address")}</TableHead>
-                                          <TableCell>{order.customer?.address || tr("unknown")}</TableCell>
-                                        </TableRow>
-                                        <TableRow>
-                                          <TableHead className="bg-gray-50">{tr("orderDate")}</TableHead>
-                                          <TableCell>{new Date(order.createdAt).toLocaleDateString(dateLocale)}</TableCell>
-                                          <TableHead className="bg-gray-50">{tr("orderStatus")}</TableHead>
-                                          <TableCell>
-                                            <Badge
-                                              variant={order.status === "confirmed" ? "default" : "secondary"}
-                                              className={orderStatusBadgeClass(order.status)}
-                                            >
-                                              {orderStatusLabel(order.status)}
-                                            </Badge>
-                                          </TableCell>
-                                          <TableHead className="bg-gray-50">{tr("totalAmount")}</TableHead>
-                                          <TableCell className="font-semibold text-green-700">{formatOrderMoney(order.totalAmount, order.currency ?? order.currency_code)}</TableCell>
-                                        </TableRow>
-                                        <TableRow>
-                                          <TableHead className="bg-gray-50">{tr("paymentMethod")}</TableHead>
-                                          <TableCell>{paymentMethodLabel(order.paymentMethod ?? order.payment_method)}</TableCell>
-                                          <TableHead className="bg-gray-50">{tr("paymentStatus")}</TableHead>
-                                          <TableCell>{paymentStatusLabel(order.paymentStatus ?? order.payment_status)}</TableCell>
-                                          <TableHead className="bg-gray-50">{tr("invoiceType")}</TableHead>
-                                          <TableCell>{order.invoiceType === "invoice" ? tr("invoice") : tr("proforma")}</TableCell>
-                                        </TableRow>
-                                        <TableRow>
-                                          <TableHead className="bg-gray-50">{tr("wallet")}</TableHead>
-                                          <TableCell>{formatOrderMoney(order.walletAmountUsed ?? order.wallet_amount_used ?? 0, order.currency ?? order.currency_code)}</TableCell>
-                                          <TableHead className="bg-gray-50">{tr("bankGateway")}</TableHead>
-                                          <TableCell>{formatOrderMoney(order.bankAmountPaid ?? order.bank_amount_paid ?? 0, order.currency ?? order.currency_code)}</TableCell>
-                                          <TableHead className="bg-gray-50">{tr("discount")} / {tr("tax")}</TableHead>
-                                          <TableCell>{formatOrderMoney(order.discount ?? 0, order.currency ?? order.currency_code)} / {formatOrderMoney(order.tax ?? 0, order.currency ?? order.currency_code)}</TableCell>
-                                        </TableRow>
-                                        <TableRow>
-                                          <TableHead className="bg-gray-50">{tr("carrier")}</TableHead>
-                                          <TableCell>{order.carrier || tr("unknown")}</TableCell>
-                                          <TableHead className="bg-gray-50">{tr("tracking")}</TableHead>
-                                          <TableCell>{order.trackingNumber || tr("unknown")}</TableCell>
-                                          <TableHead className="bg-gray-50">{tr("shippingAddress")}</TableHead>
-                                          <TableCell>
-                                            {order.shippingAddress
-                                              ? typeof order.shippingAddress === "object"
-                                                ? `${order.shippingAddress.address || ""} ${order.shippingAddress.city || ""} ${order.shippingAddress.postalCode || ""}`.trim()
-                                                : order.shippingAddress
-                                              : tr("unknown")}
-                                          </TableCell>
-                                        </TableRow>
-                                      </TableBody>
-                                    </Table>
-                                  </div>
-
-                                  <div>
-                                    <h4 className="mb-2 font-semibold">{tr("orderItems", { count: order.items?.length || 0 })}</h4>
-                                    <div className="overflow-hidden rounded-md border">
-                                      <Table>
-                                        <TableHeader>
-                                          <TableRow className="bg-gray-50">
-                                            <TableHead>{tr("products")}</TableHead>
-                                            <TableHead>{tr("productCode")}</TableHead>
-                                            <TableHead>{tr("quantity")}</TableHead>
-                                            <TableHead>{tr("unitPrice")}</TableHead>
-                                            <TableHead>{tr("totalAmount")}</TableHead>
-                                          </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                          {order.items?.length ? order.items.map((item: any, index: number) => {
-                                            const quantity = Number(item.quantity ?? 1);
-                                            const unitPrice = Number(item.unitPrice ?? item.unit_price ?? item.price ?? 0);
-                                            const totalPrice = Number(item.totalPrice ?? item.total_price ?? quantity * unitPrice);
-                                            return (
-                                              <TableRow key={item.id ?? index}>
-                                                <TableCell>{item.productName ?? item.product_name ?? item.name ?? tr("unknown")}</TableCell>
-                                                <TableCell>{item.productSku ?? item.product_sku ?? item.sku ?? tr("unknown")}</TableCell>
-                                                <TableCell>{Number.isFinite(quantity) ? quantity : 0}{item.unit ?? item.unit_measurement ? ` ${item.unit ?? item.unit_measurement}` : ""}</TableCell>
-                                                <TableCell>{formatOrderMoney(unitPrice, order.currency ?? order.currency_code)}</TableCell>
-                                                <TableCell className="font-semibold">{formatOrderMoney(totalPrice, order.currency ?? order.currency_code)}</TableCell>
-                                              </TableRow>
-                                            );
-                                          }) : (
-                                            <TableRow>
-                                              <TableCell colSpan={5} className="text-center text-gray-500">{tr("noItems")}</TableCell>
-                                            </TableRow>
-                                          )}
-                                        </TableBody>
-                                      </Table>
-                                    </div>
-                                  </div>
-                                </div>
-                              </td>
-                            </tr>
-                          )}
-                          </Fragment>
-                        )) : (
-                          <tr>
-                            <td colSpan={8} className="px-6 py-4 text-center text-gray-500">
-                               {tr("noOrders")}
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                  {/* Scroll indicator */}
-                  <div className="bg-gray-100 px-4 py-1 text-xs text-gray-500 text-center border-t">
-                    {filteredOrders.length > 15 && (
-                       <span>{tr("scrollOrders", { count: filteredOrders.length })}</span>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
+            <OrderTrackingManagement />
           </TabsContent>
 
           {/* Inventory Tab */}
