@@ -21,6 +21,8 @@ import AuthModal from "@/components/checkout/auth-modal";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { translations, type Translation } from "@/lib/i18n";
 
+const EMPTY_SHIPPING_OPTIONS: any[] = [];
+
 // Dynamic checkout form validation schema - required fields only if not logged in
 const createCheckoutFormSchema = (isLoggedIn: boolean, t: Translation) => z.object({
   // Customer Information (required if not logged in)
@@ -176,7 +178,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
   });
 
   // Get available delivery methods
-  const { data: deliveryMethods = [] } = useQuery<any[]>({
+  const { data: deliveryMethods = EMPTY_SHIPPING_OPTIONS } = useQuery<any[]>({
     queryKey: ['/api/checkout/delivery-methods']
   });
 
@@ -231,8 +233,8 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
   });
 
   // Extract provinces and cities arrays from API responses with proper type safety
-  const provinces = (provincesData?.success && Array.isArray(provincesData.data)) ? provincesData.data : [];
-  const secondaryCities = (citiesData?.success && Array.isArray(citiesData.data)) ? citiesData.data : [];
+  const provinces = (provincesData?.success && Array.isArray(provincesData.data)) ? provincesData.data : EMPTY_SHIPPING_OPTIONS;
+  const secondaryCities = (citiesData?.success && Array.isArray(citiesData.data)) ? citiesData.data : EMPTY_SHIPPING_OPTIONS;
   const geographyName = (place: any) => {
     if (!place) return '';
     if (language === 'fa') return place.namePersian || place.nameFa || place.name_fa || place.name || place.nameEn || place.nameEnglish || '';

@@ -24,6 +24,8 @@ type Language = 'en' | 'ar' | 'fa' | 'tr';
 const getShippingCenterKey = (center?: { countryCode?: string; provinceId?: number; cityId?: number } | null) =>
   center ? `${center.countryCode || ''}|${center.provinceId || ''}|${center.cityId || ''}` : '';
 
+const EMPTY_CITIES: any[] = [];
+
 // Translation system
 const translations = {
   en: {
@@ -693,7 +695,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     retry: 1,
     staleTime: 5 * 60 * 1000,
   });
-  const secondaryCities = Array.isArray(secondaryCitiesResponse?.data) ? secondaryCitiesResponse.data : [];
+  const secondaryCities = Array.isArray(secondaryCitiesResponse?.data) ? secondaryCitiesResponse.data : EMPTY_CITIES;
 
   const geographyName = (place: any) => {
     if (!place) return '';

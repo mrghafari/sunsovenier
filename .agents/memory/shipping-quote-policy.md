@@ -14,3 +14,9 @@ An ordinary delivery quote requires an active rate that covers the selected dest
 **Why:** A zero default on a method can otherwise present an unsupported destination as free delivery, even though no actual rate was configured for it.
 
 **How to apply:** Make the cart quote and order validation use the same catalog, method, destination, and rate facts. If a route or rate is unavailable, show that state rather than a perpetual calculation or a zero price.
+
+React shipping-quote effects must use stable references for optional geography lists while those lists are unavailable.
+
+**Why:** Creating a fresh empty array on every render retriggers a quote effect, whose cleanup aborts the previous request. Even a valid rate can then remain stuck as calculating or unavailable indefinitely.
+
+**How to apply:** When optional cities or regions are dependencies of quote effects or quote callbacks, use a shared immutable empty fallback or memoized array and check for similar unstable default values.
