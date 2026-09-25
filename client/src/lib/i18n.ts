@@ -865,6 +865,9 @@ export interface Translation {
     nonChemicalDesc: string;
     flammableProduct: string;
     flammableDesc: string;
+    contractOnlyLabel: string;
+    contractOnlyDesc: string;
+    contractOnlyBadge: string;
     baseInfo: string;
     productName: string;
     productNamePlaceholder: string;
@@ -2042,6 +2045,9 @@ const baseTranslations = {
       nonChemicalDesc: 'Non-chemical product',
       flammableProduct: 'Flammable product',
       flammableDesc: 'Flammable product',
+      contractOnlyLabel: 'Sale by contract only',
+      contractOnlyDesc: 'This product is sold only through customer contracts',
+      contractOnlyBadge: 'Contract only',
       baseInfo: 'Basic product information',
       productName: 'Product Name *',
       productNamePlaceholder: 'Enter product name',
@@ -3536,6 +3542,9 @@ const baseTranslations = {
       nonChemicalDesc: 'منتج غير كيميائي',
       flammableProduct: 'منتج قابل للاشتعال',
       flammableDesc: 'منتج قابل للاشتعال',
+      contractOnlyLabel: 'البيع عبر العقد فقط',
+      contractOnlyDesc: 'يُباع هذا المنتج فقط عبر عقود العملاء',
+      contractOnlyBadge: 'للعقود فقط',
       baseInfo: 'المعلومات الأساسية للمنتج',
       productName: 'اسم المنتج *',
       productNamePlaceholder: 'أدخل اسم المنتج',
@@ -4956,6 +4965,9 @@ const baseTranslations = {
       nonChemicalDesc: 'Kimyasal olmayan ürün',
       flammableProduct: 'Yanıcı ürün',
       flammableDesc: 'Yanıcı ürün',
+      contractOnlyLabel: 'Yalnızca sözleşmeyle satış',
+      contractOnlyDesc: 'Bu ürün yalnızca müşteri sözleşmeleri kapsamında satılır',
+      contractOnlyBadge: 'Yalnızca sözleşmeli',
       baseInfo: 'Temel ürün bilgileri',
       productName: 'Ürün Adı *',
       productNamePlaceholder: 'Ürün adı girin',
@@ -5926,6 +5938,9 @@ export const translations = {
     nonChemicalDesc: 'این محصول غیرشیمیایی است',
     flammableProduct: 'محصول قابل اشتعال',
     flammableDesc: 'این محصول قابل اشتعال است',
+    contractOnlyLabel: 'فروش فقط از طریق قرارداد',
+    contractOnlyDesc: 'این محصول فقط از طریق قراردادهای مشتریان فروخته می‌شود',
+    contractOnlyBadge: 'فقط قراردادی',
     baseInfo: 'اطلاعات پایه محصول',
     productName: 'نام محصول *',
     productNamePlaceholder: 'نام محصول را وارد کنید',

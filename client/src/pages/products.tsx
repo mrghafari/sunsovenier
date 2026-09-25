@@ -1747,7 +1747,7 @@ export default function ProductsPage() {
                         )}
                         {product.contractOnly && (
                           <Badge variant="outline" className="mb-1 border-violet-200 bg-violet-50 text-violet-700">
-                            فقط قراردادی
+                            {t.productManagement.contractOnlyBadge}
                           </Badge>
                         )}
                         <div className="flex items-center gap-2 mb-2">
@@ -2114,8 +2114,8 @@ export default function ProductsPage() {
                     render={({ field }) => (
                       <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 bg-violet-50 border-violet-200">
                         <div className="space-y-0.5">
-                          <FormLabel className="text-sm font-medium text-violet-700">فروش فقط از طریق قرارداد</FormLabel>
-                          <div className="text-xs text-violet-500">این محصول فقط از طریق قراردادهای مشتریان فروخته می‌شود</div>
+                          <FormLabel className="text-sm font-medium text-violet-700">{t.productManagement.contractOnlyLabel}</FormLabel>
+                          <div className="text-xs text-violet-500">{t.productManagement.contractOnlyDesc}</div>
                         </div>
                         <FormControl>
                           <Checkbox
