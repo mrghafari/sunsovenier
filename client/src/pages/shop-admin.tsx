@@ -474,10 +474,10 @@ function ProformaDeadlineSettings() {
   );
 }
 
-const storeSalesTabs = ["orders", "discounts", "inventory", "invoices", "returns", "abandoned-cart", "bulk-purchases", "proforma-deadline"];
+const storeSalesTabs = ["orders", "discounts", "inventory", "returns", "abandoned-cart", "bulk-purchases", "proforma-deadline"];
 const contractSalesTabs = ["contracts"];
 const formerProcurementTabs = ["bulk-purchases", "proforma-deadline"];
-type SalesSection = "store" | "contractual" | "reports";
+type SalesSection = "store" | "contractual" | "reports" | "invoices";
 
 function commercialSelectionFromUrl(search: string): { section: SalesSection; tab: string } {
   const params = new URLSearchParams(search);
@@ -488,6 +488,7 @@ function commercialSelectionFromUrl(search: string): { section: SalesSection; ta
   }
   if (unit === "sales") {
     if (tab === "reports" || (!tab && params.get("group") === "reports")) return { section: "reports", tab: "reports" };
+    if (tab === "invoices" || (!tab && params.get("group") === "invoices")) return { section: "invoices", tab: "invoices" };
     if (tab && storeSalesTabs.includes(tab)) return { section: "store", tab };
     if (tab && contractSalesTabs.includes(tab)) return { section: "contractual", tab };
     if (!tab && params.get("group") === "contractual") return { section: "contractual", tab: "contracts" };
@@ -755,19 +756,25 @@ export default function ShopAdmin() {
           >
             {tr("salesReports")}
           </Button>
+          <Button
+            type="button"
+            variant={activeSection === "invoices" ? "default" : "outline"}
+            onClick={() => setCommercialSelection("invoices", "invoices")}
+          >
+            {tr("invoiceManagement")}
+          </Button>
           </div>
         </div>
 
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={(tab) => setCommercialSelection(activeSection, tab)} className="space-y-6">
-          {activeSection !== "reports" && (
+          {(activeSection === "store" || activeSection === "contractual") && (
           <TabsList className="flex flex-wrap gap-1 h-auto p-2 bg-gray-100 rounded-lg">
             {activeSection === "store" ? (
               <>
                 <TabsTrigger value="orders" className="text-sm px-3 py-2">{tr("orders")}</TabsTrigger>
                 <TabsTrigger value="discounts" className="text-sm px-3 py-2">{tr("discountSettings")}</TabsTrigger>
                 <TabsTrigger value="inventory" className="text-sm px-3 py-2">{tr("inventory")}</TabsTrigger>
-                <TabsTrigger value="invoices" className="bg-green-600 text-white hover:bg-green-700 data-[state=active]:bg-green-700 data-[state=active]:text-white text-sm px-3 py-2">{tr("invoiceManagement")}</TabsTrigger>
                 <TabsTrigger value="returns" className="text-sm px-3 py-2">{tr("returnedItems")}</TabsTrigger>
                 <TabsTrigger value="abandoned-cart" className="text-sm px-3 py-2">{tr("abandonedCart")}</TabsTrigger>
                 <TabsTrigger value="bulk-purchases" className="text-sm px-3 py-2">{tr("bulkPurchases")}</TabsTrigger>
