@@ -123,6 +123,10 @@ const PROFILE_T = {
     viewRecentOrders: "View Recent Orders",
     productFilter: "Product",
     allProducts: "All products",
+    purchaseType: "Purchase type",
+    allPurchaseTypes: "All purchase types",
+    normalPurchase: "Normal",
+    contractPurchase: "Contract purchase",
     sortBy: "Sort by",
     sortDate: "Date",
     sortOrderNumber: "Order number",
@@ -253,6 +257,10 @@ const PROFILE_T = {
     viewRecentOrders: "عرض الطلبات الأخيرة",
     productFilter: "المنتج",
     allProducts: "كل المنتجات",
+    purchaseType: "نوع الشراء",
+    allPurchaseTypes: "كل أنواع الشراء",
+    normalPurchase: "عادي",
+    contractPurchase: "شراء تعاقدي",
     sortBy: "ترتيب حسب",
     sortDate: "التاريخ",
     sortOrderNumber: "رقم الطلب",
@@ -380,6 +388,10 @@ const PROFILE_T = {
     viewRecentOrders: "Son Siparişleri Görüntüle",
     productFilter: "Ürün",
     allProducts: "Tüm ürünler",
+    purchaseType: "Satın alma türü",
+    allPurchaseTypes: "Tüm satın alma türleri",
+    normalPurchase: "Normal",
+    contractPurchase: "Sözleşmeli satın alma",
     sortBy: "Sıralama",
     sortDate: "Tarih",
     sortOrderNumber: "Sipariş numarası",
@@ -514,6 +526,10 @@ const PROFILE_T_WITH_FA = {
     viewRecentOrders: "مشاهده سفارش‌های اخیر",
     productFilter: "کالا",
     allProducts: "همه کالاها",
+    purchaseType: "نوع خرید",
+    allPurchaseTypes: "همه انواع خرید",
+    normalPurchase: "عادی",
+    contractPurchase: "خرید قراردادی",
     sortBy: "مرتب‌سازی بر اساس",
     sortDate: "تاریخ",
     sortOrderNumber: "شماره سفارش",
@@ -657,6 +673,7 @@ const CustomerProfile = () => {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [completeHistory, setCompleteHistory] = useState<any[]>([]);
   const [selectedFilter, setSelectedFilter] = useState<string>("all");
+  const [selectedPurchaseType, setSelectedPurchaseType] = useState<"all" | "normal" | "contract">("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [selectedProduct, setSelectedProduct] = useState("all");
@@ -737,6 +754,10 @@ const CustomerProfile = () => {
     ) return "bank_transfer";
     return "pending";
   };
+  const isContractOrder = (order: any) =>
+    order?.contractId !== null &&
+    order?.contractId !== undefined &&
+    String(order.contractId).trim() !== "";
   const getLocalizedStatusForSearch = (order: any) => {
     return getOrderStatusLabel(resolveCustomerOrderStatus(order), language as OrderStatusLanguage);
   };
@@ -814,12 +835,26 @@ const CustomerProfile = () => {
     if (completeBaseOrders.length === 0) loadCompleteHistory();
   };
 
+  const selectPurchaseTypeFilter = (filter: "all" | "normal" | "contract") => {
+    setSelectedPurchaseType(filter);
+    setExpandedOrderId(null);
+    // Contractual orders can be older than the ten-order recent view. Switch to
+    // the complete-history view before applying a specific purchase-type filter.
+    if (filter !== "all") {
+      setShowPurchaseHistory(true);
+      if (completeBaseOrders.length === 0) loadCompleteHistory();
+    }
+  };
+
   const productNames = Array.from(new Set(baseOrders.flatMap((order: any) =>
     (order.items || []).map((item: any) => item.productName).filter(Boolean),
   ))).sort((a, b) => String(a).localeCompare(String(b)));
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const filteredOrders = baseOrders.filter((order: any) => {
     const categoryMatch = selectedFilter === "all" || getOrderCategory(order) === selectedFilter;
+    const purchaseTypeMatch =
+      selectedPurchaseType === "all" ||
+      (selectedPurchaseType === "contract" ? isContractOrder(order) : !isContractOrder(order));
     const items = order.items || [];
     const itemNames = items.map((item: any) => String(item.productName || ""));
     const searchFields = [
@@ -832,7 +867,7 @@ const CustomerProfile = () => {
     const createdAt = new Date(order.createdAt).getTime();
     const fromMatch = !dateFrom || createdAt >= new Date(`${dateFrom}T00:00:00`).getTime();
     const toMatch = !dateTo || createdAt <= new Date(`${dateTo}T23:59:59.999`).getTime();
-    return categoryMatch && searchMatch && productMatch && fromMatch && toMatch;
+    return categoryMatch && purchaseTypeMatch && searchMatch && productMatch && fromMatch && toMatch;
   });
   const visibleOrders = [...filteredOrders].sort((a: any, b: any) => {
     const priorityDifference =
@@ -1362,6 +1397,11 @@ const CustomerProfile = () => {
                          <option value="all">{pt.allProducts}</option>
                          {productNames.map((name) => <option key={name} value={name}>{name}</option>)}
                        </select>
+                       <select value={selectedPurchaseType} onChange={(event) => selectPurchaseTypeFilter(event.target.value as "all" | "normal" | "contract")} aria-label={pt.purchaseType} className="h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-700 sm:w-[165px]">
+                         <option value="all">{pt.allPurchaseTypes}</option>
+                         <option value="normal">{pt.normalPurchase}</option>
+                         <option value="contract">{pt.contractPurchase}</option>
+                       </select>
                        <select value={sortField} onChange={(event) => setSortField(event.target.value)} aria-label={pt.sortBy} className="h-9 w-full rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-700 sm:w-[145px]">
                          <option value="date">{pt.sortBy}: {pt.sortDate}</option>
                          <option value="orderNumber">{pt.sortBy}: {pt.sortOrderNumber}</option>
@@ -1374,7 +1414,7 @@ const CustomerProfile = () => {
                        </Button>
                        <Button type="button" variant="outline" onClick={() => {
                          setSearchTerm(""); setDateFrom(""); setDateTo(""); setSelectedProduct("all");
-                         setSelectedFilter("all"); setSortField("date"); setSortDirection("desc");
+                         setSelectedFilter("all"); setSelectedPurchaseType("all"); setSortField("date"); setSortDirection("desc");
                        }} className="h-9 border-slate-300 px-3 text-xs">
                          {pt.clearFilters}
                        </Button>
@@ -1395,10 +1435,11 @@ const CustomerProfile = () => {
                   ) : (
                     <div className="overflow-x-auto">
                         <div className="min-w-[1180px]">
-                         <div className="sticky top-0 z-10 grid grid-cols-[44px_1.4fr_1fr_1fr_1fr_1.6fr_1.4fr] border-b border-slate-700 bg-slate-700 text-[11px] font-semibold uppercase tracking-wide text-slate-50">
+                         <div className="sticky top-0 z-10 grid grid-cols-[44px_1.4fr_1fr_1fr_1fr_1fr_1.6fr_1.4fr] border-b border-slate-700 bg-slate-700 text-[11px] font-semibold uppercase tracking-wide text-slate-50">
                          <div className="border-e border-slate-600 px-3 py-2">#</div>
                          <div className="border-e border-slate-600 px-3 py-2">{pt.orderLabel("order")}</div>
                          <div className="border-e border-slate-600 px-3 py-2">{pt.orderItems}</div>
+                         <div className="border-e border-slate-600 px-3 py-2">{pt.purchaseType}</div>
                          <div className="border-e border-slate-600 px-3 py-2">{pt.status}</div>
                          <div className="border-e border-slate-600 px-3 py-2">{pt.totalAmount}</div>
                           <div className="border-e border-slate-600 px-3 py-2">{pt.invoice}</div>
@@ -1413,7 +1454,7 @@ const CustomerProfile = () => {
                         return (
                           <div
                             key={order.id}
-                            className={`grid grid-cols-[44px_1.4fr_1fr_1fr_1fr_1.6fr_1.4fr] gap-0 border-b border-x-0 border-slate-200 text-xs ${
+                              className={`grid grid-cols-[44px_1.4fr_1fr_1fr_1fr_1fr_1.6fr_1.4fr] gap-0 border-b border-x-0 border-slate-200 text-xs ${
                               is3DayBankTransfer
                                 ? "border-orange-300 bg-orange-50"
                                 : order.status === "pending" || order.status === "payment_grace_period"
@@ -1446,7 +1487,22 @@ const CustomerProfile = () => {
                               <div className="col-start-3 row-start-1 flex min-w-0 items-center border-e border-slate-200 px-3 py-2">
                                 <p className="font-medium text-slate-700">{order.items?.length || 0} {pt.orderItems}</p>
                               </div>
-                              <div className="col-start-4 row-start-1 flex min-w-0 flex-col items-start justify-center border-e border-slate-200 px-3 py-2">
+                              <div className="col-start-4 row-start-1 flex min-w-0 items-center border-e border-slate-200 px-3 py-2">
+                                {isContractOrder(order) ? (
+                                  <span
+                                    className="inline-flex h-7 w-7 items-center justify-center rounded border border-emerald-700 bg-emerald-50 text-base font-black text-emerald-800"
+                                    aria-label={pt.contractPurchase}
+                                    title={pt.contractPurchase}
+                                  >
+                                    C
+                                  </span>
+                                ) : (
+                                  <span className="text-xs font-medium text-slate-600" aria-label={pt.normalPurchase} title={pt.normalPurchase}>
+                                    {pt.normalPurchase}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="col-start-5 row-start-1 flex min-w-0 flex-col items-start justify-center border-e border-slate-200 px-3 py-2">
                                 <Badge className={`text-[10px] ${getStatusColor(order.status, order.paymentStatus, order)}`}>
                                   {getStatusLabel(order.status, order.paymentStatus, order)}
                                 </Badge>
@@ -1467,10 +1523,10 @@ const CustomerProfile = () => {
                                   </Badge>
                                 )}
                               </div>
-                              <div className="col-start-5 row-start-1 flex min-w-0 items-center border-e border-slate-200 px-3 py-2">
+                              <div className="col-start-6 row-start-1 flex min-w-0 items-center border-e border-slate-200 px-3 py-2">
                                 <span className="font-semibold text-slate-900">{Math.floor(getOrderTotal(order))} IQD</span>
                               </div>
-                               <div className="col-start-6 row-start-1 flex min-w-0 items-center border-e border-slate-200 px-3 py-2">
+                               <div className="col-start-7 row-start-1 flex min-w-0 items-center border-e border-slate-200 px-3 py-2">
                                 {!["cancelled", "financial_rejected", "finance_rejected", "rejected"].includes(
                                   String(order.currentStatus || order.managementStatus || order.status || "").toLowerCase(),
                                 ) &&
@@ -1499,7 +1555,7 @@ const CustomerProfile = () => {
                                   <span className="text-slate-400" aria-label={pt.invoice}>—</span>
                                 )}
                               </div>
-                               <div className="col-start-7 row-start-1 flex min-w-0 items-center px-2 py-2">
+                               <div className="col-start-8 row-start-1 flex min-w-0 items-center px-2 py-2">
                                  {isUnpaidGraceOrder(order) ? (
                                    <Button
                                      type="button"
@@ -1535,7 +1591,7 @@ const CustomerProfile = () => {
                                  )}
                                </div>
                             {expandedOrderId === order.id && (
-                               <div id={`order-details-${order.id}`} className="col-span-7 min-w-0 border-t border-slate-300 bg-slate-50 p-3">
+                               <div id={`order-details-${order.id}`} className="col-span-8 min-w-0 border-t border-slate-300 bg-slate-50 p-3">
                                 {is3DayBankTransfer && (order.status === "pending" || order.status === "payment_grace_period") && (
                                   <div className="mb-3 rounded border border-orange-300 bg-orange-100 p-3">
                                     <div className="mb-2 flex items-center justify-between">
@@ -1715,6 +1771,7 @@ const CustomerProfile = () => {
                       const next = !showPurchaseHistory;
                       setShowPurchaseHistory(next);
                       if (next) loadCompleteHistory();
+                      else setSelectedPurchaseType("all");
                     }}
                     variant="outline"
                     className="w-full border-purple-200 text-purple-700 hover:bg-purple-50 hover:border-purple-300"

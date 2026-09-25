@@ -21362,6 +21362,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           co.id,
           co.order_number,
           co.customer_id,
+          co.contract_id,
           co.total_amount,
           co.shipping_cost,
           co.vat_amount,
@@ -21450,6 +21451,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       const customerOrders = allOrdersWithItems.map((row: any) => ({
         id: row.id,
         orderNumber: row.order_number,
+        contractId: row.contract_id == null ? null : Number(row.contract_id),
         status: row.status,
         totalAmount: row.total_amount,
         shippingCost: row.shipping_cost,
@@ -21494,6 +21496,9 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           );
         const enrichedOrder = {
           ...order,
+          contractId: management?.contract_id == null
+            ? (order.contractId ?? null)
+            : Number(management.contract_id),
           financialReviewedAt: management?.financial_reviewed_at ?? null,
           financiallyApproved: management?.financial_reviewed_at != null,
           currentStatus: management?.current_status ?? order.status,

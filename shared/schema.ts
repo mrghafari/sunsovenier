@@ -2050,6 +2050,7 @@ export const shopContracts = pgTable("shop_contracts", {
   customerId: integer("customer_id").notNull().references(() => crmCustomers.id),
   terms: text("terms").notNull().default(""),
   isActive: boolean("is_active").notNull().default(true),
+  endedAt: timestamp("ended_at", { withTimezone: true }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

@@ -169,6 +169,7 @@ function contractResponse(row: any, itemRows: any[]) {
     terms: row.terms,
     deliveryTerm: row.delivery_term,
     isActive: row.is_active,
+    endedAt: row.ended_at ? new Date(row.ended_at).toISOString() : null,
     customerId: Number(row.customer_id),
     customerName: row.customer_name,
     items: itemRows.map((item) => ({
@@ -184,7 +185,7 @@ function contractResponse(row: any, itemRows: any[]) {
 
 async function loadContractRows(client: import("pg").PoolClient, contractId?: number) {
   const contracts = await client.query(
-    `SELECT c.id, c.number, c.terms, c.delivery_term, c.is_active, c.customer_id,
+    `SELECT c.id, c.number, c.terms, c.delivery_term, c.is_active, c.ended_at, c.customer_id,
             COALESCE(NULLIF(concat_ws(' ', cc.first_name, cc.last_name), ''), cc.company, '') AS customer_name
        FROM shop_contracts c
        JOIN crm_customers cc ON cc.id = c.customer_id
@@ -277,10 +278,13 @@ async function saveContract(definition: ContractDefinition, contractId?: number)
     }
 
     const locked = await client.query(
-      "SELECT id, customer_id, delivery_term FROM shop_contracts WHERE id = $1 FOR UPDATE",
+      "SELECT id, customer_id, delivery_term, ended_at FROM shop_contracts WHERE id = $1 FOR UPDATE",
       [contractId],
     );
     if (!locked.rowCount) throw new ContractError("Contract not found.", 404);
+    if (locked.rows[0].ended_at !== null) {
+      throw new ContractError("An ended contract cannot be edited.", 409);
+    }
     if (definition.deliveryTerm === null && locked.rows[0].delivery_term !== null) {
       throw new ContractError("A saved contract delivery term cannot be removed.");
     }
@@ -405,7 +409,7 @@ export function registerShopContractRoutes(app: Express): void {
     try {
       await reconcileShopContractHolds();
       const result = await pool.query(
-        `SELECT c.id, c.number, c.terms, c.delivery_term, c.is_active, c.customer_id,
+        `SELECT c.id, c.number, c.terms, c.delivery_term, c.is_active, c.ended_at, c.customer_id,
                 COALESCE(NULLIF(concat_ws(' ', cc.first_name, cc.last_name), ''), cc.company, '') AS customer_name
            FROM shop_contracts c JOIN crm_customers cc ON cc.id = c.customer_id
           WHERE c.customer_id = $1 ORDER BY c.id DESC`,
@@ -497,8 +501,8 @@ export function registerShopContractRoutes(app: Express): void {
         // The conditional update serializes with checkout's contract row lock:
         // once this commits, no new contract cart can claim capacity.
         const updated = await client.query(
-          `UPDATE shop_contracts SET is_active = false, updated_at = now()
-             WHERE id = $1 AND is_active = true RETURNING id`,
+          `UPDATE shop_contracts SET is_active = false, ended_at = now(), updated_at = now()
+             WHERE id = $1 AND ended_at IS NULL RETURNING id`,
           [id],
         );
         if (!updated.rowCount) {
