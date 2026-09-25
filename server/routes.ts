@@ -686,6 +686,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     for (const id of productIds) {
       const product: any = products.find((candidate: any) => candidate.id === id);
       if (!product) throw new ShippingConfigurationError(`Product ${id} is unavailable.`, 422);
+      if (product.contractOnly && !contractPricing) {
+        throw new ShippingConfigurationError(
+          `Product ${id} can only be purchased through an active customer contract.`,
+          422,
+        );
+      }
       const quantity = Number(input.cart[String(id)]);
       if (!Number.isSafeInteger(quantity) || quantity <= 0) {
         throw new ShippingConfigurationError(`Invalid quantity for product ${id}.`, 422);
@@ -5690,7 +5696,8 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         isVariant: productData.isVariant || false,
         variantType: productData.variantType || null,
         variantValue: productData.variantValue || null,
-        isFlammable: productData.isFlammable || false
+        isFlammable: productData.isFlammable || false,
+        contractOnly: productData.contractOnly === true
       };
       
       const product = await storage.createProduct(showcaseProductData);
@@ -25038,13 +25045,37 @@ ${procedure.content}
   });
 
   app.get("/api/shop/products", async (req, res) => {
+    res.setHeader("Cache-Control", "private, no-store");
+    res.vary("Cookie");
     try {
       const products = await shopStorage.getShopProducts();
+      const session = req.session as any;
+      const rawCustomerId = session?.crmCustomerId ?? session?.customerId;
+      const customerId = Number(rawCustomerId);
+      const eligibleContractProductIds = new Set<number>();
+      if (Number.isSafeInteger(customerId) && customerId > 0) {
+        const contractProducts = await pool.query(
+          `SELECT DISTINCT ci.product_id
+             FROM shop_contracts c
+             JOIN shop_contract_items ci ON ci.contract_id = c.id
+            WHERE c.customer_id = $1 AND c.is_active = TRUE`,
+          [customerId],
+        );
+        for (const row of contractProducts.rows) {
+          const productId = Number(row.product_id);
+          if (Number.isSafeInteger(productId) && productId > 0) {
+            eligibleContractProductIds.add(productId);
+          }
+        }
+      }
+      const customerProducts = products.filter(product =>
+        !product.contractOnly || eligibleContractProductIds.has(Number(product.id))
+      );
       const { getAvailableQuantities } = await import("./cart-inventory-reservation");
-      const availableQuantities = await getAvailableQuantities(products.map(product => product.id));
+      const availableQuantities = await getAvailableQuantities(customerProducts.map(product => product.id));
       
       // Map database fields to frontend expected format
-      const mappedProducts = products.map(product => {
+      const mappedProducts = customerProducts.map(product => {
         const available = availableQuantities[product.id] ?? Number(product.stockQuantity || 0);
         return {
         ...product,
@@ -25078,6 +25109,8 @@ ${procedure.content}
   });
 
   app.get("/api/shop/products/:id", async (req, res) => {
+    res.setHeader("Cache-Control", "private, no-store");
+    res.vary("Cookie");
     try {
       const productId = parseInt(req.params.id);
       if (isNaN(productId)) {
@@ -25087,6 +25120,25 @@ ${procedure.content}
       const product = await shopStorage.getShopProductById(productId);
       if (!product) {
         return res.status(404).json({ success: false, message: "Product not found" });
+      }
+      if (product.contractOnly) {
+        const session = req.session as any;
+        const rawCustomerId = session?.crmCustomerId ?? session?.customerId;
+        const customerId = Number(rawCustomerId);
+        if (!Number.isSafeInteger(customerId) || customerId <= 0) {
+          return res.status(404).json({ success: false, message: "Product not found" });
+        }
+        const eligible = await pool.query(
+          `SELECT 1
+             FROM shop_contracts c
+             JOIN shop_contract_items ci ON ci.contract_id = c.id
+            WHERE c.customer_id = $1 AND c.is_active = TRUE AND ci.product_id = $2
+            LIMIT 1`,
+          [customerId, productId],
+        );
+        if (eligible.rowCount === 0) {
+          return res.status(404).json({ success: false, message: "Product not found" });
+        }
       }
       
       // Map database fields to frontend expected format
@@ -25159,6 +25211,8 @@ ${procedure.content}
 
   // Advanced shop product search
   app.get("/api/shop/search", async (req, res) => {
+    res.setHeader("Cache-Control", "private, no-store");
+    res.vary("Cookie");
     try {
       const {
         q: query = '',

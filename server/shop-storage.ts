@@ -367,6 +367,7 @@ export class ShopStorage implements IShopStorage {
       .where(
         and(
           eq(shopProducts.isActive, true),
+          eq(shopProducts.contractOnly, false),
           or(...categoryConditions),
           // Show products that are either in stock OR have showWhenOutOfStock enabled
           or(
@@ -508,7 +509,8 @@ export class ShopStorage implements IShopStorage {
 
     // Build WHERE conditions - only active products
     const whereConditions = [
-      eq(shopProducts.isActive, true)
+      eq(shopProducts.isActive, true),
+      eq(shopProducts.contractOnly, false),
     ];
 
     // Text search in multiple fields

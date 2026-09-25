@@ -3,7 +3,7 @@ import { contacts, showcaseProducts, type Contact, type InsertContact, type Show
 import { db } from "./db";
 import { showcaseDb } from "./showcase-db";
 import { shopStorage } from "./shop-storage";
-import { eq, desc, and, or, like, sql } from "drizzle-orm";
+import { eq, desc, and, or, like, sql, asc } from "drizzle-orm";
 
 export interface IStorage {
   createContact(contact: InsertContact): Promise<Contact>;
@@ -399,6 +399,9 @@ export class DatabaseStorage implements IStorage {
     if (productUpdate.isActive !== undefined) {
       updateData.isActive = Boolean(productUpdate.isActive);
     }
+    if (productUpdate.contractOnly !== undefined) {
+      updateData.contractOnly = productUpdate.contractOnly === true;
+    }
     if (productUpdate.syncWithShop !== undefined) {
       updateData.syncWithShop = Boolean(productUpdate.syncWithShop);
     }
@@ -468,8 +471,22 @@ export class DatabaseStorage implements IStorage {
       const productSku = `SP-${showcaseProduct.id}-${showcaseProduct.name.replace(/\s+/g, '-').toUpperCase().substring(0, 10)}`;
       
       // Check if product already exists in shop by name (since showcase doesn't have SKU)
-      const allShopProducts = await shopStorage.getShopProducts();
+      const allShopProducts = await shopStorage.getAllShopProducts();
       const existingShopProduct = allShopProducts.find(p => p.name === showcaseProduct.name);
+
+      // Batch rows share the base product name. Keep the contract restriction
+      // controlled by the oldest/base Kardex row so a batch row's default false
+      // value can never make a contract-only product publicly sellable.
+      let contractOnly = Boolean(showcaseProduct.contractOnly);
+      if (showcaseProduct.barcode) {
+        const [baseProduct] = await showcaseDb
+          .select({ contractOnly: showcaseProducts.contractOnly })
+          .from(showcaseProducts)
+          .where(eq(showcaseProducts.barcode, showcaseProduct.barcode))
+          .orderBy(asc(showcaseProducts.createdAt), asc(showcaseProducts.id))
+          .limit(1);
+        if (baseProduct) contractOnly = Boolean(baseProduct.contractOnly);
+      }
       
       // Extract price from unitPrice first, fallback to priceRange
       let productPrice = "50"; // Default price
@@ -495,6 +512,7 @@ export class DatabaseStorage implements IStorage {
           imageUrls: showcaseProduct.imageUrl ? [showcaseProduct.imageUrl] : [],
           thumbnailUrl: showcaseProduct.imageUrl || null,
           isActive: showcaseProduct.isActive,
+          contractOnly,
           tags: showcaseProduct.tags || ["شیمیایی"],
           // Weight fields sync - prioritize new weight fields
           netWeight: showcaseProduct.netWeight || null,
@@ -524,6 +542,7 @@ export class DatabaseStorage implements IStorage {
           imageUrls: showcaseProduct.imageUrl ? [showcaseProduct.imageUrl] : [],
           thumbnailUrl: showcaseProduct.imageUrl || null,
           isActive: showcaseProduct.isActive,
+          contractOnly,
           isFeatured: false,
           visibleInShop: showcaseProduct.syncWithShop || false,
           tags: showcaseProduct.tags || ["شیمیایی"],

@@ -94,6 +94,7 @@ const Shop = () => {
     getTotalItems 
   } = usePersistentCart();
   const [showCheckout, setShowCheckout] = useState(false);
+  const [selectedCheckoutContractId, setSelectedCheckoutContractId] = useState<number | null>(null);
   const addingProductsRef = useRef(new Set<number>());
   const [addingProducts, setAddingProducts] = useState<number[]>([]);
   const [showPreCheckout, setShowPreCheckout] = useState(false);
@@ -217,7 +218,12 @@ const Shop = () => {
 
   // Fetch all shop products for total count
   const { data: products = [], refetch: refetchShopProducts } = useQuery<ShopProduct[]>({
-    queryKey: ["/api/shop/products"],
+    queryKey: ["/api/shop/products", authenticatedCustomer?.id ?? null],
+    queryFn: async () => {
+      const response = await fetch('/api/shop/products', { credentials: 'include' });
+      if (!response.ok) throw new Error('Could not load shop products');
+      return response.json();
+    },
   });
 
   // Fetch discount settings to get the highest discount percentage
@@ -294,8 +300,9 @@ const Shop = () => {
   // Get data from search results or fallback to regular products
   const currentProducts = searchResults?.data?.products || products;
   
-  // Shop products are all visible by default (no visibleInShop field needed)
-  const filteredProducts = currentProducts;
+  // Contract-only materials are available in the selected contract at checkout,
+  // never as ordinary catalog cards.
+  const filteredProducts = currentProducts.filter((product: ShopProduct) => !product.contractOnly);
   
   const totalResults = searchResults?.data?.total || products.length;
   const availableFilters = searchResults?.data?.filters;
@@ -412,6 +419,10 @@ const Shop = () => {
       setIsLoadingCustomer(false);
     }
   }, [authenticatedCustomer, isAuthenticated]);
+
+  useEffect(() => {
+    setSelectedCheckoutContractId(null);
+  }, [authenticatedCustomer?.id]);
 
   // Keyboard navigation for zoom modal
   useEffect(() => {
@@ -654,11 +665,19 @@ const Shop = () => {
 
   const addToCart = async (productId: number) => {
     if (addingProductsRef.current.has(productId)) return;
+    if (selectedCheckoutContractId !== null) {
+      toast({ title: 'errorOccurred', description: language === 'fa' ? 'برای افزودن کالا به سبد قراردادی، چک‌اوت را باز کنید؛ برای خرید عادی ابتدا قرارداد را لغو کنید.' : 'Open checkout to add contract items, or select normal checkout first.', variant: 'destructive' });
+      return;
+    }
     const targetQuantity = getProductQuantity(productId);
     
     // Find the product to verify stock availability
     const product = currentProducts.find(p => p.id === productId);
     if (!product) return;
+    if (product.contractOnly) {
+      toast({ title: 'errorOccurred', description: language === 'fa' ? 'این کالا فقط از طریق قرارداد قابل خرید است.' : 'This product is available only through a contract.', variant: 'destructive' });
+      return;
+    }
     
     // Check if enough stock is available
     const currentInCart = cart[productId] || 0;
@@ -887,7 +906,8 @@ const Shop = () => {
     console.log('Cart clicked, total items:', getTotalItems());
     console.log('Customer:', customer);
     
-    if (getTotalItems() === 0) return;
+    // Logged-in customers can open an empty checkout to add products from a contract.
+    if (getTotalItems() === 0 && !customer?.id) return;
     
     // Direct checkout without cart modal
     if (customer && customer.id) {
@@ -1077,7 +1097,7 @@ const Shop = () => {
                   variant="outline" 
                   className="flex items-center gap-1 sm:gap-2 w-full sm:w-auto justify-center px-2 sm:px-4 py-2 text-xs sm:text-sm"
                   onClick={handleCartClick}
-                  disabled={getTotalItems() === 0}
+                  disabled={getTotalItems() === 0 && !customer?.id}
                 >
                   <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
                   <span className="hidden sm:inline">{shopCopy.cart}</span> ({getTotalItems()})
@@ -2538,8 +2558,11 @@ const Shop = () => {
             cart={cart}
             products={products}
             existingCustomer={customer}
+            initialContractId={selectedCheckoutContractId}
+            onContractSelected={setSelectedCheckoutContractId}
             onOrderComplete={async () => {
               clearCartPersistent();
+              setSelectedCheckoutContractId(null);
               setShowCheckout(false);
               // Force refresh of products data from server
               await queryClient.invalidateQueries({ queryKey: ['/api/products'] });
@@ -2564,6 +2587,7 @@ const Shop = () => {
               removeFromCartPersistent(productId);
             }}
             onKeepContractItems={keepOnlyCartProducts}
+            onAddContractItem={(productId, quantity) => addToCartPersistent(productId, quantity)}
           />
         </div>
       )}

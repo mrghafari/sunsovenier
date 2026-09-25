@@ -22,7 +22,7 @@ import ContractSelector, { type ShopContract } from "@/components/checkout/contr
 import { useLanguage } from "@/contexts/LanguageContext";
 import { formatIQDAmount, displayCurrencyAmountWithSymbol } from "@/lib/currency-utils";
 import { shippingWeightKg } from "@/lib/shipping-weight";
-import { keepContractCartItems } from "@/lib/contract-cart";
+import { contractQuantityLimit, keepContractCartItems } from "@/lib/contract-cart";
 
 // Language types
 type Language = 'en' | 'ar' | 'fa' | 'tr';
@@ -479,6 +479,9 @@ interface PurchaseFormProps {
   onUpdateQuantity?: (productId: number, newQuantity: number) => void | Promise<void>;
   onRemoveItem?: (productId: number) => void;
   onKeepContractItems: (allowedProductIds: number[]) => Promise<void>;
+  onAddContractItem: (productId: number, quantity: number) => Promise<void>;
+  initialContractId?: number | null;
+  onContractSelected?: (id: number | null) => void;
 }
 
 // GPS location functionality
@@ -508,13 +511,16 @@ const getCurrentLocation = (): Promise<{latitude: number, longitude: number}> =>
   });
 };
 
-export default function BilingualPurchaseForm({ cart, products, onOrderComplete, onClose, existingCustomer, onUpdateQuantity, onRemoveItem, onKeepContractItems }: PurchaseFormProps) {
+export default function BilingualPurchaseForm({ cart, products, onOrderComplete, onClose, existingCustomer, onUpdateQuantity, onRemoveItem, onKeepContractItems, onAddContractItem, initialContractId = null, onContractSelected }: PurchaseFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { language, direction } = useLanguage();
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [locationData, setLocationData] = useState<{latitude: number, longitude: number} | null>(null);
   const [quantityDrafts, setQuantityDrafts] = useState<Record<number, string>>({});
+  const [contractAddQuantities, setContractAddQuantities] = useState<Record<number, string>>({});
+  const [pendingContractAdditions, setPendingContractAdditions] = useState<number[]>([]);
+  const pendingContractAdditionsRef = useRef(new Set<number>());
   const [pendingQuantityUpdates, setPendingQuantityUpdates] = useState<number[]>([]);
   const pendingQuantityUpdatesRef = useRef(new Set<number>());
   const activatedQuantityInputs = useRef(new Set<number>());
@@ -648,13 +654,24 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     refetchOnWindowFocus: true,
     staleTime: 0,
   });
-  const [selectedContractId, setSelectedContractId] = useState<number | null>(null);
+  const [selectedContractId, setSelectedContractId] = useState<number | null>(initialContractId);
   const [isFilteringContractCart, setIsFilteringContractCart] = useState(false);
   const filteringContractCartRef = useRef(false);
   const selectContract = async (id: number | null) => {
     if (filteringContractCartRef.current || id === selectedContractId) return;
     if (id === null) {
-      setSelectedContractId(null);
+      filteringContractCartRef.current = true;
+      setIsFilteringContractCart(true);
+      try {
+        await onKeepContractItems(products.filter(product => !product.contractOnly).map(product => Number(product.id)));
+        setSelectedContractId(null);
+        onContractSelected?.(null);
+      } catch (error) {
+        toast({ title: language === 'fa' ? 'بازگشت به خرید عادی ناموفق بود.' : 'Could not return to normal checkout.', description: error instanceof Error ? error.message : undefined, variant: 'destructive' });
+      } finally {
+        filteringContractCartRef.current = false;
+        setIsFilteringContractCart(false);
+      }
       return;
     }
 
@@ -671,6 +688,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     try {
       await onKeepContractItems(contract.items.map(item => item.productId));
       setSelectedContractId(id);
+      onContractSelected?.(id);
       if (removedCount > 0) {
         toast({
           title: language === 'fa' ? 'کالاهای خارج از قرارداد از سبد حذف شدند.' : language === 'ar' ? 'تمت إزالة المنتجات غير المشمولة بالعقد من السلة.' : language === 'tr' ? 'Sözleşme dışındaki ürünler sepetten çıkarıldı.' : 'Products outside the contract were removed from your cart.',
@@ -1219,6 +1237,55 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
   const selectedContract = selectedContractId === null
     ? null
     : customerContracts.find(contract => contract.id === selectedContractId && contract.isActive) || null;
+  const contractItemForProduct = (productId: number) =>
+    selectedContract?.items.find(item => Number(item.productId) === Number(productId));
+  const contractQuantityError = (productId: number, quantity: number) => {
+    if (selectedContractId === null) return null;
+    const item = contractItemForProduct(productId);
+    const limit = contractQuantityLimit(item);
+    if (limit === null) return language === 'fa' ? 'این کالا در قرارداد مجاز نیست یا مقدار آن در دسترس نیست.' : language === 'ar' ? 'هذا المنتج غير مشمول بالعقد أو كميته غير متاحة.' : language === 'tr' ? 'Bu ürün sözleşmede yok veya miktarı kullanılamıyor.' : 'This product is not in the contract or its quantity is unavailable.';
+    if (quantity > limit) return language === 'fa' ? `حداکثر مقدار مجاز این کالا در قرارداد ${limit} است.` : language === 'ar' ? `الحد الأقصى المسموح به لهذا المنتج في العقد هو ${limit}.` : language === 'tr' ? `Bu ürün için sözleşme sınırı ${limit}.` : `The contract limit for this product is ${limit}.`;
+    return null;
+  };
+  const updateCheckoutQuantity = async (productId: number, quantity: number) => {
+    if (!onUpdateQuantity || isFilteringContractCart) return;
+    if (quantity > (cart[productId] || 0)) {
+      const error = contractQuantityError(productId, quantity);
+      if (error) {
+        toast({ title: error, variant: 'destructive' });
+        return;
+      }
+    }
+    try {
+      await onUpdateQuantity(productId, quantity);
+    } catch (error) {
+      toast({ title: language === 'fa' ? 'تغییر تعداد کالا انجام نشد.' : language === 'ar' ? 'تعذر تغيير كمية المنتج.' : language === 'tr' ? 'Ürün miktarı değiştirilemedi.' : 'Could not change the product quantity.', description: error instanceof Error ? error.message : undefined, variant: 'destructive' });
+    }
+  };
+  const addContractItem = async (productId: number) => {
+    if (selectedContractId === null || !selectedContract || isFilteringContractCart || isLoadingContracts || isFetchingContracts || contractsError || pendingContractAdditionsRef.current.has(productId)) return;
+    const rawQuantity = contractAddQuantities[productId] ?? '1';
+    const quantity = Number(rawQuantity);
+    const product = products.find(candidate => Number(candidate.id) === productId);
+    const error = !Number.isSafeInteger(quantity) || quantity < 1
+      ? (language === 'fa' ? 'تعداد معتبر وارد کنید.' : language === 'ar' ? 'أدخل كمية صالحة.' : language === 'tr' ? 'Geçerli bir miktar girin.' : 'Enter a valid quantity.')
+      : contractQuantityError(productId, (cart[productId] || 0) + quantity);
+    if (error || !product || !product.inStock || Number(product.stockQuantity) < quantity) {
+      toast({ title: error || (language === 'fa' ? 'موجودی کالا کافی نیست.' : language === 'ar' ? 'المخزون غير كافٍ.' : language === 'tr' ? 'Yeterli stok yok.' : 'Not enough stock available.'), variant: 'destructive' });
+      return;
+    }
+    pendingContractAdditionsRef.current.add(productId);
+    setPendingContractAdditions([...pendingContractAdditionsRef.current]);
+    try {
+      await onAddContractItem(productId, quantity);
+      setContractAddQuantities(current => ({ ...current, [productId]: '1' }));
+    } catch (error) {
+      toast({ title: language === 'fa' ? 'افزودن کالا انجام نشد.' : language === 'ar' ? 'تعذرت إضافة المنتج.' : language === 'tr' ? 'Ürün eklenemedi.' : 'Could not add the product.', description: error instanceof Error ? error.message : undefined, variant: 'destructive' });
+    } finally {
+      pendingContractAdditionsRef.current.delete(productId);
+      setPendingContractAdditions([...pendingContractAdditionsRef.current]);
+    }
+  };
   const getCartUnitPrice = (product: any, quantity: number) => {
     if (selectedContractId !== null) {
       const item = selectedContract?.items.find(contractItem => Number(contractItem.productId) === Number(product.id));
@@ -1229,7 +1296,13 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     return getDiscountedPrice(product, quantity);
   };
   const contractCartErrors = useMemo(() => {
-    if (selectedContractId === null) return [];
+    if (selectedContractId === null) {
+      const restrictedProductInCart = Object.keys(cart).some(productId =>
+        products.some(product => Number(product.id) === Number(productId) && product.contractOnly));
+      return restrictedProductInCart
+        ? [language === 'fa' ? 'برای کالاهای فقط قراردادی، قرارداد مربوط به خود را انتخاب کنید.' : language === 'ar' ? 'اختر عقدك لشراء المنتجات المخصصة للعقود فقط.' : language === 'tr' ? 'Yalnızca sözleşmeyle satılan ürünler için kendi sözleşmenizi seçin.' : 'Select your contract to purchase contract-only products.']
+        : [];
+    }
     if (isLoadingContracts || isFetchingContracts) return [language === 'fa' ? 'در حال بررسی وضعیت قرارداد...' : language === 'ar' ? 'جارٍ التحقق من حالة العقد...' : 'Checking contract status...'];
     if (contractsError) return [language === 'fa' ? 'بارگذاری قرارداد ناموفق بود. دوباره تلاش کنید.' : language === 'ar' ? 'تعذر تحميل العقود. يرجى المحاولة مجدداً.' : 'Could not verify the contract. Please retry.'];
     if (!selectedContract) return [language === 'fa' ? 'این قرارداد دیگر فعال یا در دسترس نیست. قرارداد دیگری انتخاب کنید.' : language === 'ar' ? 'هذا العقد لم يعد نشطاً أو متاحاً. اختر عقداً آخر.' : 'This contract is no longer active or available. Choose another contract.'];
@@ -1238,10 +1311,11 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       const product = products.find(candidate => Number(candidate.id) === Number(productId));
       if (!item) return [`${product?.name || `Product #${productId}`} is not included in contract #${selectedContract.number}.`];
       const errors: string[] = [];
-      if (item.remainingQuantity == null || !Number.isFinite(Number(item.remainingQuantity)) || Number(item.remainingQuantity) < 0) {
+      const limit = contractQuantityLimit(item);
+      if (limit === null) {
         errors.push(`${product?.name || item.productName}: contract availability is unavailable.`);
-      } else if (Number(quantity) > Number(item.remainingQuantity)) {
-        errors.push(`${product?.name || item.productName}: quantity ${quantity} exceeds contract remaining quantity ${item.remainingQuantity}.`);
+      } else if (Number(quantity) > limit) {
+        errors.push(`${product?.name || item.productName}: quantity ${quantity} exceeds contract limit ${limit}.`);
       }
       if (item.unitPrice == null || String(item.unitPrice).trim() === '' || !Number.isFinite(Number(item.unitPrice)) || Number(item.unitPrice) < 0) {
         errors.push(`${product?.name || item.productName}: contract price is unavailable.`);
@@ -2786,7 +2860,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
 
 
   return (
-    <div className="fixed inset-0 bg-black/20 z-40 pointer-events-none">
+    <div className="fixed inset-0 bg-black/20 z-40">
         <Card
          dir={direction}
         ref={formRef}
@@ -2842,6 +2916,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                 const basePrice = Math.round(parseFloat(product.price || '0'));
                 const discountedPrice = getCartUnitPrice(product, quantity);
                 const usesContractPrice = selectedContractId !== null;
+                const contractLimit = usesContractPrice ? contractQuantityLimit(contractItemForProduct(product.id)) : null;
                 const itemTotal = Math.round(discountedPrice * quantity);
                 
                 return (
@@ -2875,6 +2950,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                           </h4>
                         </div>
                         <p className="text-xs text-muted-foreground">{product.category}</p>
+                        {usesContractPrice && <p className="text-xs text-muted-foreground">{language === 'fa' ? 'سقف باقیماندهٔ قرارداد' : language === 'ar' ? 'الحد المتبقي للعقد' : language === 'tr' ? 'Kalan sözleşme sınırı' : 'Remaining contract limit'}: {contractLimit ?? '—'}</p>}
                         <p className="text-sm font-medium mt-1">
                           {!usesContractPrice && discountedPrice < basePrice && (
                             <span className="line-through text-gray-400 mr-2">{formatCurrency(basePrice)}</span>
@@ -2893,10 +2969,10 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => onUpdateQuantity && onUpdateQuantity(product.id, quantity - 1)}
+                          onClick={() => { void updateCheckoutQuantity(product.id, quantity - 1); }}
                           className="h-7 w-7 p-0"
                           title={t.decreaseQuantity}
-                          disabled={quantity <= 1}
+                          disabled={quantity <= 1 || isFilteringContractCart}
                         >
                           <Minus className="w-3 h-3" />
                         </Button>
@@ -2905,7 +2981,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                         <Input
                           type="number"
                           min="1"
-                          max={product.stockQuantity || 999999}
+                           max={usesContractPrice ? Math.min(contractLimit ?? 0, quantity + Math.max(0, Number(product.stockQuantity) || 0)) : (product.stockQuantity || 999999)}
                            value={quantityDrafts[product.id] ?? quantity}
                            onFocus={() => {
                              if (!activatedQuantityInputs.current.has(product.id)) {
@@ -2921,12 +2997,11 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                              if (rawQuantity === '') return;
                              const newQuantity = parseInt(rawQuantity, 10);
                              if (!Number.isFinite(newQuantity)) return;
-                            const maxQuantity = product.stockQuantity || 999999;
+                             const maxQuantity = usesContractPrice ? Math.min(quantity + Math.max(0, Number(product.stockQuantity) || 0), contractLimit ?? 0) : (product.stockQuantity || 999999);
+                             if (maxQuantity < 1) return;
                             const validQuantity = Math.max(1, Math.min(newQuantity, maxQuantity));
                              setQuantityDrafts(current => ({ ...current, [product.id]: validQuantity.toString() }));
-                            if (onUpdateQuantity) {
-                              onUpdateQuantity(product.id, validQuantity);
-                            }
+                             void updateCheckoutQuantity(product.id, validQuantity);
                           }}
                            onBlur={() => {
                              setQuantityDrafts(current => {
@@ -2936,6 +3011,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                              });
                            }}
                           className="h-7 w-16 text-center text-sm font-medium px-1 py-0"
+                           disabled={isFilteringContractCart || (usesContractPrice && contractLimit === null)}
                           title={language === 'en' ? 'Change quantity directly' : language === 'fa' ? 'تغییر مستقیم تعداد' : 'تغيير الكمية مباشرة'}
                         />
                         
@@ -2946,11 +3022,11 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                             // Check stock availability before allowing increase
                             if (!product.inStock || (product.stockQuantity || 0) <= 0) return;
                             if (quantity >= (product.stockQuantity || 0)) return;
-                            onUpdateQuantity && onUpdateQuantity(product.id, quantity + 1);
+                             void updateCheckoutQuantity(product.id, quantity + 1);
                           }}
                           className="h-7 w-7 p-0"
                           title={t.increaseQuantity}
-                          disabled={!product.inStock || (product.stockQuantity || 0) <= 0 || quantity >= (product.stockQuantity || 0)}
+                           disabled={isFilteringContractCart || !product.inStock || (product.stockQuantity || 0) <= 0 || quantity >= (product.stockQuantity || 0) || (usesContractPrice && (contractLimit === null || quantity >= contractLimit))}
                         >
                           <Plus className="w-3 h-3" />
                         </Button>
@@ -3546,6 +3622,39 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                         {contractCartErrors.map((message, index) => <p key={`${index}-${message}`}>{message}</p>)}
                       </div>
                     )}
+                    {selectedContract && (
+                      <div className="rounded-md border p-3 space-y-3">
+                        <h3 className="text-sm font-medium">{language === 'fa' ? 'افزودن کالاهای قرارداد' : language === 'ar' ? 'إضافة منتجات العقد' : language === 'tr' ? 'Sözleşme ürünleri ekle' : 'Add contract products'}</h3>
+                        {selectedContract.items.filter(item => !(cart[item.productId] > 0)).map(item => {
+                          const product = products.find(candidate => Number(candidate.id) === Number(item.productId));
+                          const limit = contractQuantityLimit(item);
+                          const stock = Number(product?.stockQuantity) || 0;
+                          const available = Math.min(limit ?? 0, stock);
+                          return (
+                            <div key={item.productId} className="flex flex-wrap items-center gap-2 text-sm">
+                              <span className="flex-1 min-w-32">{item.productName}</span>
+                              <span className="text-muted-foreground">{language === 'fa' ? 'باقیمانده' : language === 'ar' ? 'المتبقي' : language === 'tr' ? 'Kalan' : 'Remaining'}: {limit ?? '—'}</span>
+                              <Input
+                                type="number"
+                                min={1}
+                                max={available}
+                                step={1}
+                                value={contractAddQuantities[item.productId] ?? '1'}
+                                onChange={event => setContractAddQuantities(current => ({ ...current, [item.productId]: event.target.value }))}
+                                disabled={available < 1 || isFilteringContractCart || pendingContractAdditions.includes(item.productId)}
+                                className="w-20"
+                                aria-label={`${item.productName} ${language === 'fa' ? 'تعداد' : 'quantity'}`}
+                              />
+                              <Button type="button" size="sm" variant="outline" onClick={() => { void addContractItem(item.productId); }}
+                                disabled={available < 1 || isFilteringContractCart || isLoadingContracts || isFetchingContracts || !!contractsError || pendingContractAdditions.includes(item.productId)}>
+                                <Plus className="w-4 h-4 mr-1" />
+                                {language === 'fa' ? 'افزودن' : language === 'ar' ? 'إضافة' : language === 'tr' ? 'Ekle' : 'Add'}
+                              </Button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 )}
                 {/* Customer Name */}
@@ -3923,6 +4032,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                   <Button
                     type="submit"
                     disabled={
+                      Object.keys(cart).length === 0 ||
                       isFilteringContractCart ||
                       unavailableCartProductIds.length > 0 ||
                       hasContractCartError ||

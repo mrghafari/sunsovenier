@@ -71,6 +71,7 @@ const formSchema = insertShowcaseProductSchema.extend({
   syncWithShop: z.boolean().default(true),
   // Out of stock display control
   showWhenOutOfStock: z.boolean().default(false),
+  contractOnly: z.boolean().default(false),
   // Non-chemical product flag
   isNonChemical: z.boolean().default(false),
   // Flammable product flag
@@ -653,6 +654,7 @@ export default function ProductsPage() {
       // Shop visibility control
       syncWithShop: true,
       showWhenOutOfStock: false,
+      contractOnly: false,
       // Non-chemical product flag
       isNonChemical: false,
       // Flammable product flag
@@ -796,6 +798,9 @@ export default function ProductsPage() {
         : (data.batchNumber?.trim() || editingProduct?.batchNumber || null),
       // New inventory addition fields
       inventoryAddition: Number(data.inventoryAddition) || 0,
+      // This edit applies to the Kardex product; newly inserted batch rows use
+      // the database default and shop sync reads the base product's restriction.
+      contractOnly: data.contractOnly,
       // CRITICAL: Only send newBatchNumber if creating a NEW batch, not updating existing one
       newBatchNumber: (selectedBatchId === 'new' && data.newBatchNumber?.trim()) ? data.newBatchNumber.trim() : null,
       // Auto-inject vendorId if in vendor mode
@@ -1264,6 +1269,7 @@ export default function ProductsPage() {
       model3dFileName: product.model3dFileName || "",
       syncWithShop: product.syncWithShop !== null && product.syncWithShop !== undefined ? product.syncWithShop : true,
       showWhenOutOfStock: product.showWhenOutOfStock ?? false,
+      contractOnly: product.contractOnly ?? false,
       isNonChemical: product.isNonChemical ?? false,
       isFlammable: product.isFlammable ?? false,
       transportationTemperature: product.transportationTemperature || "",
@@ -1739,6 +1745,11 @@ export default function ProductsPage() {
                             {product.technicalName}
                           </div>
                         )}
+                        {product.contractOnly && (
+                          <Badge variant="outline" className="mb-1 border-violet-200 bg-violet-50 text-violet-700">
+                            فقط قراردادی
+                          </Badge>
+                        )}
                         <div className="flex items-center gap-2 mb-2">
                           {categories.find((c: CategoryOption) => c.value === product.category)?.icon}
                           <span className="text-sm text-gray-600 dark:text-gray-400">
@@ -2091,6 +2102,26 @@ export default function ProductsPage() {
                             checked={field.value}
                             onCheckedChange={field.onChange}
                             className="border-orange-400"
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="contractOnly"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 bg-violet-50 border-violet-200">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-sm font-medium text-violet-700">فروش فقط از طریق قرارداد</FormLabel>
+                          <div className="text-xs text-violet-500">این محصول فقط از طریق قراردادهای مشتریان فروخته می‌شود</div>
+                        </div>
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value ?? false}
+                            onCheckedChange={field.onChange}
+                            className="border-violet-400"
                           />
                         </FormControl>
                       </FormItem>
