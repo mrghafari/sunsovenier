@@ -339,7 +339,7 @@ const translations: Record<Language, TranslationDictionary> = {
     moduleWord: 'Module',
     moduleLabels: {
       kpi_dashboard: 'KPI Dashboard', management_dashboard: 'Management Dashboard', syncing_shop: 'Syncing Shop',
-      shop_management: 'Shop Management', product_management: 'Product Management', order_management: 'Order Management',
+      shop_management: 'Commercial', product_management: 'Product Management', order_management: 'Order Management',
       warehouse_management: 'Warehouse Management', logistics_management: 'Logistics Management', delivery_confirmation: 'Courier / Carrier Delivery Confirmation', inquiries: 'Inquiries',
       crm: 'CRM', barcode: 'Barcode Management', email_settings: 'Email Settings', database_backup: 'Database Backup',
       seo: 'SEO Management', categories: 'Categories', sms: 'SMS Management', factory: 'Factory Management',
@@ -465,7 +465,7 @@ const translations: Record<Language, TranslationDictionary> = {
     accessAssignmentTitle: 'تخصیص دسترسی', moduleWord: 'ماژول',
     moduleLabels: {
       kpi_dashboard: 'داشبورد شاخص‌های کلیدی', management_dashboard: 'داشبورد مدیریت', syncing_shop: 'همگام‌سازی فروشگاه',
-      shop_management: 'مدیریت فروشگاه', product_management: 'مدیریت محصولات', order_management: 'مدیریت سفارش‌ها',
+      shop_management: 'Commercial', product_management: 'مدیریت محصولات', order_management: 'مدیریت سفارش‌ها',
       warehouse_management: 'مدیریت انبار', logistics_management: 'مدیریت لجستیک', delivery_confirmation: 'تأیید تحویل پیک / حمل‌کننده', inquiries: 'استعلام‌ها', crm: 'CRM',
       barcode: 'مدیریت بارکد', email_settings: 'تنظیمات ایمیل', database_backup: 'پشتیبان‌گیری پایگاه داده',
       seo: 'مدیریت SEO', categories: 'دسته‌بندی‌ها', sms: 'مدیریت SMS', factory: 'مدیریت کارخانه',
@@ -527,7 +527,7 @@ const translations: Record<Language, TranslationDictionary> = {
     edit: 'تعديل', changePasswordLabel: 'تغيير كلمة المرور', delete: 'حذف', selectAllUsers: 'تحديد جميع المستخدمين', selectUser: 'تحديد المستخدم', accessAssignmentTitle: 'تعيين الصلاحيات', moduleWord: 'وحدة',
     moduleLabels: {
       kpi_dashboard: 'لوحة مؤشرات الأداء', management_dashboard: 'لوحة الإدارة', syncing_shop: 'مزامنة المتجر',
-      shop_management: 'إدارة المتجر', product_management: 'إدارة المنتجات', order_management: 'إدارة الطلبات',
+      shop_management: 'Commercial', product_management: 'إدارة المنتجات', order_management: 'إدارة الطلبات',
       warehouse_management: 'إدارة المستودعات', logistics_management: 'إدارة الخدمات اللوجستية', delivery_confirmation: 'تأكيد تسليم المندوب / الناقل', inquiries: 'الاستفسارات',
       crm: 'CRM', barcode: 'إدارة الباركود', email_settings: 'إعدادات البريد', database_backup: 'نسخ قاعدة البيانات',
       seo: 'إدارة SEO', categories: 'الفئات', sms: 'إدارة SMS', factory: 'إدارة المصنع', user_management: 'إدارة المستخدمين',
@@ -582,7 +582,7 @@ const translations: Record<Language, TranslationDictionary> = {
     edit: 'Düzenle', changePasswordLabel: 'Şifreyi değiştir', delete: 'Sil', selectAllUsers: 'Tüm kullanıcıları seç', selectUser: 'Kullanıcıyı seç', accessAssignmentTitle: 'İzin atama', moduleWord: 'Modül',
     moduleLabels: {
       kpi_dashboard: 'KPI Panosu', management_dashboard: 'Yönetim Panosu', syncing_shop: 'Mağaza Senkronizasyonu',
-      shop_management: 'Mağaza Yönetimi', product_management: 'Ürün Yönetimi', order_management: 'Sipariş Yönetimi',
+      shop_management: 'Commercial', product_management: 'Ürün Yönetimi', order_management: 'Sipariş Yönetimi',
       warehouse_management: 'Depo Yönetimi', logistics_management: 'Lojistik Yönetimi', delivery_confirmation: 'Kurye / Taşıyıcı Teslimat Onayı', inquiries: 'Sorgular', crm: 'CRM',
       barcode: 'Barkod Yönetimi', email_settings: 'E-posta Ayarları', database_backup: 'Veritabanı Yedekleme',
       seo: 'SEO Yönetimi', categories: 'Kategoriler', sms: 'SMS Yönetimi', factory: 'Fabrika Yönetimi',
@@ -705,7 +705,7 @@ const extractSiteManagementModules = (
     { moduleId: 'kpi_dashboard', label: 'KPI Dashboard', icon: BarChart3, color: 'bg-purple-600' },
     { moduleId: 'management_dashboard', label: 'Management Dashboard', icon: LayoutDashboard, color: 'bg-indigo-600' },
     { moduleId: 'syncing_shop', label: 'Syncing Shop', icon: Database, color: 'bg-blue-500' },
-    { moduleId: 'shop_management', label: 'Shop Management', icon: ShoppingCart, color: 'bg-purple-500' },
+    { moduleId: 'shop_management', label: 'Commercial', icon: ShoppingCart, color: 'bg-purple-500' },
     { moduleId: 'product_management', label: 'Product Management', icon: Package, color: 'bg-violet-500' },
     { moduleId: 'order_management', label: 'Order Management', icon: Truck, color: 'bg-orange-500' },
     { moduleId: 'warehouse_management', label: 'Warehouse Management', icon: Warehouse, color: 'bg-emerald-500' },

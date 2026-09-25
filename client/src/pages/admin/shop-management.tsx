@@ -16,7 +16,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 
 const SHOP_MANAGEMENT_TRANSLATIONS = {
   en: {
-    loading: "Loading settings...", title: "Shop Management", subtitle: "General shop settings and configuration",
+    loading: "Loading settings...", title: "Commercial Settings", subtitle: "General commercial settings and configuration",
     settingsManagement: "Settings Management", general: "General Settings", business: "Business Hours", system: "System",
     generalTitle: "General Shop Settings", generalDescription: "Basic settings that affect the entire shop",
     currency: "Default Currency", iqd: "Iraqi Dinar (IQD)", usd: "US Dollar (USD)", eur: "Euro (EUR)", irr: "Iranian Rial (IRR)",
@@ -29,7 +29,7 @@ const SHOP_MANAGEMENT_TRANSLATIONS = {
     saveError: "Error saving settings", saveErrorDescription: "Unable to save settings",
   },
   ar: {
-    loading: "جارٍ تحميل الإعدادات...", title: "إدارة المتجر", subtitle: "الإعدادات العامة وتكوين المتجر",
+    loading: "جارٍ تحميل الإعدادات...", title: "الإعدادات التجارية", subtitle: "الإعدادات التجارية العامة وتكوينها",
     settingsManagement: "إدارة الإعدادات", general: "الإعدادات العامة", business: "ساعات العمل", system: "النظام",
     generalTitle: "إعدادات المتجر العامة", generalDescription: "الإعدادات الأساسية التي تؤثر على المتجر بأكمله",
     currency: "العملة الافتراضية", iqd: "الدينار العراقي (IQD)", usd: "الدولار الأمريكي (USD)", eur: "اليورو (EUR)", irr: "الريال الإيراني (IRR)",
@@ -42,7 +42,7 @@ const SHOP_MANAGEMENT_TRANSLATIONS = {
     saveError: "خطأ في حفظ الإعدادات", saveErrorDescription: "تعذر حفظ الإعدادات",
   },
   tr: {
-    loading: "Ayarlar yükleniyor...", title: "Mağaza Yönetimi", subtitle: "Genel mağaza ayarları ve yapılandırması",
+    loading: "Ayarlar yükleniyor...", title: "Ticari Ayarlar", subtitle: "Genel ticari ayarlar ve yapılandırma",
     settingsManagement: "Ayar Yönetimi", general: "Genel Ayarlar", business: "Çalışma Saatleri", system: "Sistem",
     generalTitle: "Genel Mağaza Ayarları", generalDescription: "Tüm mağazayı etkileyen temel ayarlar",
     currency: "Varsayılan Para Birimi", iqd: "Irak Dinarı (IQD)", usd: "ABD Doları (USD)", eur: "Euro (EUR)", irr: "İran Riyali (IRR)",
@@ -55,7 +55,7 @@ const SHOP_MANAGEMENT_TRANSLATIONS = {
     saveError: "Ayarları kaydetme hatası", saveErrorDescription: "Ayarlar kaydedilemedi",
   },
   fa: {
-    loading: "در حال بارگذاری تنظیمات...", title: "مدیریت فروشگاه", subtitle: "تنظیمات عمومی و پیکربندی فروشگاه",
+    loading: "در حال بارگذاری تنظیمات...", title: "تنظیمات بازرگانی", subtitle: "تنظیمات عمومی و پیکربندی بازرگانی",
     settingsManagement: "مدیریت تنظیمات", general: "تنظیمات عمومی", business: "ساعات کاری", system: "سیستم",
     generalTitle: "تنظیمات عمومی فروشگاه", generalDescription: "تنظیمات پایه‌ای که بر کل فروشگاه تأثیر می‌گذارد",
     currency: "واحد پول پیش‌فرض", iqd: "دینار عراقی (IQD)", usd: "دلار آمریکا (USD)", eur: "یورو (EUR)", irr: "ریال ایران (IRR)",

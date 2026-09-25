@@ -62,8 +62,11 @@ type ShopLanguage = "en" | "ar" | "tr" | "fa";
 type ShopTranslation = Partial<Record<ShopLanguage, string>>;
 
 const SHOP_TRANSLATIONS: Record<string, ShopTranslation> = {
-  shopAdministration: { en: "Shop Administration", ar: "إدارة المتجر", tr: "Mağaza Yönetimi", fa: "مدیریت فروشگاه" },
-  manageOperations: { en: "Manage your e-commerce operations", ar: "إدارة عمليات التجارة الإلكترونية", tr: "E-ticaret operasyonlarınızı yönetin", fa: "عملیات تجارت الکترونیکی خود را مدیریت کنید" },
+  shopAdministration: { en: "Commercial", ar: "Commercial", tr: "Commercial", fa: "Commercial" },
+  salesUnit: { en: "Sales", ar: "المبيعات", tr: "Satış", fa: "فروش" },
+  procurementUnit: { en: "Procurement", ar: "المشتريات", tr: "Tedarik", fa: "تدارکات" },
+  salesContracts: { en: "Sales Contracts", ar: "عقود المبيعات", tr: "Satış Sözleşmeleri", fa: "قراردادهای فروش" },
+  manageOperations: { en: "Manage sales and procurement", ar: "إدارة المبيعات والمشتريات", tr: "Satış ve tedariki yönetin", fa: "مدیریت فروش و تدارکات" },
   refreshData: { en: "Refresh Data", ar: "تحديث البيانات", tr: "Verileri Yenile", fa: "به‌روزرسانی داده‌ها" },
   totalOrders: { en: "Total Orders", ar: "إجمالي الطلبات", tr: "Toplam Sipariş", fa: "کل سفارش‌ها" },
   pendingOrders: { en: "Pending Orders", ar: "الطلبات المعلقة", tr: "Bekleyen Sipariş", fa: "سفارش‌های در انتظار" },
@@ -473,6 +476,23 @@ function ProformaDeadlineSettings() {
 }
 
 export default function ShopAdmin() {
+  const salesTabs = ["orders", "discounts", "contracts", "inventory", "invoices", "returns", "abandoned-cart", "reports"];
+  const procurementTabs = ["bulk-purchases", "proforma-deadline"];
+  const initialUrlSelection = (() => {
+    if (typeof window === "undefined") return { unit: "sales", tab: "orders" };
+    const params = new URLSearchParams(window.location.search);
+    const unitParam = params.get("unit");
+    const tabParam = params.get("tab");
+    if (unitParam === "sales" && (!tabParam || salesTabs.includes(tabParam))) {
+      return { unit: "sales", tab: tabParam || "orders" };
+    }
+    if (unitParam === "procurement" && (!tabParam || procurementTabs.includes(tabParam))) {
+      return { unit: "procurement", tab: tabParam || "bulk-purchases" };
+    }
+    return { unit: "sales", tab: "orders" };
+  })();
+  const [activeUnit, setActiveUnit] = useState(initialUrlSelection.unit);
+  const [activeTab, setActiveTab] = useState(initialUrlSelection.tab);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [orderStatusFilter, setOrderStatusFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -566,6 +586,34 @@ export default function ShopAdmin() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const setCommercialSelection = (unit: string, tab: string) => {
+    setActiveUnit(unit);
+    setActiveTab(tab);
+    const params = new URLSearchParams(window.location.search);
+    params.set("unit", unit);
+    params.set("tab", tab);
+    window.history.replaceState(window.history.state, "", `${window.location.pathname}?${params.toString()}${window.location.hash}`);
+  };
+
+  useEffect(() => {
+    const syncSelectionFromUrl = () => {
+      const params = new URLSearchParams(window.location.search);
+      const unitParam = params.get("unit");
+      const tabParam = params.get("tab");
+      if (unitParam === "sales" && (!tabParam || salesTabs.includes(tabParam))) {
+        setActiveUnit("sales");
+        setActiveTab(tabParam || "orders");
+      } else if (unitParam === "procurement" && (!tabParam || procurementTabs.includes(tabParam))) {
+        setActiveUnit("procurement");
+        setActiveTab(tabParam || "bulk-purchases");
+      } else {
+        setActiveUnit("sales");
+        setActiveTab("orders");
+      }
+    };
+    window.addEventListener("popstate", syncSelectionFromUrl);
+    return () => window.removeEventListener("popstate", syncSelectionFromUrl);
+  }, []);
 
   // Authentication check
   useEffect(() => {
@@ -841,19 +889,44 @@ export default function ShopAdmin() {
           </Card>
         </div>
 
+        {/* Commercial units */}
+        <div className="flex flex-wrap gap-2" aria-label="Commercial units">
+          <Button
+            type="button"
+            variant={activeUnit === "sales" ? "default" : "outline"}
+            onClick={() => setCommercialSelection("sales", "orders")}
+          >
+            {tr("salesUnit")}
+          </Button>
+          <Button
+            type="button"
+            variant={activeUnit === "procurement" ? "default" : "outline"}
+            onClick={() => setCommercialSelection("procurement", "bulk-purchases")}
+          >
+            {tr("procurementUnit")}
+          </Button>
+        </div>
+
         {/* Main Content Tabs */}
-        <Tabs defaultValue="orders" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={(tab) => setCommercialSelection(activeUnit, tab)} className="space-y-6">
           <TabsList className="flex flex-wrap gap-1 h-auto p-2 bg-gray-100 rounded-lg">
-            <TabsTrigger value="orders" className="text-sm px-3 py-2">{tr("orders")}</TabsTrigger>
-            <TabsTrigger value="discounts" className="text-sm px-3 py-2">{tr("discountSettings")}</TabsTrigger>
-            <TabsTrigger value="bulk-purchases" className="text-sm px-3 py-2">{tr("bulkPurchases")}</TabsTrigger>
-            <TabsTrigger value="contracts" className="text-sm px-3 py-2">{language === "fa" ? "قراردادها" : language === "ar" ? "العقود" : language === "tr" ? "Sözleşmeler" : "Contracts"}</TabsTrigger>
-            <TabsTrigger value="proforma-deadline" className="text-sm px-3 py-2">{tr("purchaseProformaDeadline")}</TabsTrigger>
-            <TabsTrigger value="inventory" className="text-sm px-3 py-2">{tr("inventory")}</TabsTrigger>
-            <TabsTrigger value="invoices" className="bg-green-600 text-white hover:bg-green-700 data-[state=active]:bg-green-700 data-[state=active]:text-white text-sm px-3 py-2">{tr("invoiceManagement")}</TabsTrigger>
-            <TabsTrigger value="returns" className="text-sm px-3 py-2">{tr("returnedItems")}</TabsTrigger>
-            <TabsTrigger value="abandoned-cart" className="text-sm px-3 py-2">{tr("abandonedCart")}</TabsTrigger>
-            <TabsTrigger value="reports" className="text-sm px-3 py-2">{tr("salesReports")}</TabsTrigger>
+            {activeUnit === "sales" ? (
+              <>
+                <TabsTrigger value="orders" className="text-sm px-3 py-2">{tr("orders")}</TabsTrigger>
+                <TabsTrigger value="discounts" className="text-sm px-3 py-2">{tr("discountSettings")}</TabsTrigger>
+                <TabsTrigger value="contracts" className="text-sm px-3 py-2">{tr("salesContracts")}</TabsTrigger>
+                <TabsTrigger value="inventory" className="text-sm px-3 py-2">{tr("inventory")}</TabsTrigger>
+                <TabsTrigger value="invoices" className="bg-green-600 text-white hover:bg-green-700 data-[state=active]:bg-green-700 data-[state=active]:text-white text-sm px-3 py-2">{tr("invoiceManagement")}</TabsTrigger>
+                <TabsTrigger value="returns" className="text-sm px-3 py-2">{tr("returnedItems")}</TabsTrigger>
+                <TabsTrigger value="abandoned-cart" className="text-sm px-3 py-2">{tr("abandonedCart")}</TabsTrigger>
+                <TabsTrigger value="reports" className="text-sm px-3 py-2">{tr("salesReports")}</TabsTrigger>
+              </>
+            ) : (
+              <>
+                <TabsTrigger value="bulk-purchases" className="text-sm px-3 py-2">{tr("bulkPurchases")}</TabsTrigger>
+                <TabsTrigger value="proforma-deadline" className="text-sm px-3 py-2">{tr("purchaseProformaDeadline")}</TabsTrigger>
+              </>
+            )}
           </TabsList>
 
           {/* Orders Tab */}
