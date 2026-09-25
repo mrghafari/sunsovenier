@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useCustomerAuth } from './useCustomerAuth';
+import { keepContractCartItems } from '@/lib/contract-cart';
 
 interface CartItem {
   productId: number;
@@ -199,6 +200,10 @@ export function usePersistentCart() {
     return cart;
   });
 
+  // Persist one filtered snapshot so the removed items release their reservations together.
+  const keepOnlyProducts = (allowedProductIds: readonly number[]) =>
+    changeCart(cart => keepContractCartItems(cart, allowedProductIds));
+
   // Clear entire cart
   const clearCart = async () => {
     console.log('🗑️ Clearing cart..., authenticated:', isAuthenticated);
@@ -228,6 +233,7 @@ export function usePersistentCart() {
     addToCart,
     updateQuantity,
     removeFromCart,
+    keepOnlyProducts,
     clearCart,
     getTotalItems,
     getCartItems,

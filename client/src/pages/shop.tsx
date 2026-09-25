@@ -89,6 +89,7 @@ const Shop = () => {
     addToCart: addToCartPersistent, 
     updateQuantity: updateCartQuantity, 
     removeFromCart: removeFromCartPersistent, 
+    keepOnlyProducts: keepOnlyCartProducts,
     clearCart: clearCartPersistent, 
     getTotalItems 
   } = usePersistentCart();
@@ -2562,6 +2563,7 @@ const Shop = () => {
             onRemoveItem={(productId) => {
               removeFromCartPersistent(productId);
             }}
+            onKeepContractItems={keepOnlyCartProducts}
           />
         </div>
       )}
