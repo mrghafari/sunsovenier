@@ -1485,7 +1485,7 @@ const CustomerProfile = () => {
                             </div>
 
                               <div className="col-start-3 row-start-1 flex min-w-0 items-center border-e border-slate-200 px-3 py-2">
-                                <p className="font-medium text-slate-700">{order.items?.length || 0} {pt.orderItems}</p>
+                                <p className="font-medium text-slate-700">{pt.orderItems} {order.items?.length || 0}</p>
                               </div>
                               <div className="col-start-4 row-start-1 flex min-w-0 items-center border-e border-slate-200 px-3 py-2">
                                 {isContractOrder(order) ? (
