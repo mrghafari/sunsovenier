@@ -73,20 +73,7 @@ import {
 } from "./shipping-center-service";
 import { parsePositiveIntegerId } from "./shipping-route-resolution";
 import { calculateAuthoritativeShippingCost } from "./order-shipping-pricing";
-import { assertShippingQuoteBindings, assertShippingQuoteCheckoutFlow, signShippingQuote, verifyShippingQuote, type ShippingQuoteClaims } from "./shipping-quote";
-import { isActivePickupShippingMethod, isPickupShippingMethod, isStandardShippingMethod } from "./shipping-method-policy";
-import {
-  getPostalApiSettings,
-  isPostalApiProviderKey,
-  PostalApiSettingsValidationError,
-  updatePostalApiSettings,
-} from "./postal-api-settings";
-import {
-  readSettings as readLogisticsDeliveryNotificationSettings,
-  updateSettings as updateLogisticsDeliveryNotificationSettings,
-  getOptions as getLogisticsDeliveryNotificationOptions,
-  LogisticsDeliveryNotificationValidationError,
-} from "./logistics-delivery-notification-settings";
+import { assertShippingQuoteBindings, signShippingQuote, verifyShippingQuote, type ShippingQuoteClaims } from "./shipping-quote";
 
 const INVOICE_LANGUAGES = ['en', 'ar', 'tr', 'fa'] as const;
 type InvoiceLanguage = typeof INVOICE_LANGUAGES[number];
@@ -714,10 +701,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (weight !== null) totalWeight += weight * quantity;
       productFacts.set(id, { ...product, quantity, unitPrice, weight });
     }
-    const hasHazardousProducts = [...productFacts.values()].some((product: any) =>
-      product.isFlammable === true
-      || ["hazardous", "flammable"].includes(String(product.shippingClass || "").toLowerCase()),
-    );
 
     const selector = String(input.methodSelector ?? "").trim();
     const methodValue = String(input.methodValue ?? "").trim();
@@ -753,20 +736,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       selectedMethod = methods[0] || null;
     }
     if (!selectedMethod) throw new ShippingConfigurationError("The selected delivery method is inactive or unavailable.", 422);
-    const isPickupMethod = isPickupShippingMethod(canonicalMethod);
-    if (hasHazardousProducts && canonicalMethod !== "smart_vehicle") {
-      throw new ShippingConfigurationError("Hazardous products require smart-vehicle delivery.", 422);
-    }
-    if (input.shippingQuoteToken != null && (isPickupMethod || canonicalMethod !== "smart_vehicle")) {
-      throw new ShippingConfigurationError("A vehicle quote is only valid for smart-vehicle delivery.", 422);
-    }
-    if (input.standardMethodsOnly && !isStandardShippingMethod(canonicalMethod)) {
+    const isPickupMethod = ["pickup", "personal_pickup", "self_pickup", "store_pickup"].includes(canonicalMethod);
+    if (input.standardMethodsOnly && (isPickupMethod || canonicalMethod === "smart_vehicle")) {
       throw new ShippingConfigurationError("Only active standard delivery methods can be quoted.", 422);
     }
     if (isPickupMethod) {
-      if (!isActivePickupShippingMethod(canonicalMethod, selectedMethod)) {
-        throw new ShippingConfigurationError("The selected pickup method is inactive or unavailable.", 422);
-      }
       return { shippingCost: 0, itemSubtotal, totalWeight, productFacts };
     }
 
@@ -814,6 +788,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       (!candidate.cityName || normalizedCityNames.includes(candidate.cityName.trim().toLocaleLowerCase()))
       && (!candidate.provinceName || normalizedProvinceNames.includes(candidate.provinceName.trim().toLocaleLowerCase()));
 
+    const hasHazardousProducts = [...productFacts.values()].some((product: any) =>
+      product.isFlammable === true
+      || ["hazardous", "flammable"].includes(String(product.shippingClass || "").toLowerCase()),
+    );
+    if (hasHazardousProducts && canonicalMethod !== "smart_vehicle") {
+      throw new ShippingConfigurationError("Hazardous products require smart-vehicle delivery.", 422);
+    }
     const needsVehicleQuote = hasHazardousProducts || canonicalMethod === "smart_vehicle";
     if (needsVehicleQuote) {
       let quote: ShippingQuoteClaims;
@@ -846,15 +827,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           isHazardous: currentHazardous,
           method: input.checkoutFlow === "shop" ? "vehicle_quote" : "smart_vehicle",
         });
-        if (input.checkoutFlow === "shop" || input.checkoutFlow === "customers") {
-          assertShippingQuoteCheckoutFlow(quote, {
-            flow: input.checkoutFlow,
-            methodSelector: selector,
-            canonicalMethod,
-          });
-          if (input.checkoutFlow === "shop" && selectedMethod?.id !== 7) {
-            throw new Error("The shop checkout vehicle quote requires active delivery method 7.");
-          }
+        if (
+          input.checkoutFlow === "shop"
+          && (selector !== "7" || selectedMethod?.id !== 7 || canonicalMethod !== "smart_vehicle")
+        ) {
+          throw new Error("The shop checkout vehicle quote requires delivery method 7 (smart_vehicle).");
+        }
+        if (input.checkoutFlow === "customers" && canonicalMethod !== "smart_vehicle") {
+          throw new Error("The customer checkout vehicle quote requires smart_vehicle delivery.");
         }
         if (input.checkoutFlow === "standard_quote") {
           throw new Error("Standard shipping quotes cannot be used for vehicle delivery.");
@@ -871,7 +851,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
     }
 
-    if (input.standardMethodsOnly && !isStandardShippingMethod(canonicalMethod)) {
+    if (input.standardMethodsOnly && (canonicalMethod === "smart_vehicle" || isPickupMethod)) {
       throw new ShippingConfigurationError("Only active standard delivery methods can be quoted.", 422);
     }
     let rate = selectedRate;
@@ -887,6 +867,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     if (rate && !matchesRateDestination(rate)) {
       throw new ShippingConfigurationError("The selected shipping rate does not cover the active destination city.", 422);
+    }
+    if (input.standardMethodsOnly && !rate) {
+      throw new ShippingConfigurationError("No active shipping rate covers the selected destination.", 422);
     }
     const pricing = rate || selectedMethod;
     if (!pricing) throw new ShippingConfigurationError("No active server-side shipping rate is available for this destination.", 422);
@@ -915,43 +898,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ...(input.standardMethodsOnly ? { destinationCityId: route.destinationCityId } : {}),
     };
   }
-
-  // Public, read-only quote for active standard delivery methods. This shares
-  // the same catalog, route, and server-side rate validation as order creation.
-  app.post("/api/shipping/quote-standard", async (req, res) => {
-    try {
-      const { cart, destinationCityId, destinationCity, destinationProvince, destinationCountryCode, shippingMethod } = req.body || {};
-      if (!cart || typeof cart !== "object" || Array.isArray(cart) || shippingMethod == null) {
-        throw new ShippingConfigurationError("A cart and active standard shipping method are required.", 422);
-      }
-      const quote = await validateAndPriceOrderShipping({
-        methodSelector: shippingMethod,
-        selectorIsDeliveryMethod: true,
-        checkoutFlow: "standard_quote",
-        standardMethodsOnly: true,
-        destinationCityId,
-        destinationCity,
-        destinationProvince,
-        destinationCountry: destinationCountryCode,
-        cart,
-      });
-      return res.json({
-        success: true,
-        data: {
-          shippingCost: quote.shippingCost,
-          ...(quote.destinationCityId !== undefined ? { destinationCityId: quote.destinationCityId } : {}),
-        },
-      });
-    } catch (error) {
-      const statusCode = error instanceof ShippingConfigurationError && error.statusCode === 503 ? 503 : 422;
-      return res.status(statusCode).json({
-        success: false,
-        message: error instanceof Error ? error.message : "Unable to quote standard shipping.",
-        code: "SHIPPING_VALIDATION_FAILED",
-      });
-    }
-  });
-
   // Initialize sync service at startup
   console.log('🔄 [SYNC SERVICE] Initializing automatic table synchronization system...');
   try {
@@ -19207,7 +19153,6 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         shippingFacts = await validateAndPriceOrderShipping({
           methodSelector: shippingMethod,
           selectorIsDeliveryMethod: true,
-          checkoutFlow: "shop",
           destinationCityId: recipientInfo?.deliveryCityId ?? recipientInfo?.cityId,
           destinationCity: recipientInfo?.deliveryCity || customerInfo?.city,
           destinationProvince: recipientInfo?.deliveryProvince || customerInfo?.province,
@@ -19894,7 +19839,6 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         shippingFacts = await validateAndPriceOrderShipping({
           methodSelector: orderData.selectedShippingMethod,
           methodValue: orderData.deliveryMethod,
-          checkoutFlow: "customers",
           destinationCityId: orderData.destinationCityId ?? orderData.cityId ?? orderData.activeDeliveryInfo?.activeCityId,
           destinationCity: orderData.activeDeliveryInfo?.activeDeliveryCity || orderData.city,
           destinationProvince: orderData.activeDeliveryInfo?.activeDeliveryProvince || orderData.province,
@@ -22992,66 +22936,50 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
     }
   });
 
-  app.get("/api/admin/logistics/postal-api-settings", requireModuleAccess('logistics_management', 'view'), async (_req, res) => {
-    try {
-      const data = await getPostalApiSettings(pool);
-      res.json({ success: true, data });
-    } catch {
-      res.status(500).json({ success: false, message: "Failed to fetch postal provider configuration." });
-    }
-  });
-
-  app.put("/api/admin/logistics/postal-api-settings/:providerKey", requireModuleAccess('logistics_management', 'edit'), async (req, res) => {
-    if (!isPostalApiProviderKey(req.params.providerKey)) {
-      return res.status(404).json({ success: false, message: "Unsupported postal provider." });
-    }
-    try {
-      const data = await updatePostalApiSettings(pool, req.params.providerKey, req.body);
-      res.json({ success: true, data });
-    } catch (error) {
-      if (error instanceof PostalApiSettingsValidationError) {
-        return res.status(400).json({ success: false, message: error.message });
-      }
-      res.status(500).json({ success: false, message: "Failed to update postal provider configuration." });
-    }
-  });
-
-  app.get("/api/admin/logistics/delivery-notification-settings", requireModuleAccess('logistics_management', 'view'), async (_req, res) => {
-    try {
-      res.json({ success: true, data: await readLogisticsDeliveryNotificationSettings() });
-    } catch (error) {
-      console.error("Failed to read logistics delivery notification settings:", error);
-      res.status(500).json({ success: false, message: "Failed to read delivery notification settings." });
-    }
-  });
-
-  app.put("/api/admin/logistics/delivery-notification-settings", requireModuleAccess('logistics_management', 'edit'), async (req, res) => {
-    try {
-      res.json({ success: true, data: await updateLogisticsDeliveryNotificationSettings(req.body) });
-    } catch (error) {
-      if (error instanceof LogisticsDeliveryNotificationValidationError) {
-        return res.status(400).json({ success: false, message: error.message });
-      }
-      console.error("Failed to save logistics delivery notification settings:", error);
-      res.status(500).json({ success: false, message: "Failed to save delivery notification settings." });
-    }
-  });
-
-  app.get("/api/admin/logistics/delivery-notification-options", requireModuleAccess('logistics_management', 'view'), async (_req, res) => {
-    try {
-      res.json({ success: true, data: await getLogisticsDeliveryNotificationOptions() });
-    } catch (error) {
-      console.error("Failed to read logistics delivery notification templates:", error);
-      res.status(500).json({ success: false, message: "Failed to read delivery notification templates." });
-    }
-  });
-
   app.get("/api/logistics/shipping-center", async (_req, res) => {
     try {
       res.json({ success: true, data: await getShippingCenter() });
     } catch (error) {
       const statusCode = error instanceof ShippingConfigurationError ? error.statusCode : 500;
       res.status(statusCode).json({ success: false, message: error instanceof Error ? error.message : "Shipping center is unavailable" });
+    }
+  });
+
+  app.post("/api/shipping/quote-standard", async (req, res) => {
+    const cart = req.body?.cart;
+    const methodId = parsePositiveIntegerId(req.body?.shippingMethod);
+    if (!cart || typeof cart !== "object" || Array.isArray(cart) ||
+        Object.keys(cart).length === 0 || Object.keys(cart).length > 100 || !methodId ||
+        (req.body?.selectorIsDeliveryMethod !== undefined && typeof req.body.selectorIsDeliveryMethod !== "boolean")) {
+      return res.status(400).json({ success: false, message: "A valid cart and shipping method are required." });
+    }
+    try {
+      const quote = await validateAndPriceOrderShipping({
+        methodSelector: methodId,
+        selectorIsDeliveryMethod: req.body.selectorIsDeliveryMethod === true,
+        checkoutFlow: "standard_quote",
+        standardMethodsOnly: true,
+        destinationCityId: req.body.destinationCityId,
+        destinationCity: req.body.destinationCity,
+        destinationProvince: req.body.destinationProvince,
+        destinationCountry: req.body.destinationCountryCode ?? req.body.destinationCountry,
+        cart,
+      });
+      res.json({
+        success: true,
+        data: {
+          shippingCost: quote.shippingCost,
+          destinationCityId: quote.destinationCityId,
+        },
+      });
+    } catch (error) {
+      const statusCode = error instanceof ShippingConfigurationError ? error.statusCode : 500;
+      if (statusCode === 500) console.error("Failed to quote standard shipping:", error);
+      res.status(statusCode).json({
+        success: false,
+        message: statusCode === 500 ? "Unable to calculate shipping for this route." : (error as Error).message,
+        code: "SHIPPING_QUOTE_UNAVAILABLE",
+      });
     }
   });
 
@@ -60216,12 +60144,7 @@ momtazchem.com
 
   console.log('✅ [FLEET] Fleet vehicles API registered');
   // Shop Settings API for shipping parameters
-  app.get("/api/admin/shop-settings/:category", requireAuth, (req, res, next) => {
-    if (req.params.category === "logistics_notifications" || req.params.category === "postal_provider_api") {
-      return requireModuleAccess("logistics_management", "view")(req, res, next);
-    }
-    next();
-  }, async (req, res) => {
+  app.get("/api/admin/shop-settings/:category", requireAuth, async (req, res) => {
     try {
       const { category } = req.params;
       const { shopSettings } = await import('@shared/schema');
@@ -60233,44 +60156,19 @@ momtazchem.com
     }
   });
 
-  app.put("/api/admin/shop-settings/:key", requireAuth, (req, res, next) => {
-    const key = req.params.key;
-    if (key.startsWith("postal_api_") || key.startsWith("logistics_delivery_")) {
-      return res.status(403).json({ success: false, message: "Use the dedicated logistics settings API." });
-    }
-    if (["logistics_notification_email", "logistics_notification_sms", "logistics_notification_whatsapp"].includes(key)) {
-      if (req.body?.setting_value !== "true" && req.body?.setting_value !== "false") {
-        return res.status(400).json({ success: false, message: "Notification channel setting must be true or false." });
-      }
-      return requireModuleAccess("logistics_management", "edit")(req, res, next);
-    }
-    next();
-  }, async (req, res) => {
+  app.put("/api/admin/shop-settings/:key", requireAuth, async (req, res) => {
     try {
       const { key } = req.params;
       const { setting_value } = req.body;
       const { shopSettings } = await import('@shared/schema');
-      const logisticsChannelKeys = [
-        "logistics_notification_email",
-        "logistics_notification_sms",
-        "logistics_notification_whatsapp",
-      ];
-      const result = logisticsChannelKeys.includes(key)
-        ? await db.insert(shopSettings).values({
-            settingKey: key,
-            settingValue: setting_value,
-            settingType: "boolean",
-            displayName: key,
-            category: "logistics_notifications",
-            isPublic: false,
-          }).onConflictDoUpdate({
-            target: shopSettings.settingKey,
-            set: { settingValue: setting_value, category: "logistics_notifications", isPublic: false, updatedAt: new Date() },
-          }).returning()
-        : await db.update(shopSettings)
-            .set({ settingValue: setting_value, updatedAt: new Date() })
-            .where(eq(shopSettings.settingKey, key))
-            .returning();
+
+      const result = await db.update(shopSettings)
+        .set({
+          settingValue: setting_value,
+          updatedAt: new Date()
+        })
+        .where(eq(shopSettings.settingKey, key))
+        .returning();
       
       if (result.length === 0) {
         return res.status(404).json({ success: false, message: "تنظیم یافت نشد" });

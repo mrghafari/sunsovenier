@@ -1558,20 +1558,34 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       : language === 'tr'
         ? 'Kargo teklifi eksik veya süresi dolmuş; yenileniyor. Lütfen yenilendikten sonra siparişi tekrar gönderin.'
         : 'The shipping quote is missing or expired and is being refreshed. Please submit again after it updates.';
+  const standardShippingUnavailableMessage = language === 'fa'
+    ? 'هزینه ارسال در دسترس نیست. لطفاً دوباره تلاش کنید یا روش ارسال دیگری انتخاب کنید.'
+    : language === 'ar'
+      ? 'تكلفة الشحن غير متاحة. يرجى إعادة المحاولة أو اختيار طريقة شحن أخرى.'
+      : language === 'tr'
+        ? 'Kargo ücreti şu anda mevcut değil. Lütfen tekrar deneyin veya başka bir teslimat yöntemi seçin.'
+        : 'Shipping cost is unavailable. Please retry or choose another delivery method.';
 
   useEffect(() => {
     const requestId = ++standardShippingRequestRef.current;
+    const quoteController = new AbortController();
     setStandardShippingQuote(null);
     setStandardShippingError('');
     setShippingCost(0);
     if (!selectedShippingMethod || !selectedShippingRate || isPickupShippingMethod || isSmartShippingMethod) {
       setStandardShippingLoading(false);
-      return;
+      return () => {
+        if (standardShippingRequestRef.current === requestId) standardShippingRequestRef.current++;
+        quoteController.abort();
+      };
     }
     if (!activePricingCity || totalWeight <= 0) {
       setStandardShippingLoading(false);
-      setStandardShippingError(smartDeliveryUnavailableMessage);
-      return;
+      setStandardShippingError(standardShippingUnavailableMessage);
+      return () => {
+        if (standardShippingRequestRef.current === requestId) standardShippingRequestRef.current++;
+        quoteController.abort();
+      };
     }
 
     setStandardShippingLoading(true);
@@ -1582,9 +1596,21 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     const quoteMethodId = selectedShippingMethod;
     const requestQuote = async () => {
       try {
-        const refreshedCenter = await refetchShippingCenter();
+        let centerRefreshTimeout: ReturnType<typeof setTimeout> | undefined;
+        let refreshedCenter;
+        try {
+          refreshedCenter = await Promise.race([
+            refetchShippingCenter(),
+            new Promise<never>((_, reject) => {
+              centerRefreshTimeout = setTimeout(() => reject(new Error('Shipping center refresh timed out')), 12000);
+            }),
+          ]);
+        } finally {
+          if (centerRefreshTimeout) clearTimeout(centerRefreshTimeout);
+        }
+        if (requestId !== standardShippingRequestRef.current) return;
         const quoteCenterKey = getShippingCenterKey(refreshedCenter.data?.data);
-        if (refreshedCenter.isError || !quoteCenterKey) throw new Error(smartDeliveryUnavailableMessage);
+        if (refreshedCenter.isError || !quoteCenterKey) throw new Error(standardShippingUnavailableMessage);
         shippingCenterKeyRef.current = quoteCenterKey;
         const matchingCity = Array.isArray(secondaryCities)
           ? secondaryCities.find((city: any) => [
@@ -1592,26 +1618,39 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
               city.namePersian, city.nameFa, city.name_fa, city.nameTurkish, city.nameTr, city.name_tr, city.name
             ].some((name: any) => name && name.toLowerCase() === quoteCity.toLowerCase()))
           : null;
-        const response = await fetch('/api/shipping/quote-standard', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({
-            cart: shippingQuoteCart,
-            ...(matchingCity?.id != null ? { destinationCityId: matchingCity.id } : {}),
-            destinationCity: quoteCity,
-            ...(quoteProvince ? { destinationProvince: quoteProvince } : {}),
-            ...(countryCode ? { destinationCountryCode: countryCode } : {}),
-            shippingMethod: quoteMethodId,
-          }),
-        });
-        const result = await response.json().catch(() => null);
+        const quoteTimeout = setTimeout(() => quoteController.abort(), 12000);
+        let response: Response;
+        let result: any;
+        try {
+          response = await fetch('/api/shipping/quote-standard', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            signal: quoteController.signal,
+            body: JSON.stringify({
+              cart: shippingQuoteCart,
+              ...(matchingCity?.id != null ? { destinationCityId: matchingCity.id } : {}),
+              destinationCity: quoteCity,
+              ...(quoteProvince ? { destinationProvince: quoteProvince } : {}),
+              ...(countryCode ? { destinationCountryCode: countryCode } : {}),
+              shippingMethod: quoteMethodId,
+              selectorIsDeliveryMethod: false,
+            }),
+          });
+          const contentType = response.headers.get('content-type') || '';
+          result = contentType.includes('application/json')
+            ? await response.json().catch(() => null)
+            : null;
+        } finally {
+          clearTimeout(quoteTimeout);
+        }
+        if (requestId !== standardShippingRequestRef.current) return;
         const rawCost = result?.data?.shippingCost;
         const cost = Number(rawCost);
         if (!response.ok || !result?.success ||
           (typeof rawCost !== 'number' && typeof rawCost !== 'string') ||
           String(rawCost).trim() === '' || !Number.isFinite(cost) || cost < 0) {
-          throw new Error(smartDeliveryUnavailableMessage);
+          throw new Error(standardShippingUnavailableMessage);
         }
         if (requestId !== standardShippingRequestRef.current || shippingCenterKeyRef.current !== quoteCenterKey) return;
         setShippingCost(cost);
@@ -1625,7 +1664,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
         });
       } catch (error) {
         if (requestId !== standardShippingRequestRef.current) return;
-        setStandardShippingError(smartDeliveryUnavailableMessage);
+        setStandardShippingError(standardShippingUnavailableMessage);
         setStandardShippingQuote(null);
         setShippingCost(0);
       } finally {
@@ -1633,11 +1672,15 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       }
     };
     void requestQuote();
+    return () => {
+      if (standardShippingRequestRef.current === requestId) standardShippingRequestRef.current++;
+      quoteController.abort();
+    };
   }, [
     selectedShippingMethod, selectedShippingRate, isPickupShippingMethod, isSmartShippingMethod,
     activePricingCity, activePricingProvince, activePricingCountry, totalWeight, standardShippingQuoteKey,
     shippingQuoteCartKey, shippingQuoteRefreshKey, secondaryCities, shippingCenterKey, refetchShippingCenter,
-    smartDeliveryUnavailableMessage,
+    standardShippingUnavailableMessage,
   ]);
 
   // Watch for changes in destination to recalculate delivery cost
@@ -2082,12 +2125,12 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       Date.now() - standardShippingQuote.createdAt < 4 * 60 * 1000;
     if (isShippingDependentForValidation && !isSmartShippingForValidation &&
       (standardShippingLoading || !!standardShippingError || !submittedStandardQuoteIsCurrent)) {
-      setStandardShippingError(smartDeliveryUnavailableMessage);
+      setStandardShippingError(standardShippingUnavailableMessage);
       setStandardShippingQuote(null);
       setShippingQuoteRefreshKey((key) => key + 1);
       toast({
-        title: smartDeliveryUnavailableMessage,
-        description: smartDeliveryUnavailableMessage,
+        title: standardShippingUnavailableMessage,
+        description: standardShippingUnavailableMessage,
         variant: "destructive"
       });
       return;
@@ -2517,9 +2560,9 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                         if (rate.deliveryMethod === 'freight_collect' || rate.delivery_method === 'freight_collect') {
                           const freightPrice = rate.id === selectedShippingMethod && standardShippingQuoteReady
                             ? (standardShippingQuote!.cost === 0 ? t.freeShipping : formatCurrency(standardShippingQuote!.cost))
-                            : rate.id === selectedShippingMethod && standardShippingError
-                              ? smartDeliveryUnavailableMessage
-                              : t.calculating;
+                            : rate.id === selectedShippingMethod && standardShippingLoading
+                              ? t.calculating
+                              : standardShippingUnavailableMessage;
                           return (
                             <option key={rate.id} value={rate.id} style={{backgroundColor: '#fed7aa', color: '#c2410c'}}>
                               🚚 {language === 'en' ? 'Freight Collect' : language === 'fa' ? 'کرایه در مقصد' : 'الشحن عند التسليم'} - {freightPrice}
@@ -2531,9 +2574,9 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                         const isActiveRate = rate.id === selectedShippingMethod;
                         const ratePrice = isActiveRate && standardShippingQuoteReady
                           ? (standardShippingQuote!.cost === 0 ? t.freeShipping : formatCurrency(standardShippingQuote!.cost))
-                          : isActiveRate && standardShippingError
-                            ? smartDeliveryUnavailableMessage
-                            : t.calculating;
+                          : isActiveRate && standardShippingLoading
+                            ? t.calculating
+                            : standardShippingUnavailableMessage;
                         
                         return (
                           <option key={rate.id} value={rate.id}>
@@ -2659,10 +2702,12 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                                 </div>
                                 <div className="text-sm font-medium">
                                   {standardShippingError
-                                    ? smartDeliveryUnavailableMessage
-                                    : standardShippingLoading || !standardShippingQuoteReady
+                                    ? standardShippingUnavailableMessage
+                                    : standardShippingLoading
                                       ? t.calculating
-                                      : (standardShippingQuote!.cost === 0 ? t.freeShipping : formatCurrency(standardShippingQuote!.cost))}
+                                      : standardShippingQuoteReady
+                                        ? (standardShippingQuote!.cost === 0 ? t.freeShipping : formatCurrency(standardShippingQuote!.cost))
+                                        : standardShippingUnavailableMessage}
                                 </div>
                               </div>
                             );
@@ -2675,14 +2720,16 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                                 <span>{t.shippingCost}:</span>
                                 <span className="font-medium">
                                   {standardShippingError
-                                    ? smartDeliveryUnavailableMessage
-                                    : standardShippingLoading || !standardShippingQuoteReady
+                                    ? standardShippingUnavailableMessage
+                                    : standardShippingLoading
                                       ? t.calculating
-                                      : (standardShippingQuote!.cost === 0 ? t.freeShipping : formatCurrency(standardShippingQuote!.cost))}
+                                      : standardShippingQuoteReady
+                                        ? (standardShippingQuote!.cost === 0 ? t.freeShipping : formatCurrency(standardShippingQuote!.cost))
+                                        : standardShippingUnavailableMessage}
                                 </span>
                               </div>
                               {standardShippingError && (
-                                <p role="alert" className="text-xs text-red-600 mt-1">{smartDeliveryUnavailableMessage}</p>
+                                <p role="alert" className="text-xs text-red-600 mt-1">{standardShippingUnavailableMessage}</p>
                               )}
                             </div>
                           );
@@ -2743,8 +2790,9 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                       }
                       
                       if (isPickupShippingMethod) return t.freeShipping;
-                      if (standardShippingError) return <span className="text-red-600">{smartDeliveryUnavailableMessage}</span>;
-                      if (!isSmartShippingMethod && (standardShippingLoading || !standardShippingQuoteReady)) return <span>{t.calculating}</span>;
+                       if (standardShippingError) return <span className="text-red-600">{standardShippingUnavailableMessage}</span>;
+                       if (!isSmartShippingMethod && standardShippingLoading) return <span>{t.calculating}</span>;
+                       if (!isSmartShippingMethod && !standardShippingQuoteReady) return <span className="text-red-600">{standardShippingUnavailableMessage}</span>;
                       return finalShippingCost === 0 ? t.freeShipping : formatCurrency(finalShippingCost);
                     })()}
                   </span>

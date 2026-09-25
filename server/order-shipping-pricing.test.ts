@@ -52,6 +52,10 @@ test("standard quote methods exclude smart and pickup while using authoritative 
   assert.ok(quoteRoute.includes("standardMethodsOnly: true"));
   assert.ok(quoteRoute.includes("checkoutFlow: \"standard_quote\""));
   assert.ok(!quoteRoute.includes("vehicleTemplates"));
+  assert.ok(
+    routes.includes('if (input.standardMethodsOnly && !rate)'),
+    "A standard quote without a destination-matching active rate must not use a zero-default method price",
+  );
 });
 
 test("admin shipping-center and route configuration endpoints require logistics capabilities", () => {

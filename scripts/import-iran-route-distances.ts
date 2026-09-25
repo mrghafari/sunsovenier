@@ -319,12 +319,12 @@ function parseMode(args: string[]): "dry-run" | "apply" {
   throw new Error("Usage: NODE_ENV=development npx tsx scripts/import-iran-route-distances.ts [--apply]");
 }
 
-export function buildInsertStatement(batch: ImportRoute[]): InsertStatement {
+function makeInsertStatement(batch: ImportRoute[]): InsertStatement {
   const values: unknown[] = [];
   const tuples = batch.map((route, index) => {
     const base = index * 4;
     values.push(route.originCityId, route.destinationCityId, route.distanceKm, SOURCE);
-    return `($${base + 1}::integer, $${base + 2}::integer, $${base + 3}::numeric, $${base + 4}::text, NOW())`;
+    return `($${base + 1}::integer, $${base + 2}::integer, $${base + 3}::numeric, $${base + 4}::text)`;
   });
   return {
     sql: `INSERT INTO logistics_route_distances
@@ -418,7 +418,7 @@ async function run(): Promise<void> {
 
     let preflightBatchCount = 0;
     for (let offset = 0; offset < plan.routes.length; offset += BATCH_SIZE) {
-      const statement = buildInsertStatement(plan.routes.slice(offset, offset + BATCH_SIZE));
+      const statement = makeInsertStatement(plan.routes.slice(offset, offset + BATCH_SIZE));
       try {
         await pool.query(`EXPLAIN ${statement.sql}`, statement.values);
       } catch (error) {
@@ -446,7 +446,7 @@ async function run(): Promise<void> {
     try {
       await client.query("BEGIN");
       for (let offset = 0; offset < plan.routes.length; offset += BATCH_SIZE) {
-        const statement = buildInsertStatement(plan.routes.slice(offset, offset + BATCH_SIZE));
+        const statement = makeInsertStatement(plan.routes.slice(offset, offset + BATCH_SIZE));
         await client.query(
           statement.sql,
           statement.values,
