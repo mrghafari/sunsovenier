@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import PaymentMethodBadge from '@/components/PaymentMethodBadge';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { formatDeliveryAppointment } from '../../../../shared/delivery-timezone';
 
 type Language = 'en' | 'ar' | 'tr' | 'fa';
 
@@ -220,6 +221,10 @@ interface Order {
   trackingNumber?: string;
   deliveryCode?: string;
   estimatedDeliveryDate?: string;
+  estimatedDeliveryAt?: string | null;
+  estimatedDeliveryTimeZone?: string | null;
+  destinationCountry?: string | null;
+  destinationCity?: string | null;
   actualDeliveryDate?: string;
   deliveryPersonName?: string;
   deliveryPersonPhone?: string;
@@ -434,10 +439,49 @@ const formatDate = (dateString: string, language: Language, unknown: string) => 
   }
 };
 
+const formatDateOnly = (dateString: string, language: Language, unknown: string) => {
+  if (!dateString) return unknown;
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return unknown;
+  const locale = language === 'fa' ? 'fa-IR-u-ca-persian' :
+    language === 'ar' ? 'ar-u-ca-gregory' :
+    language === 'tr' ? 'tr-TR-u-ca-gregory' : 'en-US-u-ca-gregory';
+  return new Intl.DateTimeFormat(locale, {
+    year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'UTC',
+  }).format(date);
+};
+
+const escapeHtml = (value: string) => value
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;');
+
 export default function OrderTrackingManagement() {
   const { language: contextLanguage, direction } = useLanguage();
   const language = (contextLanguage in translations ? contextLanguage : 'en') as Language;
   const t = (key: string) => translations[language][key] || translations.en[key] || key;
+  const deliveryAppointmentLocale = language === 'fa' ? 'fa-IR-u-ca-persian' :
+    language === 'ar' ? 'ar-u-ca-gregory' :
+    language === 'tr' ? 'tr-TR-u-ca-gregory' : 'en-US-u-ca-gregory';
+  const formatEstimatedDelivery = (order: Pick<Order, 'estimatedDeliveryAt' | 'estimatedDeliveryTimeZone' | 'estimatedDeliveryDate'>) => {
+    if (order.estimatedDeliveryAt && order.estimatedDeliveryTimeZone) {
+      try {
+        const appointment = formatDeliveryAppointment(
+          order.estimatedDeliveryAt,
+          order.estimatedDeliveryTimeZone,
+          deliveryAppointmentLocale,
+        );
+        if (appointment) return `${appointment} (${order.estimatedDeliveryTimeZone})`;
+      } catch {
+        // Invalid appointment metadata falls back to the legacy date-only value.
+      }
+    }
+    return order.estimatedDeliveryDate
+      ? formatDateOnly(order.estimatedDeliveryDate, language, t('unknown'))
+      : t('notSet');
+  };
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -639,7 +683,7 @@ export default function OrderTrackingManagement() {
       <html dir="rtl" lang="fa">
       <head>
         <meta charset="UTF-8">
-        <title>جزئیات سفارش ${selectedOrder.orderNumber || `#${selectedOrder.customerOrderId}`}</title>
+        <title>جزئیات سفارش ${escapeHtml(selectedOrder.orderNumber || `#${selectedOrder.customerOrderId}`)}</title>
         <style>
           body { font-family: 'Tahoma', sans-serif; margin: 15px; direction: rtl; font-size: 13px; }
           .header { text-align: center; border-bottom: 1px solid #333; padding-bottom: 12px; margin-bottom: 12px; }
@@ -729,7 +773,7 @@ export default function OrderTrackingManagement() {
         <div class="header">
           <img src="/attached_assets/company-logo.png" alt="لوگوی شرکت" class="company-logo" />
           <div class="company-name">شرکت ممتاز شیمی</div>
-          <div class="order-title">جزئیات سفارش ${selectedOrder.orderNumber || `#${selectedOrder.customerOrderId}`}</div>
+          <div class="order-title">جزئیات سفارش ${escapeHtml(selectedOrder.orderNumber || `#${selectedOrder.customerOrderId}`)}</div>
           <div style="font-size: 12px; margin-top: 10px;">تاریخ چاپ: ${new Date().toLocaleDateString('en-GB')}</div>
         </div>
 
@@ -738,19 +782,19 @@ export default function OrderTrackingManagement() {
           <div class="info-grid">
             <div class="info-item">
               <div class="info-label">نام مشتری</div>
-              <div class="info-value">${selectedOrder.customerName || 'نامشخص'}</div>
+              <div class="info-value">${escapeHtml(selectedOrder.customerName || 'نامشخص')}</div>
             </div>
             <div class="info-item">
               <div class="info-label">شماره تماس</div>
-              <div class="info-value">${selectedOrder.customerPhone || 'نامشخص'}</div>
+              <div class="info-value">${escapeHtml(selectedOrder.customerPhone || 'نامشخص')}</div>
             </div>
             <div class="info-item">
               <div class="info-label">ایمیل</div>
-              <div class="info-value">${selectedOrder.customerEmail || 'نامشخص'}</div>
+              <div class="info-value">${escapeHtml(selectedOrder.customerEmail || 'نامشخص')}</div>
             </div>
             <div class="info-item">
               <div class="info-label">مبلغ کل</div>
-              <div class="info-value" style="color: #059669; font-weight: bold;">${formatAmount(selectedOrder.totalAmount, selectedOrder.currency)}</div>
+              <div class="info-value" style="color: #059669; font-weight: bold;">${escapeHtml(formatAmount(selectedOrder.totalAmount, selectedOrder.currency))}</div>
             </div>
           </div>
         </div>
@@ -760,19 +804,19 @@ export default function OrderTrackingManagement() {
           <div class="info-grid">
             <div class="info-item">
               <div class="info-label">روش پرداخت</div>
-              <div class="info-value payment-method">${selectedOrder.paymentMethod || 'نامشخص'}</div>
+              <div class="info-value payment-method">${escapeHtml(selectedOrder.paymentMethod || 'نامشخص')}</div>
             </div>
             <div class="info-item">
               <div class="info-label">وضعیت فعلی</div>
-              <div class="info-value status-badge" style="background-color: #e5e7eb; color: #374151;">${statusInfo.label}</div>
+              <div class="info-value status-badge" style="background-color: #e5e7eb; color: #374151;">${escapeHtml(statusInfo.label)}</div>
             </div>
             <div class="info-item">
               <div class="info-label">بخش مسئول</div>
-              <div class="info-value">${statusInfo.department}</div>
+              <div class="info-value">${escapeHtml(statusInfo.department)}</div>
             </div>
             <div class="info-item">
               <div class="info-label">کد تحویل</div>
-              <div class="info-value">${selectedOrder.deliveryCode || 'تخصیص نشده'}</div>
+              <div class="info-value">${escapeHtml(selectedOrder.deliveryCode || 'تخصیص نشده')}</div>
             </div>
           </div>
         </div>
@@ -782,23 +826,23 @@ export default function OrderTrackingManagement() {
           <div class="info-grid">
             <div class="info-item">
               <div class="info-label">شماره رهگیری</div>
-              <div class="info-value">${selectedOrder.trackingNumber || 'تخصیص نشده'}</div>
+              <div class="info-value">${escapeHtml(selectedOrder.trackingNumber || 'تخصیص نشده')}</div>
             </div>
             <div class="info-item">
               <div class="info-label">تاریخ تحویل تخمینی</div>
-              <div class="info-value">${selectedOrder.estimatedDeliveryDate ? formatDate(selectedOrder.estimatedDeliveryDate, language, t('unknown')) : t('notSet')}</div>
+              <div class="info-value">${escapeHtml(formatEstimatedDelivery(selectedOrder))}</div>
             </div>
             <div class="info-item">
               <div class="info-label">تاریخ تحویل واقعی</div>
-              <div class="info-value">${selectedOrder.actualDeliveryDate ? formatDate(selectedOrder.actualDeliveryDate, language, t('unknown')) : t('notDelivered')}</div>
+              <div class="info-value">${escapeHtml(selectedOrder.actualDeliveryDate ? formatDate(selectedOrder.actualDeliveryDate, language, t('unknown')) : t('notDelivered'))}</div>
             </div>
             <div class="info-item">
               <div class="info-label">نام تحویل‌دهنده</div>
-              <div class="info-value">${selectedOrder.deliveryPersonName || 'تخصیص نشده'}</div>
+              <div class="info-value">${escapeHtml(selectedOrder.deliveryPersonName || 'تخصیص نشده')}</div>
             </div>
             <div class="info-item">
               <div class="info-label">تلفن تحویل‌دهنده</div>
-              <div class="info-value">${selectedOrder.deliveryPersonPhone || 'تخصیص نشده'}</div>
+              <div class="info-value">${escapeHtml(selectedOrder.deliveryPersonPhone || 'تخصیص نشده')}</div>
             </div>
           </div>
         </div>
@@ -808,15 +852,15 @@ export default function OrderTrackingManagement() {
           <div class="notes-grid">
             <div class="notes-item">
               <div style="font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #d1d5db; padding-bottom: 4px;">📋 یادداشت‌های مالی</div>
-              <div style="font-size: 13px; line-height: 1.4;">${selectedOrder.financialNotes || 'یادداشتی وجود ندارد'}</div>
+              <div style="font-size: 13px; line-height: 1.4;">${escapeHtml(selectedOrder.financialNotes || 'یادداشتی وجود ندارد')}</div>
             </div>
             <div class="notes-item">
               <div style="font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #d1d5db; padding-bottom: 4px;">📦 یادداشت‌های انبار</div>
-              <div style="font-size: 13px; line-height: 1.4;">${selectedOrder.warehouseNotes || 'یادداشتی وجود ندارد'}</div>
+              <div style="font-size: 13px; line-height: 1.4;">${escapeHtml(selectedOrder.warehouseNotes || 'یادداشتی وجود ندارد')}</div>
             </div>
             <div class="notes-item">
               <div style="font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #d1d5db; padding-bottom: 4px;">🚛 یادداشت‌های لجستیک</div>
-              <div style="font-size: 13px; line-height: 1.4;">${selectedOrder.logisticsNotes || 'یادداشتی وجود ندارد'}</div>
+              <div style="font-size: 13px; line-height: 1.4;">${escapeHtml(selectedOrder.logisticsNotes || 'یادداشتی وجود ندارد')}</div>
             </div>
           </div>
         </div>
@@ -825,7 +869,7 @@ export default function OrderTrackingManagement() {
           <div class="section">
             <div class="section-title">⚠️ توضیحات مشکل</div>
             <div style="background-color: #fef2f2; padding: 15px; border-radius: 8px; border: 1px solid #fecaca; color: #7f1d1d;">
-              ${statusInfo.explanation}
+              ${escapeHtml(statusInfo.explanation)}
             </div>
           </div>
         ` : ''}
@@ -1357,7 +1401,7 @@ export default function OrderTrackingManagement() {
                                 </tr>
                                 <tr>
                                   <th className="border bg-slate-100 p-2 text-start">{t('estimatedDelivery')}</th>
-                                  <td className="border p-2">{order.estimatedDeliveryDate ? formatDate(order.estimatedDeliveryDate, language, t('unknown')) : t('notSet')}</td>
+                                  <td className="border p-2">{formatEstimatedDelivery(order)}</td>
                                   <th className="border bg-slate-100 p-2 text-start">{t('actualDelivery')}</th>
                                   <td className="border p-2">{order.actualDeliveryDate ? formatDate(order.actualDeliveryDate, language, t('unknown')) : t('notDelivered')}</td>
                                   <th className="border bg-slate-100 p-2 text-start">{t('customerSubmitted')}</th>

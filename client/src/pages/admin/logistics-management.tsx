@@ -65,6 +65,7 @@ import { logisticsLocale, logisticsT, type LogisticsLanguage } from './logistics
 import LogisticsWorkspaceHeader from '@/components/admin/logistics-redesign/LogisticsWorkspaceHeader';
 import LogisticsCenterRouteEditor from '@/components/admin/logistics-redesign/LogisticsCenterRouteEditor';
 import CustomerNotificationSettings from '@/components/admin/logistics-redesign/CustomerNotificationSettings';
+import { formatDeliveryAppointment } from '../../../../shared/delivery-timezone';
 
 // Types for vehicle history
 interface VehicleDeliveryHistory {
@@ -637,6 +638,10 @@ interface LogisticsOrder {
   driverPhone?: string;
   trackingNumber?: string;
   estimatedDeliveryDate?: string;
+  estimatedDeliveryAt?: string | null;
+  estimatedDeliveryTimeZone?: string | null;
+  destinationCountry?: string | null;
+  destinationCity?: string | null;
   actualDeliveryDate?: string;
   deliveryPersonName?: string;
   deliveryPersonPhone?: string;
@@ -702,6 +707,25 @@ const LogisticsManagement = () => {
       hour: '2-digit',
       minute: '2-digit',
     }).format(date);
+  };
+  const formatLegacyDeliveryDate = (value?: string) => {
+    if (!value) return t('unknown');
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return t('unknown');
+    return new Intl.DateTimeFormat(locale, {
+      year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'UTC',
+    }).format(date);
+  };
+  const formatEstimatedDelivery = (order?: Pick<LogisticsOrder, 'estimatedDeliveryAt' | 'estimatedDeliveryTimeZone' | 'estimatedDeliveryDate'> | null) => {
+    if (order?.estimatedDeliveryAt && order.estimatedDeliveryTimeZone) {
+      try {
+        const appointment = formatDeliveryAppointment(order.estimatedDeliveryAt, order.estimatedDeliveryTimeZone, locale);
+        if (appointment) return `${appointment} (${order.estimatedDeliveryTimeZone})`;
+      } catch {
+        // Invalid appointment metadata falls back to the legacy date-only value.
+      }
+    }
+    return formatLegacyDeliveryDate(order?.estimatedDeliveryDate);
   };
   const formatLogisticsCurrency = (value: string | number) => new Intl.NumberFormat(locale, {
     style: 'currency', currency: 'IQD', maximumFractionDigits: 0,
@@ -6488,7 +6512,7 @@ const LogisticsManagement = () => {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm text-gray-600">{t('approximateDelivery')}:</span>
-                        <span className="font-medium">{formatLogisticsDate(selectedOrder.estimatedDeliveryDate)}</span>
+                        <span className="font-medium">{formatEstimatedDelivery(selectedOrder)}</span>
                       </div>
                     </div>
                   </div>
@@ -7214,10 +7238,10 @@ const LogisticsManagement = () => {
                         )}
                       </div>
                     )}
-                    {selectedOrderForDetails.estimatedDeliveryDate && (
+                    {(selectedOrderForDetails.estimatedDeliveryAt || selectedOrderForDetails.estimatedDeliveryDate) && (
                       <div>
                         <p className="text-sm text-gray-600 mb-1">{t('approximateDelivery')}:</p>
-                        <p className="font-medium">{formatLogisticsDate(selectedOrderForDetails.estimatedDeliveryDate)}</p>
+                        <p className="font-medium">{formatEstimatedDelivery(selectedOrderForDetails)}</p>
                       </div>
                     )}
                     {selectedOrderForDetails.actualDeliveryDate && (

@@ -29,6 +29,7 @@ import { crmCustomers, vendors, simpleSmsTemplates } from "@shared/schema";
 import { emailTemplates } from "@shared/email-schema";
 import { showcaseProducts as products } from "@shared/showcase-schema";
 import { shopProducts } from "@shared/shop-schema";
+import { getCheckoutDestination } from "./delivery-appointment";
 import { db } from "./db";
 import { pool as dbPool } from "./db";
 import { eq, and, desc, asc, inArray, notInArray, sql, isNotNull, or } from "drizzle-orm";
@@ -754,6 +755,8 @@ export class OrderManagementStorage implements IOrderManagementStorage {
       transportationType: orderManagement.transportationType,
       trackingNumber: orderManagement.trackingNumber,
       estimatedDeliveryDate: orderManagement.estimatedDeliveryDate,
+      estimatedDeliveryAt: orderManagement.estimatedDeliveryAt,
+      estimatedDeliveryTimeZone: orderManagement.estimatedDeliveryTimeZone,
       actualDeliveryDate: orderManagement.actualDeliveryDate,
       deliveryPersonName: orderManagement.deliveryPersonName,
       deliveryPersonPhone: orderManagement.deliveryPersonPhone,
@@ -902,6 +905,9 @@ export class OrderManagementStorage implements IOrderManagementStorage {
         transportationType: row.transportationType,
         trackingNumber: row.trackingNumber,
         estimatedDeliveryDate: row.estimatedDeliveryDate,
+        estimatedDeliveryAt: row.estimatedDeliveryAt,
+        estimatedDeliveryTimeZone: row.estimatedDeliveryTimeZone,
+        ...getCheckoutDestination(row.shippingAddress),
         actualDeliveryDate: row.actualDeliveryDate,
         deliveryPersonName: row.deliveryPersonName,
         deliveryPersonPhone: row.deliveryPersonPhone,
@@ -1171,6 +1177,8 @@ export class OrderManagementStorage implements IOrderManagementStorage {
       transportationType: orderManagement.transportationType,
       trackingNumber: orderManagement.trackingNumber,
       estimatedDeliveryDate: orderManagement.estimatedDeliveryDate,
+      estimatedDeliveryAt: orderManagement.estimatedDeliveryAt,
+      estimatedDeliveryTimeZone: orderManagement.estimatedDeliveryTimeZone,
       actualDeliveryDate: orderManagement.actualDeliveryDate,
       deliveryPersonName: orderManagement.deliveryPersonName,
       deliveryPersonPhone: orderManagement.deliveryPersonPhone,
@@ -1227,6 +1235,8 @@ export class OrderManagementStorage implements IOrderManagementStorage {
       transportationType: row.transportationType,
       trackingNumber: row.trackingNumber,
       estimatedDeliveryDate: row.estimatedDeliveryDate,
+      estimatedDeliveryAt: row.estimatedDeliveryAt,
+      estimatedDeliveryTimeZone: row.estimatedDeliveryTimeZone,
       actualDeliveryDate: row.actualDeliveryDate,
       deliveryPersonName: row.deliveryPersonName,
       deliveryPersonPhone: row.deliveryPersonPhone,
@@ -2008,12 +2018,36 @@ export class OrderManagementStorage implements IOrderManagementStorage {
     deliveryCompanyAddress?: string;
   }): Promise<OrderManagement> {
     const updateData: Partial<OrderManagement> = {
-      ...deliveryData,
-      estimatedDeliveryDate: deliveryData.estimatedDeliveryDate ? new Date(deliveryData.estimatedDeliveryDate) : undefined,
-      postalWeight: deliveryData.postalWeight ? deliveryData.postalWeight : undefined,
-      postalPrice: deliveryData.postalPrice ? deliveryData.postalPrice : undefined,
       updatedAt: new Date(),
     };
+    if (deliveryData.trackingNumber !== undefined) updateData.trackingNumber = deliveryData.trackingNumber;
+    if (deliveryData.estimatedDeliveryDate !== undefined) {
+      updateData.estimatedDeliveryDate = deliveryData.estimatedDeliveryDate
+        ? new Date(deliveryData.estimatedDeliveryDate)
+        : undefined;
+      // A legacy estimate replaces a local appointment, so clear its paired fields.
+      updateData.estimatedDeliveryAt = null;
+      updateData.estimatedDeliveryTimeZone = null;
+    }
+    if (deliveryData.deliveryPersonName !== undefined) updateData.deliveryPersonName = deliveryData.deliveryPersonName;
+    if (deliveryData.deliveryPersonPhone !== undefined) updateData.deliveryPersonPhone = deliveryData.deliveryPersonPhone;
+    if (deliveryData.deliveryMethod !== undefined) updateData.deliveryMethod = deliveryData.deliveryMethod;
+    if (deliveryData.transportationType !== undefined) updateData.transportationType = deliveryData.transportationType;
+    if (deliveryData.postalServiceName !== undefined) updateData.postalServiceName = deliveryData.postalServiceName;
+    if (deliveryData.postalTrackingCode !== undefined) updateData.postalTrackingCode = deliveryData.postalTrackingCode;
+    if (deliveryData.postalWeight) updateData.postalWeight = deliveryData.postalWeight;
+    if (deliveryData.postalPrice) updateData.postalPrice = deliveryData.postalPrice;
+    if (deliveryData.postalInsurance !== undefined) updateData.postalInsurance = deliveryData.postalInsurance;
+    if (deliveryData.vehicleType !== undefined) updateData.vehicleType = deliveryData.vehicleType;
+    if (deliveryData.vehiclePlate !== undefined) updateData.vehiclePlate = deliveryData.vehiclePlate;
+    if (deliveryData.vehicleModel !== undefined) updateData.vehicleModel = deliveryData.vehicleModel;
+    if (deliveryData.vehicleColor !== undefined) updateData.vehicleColor = deliveryData.vehicleColor;
+    if (deliveryData.driverName !== undefined) updateData.driverName = deliveryData.driverName;
+    if (deliveryData.driverPhone !== undefined) updateData.driverPhone = deliveryData.driverPhone;
+    if (deliveryData.driverLicense !== undefined) updateData.driverLicense = deliveryData.driverLicense;
+    if (deliveryData.deliveryCompanyName !== undefined) updateData.deliveryCompanyName = deliveryData.deliveryCompanyName;
+    if (deliveryData.deliveryCompanyPhone !== undefined) updateData.deliveryCompanyPhone = deliveryData.deliveryCompanyPhone;
+    if (deliveryData.deliveryCompanyAddress !== undefined) updateData.deliveryCompanyAddress = deliveryData.deliveryCompanyAddress;
 
     const [updatedOrder] = await db
       .update(orderManagement)

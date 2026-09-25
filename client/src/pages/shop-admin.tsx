@@ -64,9 +64,10 @@ type ShopTranslation = Partial<Record<ShopLanguage, string>>;
 const SHOP_TRANSLATIONS: Record<string, ShopTranslation> = {
   shopAdministration: { en: "Commercial", ar: "Commercial", tr: "Commercial", fa: "Commercial" },
   salesUnit: { en: "Sales", ar: "المبيعات", tr: "Satış", fa: "فروش" },
-  procurementUnit: { en: "Procurement", ar: "المشتريات", tr: "Tedarik", fa: "تدارکات" },
+  storeSales: { en: "Regular Shop Sales", ar: "مبيعات المتجر العادية", tr: "Normal Mağaza Satışları", fa: "فروش عادی در فروشگاه" },
+  contractSales: { en: "Contract Sales", ar: "المبيعات التعاقدية", tr: "Sözleşmeli Satışlar", fa: "فروش قراردادی" },
   salesContracts: { en: "Sales Contracts", ar: "عقود المبيعات", tr: "Satış Sözleşmeleri", fa: "قراردادهای فروش" },
-  manageOperations: { en: "Manage sales and procurement", ar: "إدارة المبيعات والمشتريات", tr: "Satış ve tedariki yönetin", fa: "مدیریت فروش و تدارکات" },
+  manageOperations: { en: "Manage shop and contract sales", ar: "إدارة مبيعات المتجر والعقود", tr: "Mağaza ve sözleşmeli satışları yönetin", fa: "مدیریت فروش فروشگاه و قراردادها" },
   refreshData: { en: "Refresh Data", ar: "تحديث البيانات", tr: "Verileri Yenile", fa: "به‌روزرسانی داده‌ها" },
   totalOrders: { en: "Total Orders", ar: "إجمالي الطلبات", tr: "Toplam Sipariş", fa: "کل سفارش‌ها" },
   pendingOrders: { en: "Pending Orders", ar: "الطلبات المعلقة", tr: "Bekleyen Sipariş", fa: "سفارش‌های در انتظار" },
@@ -74,8 +75,8 @@ const SHOP_TRANSLATIONS: Record<string, ShopTranslation> = {
   revenue: { en: "Revenue", ar: "الإيرادات", tr: "Gelir", fa: "درآمد" },
   orders: { en: "Orders", ar: "الطلبات", tr: "Siparişler", fa: "سفارش‌ها" },
   discountSettings: { en: "Discount Settings", ar: "إعدادات الخصم", tr: "İndirim Ayarları", fa: "تنظیمات تخفیف" },
-  bulkPurchases: { en: "Bulk Purchases", ar: "المشتريات بالجملة", tr: "Toplu Alımlar", fa: "خریدهای عمده" },
-  purchaseProformaDeadline: { en: "Purchase Proforma Deadline", ar: "مهلة الفاتورة الأولية للشراء", tr: "Satın Alma Proforma Son Tarihi", fa: "مهلت پیش‌فاکتور خرید" },
+  bulkPurchases: { en: "Bulk Sales Configuration", ar: "إعداد المبيعات بالجملة", tr: "Toplu Satış Yapılandırması", fa: "پیکربندی فروش عمده" },
+  purchaseProformaDeadline: { en: "Sales Proforma Deadline", ar: "مهلة الفاتورة الأولية للمبيعات", tr: "Satış Proforma Son Tarihi", fa: "مهلت پیش‌فاکتور فروش" },
   inventory: { en: "Inventory", ar: "المخزون", tr: "Stok", fa: "موجودی" },
   invoiceManagement: { en: "Invoice Management", ar: "إدارة الفواتير", tr: "Fatura Yönetimi", fa: "مدیریت فاکتورها" },
   returnedItems: { en: "Returned Items", ar: "العناصر المرتجعة", tr: "İade Edilenler", fa: "اقلام برگشتی" },
@@ -121,7 +122,7 @@ const SHOP_TRANSLATIONS: Record<string, ShopTranslation> = {
   active: { en: "Active", ar: "فعال", tr: "Aktif", fa: "فعال" },
   inactive: { en: "Inactive", ar: "غير فعال", tr: "Pasif", fa: "غیرفعال" },
   discountUpdated: { en: "Discount Updated", ar: "تم تحديث الخصم", tr: "İndirim Güncellendi", fa: "تخفیف به‌روزرسانی شد" },
-  bulkConfiguration: { en: "Bulk Purchase Configuration", ar: "إعداد المشتريات بالجملة", tr: "Toplu Alım Yapılandırması", fa: "پیکربندی خرید عمده" },
+  bulkConfiguration: { en: "Bulk Sales Configuration", ar: "إعداد المبيعات بالجملة", tr: "Toplu Satış Yapılandırması", fa: "پیکربندی فروش عمده" },
   bulkStatus: { en: "Bulk status", ar: "حالة الجملة", tr: "Toplu alım durumu", fa: "وضعیت عمده" },
   minimumQuantity: { en: "Minimum quantity", ar: "الحد الأدنى للكمية", tr: "Minimum miktar", fa: "حداقل مقدار" },
   bulkDiscounts: { en: "Discount tiers", ar: "مستويات الخصم", tr: "İndirim kademeleri", fa: "سطوح تخفیف" },
@@ -130,8 +131,8 @@ const SHOP_TRANSLATIONS: Record<string, ShopTranslation> = {
   inventoryLoading: { en: "Loading inventory...", ar: "جارٍ تحميل المخزون...", tr: "Stok yükleniyor...", fa: "در حال بارگذاری موجودی..." },
   inventoryError: { en: "Unable to load inventory.", ar: "تعذر تحميل المخزون.", tr: "Stok yüklenemedi.", fa: "بارگذاری موجودی ممکن نیست." },
   retry: { en: "Retry", ar: "إعادة المحاولة", tr: "Yeniden dene", fa: "تلاش مجدد" },
-  bulkHint: { en: "Add products to configure bulk purchases", ar: "أضف منتجات لإعداد المشتريات بالجملة", tr: "Toplu alımları yapılandırmak için ürün ekleyin", fa: "برای پیکربندی خرید عمده محصول اضافه کنید" },
-  deadlineSettings: { en: "Purchase Proforma Deadline Settings", ar: "إعدادات مهلة الفاتورة الأولية للشراء", tr: "Satın Alma Proforma Son Tarihi Ayarları", fa: "تنظیمات مهلت پیش‌فاکتور خرید" },
+  bulkHint: { en: "Add products to configure bulk sales", ar: "أضف منتجات لإعداد المبيعات بالجملة", tr: "Toplu satışları yapılandırmak için ürün ekleyin", fa: "برای پیکربندی فروش عمده محصول اضافه کنید" },
+  deadlineSettings: { en: "Sales Proforma Deadline Settings", ar: "إعدادات مهلة الفاتورة الأولية للمبيعات", tr: "Satış Proforma Son Tarihi Ayarları", fa: "تنظیمات مهلت پیش‌فاکتور فروش" },
   deadlineAlert: { en: "This setting applies to all products in the shop and displays in checkout and purchase cards.", ar: "ينطبق هذا الإعداد على جميع منتجات المتجر ويظهر عند الدفع وفي بطاقات الشراء.", tr: "Bu ayar mağazadaki tüm ürünlere uygulanır ve ödeme ile satın alma kartlarında gösterilir.", fa: "این تنظیم برای همه محصولات فروشگاه اعمال شده و در صفحه پرداخت و کارت‌های خرید نمایش داده می‌شود." },
   paymentDeadline: { en: "Payment Deadline (Days)", ar: "مهلة الدفع (بالأيام)", tr: "Ödeme Son Tarihi (Gün)", fa: "مهلت پرداخت (روز)" },
   deadlineHint: { en: "Number of days for payment deadline (minimum 1 day, maximum 30 days)", ar: "عدد أيام مهلة الدفع (يوم واحد كحد أدنى و30 يوماً كحد أقصى)", tr: "Ödeme son tarihi için gün sayısı (en az 1, en fazla 30 gün)", fa: "تعداد روزهای مهلت پرداخت (حداقل ۱ و حداکثر ۳۰ روز)" },
@@ -386,7 +387,7 @@ function ProformaDeadlineSettings() {
 
   const saveSettings = useMutation({
     mutationFn: () => apiRequest("/api/shop/settings", { method: "POST", body: { settings: [
-      { setting_key: "proforma_deadline_days", setting_value: deadline, setting_type: "number", display_name: "Purchase Proforma Deadline (Days)", category: "payment", is_public: true },
+      { setting_key: "proforma_deadline_days", setting_value: deadline, setting_type: "number", display_name: "Sales Proforma Deadline (Days)", category: "payment", is_public: true },
       { setting_key: "proforma_reminder_timezone", setting_value: timezone, setting_type: "string", display_name: "Proforma Reminder Timezone", category: "payment", is_public: false },
     ] } }),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/shop/settings"] }); toast({ title: tr("success"), description: tr("updated") }); },
@@ -475,23 +476,29 @@ function ProformaDeadlineSettings() {
   );
 }
 
+const storeSalesTabs = ["orders", "discounts", "inventory", "invoices", "returns", "abandoned-cart", "reports", "bulk-purchases", "proforma-deadline"];
+const contractSalesTabs = ["contracts"];
+const formerProcurementTabs = ["bulk-purchases", "proforma-deadline"];
+type SalesSection = "store" | "contractual";
+
+function commercialSelectionFromUrl(search: string): { section: SalesSection; tab: string } {
+  const params = new URLSearchParams(search);
+  const unit = params.get("unit");
+  const tab = params.get("tab");
+  if (unit === "procurement" && (!tab || formerProcurementTabs.includes(tab))) {
+    return { section: "store", tab: tab || "bulk-purchases" };
+  }
+  if (unit === "sales") {
+    if (tab && storeSalesTabs.includes(tab)) return { section: "store", tab };
+    if (tab && contractSalesTabs.includes(tab)) return { section: "contractual", tab };
+    if (!tab && params.get("group") === "contractual") return { section: "contractual", tab: "contracts" };
+  }
+  return { section: "store", tab: "orders" };
+}
+
 export default function ShopAdmin() {
-  const salesTabs = ["orders", "discounts", "contracts", "inventory", "invoices", "returns", "abandoned-cart", "reports"];
-  const procurementTabs = ["bulk-purchases", "proforma-deadline"];
-  const initialUrlSelection = (() => {
-    if (typeof window === "undefined") return { unit: "sales", tab: "orders" };
-    const params = new URLSearchParams(window.location.search);
-    const unitParam = params.get("unit");
-    const tabParam = params.get("tab");
-    if (unitParam === "sales" && (!tabParam || salesTabs.includes(tabParam))) {
-      return { unit: "sales", tab: tabParam || "orders" };
-    }
-    if (unitParam === "procurement" && (!tabParam || procurementTabs.includes(tabParam))) {
-      return { unit: "procurement", tab: tabParam || "bulk-purchases" };
-    }
-    return { unit: "sales", tab: "orders" };
-  })();
-  const [activeUnit, setActiveUnit] = useState(initialUrlSelection.unit);
+  const initialUrlSelection = commercialSelectionFromUrl(typeof window === "undefined" ? "" : window.location.search);
+  const [activeSection, setActiveSection] = useState<SalesSection>(initialUrlSelection.section);
   const [activeTab, setActiveTab] = useState(initialUrlSelection.tab);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [orderStatusFilter, setOrderStatusFilter] = useState("all");
@@ -586,30 +593,21 @@ export default function ShopAdmin() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const setCommercialSelection = (unit: string, tab: string) => {
-    setActiveUnit(unit);
+  const setCommercialSelection = (section: SalesSection, tab: string) => {
+    setActiveSection(section);
     setActiveTab(tab);
     const params = new URLSearchParams(window.location.search);
-    params.set("unit", unit);
+    params.set("unit", "sales");
+    params.set("group", section);
     params.set("tab", tab);
     window.history.replaceState(window.history.state, "", `${window.location.pathname}?${params.toString()}${window.location.hash}`);
   };
 
   useEffect(() => {
     const syncSelectionFromUrl = () => {
-      const params = new URLSearchParams(window.location.search);
-      const unitParam = params.get("unit");
-      const tabParam = params.get("tab");
-      if (unitParam === "sales" && (!tabParam || salesTabs.includes(tabParam))) {
-        setActiveUnit("sales");
-        setActiveTab(tabParam || "orders");
-      } else if (unitParam === "procurement" && (!tabParam || procurementTabs.includes(tabParam))) {
-        setActiveUnit("procurement");
-        setActiveTab(tabParam || "bulk-purchases");
-      } else {
-        setActiveUnit("sales");
-        setActiveTab("orders");
-      }
+      const selection = commercialSelectionFromUrl(window.location.search);
+      setActiveSection(selection.section);
+      setActiveTab(selection.tab);
     };
     window.addEventListener("popstate", syncSelectionFromUrl);
     return () => window.removeEventListener("popstate", syncSelectionFromUrl);
@@ -889,43 +887,44 @@ export default function ShopAdmin() {
           </Card>
         </div>
 
-        {/* Commercial units */}
-        <div className="flex flex-wrap gap-2" aria-label="Commercial units">
+        {/* Sales sections */}
+        <div className="space-y-2">
+          <h2 className="text-lg font-semibold">{tr("salesUnit")}</h2>
+          <div className="flex flex-wrap gap-2" aria-label={tr("salesUnit")}>
           <Button
             type="button"
-            variant={activeUnit === "sales" ? "default" : "outline"}
-            onClick={() => setCommercialSelection("sales", "orders")}
+            variant={activeSection === "store" ? "default" : "outline"}
+            onClick={() => setCommercialSelection("store", "orders")}
           >
-            {tr("salesUnit")}
+            {tr("storeSales")}
           </Button>
           <Button
             type="button"
-            variant={activeUnit === "procurement" ? "default" : "outline"}
-            onClick={() => setCommercialSelection("procurement", "bulk-purchases")}
+            variant={activeSection === "contractual" ? "default" : "outline"}
+            onClick={() => setCommercialSelection("contractual", "contracts")}
           >
-            {tr("procurementUnit")}
+            {tr("contractSales")}
           </Button>
+          </div>
         </div>
 
         {/* Main Content Tabs */}
-        <Tabs value={activeTab} onValueChange={(tab) => setCommercialSelection(activeUnit, tab)} className="space-y-6">
+        <Tabs value={activeTab} onValueChange={(tab) => setCommercialSelection(activeSection, tab)} className="space-y-6">
           <TabsList className="flex flex-wrap gap-1 h-auto p-2 bg-gray-100 rounded-lg">
-            {activeUnit === "sales" ? (
+            {activeSection === "store" ? (
               <>
                 <TabsTrigger value="orders" className="text-sm px-3 py-2">{tr("orders")}</TabsTrigger>
                 <TabsTrigger value="discounts" className="text-sm px-3 py-2">{tr("discountSettings")}</TabsTrigger>
-                <TabsTrigger value="contracts" className="text-sm px-3 py-2">{tr("salesContracts")}</TabsTrigger>
                 <TabsTrigger value="inventory" className="text-sm px-3 py-2">{tr("inventory")}</TabsTrigger>
                 <TabsTrigger value="invoices" className="bg-green-600 text-white hover:bg-green-700 data-[state=active]:bg-green-700 data-[state=active]:text-white text-sm px-3 py-2">{tr("invoiceManagement")}</TabsTrigger>
                 <TabsTrigger value="returns" className="text-sm px-3 py-2">{tr("returnedItems")}</TabsTrigger>
                 <TabsTrigger value="abandoned-cart" className="text-sm px-3 py-2">{tr("abandonedCart")}</TabsTrigger>
                 <TabsTrigger value="reports" className="text-sm px-3 py-2">{tr("salesReports")}</TabsTrigger>
-              </>
-            ) : (
-              <>
                 <TabsTrigger value="bulk-purchases" className="text-sm px-3 py-2">{tr("bulkPurchases")}</TabsTrigger>
                 <TabsTrigger value="proforma-deadline" className="text-sm px-3 py-2">{tr("purchaseProformaDeadline")}</TabsTrigger>
               </>
+            ) : (
+              <TabsTrigger value="contracts" className="text-sm px-3 py-2">{tr("salesContracts")}</TabsTrigger>
             )}
           </TabsList>
 
@@ -1454,7 +1453,7 @@ export default function ShopAdmin() {
             </Card>
           </TabsContent>
 
-          {/* Purchase Proforma Deadline Tab */}
+          {/* Sales Proforma Deadline Tab */}
           <TabsContent value="proforma-deadline" className="space-y-6">
             <ProformaDeadlineSettings />
           </TabsContent>

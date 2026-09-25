@@ -11608,6 +11608,12 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         customerAddress: order.customer?.address || 'آدرس نامشخص',
         // Map order total from totalAmount field
         orderTotal: parseFloat(order.totalAmount || '0'),
+        estimatedDeliveryAt: order.estimatedDeliveryAt
+          ? new Date(order.estimatedDeliveryAt).toISOString()
+          : null,
+        estimatedDeliveryTimeZone: order.estimatedDeliveryTimeZone || null,
+        destinationCountry: order.country || "",
+        destinationCity: order.city || null,
         // Extract warehouse details
         warehouseProcessedAt: order.warehouseApprovedAt || order.createdAt,
         orderDate: order.createdAt,
@@ -19586,9 +19592,9 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           name: recipientInfo?.recipientName || `${finalCustomerInfo.firstName || ''} ${finalCustomerInfo.lastName || ''}`.trim(),
           phone: recipientInfo?.recipientPhone || finalCustomerInfo.phone || '',
           address: recipientInfo?.recipientAddress || finalCustomerInfo.address,
-          city: recipientInfo?.deliveryCity || finalCustomerInfo.city,
+          city: recipientInfo?.deliveryCity || customerInfo?.city || '',
           province: recipientInfo?.deliveryProvince || '',
-          country: recipientInfo?.deliveryCountry || finalCustomerInfo.country,
+          country: recipientInfo?.deliveryCountry || customerInfo?.country || '',
           postalCode: recipientInfo?.deliveryPostalCode || '',
         },
         notes: notes || '',
@@ -20283,8 +20289,9 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           name: customerInfo.name,
           phone: customerInfo.phone,
           address: customerInfo.address,
-          city: customerInfo.city,
+          city: orderData.activeDeliveryInfo?.activeDeliveryCity || orderData.city,
           postalCode: customerInfo.postalCode,
+          country: orderData.activeDeliveryInfo?.activeDeliveryCountry || orderData.country,
           gpsLatitude: orderData.gpsLatitude,
           gpsLongitude: orderData.gpsLongitude,
         }),
@@ -32515,7 +32522,7 @@ ${message ? `Additional Requirements:\n${message}` : ''}
   });
 
   // Update order delivery information (enhanced logistics details)
-  app.post('/api/logistics/orders/:orderId/delivery-info', async (req, res) => {
+  app.post('/api/logistics/orders/:orderId/delivery-info', requireAuth, attachUserDepartments as RequestHandler, requireDepartment('logistics') as RequestHandler, async (req, res) => {
     try {
       const { orderId } = req.params;
       const updatedOrder = await orderManagementStorage.updateDeliveryInfo(
@@ -32530,7 +32537,7 @@ ${message ? `Additional Requirements:\n${message}` : ''}
   });
 
   // Update delivery information for an order
-  app.put('/api/logistics/orders/:id/delivery-info', async (req, res) => {
+  app.put('/api/logistics/orders/:id/delivery-info', requireAuth, attachUserDepartments as RequestHandler, requireDepartment('logistics') as RequestHandler, async (req, res) => {
     try {
       const orderId = parseInt(req.params.id);
       const deliveryInfo = req.body;
@@ -46243,35 +46250,84 @@ momtazchem.com
     try {
       const { db } = await import("./db");
       const { orderManagement, orderStatusHistory } = await import("../shared/order-management-schema");
-      const { eq } = await import("drizzle-orm");
+      const { customerOrders } = await import("../shared/customer-schema");
+      const { getCheckoutDestination, resolveDestinationDeliveryAppointment } = await import("./delivery-appointment");
+      const { and, eq } = await import("drizzle-orm");
       
       const orderId = parseInt(req.params.orderId);
-      const { notes, trackingNumber, deliveryPersonName, deliveryPersonPhone, estimatedDeliveryDate } = req.body;
+      const {
+        notes, trackingNumber, deliveryPersonName, deliveryPersonPhone,
+        estimatedDeliveryDate, estimatedDeliveryLocal, deliveryTimeZone,
+      } = req.body;
       const adminId = req.session.adminId;
+      if (
+        typeof estimatedDeliveryLocal !== "string" || !estimatedDeliveryLocal.trim() ||
+        typeof deliveryTimeZone !== "string" || !deliveryTimeZone.trim() ||
+        estimatedDeliveryDate !== undefined
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "A complete estimatedDeliveryLocal and deliveryTimeZone appointment is required. Legacy or missing appointment data is no longer supported; refresh the logistics orders page and try again."
+        });
+      }
+      const [existingManagementOrder] = await db
+        .select({ id: orderManagement.id, currentStatus: orderManagement.currentStatus })
+        .from(orderManagement)
+        .where(eq(orderManagement.customerOrderId, orderId))
+        .limit(1);
+      if (!existingManagementOrder) return res.status(404).json({ success: false, message: "Order management record not found" });
+      const dispatchableStatuses = new Set(['warehouse_approved', 'logistics_assigned', 'logistics_processing']);
+      if (!dispatchableStatuses.has(existingManagementOrder.currentStatus)) {
+        return res.status(409).json({ success: false, message: "This order is no longer awaiting logistics dispatch. Refresh the logistics orders page before trying again." });
+      }
+
+      let estimatedDeliveryAt: Date | null = null;
+      let appointmentTimeZone: string | null = null;
+      {
+        const [checkoutOrder] = await db
+          .select({ shippingAddress: customerOrders.shippingAddress })
+          .from(customerOrders)
+          .where(eq(customerOrders.id, orderId))
+          .limit(1);
+        if (!checkoutOrder) return res.status(404).json({ success: false, message: "Order not found" });
+        const { country } = getCheckoutDestination(checkoutOrder.shippingAddress);
+        estimatedDeliveryAt = resolveDestinationDeliveryAppointment(estimatedDeliveryLocal, deliveryTimeZone, country);
+        appointmentTimeZone = deliveryTimeZone;
+      }
 
       // Generate unique 4-digit delivery code
       const deliveryCode = Math.floor(1000 + Math.random() * 9000).toString();
 
       // Update order status to logistics_dispatched
-      await db
+      const dispatchTimestamp = new Date();
+      const [updatedManagementOrder] = await db
         .update(orderManagement)
         .set({
           currentStatus: 'logistics_dispatched',
           logisticsAssigneeId: adminId,
-          logisticsProcessedAt: new Date(),
+          logisticsProcessedAt: dispatchTimestamp,
           logisticsNotes: notes,
           deliveryCode: deliveryCode,
           trackingNumber: trackingNumber,
           deliveryPersonName: deliveryPersonName,
           deliveryPersonPhone: deliveryPersonPhone,
-          estimatedDeliveryDate: estimatedDeliveryDate ? new Date(estimatedDeliveryDate) : null,
+          estimatedDeliveryDate: null,
+          estimatedDeliveryAt,
+          estimatedDeliveryTimeZone: appointmentTimeZone,
         })
-        .where(eq(orderManagement.customerOrderId, orderId));
+        .where(and(
+          eq(orderManagement.customerOrderId, orderId),
+          eq(orderManagement.currentStatus, existingManagementOrder.currentStatus)
+        ))
+        .returning({ id: orderManagement.id });
+      if (!updatedManagementOrder) {
+        return res.status(409).json({ success: false, message: "This order was updated by another request. Refresh the logistics orders page before trying again." });
+      }
 
       // Add status history
       await db.insert(orderStatusHistory).values({
-        orderManagementId: orderId,
-        fromStatus: 'warehouse_approved',
+        orderManagementId: updatedManagementOrder.id,
+        fromStatus: existingManagementOrder.currentStatus,
         toStatus: 'logistics_dispatched',
         changedBy: adminId,
         changedByDepartment: 'logistics',
@@ -46280,7 +46336,6 @@ momtazchem.com
 
       // Get customer phone number for SMS
       const { crmCustomers } = await import("../shared/schema");
-      const { customerOrders } = await import("../shared/customer-schema");
       const orderResult = await db
         .select()
         .from(customerOrders)
@@ -46328,6 +46383,15 @@ momtazchem.com
       });
     } catch (error) {
       console.error("Error dispatching logistics order:", error);
+      if (error instanceof Error && (
+        error.message.includes("estimatedDeliveryLocal") ||
+        error.message.includes("deliveryTimeZone") ||
+        error.message.includes("local delivery time") ||
+        error.message.includes("destination country") ||
+        error.message.includes("calendar date")
+      )) {
+        return res.status(400).json({ success: false, message: error.message });
+      }
       res.status(500).json({
         success: false,
         message: "خطا در ارسال سفارش",
@@ -50297,7 +50361,6 @@ momtazchem.com
         {
           logisticsAssigneeId,
           logisticsNotes: notes,
-          estimatedDeliveryDate: estimatedDeliveryDate ? new Date(estimatedDeliveryDate) : undefined
         }
       );
 
@@ -50342,6 +50405,8 @@ momtazchem.com
           vehicleType,
           vehiclePlate,
           estimatedDeliveryDate: estimatedDeliveryTime ? new Date(estimatedDeliveryTime) : undefined,
+          estimatedDeliveryAt: estimatedDeliveryTime ? null : undefined,
+          estimatedDeliveryTimeZone: estimatedDeliveryTime ? null : undefined,
           logisticsNotes: notes,
           updatedAt: new Date()
         })
@@ -52198,6 +52263,7 @@ momtazchem.com
   // UNIFIED API: Get ALL orders for comprehensive order management
   app.get('/api/orders/tracking/all', requireAuth, async (req, res) => {
     try {
+      const { getCheckoutDestination } = await import("./delivery-appointment");
       const startTime = Date.now();
       
       // 📄 PAGINATION PARAMETERS
@@ -52237,6 +52303,8 @@ momtazchem.com
           om.delivery_code,
           om.tracking_number,
           om.estimated_delivery_date,
+           om.estimated_delivery_at,
+           om.estimated_delivery_timezone,
           om.actual_delivery_date,
           om.delivery_person_name,
           om.delivery_person_phone,
@@ -52245,7 +52313,8 @@ momtazchem.com
           om.logistics_notes,
           om.financial_reviewed_at,
           om.warehouse_processed_at,
-          om.logistics_processed_at
+           om.logistics_processed_at,
+           co.shipping_address
         FROM customer_orders co
         LEFT JOIN crm_customers cc ON co.customer_id = cc.id
         LEFT JOIN order_management om ON co.id = om.customer_order_id
@@ -52286,6 +52355,17 @@ momtazchem.com
           deliveryCode: row.delivery_code,
           trackingNumber: row.tracking_number,
           estimatedDeliveryDate: row.estimated_delivery_date,
+          estimatedDeliveryAt: row.estimated_delivery_at
+            ? new Date(row.estimated_delivery_at).toISOString()
+            : null,
+          estimatedDeliveryTimeZone: row.estimated_delivery_timezone,
+          ...(() => {
+            const destination = getCheckoutDestination(row.shipping_address);
+            return {
+              destinationCountry: destination.country || "",
+              destinationCity: destination.city,
+            };
+          })(),
           actualDeliveryDate: row.actual_delivery_date,
           deliveryPersonName: row.delivery_person_name,
           deliveryPersonPhone: row.delivery_person_phone,

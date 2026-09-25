@@ -46,4 +46,5 @@
 - [Contract capacity recovery](contract-capacity-recovery.md) — reconcile released contract units from order state; do not rely solely on SQL triggers reaching published databases.
 - [Contract wallet safety](contract-wallet-safety.md) — prohibit wallet-funded contract checkout until debit and reversal are safely linked to a created order.
 - [Customer address-book boundary](customer-address-book-boundary.md) — additional titled destinations belong to the address book, not CRM’s single legacy secondary slot.
-- [Commercial module compatibility](commercial-module-compatibility.md) — regroup admin sales and procurement without renaming shop permission IDs, public URLs, or contract APIs.
+- [Commercial module compatibility](commercial-module-compatibility.md) — regroup shop and contract sales while preserving old Procurement links, permission IDs, and APIs.
+- [Destination-local delivery appointments](destination-local-delivery-appointments.md) — dispatcher-selected times follow the delivery destination; actual dispatch events remain separate.
