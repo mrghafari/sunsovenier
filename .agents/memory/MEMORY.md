@@ -42,3 +42,4 @@
 - [Barcode-level shop weights](barcode-shop-weights.md) — the shop has one weight per barcode; editing another Kardex batch must not change the shared checkout weight.
 - [Legacy persistent carts](legacy-persistent-carts.md) — inspect the live cart storage shape before querying; some environments retain JSON cart snapshots despite newer schema declarations.
 - [Live catalog isolation](live-catalog-isolation.md) — development and published catalog APIs may reflect the same data changes before code is republished.
+- [Legacy secondary-address geography](legacy-secondary-address-geography.md) — require explicit city selection for old free-form second addresses; do not infer a delivery route by parsing their text.

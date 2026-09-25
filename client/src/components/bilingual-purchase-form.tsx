@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -15,6 +15,8 @@ import { Label } from "@/components/ui/label";
 import { MapPin, Globe, X, ShoppingCart, Plus, Minus, Trash2, Wallet, CreditCard, Upload, Clock, Flame, Move } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { loadCustomerAddresses, saveSecondaryCustomerAddress } from "@/lib/customer-addresses";
+import OrderReviewDialog from "@/components/checkout/order-review-dialog";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { formatIQDAmount, displayCurrencyAmountWithSymbol } from "@/lib/currency-utils";
 import { shippingWeightKg } from "@/lib/shipping-weight";
@@ -498,12 +500,20 @@ const getCurrentLocation = (): Promise<{latitude: number, longitude: number}> =>
 
 export default function BilingualPurchaseForm({ cart, products, onOrderComplete, onClose, existingCustomer, onUpdateQuantity, onRemoveItem }: PurchaseFormProps) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { language, direction } = useLanguage();
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [locationData, setLocationData] = useState<{latitude: number, longitude: number} | null>(null);
   const [quantityDrafts, setQuantityDrafts] = useState<Record<number, string>>({});
   const activatedQuantityInputs = useRef(new Set<number>());
   const [paymentMethod, setPaymentMethod] = useState<'online_payment' | 'fib_online' | 'wallet' | 'wallet_full' | 'wallet_partial' | 'wallet_combined' | 'bank_transfer_grace' | 'bank_receipt'>('fib_online');
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewAddressId, setReviewAddressId] = useState('primary');
+  const [secondAddressDraft, setSecondAddressDraft] = useState<{address: string; city: string; province: string; postalCode: string} | null>(null);
+  const [pendingReview, setPendingReview] = useState<{ data: any; signature: string } | null>(null);
+  const [isConfirmingOrder, setIsConfirmingOrder] = useState(false);
+  const confirmingOrderRef = useRef(false);
+  const orderSubmissionLockRef = useRef(false);
 
   // Fetch available payment methods from admin settings (public endpoint)
   const { data: availablePaymentMethods = [] } = useQuery({
@@ -610,6 +620,11 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     },
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+  const { data: savedCustomerAddresses = [], refetch: refetchSavedCustomerAddresses } = useQuery({
+    queryKey: ['structuredCustomerAddresses'],
+    queryFn: loadCustomerAddresses,
+    enabled: customerData?.success === true,
   });
 
   // Fetch complete CRM customer data for logged-in customers
@@ -1200,6 +1215,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
   const [standardShippingLoading, setStandardShippingLoading] = useState(false);
   const [standardShippingError, setStandardShippingError] = useState('');
   const standardShippingRequestRef = useRef(0);
+  const smartShippingRequestRef = useRef(0);
   const [shippingQuote, setShippingQuote] = useState<{
     token: string;
     destination: string;
@@ -1400,7 +1416,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
   };
 
   // Calculate smart delivery cost
-  const calculateSmartDeliveryCost = async (destinationCity: string, destinationProvince: string, destinationCityId?: number) => {
+  const calculateSmartDeliveryCost = async (destinationCity: string, destinationProvince: string, destinationCityId: number | undefined, requestId: number) => {
     if (unavailableCartProductIds.length > 0) {
       setSmartDeliveryLoading(false);
       setSmartDeliveryError(t.unavailableCartWarning);
@@ -1428,6 +1444,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     
     try {
       const refreshedCenter = await refetchShippingCenter();
+      if (requestId !== smartShippingRequestRef.current) return;
       const quoteCenterKey = getShippingCenterKey(refreshedCenter.data?.data);
       if (refreshedCenter.isError || !quoteCenterKey) {
         throw new Error(smartDeliveryUnavailableMessage);
@@ -1458,6 +1475,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       });
 
       const data = await response.json().catch(() => ({}));
+      if (requestId !== smartShippingRequestRef.current) return;
       
       console.log('🚚 [SMART DELIVERY] API response:', data);
       
@@ -1563,6 +1581,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
         throw new Error(data.message || smartDeliveryUnavailableMessage);
       }
     } catch (error) {
+      if (requestId !== smartShippingRequestRef.current) return;
       console.error('❌ [SMART DELIVERY] Calculation error:', error);
       setSmartDeliveryError((error as any)?.message || smartDeliveryUnavailableMessage);
       setSmartDeliveryCost(0);
@@ -1570,7 +1589,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       setAlternativeVehicles([]);
       setShippingQuote(null);
     } finally {
-      setSmartDeliveryLoading(false);
+      if (requestId === smartShippingRequestRef.current) setSmartDeliveryLoading(false);
     }
   };
 
@@ -1717,9 +1736,11 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
         if (requestId === standardShippingRequestRef.current) setStandardShippingLoading(false);
       }
     };
-    void requestQuote();
+    // Wait until the customer has stopped changing the cart before quoting.
+    const debounceTimer = setTimeout(() => void requestQuote(), 2000);
     return () => {
       if (standardShippingRequestRef.current === requestId) standardShippingRequestRef.current++;
+      clearTimeout(debounceTimer);
       quoteController.abort();
     };
   }, [
@@ -1731,6 +1752,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
 
   // Watch for changes in destination to recalculate delivery cost
   useEffect(() => {
+    const requestId = ++smartShippingRequestRef.current;
     // Determine final destination city and province
     const finalDestinationCity = showSecondAddress && secondCity.trim() ? 
       secondCity : 
@@ -1796,10 +1818,13 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
               city.namePersian, city.nameFa, city.name_fa, city.nameTurkish, city.nameTr, city.name_tr, city.name
             ].some((name) => name && name.toLowerCase() === finalDestinationCity.toLowerCase()))
           : null;
-        calculateSmartDeliveryCost(finalDestinationCity, effectiveProvince, matchingCity?.id);
-      }, 1000); // 1 second debounce
+        void calculateSmartDeliveryCost(finalDestinationCity, effectiveProvince, matchingCity?.id, requestId);
+      }, 2000); // Recalculate only after two seconds without another cart/address change.
       
-      return () => clearTimeout(debounceTimer);
+      return () => {
+        smartShippingRequestRef.current++;
+        clearTimeout(debounceTimer);
+      };
     } else {
       setSmartDeliveryLoading(false);
       setSmartDeliveryCost(0);
@@ -2070,10 +2095,21 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
         description: errorMessage,
         variant: "destructive"
       });
-    }
+    },
+    onSettled: () => { orderSubmissionLockRef.current = false; },
   });
 
   const onSubmit = async (data: any) => {
+    const isFinalConfirmation = confirmingOrderRef.current;
+    confirmingOrderRef.current = false;
+    if (submitOrderMutation.isPending || orderSubmissionLockRef.current) return;
+    if (isFinalConfirmation) orderSubmissionLockRef.current = true;
+    let handedToMutation = false;
+    try {
+    if (showSecondAddress && secondAddress.trim() && !secondCity.trim()) {
+      toast({ title: t.selectCity, variant: "destructive" });
+      return;
+    }
     if (unavailableCartProductIds.length > 0) {
       toast({ title: t.unavailableCartWarning, variant: "destructive" });
       return;
@@ -2360,7 +2396,56 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       orderData
     });
 
-    submitOrderMutation.mutate(orderData);
+    const signature = JSON.stringify({
+      cart: orderData.cart, address: orderData.address, city: orderData.city,
+      province: orderData.province, country: orderData.country,
+      phone: orderData.phone, shipping: orderData.selectedShippingMethod,
+      shippingCost: orderData.shippingCost, total: orderData.totalAmount,
+      payment: orderData.paymentMethod, walletAmount: orderData.walletAmountUsed,
+    });
+    if (!isFinalConfirmation || !pendingReview || pendingReview.signature !== signature) {
+      if (customerData?.success) {
+        const refreshed = await refetchSavedCustomerAddresses();
+        if (refreshed.isError) {
+          toast({ title: language === 'fa' ? 'دریافت آدرس‌های ذخیره‌شده ناموفق بود' : 'Could not load saved addresses', variant: 'destructive' });
+          return;
+        }
+      }
+      if (!reviewOpen) {
+        setReviewAddressId(showSecondAddress && secondAddress.trim() ? 'second' : 'primary');
+        setSecondAddressDraft({ address: secondAddress, city: secondCity, province: secondProvince, postalCode: secondPostalCode });
+      }
+      setPendingReview({ data: orderData, signature });
+      setReviewOpen(true);
+      return;
+    }
+
+    setIsConfirmingOrder(true);
+    try {
+      if (customerData?.success && orderData.activeDeliveryInfo.isUsingSecondAddress) {
+        await saveSecondaryCustomerAddress({
+          address: secondAddress.trim(), city: secondCity.trim(),
+          state: secondProvince.trim(), country: data.country,
+          postalCode: secondPostalCode.trim(), phone: orderData.phone,
+          recipientName: data.customerName || customerData.customer?.firstName || 'Customer',
+        });
+        await refetchSavedCustomerAddresses();
+        await queryClient.invalidateQueries({ queryKey: ['/api/customers/addresses'] });
+      }
+      setReviewOpen(false);
+      setPendingReview(null);
+      handedToMutation = true;
+      submitOrderMutation.mutate(orderData);
+    } catch (error: any) {
+      orderSubmissionLockRef.current = false;
+      toast({ title: language === 'fa' ? 'ذخیره آدرس دوم ناموفق بود' : 'Could not save the second address',
+        description: error?.message, variant: 'destructive' });
+    } finally {
+      setIsConfirmingOrder(false);
+    }
+    } finally {
+      if (!handedToMutation) orderSubmissionLockRef.current = false;
+    }
   };
 
 
@@ -3448,20 +3533,6 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                       })()
                     }
                     className="flex-1 no-drag"
-                    onClick={(e) => {
-                      console.log('🔘 [BUTTON DEBUG] Submit button clicked - drag protection active');
-                      console.log('🔘 [BUTTON DEBUG] Mutation pending:', submitOrderMutation.isPending);
-                      console.log('🔘 [BUTTON DEBUG] Form valid:', form.formState.isValid);
-                      console.log('🔘 [BUTTON DEBUG] Form errors:', form.formState.errors);
-                      console.log('🔘 [BUTTON DEBUG] Selected shipping method:', selectedShippingMethod);
-                      console.log('🔘 [BUTTON DEBUG] Payment method:', paymentMethod);
-                      
-                      // Force form submission if all conditions met
-                      if (!submitOrderMutation.isPending && selectedShippingMethod && paymentMethod) {
-                        console.log('🔘 [BUTTON DEBUG] Forcing form submission via handleSubmit');
-                        form.handleSubmit(onSubmit)();
-                      }
-                    }}
                   >
                     {submitOrderMutation.isPending ? t.loading : t.submitOrder}
                   </Button>
@@ -3471,6 +3542,74 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
           </div>
         </CardContent>
       </Card>
+      <OrderReviewDialog
+        open={reviewOpen}
+        onOpenChange={(open) => { setReviewOpen(open); if (!open) setPendingReview(null); }}
+        addresses={[
+          { id: 'primary', label: language === 'fa' ? 'آدرس اصلی' : 'Primary address',
+            address: crmCustomerData?.address || form.getValues('address') || '',
+            city: crmCustomerData?.cityRegion || form.getValues('city') || '',
+            country: crmCustomerData?.country || customerData?.customer?.country || form.getValues('country'),
+            postalCode: form.getValues('postalCode') || '' },
+          ...(secondAddressDraft?.address.trim() && secondAddressDraft.city.trim()
+            ? [{ id: 'second', label: language === 'fa' ? 'آدرس دوم واردشده' : 'Second address',
+                address: secondAddressDraft.address, city: secondAddressDraft.city,
+                province: secondAddressDraft.province, postalCode: secondAddressDraft.postalCode,
+                country: crmCustomerData?.country || customerData?.customer?.country || form.getValues('country') }]
+            : []),
+          ...savedCustomerAddresses.map(address => ({
+            id: `saved:${address.id}`, label: address.title || (language === 'fa' ? 'آدرس ذخیره‌شده' : 'Saved address'),
+            address: address.address, city: address.city, province: address.state || '',
+            country: address.country, postalCode: address.postalCode || '',
+          })),
+        ]}
+        selectedAddressId={reviewAddressId}
+        onSelectAddress={(id) => {
+          const key = String(id);
+          setPendingReview(null);
+          setReviewAddressId(key);
+          if (key === 'primary') {
+            setShowSecondAddress(false);
+            form.setValue('country', crmCustomerData?.country || customerData?.customer?.country || form.getValues('country'));
+          } else {
+            const saved = savedCustomerAddresses.find(address => key === `saved:${address.id}`);
+            const next = saved
+              ? { address: saved.address, city: saved.city, province: saved.state || '', postalCode: saved.postalCode || '' }
+              : secondAddressDraft;
+            if (next) {
+              setShowSecondAddress(true);
+              setSecondAddress(next.address);
+              setSecondCity(next.city);
+              setSecondProvince(next.province);
+              setSecondPostalCode(next.postalCode);
+              form.setValue('country', saved?.country || crmCustomerData?.country || customerData?.customer?.country || form.getValues('country'));
+            }
+          }
+        }}
+        onConfirm={() => {
+          confirmingOrderRef.current = true;
+          void form.handleSubmit(onSubmit, () => { confirmingOrderRef.current = false; })();
+        }}
+        onRefresh={() => {
+          confirmingOrderRef.current = false;
+          void form.handleSubmit(onSubmit)();
+        }}
+        confirmDisabled={isConfirmingOrder || submitOrderMutation.isPending || !pendingReview}
+        confirming={isConfirmingOrder || submitOrderMutation.isPending}
+        needsRefresh={!pendingReview || smartDeliveryLoading || standardShippingLoading}
+        refreshPending={smartDeliveryLoading || standardShippingLoading}
+        items={Object.entries(cart).map(([id, quantity]) => {
+          const product = products.find(item => item.id === Number(id));
+          return { id, name: product?.name || id, quantity, unitPrice: Number(product?.price || 0) };
+        })}
+        shippingMethod={selectedShippingRate?.name || selectedShippingRate?.description || selectedShippingRate?.deliveryMethod || ''}
+        shippingCost={finalShippingCost}
+        subtotal={subtotalAmount}
+        tax={totalTaxAmount}
+        total={totalAmount}
+        paymentMethod={paymentMethod}
+        language={language as 'en' | 'fa' | 'ar' | 'tr'}
+      />
     </div>
   );
 }
