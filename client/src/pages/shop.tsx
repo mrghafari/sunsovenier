@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ShoppingCart, Plus, Minus, Loader2, Filter, Search, Grid, List, Star, User, LogOut, X, ChevronDown, ChevronLeft, ChevronRight, Eye, EyeOff, Brain, Sparkles, Wallet, FileText, Download, AlertTriangle, Package, MessageSquare, ZoomIn, Flame, Heart } from "lucide-react";
 import { useLocation } from "wouter";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -70,6 +70,12 @@ const Shop = () => {
     shopTitle: 'Shop Chemical Products - Momtazchem | Order Online',
     shopDescription: 'Browse and purchase premium chemical products online. Fuel additives, water treatment chemicals, paint thinners, and agricultural fertilizers. Secure checkout, fast delivery across Iraq and beyond.',
   };
+  const contractOnlyCopy = {
+    en: { badge: 'Only through contract', checkout: 'Open contract checkout' },
+    fa: { badge: 'فقط از طریق قرارداد', checkout: 'باز کردن تسویه قراردادی' },
+    ar: { badge: 'متاح عبر العقد فقط', checkout: 'فتح الدفع عبر العقد' },
+    tr: { badge: 'Yalnızca sözleşmeyle', checkout: 'Sözleşmeli satın almayı aç' },
+  }[language];
   const queryClient = useQueryClient();
   const { isAuthenticated, user: authenticatedCustomer, logout: customerLogout } = useCustomerAuth();
     
@@ -188,8 +194,7 @@ const Shop = () => {
 
   // Advanced search query
   const { data: searchResults, isLoading: productsLoading, isFetching: productsFetching } = useQuery({
-    queryKey: ['shopSearch', debouncedQuery, filters, currentPage],
-    placeholderData: keepPreviousData,
+    queryKey: ['shopSearch', debouncedQuery, filters, currentPage, authenticatedCustomer?.id ?? null],
     queryFn: async () => {
       const params = new URLSearchParams({
         q: debouncedQuery || '', // Always include query parameter, even if empty
@@ -210,7 +215,7 @@ const Shop = () => {
         filters.tags.forEach(tag => params.append('tags', tag));
       }
 
-      const response = await fetch(`/api/shop/search?${params}`);
+      const response = await fetch(`/api/shop/search?${params}`, { credentials: 'include' });
       if (!response.ok) throw new Error('Search failed');
       return response.json();
     }
@@ -297,14 +302,19 @@ const Shop = () => {
   console.log('🎛️ [FRONTEND CONTROLS] Loaded:', frontendControls);
   console.log('🎛️ [VISIBILITY] Discount Banner:', discountBannerEnabled);
 
-  // Get data from search results or fallback to regular products
-  const currentProducts = searchResults?.data?.products || products;
+  // Both endpoints scope restricted products to this customer's active
+  // contracts; use search results only when a query or filter is active.
+  const isFilteredSearch = debouncedQuery.trim().length > 0 ||
+    Boolean(filters.category) || filters.priceMin !== undefined ||
+    filters.priceMax !== undefined || filters.inStock !== undefined ||
+    filters.sortBy !== 'relevance' || filters.sortOrder !== 'desc' ||
+    currentPage > 0;
+  const currentProducts = isFilteredSearch
+    ? (searchResults?.data?.products || [])
+    : products;
+  const filteredProducts = currentProducts;
   
-  // Contract-only materials are available in the selected contract at checkout,
-  // never as ordinary catalog cards.
-  const filteredProducts = currentProducts.filter((product: ShopProduct) => !product.contractOnly);
-  
-  const totalResults = searchResults?.data?.total || products.length;
+  const totalResults = isFilteredSearch ? (searchResults?.data?.total ?? 0) : products.length;
   const availableFilters = searchResults?.data?.filters;
   const totalPages = Math.ceil(totalResults / itemsPerPage);
 
@@ -1599,6 +1609,11 @@ const Shop = () => {
                             >
                               {product.name}
                             </h3>
+                            {product.contractOnly && (
+                              <Badge variant="outline" className="mt-2 w-fit border-amber-300 bg-amber-50 text-amber-800">
+                                {contractOnlyCopy.badge}
+                              </Badge>
+                            )}
                           </div>
                           
                           <p className="text-gray-600 text-xs sm:text-sm mb-2 sm:mb-3 line-clamp-2">
@@ -1849,33 +1864,34 @@ const Shop = () => {
 
 
                           <div className="space-y-2">
-                            {/* Quantity Controls - Always show */}
-                            <div className="flex items-center justify-center gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setProductQuantity(product.id, getProductQuantity(product.id) - 1)}
-                                disabled={getProductQuantity(product.id) <= 1}
-                              >
-                                <Minus className="w-4 h-4" />
-                              </Button>
-                              <input
-                                type="number"
-                                min="1"
-                                max={Math.max(1, product.stockQuantity || 0)}
-                                value={getProductQuantity(product.id)}
-                                onChange={(e) => setProductQuantity(product.id, parseInt(e.target.value) || 1)}
-                                className="w-16 text-center border rounded px-2 py-1 font-medium"
-                              />
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setProductQuantity(product.id, getProductQuantity(product.id) + 1)}
-                                disabled={!product.inStock || product.stockQuantity <= 0 || getProductQuantity(product.id) >= product.stockQuantity}
-                              >
-                                <Plus className="w-4 h-4" />
-                              </Button>
-                            </div>
+                             {!product.contractOnly && (
+                               <div className="flex items-center justify-center gap-2">
+                                 <Button
+                                   size="sm"
+                                   variant="outline"
+                                   onClick={() => setProductQuantity(product.id, getProductQuantity(product.id) - 1)}
+                                   disabled={getProductQuantity(product.id) <= 1}
+                                 >
+                                   <Minus className="w-4 h-4" />
+                                 </Button>
+                                 <input
+                                   type="number"
+                                   min="1"
+                                   max={Math.max(1, product.stockQuantity || 0)}
+                                   value={getProductQuantity(product.id)}
+                                   onChange={(e) => setProductQuantity(product.id, parseInt(e.target.value) || 1)}
+                                   className="w-16 text-center border rounded px-2 py-1 font-medium"
+                                 />
+                                 <Button
+                                   size="sm"
+                                   variant="outline"
+                                   onClick={() => setProductQuantity(product.id, getProductQuantity(product.id) + 1)}
+                                   disabled={!product.inStock || product.stockQuantity <= 0 || getProductQuantity(product.id) >= product.stockQuantity}
+                                 >
+                                   <Plus className="w-4 h-4" />
+                                 </Button>
+                               </div>
+                             )}
                               {/* Product Catalog and MSDS Buttons - Horizontal Layout */}
                               {(product.showCatalogToCustomers && product.pdfCatalogUrl) || (product.showMsdsToCustomers && product.msdsUrl) ? (
                                 <div className="grid grid-cols-2 gap-2 mb-2 p-2 bg-gray-50 rounded-lg border">
@@ -1907,19 +1923,25 @@ const Shop = () => {
                                 </div>
                               ) : null}
                               
-                            {/* Add to Cart Button - Always show */}
-                            <Button
-                              className="w-full"
-                              onClick={() => addToCart(product.id)}
-                              disabled={
-                                addingProducts.includes(product.id) ||
-                                !product.inStock || 
-                                getProductQuantity(product.id) > product.stockQuantity
-                              }
-                            >
-                              {addingProducts.includes(product.id) ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ShoppingCart className="w-4 h-4 mr-2" />}
-                              {addingProducts.includes(product.id) ? addingLabel : !product.inStock || product.stockQuantity <= 0 ? t.shop.notAvailable : cart[product.id] && cart[product.id] > 0 ? t.shop.addMore : t.shop.addToCart}
-                            </Button>
+                             {product.contractOnly ? (
+                               <Button className="w-full" onClick={() => void openCheckout()}>
+                                 <FileText className="w-4 h-4 mr-2" />
+                                 {contractOnlyCopy.checkout}
+                               </Button>
+                             ) : (
+                               <Button
+                                 className="w-full"
+                                 onClick={() => addToCart(product.id)}
+                                 disabled={
+                                   addingProducts.includes(product.id) ||
+                                   !product.inStock ||
+                                   getProductQuantity(product.id) > product.stockQuantity
+                                 }
+                               >
+                                 {addingProducts.includes(product.id) ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ShoppingCart className="w-4 h-4 mr-2" />}
+                                 {addingProducts.includes(product.id) ? addingLabel : !product.inStock || product.stockQuantity <= 0 ? t.shop.notAvailable : cart[product.id] && cart[product.id] > 0 ? t.shop.addMore : t.shop.addToCart}
+                               </Button>
+                             )}
                           </div>
                         </CardContent>
                       </>
@@ -2161,6 +2183,11 @@ const Shop = () => {
                                 >
                                   {product.name}
                                 </h3>
+                                {product.contractOnly && (
+                                  <Badge variant="outline" className="mt-2 w-fit border-amber-300 bg-amber-50 text-amber-800">
+                                    {contractOnlyCopy.badge}
+                                  </Badge>
+                                )}
                               </div>
                               <p className="text-gray-600 mb-4">
                                 {product.description}
@@ -2409,33 +2436,34 @@ const Shop = () => {
                             
                             <div className="ml-6">
                               <div className="space-y-2">
-                                {/* Quantity Controls - Always show */}
-                                <div className="flex items-center justify-center gap-2">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => setProductQuantity(product.id, getProductQuantity(product.id) - 1)}
-                                    disabled={getProductQuantity(product.id) <= 1}
-                                  >
-                                    <Minus className="w-4 h-4" />
-                                  </Button>
-                                  <input
-                                    type="number"
-                                    min="1"
-                                    max={Math.max(1, product.stockQuantity || 0)}
-                                    value={getProductQuantity(product.id)}
-                                    onChange={(e) => setProductQuantity(product.id, parseInt(e.target.value) || 1)}
-                                    className="w-16 text-center border rounded px-2 py-1 font-medium"
-                                  />
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => setProductQuantity(product.id, getProductQuantity(product.id) + 1)}
-                                    disabled={!product.inStock || product.stockQuantity <= 0 || getProductQuantity(product.id) >= product.stockQuantity}
-                                  >
-                                    <Plus className="w-4 h-4" />
-                                  </Button>
-                                </div>
+                                {!product.contractOnly && (
+                                  <div className="flex items-center justify-center gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => setProductQuantity(product.id, getProductQuantity(product.id) - 1)}
+                                      disabled={getProductQuantity(product.id) <= 1}
+                                    >
+                                      <Minus className="w-4 h-4" />
+                                    </Button>
+                                    <input
+                                      type="number"
+                                      min="1"
+                                      max={Math.max(1, product.stockQuantity || 0)}
+                                      value={getProductQuantity(product.id)}
+                                      onChange={(e) => setProductQuantity(product.id, parseInt(e.target.value) || 1)}
+                                      className="w-16 text-center border rounded px-2 py-1 font-medium"
+                                    />
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => setProductQuantity(product.id, getProductQuantity(product.id) + 1)}
+                                      disabled={!product.inStock || product.stockQuantity <= 0 || getProductQuantity(product.id) >= product.stockQuantity}
+                                    >
+                                      <Plus className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                )}
                                   {/* Product Catalog and MSDS Buttons - Horizontal Layout */}
                                   {(product.showCatalogToCustomers && product.pdfCatalogUrl) || (product.showMsdsToCustomers && product.msdsUrl) ? (
                                     <div className="grid grid-cols-2 gap-2 mb-2 p-2 bg-gray-50 rounded-lg border">
@@ -2467,19 +2495,25 @@ const Shop = () => {
                                     </div>
                                   ) : null}
                                   
-                                {/* Add to Cart Button - Always show */}
-                                <Button
-                                  className="w-full"
-                                  onClick={() => addToCart(product.id)}
-                                  disabled={
-                                    addingProducts.includes(product.id) ||
-                                    !product.inStock || 
-                                    getProductQuantity(product.id) > product.stockQuantity
-                                  }
-                                >
-                                  {addingProducts.includes(product.id) ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ShoppingCart className="w-4 h-4 mr-2" />}
-                                  {addingProducts.includes(product.id) ? addingLabel : !product.inStock || product.stockQuantity <= 0 ? t.shop.notAvailable : cart[product.id] && cart[product.id] > 0 ? t.shop.addMore : t.shop.addToCart}
-                                </Button>
+                                {product.contractOnly ? (
+                                  <Button className="w-full" onClick={() => void openCheckout()}>
+                                    <FileText className="w-4 h-4 mr-2" />
+                                    {contractOnlyCopy.checkout}
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    className="w-full"
+                                    onClick={() => addToCart(product.id)}
+                                    disabled={
+                                      addingProducts.includes(product.id) ||
+                                      !product.inStock ||
+                                      getProductQuantity(product.id) > product.stockQuantity
+                                    }
+                                  >
+                                    {addingProducts.includes(product.id) ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ShoppingCart className="w-4 h-4 mr-2" />}
+                                    {addingProducts.includes(product.id) ? addingLabel : !product.inStock || product.stockQuantity <= 0 ? t.shop.notAvailable : cart[product.id] && cart[product.id] > 0 ? t.shop.addMore : t.shop.addToCart}
+                                  </Button>
+                                )}
                               </div>
                             </div>
                           </div>

@@ -1,5 +1,6 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { pool } from "./db";
+import { isIncotermCode, type IncotermCode } from "@shared/incoterms";
 
 const HOLD_TTL_MINUTES = 5;
 
@@ -18,6 +19,7 @@ export type ContractDefinition = {
   number: string;
   customerId: number;
   terms: string;
+  deliveryTerm: IncotermCode | null;
   isActive: boolean;
   items: Array<{ productId: number; maxQuantity: number; unitPrice: number }>;
 };
@@ -35,16 +37,19 @@ function parsePositiveId(value: unknown, label: string): number {
 }
 
 /** Shared strict payload validation used by both contract mutation endpoints. */
-export function validateContractDefinition(body: any): ContractDefinition {
+export function validateContractDefinition(body: any, generatingNumber = false): ContractDefinition {
   if (!body || typeof body !== "object" || Array.isArray(body)) {
     throw new ContractError("A contract body is required.");
   }
-  if (typeof body.number !== "string" || !body.number.trim()) {
+  if (!generatingNumber && (typeof body.number !== "string" || !body.number.trim())) {
     throw new ContractError("Contract number is required.");
   }
   if (typeof body.terms !== "string") throw new ContractError("Contract terms must be text.");
+  if (!isIncotermCode(body.deliveryTerm) && !(body.deliveryTerm === null && !generatingNumber)) {
+    throw new ContractError("Select a valid Incoterms 2020 delivery term.");
+  }
   if (typeof body.isActive !== "boolean") throw new ContractError("isActive must be a boolean.");
-  if (!Array.isArray(body.items) || body.items.length === 0) {
+  if (!Array.isArray(body.items) || (body.items.length === 0 && (generatingNumber || body.isActive))) {
     throw new ContractError("At least one contract product is required.");
   }
   const seen = new Set<number>();
@@ -63,9 +68,10 @@ export function validateContractDefinition(body: any): ContractDefinition {
     return { productId, maxQuantity, unitPrice };
   });
   return {
-    number: body.number.trim(),
+    number: generatingNumber ? "" : body.number.trim(),
     customerId: parsePositiveId(body.customerId, "customerId"),
     terms: body.terms,
+    deliveryTerm: body.deliveryTerm as IncotermCode | null,
     isActive: body.isActive,
     items,
   };
@@ -161,6 +167,7 @@ function contractResponse(row: any, itemRows: any[]) {
     id: Number(row.id),
     number: row.number,
     terms: row.terms,
+    deliveryTerm: row.delivery_term,
     isActive: row.is_active,
     customerId: Number(row.customer_id),
     customerName: row.customer_name,
@@ -177,7 +184,7 @@ function contractResponse(row: any, itemRows: any[]) {
 
 async function loadContractRows(client: import("pg").PoolClient, contractId?: number) {
   const contracts = await client.query(
-    `SELECT c.id, c.number, c.terms, c.is_active, c.customer_id,
+    `SELECT c.id, c.number, c.terms, c.delivery_term, c.is_active, c.customer_id,
             COALESCE(NULLIF(concat_ws(' ', cc.first_name, cc.last_name), ''), cc.company, '') AS customer_name
        FROM shop_contracts c
        JOIN crm_customers cc ON cc.id = c.customer_id
@@ -192,7 +199,7 @@ async function loadContractRows(client: import("pg").PoolClient, contractId?: nu
             ci.max_quantity, ci.used_quantity, ci.unit_price
        FROM shop_contract_items ci
        JOIN shop_products sp ON sp.id = ci.product_id
-      WHERE ci.contract_id = ANY($1::integer[])
+       WHERE ci.contract_id = ANY($1::integer[]) AND ci.is_active = true
       ORDER BY ci.id`,
     [ids],
   );
@@ -201,28 +208,62 @@ async function loadContractRows(client: import("pg").PoolClient, contractId?: nu
   );
 }
 
-async function ensureCustomerAndProducts(client: import("pg").PoolClient, definition: ContractDefinition) {
+async function ensureCustomerAndProducts(
+  client: import("pg").PoolClient,
+  definition: ContractDefinition,
+  existingActiveProductIds = new Set<number>(),
+) {
   const customer = await client.query("SELECT id FROM crm_customers WHERE id = $1", [definition.customerId]);
   if (!customer.rowCount) throw new ContractError("The selected CRM customer does not exist.");
   const products = await client.query(
     `SELECT id FROM shop_products
       WHERE id = ANY($1::integer[]) AND is_active = true AND visible_in_shop = true`,
-    [definition.items.map((item) => item.productId)],
+    [definition.items.filter((item) => !existingActiveProductIds.has(item.productId)).map((item) => item.productId)],
   );
-  const found = new Set(products.rows.map((row: any) => Number(row.id)));
+  const found = new Set([...existingActiveProductIds, ...products.rows.map((row: any) => Number(row.id))]);
   const invalid = definition.items.find((item) => !found.has(item.productId));
   if (invalid) throw new ContractError(`Product ${invalid.productId} does not exist or is not active in the shop.`);
+}
+
+export function formatContractNumber(year: number, counter: number): string {
+  if (!Number.isSafeInteger(year) || year < 2000 || !Number.isSafeInteger(counter) || counter < 1111 || counter > 99999) {
+    throw new ContractError("Contract number counter is out of range.", 500);
+  }
+  return `C${String(year % 100).padStart(2, "0")}${String(counter).padStart(5, "0")}`;
+}
+
+async function nextContractNumber(client: import("pg").PoolClient): Promise<string> {
+  const year = new Date().getFullYear();
+  const yearCode = String(year % 100).padStart(2, "0");
+  // Seed above old manually entered C numbers, but never share the order's M counter.
+  await client.query(
+    `INSERT INTO shop_contract_number_counters (year, counter)
+     VALUES ($1, GREATEST(1110, COALESCE((
+       SELECT MAX(substring(number FROM 4)::integer) FROM shop_contracts
+       WHERE number ~ ('^C' || $2 || '[0-9]{5}$')
+     ), 0)))
+     ON CONFLICT (year) DO NOTHING`,
+    [year, yearCode],
+  );
+  const next = await client.query(
+    `UPDATE shop_contract_number_counters SET counter = counter + 1
+      WHERE year = $1 AND counter < 99999 RETURNING counter`,
+    [year],
+  );
+  if (!next.rowCount) throw new ContractError("Annual contract number range is exhausted.", 409);
+  return formatContractNumber(year, Number(next.rows[0].counter));
 }
 
 async function saveContract(definition: ContractDefinition, contractId?: number): Promise<any> {
   return inTransaction(async (client) => {
     await reconcileContractHolds(client);
-    await ensureCustomerAndProducts(client, definition);
     if (contractId === undefined) {
+      await ensureCustomerAndProducts(client, definition);
+      const number = await nextContractNumber(client);
       const result = await client.query(
-        `INSERT INTO shop_contracts (number, customer_id, terms, is_active)
-         VALUES ($1, $2, $3, $4) RETURNING id`,
-        [definition.number, definition.customerId, definition.terms, definition.isActive],
+        `INSERT INTO shop_contracts (number, customer_id, terms, delivery_term, is_active)
+         VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+        [number, definition.customerId, definition.terms, definition.deliveryTerm, definition.isActive],
       );
       const id = Number(result.rows[0].id);
       for (const item of definition.items) {
@@ -236,17 +277,25 @@ async function saveContract(definition: ContractDefinition, contractId?: number)
     }
 
     const locked = await client.query(
-      "SELECT id, customer_id FROM shop_contracts WHERE id = $1 FOR UPDATE",
+      "SELECT id, customer_id, delivery_term FROM shop_contracts WHERE id = $1 FOR UPDATE",
       [contractId],
     );
     if (!locked.rowCount) throw new ContractError("Contract not found.", 404);
+    if (definition.deliveryTerm === null && locked.rows[0].delivery_term !== null) {
+      throw new ContractError("A saved contract delivery term cannot be removed.");
+    }
     const currentItems = await client.query(
-      `SELECT product_id, used_quantity FROM shop_contract_items
+      `SELECT product_id, used_quantity, is_active FROM shop_contract_items
         WHERE contract_id = $1 FOR UPDATE`,
       [contractId],
     );
     const usageByProduct = new Map<number, number>(
       currentItems.rows.map((row: any) => [Number(row.product_id), Number(row.used_quantity)]),
+    );
+    await ensureCustomerAndProducts(
+      client,
+      definition,
+      new Set(currentItems.rows.filter((row: any) => row.is_active).map((row: any) => Number(row.product_id))),
     );
     const totalUsage = [...usageByProduct.values()].reduce((sum, quantity) => sum + quantity, 0);
     if (totalUsage > 0 && Number(locked.rows[0].customer_id) !== definition.customerId) {
@@ -257,15 +306,10 @@ async function saveContract(definition: ContractDefinition, contractId?: number)
         throw new ContractError(`Product ${item.productId} cap cannot be lower than its used quantity.`);
       }
     }
-    for (const [productId, usedQuantity] of usageByProduct) {
-      if (usedQuantity > 0 && !definition.items.some((item) => item.productId === productId)) {
-        throw new ContractError(`Product ${productId} cannot be removed while units have been used.`);
-      }
-    }
     await client.query(
-      `UPDATE shop_contracts SET number = $2, customer_id = $3, terms = $4,
-       is_active = $5, updated_at = now() WHERE id = $1`,
-      [contractId, definition.number, definition.customerId, definition.terms, definition.isActive],
+      `UPDATE shop_contracts SET customer_id = $2, terms = $3,
+       delivery_term = $4, is_active = $5, updated_at = now() WHERE id = $1`,
+      [contractId, definition.customerId, definition.terms, definition.deliveryTerm, definition.isActive],
     );
     const retained = definition.items.map((item) => item.productId);
     await client.query(
@@ -273,12 +317,19 @@ async function saveContract(definition: ContractDefinition, contractId?: number)
        AND NOT (product_id = ANY($2::integer[])) AND used_quantity = 0`,
       [contractId, retained],
     );
+    // A used allocation must remain for prior orders and hold reconciliation,
+    // but must no longer be available for future contract purchases.
+    await client.query(
+      `UPDATE shop_contract_items SET is_active = false
+        WHERE contract_id = $1 AND NOT (product_id = ANY($2::integer[])) AND is_active = true`,
+      [contractId, retained],
+    );
     for (const item of definition.items) {
       await client.query(
-        `INSERT INTO shop_contract_items (contract_id, product_id, max_quantity, used_quantity, unit_price)
-         VALUES ($1, $2, $3, 0, $4)
+        `INSERT INTO shop_contract_items (contract_id, product_id, max_quantity, used_quantity, unit_price, is_active)
+         VALUES ($1, $2, $3, 0, $4, true)
          ON CONFLICT (contract_id, product_id) DO UPDATE
-           SET max_quantity = EXCLUDED.max_quantity, unit_price = EXCLUDED.unit_price`,
+           SET max_quantity = EXCLUDED.max_quantity, unit_price = EXCLUDED.unit_price, is_active = true`,
         [contractId, item.productId, item.maxQuantity, item.unitPrice],
       );
     }
@@ -354,7 +405,7 @@ export function registerShopContractRoutes(app: Express): void {
     try {
       await reconcileShopContractHolds();
       const result = await pool.query(
-        `SELECT c.id, c.number, c.terms, c.is_active, c.customer_id,
+        `SELECT c.id, c.number, c.terms, c.delivery_term, c.is_active, c.customer_id,
                 COALESCE(NULLIF(concat_ws(' ', cc.first_name, cc.last_name), ''), cc.company, '') AS customer_name
            FROM shop_contracts c JOIN crm_customers cc ON cc.id = c.customer_id
           WHERE c.customer_id = $1 ORDER BY c.id DESC`,
@@ -365,7 +416,7 @@ export function registerShopContractRoutes(app: Express): void {
         `SELECT ci.contract_id, ci.product_id, sp.name AS product_name,
                 ci.max_quantity, ci.used_quantity, ci.unit_price
            FROM shop_contract_items ci JOIN shop_products sp ON sp.id = ci.product_id
-          WHERE ci.contract_id = ANY($1::integer[]) ORDER BY ci.id`,
+           WHERE ci.contract_id = ANY($1::integer[]) AND ci.is_active = true ORDER BY ci.id`,
         [ids],
       ) : { rows: [] };
       return res.json({
@@ -389,6 +440,25 @@ export function registerShopContractRoutes(app: Express): void {
     }
   });
 
+  // Admin contract product picker must include contract-only materials, which
+  // are deliberately excluded from the public shop search endpoint.
+  app.get("/api/admin/shop/contracts/products", requireShopManagement, async (req, res) => {
+    try {
+      const query = typeof req.query.q === "string" ? req.query.q.trim().slice(0, 100) : "";
+      if (query.length < 2) return res.json({ success: true, products: [] });
+      const result = await pool.query(
+        `SELECT id, name FROM shop_products
+          WHERE is_active = true AND visible_in_shop = true
+            AND (name ILIKE '%' || $1 || '%' OR sku ILIKE '%' || $1 || '%')
+          ORDER BY name, id LIMIT 30`,
+        [query],
+      );
+      res.json({ success: true, products: result.rows });
+    } catch (error) {
+      errorResponse(res, error);
+    }
+  });
+
   app.get("/api/admin/shop/contracts/:id", requireShopManagement, async (req, res) => {
     try {
       const id = parsePositiveId(req.params.id, "Contract id");
@@ -403,7 +473,7 @@ export function registerShopContractRoutes(app: Express): void {
 
   app.post("/api/admin/shop/contracts", requireShopManagement, async (req, res) => {
     try {
-      const contract = await saveContract(validateContractDefinition(req.body));
+      const contract = await saveContract(validateContractDefinition(req.body, true));
       res.status(201).json({ success: true, contract });
     } catch (error) {
       errorResponse(res, error);
@@ -438,7 +508,7 @@ export async function loadContractPricing(
     const result = await client.query(
       `SELECT ci.product_id, ci.max_quantity, ci.used_quantity, ci.unit_price
          FROM shop_contract_items ci JOIN shop_products sp ON sp.id = ci.product_id
-        WHERE ci.contract_id = $1 AND ci.product_id = ANY($2::integer[])
+        WHERE ci.contract_id = $1 AND ci.is_active = true AND ci.product_id = ANY($2::integer[])
           AND sp.is_active = true AND sp.visible_in_shop = true`,
       [contractId, requested.map(([productId]) => productId)],
     );
@@ -479,7 +549,7 @@ export async function claimContractCart(
     const products = await client.query(
       `SELECT ci.product_id, ci.max_quantity, ci.used_quantity, ci.unit_price
          FROM shop_contract_items ci JOIN shop_products sp ON sp.id = ci.product_id
-        WHERE ci.contract_id = $1 AND ci.product_id = ANY($2::integer[])
+        WHERE ci.contract_id = $1 AND ci.is_active = true AND ci.product_id = ANY($2::integer[])
           AND sp.is_active = true AND sp.visible_in_shop = true
         FOR UPDATE OF ci`,
       [contractId, requested.map(([productId]) => productId)],

@@ -25058,7 +25058,7 @@ ${procedure.content}
           `SELECT DISTINCT ci.product_id
              FROM shop_contracts c
              JOIN shop_contract_items ci ON ci.contract_id = c.id
-            WHERE c.customer_id = $1 AND c.is_active = TRUE`,
+            WHERE c.customer_id = $1 AND c.is_active = TRUE AND ci.is_active = TRUE`,
           [customerId],
         );
         for (const row of contractProducts.rows) {
@@ -25132,7 +25132,7 @@ ${procedure.content}
           `SELECT 1
              FROM shop_contracts c
              JOIN shop_contract_items ci ON ci.contract_id = c.id
-            WHERE c.customer_id = $1 AND c.is_active = TRUE AND ci.product_id = $2
+            WHERE c.customer_id = $1 AND c.is_active = TRUE AND ci.is_active = TRUE AND ci.product_id = $2
             LIMIT 1`,
           [customerId, productId],
         );
@@ -25227,12 +25227,33 @@ ${procedure.content}
         offset = 0
       } = req.query;
 
+      const session = req.session as any;
+      const rawCustomerId = session?.crmCustomerId ?? session?.customerId;
+      const customerId = Number(rawCustomerId);
+      const eligibleContractProductIds: number[] = [];
+      if (Number.isSafeInteger(customerId) && customerId > 0) {
+        const contractProducts = await pool.query(
+          `SELECT DISTINCT ci.product_id
+             FROM shop_contracts c
+             JOIN shop_contract_items ci ON ci.contract_id = c.id
+            WHERE c.customer_id = $1 AND c.is_active = TRUE AND ci.is_active = TRUE`,
+          [customerId],
+        );
+        for (const row of contractProducts.rows) {
+          const productId = Number(row.product_id);
+          if (Number.isSafeInteger(productId) && productId > 0) {
+            eligibleContractProductIds.push(productId);
+          }
+        }
+      }
+
       const filters = {
         category: category as string,
         priceMin: priceMin ? parseFloat(priceMin as string) : undefined,
         priceMax: priceMax ? parseFloat(priceMax as string) : undefined,
         inStock: inStock ? inStock === 'true' : undefined,
         tags: tags ? (Array.isArray(tags) ? tags as string[] : [tags as string]) : undefined,
+        eligibleContractProductIds,
         sortBy: sortBy as 'name' | 'price' | 'created' | 'relevance',
         sortOrder: sortOrder as 'asc' | 'desc',
         limit: parseInt(limit as string) || 50,

@@ -39,7 +39,7 @@ import {
   type InsertCustomerOrder as InsertOrder
 } from "@shared/customer-schema";
 import { shopDb } from "./shop-db";
-import { eq, desc, and, gte, lte, gt, sql, count, or, like, ilike, asc } from "drizzle-orm";
+import { eq, desc, and, gte, lte, gt, sql, count, or, like, ilike, asc, inArray } from "drizzle-orm";
 
 export interface IShopStorage {
   // Category management
@@ -63,6 +63,7 @@ export interface IShopStorage {
     priceMax?: number;
     inStock?: boolean;
     tags?: string[];
+    eligibleContractProductIds?: number[];
     sortBy?: 'name' | 'price' | 'created' | 'relevance';
     sortOrder?: 'asc' | 'desc';
     limit?: number;
@@ -482,6 +483,7 @@ export class ShopStorage implements IShopStorage {
     priceMax?: number;
     inStock?: boolean;
     tags?: string[];
+    eligibleContractProductIds?: number[];
     sortBy?: 'name' | 'price' | 'created' | 'relevance';
     sortOrder?: 'asc' | 'desc';
     limit?: number;
@@ -501,6 +503,7 @@ export class ShopStorage implements IShopStorage {
       priceMax,
       inStock,
       tags,
+      eligibleContractProductIds = [],
       sortBy = 'relevance',
       sortOrder = 'desc',
       limit = 50,
@@ -508,9 +511,15 @@ export class ShopStorage implements IShopStorage {
     } = filters;
 
     // Build WHERE conditions - only active products
+    const contractVisibilityCondition = or(
+      eq(shopProducts.contractOnly, false),
+      eligibleContractProductIds.length > 0
+        ? inArray(shopProducts.id, eligibleContractProductIds)
+        : sql`false`
+    )!;
     const whereConditions = [
       eq(shopProducts.isActive, true),
-      eq(shopProducts.contractOnly, false),
+      contractVisibilityCondition,
     ];
 
     // Text search in multiple fields
@@ -657,6 +666,7 @@ export class ShopStorage implements IShopStorage {
           .where(
             and(
               eq(shopProducts.isActive, true),
+              contractVisibilityCondition,
               // Show products that are either in stock OR have showWhenOutOfStock enabled
               or(
                 gt(shopProducts.stockQuantity, 0),
@@ -685,13 +695,13 @@ export class ShopStorage implements IShopStorage {
         max: sql<number>`MAX(CAST(${shopProducts.price} AS NUMERIC))`
       })
       .from(shopProducts)
-      .where(eq(shopProducts.isActive, true));
+      .where(and(eq(shopProducts.isActive, true), contractVisibilityCondition));
 
     // Extract available tags
     const allTagsResult = await shopDb
       .select({ tags: shopProducts.tags })
       .from(shopProducts)
-      .where(eq(shopProducts.isActive, true));
+      .where(and(eq(shopProducts.isActive, true), contractVisibilityCondition));
 
     const availableTags = Array.from(new Set(
       allTagsResult

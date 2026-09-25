@@ -48,3 +48,5 @@
 - [Customer address-book boundary](customer-address-book-boundary.md) — additional titled destinations belong to the address book, not CRM’s single legacy secondary slot.
 - [Commercial module compatibility](commercial-module-compatibility.md) — regroup shop and contract sales while preserving old Procurement links, permission IDs, and APIs.
 - [Destination-local delivery appointments](destination-local-delivery-appointments.md) — dispatcher-selected times follow the delivery destination; actual dispatch events remain separate.
+- [Contract number namespace](contract-number-namespace.md) — contract numbers mirror the order format with C, but must not consume the M order counter.
+- [Retiring used contract lines](retiring-used-contract-lines.md) — removed used lines stop future sales while preserving historical allocation records.
