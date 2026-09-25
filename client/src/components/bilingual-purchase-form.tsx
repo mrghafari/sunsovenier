@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { formatIQDAmount, displayCurrencyAmountWithSymbol } from "@/lib/currency-utils";
+import { shippingWeightKg } from "@/lib/shipping-weight";
 
 // Language types
 type Language = 'en' | 'ar' | 'fa' | 'tr';
@@ -53,6 +54,7 @@ const translations = {
     cartManagement: "Cart Management",
     unavailableCartProduct: "This product is no longer in the shop:",
     unavailableCartWarning: "Remove unavailable products from your cart before calculating shipping or placing an order.",
+    missingCartWeight: "Shipping weight is not set for an item in your cart. Please ask the shop to set its gross weight.",
     each: "each",
     subtotal: "Subtotal:",
     totalAmount: "Total Amount",
@@ -214,6 +216,7 @@ const translations = {
     cartManagement: "إدارة السلة",
     unavailableCartProduct: "هذا المنتج لم يعد متاحاً في المتجر:",
     unavailableCartWarning: "احذف المنتجات غير المتاحة من السلة قبل حساب الشحن أو إتمام الطلب.",
+    missingCartWeight: "وزن الشحن غير محدد لأحد عناصر السلة. اطلب من المتجر تحديد وزنه الإجمالي.",
     each: "للوحدة",
     subtotal: "المجموع الفرعي:",
     totalAmount: "المبلغ الإجمالي",
@@ -323,6 +326,7 @@ const translations = {
     cartManagement: "مدیریت سبد خرید",
     unavailableCartProduct: "این کالا دیگر در فروشگاه موجود نیست:",
     unavailableCartWarning: "پیش از محاسبهٔ ارسال یا ثبت سفارش، کالاهای ناموجود را از سبد حذف کنید.",
+    missingCartWeight: "وزن ارسال یکی از کالاهای سبد مشخص نیست. از فروشگاه بخواهید وزن ناخالص آن را ثبت کند.",
     each: "هر عدد",
     subtotal: "جمع جزء:",
     totalAmount: "مبلغ کل",
@@ -1232,17 +1236,17 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
   const unavailableCartProductIds = Object.keys(cart).filter(productId =>
     !products.some(product => product.id === Number(productId))
   );
+  const missingWeightProductIds = Object.keys(cart).filter(productId => {
+    const product = products.find(p => p.id === Number(productId));
+    return product && shippingWeightKg(product) === null;
+  });
 
   // Calculate total weight of all products in cart
   const totalWeight = Object.entries(cart).reduce((sum, [productId, quantity]) => {
     const product = products.find(p => p.id === parseInt(productId));
     if (product) {
-      // Get weight from product data (use different weight fields as fallback)
-      // grossWeight is the primary weight field from shop products
-      const productWeight = parseFloat(product.grossWeight || product.weight || product.weightKg || product.weight_kg || '0');
-      // Use minimum 1kg per item if no weight specified (for smart vehicle calculation)
-      const effectiveWeight = productWeight > 0 ? productWeight : 1;
-      return sum + (effectiveWeight * quantity);
+      const productWeight = shippingWeightKg(product);
+      return sum + (productWeight ?? 0) * quantity;
     }
     return sum;
   }, 0);
@@ -1400,6 +1404,13 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     if (unavailableCartProductIds.length > 0) {
       setSmartDeliveryLoading(false);
       setSmartDeliveryError(t.unavailableCartWarning);
+      setOptimalVehicle(null);
+      setShippingQuote(null);
+      return;
+    }
+    if (missingWeightProductIds.length > 0) {
+      setSmartDeliveryLoading(false);
+      setSmartDeliveryError(t.missingCartWeight);
       setOptimalVehicle(null);
       setShippingQuote(null);
       return;
@@ -1601,6 +1612,14 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     if (unavailableCartProductIds.length > 0) {
       setStandardShippingLoading(false);
       setStandardShippingError(t.unavailableCartWarning);
+      return () => {
+        if (standardShippingRequestRef.current === requestId) standardShippingRequestRef.current++;
+        quoteController.abort();
+      };
+    }
+    if (missingWeightProductIds.length > 0) {
+      setStandardShippingLoading(false);
+      setStandardShippingError(t.missingCartWeight);
       return () => {
         if (standardShippingRequestRef.current === requestId) standardShippingRequestRef.current++;
         quoteController.abort();
@@ -2057,6 +2076,10 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
   const onSubmit = async (data: any) => {
     if (unavailableCartProductIds.length > 0) {
       toast({ title: t.unavailableCartWarning, variant: "destructive" });
+      return;
+    }
+    if (missingWeightProductIds.length > 0) {
+      toast({ title: t.missingCartWeight, variant: "destructive" });
       return;
     }
     console.log('🚀 [SUBMIT DEBUG] onSubmit function called');
@@ -2572,6 +2595,9 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                     ⚖️ {t.shipmentWeight} <span className="font-semibold text-gray-700 dark:text-gray-300">{totalWeight.toFixed(2)} {t.kilogram}</span>
                   </div>
                 </div>
+                {missingWeightProductIds.length > 0 && (
+                  <p className="text-sm text-red-700" role="alert">{t.missingCartWeight}</p>
+                )}
                 {isLoadingShippingRates ? (
                   <div className="text-sm text-muted-foreground flex items-center gap-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>

@@ -923,6 +923,10 @@ export interface Translation {
     grossWeightPlaceholder: string;
     grossWeightHelp: string;
     grossWeightHelpView: string;
+    shopGrossWeightHint: string;
+    batchWeightOnlyHint: string;
+    editShopWeightBatch: string;
+    shopWeightSyncFailed: string;
     weightUnit: string;
     syncWithShop: string;
     showWhenOutOfStock: string;
@@ -2095,7 +2099,11 @@ const baseTranslations = {
       grossWeight: 'Gross Weight',
       grossWeightPlaceholder: '0',
       grossWeightHelp: 'Total product weight with packaging (for transportation)',
-      grossWeightHelpView: 'Weight can only be changed when creating new product',
+      grossWeightHelpView: 'Weight cannot be changed while adding a new batch',
+      shopGrossWeightHint: 'Checkout shipping uses the gross weight of the main shop batch for this barcode.',
+      batchWeightOnlyHint: 'Changes to this batch do not change the shop weight. Edit the main shop batch instead.',
+      editShopWeightBatch: 'Edit main shop batch',
+      shopWeightSyncFailed: 'Product saved in Kardex, but its weight was not updated in the shop.',
       weightUnit: 'Unit',
       syncWithShop: 'Display in online shop',
       showWhenOutOfStock: 'Show even when out of stock',
@@ -3585,7 +3593,11 @@ const baseTranslations = {
       grossWeight: 'الوزن الإجمالي',
       grossWeightPlaceholder: '0',
       grossWeightHelp: 'الوزن الإجمالي للمنتج مع التعبئة (للنقل)',
-      grossWeightHelpView: 'لا يمكن تغيير الوزن إلا عند إنشاء منتج جديد',
+      grossWeightHelpView: 'لا يمكن تغيير الوزن أثناء إضافة دفعة جديدة',
+      shopGrossWeightHint: 'يستخدم الشحن في السلة الوزن الإجمالي للدفعة الرئيسية في المتجر لهذا الرمز الشريطي.',
+      batchWeightOnlyHint: 'تغيير هذه الدفعة لا يغيّر وزن المتجر. عدّل الدفعة الرئيسية للمتجر بدلاً منها.',
+      editShopWeightBatch: 'تعديل الدفعة الرئيسية للمتجر',
+      shopWeightSyncFailed: 'حُفظ المنتج في كاردكس، لكن وزنه لم يُحدّث في المتجر.',
       weightUnit: 'الوحدة',
       syncWithShop: 'العرض في المتجر الإلكتروني',
       showWhenOutOfStock: 'العرض حتى عند نفاد المخزون',
@@ -5001,7 +5013,11 @@ const baseTranslations = {
       grossWeight: 'Brüt Ağırlık',
       grossWeightPlaceholder: '0',
       grossWeightHelp: 'Ambalajlı toplam ürün ağırlığı (taşıma için)',
-      grossWeightHelpView: 'Ağırlık yalnızca yeni ürün oluştururken değiştirilebilir',
+      grossWeightHelpView: 'Yeni parti eklenirken ağırlık değiştirilemez',
+      shopGrossWeightHint: 'Sepetteki kargo hesabı, bu barkodun mağazadaki ana partisinin brüt ağırlığını kullanır.',
+      batchWeightOnlyHint: 'Bu partideki değişiklik mağaza ağırlığını değiştirmez. Ana mağaza partisini düzenleyin.',
+      editShopWeightBatch: 'Ana mağaza partisini düzenle',
+      shopWeightSyncFailed: 'Ürün Kardex’e kaydedildi, ancak mağazadaki ağırlığı güncellenmedi.',
       weightUnit: 'Birim',
       syncWithShop: 'Online mağazada göster',
       showWhenOutOfStock: 'Stok bittiğinde de göster',
@@ -5967,7 +5983,11 @@ export const translations = {
     grossWeight: 'وزن ناخالص',
     grossWeightPlaceholder: '۰',
     grossWeightHelp: 'وزن کل محصول همراه بسته‌بندی (برای حمل‌ونقل)',
-    grossWeightHelpView: 'وزن فقط هنگام ایجاد محصول جدید قابل تغییر است',
+    grossWeightHelpView: 'هنگام افزودن بچ جدید، وزن قابل تغییر نیست',
+    shopGrossWeightHint: 'محاسبهٔ ارسال سبد از وزن ناخالص بچ اصلی فروشگاه برای این بارکد استفاده می‌کند.',
+    batchWeightOnlyHint: 'تغییر این بچ، وزن فروشگاه را تغییر نمی‌دهد. بچ اصلی فروشگاه را ویرایش کنید.',
+    editShopWeightBatch: 'ویرایش بچ اصلی فروشگاه',
+    shopWeightSyncFailed: 'محصول در کاردکس ذخیره شد، اما وزن آن در فروشگاه به‌روز نشد.',
     weightUnit: 'واحد',
     syncWithShop: 'نمایش در فروشگاه آنلاین',
     showWhenOutOfStock: 'نمایش حتی هنگام اتمام موجودی',

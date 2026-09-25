@@ -93,8 +93,8 @@ function parseInvoiceLanguage(value: unknown): InvoiceLanguage | null {
 async function syncProductWeightsToShop(
   product: any,
   changedFields: ProductWeightField[],
-): Promise<void> {
-  await syncCanonicalKardexWeightsToShop(product, changedFields);
+): Promise<boolean> {
+  return syncCanonicalKardexWeightsToShop(product, changedFields);
 }
 
 import { 
@@ -6684,11 +6684,11 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         console.log("Auto-sync failed after update:", syncError);
       }
 
+      let shopWeightUpdated = false;
       if (changedWeightFields.length > 0) {
         try {
-          // Apply the edited Kardex batch's weights after barcode-level sync so
-          // a different batch cannot overwrite the explicit edit in the shop.
-          await syncProductWeightsToShop(product, changedWeightFields);
+          // Only the canonical batch owns the shared shop weight for this barcode.
+          shopWeightUpdated = await syncProductWeightsToShop(product, changedWeightFields);
         } catch (weightSyncError) {
           console.error(`Failed to sync product weights to shop for product ${id}:`, weightSyncError);
         }
@@ -6700,7 +6700,8 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       res.json({ 
         success: true, 
         message: isSyncToggle ? "وضعیت نمایش در فروشگاه به‌روزرسانی شد" : "محصول با موفقیت به‌روزرسانی شد",
-        product: responseProduct 
+        product: responseProduct,
+        shopWeightUpdated,
       });
     } catch (error: any) {
       console.error("Error updating showcase product:", error);
@@ -57434,9 +57435,9 @@ momtazchem.com
       
       console.log("✅ [INSTANT-SYNC] Sync completed:", syncResult);
       
-      res.json({
-        success: true,
-        message: "همگام‌سازی کاردکس با موفقیت انجام شد",
+      res.status(syncResult.success ? 200 : 500).json({
+        success: syncResult.success,
+        message: syncResult.message,
         result: syncResult
       });
       

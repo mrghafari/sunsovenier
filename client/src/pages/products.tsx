@@ -274,6 +274,11 @@ export default function ProductsPage() {
     refetchOnMount: true,
     refetchOnWindowFocus: true,
   });
+  const mainShopBatch = editingProduct?.barcode
+    ? products?.filter(p =>
+        p.barcode?.trim() === editingProduct.barcode?.trim() && p.syncWithShop !== false
+      ).reduce<ShowcaseProduct | null>((main, p) => !main || p.id < main.id ? p : main, null)
+    : null;
 
   // Force refresh every time component mounts
   useEffect(() => {
@@ -435,12 +440,14 @@ export default function ProductsPage() {
   });
 
   const { mutate: updateProduct } = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => {
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
       setIsSubmitting(true);
       // Use vendor API endpoint when in vendor mode
       const endpoint = isVendorMode ? `/api/vendors/products/${id}` : `/api/products/${id}`;
       const method = isVendorMode ? "PATCH" : "PUT";
-      return apiRequest(endpoint, { method, body: data });
+      const result = await apiRequest(endpoint, { method, body: data });
+      if (result?.success === false) throw new Error(result.message || t.productManagement.productUpdateError);
+      return result;
     },
     onSuccess: async (result, variables) => {
       console.log('✅ [DEBUG] Update mutation successful, result:', result);
@@ -457,10 +464,11 @@ export default function ProductsPage() {
       // Refresh products list to ensure UI is in sync
       queryClient.invalidateQueries({ queryKey: [productsEndpoint] });
       
-      toast({
-        title: t.productManagement.productUpdated,
-        description: t.productManagement.productUpdated,
-      });
+      const weightChanged = ['netWeight', 'grossWeight', 'weightUnit']
+        .some(field => variables.data[field] !== undefined);
+      toast(weightChanged && result?.shopWeightUpdated !== true
+        ? { title: t.productManagement.shopWeightSyncFailed, variant: "destructive" }
+        : { title: t.productManagement.productUpdated, description: t.productManagement.productUpdated });
       // Immediate kardex sync after product update
       await triggerKardexSync();
     },
@@ -762,7 +770,8 @@ export default function ProductsPage() {
     }
     
     // Unchanged legacy weights may be empty; do not clear them during unrelated edits.
-    const { netWeight: _netWeight, grossWeight: _grossWeight, ...dataWithoutWeights } = data;
+    const { netWeight: _netWeight, grossWeight: _grossWeight, weightUnit: _weightUnit, ...dataWithoutWeights } = data;
+    const dirtyWeights = form.formState.dirtyFields;
     // Convert numeric fields to strings for API compatibility
     const processedData = {
       ...dataWithoutWeights,
@@ -771,11 +780,14 @@ export default function ProductsPage() {
       minStockLevel: Number(data.minStockLevel) || 0,
       maxStockLevel: Number(data.maxStockLevel) || 0,
       // For batch additions, keep weight fields but preserve image fields
-      ...(!editingProduct || form.getFieldState('netWeight').isDirty
+      ...(!editingProduct || dirtyWeights.netWeight
         ? { netWeight: isBatchAddition ? null : (data.netWeight ? data.netWeight.toString() : null) }
         : {}),
-      ...(!editingProduct || form.getFieldState('grossWeight').isDirty
+      ...(!editingProduct || dirtyWeights.grossWeight
         ? { grossWeight: isBatchAddition ? null : (data.grossWeight ? data.grossWeight.toString() : null) }
+        : {}),
+      ...(!editingProduct || dirtyWeights.weightUnit
+        ? { weightUnit: data.weightUnit }
         : {}),
       imageUrl: data.imageUrl, // Always include images (whether batch addition or not)
       imageUrls: data.imageUrls, // Always include images (whether batch addition or not)
@@ -3015,6 +3027,20 @@ export default function ProductsPage() {
                       )}
                     />
                   </div>
+                  {editingProduct && (
+                    <div className="mt-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900">
+                      <p>{t.productManagement.shopGrossWeightHint}</p>
+                      {mainShopBatch && mainShopBatch.id !== editingProduct.id && (
+                        <div className="mt-2">
+                          <p>{t.productManagement.batchWeightOnlyHint}</p>
+                          <Button type="button" variant="link" className="h-auto px-0 text-blue-900 underline"
+                            onClick={() => handleBatchChange(String(mainShopBatch.id))}>
+                            {t.productManagement.editShopWeightBatch} ({mainShopBatch.batchNumber || `ID-${mainShopBatch.id}`})
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Tags and additional settings */}

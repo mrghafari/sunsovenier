@@ -207,7 +207,7 @@ const Shop = () => {
   });
 
   // Fetch all shop products for total count
-  const { data: products = [] } = useQuery<ShopProduct[]>({
+  const { data: products = [], refetch: refetchShopProducts } = useQuery<ShopProduct[]>({
     queryKey: ["/api/shop/products"],
   });
 
@@ -859,6 +859,15 @@ const Shop = () => {
   };
 
   // Pre-checkout handlers
+  const openCheckout = async () => {
+    const freshProducts = await refetchShopProducts();
+    if (freshProducts.isError) {
+      toast({ title: "dataLoadFailed", variant: "destructive" });
+      return;
+    }
+    setShowCheckout(true);
+  };
+
   const handleCartClick = () => {
     console.log('Cart clicked, total items:', getTotalItems());
     console.log('Customer:', customer);
@@ -869,7 +878,7 @@ const Shop = () => {
     if (customer && customer.id) {
       // User is logged in, proceed directly to checkout
       console.log('User is logged in, showing checkout');
-      setShowCheckout(true);
+      void openCheckout();
     } else {
       // User not logged in, show pre-checkout modal
       console.log('User not logged in, showing pre-checkout modal');
@@ -893,7 +902,7 @@ const Shop = () => {
   const handleGuestCheckout = () => {
     console.log('Guest checkout selected');
     setShowPreCheckout(false);
-    setShowCheckout(true);
+    void openCheckout();
   };
 
   const handleAuthSuccess = (customerData: any) => {
@@ -907,7 +916,7 @@ const Shop = () => {
     // Only proceed to checkout if cart has items AND profile is complete
     if (getTotalItems() > 0 && isProfileComplete) {
       // Profile is complete and cart has items, proceed to checkout
-      setShowCheckout(true);
+      void openCheckout();
       toast({
         title: t.shop.loginSuccessful,
         description: t.shop.loginWelcome,
@@ -2510,7 +2519,7 @@ const Shop = () => {
           </div>
           <BilingualPurchaseForm
             cart={cart}
-            products={currentProducts}
+            products={products}
             existingCustomer={customer}
             onOrderComplete={async () => {
               clearCartPersistent();

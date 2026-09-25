@@ -785,9 +785,10 @@ export function createVendorRouter() {
         .where(eq(products.id, productId))
         .returning();
 
+      let shopWeightUpdated = false;
       if (changedWeightFields.length > 0) {
         try {
-          await syncCanonicalKardexWeightsToShop(product, changedWeightFields);
+          shopWeightUpdated = await syncCanonicalKardexWeightsToShop(product, changedWeightFields);
         } catch (weightSyncError) {
           console.error(`Failed to sync vendor product weights to shop for ${productId}:`, weightSyncError);
         }
@@ -796,7 +797,8 @@ export function createVendorRouter() {
       res.json({
         success: true,
         message: "Product updated successfully",
-        product
+        product,
+        shopWeightUpdated,
       });
     } catch (error: any) {
       console.error("Error updating product:", error);
