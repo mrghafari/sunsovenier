@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
-import { ShoppingCart, Plus, Minus, Filter, Search, Grid, List, Star, User, LogOut, X, ChevronDown, ChevronLeft, ChevronRight, Eye, EyeOff, Brain, Sparkles, Wallet, FileText, Download, AlertTriangle, Package, MessageSquare, ZoomIn, Flame, Heart } from "lucide-react";
+import { ShoppingCart, Plus, Minus, Loader2, Filter, Search, Grid, List, Star, User, LogOut, X, ChevronDown, ChevronLeft, ChevronRight, Eye, EyeOff, Brain, Sparkles, Wallet, FileText, Download, AlertTriangle, Package, MessageSquare, ZoomIn, Flame, Heart } from "lucide-react";
 import { useLocation } from "wouter";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
@@ -37,6 +37,12 @@ import ProductModel3DViewer from "@/components/ProductModel3DViewer";
 const Shop = () => {
   const { toast } = useMultilingualToast();
   const { t, direction, language } = useLanguage();
+  const addingLabel = {
+    fa: 'در حال افزودن…',
+    ar: 'جارٍ الإضافة…',
+    tr: 'Ekleniyor…',
+    en: 'Adding…',
+  }[language];
   const authCopy = {
     en: { login: 'Login', register: 'Register' },
     fa: { login: 'ورود', register: 'ثبت‌نام' },
@@ -87,6 +93,8 @@ const Shop = () => {
     getTotalItems 
   } = usePersistentCart();
   const [showCheckout, setShowCheckout] = useState(false);
+  const addingProductsRef = useRef(new Set<number>());
+  const [addingProducts, setAddingProducts] = useState<number[]>([]);
   const [showPreCheckout, setShowPreCheckout] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [selectedProductForSpecs, setSelectedProductForSpecs] = useState<any>(null);
@@ -644,6 +652,7 @@ const Shop = () => {
   };
 
   const addToCart = async (productId: number) => {
+    if (addingProductsRef.current.has(productId)) return;
     const targetQuantity = getProductQuantity(productId);
     
     // Find the product to verify stock availability
@@ -667,6 +676,8 @@ const Shop = () => {
     
     console.log(`🛒 [ADD TO CART] Before add - Product ${productId}, Stock: ${product.stockQuantity}, Cart: ${currentInCart}, DisplayStock: ${displayStock[productId]}`);
     
+    addingProductsRef.current.add(productId);
+    setAddingProducts([...addingProductsRef.current]);
     // Reserve on the server before changing local state. A rejected 409
     // therefore cannot leave a quantity in the browser that was not accepted.
     try {
@@ -681,6 +692,9 @@ const Shop = () => {
         variant: "destructive",
       });
       return;
+    } finally {
+      addingProductsRef.current.delete(productId);
+      setAddingProducts([...addingProductsRef.current]);
     }
     
     // Update display stock to immediately show reduced quantity
@@ -1877,12 +1891,13 @@ const Shop = () => {
                               className="w-full"
                               onClick={() => addToCart(product.id)}
                               disabled={
+                                addingProducts.includes(product.id) ||
                                 !product.inStock || 
                                 getProductQuantity(product.id) > product.stockQuantity
                               }
                             >
-                              <ShoppingCart className="w-4 h-4 mr-2" />
-                              {!product.inStock || product.stockQuantity <= 0 ? t.shop.notAvailable : cart[product.id] && cart[product.id] > 0 ? t.shop.addMore : t.shop.addToCart}
+                              {addingProducts.includes(product.id) ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ShoppingCart className="w-4 h-4 mr-2" />}
+                              {addingProducts.includes(product.id) ? addingLabel : !product.inStock || product.stockQuantity <= 0 ? t.shop.notAvailable : cart[product.id] && cart[product.id] > 0 ? t.shop.addMore : t.shop.addToCart}
                             </Button>
                           </div>
                         </CardContent>
@@ -2436,12 +2451,13 @@ const Shop = () => {
                                   className="w-full"
                                   onClick={() => addToCart(product.id)}
                                   disabled={
+                                    addingProducts.includes(product.id) ||
                                     !product.inStock || 
                                     getProductQuantity(product.id) > product.stockQuantity
                                   }
                                 >
-                                  <ShoppingCart className="w-4 h-4 mr-2" />
-                                  {!product.inStock || product.stockQuantity <= 0 ? t.shop.notAvailable : cart[product.id] && cart[product.id] > 0 ? t.shop.addMore : t.shop.addToCart}
+                                  {addingProducts.includes(product.id) ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ShoppingCart className="w-4 h-4 mr-2" />}
+                                  {addingProducts.includes(product.id) ? addingLabel : !product.inStock || product.stockQuantity <= 0 ? t.shop.notAvailable : cart[product.id] && cart[product.id] > 0 ? t.shop.addMore : t.shop.addToCart}
                                 </Button>
                               </div>
                             </div>
@@ -2538,9 +2554,9 @@ const Shop = () => {
             onClose={() => setShowCheckout(false)}
             onUpdateQuantity={(productId, newQuantity) => {
               if (newQuantity <= 0) {
-                removeFromCartPersistent(productId);
+                return removeFromCartPersistent(productId);
               } else {
-                updateCartQuantity(productId, newQuantity);
+                return updateCartQuantity(productId, newQuantity);
               }
             }}
             onRemoveItem={(productId) => {

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -12,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { MapPin, Globe, X, ShoppingCart, Plus, Minus, Trash2, Wallet, CreditCard, Upload, Clock, Flame, Move } from "lucide-react";
+import { MapPin, Globe, X, ShoppingCart, Plus, Minus, Trash2, Wallet, CreditCard, Upload, Clock, Flame, Move, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { loadCustomerAddresses, saveSecondaryCustomerAddress } from "@/lib/customer-addresses";
@@ -467,7 +468,7 @@ interface PurchaseFormProps {
   onOrderComplete: () => void;
   onClose: () => void;
   existingCustomer?: any; // Customer data from parent component
-  onUpdateQuantity?: (productId: number, newQuantity: number) => void;
+  onUpdateQuantity?: (productId: number, newQuantity: number) => void | Promise<void>;
   onRemoveItem?: (productId: number) => void;
 }
 
@@ -505,8 +506,11 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [locationData, setLocationData] = useState<{latitude: number, longitude: number} | null>(null);
   const [quantityDrafts, setQuantityDrafts] = useState<Record<number, string>>({});
+  const [pendingQuantityUpdates, setPendingQuantityUpdates] = useState<number[]>([]);
+  const pendingQuantityUpdatesRef = useRef(new Set<number>());
   const activatedQuantityInputs = useRef(new Set<number>());
   const [paymentMethod, setPaymentMethod] = useState<'online_payment' | 'fib_online' | 'wallet' | 'wallet_full' | 'wallet_partial' | 'wallet_combined' | 'bank_transfer_grace' | 'bank_receipt'>('fib_online');
+  const [paymentSectionTarget, setPaymentSectionTarget] = useState<HTMLDivElement | null>(null);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewAddressId, setReviewAddressId] = useState('primary');
   const [secondAddressDraft, setSecondAddressDraft] = useState<{address: string; city: string; province: string; postalCode: string} | null>(null);
@@ -1052,7 +1056,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
         customerName: fullName || customerToUse.name || "",
         phone: customerToUse.phone || "",
         address: customerAddress,
-        city: customerCity || "Iraq",
+        city: customerCity || "",
         country: customerToUse.country || shippingCenterCountry || "Iraq",
         postalCode: customerToUse.postalCode || "",
         notes: "",
@@ -1276,20 +1280,25 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
   );
 
   // Calculate shipping cost - prioritize smart delivery over regular shipping
-  const activePricingCity = showSecondAddress && secondCity.trim()
-    ? secondCity
-    : (crmCustomerData?.cityRegion || crmCustomerData?.city || customerData?.customer?.cityRegion || customerData?.customer?.city || form.watch('city'));
-  const activePricingProvince = showSecondAddress && secondProvince.trim()
-    ? secondProvince
+  const activePricingAddress = showSecondAddress
+    ? secondAddress.trim()
+    : (crmCustomerData?.address || customerData?.customer?.address || form.watch('address') || '').trim();
+  const activePricingCity = showSecondAddress
+    ? secondCity.trim()
+    : (crmCustomerData?.cityRegion || crmCustomerData?.city || customerData?.customer?.cityRegion || customerData?.customer?.city || form.watch('city') || '').trim();
+  const activePricingProvince = showSecondAddress
+    ? secondProvince.trim()
     : (crmCustomerData?.province || customerData?.customer?.province || '');
-  const currentSmartDeliveryPricedKey = `${activePricingCity}|${activePricingProvince}|${totalWeight}|${shippingQuoteCartKey}`;
+  const activePricingCountry = form.watch('country') || crmCustomerData?.country || customerData?.customer?.country || '';
+  const hasCompleteDeliveryAddress = !!activePricingAddress && !!activePricingCity && !!activePricingCountry.trim();
+  const currentSmartDeliveryPricedKey = `${activePricingAddress}|${activePricingCity}|${activePricingProvince}|${activePricingCountry}|${totalWeight}|${shippingQuoteCartKey}`;
   const selectedShippingRate = shippingRatesData?.find((rate: any) => rate.id === selectedShippingMethod);
   const activeDeliveryMethodValue = String(selectedShippingRate?.deliveryMethod || selectedShippingRate?.delivery_method || '').toLowerCase();
   const isSmartShippingMethod = activeDeliveryMethodValue === 'smart_vehicle' || activeDeliveryMethodValue.includes('bus');
   const isPickupShippingMethod = ['pickup', 'self_pickup', 'self-pickup'].includes(activeDeliveryMethodValue);
-  const activePricingCountry = form.watch('country') || crmCustomerData?.country || customerData?.customer?.country || '';
   const standardShippingQuoteKey = JSON.stringify([
     selectedShippingMethod,
+    activePricingAddress,
     activePricingCity,
     activePricingProvince,
     activePricingCountry,
@@ -1316,9 +1325,20 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
         ? Number(optimalVehicle.totalCost)
         : 0)
       : (standardShippingQuoteReady ? standardShippingQuote!.cost : 0);
+  const hasCurrentShippingPrice = isPickupShippingMethod ||
+    (hasCompleteDeliveryAddress && (isSmartShippingMethod ? currentSmartShippingQuoteReady : standardShippingQuoteReady));
+  const deliveryAddressRequiredMessage = language === 'fa'
+    ? 'برای محاسبه هزینه ارسال، آدرس، شهر و کشور تحویل را مشخص کنید.'
+    : language === 'ar'
+      ? 'يرجى تحديد عنوان التسليم والمدينة والبلد لحساب تكلفة الشحن.'
+      : language === 'tr'
+        ? 'Kargo ücretini hesaplamak için teslimat adresini, şehri ve ülkeyi seçin.'
+        : 'Choose a delivery address, city, and country to calculate shipping.';
   
   // Calculate total amount (subtotal + VAT + duties + final shipping cost - no double counting) - IQD whole numbers
-  const totalAmount = Math.round(subtotalAmount + totalTaxAmount + finalShippingCost);
+  const totalAmount = hasCurrentShippingPrice
+    ? Math.round(subtotalAmount + totalTaxAmount + finalShippingCost)
+    : 0;
   
   // Debug total calculation
   console.log('💰 [TOTAL CALCULATION] Breakdown:', {
@@ -1516,7 +1536,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
           setOptimalVehicle(vehicleInfo);
           setAlternativeVehicles([]);
           setSmartDeliveryCost(totalCost);
-          setSmartDeliveryPricedKey(`${destinationCity}|${destinationProvince}|${totalWeight}|${shippingQuoteCartKey}`);
+        setSmartDeliveryPricedKey(`${activePricingAddress}|${destinationCity}|${destinationProvince}|${activePricingCountry}|${totalWeight}|${shippingQuoteCartKey}`);
           setPricedShippingCenterKey(quoteCenterKey);
           setShippingQuote(typeof data.shippingQuoteToken === 'string' && data.shippingQuoteToken
             ? {
@@ -1555,7 +1575,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
           setOptimalVehicle(vehicleInfo);
           setAlternativeVehicles(data.alternatives || []);
           setSmartDeliveryCost(vehicleCost);
-          setSmartDeliveryPricedKey(`${destinationCity}|${destinationProvince}|${totalWeight}|${shippingQuoteCartKey}`);
+          setSmartDeliveryPricedKey(`${activePricingAddress}|${destinationCity}|${destinationProvince}|${activePricingCountry}|${totalWeight}|${shippingQuoteCartKey}`);
           setPricedShippingCenterKey(quoteCenterKey);
           setShippingQuote(typeof data.shippingQuoteToken === 'string' && data.shippingQuoteToken
             ? {
@@ -1644,9 +1664,9 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
         quoteController.abort();
       };
     }
-    if (!activePricingCity || totalWeight <= 0) {
+    if (!hasCompleteDeliveryAddress || !activePricingCity || totalWeight <= 0) {
       setStandardShippingLoading(false);
-      setStandardShippingError(standardShippingUnavailableMessage);
+      setStandardShippingError('');
       return () => {
         if (standardShippingRequestRef.current === requestId) standardShippingRequestRef.current++;
         quoteController.abort();
@@ -1745,7 +1765,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
     };
   }, [
     selectedShippingMethod, selectedShippingRate, isPickupShippingMethod, isSmartShippingMethod,
-    activePricingCity, activePricingProvince, activePricingCountry, totalWeight, standardShippingQuoteKey,
+    activePricingAddress, activePricingCity, activePricingProvince, activePricingCountry, hasCompleteDeliveryAddress, totalWeight, standardShippingQuoteKey,
     shippingQuoteCartKey, shippingQuoteRefreshKey, secondaryCities, shippingCenterKey, refetchShippingCenter,
     standardShippingUnavailableMessage, unavailableCartProductIds.length,
   ]);
@@ -1754,13 +1774,9 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
   useEffect(() => {
     const requestId = ++smartShippingRequestRef.current;
     // Determine final destination city and province
-    const finalDestinationCity = showSecondAddress && secondCity.trim() ? 
-      secondCity : 
-      (crmCustomerData?.cityRegion || crmCustomerData?.city || customerData?.customer?.cityRegion || customerData?.customer?.city || form.watch('city'));
+    const finalDestinationCity = activePricingCity;
     
-    const finalDestinationProvince = showSecondAddress && secondProvince.trim() ? 
-      secondProvince : 
-      (crmCustomerData?.province || customerData?.customer?.province);
+    const finalDestinationProvince = activePricingProvince;
 
     console.log('🚚 [DELIVERY CALCULATION] Final destination determined:', {
       showSecondAddress,
@@ -1802,7 +1818,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       return;
     }
     
-    if (finalDestinationCity && totalWeight > 0) {
+    if (hasCompleteDeliveryAddress && finalDestinationCity && totalWeight > 0) {
       setSmartDeliveryLoading(true);
       setSmartDeliveryCost(0);
       setOptimalVehicle(null);
@@ -1834,8 +1850,11 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
       setSmartDeliveryPricedKey('');
       setPricedShippingCenterKey('');
       setShippingQuote(null);
+      setSmartDeliveryLoading(false);
       console.log('🚚 [DELIVERY CALCULATION] Missing required data for calculation:', {
+        hasAddress: !!activePricingAddress,
         hasCity: !!finalDestinationCity,
+        hasCountry: !!activePricingCountry,
         hasProvince: !!finalDestinationProvince,
         effectiveProvince,
         hasWeight: totalWeight > 0,
@@ -1844,7 +1863,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
         totalWeight
       });
     }
-  }, [selectedShippingMethod, isSmartShippingMethod, showSecondAddress, secondCity, secondProvince, form.watch('city'), totalWeight, cart, shippingQuoteRefreshKey, secondaryCities, shippingCenterKey, crmCustomerData?.cityRegion, crmCustomerData?.province, customerData?.customer?.cityRegion, customerData?.customer?.province]);
+  }, [selectedShippingMethod, isSmartShippingMethod, hasCompleteDeliveryAddress, activePricingAddress, activePricingCity, activePricingProvince, activePricingCountry, totalWeight, cart, shippingQuoteRefreshKey, secondaryCities, shippingCenterKey]);
 
 
 
@@ -2133,6 +2152,14 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
           title: language === 'fa' ? "انتخاب روش ارسال الزامی است" : language === 'ar' ? "طريقة الشحن مطلوبة" : "Shipping method is required",
           description: language === 'fa' ? "لطفاً یک روش ارسال انتخاب کنید" : language === 'ar' ? "يرجى اختيار طريقة الشحن" : "Please select a shipping method",
         variant: "destructive"
+      });
+      return;
+    }
+    if (!isPickupShippingMethod && !hasCompleteDeliveryAddress) {
+      toast({
+        title: language === 'fa' ? 'آدرس تحویل کامل نیست' : language === 'ar' ? 'عنوان التسليم غير مكتمل' : 'Delivery address is incomplete',
+        description: deliveryAddressRequiredMessage,
+        variant: 'destructive',
       });
       return;
     }
@@ -2722,7 +2749,9 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                         
                         // Handle freight_collect option specially
                         if (rate.deliveryMethod === 'freight_collect' || rate.delivery_method === 'freight_collect') {
-                          const freightPrice = rate.id === selectedShippingMethod && standardShippingQuoteReady
+                          const freightPrice = rate.id === selectedShippingMethod && !hasCompleteDeliveryAddress
+                            ? deliveryAddressRequiredMessage
+                            : rate.id === selectedShippingMethod && standardShippingQuoteReady
                             ? (standardShippingQuote!.cost === 0 ? t.freeShipping : formatCurrency(standardShippingQuote!.cost))
                             : rate.id === selectedShippingMethod && standardShippingLoading
                               ? t.calculating
@@ -2736,7 +2765,9 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                         
                         // Method prices are shown only after the active method has a server quote.
                         const isActiveRate = rate.id === selectedShippingMethod;
-                        const ratePrice = isActiveRate && standardShippingQuoteReady
+                        const ratePrice = isActiveRate && !hasCompleteDeliveryAddress
+                          ? deliveryAddressRequiredMessage
+                          : isActiveRate && standardShippingQuoteReady
                           ? (standardShippingQuote!.cost === 0 ? t.freeShipping : formatCurrency(standardShippingQuote!.cost))
                           : isActiveRate && standardShippingLoading
                             ? t.calculating
@@ -2863,6 +2894,8 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                                     ? standardShippingUnavailableMessage
                                     : standardShippingLoading
                                       ? t.calculating
+                                      : !hasCompleteDeliveryAddress
+                                        ? deliveryAddressRequiredMessage
                                       : standardShippingQuoteReady
                                         ? (standardShippingQuote!.cost === 0 ? t.freeShipping : formatCurrency(standardShippingQuote!.cost))
                                         : standardShippingUnavailableMessage}
@@ -2881,6 +2914,8 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                                     ? standardShippingUnavailableMessage
                                     : standardShippingLoading
                                       ? t.calculating
+                                      : !hasCompleteDeliveryAddress
+                                        ? deliveryAddressRequiredMessage
                                       : standardShippingQuoteReady
                                         ? (standardShippingQuote!.cost === 0 ? t.freeShipping : formatCurrency(standardShippingQuote!.cost))
                                         : standardShippingUnavailableMessage}
@@ -2933,6 +2968,9 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                       
                       // Handle smart vehicle cost
                       if (selectedRate && (selectedRate.deliveryMethod === 'smart_vehicle' || selectedRate.delivery_method === 'smart_vehicle')) {
+                        if (!hasCompleteDeliveryAddress) {
+                          return <span className="text-gray-500">{deliveryAddressRequiredMessage}</span>;
+                        }
                         if (smartDeliveryLoading) {
                           return <span className="text-emerald-600">{t.calculating}</span>;
                         }
@@ -2948,6 +2986,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                       }
                       
                       if (isPickupShippingMethod) return t.freeShipping;
+                       if (!hasCompleteDeliveryAddress) return <span className="text-gray-500">{deliveryAddressRequiredMessage}</span>;
                        if (standardShippingError) return <span className="text-red-600">{standardShippingUnavailableMessage}</span>;
                        if (!isSmartShippingMethod && standardShippingLoading) return <span>{t.calculating}</span>;
                        if (!isSmartShippingMethod && !standardShippingQuoteReady) return <span className="text-red-600">{standardShippingUnavailableMessage}</span>;
@@ -2960,13 +2999,22 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
               {/* Final Amount */}
               <div className="flex justify-between font-bold text-lg border-t pt-2 bg-yellow-300 px-2 py-2 rounded-lg">
                 <span>{language === 'en' ? 'Final Amount' : language === 'fa' ? 'مبلغ نهایی' : 'المبلغ النهائي'}</span>
-                <span className="text-gray-900">{formatCurrency(totalAmount)}</span>
+                <span className={`text-gray-900 ${!hasCurrentShippingPrice ? 'text-sm' : ''}`}>
+                  {hasCurrentShippingPrice
+                    ? formatCurrency(totalAmount)
+                    : !hasCompleteDeliveryAddress
+                      ? deliveryAddressRequiredMessage
+                      : smartDeliveryLoading || standardShippingLoading
+                        ? t.calculating
+                        : isSmartShippingMethod ? smartDeliveryUnavailableMessage : standardShippingUnavailableMessage}
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Payment Method Selection - moved up below total */}
-          {customerData?.success && (
+          {/* Portal keeps the payment UI in DOM order after the address form. */}
+          {customerData?.success && paymentSectionTarget && createPortal(
+            hasCurrentShippingPrice ? (
             <div className="space-y-3 border rounded-lg p-4 bg-blue-50 dark:bg-blue-900/20">
               <div className="flex items-center gap-2">
                 <Wallet className="w-5 h-5 text-blue-600" />
@@ -3131,6 +3179,20 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                 </div>
               )}
             </div>
+            ) : (
+              <div role="status" className="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
+                {!hasCompleteDeliveryAddress
+                  ? deliveryAddressRequiredMessage
+                  : language === 'fa'
+                    ? 'پس از دریافت نرخ معتبر ارسال، روش پرداخت نمایش داده می‌شود.'
+                    : language === 'ar'
+                      ? 'ستظهر خيارات الدفع بعد استلام سعر شحن صالح.'
+                      : language === 'tr'
+                        ? 'Geçerli kargo ücreti alındıktan sonra ödeme seçenekleri gösterilir.'
+                        : 'Payment options will appear once a valid shipping quote is ready.'}
+              </div>
+            ),
+            paymentSectionTarget,
           )}
 
 
@@ -3504,6 +3566,8 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                     </FormItem>
                   )}
                 />
+
+                {customerData?.success && <div ref={setPaymentSectionTarget} />}
 
                 {/* Submit Buttons */}
                 <div className="flex gap-2 pt-4 no-drag">

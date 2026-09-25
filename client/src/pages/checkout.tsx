@@ -178,7 +178,6 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
   } | null>(null);
   const shippingRequestSequenceRef = useRef(0);
   const [totalWeight, setTotalWeight] = useState(0);
-  const [resolvedDestinationCity, setDestinationCity] = useState('');
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
@@ -390,7 +389,6 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
       
       // Set destination city for delivery calculation
       if (customerCity) {
-        setDestinationCity(customerCity);
         console.log('✅ [FORM DEBUG] Destination city set for delivery:', customerCity);
       }
       
@@ -726,62 +724,46 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
     shippingCountry: form.watch('shippingCountry'),
     shippingPostalCode: form.watch('shippingPostalCode'),
   });
-  const destinationCity = isUserLoggedIn ? resolvedDestinationCity : guestDeliveryFields.city;
-
-  // Watch for address changes to update destination
-  useEffect(() => {
-    // Try multiple potential city sources for destination
-    let city = '';
-    
-    // For guests: use form fields
-    if (!isUserLoggedIn) {
-      city = guestDeliveryFields.city;
-    } else {
-      // For logged in users: use CRM data or second address
-      if (form.watch('secondDeliveryCity')) {
-        city = form.watch('secondDeliveryCity') || '';
-      } else if (selectedAddress?.city) {
-        city = selectedAddress.city;
-      } else if (customerData?.customer?.city) {
-        city = customerData.customer.city;
-      } else if (customerData?.customer?.cityRegion) {
-        city = customerData.customer.cityRegion;
-      } else {
-        // Fallback to form fields
-        city = form.watch('billingCity') || form.watch('shippingCity') || '';
-      }
-    }
-    
-    if (isUserLoggedIn && city !== resolvedDestinationCity) {
-      setDestinationCity(city);
-      console.log('🎯 Destination City Updated:', city);
-    }
-  }, [
-    guestDeliveryFields.city,
-    resolvedDestinationCity,
-    form.watch('secondDeliveryCity'),
-    form.watch('billingCity'),
-    form.watch('shippingCity'),
-    customerData?.customer?.city,
-    customerData?.customer?.cityRegion,
-    selectedAddress?.city,
-    destinationCity, 
-    form,
-    isUserLoggedIn
-  ]);
+  const enteredSecondAddress = form.watch('secondDeliveryAddress')?.trim() || '';
+  const enteredRecipientAddress = form.watch('recipientAddress')?.trim() || '';
+  // The optional second-address editor starts open for some customers.
+  // Only entered content, not editor visibility, changes the chosen destination.
+  const usingEnteredDeliveryAddress = !!(isUserLoggedIn && (enteredSecondAddress || enteredRecipientAddress));
+  const activeDeliveryAddress = isUserLoggedIn
+    ? (usingEnteredDeliveryAddress
+      ? enteredRecipientAddress || enteredSecondAddress
+      : selectedAddress ? selectedAddress.address || '' : customerData?.customer?.address || '')
+    : (form.watch('sameAsShipping') ? form.watch('billingAddress1') : form.watch('shippingAddress1')) || '';
+  const destinationCity = isUserLoggedIn
+    ? (usingEnteredDeliveryAddress
+      ? form.watch('secondDeliveryCity') || ''
+      : selectedAddress
+        ? selectedAddress.city || ''
+        : customerData?.customer?.city || customerData?.customer?.cityRegion || form.watch('billingCity') || '')
+    : guestDeliveryFields.city;
 
   const selectedShippingMethodId = form.watch('shippingMethod');
   const currentShippingMethod = (deliveryMethods as any[])?.find((method: any) => method.id.toString() === selectedShippingMethodId);
   const currentMethodValue = String(currentShippingMethod?.value || currentShippingMethod?.deliveryMethod || currentShippingMethod?.delivery_method || '').toLowerCase();
   const isSmartVehicleShipping = currentMethodValue === 'smart_vehicle' || currentMethodValue.includes('bus');
   const destinationProvince = isUserLoggedIn
-    ? (form.watch('secondDeliveryProvince') || selectedAddress?.state || customerData?.customer?.province || '')
+    ? (usingEnteredDeliveryAddress
+      ? form.watch('secondDeliveryProvince') || ''
+      : selectedAddress ? selectedAddress.state || '' : customerData?.customer?.province || '')
     : guestDeliveryFields.province;
   const destinationCountry = isUserLoggedIn
-    ? (selectedAddress?.country || customerData?.customer?.country || '')
+    ? (selectedAddress ? selectedAddress.country || '' : customerData?.customer?.country || '')
     : guestDeliveryFields.country;
+  const deliveryAddressReady = !!activeDeliveryAddress.trim() &&
+    !!destinationCity.trim() && !!destinationCountry.trim();
+  const deliveryAddressPrompt = language === 'fa'
+    ? 'ابتدا آدرس و شهر تحویل را مشخص کنید.'
+    : language === 'ar' ? 'حدد عنوان ومدينة التسليم أولاً.'
+    : language === 'tr' ? 'Önce teslimat adresini ve şehrini belirtin.'
+    : 'Choose a delivery address and city first.';
   const standardQuoteKey = JSON.stringify([
     selectedShippingMethodId,
+    activeDeliveryAddress,
     destinationCity,
     destinationProvince,
     destinationCountry,
@@ -814,9 +796,9 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
         quoteController.abort();
       };
     }
-    if (!destinationCity || totalWeight <= 0) {
+    if (!deliveryAddressReady || totalWeight <= 0) {
       setShippingCalculationPending(false);
-      setShippingRouteUnavailable(!!method && !isPickup);
+      setShippingRouteUnavailable(false);
       return () => {
         if (shippingRequestSequenceRef.current === requestSequence) shippingRequestSequenceRef.current++;
         quoteController.abort();
@@ -932,6 +914,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
     };
   }, [
     selectedShippingMethodId, deliveryMethods, destinationCity, destinationProvince, destinationCountry,
+    activeDeliveryAddress, deliveryAddressReady,
     totalWeight, shippingCenterKey, calculateShippingCost, cart, shippingQuoteCartKey,
     shippingQuoteRefreshKey, refetchShippingCenter, secondaryCities,
   ]);
@@ -954,6 +937,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
     Date.now() - standardShippingQuote.createdAt < 4 * 60 * 1000;
   const shippingQuoteReady = !shippingCalculationPending &&
     !shippingRouteUnavailable &&
+    (isCurrentMethodGenuinePickup || deliveryAddressReady) &&
     (isCurrentMethodGenuinePickup ||
       (isSmartVehicleShipping
         ? !!selectedVehicle && currentVehicleQuoteIsFresh &&
@@ -961,7 +945,8 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
           pricedShippingDestination === `${destinationCity}|${totalWeight}`
         : standardQuoteReady));
   const shippingSelectionUnavailable = !isCurrentMethodGenuinePickup &&
-    (shippingCalculationPending || shippingRouteUnavailable || !shippingQuoteReady);
+    (!deliveryAddressReady || shippingCalculationPending || shippingRouteUnavailable || !shippingQuoteReady);
+  const finalPriceReady = !!currentShippingMethod && (isCurrentMethodGenuinePickup || shippingQuoteReady);
   
   if (isCurrentMethodGenuinePickup) {
     shippingCost = 0;
@@ -1025,7 +1010,9 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
     totalTaxAmount
   });
   
-  const beforeWalletTotal = subtotal + shippingCost + totalTaxAmount;
+  // Item subtotal can be shown immediately, but no payable total exists
+  // until the selected delivery address has a valid shipping price.
+  const beforeWalletTotal = finalPriceReady ? subtotal + shippingCost + totalTaxAmount : 0;
   
   // Auto-enable wallet usage when wallet payment method is selected
   useEffect(() => {
@@ -1259,7 +1246,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
       
       // Check CRM default address - all required fields must be non-empty
       const hasDefaultAddress = isValidField(customer.address) && 
-                                isValidField(customer.city) && 
+                                isValidField(customer.city || customer.cityRegion) &&
                                 isValidField(customer.country);
       
       // Check second delivery address - requires address AND city
@@ -1350,7 +1337,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
       // The recipient snapshot entered at checkout is authoritative for delivery.
       if (explicitRecipientAddress || secondDeliveryAddress) {
         deliveryAddress = explicitRecipientAddress || secondDeliveryAddress || '';
-        deliveryCity = data.secondDeliveryCity || customer.city || '';
+        deliveryCity = data.secondDeliveryCity || '';
         deliveryProvince = data.secondDeliveryProvince || customer.province || customer.state || '';
         deliveryCountry = selectedAddress?.country || customer.country || '';
         deliveryPostalCode = data.secondDeliveryPostalCode || '';
@@ -1367,7 +1354,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
       } else {
         // Use CRM default address
         deliveryAddress = customer.address || '';
-        deliveryCity = customer.city || '';
+        deliveryCity = customer.city || customer.cityRegion || data.billingCity || '';
         deliveryProvince = customer.province || customer.state || '';
         deliveryCountry = customer.country || '';
         deliveryPostalCode = customer.postalCode || '';
@@ -2341,7 +2328,9 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                           </FormControl>
                           {isCurrentMethodShippingDependent && (shippingRouteUnavailable || shippingCalculationPending || !shippingQuoteReady) && (
                             <p role="alert" className="text-sm text-destructive">
-                              {shippingRouteUnavailable
+                              {!deliveryAddressReady
+                                ? deliveryAddressPrompt
+                                : shippingRouteUnavailable
                                 ? shippingRouteUnavailableMessage
                                 : shippingCalculationPending
                                   ? t.checkout_page.calculatingBestVehicle
@@ -2367,7 +2356,9 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                             <span>{t.checkout_page.shippingCostLabel}</span>
                             <span className="font-medium">
                               {shippingSelectionUnavailable
-                                ? (shippingRouteUnavailable
+                                ? (!deliveryAddressReady
+                                  ? deliveryAddressPrompt
+                                  : shippingRouteUnavailable
                                   ? shippingRouteUnavailableMessage
                                   : shippingCalculationPending
                                     ? t.checkout_page.calculatingBestVehicle
@@ -2418,99 +2409,17 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                   </CardContent>
                 </Card>
 
-                {/* Payment Method */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <CreditCard className="w-5 h-5" />
-                      {t.checkout_page.paymentMethodTitle}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="paymentMethod"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t.checkout_page.selectPaymentMethod}</FormLabel>
-                          <FormControl>
-                            <Select value={field.value} onValueChange={field.onChange}>
-                              <SelectTrigger>
-                                <SelectValue placeholder={t.checkout_page.selectPaymentPlaceholder} />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {/* Dynamic payment methods based on admin settings */}
-                                {paymentSettings
-                                  .filter((setting: any) => setting.enabled)
-                                  .sort((a: any, b: any) => (b.priority || 0) - (a.priority || 0))
-                                  .map((setting: any) => {
-                                    // Get localized method name
-                                    const methodName = language === 'en' 
-                                      ? (setting.methodNameEn || setting.methodName)
-                                      : (setting.methodNameAr || setting.methodName);
-                                    
-                                    // Special handling for wallet payment
-                                    if (setting.methodKey === 'wallet') {
-                                      if (!isUserLoggedIn || walletBalance <= 0) return null;
-                                      return (
-                                        <SelectItem key={setting.methodKey} value="wallet_combined">
-                                          {methodName} - {t.checkout_page.walletBalance} {walletBalance.toLocaleString()} IQD
-                                        </SelectItem>
-                                      );
-                                    }
-                                    
-                                    // Regular payment methods
-                                    return (
-                                      <SelectItem key={setting.methodKey} value={setting.methodKey}>
-                                        {methodName}
-                                      </SelectItem>
-                                    );
-                                  })}
-                                
-                                {/* Fallback for when no settings are loaded yet */}
-                                {paymentSettings.length === 0 && (
-                                  <>
-                                    <SelectItem value="bank_receipt">{t.checkout_page.bankReceiptUpload}</SelectItem>
-                                    <SelectItem value="online_payment">{t.checkout_page.onlinePaymentMethod}</SelectItem>
-                                  </>
-                                )}
-                              </SelectContent>
-                            </Select>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    {/* Show delivery details */}
-                    {selectedMethod && (
-                      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between items-center">
-                            <span>{t.checkout_page.shippingCostLabel}</span>
-                            <span className="font-medium">
-                              {shippingSelectionUnavailable
-                                ? (shippingRouteUnavailable
-                                  ? shippingRouteUnavailableMessage
-                                  : shippingCalculationPending || isSmartVehicleShipping
-                                    ? t.checkout_page.calculatingBestVehicle
-                                    : shippingRouteUnavailableMessage)
-                                : (shippingCost === 0 ? t.checkout_page.freeShipping : `${shippingCost.toLocaleString()} IQD`)}
-                            </span>
-                          </div>
-                          {selectedMethod.description && (
-                            <div className="text-xs text-muted-foreground">
-                              {selectedMethod.description}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Payment Method */}
-                <Card>
+                {/* Payment is available only after delivery and its price are known. */}
+                {!finalPriceReady && (
+                  <p role="status" className="rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
+                    {!currentShippingMethod
+                      ? (language === 'fa' ? 'ابتدا روش ارسال را انتخاب کنید.' : 'Choose a delivery method first.')
+                      : !deliveryAddressReady && !isCurrentMethodGenuinePickup
+                      ? deliveryAddressPrompt
+                      : t.checkout_page.calculatingBestVehicle}
+                  </p>
+                )}
+                {finalPriceReady && <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <CreditCard className="w-5 h-5" />
@@ -2703,7 +2612,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                       )}
                     />
                   </CardContent>
-                </Card>
+                </Card>}
 
                   <Button 
                     type="submit" 
@@ -3651,7 +3560,9 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                     <span>{t.checkout_page.shippingCostSummary}</span>
                     <span>
                       {shippingSelectionUnavailable
-                        ? (shippingRouteUnavailable
+                        ? (!deliveryAddressReady
+                          ? deliveryAddressPrompt
+                          : shippingRouteUnavailable
                           ? shippingRouteUnavailableMessage
                           : shippingCalculationPending || isSmartVehicleShipping
                             ? t.checkout_page.calculatingBestVehicle
@@ -3680,11 +3591,11 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                   )}
                   <div className="flex justify-between text-lg font-bold">
                     <span>{t.checkout_page.totalPayable}</span>
-                    <span>{totalAmount.toLocaleString()} IQD</span>
+                    <span>{finalPriceReady ? `${totalAmount.toLocaleString()} IQD` : '—'}</span>
                   </div>
                 </div>
 
-                {!shippingSelectionUnavailable && shippingCost === 0 && (
+                {finalPriceReady && !shippingSelectionUnavailable && shippingCost === 0 && (
                   <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg border border-green-200 dark:border-green-800">
                     <p className="text-sm text-green-800 dark:text-green-300">
                       {t.checkout_page.freeShippingEligible}
@@ -3692,7 +3603,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                   </div>
                 )}
                 
-                {actualWalletUsage >= beforeWalletTotal && (
+                {finalPriceReady && actualWalletUsage >= beforeWalletTotal && (
                   <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
                     <p className="text-sm text-blue-800 dark:text-blue-300">
                       {t.checkout_page.fullyPaidByWallet}

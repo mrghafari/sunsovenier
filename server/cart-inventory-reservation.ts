@@ -117,6 +117,8 @@ export function reservationExpiryForPayment(paymentMethod?: string | null): Date
 
 export async function reconcileCartReservations(options: OwnerOptions & {
   cart: CartSnapshot;
+  persistCustomerCart?: boolean;
+  includeAvailability?: boolean;
 }) {
   await ensureCartReservationSchema();
   const client = await pool.connect();
@@ -264,7 +266,23 @@ export async function reconcileCartReservations(options: OwnerOptions & {
       }
     }
 
-    const availability = await getAvailabilityInTransaction(client, [...allProductIds]);
+    const availability = options.includeAvailability === false
+      ? {}
+      : await getAvailabilityInTransaction(client, [...allProductIds]);
+    if (options.persistCustomerCart) {
+      if (!options.customerId) {
+        throw new Error("Cannot save a persistent cart without an authenticated customer");
+      }
+      // Save the exact snapshot that was just reserved, in the same transaction.
+      // A failed save rolls back the inventory hold as well.
+      await client.query(`
+        INSERT INTO persistent_carts (customer_id, cart_data, updated_at)
+        VALUES ($1, $2, NOW())
+        ON CONFLICT (customer_id)
+        DO UPDATE SET cart_data = EXCLUDED.cart_data, updated_at = NOW()
+        WHERE persistent_carts.cart_data IS DISTINCT FROM EXCLUDED.cart_data
+      `, [options.customerId, JSON.stringify(Object.fromEntries(desired))]);
+    }
     await client.query("COMMIT");
     return {
       acceptedCart: Object.fromEntries(desired),

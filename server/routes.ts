@@ -18505,6 +18505,9 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       if (!sessionId) {
         return res.status(400).json({ success: false, message: "شناسه جلسه سبد خرید موجود نیست" });
       }
+      if (req.body?.persistCart && !customerId) {
+        return res.status(401).json({ success: false, message: "برای ذخیره سبد خرید وارد حساب شوید" });
+      }
       const { cart } = req.body || {};
       const { reconcileCartReservations, ownerKeyForRequest } =
         await import("./cart-inventory-reservation");
@@ -18513,7 +18516,9 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         ownerKey,
         sessionId,
         customerId,
-        cart: cart || {}
+        cart: cart || {},
+        persistCustomerCart: req.body?.persistCart === true,
+        includeAvailability: req.body?.includeAvailability !== false
       });
       return res.json({ success: true, ...result });
     } catch (error) {

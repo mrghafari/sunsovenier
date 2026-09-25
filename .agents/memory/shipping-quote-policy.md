@@ -20,3 +20,9 @@ React shipping-quote effects must use stable references for optional geography l
 **Why:** Creating a fresh empty array on every render retriggers a quote effect, whose cleanup aborts the previous request. Even a valid rate can then remain stuck as calculating or unavailable indefinitely.
 
 **How to apply:** When optional cities or regions are dependencies of quote effects or quote callbacks, use a shared immutable empty fallback or memoized array and check for similar unstable default values.
+
+Frontend quote readiness must follow the address source that the order will actually use, not whether an optional address editor is open. A city placeholder derived from a country name is not a selected city.
+
+**Why:** An optional second-address editor may start open even while a customer has selected a complete saved address. Using editor visibility to choose the quote destination blocks valid saved addresses; falling back to the primary city while a second address is incomplete can price the wrong route.
+
+**How to apply:** Resolve the selected saved/primary address versus an entered secondary or recipient address first, then require street, city and country from that source before requesting a non-pickup quote or showing a payable total. A missing city must remain missing.
