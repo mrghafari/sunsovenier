@@ -108,15 +108,14 @@ export function assertShippingQuoteCheckoutFlow(
   claims: ShippingQuoteClaims,
   expected: {
     flow: "shop" | "customers";
-    methodSelector: string;
     canonicalMethod: string;
   },
 ): void {
   if (
     expected.flow === "shop"
-    && (claims.method !== "vehicle_quote" || expected.methodSelector !== "7" || expected.canonicalMethod !== "smart_vehicle")
+    && (claims.method !== "vehicle_quote" || expected.canonicalMethod !== "smart_vehicle")
   ) {
-    throw new Error("Shop vehicle quotes require vehicle_quote and delivery method 7 (smart_vehicle).");
+    throw new Error("Shop vehicle quotes require vehicle_quote and smart_vehicle delivery.");
   }
   if (
     expected.flow === "customers"

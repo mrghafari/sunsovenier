@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import ContractDatePicker, { type ContractLanguage } from "./contract-date-picker";
 
 type DraftContext = ContractDocumentContext;
 type DraftLanguage = "en" | "fa" | "ar" | "tr";
@@ -16,10 +17,10 @@ type DraftLanguage = "en" | "fa" | "ar" | "tr";
 const labels = {
   fa: {
     heading: "موضوع و متن قرارداد", hint: "اطلاعات نمونه را تکمیل کنید. مشتری، کالاها، سقف و قیمت از همین قرارداد گرفته می‌شوند؛ این متن پیش‌نویس است و پیش از امضا باید بازبینی حقوقی شود.",
-    languageNote: "متن حقوقی بر اساس نمونهٔ ارسالی فقط به فارسی تولید می‌شود؛ تغییر زبان سایت، زبان پیش‌نویس را عوض نمی‌کند.",
-    deal: "نوع معامله", iran: "داخلی ایران", iraq: "صادرات به عراق", intl: "صادراتی / بین‌المللی", date: "تاریخ انعقاد",
+    languageNote: "زبان متن را در این فرم انتخاب کنید. متن پیش‌نویس در هر زبان پیش از امضا نیازمند بازبینی حقوقی است.",
+    documentLanguage: "زبان قرارداد", deal: "نوع معامله", iran: "محلی ایران", iraq: "محلی عراق", intl: "بین‌المللی", date: "تاریخ انعقاد",
     seller: "فروشنده", buyer: "خریدار", customer: "مشتری انتخاب‌شده", name: "نام شرکت", country: "کشور", registration: "شناسه ملی / ثبت",
-    address: "آدرس", representative: "نماینده و سمت", contact: "تماس / ایمیل",
+    address: "آدرس", representative: "نماینده و سمت", contact: "تماس / ایمیل", companySource: "اطلاعات فروشنده از مدیریت اطلاعات شرکت خوانده می‌شود و هنگام ثبت در قرارداد نگهداری خواهد شد.", refreshSeller: "دریافت دوباره از اطلاعات شرکت", sellerLoading: "در حال دریافت اطلاعات شرکت…", sellerError: "دریافت اطلاعات شرکت ناموفق بود؛ قرارداد جدید را تا رفع مشکل ثبت نکنید.", oldDeal: "نوع معاملهٔ قدیمی: صادرات به عراق. برای تغییر، یکی از سه نوع جدید را انتخاب کنید.",
     products: "محصول و کیفیت", productHint: "کالا، سقف تعداد و قیمت واحد از فهرست محصولات قرارداد خوانده می‌شود.", grade: "گرید / استاندارد",
     tolerance: "تلورانس مجاز (%)", packaging: "بسته‌بندی / نوع حمل", payment: "قیمت و پرداخت", currency: "ارز فروش: دینار عراق (IQD)",
     method: "روش پرداخت", advance: "پیش‌پرداخت + مانده", lc: "اعتبار اسنادی (LC)", tt: "حواله بانکی (TT)", credit: "فروش اعتباری / مدت‌دار",
@@ -30,10 +31,10 @@ const labels = {
   },
   en: {
     heading: "Contract subject and draft", hint: "Fill out the sample fields. The customer, products, caps and prices come from this contract. This is a draft and requires legal review before signature.",
-    languageNote: "The legal draft is generated in Persian only, as supplied. Changing the site language does not translate the draft.",
-    deal: "Transaction type", iran: "Domestic (Iran)", iraq: "Export to Iraq", intl: "International export", date: "Agreement date",
+    languageNote: "Choose the contract language here. Every translation is a draft and needs legal review before signing.",
+    documentLanguage: "Contract language", deal: "Transaction type", iran: "Domestic Iran", iraq: "Domestic Iraq", intl: "International", date: "Agreement date",
     seller: "Seller", buyer: "Buyer", customer: "Selected customer", name: "Company name", country: "Country", registration: "Registration ID",
-    address: "Address", representative: "Representative and title", contact: "Phone / email",
+    address: "Address", representative: "Representative and title", contact: "Phone / email", companySource: "Seller details come from Company Information and are saved with the contract.", refreshSeller: "Refresh from Company Information", sellerLoading: "Loading company details…", sellerError: "Company details could not be loaded; do not save a new contract until this is resolved.", oldDeal: "Legacy transaction type: export to Iraq. Choose one of the three new types to change it.",
     products: "Products and quality", productHint: "Products, quantity caps and unit prices come from the contract items.", grade: "Grade / standard",
     tolerance: "Allowed tolerance (%)", packaging: "Packaging / transport", payment: "Price and payment", currency: "Sale currency: Iraqi dinar (IQD)",
     method: "Payment method", advance: "Advance + balance", lc: "Letter of credit (LC)", tt: "Bank transfer (TT)", credit: "Credit / deferred",
@@ -44,10 +45,10 @@ const labels = {
   },
   ar: {
     heading: "موضوع العقد ومسودته", hint: "أكمل بيانات النموذج. تُستمد بيانات العميل والمنتجات وحدود الكميات والأسعار من هذا العقد. هذه مسودة تتطلب مراجعة قانونية قبل التوقيع.",
-    languageNote: "تُنشأ المسودة القانونية بالفارسية فقط وفق النموذج المرسل؛ تغيير لغة الموقع لا يترجمها.",
-    deal: "نوع المعاملة", iran: "محلية (إيران)", iraq: "تصدير إلى العراق", intl: "تصدير دولي", date: "تاريخ العقد",
+    languageNote: "اختر لغة العقد من هذا النموذج. كل ترجمة مسودة تتطلب مراجعة قانونية قبل التوقيع.",
+    documentLanguage: "لغة العقد", deal: "نوع المعاملة", iran: "محلي في إيران", iraq: "محلي في العراق", intl: "دولي", date: "تاريخ العقد",
     seller: "البائع", buyer: "المشتري", customer: "العميل المحدد", name: "اسم الشركة", country: "البلد", registration: "رقم التسجيل",
-    address: "العنوان", representative: "الممثل وصفته", contact: "الهاتف / البريد الإلكتروني",
+    address: "العنوان", representative: "الممثل وصفته", contact: "الهاتف / البريد الإلكتروني", companySource: "تُستمد بيانات البائع من إدارة معلومات الشركة وتُحفظ مع العقد.", refreshSeller: "تحديث من معلومات الشركة", sellerLoading: "جارٍ تحميل بيانات الشركة…", sellerError: "تعذّر تحميل بيانات الشركة؛ لا تحفظ العقد الجديد قبل حل المشكلة.", oldDeal: "نوع معاملة قديم: تصدير إلى العراق. اختر أحد الأنواع الثلاثة الجديدة لتغييره.",
     products: "المنتجات والجودة", productHint: "تُستمد المنتجات وحدود الكميات وأسعار الوحدات من بنود العقد.", grade: "الدرجة / المعيار",
     tolerance: "نسبة التفاوت المسموحة (%)", packaging: "التعبئة / النقل", payment: "السعر والدفع", currency: "عملة البيع: الدينار العراقي (IQD)",
     method: "طريقة الدفع", advance: "دفعة مقدمة + المتبقي", lc: "اعتماد مستندي (LC)", tt: "تحويل مصرفي (TT)", credit: "بيع آجل",
@@ -58,10 +59,10 @@ const labels = {
   },
   tr: {
     heading: "Sözleşmenin konusu ve taslağı", hint: "Örnek alanları doldurun. Müşteri, ürünler, miktar limitleri ve fiyatlar bu sözleşmeden alınır. Bu taslak imzadan önce hukuki inceleme gerektirir.",
-    languageNote: "Hukuki taslak, sağlanan örneğe göre yalnızca Farsça hazırlanır; site dilini değiştirmek taslağı çevirmez.",
-    deal: "İşlem türü", iran: "Yurt içi (İran)", iraq: "Irak'a ihracat", intl: "Uluslararası ihracat", date: "Sözleşme tarihi",
+    languageNote: "Sözleşme dilini bu formdan seçin. Her çeviri imzadan önce hukuki inceleme gerektiren bir taslaktır.",
+    documentLanguage: "Sözleşme dili", deal: "İşlem türü", iran: "İran içi", iraq: "Irak içi", intl: "Uluslararası", date: "Sözleşme tarihi",
     seller: "Satıcı", buyer: "Alıcı", customer: "Seçilen müşteri", name: "Şirket adı", country: "Ülke", registration: "Sicil numarası",
-    address: "Adres", representative: "Temsilci ve unvan", contact: "Telefon / e-posta",
+    address: "Adres", representative: "Temsilci ve unvan", contact: "Telefon / e-posta", companySource: "Satıcı bilgileri Şirket Bilgileri bölümünden alınır ve sözleşmeyle birlikte saklanır.", refreshSeller: "Şirket Bilgilerinden yenile", sellerLoading: "Şirket bilgileri yükleniyor…", sellerError: "Şirket bilgileri yüklenemedi; sorun çözülmeden yeni sözleşme kaydetmeyin.", oldDeal: "Eski işlem türü: Irak'a ihracat. Değiştirmek için üç yeni türden birini seçin.",
     products: "Ürünler ve kalite", productHint: "Ürünler, miktar limitleri ve birim fiyatlar sözleşme kalemlerinden alınır.", grade: "Sınıf / standart",
     tolerance: "İzin verilen tolerans (%)", packaging: "Ambalaj / taşıma", payment: "Fiyat ve ödeme", currency: "Satış para birimi: Irak dinarı (IQD)",
     method: "Ödeme yöntemi", advance: "Peşinat + bakiye", lc: "Akreditif (LC)", tt: "Banka havalesi (TT)", credit: "Vadeli satış",
@@ -75,7 +76,7 @@ const labels = {
 export function emptyContractDraft(): ShopContractDraftData {
   const person = () => ({ name: "", registration: "", address: "", representative: "", contact: "" });
   return {
-    version: 1, dealType: "iraq", date: "",
+    version: 2, language: "fa", dealType: "iraqLocal", date: "",
     seller: person(),
     buyer: { country: "", registration: "", address: "", representative: "", contact: "" },
     productDetails: {},
@@ -88,33 +89,37 @@ export function emptyContractDraft(): ShopContractDraftData {
 const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (character) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
 })[character] || character);
-const documentHtml = (number: string, text: string) =>
-  `<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><title>${escapeHtml(number)}</title><style>body{font:15px/2 Tahoma,sans-serif;max-width:800px;margin:40px auto;padding:0 24px}pre{white-space:pre-wrap;font:inherit}</style></head><body><h1>${escapeHtml(number)}</h1><pre>${escapeHtml(text)}</pre></body></html>`;
+const documentHtml = (number: string, text: string, language: ContractLanguage) =>
+  `<!doctype html><html lang="${language}" dir="${language === "fa" || language === "ar" ? "rtl" : "ltr"}"><head><meta charset="utf-8"><title>${escapeHtml(number)}</title><style>body{font:15px/2 Tahoma,Arial,sans-serif;max-width:800px;margin:40px auto;padding:0 24px}pre{white-space:pre-wrap;font:inherit}</style></head><body><h1>${escapeHtml(number)}</h1><pre>${escapeHtml(text)}</pre></body></html>`;
 
-export default function ContractDraftBuilder({ value, onChange, context, language }: {
+export default function ContractDraftBuilder({ value, onChange, context, language, onRefreshSeller, sellerLoading, sellerError }: {
   value: ShopContractDraftData;
   onChange: (next: ShopContractDraftData) => void;
   context: DraftContext;
   language: DraftLanguage;
+  onRefreshSeller?: () => void;
+  sellerLoading?: boolean;
+  sellerError?: boolean;
 }) {
   const tx = labels[language];
+  const documentLanguage: ContractLanguage = value.language || "fa";
   const text = useMemo(() => buildContractDraftText(value, context), [value, context]);
   const set = <K extends keyof ShopContractDraftData>(key: K, next: ShopContractDraftData[K]) => onChange({ ...value, [key]: next });
   const field = (id: string, label: string, content: string, change: (next: string) => void) =>
     <div className="space-y-1.5"><Label htmlFor={id}>{label}</Label><Input id={id} value={content} onChange={(event) => change(event.target.value)} maxLength={400} /></div>;
   const sellerField = (key: keyof ShopContractDraftData["seller"], label: string) =>
-    field(`seller-${key}`, label, value.seller[key], (next) => set("seller", { ...value.seller, [key]: next }));
+    <div className="space-y-1.5" key={key}><Label>{label}</Label><p className="min-h-10 rounded-md border bg-muted px-3 py-2 text-sm">{value.seller[key] || "—"}</p></div>;
   const buyerField = (key: keyof ShopContractDraftData["buyer"], label: string) =>
     field(`buyer-${key}`, label, value.buyer[key], (next) => set("buyer", { ...value.buyer, [key]: next }));
   const saveDoc = () => {
-    const html = documentHtml(context.contractNumber || tx.pendingNumber, text);
+    const html = documentHtml(context.contractNumber || tx.pendingNumber, text, documentLanguage);
     const url = URL.createObjectURL(new Blob(["\ufeff", html], { type: "application/msword" }));
     const link = document.createElement("a");
     link.href = url; link.download = "contract-draft.doc"; link.click();
     setTimeout(() => URL.revokeObjectURL(url), 60_000);
   };
   const printDoc = () => {
-    const url = URL.createObjectURL(new Blob([documentHtml(context.contractNumber || tx.pendingNumber, text)], { type: "text/html;charset=utf-8" }));
+    const url = URL.createObjectURL(new Blob([documentHtml(context.contractNumber || tx.pendingNumber, text, documentLanguage)], { type: "text/html;charset=utf-8" }));
     const printWindow = window.open(url, "_blank");
     if (printWindow) {
       printWindow.addEventListener("load", () => printWindow.print(), { once: true });
@@ -127,14 +132,19 @@ export default function ContractDraftBuilder({ value, onChange, context, languag
     <div><h3 className="font-semibold">{tx.heading}</h3><p className="text-xs text-muted-foreground">{tx.hint}</p><p className="mt-1 text-xs text-amber-700">{tx.languageNote}</p></div>
     <fieldset className="space-y-3 rounded-md border p-4"><legend className="px-2 font-semibold">{tx.deal}</legend>
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-1.5"><Label htmlFor="draft-deal">{tx.deal}</Label><Select value={value.dealType} onValueChange={(next) => set("dealType", next as ShopContractDraftData["dealType"])}><SelectTrigger id="draft-deal"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="iran">{tx.iran}</SelectItem><SelectItem value="iraq">{tx.iraq}</SelectItem><SelectItem value="intl">{tx.intl}</SelectItem></SelectContent></Select></div>
-        {field("draft-date", tx.date, value.date, (next) => set("date", next))}
+        <div className="space-y-1.5"><Label htmlFor="draft-language">{tx.documentLanguage}</Label><Select value={documentLanguage} onValueChange={(next) => set("language", next as ContractLanguage)}><SelectTrigger id="draft-language"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="fa">فارسی</SelectItem><SelectItem value="ar">العربية</SelectItem><SelectItem value="en">English</SelectItem><SelectItem value="tr">Türkçe</SelectItem></SelectContent></Select></div>
+        <div className="space-y-1.5"><Label htmlFor="draft-deal">{tx.deal}</Label><Select value={value.dealType === "iraq" ? undefined : value.dealType} onValueChange={(next) => onChange({ ...value, version: 2, dealType: next as "iran" | "iraqLocal" | "intl" })}><SelectTrigger id="draft-deal"><SelectValue placeholder={value.dealType === "iraq" ? tx.oldDeal : undefined} /></SelectTrigger><SelectContent><SelectItem value="iran">{tx.iran}</SelectItem><SelectItem value="iraqLocal">{tx.iraq}</SelectItem><SelectItem value="intl">{tx.intl}</SelectItem></SelectContent></Select>{value.dealType === "iraq" && <p className="text-xs text-amber-700">{tx.oldDeal}</p>}</div>
+        <ContractDatePicker id="draft-date" label={tx.date} language={documentLanguage} value={value.date} onChange={(next) => set("date", next)} />
       </div>
     </fieldset>
-    <fieldset className="rounded-md border p-4"><legend className="px-2 font-semibold">{tx.seller}</legend><div className="grid gap-4 sm:grid-cols-2">
+    <fieldset className="rounded-md border p-4"><legend className="px-2 font-semibold">{tx.seller}</legend><p className="mb-3 text-xs text-muted-foreground">{tx.companySource}</p>{sellerLoading && <p role="status" className="text-sm">{tx.sellerLoading}</p>}{sellerError && <p role="alert" className="text-sm text-destructive">{tx.sellerError}</p>}<div className="grid gap-4 sm:grid-cols-2">
       {sellerField("name", tx.name)}{sellerField("registration", tx.registration)}{sellerField("address", tx.address)}
       {sellerField("representative", tx.representative)}{sellerField("contact", tx.contact)}
-    </div></fieldset>
+      {sellerField("taxNumber", language === "fa" ? "شمارهٔ مالیاتی" : language === "ar" ? "الرقم الضريبي" : language === "tr" ? "Vergi numarası" : "Tax number")}
+      {sellerField("country", tx.country)}{sellerField("city", language === "fa" ? "شهر" : language === "ar" ? "المدينة" : language === "tr" ? "Şehir" : "City")}
+      {sellerField("postalCode", language === "fa" ? "کد پستی" : language === "ar" ? "الرمز البريدي" : language === "tr" ? "Posta kodu" : "Postal code")}
+      {sellerField("website", language === "fa" ? "وب‌سایت" : language === "ar" ? "الموقع الإلكتروني" : language === "tr" ? "Web sitesi" : "Website")}
+    </div>{onRefreshSeller && <Button type="button" variant="outline" className="mt-3" onClick={onRefreshSeller} disabled={sellerLoading}>{tx.refreshSeller}</Button>}</fieldset>
     <fieldset className="rounded-md border p-4"><legend className="px-2 font-semibold">{tx.buyer}</legend><div className="grid gap-4 sm:grid-cols-2">
       <div className="space-y-1.5"><Label>{tx.customer}</Label><p className="rounded-md border bg-muted px-3 py-2 text-sm">{context.customerName || "—"}</p></div>
       {buyerField("country", tx.country)}{buyerField("registration", tx.registration)}{buyerField("address", tx.address)}
@@ -163,16 +173,16 @@ export default function ContractDraftBuilder({ value, onChange, context, languag
     <fieldset className="rounded-md border p-4"><legend className="px-2 font-semibold">{tx.delivery}</legend><div className="grid gap-4 sm:grid-cols-2">
       <div><Label>{tx.incoterm}</Label><p className="rounded-md border bg-muted px-3 py-2 text-sm">{context.deliveryTerm || "—"}</p></div>
       {field("draft-location", tx.location, value.delivery.location, (location) => set("delivery", { ...value.delivery, location }))}
-      {field("draft-delivery-date", tx.deliveryDate, value.delivery.date, (date) => set("delivery", { ...value.delivery, date }))}
+      <ContractDatePicker id="draft-delivery-date" label={tx.deliveryDate} language={documentLanguage} value={value.delivery.date} onChange={(date) => set("delivery", { ...value.delivery, date })} />
       {field("draft-city", tx.city, value.disputeCity, (next) => set("disputeCity", next))}
     </div></fieldset>
     <div className="space-y-3"><Label htmlFor="contract-draft-preview">{tx.preview}</Label>
-      <Textarea id="contract-draft-preview" dir="rtl" lang="fa" readOnly value={text} rows={16} className="leading-7" />
+      <Textarea id="contract-draft-preview" dir={documentLanguage === "fa" || documentLanguage === "ar" ? "rtl" : "ltr"} lang={documentLanguage} readOnly value={text} rows={16} className="leading-7" />
       <div className="flex flex-wrap gap-2">
         <Button type="button" variant="outline" onClick={() => navigator.clipboard.writeText(text).then(() => window.alert(tx.copied)).catch(() => window.alert(tx.copyFailed))}><Copy className="me-2 h-4 w-4" />{tx.copy}</Button>
         <Button type="button" variant="outline" onClick={saveDoc}><Download className="me-2 h-4 w-4" />{tx.word}</Button>
         <Button type="button" variant="outline" onClick={printDoc}><Printer className="me-2 h-4 w-4" />{tx.print}</Button>
-        <Button type="button" variant="outline" onClick={() => onChange(emptyContractDraft())}>{tx.reset}</Button>
+        <Button type="button" variant="outline" onClick={() => onChange({ ...emptyContractDraft(), language: documentLanguage, seller: value.seller })}>{tx.reset}</Button>
       </div>
     </div>
   </div>;

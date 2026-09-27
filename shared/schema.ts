@@ -2045,12 +2045,15 @@ export * from './marketing-schema';
 
 // Customer-specific shop pricing contracts. Lifecycle constraints and release
 // behavior are also enforced by the additive SQL migration.
+export type ShopContractShippingMode = "automatic_vehicle" | "self_transport";
+
 export const shopContracts = pgTable("shop_contracts", {
   id: serial("id").primaryKey(),
   number: text("number").notNull().unique(),
   customerId: integer("customer_id").notNull().references(() => crmCustomers.id),
   terms: text("terms").notNull().default(""),
   draftData: jsonb("draft_data").$type<ShopContractDraftData | null>(),
+  shippingMode: text("shipping_mode").$type<ShopContractShippingMode | null>(),
   isActive: boolean("is_active").notNull().default(true),
   endedAt: timestamp("ended_at", { withTimezone: true }),
   createdAt: timestamp("created_at").notNull().defaultNow(),

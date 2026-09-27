@@ -3,6 +3,16 @@ import { z } from "zod";
 const textField = (maxLength: number) => z.string().trim().max(maxLength)
   .refine((value) => !value.includes("\0"), "Text cannot contain a null character.");
 
+export const contractDraftLanguages = ["fa", "ar", "en", "tr"] as const;
+export type ContractDraftLanguage = typeof contractDraftLanguages[number];
+export type ShopContractLanguage = ContractDraftLanguage;
+
+export function isValidIsoDate(value: string): boolean {
+  if (!/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
 const productDetailsSchema = z.record(
   z.string().max(400),
   z.object({
@@ -34,8 +44,11 @@ const productDetailsSchema = z.record(
 ));
 
 const contractDraftShape = z.object({
-  version: z.literal(1),
-  dealType: z.enum(["iran", "iraq", "intl"]),
+  version: z.union([z.literal(1), z.literal(2)]),
+  // "iraq" is retained solely for stored v1 export-to-Iraq drafts. New v2
+  // drafts use "iraqLocal" for local sales in Iraq.
+  dealType: z.enum(["iran", "iraq", "iraqLocal", "intl"]),
+  language: z.enum(contractDraftLanguages).optional(),
   date: textField(100),
   seller: z.object({
     name: textField(300),
@@ -43,6 +56,11 @@ const contractDraftShape = z.object({
     address: textField(1000),
     representative: textField(300),
     contact: textField(300),
+    taxNumber: textField(200).optional(),
+    country: textField(200).optional(),
+    city: textField(200).optional(),
+    postalCode: textField(100).optional(),
+    website: textField(300).optional(),
   }).strict(),
   buyer: z.object({
     country: textField(200),
@@ -63,6 +81,22 @@ const contractDraftShape = z.object({
   disputeCity: textField(300),
 }).strict();
 
+const validatedContractDraftShape = contractDraftShape.superRefine((draft, context) => {
+  if (draft.version === 1) return;
+  if (!draft.language) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["language"], message: "A document language is required for v2 contract drafts." });
+  }
+  if (draft.dealType === "iraq") {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["dealType"], message: "V2 contracts must use the Iraq domestic transaction type." });
+  }
+  if (draft.date && !isValidIsoDate(draft.date)) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["date"], message: "Contract date must be a real YYYY-MM-DD date." });
+  }
+  if (draft.delivery.date && !isValidIsoDate(draft.delivery.date)) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["delivery", "date"], message: "Delivery date must be a real YYYY-MM-DD date." });
+  }
+});
+
 export const shopContractDraftSchema = z.preprocess((input, context) => {
   try {
     const serialized = JSON.stringify(input);
@@ -73,7 +107,7 @@ export const shopContractDraftSchema = z.preprocess((input, context) => {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "Contract draft must be serializable." });
   }
   return input;
-}, contractDraftShape).refine(
+}, validatedContractDraftShape).refine(
   (draft) => new TextEncoder().encode(JSON.stringify(draft)).byteLength <= 25 * 1024,
   { message: "Contract draft must not exceed 25 KB when serialized." },
 );

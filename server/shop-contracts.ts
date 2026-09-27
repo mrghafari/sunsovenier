@@ -1,12 +1,19 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { pool } from "./db";
 import { isIncotermCode, type IncotermCode } from "@shared/incoterms";
-import { shopContractDraftSchema, type ShopContractDraftData } from "@shared/contract-draft";
+import {
+  contractDraftLanguages,
+  isValidIsoDate,
+  shopContractDraftSchema,
+  type ContractDraftLanguage,
+  type ShopContractDraftData,
+} from "@shared/contract-draft";
 import { buildContractDraftText } from "@shared/contract-document";
 
 const HOLD_TTL_MINUTES = 5;
 
 export type ContractCart = Record<number | string, number> | Map<number, number>;
+export type ContractShippingMode = "automatic_vehicle" | "self_transport";
 export type ContractPricingItem = {
   unitPrice: number;
   maxQuantity: number;
@@ -15,6 +22,7 @@ export type ContractPricingItem = {
 export type LoadedContractPricing = {
   id: number;
   number: string;
+  shippingMode: ContractShippingMode | null;
   items: Map<number, ContractPricingItem>;
 };
 export type ContractDefinition = {
@@ -22,9 +30,11 @@ export type ContractDefinition = {
   customerId: number;
   terms: string;
   deliveryTerm: IncotermCode | null;
+  shippingMode?: ContractShippingMode | null;
   isActive: boolean;
   items: Array<{ productId: number; maxQuantity: number; unitPrice: number }>;
   draftData?: ShopContractDraftData | null;
+  refreshSeller?: boolean;
 };
 
 class ContractError extends Error {
@@ -39,6 +49,90 @@ function parsePositiveId(value: unknown, label: string): number {
   return id;
 }
 
+export type ContractSellerSnapshot = NonNullable<ShopContractDraftData["seller"]>;
+export type ShopContractLanguage = ContractDraftLanguage;
+
+/** Maps only the company profile used by /mrg/company-information. */
+export function companyProfileToContractSeller(
+  profile: Record<string, unknown> | null | undefined,
+  language: ContractDraftLanguage,
+): ContractSellerSnapshot {
+  const optionalText = (value: unknown) => typeof value === "string" ? value.trim() : "";
+  const profileValue = (camelCase: string, snakeCase: string) =>
+    profile?.[camelCase] ?? profile?.[snakeCase];
+  const companyName = language === "fa"
+    ? profileValue("tradeName", "trade_name")
+    : language === "ar"
+      ? profileValue("companyNameAr", "company_name_ar")
+      : language === "tr"
+        ? profileValue("companyNameTr", "company_name_tr")
+        : profileValue("companyNameEn", "company_name_en");
+  const address = [
+    optionalText(profileValue("mainAddress", "main_address")),
+    optionalText(profileValue("city", "city")),
+    optionalText(profileValue("country", "country")),
+    optionalText(profileValue("postalCode", "postal_code")),
+  ].filter(Boolean).join(", ");
+  const contact = [
+    optionalText(profileValue("phonePrimary", "phone_primary")),
+    optionalText(profileValue("emailPrimary", "email_primary")),
+    optionalText(profileValue("phoneSecondary", "phone_secondary")),
+    optionalText(profileValue("emailSecondary", "email_secondary")),
+    optionalText(profileValue("contactPersonPhone", "contact_person_phone")),
+    optionalText(profileValue("contactPersonEmail", "contact_person_email")),
+  ].filter((value, index, values) => Boolean(value) && values.indexOf(value) === index).join(" · ");
+  const representative = [
+    optionalText(profileValue("contactPersonName", "contact_person_name")),
+    optionalText(profileValue("contactPersonTitle", "contact_person_title")),
+  ].filter(Boolean).join(" — ");
+  return {
+    name: optionalText(companyName),
+    registration: optionalText(profileValue("registrationNumber", "registration_number")),
+    taxNumber: optionalText(profileValue("taxNumber", "tax_number")),
+    address,
+    representative,
+    contact,
+    country: optionalText(profileValue("country", "country")),
+    city: optionalText(profileValue("city", "city")),
+    postalCode: optionalText(profileValue("postalCode", "postal_code")),
+    website: optionalText(profileValue("websiteUrl", "website_url")),
+  };
+}
+
+async function loadContractSeller(
+  client: import("pg").PoolClient,
+  language: ContractDraftLanguage,
+): Promise<ContractSellerSnapshot> {
+  const result = await client.query(
+    `SELECT trade_name, company_name_en, company_name_ar, company_name_tr,
+            registration_number, tax_number, main_address, city, country, postal_code,
+            phone_primary, phone_secondary, email_primary, email_secondary, website_url,
+            contact_person_name, contact_person_title,
+            contact_person_phone, contact_person_email
+       FROM company_information ORDER BY id LIMIT 1`,
+  );
+  return companyProfileToContractSeller(result.rows[0], language);
+}
+
+function draftLanguage(draft: ShopContractDraftData): ContractDraftLanguage {
+  return draft.language || "fa";
+}
+
+function draftWithSeller(draft: ShopContractDraftData, seller: ContractSellerSnapshot): ShopContractDraftData {
+  return { ...draft, seller } as ShopContractDraftData;
+}
+
+export function applyAuthoritativeContractSeller(
+  draft: ShopContractDraftData,
+  profile: Record<string, unknown> | null | undefined,
+  savedSeller?: ContractSellerSnapshot,
+  refreshSeller = false,
+): ShopContractDraftData {
+  if (savedSeller && !refreshSeller) return draftWithSeller(draft, savedSeller);
+  if (!profile) throw new ContractError("Company information is unavailable for the selected contract language.", 409);
+  return draftWithSeller(draft, companyProfileToContractSeller(profile, draftLanguage(draft)));
+}
+
 /** Shared strict payload validation used by both contract mutation endpoints. */
 export function validateContractDefinition(body: any, generatingNumber = false): ContractDefinition {
   if (!body || typeof body !== "object" || Array.isArray(body)) {
@@ -50,7 +144,18 @@ export function validateContractDefinition(body: any, generatingNumber = false):
   if (!isIncotermCode(body.deliveryTerm) && !(body.deliveryTerm === null && !generatingNumber)) {
     throw new ContractError("Select a valid Incoterms 2020 delivery term.");
   }
+  const hasShippingMode = Object.prototype.hasOwnProperty.call(body, "shippingMode");
+  if (generatingNumber && (!hasShippingMode || body.shippingMode === null)) {
+    throw new ContractError("Choose a contract shipping mode.");
+  }
+  if (hasShippingMode && body.shippingMode !== null
+    && body.shippingMode !== "automatic_vehicle" && body.shippingMode !== "self_transport") {
+    throw new ContractError("Choose automatic vehicle or self transport.");
+  }
   if (typeof body.isActive !== "boolean") throw new ContractError("isActive must be a boolean.");
+  if (body.refreshSeller !== undefined && typeof body.refreshSeller !== "boolean") {
+    throw new ContractError("refreshSeller must be a boolean.");
+  }
   if (!Array.isArray(body.items) || (body.items.length === 0 && (generatingNumber || body.isActive))) {
     throw new ContractError("At least one contract product is required.");
   }
@@ -92,18 +197,47 @@ export function validateContractDefinition(body: any, generatingNumber = false):
     // commercial data inside the mutation transaction.
     terms: structuredDraft ? "" : body.terms,
     deliveryTerm: body.deliveryTerm as IncotermCode | null,
+    ...(hasShippingMode ? { shippingMode: body.shippingMode as ContractShippingMode | null } : {}),
     isActive: body.isActive,
     items,
+    ...(body.refreshSeller === undefined ? {} : { refreshSeller: body.refreshSeller }),
     ...(draftData === undefined ? {} : { draftData }),
   };
 }
 
+/** Enforce the contract's saved delivery policy against the database-resolved method. */
+export function assertContractShippingMode(mode: ContractShippingMode | null, canonicalMethod: unknown): void {
+  if (mode === null) return; // Existing contracts retain their previous shipping choices.
+  const method = String(canonicalMethod ?? "").trim().toLowerCase();
+  if (mode === "automatic_vehicle" && method !== "smart_vehicle") {
+    throw new ContractError("This contract requires automatic vehicle delivery.");
+  }
+  if (mode === "self_transport" && method !== "self_pickup") {
+    throw new ContractError("This contract requires customer-arranged self transport.");
+  }
+}
+
+export function resolveContractShippingMode(
+  requested: ContractShippingMode | null | undefined,
+  saved: ContractShippingMode | null | undefined,
+): ContractShippingMode | null {
+  return requested === undefined ? (saved ?? null) : requested;
+}
+
 export function assertCompleteActiveContractDraft(draft: ShopContractDraftData): void {
+  if (draft.version === 2 && !isValidIsoDate(draft.date)) {
+    throw new ContractError("Contract date must be a real YYYY-MM-DD date before activating a structured contract.");
+  }
+  if (draft.version === 2 && !isValidIsoDate(draft.delivery.date)) {
+    throw new ContractError("Delivery date must be a real YYYY-MM-DD date before activating a structured contract.");
+  }
   const required: Array<[string, string]> = [
     ["date", draft.date],
     ["seller.name", draft.seller.name],
     ["seller.address", draft.seller.address],
     ["seller.representative", draft.seller.representative],
+    ["seller.registration", draft.seller.registration],
+    ["seller.contact", draft.seller.contact],
     ["buyer.country", draft.buyer.country],
     ["buyer.address", draft.buyer.address],
     ["buyer.representative", draft.buyer.representative],
@@ -218,6 +352,7 @@ function contractResponse(row: any, itemRows: any[]) {
     terms: row.terms,
     draftData: row.draft_data ?? null,
     deliveryTerm: row.delivery_term,
+    shippingMode: row.shipping_mode ?? null,
     isActive: row.is_active,
     endedAt: row.ended_at ? new Date(row.ended_at).toISOString() : null,
     customerId: Number(row.customer_id),
@@ -235,7 +370,7 @@ function contractResponse(row: any, itemRows: any[]) {
 
 async function loadContractRows(client: import("pg").PoolClient, contractId?: number) {
   const contracts = await client.query(
-    `SELECT c.id, c.number, c.terms, c.draft_data, c.delivery_term, c.is_active, c.ended_at, c.customer_id,
+    `SELECT c.id, c.number, c.terms, c.draft_data, c.delivery_term, c.shipping_mode, c.is_active, c.ended_at, c.customer_id,
             COALESCE(NULLIF(concat_ws(' ', cc.first_name, cc.last_name), ''), cc.company, '') AS customer_name
        FROM shop_contracts c
        JOIN crm_customers cc ON cc.id = c.customer_id
@@ -344,15 +479,24 @@ async function saveContract(definition: ContractDefinition, contractId?: number)
   return inTransaction(async (client) => {
     await reconcileContractHolds(client);
     if (contractId === undefined) {
-      if (definition.draftData && definition.isActive) {
-        assertCompleteActiveContractDraft(definition.draftData);
+      let effectiveDraft = definition.draftData ?? null;
+      if (effectiveDraft) {
+        effectiveDraft = applyAuthoritativeContractSeller(
+          effectiveDraft,
+          await loadContractSeller(client, draftLanguage(effectiveDraft)),
+          undefined,
+          true,
+        );
+      }
+      if (effectiveDraft && definition.isActive) {
+        assertCompleteActiveContractDraft(effectiveDraft);
       }
       await ensureCustomerAndProducts(client, definition);
       const number = await nextContractNumber(client);
       const result = await client.query(
-        `INSERT INTO shop_contracts (number, customer_id, terms, draft_data, delivery_term, is_active)
-         VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-        [number, definition.customerId, definition.terms, definition.draftData ?? null, definition.deliveryTerm, definition.isActive],
+        `INSERT INTO shop_contracts (number, customer_id, terms, draft_data, delivery_term, shipping_mode, is_active)
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+        [number, definition.customerId, definition.terms, effectiveDraft, definition.deliveryTerm, definition.shippingMode, definition.isActive],
       );
       const id = Number(result.rows[0].id);
       for (const item of definition.items) {
@@ -362,9 +506,9 @@ async function saveContract(definition: ContractDefinition, contractId?: number)
           [id, item.productId, item.maxQuantity, item.unitPrice],
         );
       }
-      if (definition.draftData) {
+      if (effectiveDraft) {
         const terms = await canonicalTermsForContract(
-          client, id, number, definition.customerId, definition.deliveryTerm, definition.draftData,
+          client, id, number, definition.customerId, definition.deliveryTerm, effectiveDraft,
         );
         await client.query("UPDATE shop_contracts SET terms = $2, updated_at = now() WHERE id = $1", [id, terms]);
       }
@@ -372,7 +516,7 @@ async function saveContract(definition: ContractDefinition, contractId?: number)
     }
 
     const locked = await client.query(
-      "SELECT id, number, customer_id, delivery_term, ended_at, draft_data FROM shop_contracts WHERE id = $1 FOR UPDATE",
+      "SELECT id, number, customer_id, delivery_term, shipping_mode, ended_at, draft_data FROM shop_contracts WHERE id = $1 FOR UPDATE",
       [contractId],
     );
     if (!locked.rowCount) throw new ContractError("Contract not found.", 404);
@@ -383,9 +527,24 @@ async function saveContract(definition: ContractDefinition, contractId?: number)
       throw new ContractError("A saved contract delivery term cannot be removed.");
     }
     const hasDraftData = Object.prototype.hasOwnProperty.call(definition, "draftData");
-    const effectiveDraft = hasDraftData
+    const hasShippingMode = Object.prototype.hasOwnProperty.call(definition, "shippingMode");
+    const effectiveShippingMode = resolveContractShippingMode(
+      hasShippingMode ? definition.shippingMode : undefined,
+      locked.rows[0].shipping_mode,
+    );
+    const savedDraft = readSavedDraft(locked.rows[0].draft_data);
+    let effectiveDraft = hasDraftData
       ? definition.draftData ?? null
-      : readSavedDraft(locked.rows[0].draft_data);
+      : savedDraft;
+    if (effectiveDraft) {
+      const refreshSeller = Boolean(definition.refreshSeller || !savedDraft);
+      effectiveDraft = applyAuthoritativeContractSeller(
+        effectiveDraft,
+        refreshSeller ? await loadContractSeller(client, draftLanguage(effectiveDraft)) : null,
+        savedDraft?.seller,
+        refreshSeller,
+      );
+    }
     if (effectiveDraft && definition.isActive) assertCompleteActiveContractDraft(effectiveDraft);
     const currentItems = await client.query(
       `SELECT product_id, used_quantity, is_active FROM shop_contract_items
@@ -409,17 +568,17 @@ async function saveContract(definition: ContractDefinition, contractId?: number)
         throw new ContractError(`Product ${item.productId} cap cannot be lower than its used quantity.`);
       }
     }
-    if (hasDraftData) {
+    if (hasDraftData || definition.refreshSeller) {
       await client.query(
         `UPDATE shop_contracts SET customer_id = $2, draft_data = $3,
-         delivery_term = $4, is_active = $5, updated_at = now() WHERE id = $1`,
-        [contractId, definition.customerId, definition.draftData, definition.deliveryTerm, definition.isActive],
+         delivery_term = $4, shipping_mode = $5, is_active = $6, updated_at = now() WHERE id = $1`,
+        [contractId, definition.customerId, effectiveDraft, definition.deliveryTerm, effectiveShippingMode, definition.isActive],
       );
     } else {
       await client.query(
         `UPDATE shop_contracts SET customer_id = $2,
-         delivery_term = $3, is_active = $4, updated_at = now() WHERE id = $1`,
-        [contractId, definition.customerId, definition.deliveryTerm, definition.isActive],
+         delivery_term = $3, shipping_mode = $4, is_active = $5, updated_at = now() WHERE id = $1`,
+        [contractId, definition.customerId, definition.deliveryTerm, effectiveShippingMode, definition.isActive],
       );
     }
     const retained = definition.items.map((item) => item.productId);
@@ -530,7 +689,7 @@ export function registerShopContractRoutes(app: Express): void {
     try {
       await reconcileShopContractHolds();
       const result = await pool.query(
-        `SELECT c.id, c.number, c.terms, c.draft_data, c.delivery_term, c.is_active, c.ended_at, c.customer_id,
+        `SELECT c.id, c.number, c.terms, c.draft_data, c.delivery_term, c.shipping_mode, c.is_active, c.ended_at, c.customer_id,
                 COALESCE(NULLIF(concat_ws(' ', cc.first_name, cc.last_name), ''), cc.company, '') AS customer_name
            FROM shop_contracts c JOIN crm_customers cc ON cc.id = c.customer_id
           WHERE c.customer_id = $1 ORDER BY c.id DESC`,
@@ -560,6 +719,22 @@ export function registerShopContractRoutes(app: Express): void {
       await reconcileShopContractHolds();
       const contracts = await inTransaction((client) => loadContractRows(client));
       res.json({ success: true, contracts });
+    } catch (error) {
+      errorResponse(res, error);
+    }
+  });
+
+  // Return the legal seller snapshot for the selected document language.
+  app.get("/api/admin/shop/contracts/seller", requireShopManagement, async (req, res) => {
+    const requestedLanguage = typeof req.query.language === "string" ? req.query.language : "fa";
+    if (!contractDraftLanguages.includes(requestedLanguage as ContractDraftLanguage)) {
+      return res.status(400).json({ success: false, message: "Select one of the supported contract languages: fa, ar, en, tr." });
+    }
+    try {
+      const seller = await inTransaction((client) =>
+        loadContractSeller(client, requestedLanguage as ContractDraftLanguage),
+      );
+      res.json({ success: true, seller });
     } catch (error) {
       errorResponse(res, error);
     }
@@ -648,7 +823,7 @@ export async function loadContractPricing(
   return inTransaction(async (client) => {
     await reconcileContractHolds(client);
     const contractResult = await client.query(
-      `SELECT id, number FROM shop_contracts
+      `SELECT id, number, shipping_mode FROM shop_contracts
         WHERE id = $1 AND customer_id = $2 AND is_active = true`,
       [parsePositiveId(contractId, "Contract id"), parsePositiveId(customerId, "Customer id")],
     );
@@ -675,7 +850,12 @@ export async function loadContractPricing(
         throw new ContractError(`Product ${productId} exceeds its remaining contract quantity.`, 409);
       }
     }
-    return { id: Number(contractResult.rows[0].id), number: contractResult.rows[0].number, items: byId };
+    return {
+      id: Number(contractResult.rows[0].id),
+      number: contractResult.rows[0].number,
+      shippingMode: contractResult.rows[0].shipping_mode ?? null,
+      items: byId,
+    };
   });
 }
 

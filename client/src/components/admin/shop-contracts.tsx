@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, ChevronDown, ChevronUp, FileText, Loader2, Plus, Search, Trash2 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,13 +20,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type ContractItem = { productId: number | string; productName: string; maxQuantity: number; usedQuantity: number; remainingQuantity: number; unitPrice: number };
-type Contract = { id: number | string; number: string; terms: string; draftData: ShopContractDraftData | null; isActive: boolean; endedAt: string | null; customerId: number | string; customerName: string; deliveryTerm: IncotermCode | null; items: ContractItem[] };
+type ShippingMode = "automatic_vehicle" | "self_transport";
+type Contract = { id: number | string; number: string; terms: string; draftData: ShopContractDraftData | null; shippingMode: ShippingMode | null; isActive: boolean; endedAt: string | null; customerId: number | string; customerName: string; deliveryTerm: IncotermCode | null; items: ContractItem[] };
 type Customer = { id: number | string; firstName?: string; lastName?: string; name?: string; company?: string; email?: string };
 type Product = { id: number | string; name: string };
 type FormItem = { productId: number | string; productName: string; maxQuantity: string; unitPrice: string; usedQuantity: number };
-type ContractForm = { number: string; customerId: number | string | null; customerName: string; deliveryTerm: IncotermCode | null; terms: string; isActive: boolean; items: FormItem[] };
+type ContractForm = { number: string; customerId: number | string | null; customerName: string; deliveryTerm: IncotermCode | null; shippingMode: ShippingMode | null; terms: string; isActive: boolean; items: FormItem[] };
 
-const emptyForm = (): ContractForm => ({ number: "", customerId: null, customerName: "", deliveryTerm: null, terms: "", isActive: true, items: [] });
+const emptyForm = (): ContractForm => ({ number: "", customerId: null, customerName: "", deliveryTerm: null, shippingMode: "self_transport", terms: "", isActive: true, items: [] });
 
 const copy = {
   en: { title: "Sales contracts", subtitle: "Scan purchase caps, agreed prices, and delivery terms.", current: "Current contracts", ended: "Ended contracts", endedStatus: "Ended", noCurrent: "No current contracts have been recorded.", noEnded: "No ended contracts.", new: "New contract", loading: "Loading contracts…", empty: "No contracts have been recorded yet.", error: "Unexpected error.", number: "Contract number", autoNumber: "Generated automatically when this contract is created", customer: "Customer", customerSearch: "Search name or company (at least 2 characters)", selected: "Selected:", status: "Status", active: "Active", inactive: "Inactive", delivery: "Delivery term", chooseDelivery: "Choose an Incoterm", noDelivery: "Not specified", terms: "Contract terms", products: "Contract products", productsHint: "Set the maximum quantity and agreed unit price.", productSearch: "Search products (at least 2 characters)", searchingCustomers: "Searching customers…", searchingProducts: "Searching products…", noProducts: "No products added to this contract.", max: "Maximum quantity", used: "Used", remaining: "Remaining", unitPrice: "Unit price", currency: "IQD", remove: "Remove", removeHint: "Removing an unused item deletes it. Removing a used item archives it so historical orders remain safe.", activeHint: "An active contract can be used for sales.", createTitle: "Create sales contract", editTitle: "Edit sales contract", dialogHint: "Record the contract, customer, delivery term, and product caps.", cancel: "Cancel", saving: "Saving…", create: "Create contract", save: "Save changes", contract: "Contract", summary: "Product summary", actions: "Actions", edit: "Edit", end: "End contract", endTitle: "End contract?", endDescription: (number: string) => `Ending contract ${number} will stop future purchases under it. Previous orders and contract history will be preserved.`, endConfirm: "End contract", ending: "Ending…", endFailed: "Could not end the contract.", termsLabel: "Terms", requiredNumber: "Enter a contract number.", requiredCustomer: "Select a customer.", requiredDelivery: "Select a delivery term for a new contract.", requiredProduct: "Add at least one product to the contract.", invalidMax: (p: string) => `Maximum quantity for “${p}” must be a positive whole number.`, belowUsed: (p: string, n: number) => `Maximum quantity for “${p}” cannot be below used quantity (${n}).`, invalidPrice: (p: string) => `IQD price for “${p}” must be a non-negative whole number.`, saveFailed: "Could not save the contract." },
@@ -51,6 +53,7 @@ export default function ShopContracts() {
   const [editingId, setEditingId] = useState<number | string | null>(null);
   const [form, setForm] = useState<ContractForm>(emptyForm);
   const [draftData, setDraftData] = useState<ShopContractDraftData | null>(null);
+  const [refreshSeller, setRefreshSeller] = useState(false);
   const [customerSearch, setCustomerSearch] = useState("");
   const [productSearch, setProductSearch] = useState("");
   const [formError, setFormError] = useState("");
@@ -61,6 +64,18 @@ export default function ShopContracts() {
   const contractsQuery = useQuery<{ success: boolean; contracts: Contract[] }>({ queryKey: ["/api/admin/shop/contracts"], queryFn: () => readJson("/api/admin/shop/contracts") });
   const customerQuery = useQuery<{ data?: Customer[] | { customers?: Customer[] }; customers?: Customer[] }>({ queryKey: ["/api/crm/customers/search", customerSearch], queryFn: () => readJson(`/api/crm/customers/search?q=${encodeURIComponent(customerSearch)}`), enabled: dialogOpen && customerSearch.trim().length >= 2 });
   const productQuery = useQuery<{ success: boolean; products: Product[] }>({ queryKey: ["/api/admin/shop/contracts/products", productSearch], queryFn: () => readJson(`/api/admin/shop/contracts/products?q=${encodeURIComponent(productSearch)}`), enabled: dialogOpen && productSearch.trim().length >= 2 });
+  const documentLanguage = draftData?.language || "fa";
+  const sellerQuery = useQuery<{ success: boolean; seller: ShopContractDraftData["seller"] }>({
+    queryKey: ["/api/admin/shop/contracts/seller", documentLanguage],
+    queryFn: () => readJson(`/api/admin/shop/contracts/seller?language=${documentLanguage}`),
+    enabled: dialogOpen && draftData !== null && (editingId === null || refreshSeller),
+    staleTime: 0,
+  });
+  useEffect(() => {
+    if (!sellerQuery.data?.seller || (!refreshSeller && editingId !== null)) return;
+    setDraftData((current) => current && (current.language || "fa") === documentLanguage
+      ? { ...current, seller: sellerQuery.data.seller } : current);
+  }, [sellerQuery.data?.seller, documentLanguage, editingId, refreshSeller]);
   const customers = useMemo(() => { const payload = customerQuery.data?.data; return Array.isArray(payload) ? payload : ((payload as { customers?: Customer[] } | undefined)?.customers || customerQuery.data?.customers || []); }, [customerQuery.data]);
   const products = productQuery.data?.products || [];
   const contracts = contractsQuery.data?.contracts || [];
@@ -72,8 +87,10 @@ export default function ShopContracts() {
       const payload = {
         ...(editingId !== null ? { number: form.number.trim() } : {}),
         customerId: form.customerId, deliveryTerm: form.deliveryTerm,
+        ...(form.shippingMode !== null ? { shippingMode: form.shippingMode } : {}),
         terms: draftData ? buildContractDraftText(draftData, draftContext) : form.terms.trim(),
         ...(draftData ? { draftData } : {}),
+        ...(editingId !== null && refreshSeller ? { refreshSeller: true } : {}),
         isActive: form.isActive,
         items: form.items.map((item) => ({ productId: item.productId, maxQuantity: Number(item.maxQuantity), unitPrice: Number(item.unitPrice) })),
       };
@@ -82,7 +99,7 @@ export default function ShopContracts() {
       if (!response.ok || result.success === false) throw new Error(result.message || result.error || tx.saveFailed);
       return result;
     },
-    onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/contracts"] }); setDialogOpen(false); setEditingId(null); setForm(emptyForm()); setCustomerSearch(""); setProductSearch(""); setFormError(""); },
+    onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/contracts"] }); setDialogOpen(false); setEditingId(null); setRefreshSeller(false); setForm(emptyForm()); setCustomerSearch(""); setProductSearch(""); setFormError(""); },
     onError: (error) => setFormError(errorMessage(error)),
   });
   const endMutation = useMutation({
@@ -100,12 +117,13 @@ export default function ShopContracts() {
     },
     onError: () => setEndError(tx.endFailed),
   });
-  const openCreate = () => { setEditingId(null); setForm(emptyForm()); setDraftData(emptyContractDraft()); setCustomerSearch(""); setProductSearch(""); setFormError(""); setDialogOpen(true); };
+  const openCreate = () => { setEditingId(null); setRefreshSeller(false); setForm(emptyForm()); setDraftData(emptyContractDraft()); setCustomerSearch(""); setProductSearch(""); setFormError(""); setDialogOpen(true); };
   const openEdit = (contract: Contract) => {
     if (contract.endedAt) return;
     setEditingId(contract.id);
-    setForm({ number: contract.number || "", customerId: contract.customerId, customerName: contract.customerName || "", deliveryTerm: contract.deliveryTerm || null, terms: contract.terms || "", isActive: Boolean(contract.isActive), items: (contract.items || []).map((item) => ({ productId: item.productId, productName: item.productName, maxQuantity: String(item.maxQuantity), unitPrice: String(item.unitPrice), usedQuantity: Number(item.usedQuantity) || 0 })) });
+    setForm({ number: contract.number || "", customerId: contract.customerId, customerName: contract.customerName || "", deliveryTerm: contract.deliveryTerm || null, shippingMode: contract.shippingMode ?? null, terms: contract.terms || "", isActive: Boolean(contract.isActive), items: (contract.items || []).map((item) => ({ productId: item.productId, productName: item.productName, maxQuantity: String(item.maxQuantity), unitPrice: String(item.unitPrice), usedQuantity: Number(item.usedQuantity) || 0 })) });
     setDraftData(contract.draftData || null);
+    setRefreshSeller(false);
     setCustomerSearch(""); setProductSearch(""); setFormError(""); setDialogOpen(true);
   };
   const addProduct = (product: Product) => { if (form.items.some((item) => String(item.productId) === String(product.id))) return; setForm((current) => ({ ...current, items: [...current.items, { productId: product.id, productName: product.name, maxQuantity: "", unitPrice: "", usedQuantity: 0 }] })); setProductSearch(""); };
@@ -116,6 +134,9 @@ export default function ShopContracts() {
   });
   const submit = () => {
     setFormError("");
+    if (editingId === null && draftData && (sellerQuery.isLoading || sellerQuery.isError || !sellerQuery.data?.seller)) {
+      return setFormError(language === "fa" ? "اطلاعات فروشنده از مدیریت اطلاعات شرکت بارگذاری نشده است." : language === "ar" ? "لم يتم تحميل بيانات البائع من إدارة معلومات الشركة." : language === "tr" ? "Satıcı bilgileri Şirket Bilgilerinden yüklenemedi." : "Seller details have not loaded from Company Information.");
+    }
     if (form.customerId === null) return setFormError(tx.requiredCustomer);
     if (editingId === null && !form.deliveryTerm) return setFormError(tx.requiredDelivery);
     if (form.isActive && !form.items.length) return setFormError(tx.requiredProduct);
@@ -170,14 +191,33 @@ export default function ShopContracts() {
        <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setFormError(""); }}><DialogContent dir={direction} className="max-h-[92vh] overflow-y-auto sm:max-w-4xl"><DialogHeader><DialogTitle>{editingId === null ? tx.createTitle : tx.editTitle}</DialogTitle><DialogDescription>{tx.dialogHint}</DialogDescription></DialogHeader>
         <div className="space-y-5">{formError && <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertDescription>{formError}</AlertDescription></Alert>}
           <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-2"><Label htmlFor="contract-number">{tx.number}</Label><Input id="contract-number" value={form.number} readOnly={editingId !== null} placeholder={editingId === null ? tx.autoNumber : undefined} className={editingId === null ? "text-muted-foreground" : undefined} /><p className="text-xs text-muted-foreground">{editingId === null ? tx.autoNumber : ""}</p></div><div className="space-y-2"><Label htmlFor="customer-search">{tx.customer}</Label><Input id="customer-search" value={customerSearch} placeholder={form.customerName || tx.customerSearch} onChange={(e) => { setCustomerSearch(e.target.value); setForm({ ...form, customerId: null, customerName: "" }); }} />{customerQuery.isLoading && <p className="text-xs text-muted-foreground">{tx.searchingCustomers}</p>}{customerQuery.isError && <p className="text-xs text-destructive">{errorMessage(customerQuery.error)}</p>}{customers.length > 0 && <div className="max-h-36 overflow-auto rounded-md border" role="listbox">{customers.map((customer) => <button type="button" key={customer.id} role="option" className="block w-full px-3 py-2 text-start text-sm hover:bg-accent" onClick={() => { setForm({ ...form, customerId: customer.id, customerName: customerLabel(customer) }); setCustomerSearch(""); }}><span className="block font-medium">{customerLabel(customer)}</span>{customer.email && <span className="text-xs text-muted-foreground">{customer.email}</span>}</button>)}</div>}{form.customerId && <p className="text-sm text-primary">{tx.selected} {form.customerName}</p>}</div></div>
-          <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-2"><Label htmlFor="contract-delivery-term">{tx.delivery}{editingId === null ? " *" : ""}</Label><Select value={form.deliveryTerm || undefined} onValueChange={(value) => setForm({ ...form, deliveryTerm: value as IncotermCode })}><SelectTrigger id="contract-delivery-term" aria-label={tx.delivery}><SelectValue placeholder={tx.chooseDelivery} /></SelectTrigger><SelectContent>{INCOTERMS_2020.map((term) => <SelectItem key={term.code} value={term.code}>{term.code} — {term.name}</SelectItem>)}</SelectContent></Select></div><div className="flex items-center justify-between rounded-md border p-3"><div><Label htmlFor="contract-active">{tx.status}</Label><p className="text-xs text-muted-foreground">{tx.activeHint}</p></div><Switch id="contract-active" checked={form.isActive} onCheckedChange={(checked) => setForm({ ...form, isActive: checked })} /></div></div>
+          <div className="grid gap-4 sm:grid-cols-[minmax(155px,200px)_minmax(0,1fr)_minmax(0,1fr)]">
+            <div className="space-y-2"><Label htmlFor="contract-delivery-term">{tx.delivery}{editingId === null ? " *" : ""}</Label><Select value={form.deliveryTerm || undefined} onValueChange={(value) => setForm({ ...form, deliveryTerm: value as IncotermCode })}><SelectTrigger id="contract-delivery-term" aria-label={tx.delivery}><SelectValue placeholder={tx.chooseDelivery} /></SelectTrigger><SelectContent>{INCOTERMS_2020.map((term) => <SelectItem key={term.code} value={term.code}>{term.code} — {term.name}</SelectItem>)}</SelectContent></Select></div>
+            <div className="flex items-center gap-3 rounded-md border p-3">
+              <Checkbox id="contract-auto-vehicle" checked={form.shippingMode === "automatic_vehicle"} onCheckedChange={(checked) => setForm((current) => ({ ...current, shippingMode: checked === true ? "automatic_vehicle" : "self_transport" }))} />
+              <div><Label htmlFor="contract-auto-vehicle">{language === "fa" ? "انتخاب خودکار خودرو توسط سیستم" : language === "ar" ? "اختيار المركبة تلقائيًا بواسطة النظام" : language === "tr" ? "Araç sistem tarafından otomatik seçilsin" : "System selects the vehicle automatically"}</Label><p className="text-xs text-muted-foreground">{form.shippingMode === null
+                ? (language === "fa" ? "قرارداد قدیمی است؛ روش حمل فعلی آن تا انتخاب یک گزینهٔ جدید تغییر نمی‌کند." : language === "ar" ? "عقد قديم؛ لا تتغير طريقة النقل الحالية حتى تختار خيارًا جديدًا." : language === "tr" ? "Eski sözleşmenin taşıma yöntemi yeni bir seçenek seçilene kadar değişmez." : "Legacy contract: its current shipping choice is unchanged until you select a new policy.")
+                : (language === "fa" ? "بدون تیک: هنگام چک‌اوت «حمل توسط خودم» انتخاب می‌شود." : language === "ar" ? "بدون تحديد: يُختار «النقل بنفسي» عند الدفع." : language === "tr" ? "İşaretlenmezse ödeme sırasında “Kendi taşıma” seçilir." : "Unchecked: Self transport is selected at checkout.")}</p>
+                {form.shippingMode === null && <Button type="button" variant="link" className="h-auto p-0 text-xs" onClick={() => setForm((current) => ({ ...current, shippingMode: "self_transport" }))}>{language === "fa" ? "انتخاب حمل توسط خودم" : language === "ar" ? "اختيار النقل بنفسي" : language === "tr" ? "Kendi taşımamı seç" : "Choose self transport"}</Button>}
+              </div>
+            </div>
+            <div className="flex items-center justify-between rounded-md border p-3"><div><Label htmlFor="contract-active">{tx.status}</Label><p className="text-xs text-muted-foreground">{tx.activeHint}</p></div><Switch id="contract-active" checked={form.isActive} onCheckedChange={(checked) => setForm({ ...form, isActive: checked })} /></div>
+          </div>
           <div className="space-y-3"><div><h3 className="font-semibold">{tx.products}</h3><p className="text-xs text-muted-foreground">{tx.productsHint}</p><p className="text-xs text-muted-foreground">{tx.removeHint}</p></div><div className="relative"><Search className={`absolute ${direction === "rtl" ? "right-3" : "left-3"} top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground`} /><Input className={direction === "rtl" ? "pr-9" : "pl-9"} aria-label={tx.productSearch} value={productSearch} placeholder={tx.productSearch} onChange={(e) => setProductSearch(e.target.value)} /></div>{productQuery.isLoading && <p className="text-xs text-muted-foreground">{tx.searchingProducts}</p>}{productQuery.isError && <p className="text-xs text-destructive">{errorMessage(productQuery.error)}</p>}{products.length > 0 && <div className="max-h-36 overflow-auto rounded-md border">{products.map((product) => <button type="button" key={product.id} disabled={form.items.some((item) => String(item.productId) === String(product.id))} className="flex w-full items-center justify-between px-3 py-2 text-start text-sm hover:bg-accent disabled:opacity-50" onClick={() => addProduct(product)}><span>{product.name}</span><Plus className="h-4 w-4" /></button>)}</div>}{form.items.length === 0 && <p className="rounded-md border border-dashed p-4 text-center text-sm text-muted-foreground">{tx.noProducts}</p>}{form.items.map((item, index) => <div key={item.productId} className="grid gap-3 rounded-md border p-3 sm:grid-cols-[minmax(0,1fr)_130px_150px_auto] sm:items-end"><div className="min-w-0"><p className="truncate font-medium">{item.productName}</p>{item.usedQuantity > 0 && <p className="text-xs text-muted-foreground">{tx.used}: {item.usedQuantity}</p>}</div><div className="space-y-1"><Label htmlFor={`max-${index}`}>{tx.max}</Label><Input id={`max-${index}`} type="number" min={item.usedQuantity} step="1" value={item.maxQuantity} onChange={(e) => updateItem(index, "maxQuantity", e.target.value)} /></div><div className="space-y-1"><Label htmlFor={`price-${index}`}>{tx.unitPrice} ({tx.currency})</Label><Input id={`price-${index}`} type="number" min="0" step="1" value={item.unitPrice} onChange={(e) => updateItem(index, "unitPrice", e.target.value)} /></div><Button type="button" variant="ghost" size="icon" aria-label={`${tx.remove} ${item.productName}`} title={tx.removeHint} onClick={() => removeItem(index)}><Trash2 className="h-4 w-4" /></Button></div>)}</div>
            {draftData
              ? <ContractDraftBuilder
                  value={draftData}
-                 onChange={setDraftData}
+                 onChange={(next) => {
+                   if ((next.language || "fa") !== (draftData.language || "fa")) {
+                     setDraftData({ ...next, seller: emptyContractDraft().seller });
+                     if (editingId !== null) setRefreshSeller(true);
+                   } else setDraftData(next);
+                 }}
                  context={{ customerName: form.customerName, contractNumber: form.number, deliveryTerm: form.deliveryTerm, items: form.items }}
                  language={language}
+                 sellerLoading={sellerQuery.isLoading || sellerQuery.isFetching}
+                 sellerError={sellerQuery.isError}
+                 onRefreshSeller={() => { if (editingId !== null) setRefreshSeller(true); void sellerQuery.refetch(); }}
                />
              : <div className="space-y-3 rounded-md border p-4">
                  <Label htmlFor="contract-terms">{tx.terms}</Label>

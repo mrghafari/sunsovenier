@@ -72,7 +72,7 @@ import {
   ShippingConfigurationError,
 } from "./shipping-center-service";
 import { parsePositiveIntegerId } from "./shipping-route-resolution";
-import { calculateAuthoritativeShippingCost } from "./order-shipping-pricing";
+import { calculateAuthoritativeShippingCost, isActiveCanonicalShippingMethod } from "./order-shipping-pricing";
 import { assertShippingQuoteBindings, signShippingQuote, verifyShippingQuote, type ShippingQuoteClaims } from "./shipping-quote";
 import {
   normalizeProductWeightUpdates,
@@ -775,6 +775,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       selectedMethod = methods[0] || null;
     }
     if (!selectedMethod) throw new ShippingConfigurationError("The selected delivery method is inactive or unavailable.", 422);
+    if (contractPricing?.shippingMode) {
+      try {
+        const { assertContractShippingMode } = await import("./shop-contracts");
+        assertContractShippingMode(contractPricing.shippingMode, canonicalMethod);
+      } catch (error) {
+        throw new ShippingConfigurationError(error instanceof Error ? error.message : "The shipping method does not match this contract.", 422);
+      }
+    }
     const isPickupMethod = ["pickup", "personal_pickup", "self_pickup", "store_pickup"].includes(canonicalMethod);
     if (input.standardMethodsOnly && (isPickupMethod || canonicalMethod === "smart_vehicle")) {
       throw new ShippingConfigurationError("Only active standard delivery methods can be quoted.", 422);
@@ -868,9 +876,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         if (
           input.checkoutFlow === "shop"
-          && (selector !== "7" || selectedMethod?.id !== 7 || canonicalMethod !== "smart_vehicle")
+          && (
+            canonicalMethod !== "smart_vehicle"
+            || !isActiveCanonicalShippingMethod(selectedMethod, "smart_vehicle")
+          )
         ) {
-          throw new Error("The shop checkout vehicle quote requires delivery method 7 (smart_vehicle).");
+          throw new Error("The shop checkout vehicle quote requires an active smart_vehicle delivery method.");
         }
         if (input.checkoutFlow === "customers" && canonicalMethod !== "smart_vehicle") {
           throw new Error("The customer checkout vehicle quote requires smart_vehicle delivery.");

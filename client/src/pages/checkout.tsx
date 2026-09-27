@@ -76,8 +76,29 @@ const getShippingCenterKey = (center?: {countryCode?: string; provinceId?: numbe
   center ? `${center.countryCode || ''}|${center.provinceId || ''}|${center.cityId || ''}` : '';
 const isGenuinePickupMethod = (method: any) => {
   const value = String(method?.value || method?.deliveryMethod || method?.delivery_method || '').toLowerCase();
-  return method?.isPickup === true || ['pickup', 'self_pickup', 'self-pickup'].includes(value);
+  return method?.isPickup === true || ['pickup', 'personal_pickup', 'self_pickup', 'self-pickup', 'store_pickup'].includes(value);
 };
+
+type ContractShippingMode = 'automatic_vehicle' | 'self_transport';
+
+export function getContractShippingMethodId(
+  mode: ContractShippingMode | null | undefined,
+  methods: readonly any[],
+): string | null {
+  if (mode === 'automatic_vehicle') {
+    const method = methods.find((item) =>
+      String(item?.value || item?.deliveryMethod || item?.delivery_method || '').toLowerCase() === 'smart_vehicle',
+    );
+    return method?.id == null ? null : String(method.id);
+  }
+  if (mode === 'self_transport') {
+    const pickup = methods.find((item) =>
+      String(item?.value || item?.deliveryMethod || item?.delivery_method || '').toLowerCase() === 'self_pickup',
+    );
+    return pickup?.id == null ? null : String(pickup.id);
+  }
+  return null;
+}
 
 interface CheckoutProps {
   cart: {[key: number]: number};
@@ -115,6 +136,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
   const [walletBalance, setWalletBalance] = useState(0);
   const [selectedContractId, setSelectedContractId] = useState<number | null>(null);
   const [selectedContractSnapshot, setSelectedContractSnapshot] = useState<ShopContract | undefined>();
+  const shippingMethodBeforeContractPolicyRef = useRef<string | undefined>(undefined);
   const [walletAmountToUse, setWalletAmountToUse] = useState(0);
   const [useWallet, setUseWallet] = useState(false);
   const [secondaryPaymentMethod, setSecondaryPaymentMethod] = useState('');
@@ -556,6 +578,35 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
     ? undefined
     : contracts.find(contract => Number(contract.id) === Number(selectedContractId));
   const selectedContract = selectedContractFromQuery || (selectedContractId === null ? undefined : selectedContractSnapshot);
+  const selectedContractShippingMode = (selectedContract as (ShopContract & { shippingMode?: ContractShippingMode | null }) | undefined)?.shippingMode || null;
+  const requiredContractShippingMethodId = getContractShippingMethodId(selectedContractShippingMode, deliveryMethods);
+  const hasEnforcedContractShippingMode = selectedContractShippingMode === 'automatic_vehicle' || selectedContractShippingMode === 'self_transport';
+  const contractShippingMethodNotice = !hasEnforcedContractShippingMode
+    ? ''
+    : requiredContractShippingMethodId
+      ? selectedContractShippingMode === 'automatic_vehicle'
+        ? language === 'fa' ? 'طبق قرارداد، خودرو به‌صورت خودکار توسط سیستم انتخاب می‌شود.' : language === 'ar' ? 'وفقاً للعقد، يختار النظام المركبة تلقائياً.' : language === 'tr' ? 'Sözleşmeye göre araç sistem tarafından otomatik seçilir.' : 'Per the contract, the system automatically selects the vehicle.'
+        : language === 'fa' ? 'طبق قرارداد، روش تحویل «حمل توسط خودم» است و هزینهٔ حمل خودرو محاسبه نمی‌شود.' : language === 'ar' ? 'وفقاً للعقد، طريقة التسليم هي «النقل الذاتي» ولا تُحسب أجرة مركبة.' : language === 'tr' ? 'Sözleşmeye göre teslimat «Kendi taşımanız»dır; araç ücreti hesaplanmaz.' : 'Per the contract, delivery is “Self transport”; vehicle shipping is not charged.'
+      : language === 'fa' ? 'روش حمل تعیین‌شده در قرارداد در حال حاضر در دسترس نیست. برای ادامه با مدیر فروش تماس بگیرید.' : language === 'ar' ? 'طريقة النقل المحددة في العقد غير متاحة حالياً. يرجى التواصل مع مدير المبيعات.' : language === 'tr' ? 'Sözleşmedeki taşıma yöntemi şu anda kullanılamıyor. Lütfen satış yöneticisiyle iletişime geçin.' : 'The shipping method required by this contract is unavailable. Please contact sales.';
+  useEffect(() => {
+    if (hasEnforcedContractShippingMode) {
+      if (deliveryMethods.length === 0) return;
+      const currentShippingMethod = form.getValues('shippingMethod');
+      if (shippingMethodBeforeContractPolicyRef.current === undefined) {
+        shippingMethodBeforeContractPolicyRef.current = currentShippingMethod;
+      }
+      const nextMethod = requiredContractShippingMethodId || '';
+      if (currentShippingMethod !== nextMethod) {
+        form.setValue('shippingMethod', nextMethod, { shouldDirty: true, shouldValidate: true });
+      }
+      return;
+    }
+    if (shippingMethodBeforeContractPolicyRef.current !== undefined) {
+      form.setValue('shippingMethod', shippingMethodBeforeContractPolicyRef.current, { shouldDirty: true, shouldValidate: true });
+      shippingMethodBeforeContractPolicyRef.current = undefined;
+    }
+  }, [deliveryMethods, form, hasEnforcedContractShippingMode, requiredContractShippingMethodId, selectedContractId]);
+
   useEffect(() => {
     if (selectedContractFromQuery) setSelectedContractSnapshot(selectedContractFromQuery);
     else if (selectedContractId === null) setSelectedContractSnapshot(undefined);
@@ -1293,6 +1344,28 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
       }
       const freshContract = verifiedContracts.find(contract => Number(contract.id) === Number(selectedContractId));
       const previousContract = selectedContract;
+      const previousShippingMode = (previousContract as (ShopContract & { shippingMode?: ContractShippingMode | null }) | undefined)?.shippingMode || null;
+      const freshShippingMode = (freshContract as (ShopContract & { shippingMode?: ContractShippingMode | null }) | undefined)?.shippingMode || null;
+      if (freshShippingMode !== previousShippingMode) {
+        setPendingReview(null);
+        toast({
+          title: language === 'fa' ? 'روش حمل قرارداد تغییر کرده است' : language === 'ar' ? 'تغيّرت طريقة النقل في العقد' : language === 'tr' ? 'Sözleşmenin taşıma yöntemi değişti' : 'Contract shipping policy changed',
+          description: language === 'fa' ? 'قرارداد را دوباره انتخاب کنید تا روش حمل و قیمت‌گذاری تازه اعمال شود.' : language === 'ar' ? 'أعد اختيار العقد لتطبيق طريقة النقل والتسعير الجديدة.' : language === 'tr' ? 'Yeni taşıma yöntemi ve fiyatlandırmayı uygulamak için sözleşmeyi yeniden seçin.' : 'Select the contract again to apply the updated shipping method and pricing.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      const freshRequiredShippingMethodId = getContractShippingMethodId(freshShippingMode, deliveryMethods);
+      if ((freshShippingMode === 'automatic_vehicle' || freshShippingMode === 'self_transport') &&
+        (!freshRequiredShippingMethodId || data.shippingMethod !== freshRequiredShippingMethodId)) {
+        setPendingReview(null);
+        toast({
+          title: language === 'fa' ? 'روش حمل قرارداد در دسترس نیست' : language === 'ar' ? 'طريقة النقل المطلوبة غير متاحة' : language === 'tr' ? 'Sözleşmenin taşıma yöntemi kullanılamıyor' : 'Contract shipping method unavailable',
+          description: contractShippingMethodNotice,
+          variant: 'destructive',
+        });
+        return;
+      }
       const contractPricesChanged = Object.entries(cart).some(([productId]) => {
         const oldPrice = previousContract?.items?.find(item => Number(item.productId) === Number(productId))?.unitPrice;
         const newPrice = freshContract?.items?.find(item => Number(item.productId) === Number(productId))?.unitPrice;
@@ -2505,7 +2578,15 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                         <FormItem>
                           <FormLabel>{t.checkout_page.selectShippingLabel}</FormLabel>
                           <FormControl>
-                            <Select value={field.value} onValueChange={field.onChange}>
+                            <Select
+                              value={field.value}
+                              disabled={hasEnforcedContractShippingMode}
+                              onValueChange={(methodId) => {
+                                if (!hasEnforcedContractShippingMode || methodId === requiredContractShippingMethodId) {
+                                  field.onChange(methodId);
+                                }
+                              }}
+                            >
                               <SelectTrigger>
                                 <SelectValue 
                                   placeholder={
@@ -2630,6 +2711,11 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                               </SelectContent>
                             </Select>
                           </FormControl>
+                          {hasEnforcedContractShippingMode && (
+                            <p role={requiredContractShippingMethodId ? 'status' : 'alert'} className={`text-sm ${requiredContractShippingMethodId ? 'text-muted-foreground' : 'text-destructive'}`}>
+                              {contractShippingMethodNotice}
+                            </p>
+                          )}
                           {isCurrentMethodShippingDependent && (shippingRouteUnavailable || shippingCalculationPending || !shippingQuoteReady) && (
                             <p role="alert" className="text-sm text-destructive">
                               {!deliveryAddressReady

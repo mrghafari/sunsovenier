@@ -97,12 +97,10 @@ test("vehicle quotes cannot be substituted between shop and customer checkout fl
   const smartQuote = verifyShippingQuote(signShippingQuote(payload(), 1_000), 2_000);
   assert.throws(() => assertShippingQuoteCheckoutFlow(smartQuote, {
     flow: "shop",
-    methodSelector: "7",
     canonicalMethod: "smart_vehicle",
   }), /vehicle_quote/i);
   assert.doesNotThrow(() => assertShippingQuoteCheckoutFlow(smartQuote, {
     flow: "customers",
-    methodSelector: "smart_vehicle",
     canonicalMethod: "smart_vehicle",
   }));
 
@@ -110,26 +108,26 @@ test("vehicle quotes cannot be substituted between shop and customer checkout fl
   const shopQuote = verifyShippingQuote(signShippingQuote(shopPayload, 1_000), 2_000);
   assert.doesNotThrow(() => assertShippingQuoteCheckoutFlow(shopQuote, {
     flow: "shop",
-    methodSelector: "7",
     canonicalMethod: "smart_vehicle",
   }));
   assert.throws(() => assertShippingQuoteCheckoutFlow(shopQuote, {
     flow: "customers",
-    methodSelector: "smart_vehicle",
     canonicalMethod: "smart_vehicle",
   }), /smart_vehicle/i);
 });
 
-test("shop vehicle quotes require exact active selector 7 and canonical smart_vehicle", () => {
+test("shop vehicle quotes require the signed vehicle-quote type and canonical smart_vehicle method", () => {
   process.env.SESSION_SECRET = "test-session-secret";
   const shopQuote = verifyShippingQuote(signShippingQuote({ ...payload(), method: "vehicle_quote" }, 1_000), 2_000);
-  for (const incorrect of [
-    { methodSelector: "8", canonicalMethod: "smart_vehicle" },
-    { methodSelector: "7", canonicalMethod: "courier" },
-  ]) {
+  for (const incorrect of [{ canonicalMethod: "courier" }]) {
     assert.throws(() => assertShippingQuoteCheckoutFlow(shopQuote, {
       flow: "shop",
       ...incorrect,
-    }), /delivery method 7/i);
+    }), /vehicle_quote/i);
   }
+  const customerQuote = verifyShippingQuote(signShippingQuote(payload(), 1_000), 2_000);
+  assert.throws(() => assertShippingQuoteCheckoutFlow(customerQuote, {
+    flow: "shop",
+    canonicalMethod: "smart_vehicle",
+  }), /vehicle_quote/i);
 });

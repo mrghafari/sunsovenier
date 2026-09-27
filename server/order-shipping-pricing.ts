@@ -20,3 +20,13 @@ export function calculateAuthoritativeShippingCost(input: {
   if (threshold > 0 && input.itemSubtotal >= threshold) return 0;
   return Math.round(basePrice + pricePerKg * input.totalWeightKg);
 }
+
+/** Match an active delivery method by its canonical value, never by a seeded ID. */
+export function isActiveCanonicalShippingMethod(
+  method: { value?: unknown; isActive?: unknown } | null | undefined,
+  canonicalValue: unknown,
+): boolean {
+  const expected = String(canonicalValue ?? "").trim().toLowerCase();
+  const actual = String(method?.value ?? "").trim().toLowerCase();
+  return Boolean(expected) && method?.isActive === true && actual === expected;
+}

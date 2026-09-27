@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { calculateAuthoritativeShippingCost } from "./order-shipping-pricing";
+import { calculateAuthoritativeShippingCost, isActiveCanonicalShippingMethod } from "./order-shipping-pricing";
 import { isActivePickupShippingMethod, isStandardShippingMethod } from "./shipping-method-policy";
 
 test("shipping uses the server rate and weight, not a client submitted zero", () => {
@@ -58,6 +58,27 @@ test("standard quote methods exclude smart and pickup while using authoritative 
   );
 });
 
+test("smart-vehicle delivery is resolved by canonical method rather than a seeded method ID", () => {
+  const methodFromDatabase = { id: 42, value: "smart_vehicle", isActive: true };
+  assert.equal(isActiveCanonicalShippingMethod(methodFromDatabase, "smart_vehicle"), true);
+  assert.equal(isActiveCanonicalShippingMethod({ ...methodFromDatabase, isActive: false }, "smart_vehicle"), false);
+  assert.equal(isActiveCanonicalShippingMethod({ ...methodFromDatabase, value: "courier" }, "smart_vehicle"), false);
+
+  const routes = readFileSync("server/routes.ts", "utf8");
+  const validatorStart = routes.indexOf("async function validateAndPriceOrderShipping");
+  const validatorEnd = routes.indexOf("\n  }\n", validatorStart);
+  const validator = routes.slice(validatorStart, validatorEnd);
+  assert.ok(validator.includes('method: input.checkoutFlow === "shop" ? "vehicle_quote" : "smart_vehicle"'));
+  assert.ok(validator.includes('isActiveCanonicalShippingMethod(selectedMethod, "smart_vehicle")'));
+  assert.ok(!validator.includes("selectedMethod?.id !== 7"));
+  assert.ok(!validator.includes('selector !== "7"'));
+
+  const quoteStart = routes.indexOf('app.post("/api/calculate-delivery-cost"');
+  const quoteEnd = routes.indexOf("\n  });", quoteStart);
+  const quoteRoute = routes.slice(quoteStart, quoteEnd);
+  assert.ok(quoteRoute.includes('method: "vehicle_quote"'), "Shop vehicle quotes retain their signed quote-type binding.");
+});
+
 test("admin shipping-center and route configuration endpoints require logistics capabilities", () => {
   const routes = readFileSync("server/routes.ts", "utf8");
   for (const route of [
@@ -85,4 +106,18 @@ test("both active order routes validate shipping before reservations and order/p
       if (effectIndex !== -1) assert.ok(validation < effectIndex, `${path} runs ${sideEffect} before shipping validation`);
     }
   }
+});
+
+test("contract checkout enforces its server-loaded shipping policy before pickup exemptions or quote handling", () => {
+  const routes = readFileSync("server/routes.ts", "utf8");
+  const validatorStart = routes.indexOf("async function validateAndPriceOrderShipping");
+  const validatorEnd = routes.indexOf("\n  }\n", validatorStart);
+  const validator = routes.slice(validatorStart, validatorEnd);
+  const policyCheck = validator.indexOf("assertContractShippingMode(contractPricing.shippingMode, canonicalMethod)");
+  const pickupEarlyReturn = validator.indexOf("if (isPickupMethod)");
+  const vehicleQuoteCheck = validator.indexOf("const needsVehicleQuote");
+  assert.notEqual(policyCheck, -1, "Contract order pricing must enforce the saved shipping mode.");
+  assert.ok(policyCheck < pickupEarlyReturn, "A pickup shortcut must not bypass the contract shipping mode.");
+  assert.ok(policyCheck < vehicleQuoteCheck, "Vehicle quote requirements must run after the saved contract mode check.");
+  assert.ok(validator.includes('await loadContractPricing(contractId, customerId'));
 });

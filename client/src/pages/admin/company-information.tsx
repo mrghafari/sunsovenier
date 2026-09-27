@@ -225,6 +225,7 @@ const pageTranslations: Record<string, PageTranslation> = {
   'نام شرکت، لوگو و اطلاعات عمومی': p('نام شرکت، لوگو و اطلاعات عمومی', 'Company name, logo, and general information', 'اسم الشركة والشعار والمعلومات العامة', 'Şirket adı, logo ve genel bilgiler'),
   'نام شرکت (عربی)': p('نام شرکت (عربی)', 'Company Name (Arabic)', 'اسم الشركة (العربية)', 'Şirket Adı (Arapça)'),
   'نام شرکت (انگلیسی)': p('نام شرکت (انگلیسی)', 'Company Name (English)', 'اسم الشركة (الإنجليزية)', 'Şirket Adı (İngilizce)'),
+  'نام شرکت (ترکی)': p('نام شرکت (ترکی)', 'Company Name (Turkish)', 'اسم الشركة (التركية)', 'Şirket Adı (Türkçe)'),
   'نام تجاری': p('نام تجاری', 'Trade Name', 'الاسم التجاري', 'Ticari Unvan'),
   'بخش تجاری': p('بخش تجاری', 'Business Sector', 'القطاع التجاري', 'İş Sektörü'),
   'توضیحات کسب‌وکار': p('توضیحات کسب‌وکار', 'Business Description', 'وصف النشاط التجاري', 'İş Açıklaması'),
@@ -244,6 +245,11 @@ const pageTranslations: Record<string, PageTranslation> = {
   'ایمیل پشتیبانی': p('ایمیل پشتیبانی', 'Support Email', 'بريد الدعم', 'Destek E-postası'),
   'تلفن اصلی': p('تلفن اصلی', 'Primary Phone', 'الهاتف الرئيسي', 'Birincil Telefon'),
   'تلفن فرعی': p('تلفن فرعی', 'Secondary Phone', 'الهاتف الثانوي', 'İkincil Telefon'),
+  'نماینده مجاز شرکت': p('نماینده مجاز شرکت', 'Authorized Company Representative', 'ممثل الشركة المخول', 'Yetkili Şirket Temsilcisi'),
+  'نام نماینده': p('نام نماینده', 'Representative Name', 'اسم الممثل', 'Temsilci Adı'),
+  'سمت نماینده': p('سمت نماینده', 'Representative Title', 'منصب الممثل', 'Temsilci Unvanı'),
+  'تلفن نماینده': p('تلفن نماینده', 'Representative Phone', 'هاتف الممثل', 'Temsilci Telefonu'),
+  'ایمیل نماینده': p('ایمیل نماینده', 'Representative Email', 'بريد الممثل', 'Temsilci E-postası'),
   'شماره واتساپ': p('شماره واتساپ', 'WhatsApp Number', 'رقم واتساب', 'WhatsApp Numarası'),
   'متن وضعیت پاسخگویی': p('متن وضعیت پاسخگویی', 'Availability Message', 'رسالة التوفر', 'Uygunluk Mesajı'),
   'فکس': p('فکس', 'Fax', 'فاكس', 'Faks'),
@@ -1188,6 +1194,14 @@ export default function CompanyInformation() {
                   />
                 </div>
                 <div className="space-y-2">
+                  <Label>{tx('نام شرکت (ترکی)')}</Label>
+                  <Input
+                    id="companyNameTr"
+                    value={formData?.companyNameTr || ''}
+                    onChange={(e) => handleFieldChange('companyNameTr', e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label>{tx('نام تجاری')}</Label>
                   <Input 
                     id="tradeName"
@@ -1289,13 +1303,51 @@ export default function CompanyInformation() {
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="headquarters" className="space-y-5">
-                  <TabsList className="grid h-auto w-full grid-cols-2 gap-1 md:grid-cols-5">
+                  <TabsList className="grid h-auto w-full grid-cols-2 gap-1 md:grid-cols-6">
                     <TabsTrigger value="headquarters">{tx('دفتر مرکزی')}</TabsTrigger>
                     <TabsTrigger value="phones">{tx('تلفن و واتساپ')}</TabsTrigger>
                     <TabsTrigger value="emails">{tx('ایمیل‌ها')}</TabsTrigger>
+                    <TabsTrigger value="representative">{tx('نماینده مجاز شرکت')}</TabsTrigger>
                     <TabsTrigger value="hours">{tx('ساعات کاری')}</TabsTrigger>
                     <TabsTrigger value="careers">{tx('فرصت‌های شغلی')}</TabsTrigger>
                   </TabsList>
+                  <TabsContent value="representative" className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>{tx('نام نماینده')}</Label>
+                      <Input
+                        id="contactPersonName"
+                        value={formData?.contactPersonName || ''}
+                        onChange={(e) => handleFieldChange('contactPersonName', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>{tx('سمت نماینده')}</Label>
+                      <Input
+                        id="contactPersonTitle"
+                        value={formData?.contactPersonTitle || ''}
+                        onChange={(e) => handleFieldChange('contactPersonTitle', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>{tx('تلفن نماینده')}</Label>
+                      <Input
+                        id="contactPersonPhone"
+                        dir="ltr"
+                        value={formData?.contactPersonPhone || ''}
+                        onChange={(e) => handleFieldChange('contactPersonPhone', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>{tx('ایمیل نماینده')}</Label>
+                      <Input
+                        id="contactPersonEmail"
+                        type="email"
+                        dir="ltr"
+                        value={formData?.contactPersonEmail || ''}
+                        onChange={(e) => handleFieldChange('contactPersonEmail', e.target.value)}
+                      />
+                    </div>
+                  </TabsContent>
                   <TabsContent value="emails" className="space-y-4">
                 <div className="space-y-2">
                   <Label>{tx('ایمیل اصلی')}</Label>
