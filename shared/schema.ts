@@ -1,9 +1,10 @@
-import { pgTable, text, serial, timestamp, decimal, boolean, integer, bigint, json, varchar, uuid, date, check, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, decimal, boolean, integer, bigint, json, jsonb, varchar, uuid, date, check, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { sql } from "drizzle-orm";
 import { customers, insertCustomerSchema, type InsertCustomer, type Customer } from "./customer-schema";
 import { shopProducts } from "./shop-schema";
+import type { ShopContractDraftData } from "./contract-draft";
 
 // =============================================================================
 // MAIN CRM & ADMIN SYSTEM SCHEMA
@@ -2049,6 +2050,7 @@ export const shopContracts = pgTable("shop_contracts", {
   number: text("number").notNull().unique(),
   customerId: integer("customer_id").notNull().references(() => crmCustomers.id),
   terms: text("terms").notNull().default(""),
+  draftData: jsonb("draft_data").$type<ShopContractDraftData | null>(),
   isActive: boolean("is_active").notNull().default(true),
   endedAt: timestamp("ended_at", { withTimezone: true }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
