@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>سازنده قرارداد فروش پتروشیمی</title>
+<style>
+:root{
+  --bg:#f7f5f2; --panel:#ffffff; --ink:#20241f; --muted:#6b6f68;
+  --accent:#1f6f4a; --accent-ink:#ffffff; --line:#e0ddd6; --soft:#f0efe9;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15181a; --panel:#1e2224; --ink:#eceae4; --muted:#a3a89c;
+    --accent:#3fae7c; --accent-ink:#0d130f; --line:#333a34; --soft:#242a26;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15181a; --panel:#1e2224; --ink:#eceae4; --muted:#a3a89c;
+  --accent:#3fae7c; --accent-ink:#0d130f; --line:#333a34; --soft:#242a26;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"Vazirmatn","Tahoma",sans-serif;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+.wrap{max-width:900px;margin:0 auto;padding:20px 16px 60px}
+h1{font-size:1.4rem;margin:6px 0 2px}
+.sub{color:var(--muted);font-size:.9rem;margin-bottom:18px}
+fieldset{border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px;background:var(--panel)}
+legend{padding:0 8px;font-weight:700;color:var(--accent)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
+@media (max-width:600px){.grid{grid-template-columns:1fr}}
+label{display:block;font-size:.82rem;color:var(--muted);margin-bottom:3px}
+input,select{
+  width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line);
+  background:var(--bg);color:var(--ink);font-family:inherit;font-size:.92rem
+}
+.full{grid-column:1/-1}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}
+button{
+  border:none;border-radius:9px;padding:11px 18px;font-size:.95rem;cursor:pointer;font-family:inherit;font-weight:700
+}
+.primary{background:var(--accent);color:var(--accent-ink)}
+.secondary{background:var(--soft);color:var(--ink);border:1px solid var(--line)}
+#output{display:none;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-top:10px}
+#output h2{font-size:1.15rem;color:var(--accent)}
+#contractText{white-space:pre-wrap;line-height:2;font-size:.92rem;overflow-x:auto}
+.note{font-size:.78rem;color:var(--muted);margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📄 سازنده قرارداد فروش محصولات پتروشیمی</h1>
+  <p class="sub">فرم زیر را پر کنید تا متن کامل قرارداد بر اساس اطلاعات شما تولید شود. خروجی قابل کپی، چاپ (PDF) یا دانلود به‌صورت فایل Word است.</p>
+
+  <fieldset>
+    <legend>نوع معامله</legend>
+    <div class="grid">
+      <div><label>نوع معامله</label>
+        <select id="dealType">
+          <option value="iran">داخلی ایران</option>
+          <option value="iraq">صادرات به عراق</option>
+          <option value="intl">صادراتی/بین‌المللی سایر کشورها</option>
+        </select>
+      </div>
+      <div><label>شماره قرارداد</label><input id="contractNo" placeholder="مثلاً 1404/125"></div>
+      <div><label>تاریخ انعقاد</label><input id="contractDate" placeholder="مثلاً 1404/07/05"></div>
+      <div><label>زبان قرارداد</label><input id="lang" placeholder="فارسی / فارسی و عربی / فارسی و انگلیسی" value="فارسی"></div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>فروشنده</legend>
+    <div class="grid">
+      <div><label>نام شرکت</label><input id="sName" placeholder="شرکت پتروشیمی ..."></div>
+      <div><label>شناسه ملی/ثبت</label><input id="sReg"></div>
+      <div class="full"><label>آدرس</label><input id="sAddr"></div>
+      <div><label>نماینده و سمت</label><input id="sRep"></div>
+      <div><label>تماس/ایمیل</label><input id="sContact"></div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>خریدار</legend>
+    <div class="grid">
+      <div><label>نام شرکت/شخص</label><input id="bName"></div>
+      <div><label>کشور</label><input id="bCountry"></div>
+      <div><label>شناسه ثبت</label><input id="bReg"></div>
+      <div class="full"><label>آدرس</label><input id="bAddr"></div>
+      <div><label>نماینده و سمت</label><input id="bRep"></div>
+      <div><label>تماس/ایمیل</label><input id="bContact"></div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>محصول و کیفیت</legend>
+    <div class="grid">
+      <div><label>نام محصول</label><input id="pName" placeholder="مثلاً پلی‌اتیلن سنگین HDPE"></div>
+      <div><label>گرید/استاندارد</label><input id="pGrade"></div>
+      <div><label>مقدار و واحد</label><input id="pQty" placeholder="مثلاً 500 تن"></div>
+      <div><label>تلورانس مجاز (%)</label><input id="pTol" placeholder="مثلاً 2"></div>
+      <div class="full"><label>بسته‌بندی/نوع حمل</label><input id="pPack" placeholder="فله / کیسه / ایزوتانک ..."></div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>قیمت و پرداخت</legend>
+    <div class="grid">
+      <div><label>قیمت واحد</label><input id="unitPrice" placeholder="مثلاً 950"></div>
+      <div><label>ارز</label><input id="currency" placeholder="ریال / دلار / دینار عراقی"></div>
+      <div><label>روش پرداخت</label>
+        <select id="payMethod">
+          <option value="advance">پیش‌پرداخت + مانده</option>
+          <option value="lc">اعتبار اسنادی (LC)</option>
+          <option value="tt">حواله بانکی (TT)</option>
+          <option value="credit">فروش اعتباری/مدت‌دار</option>
+        </select>
+      </div>
+      <div><label>مهلت پرداخت (روز)</label><input id="payDays" placeholder="مثلاً 15"></div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>تحویل و حمل</legend>
+    <div class="grid">
+      <div><label>اینکوترم</label><input id="incoterm" placeholder="FOB / CIF / EXW / درب کارخانه"></div>
+      <div><label>محل تحویل</label><input id="delLoc"></div>
+      <div><label>تاریخ تحویل</label><input id="delDate"></div>
+      <div><label>شهر داوری/حل اختلاف</label><input id="disputeCity" placeholder="تهران / بغداد / دبی ..."></div>
+    </div>
+  </fieldset>
+
+  <div class="actions">
+    <button class="primary" onclick="generate()">تولید متن کامل قرارداد</button>
+    <button class="secondary" onclick="location.reload()">پاک کردن فرم</button>
+  </div>
+
+  <div id="output">
+    <h2>پیش‌نویس قرارداد</h2>
+    <div id="contractText"></div>
+    <div class="actions">
+      <button class="primary" onclick="downloadDoc()">⬇ دانلود Word</button>
+      <button class="secondary" onclick="copyText()">📋 کپی متن</button>
+      <button class="secondary" onclick="window.print()">🖨 چاپ / PDF</button>
+    </div>
+    <p class="note">این خروجی یک پیش‌نویس است و باید پیش از امضا توسط مشاور حقوقی بازبینی شود.</p>
+  </div>
+</div>
+
+<script>
+function v(id){ const x=document.getElementById(id).value.trim(); return x || "[تکمیل نشود]"; }
+
+function lawClause(type, city){
+  if(type==="iran") return `این قرارداد تابع قوانین جمهوری اسلامی ایران است. اختلافات ابتدا از طریق مذاکره و در صورت عدم توافق ظرف ۳۰ روز، از طریق داوری اتاق بازرگانی ایران یا مراجع قضایی صالح در ${city} حل‌وفصل می‌شود.`;
+  if(type==="iraq") return `این قرارداد تابع قوانین توافقی طرفین (ایران/عراق) است. اختلافات ابتدا از طریق مذاکره و در صورت عدم توافق از طریق داوری تجاری در ${city} حل‌وفصل می‌شود؛ رأی داوری قطعی و لازم‌الاجراست.`;
+  return `این قرارداد تابع قوانین کشور توافقی طرفین است. هرگونه اختلاف نهایتاً از طریق داوری مطابق آیین داوری اتاق بازرگانی بین‌المللی (ICC) در ${city} حل‌وفصل خواهد شد؛ رأی داوری قطعی است.`;
+}
+function payClause(method, days, price, curr){
+  const d = document.getElementById("payDays").value.trim() || "__";
+  if(method==="lc") return `پرداخت از طریق گشایش اعتبار اسنادی غیرقابل برگشت به نفع فروشنده ظرف ${d} روز پیش از بارگیری صورت می‌گیرد.`;
+  if(method==="tt") return `پرداخت از طریق حواله بانکی (TT) ظرف ${d} روز از تاریخ صدور فاکتور به حساب اعلامی فروشنده انجام می‌شود.`;
+  if(method==="credit") return `پرداخت به‌صورت اعتباری/مدت‌دار ظرف ${d} روز پس از تحویل، همراه با تضمین بانکی مورد قبول فروشنده صورت می‌گیرد.`;
+  return `پیش‌پرداخت ظرف ${d} روز از امضای قرارداد و مانده ثمن هم‌زمان با/پس از تحویل پرداخت می‌شود.`;
+}
+
+function buildContract(){
+  const type=document.getElementById("dealType").value;
+  const city=v("disputeCity");
+  const price=v("unitPrice"), curr=v("currency");
+  return `قرارداد فروش محصولات پتروشیمی
+شماره: ${v("contractNo")}    تاریخ: ${v("contractDate")}    زبان: ${v("lang")}
+
+مقدمه و طرفین
+این قرارداد میان فروشنده: ${v("sName")} (شناسه: ${v("sReg")}، آدرس: ${v("sAddr")}، نماینده: ${v("sRep")}، تماس: ${v("sContact")})
+و خریدار: ${v("bName")} (کشور: ${v("bCountry")}، شناسه: ${v("bReg")}، آدرس: ${v("bAddr")}، نماینده: ${v("bRep")}، تماس: ${v("bContact")})
+منعقد می‌گردد.
+
+ماده ۱ - تعاریف: محصول، محموله، روز کاری، گواهی تحلیل (COA)، بازرس مستقل و اینکوترمز به شرح مصطلح تجاری و فنی این صنعت تعریف می‌شوند.
+
+ماده ۲ - موضوع قرارداد: فروش و انتقال مالکیت محصول ${v("pName")} با گرید/استاندارد ${v("pGrade")} از فروشنده به خریدار طبق شرایط این قرارداد.
+
+ماده ۳ - کیفیت: مشخصات فنی طبق گرید ${v("pGrade")} است. فروشنده گواهی تحلیل (COA) ارائه می‌کند؛ خریدار حق بازرسی مستقل پیش از بارگیری را دارد. تلورانس کیفی مجاز: ${v("pTol")}٪.
+
+ماده ۴ - مقدار و بسته‌بندی: مقدار کل ${v("pQty")} با روش بسته‌بندی/حمل: ${v("pPack")}.
+
+ماده ۵ - قیمت: قیمت هر واحد ${price} ${curr} است؛ نحوه محاسبه و تعدیل طبق پیوست قیمت خواهد بود.
+
+ماده ۶ - پرداخت: ${payClause(document.getElementById("payMethod").value, null, price, curr)} تأخیر در پرداخت مشمول خسارت تأخیر تأدیه توافقی خواهد بود.
+
+ماده ۷ - تحویل و حمل: اینکوترم ${v("incoterm")}؛ محل تحویل: ${v("delLoc")}؛ تاریخ تحویل: ${v("delDate")}. تأخیر غیرموجه مشمول خسارت تأخیر تحویل است.
+
+ماده ۸ - انتقال مالکیت و ریسک: هم‌زمان با تحویل طبق اینکوترم منتخب یا تسویه کامل ثمن (هرکدام توافق شود) منتقل می‌گردد.
+
+ماده ۹ - بیمه: در معاملات CIF/CIP بیمه حمل بر عهده فروشنده و به نفع خریدار تحصیل می‌شود؛ در غیر این صورت بر عهده طرف دارای ریسک است.
+
+ماده ۱۰ - بازرسی و اعلام ایراد: خریدار موظف است ظرف مهلت توافقی از دریافت محموله، ایرادات را کتباً اعلام کند.
+
+ماده ۱۱ و ۱۲ - تعهدات طرفین: فروشنده متعهد به تحویل منطبق با مشخصات و اسناد کامل؛ خریدار متعهد به پرداخت به‌موقع، اخذ مجوزهای گمرکی و رعایت مقررات ایمنی و تحریمی است.
+
+ماده ۱۳ - ضمانت و سلب مسئولیت: مسئولیت فروشنده محدود به انطباق با مشخصات فنی توافقی و سقف مبلغ فاکتور محموله معیوب است.
+
+ماده ۱۴ - فورس ماژور: هیچ طرف در قبال تأخیر ناشی از جنگ، تحریم، بلایای طبیعی یا اختلال زیرساختی خارج از کنترل خود مسئول نیست، مشروط به اطلاع‌رسانی کتبی به‌موقع.
+
+ماده ۱۵ - تحریم‌ها و انطباق قانونی: طرفین تضمین می‌کنند در فهرست تحریمی مراجع ذی‌ربط قرار ندارند و در صورت بروز محدودیت تحریمی پس از انعقاد، با حسن نیت راهکار جایگزین را بررسی می‌کنند.
+
+ماده ۱۶ - محرمانگی: اطلاعات تجاری و قیمتی مبادله‌شده محرمانه تلقی و افشای آن به ثالث ممنوع است.
+
+ماده ۱۷ و ۱۸ - خسارت قراردادی و فسخ: نقض تعهدات زمان‌بندی/کیفیت مشمول خسارت توافقی است؛ نقض اساسی و عدم رفع آن پس از اخطار، حق فسخ ایجاد می‌کند.
+
+ماده ۱۹ - قانون حاکم و حل اختلاف: ${lawClause(type, city==="[تکمیل نشود]"?"[شهر]":city)}
+
+ماده ۲۰ - زبان قرارداد: ${v("lang")}؛ در صورت اختلاف تفسیر، نسخه فارسی ملاک است.
+
+ماده ۲۱ تا ۲۳ - عدم واگذاری، اطلاعیه‌ها و کامل بودن قرارداد: بدون رضایت کتبی طرف مقابل قابل واگذاری نیست؛ مکاتبات کتبی به آدرس اعلامی معتبر است؛ این سند ناسخ توافقات قبلی است.
+
+ماده ۲۴ - انعقاد آنلاین و امضای الکترونیکی: طرفین امضای الکترونیکی/دیجیتال ثبت‌شده در پلتفرم مورد توافق را معادل امضای دستی و دارای اعتبار کامل حقوقی می‌پذیرند؛ زمان و IP امضا به‌عنوان دلیل معتبر است.
+
+ماده ۲۵ - نسخ: این قرارداد در تاریخ ${v("contractDate")} به تأیید نهایی طرفین رسید.
+
+امضای فروشنده: ${v("sRep")}          امضای خریدار: ${v("bRep")}
+تاریخ: ${v("contractDate")}`;
+}
+
+function generate(){
+  const text = buildContract();
+  document.getElementById("contractText").textContent = text;
+  document.getElementById("output").style.display = "block";
+  document.getElementById("output").scrollIntoView({behavior:"smooth"});
+}
+function copyText(){
+  const t = document.getElementById("contractText").textContent;
+  navigator.clipboard && navigator.clipboard.writeText(t).catch(()=>{});
+  alert("متن قرارداد کپی شد.");
+}
+function downloadDoc(){
+  try{
+    const body = document.getElementById("contractText").textContent
+      .split("\\n").map(l=>`<p style="margin:4px 0">${l.replace(/&/g,"&amp;").replace(/</g,"&lt;")}</p>`).join("");
+    const html = `<html dir="rtl"><head><meta charset="utf-8"></head>
+      <body style="font-family:'B Nazanin','Tahoma';font-size:14px;line-height:1.9">${body}</body></html>`;
+    const blob = new Blob(['\ufeff', html], {type:'application/msword'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'قرارداد-فروش-پتروشیمی.doc';
+    document.body.appendChild(a); a.click(); a.remove();
+  }catch(e){ alert('دانلود ناموفق بود؛ از گزینه کپی یا چاپ استفاده کنید.'); }
+}
+</script>
+</body>
+</html>
