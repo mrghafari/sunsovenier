@@ -35,6 +35,7 @@ type SiteManagementModuleId =
   | "ai-settings"
   | "marketplace-management"
   | "company-information"
+  | "legal-affairs"
   | "seo"
   | "blog-management"
   | "categories"
@@ -116,6 +117,7 @@ const siteManagementTranslations: Record<SiteManagementLanguage, SiteManagementT
       "ai-settings": { title: "AI Settings", description: "Configure artificial intelligence features." },
       "marketplace-management": { title: "Marketplace Management", description: "Manage marketplace channels and listings." },
       "company-information": { title: "Company Information", description: "Update company details and identity." },
+      "legal-affairs": { title: "Legal Affairs & Contracts", description: "Manage legal affairs and contracts." },
       seo: { title: "SEO Management", description: "Improve search visibility and metadata." },
       "blog-management": { title: "Blog Management", description: "Publish and organize blog articles." },
       categories: { title: "Categories", description: "Organize products into categories." },
@@ -174,6 +176,7 @@ const siteManagementTranslations: Record<SiteManagementLanguage, SiteManagementT
       "ai-settings": { title: "تنظیمات هوش مصنوعی", description: "قابلیت‌های هوش مصنوعی را پیکربندی کنید." },
       "marketplace-management": { title: "مدیریت بازارگاه", description: "کانال‌ها و فهرست‌های بازارگاه را مدیریت کنید." },
       "company-information": { title: "اطلاعات شرکت", description: "جزئیات و هویت شرکت را به‌روزرسانی کنید." },
+      "legal-affairs": { title: "امور حقوقی و پیمان‌ها", description: "امور حقوقی و پیمان‌های شرکت را مدیریت کنید." },
       seo: { title: "مدیریت سئو", description: "نمایش در جست‌وجو و فراداده‌ها را بهبود دهید." },
       "blog-management": { title: "مدیریت وبلاگ", description: "مقاله‌های وبلاگ را منتشر و سازمان‌دهی کنید." },
       categories: { title: "دسته‌بندی‌ها", description: "محصولات را در دسته‌ها سازمان‌دهی کنید." },
@@ -232,6 +235,7 @@ const siteManagementTranslations: Record<SiteManagementLanguage, SiteManagementT
       "ai-settings": { title: "إعدادات الذكاء الاصطناعي", description: "اضبط ميزات الذكاء الاصطناعي." },
       "marketplace-management": { title: "إدارة السوق", description: "أدر قنوات السوق والقوائم." },
       "company-information": { title: "معلومات الشركة", description: "حدّث تفاصيل الشركة وهويتها." },
+      "legal-affairs": { title: "الشؤون القانونية والعقود", description: "أدر الشؤون القانونية والعقود." },
       seo: { title: "إدارة تحسين محركات البحث", description: "حسّن الظهور في البحث والبيانات الوصفية." },
       "blog-management": { title: "إدارة المدونة", description: "انشر مقالات المدونة ونظّمها." },
       categories: { title: "الفئات", description: "نظّم المنتجات ضمن فئات." },
@@ -290,6 +294,7 @@ const siteManagementTranslations: Record<SiteManagementLanguage, SiteManagementT
       "ai-settings": { title: "Yapay Zekâ Ayarları", description: "Yapay zekâ özelliklerini yapılandırın." },
       "marketplace-management": { title: "Pazar Yeri Yönetimi", description: "Pazar kanallarını ve listelerini yönetin." },
       "company-information": { title: "Şirket Bilgileri", description: "Şirket bilgilerini ve kimliğini güncelleyin." },
+      "legal-affairs": { title: "Hukuk İşleri ve Sözleşmeler", description: "Hukuk işlerini ve sözleşmeleri yönetin." },
       seo: { title: "SEO Yönetimi", description: "Arama görünürlüğünü ve meta verileri geliştirin." },
       "blog-management": { title: "Blog Yönetimi", description: "Blog yazılarını yayınlayın ve düzenleyin." },
       categories: { title: "Kategoriler", description: "Ürünleri kategorilerde düzenleyin." },
@@ -536,6 +541,14 @@ export default function SiteManagement() {
       moduleId: "company_information"
     },
     {
+      id: "legal-affairs",
+      ...getModuleText("legal-affairs"),
+      icon: FileText,
+      onClick: () => trackButtonClick("legal-affairs", () => setLocation("/mrg/legal-affairs")),
+      className: "border-indigo-300 text-indigo-600 hover:bg-indigo-50 hover:text-indigo-800",
+      moduleId: "legal_affairs"
+    },
+    {
       id: "seo",
       ...getModuleText("seo"),
       icon: Globe,
@@ -731,7 +744,9 @@ export default function SiteManagement() {
     console.log('🔍 [DEBUG] content_management in allowedModules?', allowedModules.includes('content_management'));
     
     const filtered = allButtons.filter(button => 
-      !button.moduleId || allowedModules.includes(button.moduleId)
+      !button.moduleId ||
+      allowedModules.includes(button.moduleId) ||
+      (button.id === "legal-affairs" && allowedModules.includes("shop_management"))
     );
     
     console.log('🔍 [CRITICAL] Missing button detection:');

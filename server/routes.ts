@@ -8562,6 +8562,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       'remote_desktop': 'دسکتاپ ریموت',
       'server_config': 'تنظیمات سرور',
       'company_information': 'اطلاعات شرکت',
+      'legal_affairs': 'امور حقوقی و پیمان‌ها',
       'user_guide': 'User Guide',
       'site_management': 'مدیریت سایت'
     };
@@ -8600,7 +8601,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
     try {
       const { pool } = await import('./db');
       
-      // Define the main system modules - these are the 31 Site Management modules
+      // Define the main system modules - these are the 33 Site Management modules
       const mainModules = [
         'syncing_shop',
         'inquiries', 
@@ -8633,7 +8634,8 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         'server_config',
         'kpi_dashboard',
         'management_dashboard',
-        'user_guide'
+        'user_guide',
+        'legal_affairs'
       ];
 
       // Get super admin role (admin@momtazchem.com has user ID 7)
@@ -8726,6 +8728,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       'remote_desktop',
       'server_config',
       'company_information',
+      'legal_affairs',
       'user_guide',
       'marketing_module',
       'aws_s3_settings',
@@ -8733,7 +8736,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       'blog',
             'marketplace_management',
       'vendor_accounting',
-      // Total: 37 modules - automatically synced with Site Management
+      // Total: 39 modules - automatically synced with Site Management
     ];
   };
 
@@ -11176,6 +11179,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         'ticketing_system': { name: 'سیستم تیکتینگ', description: 'مدیریت تیکت‌ها و پشتیبانی', category: 'support' },
         'remote_desktop': { name: 'دسکتاپ از راه دور', description: 'دسترسی از راه دور به سیستم', category: 'system' },
         'company_information': { name: 'اطلاعات شرکت', description: 'مدیریت اطلاعات و پروفایل شرکت', category: 'content' },
+        'legal_affairs': { name: 'امور حقوقی و پیمان‌ها', description: 'مدیریت امور حقوقی و قراردادهای شرکت', category: 'admin' },
         'user_guide': { name: 'راهنمای کاربر', description: 'مستندات و راهنماهای کاربری', category: 'content' },
         'marketing_module': { name: 'ماژول بازاریابی', description: 'مدیریت کمپین‌های بازاریابی', category: 'marketing' },
         'aws_s3_settings': { name: 'تنظیمات AWS S3', description: 'پیکربندی ذخیره‌سازی ابری AWS', category: 'system' }
@@ -37102,7 +37106,8 @@ ${message ? `Additional Requirements:\n${message}` : ''}
           "accounting_management", "finance", "wallet_management", "geography_analytics",
           "ai_settings", "refresh_control", "content_management", "ticketing_system",
           "remote_desktop", "server_config", "company_information", "user_guide",
-          "marketing_module", "aws_s3_settings", "whatsapp_crm", "blog", "marketplace_management", "vendor_accounting"
+          "marketing_module", "aws_s3_settings", "whatsapp_crm", "blog", "marketplace_management", "vendor_accounting",
+          "legal_affairs"
         ];
         
         console.log("🔍 [CRITICAL DEBUG] marketplace_management included:", allModules.includes("marketplace_management"));

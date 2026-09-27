@@ -347,7 +347,7 @@ const translations: Record<Language, TranslationDictionary> = {
       accounting_management: 'Accounting Management', finance: 'Financial Approval', wallet_management: 'Wallet Management',
       geography_analytics: 'Geography Analytics', ai_settings: 'AI Settings', refresh_control: 'Refresh Control',
       content_management: 'Content Management', ticketing_system: 'Ticketing System', remote_desktop: 'Remote Desktop',
-      server_config: 'Server Config', company_information: 'Company Information', user_guide: 'User Guide',
+      server_config: 'Server Config', company_information: 'Company Information', legal_affairs: 'Legal Affairs & Contracts', user_guide: 'User Guide',
       marketing_module: 'Marketing Module', aws_s3_settings: 'AWS S3 Settings', whatsapp_crm: 'WhatsApp CRM'
     }
   },
@@ -473,7 +473,7 @@ const translations: Record<Language, TranslationDictionary> = {
       accounting_management: 'مدیریت حسابداری', finance: 'تایید مالی', wallet_management: 'مدیریت کیف پول',
       geography_analytics: 'تحلیل جغرافیا', ai_settings: 'تنظیمات هوش مصنوعی', refresh_control: 'کنترل به‌روزرسانی',
       content_management: 'مدیریت محتوا', ticketing_system: 'سامانه تیکت', remote_desktop: 'دسکتاپ راه دور',
-      server_config: 'پیکربندی سرور', company_information: 'اطلاعات شرکت', user_guide: 'راهنمای کاربر',
+      server_config: 'پیکربندی سرور', company_information: 'اطلاعات شرکت', legal_affairs: 'امور حقوقی و پیمان‌ها', user_guide: 'راهنمای کاربر',
       marketing_module: 'ماژول بازاریابی', aws_s3_settings: 'تنظیمات AWS S3', whatsapp_crm: 'CRM واتساپ'
     }
   },
@@ -535,7 +535,7 @@ const translations: Record<Language, TranslationDictionary> = {
       finance: 'الاعتماد المالي', wallet_management: 'إدارة المحفظة', geography_analytics: 'تحليلات جغرافية',
       ai_settings: 'إعدادات الذكاء الاصطناعي', refresh_control: 'التحكم بالتحديث', content_management: 'إدارة المحتوى',
       ticketing_system: 'نظام التذاكر', remote_desktop: 'سطح المكتب البعيد', server_config: 'إعدادات الخادم',
-      company_information: 'معلومات الشركة', user_guide: 'دليل المستخدم', marketing_module: 'وحدة التسويق',
+      company_information: 'معلومات الشركة', legal_affairs: 'الشؤون القانونية والعقود', user_guide: 'دليل المستخدم', marketing_module: 'وحدة التسويق',
       aws_s3_settings: 'إعدادات AWS S3', whatsapp_crm: 'CRM واتساب'
     }
   },
@@ -590,7 +590,7 @@ const translations: Record<Language, TranslationDictionary> = {
       accounting_management: 'Muhasebe Yönetimi', finance: 'Mali onay', wallet_management: 'Cüzdan Yönetimi',
       geography_analytics: 'Coğrafi Analiz', ai_settings: 'Yapay Zekâ Ayarları', refresh_control: 'Yenileme Kontrolü',
       content_management: 'İçerik Yönetimi', ticketing_system: 'Bilet Sistemi', remote_desktop: 'Uzak Masaüstü',
-      server_config: 'Sunucu Yapılandırması', company_information: 'Şirket Bilgileri', user_guide: 'Kullanıcı Rehberi',
+      server_config: 'Sunucu Yapılandırması', company_information: 'Şirket Bilgileri', legal_affairs: 'Hukuk İşleri ve Sözleşmeler', user_guide: 'Kullanıcı Rehberi',
       marketing_module: 'Pazarlama Modülü', aws_s3_settings: 'AWS S3 Ayarları', whatsapp_crm: 'WhatsApp CRM'
     }
   }
@@ -700,7 +700,7 @@ const extractSiteManagementModules = (
   moduleLabels: Record<string, string>,
   moduleWord: string
 ): Module[] => {
-  // Complete synchronized list with ALL 35 modules from Site Management - using original English names
+  // Role-assignment catalog currently contains 37 Site Management modules.
   const siteManagementModules = [
     { moduleId: 'kpi_dashboard', label: 'KPI Dashboard', icon: BarChart3, color: 'bg-purple-600' },
     { moduleId: 'management_dashboard', label: 'Management Dashboard', icon: LayoutDashboard, color: 'bg-indigo-600' },
@@ -734,6 +734,7 @@ const extractSiteManagementModules = (
     { moduleId: 'remote_desktop', label: 'Remote Desktop', icon: Monitor, color: 'bg-slate-600' },
     { moduleId: 'server_config', label: 'Server Config', icon: Server, color: 'bg-gray-600' },
     { moduleId: 'company_information', label: 'Company Information', icon: FileText, color: 'bg-cyan-600' },
+    { moduleId: 'legal_affairs', label: 'Legal Affairs & Contracts', icon: FileText, color: 'bg-indigo-600' },
     { moduleId: 'user_guide', label: 'User Guide', icon: BookOpen, color: 'bg-amber-600' },
     { moduleId: 'marketing_module', label: 'Marketing Module', icon: Send, color: 'bg-pink-600' },
     { moduleId: 'aws_s3_settings', label: 'AWS S3 Settings', icon: HardDrive, color: 'bg-orange-600' },

@@ -449,7 +449,11 @@ export class AwsS3Service {
    * @param key - S3 object key
    * @param expiresIn - URL expiration time in seconds (default: 1 hour)
    */
-  async getSignedUrl(key: string, expiresIn: number = 3600): Promise<string | null> {
+  async getSignedUrl(
+    key: string,
+    expiresIn: number = 3600,
+    options?: { responseContentDisposition?: string },
+  ): Promise<string | null> {
     if (!this.client || !this.settings) {
       console.error('AWS S3 client not initialized');
       return null;
@@ -459,6 +463,9 @@ export class AwsS3Service {
       const command = new GetObjectCommand({
         Bucket: this.settings.bucketName,
         Key: key,
+        ...(options?.responseContentDisposition
+          ? { ResponseContentDisposition: options.responseContentDisposition }
+          : {}),
       });
 
       // Generate signed URL that expires in specified seconds

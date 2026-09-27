@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, decimal, boolean, integer, bigint, json, jsonb, varchar, uuid, date, check, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, decimal, boolean, integer, bigint, json, jsonb, varchar, uuid, date, char, check, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { sql } from "drizzle-orm";
@@ -2095,3 +2095,34 @@ export const shopContractHoldItems = pgTable("shop_contract_hold_items", {
   holdProductUnique: uniqueIndex("shop_contract_hold_items_hold_product_uidx").on(table.holdId, table.productId),
   positiveQuantity: check("shop_contract_hold_items_quantity_ck", sql`${table.quantity} > 0`),
 }));
+
+export const signedContractDocuments = pgTable("signed_contract_documents", {
+  id: serial("id").primaryKey(),
+  contractId: integer("contract_id").notNull().references(() => shopContracts.id, { onDelete: "restrict" }),
+  fileName: text("file_name").notNull(),
+  fileSize: bigint("file_size", { mode: "number" }).notNull(),
+  sha256: char("sha256", { length: 64 }).notNull(),
+  s3Key: text("s3_key").notNull().unique("signed_contract_documents_s3_key_key"),
+  uploadedAt: timestamp("uploaded_at").notNull().defaultNow(),
+  uploadedByAdminId: integer("uploaded_by_admin_id").references(() => users.id, { onDelete: "set null" }),
+  uploadedByCustomUserId: uuid("uploaded_by_custom_user_id").references(() => customUsers.id, { onDelete: "set null" }),
+}, (table) => ({
+  contractUploadedIndex: index("signed_contract_documents_contract_uploaded_idx")
+    .on(table.contractId, table.uploadedAt.desc(), table.id.desc()),
+  positiveFileSize: check(
+    "signed_contract_documents_file_size_check",
+    sql`${table.fileSize} > 0 AND ${table.fileSize} <= 26214400`,
+  ),
+  sha256Format: check(
+    "signed_contract_documents_sha256_check",
+    sql`${table.sha256} ~ '^[0-9a-f]{64}$'`,
+  ),
+  singleUploader: check(
+    "signed_contract_documents_single_uploader_ck",
+    sql`${table.uploadedByAdminId} IS NULL OR ${table.uploadedByCustomUserId} IS NULL`,
+  ),
+}));
+
+export const insertSignedContractDocumentSchema = createInsertSchema(signedContractDocuments);
+export type InsertSignedContractDocument = z.infer<typeof insertSignedContractDocumentSchema>;
+export type SignedContractDocument = typeof signedContractDocuments.$inferSelect;

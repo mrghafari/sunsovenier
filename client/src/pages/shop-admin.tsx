@@ -56,7 +56,6 @@ import ShopInvoiceManagement from "@/components/ShopInvoiceManagement";
 import AbandonedCartManagement from "@/pages/abandoned-cart-management";
 import BulkPurchaseProductCard from "@/components/BulkPurchaseProductCard";
 import OrderTrackingManagement from "@/pages/admin/order-tracking-management";
-import ShopContracts from "@/components/admin/shop-contracts";
 
 type ShopLanguage = "en" | "ar" | "tr" | "fa";
 type ShopTranslation = Partial<Record<ShopLanguage, string>>;
@@ -65,8 +64,6 @@ const SHOP_TRANSLATIONS: Record<string, ShopTranslation> = {
   shopAdministration: { en: "Commercial", ar: "Commercial", tr: "Commercial", fa: "Commercial" },
   salesUnit: { en: "Sales", ar: "المبيعات", tr: "Satış", fa: "فروش" },
   storeSales: { en: "Regular Shop Sales", ar: "مبيعات المتجر العادية", tr: "Normal Mağaza Satışları", fa: "فروش عادی در فروشگاه" },
-  contractSales: { en: "Contract Sales", ar: "المبيعات التعاقدية", tr: "Sözleşmeli Satışlar", fa: "فروش قراردادی" },
-  salesContracts: { en: "Sales Contracts", ar: "عقود المبيعات", tr: "Satış Sözleşmeleri", fa: "قراردادهای فروش" },
   manageOperations: { en: "Manage shop and contract sales", ar: "إدارة مبيعات المتجر والعقود", tr: "Mağaza ve sözleşmeli satışları yönetin", fa: "مدیریت فروش فروشگاه و قراردادها" },
   refreshData: { en: "Refresh Data", ar: "تحديث البيانات", tr: "Verileri Yenile", fa: "به‌روزرسانی داده‌ها" },
   totalOrders: { en: "Total Orders", ar: "إجمالي الطلبات", tr: "Toplam Sipariş", fa: "کل سفارش‌ها" },
@@ -475,14 +472,14 @@ function ProformaDeadlineSettings() {
 }
 
 const storeSalesTabs = ["orders", "discounts", "inventory", "returns", "abandoned-cart", "bulk-purchases", "proforma-deadline"];
-const contractSalesTabs = ["contracts"];
 const formerProcurementTabs = ["bulk-purchases", "proforma-deadline"];
-type SalesSection = "store" | "contractual" | "reports" | "invoices";
+type SalesSection = "store" | "reports" | "invoices";
 
 function commercialSelectionFromUrl(search: string): { section: SalesSection; tab: string } {
   const params = new URLSearchParams(search);
   const unit = params.get("unit");
   const tab = params.get("tab");
+  if (isLegacyContractsDeepLink(search)) return { section: "store", tab: "orders" };
   if (unit === "procurement" && (!tab || formerProcurementTabs.includes(tab))) {
     return { section: "store", tab: tab || "bulk-purchases" };
   }
@@ -490,10 +487,15 @@ function commercialSelectionFromUrl(search: string): { section: SalesSection; ta
     if (tab === "reports" || (!tab && params.get("group") === "reports")) return { section: "reports", tab: "reports" };
     if (tab === "invoices" || (!tab && params.get("group") === "invoices")) return { section: "invoices", tab: "invoices" };
     if (tab && storeSalesTabs.includes(tab)) return { section: "store", tab };
-    if (tab && contractSalesTabs.includes(tab)) return { section: "contractual", tab };
-    if (!tab && params.get("group") === "contractual") return { section: "contractual", tab: "contracts" };
   }
   return { section: "store", tab: "orders" };
+}
+
+function isLegacyContractsDeepLink(search: string): boolean {
+  const params = new URLSearchParams(search);
+  if (params.get("unit") !== "sales") return false;
+  return params.get("tab") === "contracts" ||
+    (params.get("group") === "contractual" && !params.has("tab"));
 }
 
 export default function ShopAdmin() {
@@ -512,6 +514,12 @@ export default function ShopAdmin() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  useEffect(() => {
+    if (isLegacyContractsDeepLink(window.location.search)) {
+      setLocation("/mrg/legal-affairs");
+    }
+  }, [setLocation]);
+
   const setCommercialSelection = (section: SalesSection, tab: string) => {
     setActiveSection(section);
     setActiveTab(tab);
@@ -744,13 +752,6 @@ export default function ShopAdmin() {
           </Button>
           <Button
             type="button"
-            variant={activeSection === "contractual" ? "default" : "outline"}
-            onClick={() => setCommercialSelection("contractual", "contracts")}
-          >
-            {tr("contractSales")}
-          </Button>
-          <Button
-            type="button"
             variant={activeSection === "reports" ? "default" : "outline"}
             onClick={() => setCommercialSelection("reports", "reports")}
           >
@@ -768,21 +769,15 @@ export default function ShopAdmin() {
 
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={(tab) => setCommercialSelection(activeSection, tab)} className="space-y-6">
-          {(activeSection === "store" || activeSection === "contractual") && (
+          {activeSection === "store" && (
           <TabsList className="flex flex-wrap gap-1 h-auto p-2 bg-gray-100 rounded-lg">
-            {activeSection === "store" ? (
-              <>
-                <TabsTrigger value="orders" className="text-sm px-3 py-2">{tr("orders")}</TabsTrigger>
-                <TabsTrigger value="discounts" className="text-sm px-3 py-2">{tr("discountSettings")}</TabsTrigger>
-                <TabsTrigger value="inventory" className="text-sm px-3 py-2">{tr("inventory")}</TabsTrigger>
-                <TabsTrigger value="returns" className="text-sm px-3 py-2">{tr("returnedItems")}</TabsTrigger>
-                <TabsTrigger value="abandoned-cart" className="text-sm px-3 py-2">{tr("abandonedCart")}</TabsTrigger>
-                <TabsTrigger value="bulk-purchases" className="text-sm px-3 py-2">{tr("bulkPurchases")}</TabsTrigger>
-                <TabsTrigger value="proforma-deadline" className="text-sm px-3 py-2">{tr("purchaseProformaDeadline")}</TabsTrigger>
-              </>
-            ) : (
-              <TabsTrigger value="contracts" className="text-sm px-3 py-2">{tr("salesContracts")}</TabsTrigger>
-            )}
+            <TabsTrigger value="orders" className="text-sm px-3 py-2">{tr("orders")}</TabsTrigger>
+            <TabsTrigger value="discounts" className="text-sm px-3 py-2">{tr("discountSettings")}</TabsTrigger>
+            <TabsTrigger value="inventory" className="text-sm px-3 py-2">{tr("inventory")}</TabsTrigger>
+            <TabsTrigger value="returns" className="text-sm px-3 py-2">{tr("returnedItems")}</TabsTrigger>
+            <TabsTrigger value="abandoned-cart" className="text-sm px-3 py-2">{tr("abandonedCart")}</TabsTrigger>
+            <TabsTrigger value="bulk-purchases" className="text-sm px-3 py-2">{tr("bulkPurchases")}</TabsTrigger>
+            <TabsTrigger value="proforma-deadline" className="text-sm px-3 py-2">{tr("purchaseProformaDeadline")}</TabsTrigger>
           </TabsList>
           )}
 
@@ -791,10 +786,6 @@ export default function ShopAdmin() {
             <OrderTrackingManagement />
           </TabsContent>
 
-          {/* Inventory Tab */}
-          <TabsContent value="contracts" className="space-y-6">
-            <ShopContracts />
-          </TabsContent>
           <TabsContent value="inventory" className="space-y-6">
             <Card className="overflow-hidden border-slate-300 shadow-sm">
               <CardHeader className="border-b border-slate-300 bg-white px-4 py-3 sm:px-5">

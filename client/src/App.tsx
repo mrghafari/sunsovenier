@@ -24,6 +24,7 @@ import Payment from "@/pages/payment";
 import CheckoutSuccess from "@/pages/checkout-success";
 import PaymentOptionsPage from "@/pages/payment-options";
 import ShopAdmin from "@/pages/shop-admin";
+import LegalAffairs from "@/pages/legal-affairs";
 import InvoiceManagement from "@/pages/admin/invoice-management";
 import PaymentSettings from "@/pages/admin/payment-settings";
 import PaymentTestPage from "@/pages/PaymentTestPage";
@@ -256,6 +257,7 @@ function Router() {
           <Route path="/shop-search" component={ShopSearch} />
           <Route path="/shop-admin" component={() => <AdminRoute><ShopAdmin /></AdminRoute>} />
           <Route path="/mrg/shop" component={() => <AdminRoute><ShopAdmin /></AdminRoute>} />
+          <Route path="/mrg/legal-affairs" component={() => <AdminRoute><LegalAffairs /></AdminRoute>} />
           <Route path="/mrg" component={AdminPage} />
           <Route path="/mrg/login" component={AdminLogin} />
           <Route path="/mrg/users" component={() => <AdminRoute><AdminUsers /></AdminRoute>} />

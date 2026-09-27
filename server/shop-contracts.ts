@@ -9,6 +9,7 @@ import {
   type ShopContractDraftData,
 } from "@shared/contract-draft";
 import { buildContractDraftText } from "@shared/contract-document";
+import { registerSignedContractDocuments } from "./signed-contract-documents";
 
 const HOLD_TTL_MINUTES = 5;
 
@@ -560,8 +561,19 @@ async function saveContract(definition: ContractDefinition, contractId?: number)
       new Set(currentItems.rows.filter((row: any) => row.is_active).map((row: any) => Number(row.product_id))),
     );
     const totalUsage = [...usageByProduct.values()].reduce((sum, quantity) => sum + quantity, 0);
-    if (totalUsage > 0 && Number(locked.rows[0].customer_id) !== definition.customerId) {
-      throw new ContractError("Customer cannot be changed after contract units have been used.");
+    if (Number(locked.rows[0].customer_id) !== definition.customerId) {
+      if (totalUsage > 0) {
+        throw new ContractError("Customer cannot be changed after contract units have been used.");
+      }
+      // Signed files remain bound to the original customer's agreement. The
+      // archive upload also locks this contract before inserting its record.
+      const archive = await client.query(
+        "SELECT 1 FROM signed_contract_documents WHERE contract_id = $1 LIMIT 1",
+        [contractId],
+      );
+      if (archive.rowCount) {
+        throw new ContractError("Customer cannot be changed after a signed contract PDF has been archived.", 409);
+      }
     }
     for (const item of definition.items) {
       if ((usageByProduct.get(item.productId) || 0) > item.maxQuantity) {
@@ -632,7 +644,9 @@ function errorResponse(res: Response, error: unknown) {
   return res.status(500).json({ success: false, message: "Unable to process the shop contract request." });
 }
 
-async function requireShopManagement(req: Request, res: Response, next: NextFunction) {
+// The legacy Commercial module retains contract access for existing staff,
+// while new roles can be granted Legal Affairs independently.
+export async function requireContractManagement(req: Request, res: Response, next: NextFunction) {
   const session = req.session as any;
   const adminId = session?.adminId;
   const customUserId = session?.customUserId;
@@ -650,7 +664,8 @@ async function requireShopManagement(req: Request, res: Response, next: NextFunc
       );
       const role = String(result.rows[0]?.name || "").toLowerCase().replace(/[\s-]+/g, "_");
       const permissions: string[] = result.rows[0]?.permissions || [];
-      authorized = ["super_admin", "supper_admin", "superadmin"].includes(role) || permissions.includes("shop_management");
+       authorized = ["super_admin", "supper_admin", "superadmin"].includes(role)
+         || permissions.includes("legal_affairs") || permissions.includes("shop_management");
     } else {
       const result = await pool.query(
         `SELECT ar.name AS role_name,
@@ -658,16 +673,17 @@ async function requireShopManagement(req: Request, res: Response, next: NextFunc
                   SELECT 1 FROM role_permissions rp
                   JOIN admin_permissions ap ON ap.id = rp.permission_id
                   WHERE rp.role_id = ar.id AND ap.is_active = true
-                    AND (ap.name = 'shop_management' OR ap.module = 'shop_management')
-                ) AS can_manage_shop
+                     AND (ap.name IN ('shop_management', 'legal_affairs')
+                       OR ap.module IN ('shop_management', 'legal_affairs'))
+                 ) AS can_manage_contracts
            FROM users u JOIN admin_roles ar ON ar.id = u.role_id
           WHERE u.id = $1 AND u.is_active = true AND ar.is_active = true`,
         [adminId],
       );
       const role = String(result.rows[0]?.role_name || "").toLowerCase().replace(/[\s-]+/g, "_");
-      authorized = ["super_admin", "supper_admin", "superadmin"].includes(role) || result.rows[0]?.can_manage_shop === true;
+       authorized = ["super_admin", "supper_admin", "superadmin"].includes(role) || result.rows[0]?.can_manage_contracts === true;
     }
-    if (!authorized) return res.status(403).json({ success: false, message: "Shop management permission required." });
+     if (!authorized) return res.status(403).json({ success: false, message: "Legal Affairs or Commercial permission required." });
     next();
   } catch (error) {
     console.error("Shop contract authorization failed:", error);
@@ -714,7 +730,7 @@ export function registerShopContractRoutes(app: Express): void {
     }
   });
 
-  app.get("/api/admin/shop/contracts", requireShopManagement, async (_req, res) => {
+   app.get("/api/admin/shop/contracts", requireContractManagement, async (_req, res) => {
     try {
       await reconcileShopContractHolds();
       const contracts = await inTransaction((client) => loadContractRows(client));
@@ -725,7 +741,7 @@ export function registerShopContractRoutes(app: Express): void {
   });
 
   // Return the legal seller snapshot for the selected document language.
-  app.get("/api/admin/shop/contracts/seller", requireShopManagement, async (req, res) => {
+   app.get("/api/admin/shop/contracts/seller", requireContractManagement, async (req, res) => {
     const requestedLanguage = typeof req.query.language === "string" ? req.query.language : "fa";
     if (!contractDraftLanguages.includes(requestedLanguage as ContractDraftLanguage)) {
       return res.status(400).json({ success: false, message: "Select one of the supported contract languages: fa, ar, en, tr." });
@@ -742,7 +758,7 @@ export function registerShopContractRoutes(app: Express): void {
 
   // Admin contract product picker must include contract-only materials, which
   // are deliberately excluded from the public shop search endpoint.
-  app.get("/api/admin/shop/contracts/products", requireShopManagement, async (req, res) => {
+   app.get("/api/admin/shop/contracts/products", requireContractManagement, async (req, res) => {
     try {
       const query = typeof req.query.q === "string" ? req.query.q.trim().slice(0, 100) : "";
       if (query.length < 2) return res.json({ success: true, products: [] });
@@ -759,7 +775,7 @@ export function registerShopContractRoutes(app: Express): void {
     }
   });
 
-  app.get("/api/admin/shop/contracts/:id", requireShopManagement, async (req, res) => {
+   app.get("/api/admin/shop/contracts/:id", requireContractManagement, async (req, res) => {
     try {
       const id = parsePositiveId(req.params.id, "Contract id");
       await reconcileShopContractHolds();
@@ -771,7 +787,7 @@ export function registerShopContractRoutes(app: Express): void {
     }
   });
 
-  app.post("/api/admin/shop/contracts", requireShopManagement, async (req, res) => {
+   app.post("/api/admin/shop/contracts", requireContractManagement, async (req, res) => {
     try {
       const contract = await saveContract(validateContractDefinition(req.body, true));
       res.status(201).json({ success: true, contract });
@@ -780,7 +796,7 @@ export function registerShopContractRoutes(app: Express): void {
     }
   });
 
-  app.put("/api/admin/shop/contracts/:id", requireShopManagement, async (req, res) => {
+   app.put("/api/admin/shop/contracts/:id", requireContractManagement, async (req, res) => {
     try {
       const id = parsePositiveId(req.params.id, "Contract id");
       const contract = await saveContract(validateContractDefinition(req.body), id);
@@ -790,7 +806,7 @@ export function registerShopContractRoutes(app: Express): void {
     }
   });
 
-  app.post("/api/admin/shop/contracts/:id/end", requireShopManagement, async (req, res) => {
+   app.post("/api/admin/shop/contracts/:id/end", requireContractManagement, async (req, res) => {
     try {
       const id = parsePositiveId(req.params.id, "Contract id");
       const contract = await inTransaction(async (client) => {
@@ -812,6 +828,7 @@ export function registerShopContractRoutes(app: Express): void {
       errorResponse(res, error);
     }
   });
+  registerSignedContractDocuments(app, requireContractManagement);
 }
 
 export async function loadContractPricing(
