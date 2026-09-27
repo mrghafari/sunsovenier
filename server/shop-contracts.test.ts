@@ -4,11 +4,17 @@ import {
   assertCompleteActiveContractDraft,
   assertContractShippingMode,
   applyAuthoritativeContractSeller,
+  attachContractHold,
   companyProfileToContractSeller,
   formatContractNumber,
+  formatContractAddendumNumber,
   resolveContractShippingMode,
+  snapshotContractAddendum,
+  snapshotContractAtClaim,
+  validateContractAddendumDefinition,
   validateContractDefinition,
 } from "./shop-contracts";
+import { pool } from "./db";
 import { isValidIsoDate, shopContractDraftSchema } from "@shared/contract-draft";
 import { buildContractDraftText } from "@shared/contract-document";
 
@@ -106,6 +112,120 @@ test("new contract numbers follow the order format with an independent C prefix"
     number: "ignored",
     shippingMode: "self_transport",
   }, true).number, "");
+});
+
+test("contract addendum numbers use the parent's number and positive per-parent sequence", () => {
+  assert.equal(formatContractAddendumNumber("C2601111", 1), "C2601111-1");
+  assert.equal(formatContractAddendumNumber("C2601111", 8), "C2601111-8");
+  assert.throws(() => formatContractAddendumNumber("C2601111", 0));
+  assert.throws(() => formatContractAddendumNumber("C2601111", 1.5));
+  assert.throws(() => formatContractAddendumNumber("", 1));
+});
+
+test("addendum snapshots retain the full versioned contract without mutating the live response", () => {
+  const liveContract = {
+    id: 5,
+    number: "C2601111",
+    addendumCount: 1,
+    terms: "Updated commercial terms",
+    items: [{ productId: 11, maxQuantity: 35, usedQuantity: 7, unitPrice: 12500 }],
+  };
+  const snapshot = snapshotContractAddendum(liveContract, "C2601111-2");
+  assert.deepEqual(snapshot, {
+    id: 5,
+    number: "C2601111-2",
+    addendumCount: 2,
+    terms: "Updated commercial terms",
+    items: [{ productId: 11, maxQuantity: 35, usedQuantity: 7, unitPrice: 12500 }],
+  });
+  assert.equal(liveContract.number, "C2601111");
+  assert.equal(liveContract.addendumCount, 1);
+  assert.notEqual(snapshot.items[0], liveContract.items[0]);
+});
+
+test("a claim freezes the current terms so attaching after an addendum preserves the claimed version", async () => {
+  const claimed = snapshotContractAtClaim({
+    id: 5,
+    number: "C2601111",
+    terms: "Original terms",
+    items: [{ productId: 11, productName: "Resin", maxQuantity: 40, unitPrice: 12000 }],
+  });
+  const later = snapshotContractAddendum({
+    ...claimed,
+    terms: "Amended terms",
+    items: [{ productId: 11, productName: "Resin", maxQuantity: 60, unitPrice: 11000 }],
+  }, "C2601111-1");
+  assert.equal(later.terms, "Amended terms");
+  assert.equal(claimed.terms, "Original terms");
+  const futureClaim = snapshotContractAtClaim(later, { number: later.number, terms: later.terms });
+  assert.equal(futureClaim.number, "C2601111-1");
+  assert.equal(futureClaim.terms, "Amended terms");
+
+  const originalConnect = pool.connect;
+  const statements: Array<{ sql: string; params?: unknown[] }> = [];
+  (pool as any).connect = async () => ({
+    query: async (sql: string, params?: unknown[]) => {
+      statements.push({ sql, params });
+      if (sql.startsWith("SELECT id, contract_id, customer_id, contract_snapshot")) {
+        return { rowCount: 1, rows: [{ id: "hold-1", contract_id: 5, customer_id: 7, created_at: new Date(), contract_snapshot: claimed }] };
+      }
+      if (sql.startsWith("UPDATE customer_orders")) return { rowCount: 1, rows: [{ id: 9 }] };
+      if (sql.startsWith("INSERT INTO shop_contract_order_snapshots")) return { rowCount: 1, rows: [{ order_id: 9 }] };
+      return { rowCount: 1, rows: [] };
+    },
+    release() {},
+  });
+  try {
+    await attachContractHold("hold-1", 9);
+  } finally {
+    (pool as any).connect = originalConnect;
+  }
+  const orderSnapshot = statements.find(({ sql }) => sql.startsWith("INSERT INTO shop_contract_order_snapshots"));
+  const holdUpdate = statements.find(({ sql }) => sql.startsWith("UPDATE shop_contract_holds SET order_id"));
+  assert.equal(orderSnapshot?.params?.[2], claimed);
+  assert.deepEqual(orderSnapshot?.params?.slice(0, 2), [9, 5]);
+  assert.equal(holdUpdate?.params?.[2], claimed);
+});
+
+test("attaching an order never overwrites its existing contract snapshot", async () => {
+  const snapshot = { number: "C2601111", terms: "Previously attached terms" };
+  const originalConnect = pool.connect;
+  const statements: Array<{ sql: string; params?: unknown[] }> = [];
+  (pool as any).connect = async () => ({
+    query: async (sql: string, params?: unknown[]) => {
+      statements.push({ sql, params });
+      if (sql.startsWith("SELECT id, contract_id, customer_id, contract_snapshot")) {
+        return { rowCount: 1, rows: [{ id: "hold-2", contract_id: 5, customer_id: 7, created_at: new Date(), contract_snapshot: snapshot }] };
+      }
+      if (sql.startsWith("UPDATE customer_orders")) return { rowCount: 1, rows: [{ id: 9 }] };
+      if (sql.startsWith("INSERT INTO shop_contract_order_snapshots")) return { rowCount: 0, rows: [] };
+      if (sql.startsWith("SELECT contract_id FROM shop_contract_order_snapshots")) {
+        return { rowCount: 1, rows: [{ contract_id: 5 }] };
+      }
+      return { rowCount: 1, rows: [] };
+    },
+    release() {},
+  });
+  try {
+    await attachContractHold("hold-2", 9);
+  } finally {
+    (pool as any).connect = originalConnect;
+  }
+  const insert = statements.find(({ sql }) => sql.startsWith("INSERT INTO shop_contract_order_snapshots"));
+  assert.match(insert?.sql || "", /ON CONFLICT \(order_id\) DO NOTHING/);
+  assert.equal(
+    statements.some(({ sql }) => sql.startsWith("UPDATE shop_contract_order_snapshots")),
+    false,
+  );
+});
+
+test("addendum payloads may omit the base contract number", () => {
+  const { number: _number, ...payload } = validContract();
+  const result = validateContractAddendumDefinition(payload);
+  assert.equal(result.customerId, 7);
+  assert.equal(result.items[0].maxQuantity, 40);
+  assert.equal(result.number, "server-generated-addendum");
+  assert.throws(() => validateContractAddendumDefinition({ ...payload, number: 123 }), /Contract number is required/);
 });
 
 test("new contracts require an explicit shipping mode while legacy edits preserve null/omitted mode", () => {

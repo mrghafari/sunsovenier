@@ -206,6 +206,16 @@ export function validateContractDefinition(body: any, generatingNumber = false):
   };
 }
 
+export function validateContractAddendumDefinition(body: any): ContractDefinition {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    throw new ContractError("A contract addendum body is required.");
+  }
+  return validateContractDefinition({
+    ...body,
+    number: body.number === undefined ? "server-generated-addendum" : body.number,
+  });
+}
+
 /** Enforce the contract's saved delivery policy against the database-resolved method. */
 export function assertContractShippingMode(mode: ContractShippingMode | null, canonicalMethod: unknown): void {
   if (mode === null) return; // Existing contracts retain their previous shipping choices.
@@ -336,7 +346,7 @@ async function reconcileContractHolds(client: import("pg").PoolClient): Promise<
       WHERE (h.status = 'active' AND h.order_id IS NULL AND h.expires_at <= now())
          OR (h.status = 'attached' AND
              (o.id IS NULL OR o.status IN ('cancelled', 'deleted')
-               OR o.payment_status IN ('failed', 'cancelled')))
+                OR o.payment_status IN ('failed', 'cancelled')))
       FOR UPDATE OF h`,
   );
   for (const row of stale.rows) await releaseHoldWithinTransaction(client, row.id);
@@ -350,6 +360,7 @@ function contractResponse(row: any, itemRows: any[]) {
   return {
     id: Number(row.id),
     number: row.number,
+    addendumCount: Number(row.addendum_count || 0),
     terms: row.terms,
     draftData: row.draft_data ?? null,
     deliveryTerm: row.delivery_term,
@@ -372,7 +383,8 @@ function contractResponse(row: any, itemRows: any[]) {
 async function loadContractRows(client: import("pg").PoolClient, contractId?: number) {
   const contracts = await client.query(
     `SELECT c.id, c.number, c.terms, c.draft_data, c.delivery_term, c.shipping_mode, c.is_active, c.ended_at, c.customer_id,
-            COALESCE(NULLIF(concat_ws(' ', cc.first_name, cc.last_name), ''), cc.company, '') AS customer_name
+            COALESCE(NULLIF(concat_ws(' ', cc.first_name, cc.last_name), ''), cc.company, '') AS customer_name,
+            (SELECT count(*)::integer FROM shop_contract_addenda a WHERE a.parent_contract_id = c.id) AS addendum_count
        FROM shop_contracts c
        JOIN crm_customers cc ON cc.id = c.customer_id
       ${contractId === undefined ? "" : "WHERE c.id = $1"}
@@ -454,6 +466,32 @@ export function formatContractNumber(year: number, counter: number): string {
   return `C${String(year % 100).padStart(2, "0")}${String(counter).padStart(5, "0")}`;
 }
 
+export function formatContractAddendumNumber(contractNumber: string, sequence: number): string {
+  if (!contractNumber.trim() || !Number.isSafeInteger(sequence) || sequence < 1) {
+    throw new ContractError("Contract addendum sequence is invalid.", 500);
+  }
+  return `${contractNumber}-${sequence}`;
+}
+
+export function snapshotContractAddendum(contract: Record<string, any>, number: string) {
+  const snapshot = JSON.parse(JSON.stringify(contract));
+  return {
+    ...snapshot,
+    number,
+    addendumCount: Number(contract.addendumCount || 0) + 1,
+  };
+}
+
+export function snapshotContractAtClaim(
+  contract: Record<string, any>,
+  latestAddendum?: { number: string; terms: string },
+) {
+  return JSON.parse(JSON.stringify({
+    ...contract,
+    ...(latestAddendum ? { number: latestAddendum.number, terms: latestAddendum.terms } : {}),
+  }));
+}
+
 async function nextContractNumber(client: import("pg").PoolClient): Promise<string> {
   const year = new Date().getFullYear();
   const yearCode = String(year % 100).padStart(2, "0");
@@ -476,9 +514,13 @@ async function nextContractNumber(client: import("pg").PoolClient): Promise<stri
   return formatContractNumber(year, Number(next.rows[0].counter));
 }
 
-async function saveContract(definition: ContractDefinition, contractId?: number): Promise<any> {
-  return inTransaction(async (client) => {
-    await reconcileContractHolds(client);
+async function saveContractInTransaction(
+  client: import("pg").PoolClient,
+  definition: ContractDefinition,
+  contractId?: number,
+  options: { allowAddenda?: boolean; skipReconcile?: boolean } = {},
+): Promise<any> {
+    if (!options.skipReconcile) await reconcileContractHolds(client);
     if (contractId === undefined) {
       let effectiveDraft = definition.draftData ?? null;
       if (effectiveDraft) {
@@ -523,6 +565,13 @@ async function saveContract(definition: ContractDefinition, contractId?: number)
     if (!locked.rowCount) throw new ContractError("Contract not found.", 404);
     if (locked.rows[0].ended_at !== null) {
       throw new ContractError("An ended contract cannot be edited.", 409);
+    }
+    const existingAddenda = await client.query(
+      "SELECT 1 FROM shop_contract_addenda WHERE parent_contract_id = $1 LIMIT 1",
+      [contractId],
+    );
+    if (existingAddenda.rowCount && !options.allowAddenda) {
+      throw new ContractError("This contract has addenda. Create a new addendum instead of editing the original contract.", 409);
     }
     if (definition.deliveryTerm === null && locked.rows[0].delivery_term !== null) {
       throw new ContractError("A saved contract delivery term cannot be removed.");
@@ -630,6 +679,80 @@ async function saveContract(definition: ContractDefinition, contractId?: number)
       [contractId, terms],
     );
     return (await loadContractRows(client, contractId))[0];
+}
+
+async function saveContract(definition: ContractDefinition, contractId?: number): Promise<any> {
+  return inTransaction((client) => saveContractInTransaction(client, definition, contractId));
+}
+
+async function createContractAddendum(contractId: number, definition: ContractDefinition) {
+  return inTransaction(async (client) => {
+    await reconcileContractHolds(client);
+    const parent = await client.query(
+      `SELECT id, number, customer_id, ended_at, original_contract_snapshot
+         FROM shop_contracts WHERE id = $1 FOR UPDATE`,
+      [contractId],
+    );
+    if (!parent.rowCount) throw new ContractError("Contract not found.", 404);
+    if (parent.rows[0].ended_at !== null) throw new ContractError("An ended contract cannot receive addenda.", 409);
+    if (Number(parent.rows[0].customer_id) !== definition.customerId) {
+      throw new ContractError("An addendum must keep the original contract customer.", 409);
+    }
+    const prior = await client.query(
+      `SELECT COALESCE(MAX(sequence), 0)::integer AS sequence
+         FROM shop_contract_addenda WHERE parent_contract_id = $1`,
+      [contractId],
+    );
+    const sequence = Number(prior.rows[0].sequence) + 1;
+    if (sequence === 1 && !parent.rows[0].original_contract_snapshot) {
+      const original = (await loadContractRows(client, contractId))[0];
+      await client.query(
+        `UPDATE shop_contracts
+            SET original_contract_snapshot = $2, original_snapshot_at = now()
+          WHERE id = $1 AND original_contract_snapshot IS NULL`,
+        [contractId, original],
+      );
+    }
+
+    const number = formatContractAddendumNumber(parent.rows[0].number, sequence);
+    const collision = await client.query(
+      `SELECT EXISTS (SELECT 1 FROM shop_contracts WHERE number = $1)
+           OR EXISTS (SELECT 1 FROM shop_contract_addenda WHERE number = $1) AS used`,
+      [number],
+    );
+    if (collision.rows[0].used) throw new ContractError("The generated addendum number is already in use.", 409);
+
+    const contract = await saveContractInTransaction(client, definition, contractId, { allowAddenda: true, skipReconcile: true });
+    const snapshotSource = contract.draftData
+      ? {
+        ...contract,
+        terms: await canonicalTermsForContract(
+          client,
+          contractId,
+          number,
+          contract.customerId,
+          contract.deliveryTerm,
+          contract.draftData,
+        ),
+      }
+      : contract;
+    const snapshot = snapshotContractAddendum(snapshotSource, number);
+    const inserted = await client.query(
+      `INSERT INTO shop_contract_addenda (parent_contract_id, sequence, number, contract_snapshot)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, created_at`,
+      [contractId, sequence, number, snapshot],
+    );
+    return {
+      addendum: {
+        id: Number(inserted.rows[0].id),
+        number,
+        sequence,
+        createdAt: new Date(inserted.rows[0].created_at).toISOString(),
+        contract: snapshot,
+      },
+      contract: (await loadContractRows(client, contractId))[0],
+    };
   });
 }
 
@@ -706,7 +829,8 @@ export function registerShopContractRoutes(app: Express): void {
       await reconcileShopContractHolds();
       const result = await pool.query(
         `SELECT c.id, c.number, c.terms, c.draft_data, c.delivery_term, c.shipping_mode, c.is_active, c.ended_at, c.customer_id,
-                COALESCE(NULLIF(concat_ws(' ', cc.first_name, cc.last_name), ''), cc.company, '') AS customer_name
+                COALESCE(NULLIF(concat_ws(' ', cc.first_name, cc.last_name), ''), cc.company, '') AS customer_name,
+                (SELECT count(*)::integer FROM shop_contract_addenda a WHERE a.parent_contract_id = c.id) AS addendum_count
            FROM shop_contracts c JOIN crm_customers cc ON cc.id = c.customer_id
           WHERE c.customer_id = $1 ORDER BY c.id DESC`,
         [customerId],
@@ -782,6 +906,44 @@ export function registerShopContractRoutes(app: Express): void {
       const contracts = await inTransaction((client) => loadContractRows(client, id));
       if (!contracts.length) return res.status(404).json({ success: false, message: "Contract not found." });
       res.json({ success: true, contract: contracts[0] });
+    } catch (error) {
+      errorResponse(res, error);
+    }
+  });
+
+  app.get("/api/admin/shop/contracts/:id/addenda", requireContractManagement, async (req, res) => {
+    try {
+      const id = parsePositiveId(req.params.id, "Contract id");
+      const addenda = await inTransaction(async (client) => {
+        const parent = await client.query("SELECT id FROM shop_contracts WHERE id = $1", [id]);
+        if (!parent.rowCount) throw new ContractError("Contract not found.", 404);
+        const rows = await client.query(
+          `SELECT id, number, sequence, created_at, contract_snapshot
+             FROM shop_contract_addenda WHERE parent_contract_id = $1
+            ORDER BY sequence`,
+          [id],
+        );
+        return rows.rows.map((row: any) => ({
+          id: Number(row.id),
+          number: row.number,
+          sequence: Number(row.sequence),
+          createdAt: new Date(row.created_at).toISOString(),
+          contract: typeof row.contract_snapshot === "string"
+            ? JSON.parse(row.contract_snapshot)
+            : row.contract_snapshot,
+        }));
+      });
+      res.json({ success: true, addenda });
+    } catch (error) {
+      errorResponse(res, error);
+    }
+  });
+
+  app.post("/api/admin/shop/contracts/:id/addenda", requireContractManagement, async (req, res) => {
+    try {
+      const id = parsePositiveId(req.params.id, "Contract id");
+      const result = await createContractAddendum(id, validateContractAddendumDefinition(req.body));
+      res.status(201).json({ success: true, ...result });
     } catch (error) {
       errorResponse(res, error);
     }
@@ -919,12 +1081,23 @@ export async function claimContractCart(
         [contractId, productId, quantity],
       );
     }
+    const contractIdForSnapshot = Number(contract.rows[0].id);
+    const latestAddendum = await client.query(
+      `SELECT number, contract_snapshot->>'terms' AS terms
+         FROM shop_contract_addenda WHERE parent_contract_id = $1
+        ORDER BY sequence DESC LIMIT 1`,
+      [contractIdForSnapshot],
+    );
+    const contractSnapshot = snapshotContractAtClaim(
+      (await loadContractRows(client, contractIdForSnapshot))[0],
+      latestAddendum.rows[0],
+    );
     const hold = await client.query(
       `INSERT INTO shop_contract_holds
-         (contract_id, customer_id, status, expires_at)
-       VALUES ($1, $2, 'active', now() + ($3 * interval '1 minute'))
+         (contract_id, customer_id, status, expires_at, contract_snapshot)
+       VALUES ($1, $2, 'active', now() + ($3 * interval '1 minute'), $4)
        RETURNING id`,
-      [contractId, customerId, HOLD_TTL_MINUTES],
+      [contractId, customerId, HOLD_TTL_MINUTES, contractSnapshot],
     );
     for (const [productId, quantity] of requested) {
       await client.query(
@@ -936,27 +1109,72 @@ export async function claimContractCart(
   });
 }
 
+async function contractSnapshotForHold(
+  client: import("pg").PoolClient,
+  hold: { contract_id: number; created_at: Date | string; contract_snapshot: unknown },
+) {
+  if (hold.contract_snapshot) return hold.contract_snapshot;
+  const version = await client.query(
+    `SELECT CASE
+       WHEN c.original_contract_snapshot IS NOT NULL
+         AND c.original_snapshot_at >= $2
+         THEN c.original_contract_snapshot
+       ELSE COALESCE(
+         (SELECT a.contract_snapshot FROM shop_contract_addenda a
+           WHERE a.parent_contract_id = c.id AND a.created_at <= $2
+           ORDER BY a.sequence DESC LIMIT 1),
+         c.original_contract_snapshot
+       )
+     END AS contract_snapshot
+       FROM shop_contracts c WHERE c.id = $1`,
+    [hold.contract_id, hold.created_at],
+  );
+  const savedSnapshot = version.rows[0]?.contract_snapshot;
+  if (savedSnapshot) return savedSnapshot;
+  // Legacy in-flight holds have no claim-time version. Preserve the best
+  // available contract state rather than attaching an order without terms.
+  return (await loadContractRows(client, Number(hold.contract_id)))[0];
+}
+
 export async function attachContractHold(holdId: string, orderId: number): Promise<void> {
   await inTransaction(async (client) => {
     const hold = await client.query(
-      `SELECT id, contract_id, customer_id FROM shop_contract_holds
+      `SELECT id, contract_id, customer_id, contract_snapshot, created_at FROM shop_contract_holds
         WHERE id = $1 AND status = 'active' AND expires_at > now() FOR UPDATE`,
       [holdId],
     );
     if (!hold.rowCount) throw new ContractError("Contract hold is missing, expired, or already attached.", 409);
+    const contractSnapshot = await contractSnapshotForHold(client, hold.rows[0]);
+    const parsedOrderId = parsePositiveId(orderId, "Order id");
     const order = await client.query(
       `UPDATE customer_orders SET contract_id = $2, updated_at = now()
         WHERE id = $1 AND customer_id = $3
           AND status NOT IN ('cancelled', 'deleted')
           AND payment_status NOT IN ('failed', 'cancelled')
           AND (contract_id IS NULL OR contract_id = $2) RETURNING id`,
-      [parsePositiveId(orderId, "Order id"), hold.rows[0].contract_id, hold.rows[0].customer_id],
+      [parsedOrderId, hold.rows[0].contract_id, hold.rows[0].customer_id],
     );
     if (!order.rowCount) throw new ContractError("Order not found or already belongs to another contract.", 404);
+    const savedSnapshot = await client.query(
+      `INSERT INTO shop_contract_order_snapshots (order_id, contract_id, contract_snapshot)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (order_id) DO NOTHING
+       RETURNING order_id`,
+      [parsedOrderId, hold.rows[0].contract_id, contractSnapshot],
+    );
+    if (!savedSnapshot.rowCount) {
+      const existingSnapshot = await client.query(
+        "SELECT contract_id FROM shop_contract_order_snapshots WHERE order_id = $1",
+        [parsedOrderId],
+      );
+      if (Number(existingSnapshot.rows[0]?.contract_id) !== Number(hold.rows[0].contract_id)) {
+        throw new ContractError("Order already has a snapshot for another contract.", 409);
+      }
+    }
     await client.query(
       `UPDATE shop_contract_holds SET order_id = $2, status = 'attached',
-        updated_at = now() WHERE id = $1`,
-      [holdId, orderId],
+        contract_snapshot = COALESCE(contract_snapshot, $3), updated_at = now() WHERE id = $1`,
+      [holdId, orderId, contractSnapshot],
     );
   });
 }

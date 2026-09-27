@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, decimal, boolean, integer, json } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, decimal, boolean, integer, json, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { crmCustomers, shopContracts } from "./schema";
@@ -202,6 +202,14 @@ export const customerOrders = pgTable("customer_orders", {
   
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const shopContractOrderSnapshots = pgTable("shop_contract_order_snapshots", {
+  orderId: integer("order_id").notNull().unique("shop_contract_order_snapshots_order_id_key")
+    .references(() => customerOrders.id, { onDelete: "cascade" }),
+  contractId: integer("contract_id").notNull().references(() => shopContracts.id, { onDelete: "restrict" }),
+  contractSnapshot: jsonb("contract_snapshot").notNull().$type<Record<string, unknown>>(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const insertCustomerOrderSchema = createInsertSchema(customerOrders).omit({

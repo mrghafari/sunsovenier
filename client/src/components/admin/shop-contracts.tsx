@@ -6,6 +6,7 @@ import { INCOTERMS_2020, IncotermCode } from "@shared/incoterms";
 import type { ShopContractDraftData } from "@shared/contract-draft";
 import ContractDraftBuilder, { buildContractDraftText, emptyContractDraft } from "./contract-draft-builder";
 import ContractSignedDocuments from "./contract-signed-documents";
+import ContractAddenda from "./contract-addenda";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
@@ -22,7 +23,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type ContractItem = { productId: number | string; productName: string; maxQuantity: number; usedQuantity: number; remainingQuantity: number; unitPrice: number };
 type ShippingMode = "automatic_vehicle" | "self_transport";
-type Contract = { id: number | string; number: string; terms: string; draftData: ShopContractDraftData | null; shippingMode: ShippingMode | null; isActive: boolean; endedAt: string | null; customerId: number | string; customerName: string; deliveryTerm: IncotermCode | null; items: ContractItem[] };
+type Contract = { id: number | string; number: string; addendumCount?: number; terms: string; draftData: ShopContractDraftData | null; shippingMode: ShippingMode | null; isActive: boolean; endedAt: string | null; customerId: number | string; customerName: string; deliveryTerm: IncotermCode | null; items: ContractItem[] };
 type Customer = { id: number | string; firstName?: string; lastName?: string; name?: string; company?: string; email?: string };
 type Product = { id: number | string; name: string };
 type FormItem = { productId: number | string; productName: string; maxQuantity: string; unitPrice: string; usedQuantity: number };
@@ -52,6 +53,7 @@ export default function ShopContracts() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | string | null>(null);
+  const [creatingAddendumFor, setCreatingAddendumFor] = useState<Contract | null>(null);
   const [form, setForm] = useState<ContractForm>(emptyForm);
   const [draftData, setDraftData] = useState<ShopContractDraftData | null>(null);
   const [refreshSeller, setRefreshSeller] = useState(false);
@@ -71,6 +73,12 @@ export default function ShopContracts() {
     en: { upload: "Upload PDF", download: "PDFs / Download", details: "Contract details" },
     ar: { upload: "تحميل PDF", download: "PDF / تنزيل", details: "تفاصيل العقد" },
     tr: { upload: "PDF yükle", download: "PDF'ler / İndir", details: "Sözleşme ayrıntıları" },
+  }[language];
+  const addendumLabels = {
+    fa: { create: "ایجاد متمم", title: "ایجاد متمم قرارداد", save: "ثبت متمم", led: "دارای متمم" },
+    en: { create: "Create addendum", title: "Create contract addendum", save: "Save addendum", led: "Has addenda" },
+    ar: { create: "إنشاء ملحق", title: "إنشاء ملحق للعقد", save: "حفظ الملحق", led: "له ملاحق" },
+    tr: { create: "Ek oluştur", title: "Sözleşme eki oluştur", save: "Eki kaydet", led: "Ekleri var" },
   }[language];
   const contractsQuery = useQuery<{ success: boolean; contracts: Contract[] }>({ queryKey: ["/api/admin/shop/contracts"], queryFn: () => readJson("/api/admin/shop/contracts") });
   const customerQuery = useQuery<{ data?: Customer[] | { customers?: Customer[] }; customers?: Customer[] }>({ queryKey: ["/api/crm/customers/search", customerSearch], queryFn: () => readJson(`/api/crm/customers/search?q=${encodeURIComponent(customerSearch)}`), enabled: dialogOpen && customerSearch.trim().length >= 2 });
@@ -94,9 +102,9 @@ export default function ShopContracts() {
   const endedContracts = useMemo(() => contracts.filter((contract) => Boolean(contract.endedAt)), [contracts]);
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const draftContext = { customerName: form.customerName, contractNumber: form.number, deliveryTerm: form.deliveryTerm, items: form.items };
+      const draftContext = { customerName: form.customerName, contractNumber: creatingAddendumFor ? `${creatingAddendumFor.number}-${(creatingAddendumFor.addendumCount || 0) + 1}` : form.number, deliveryTerm: form.deliveryTerm, items: form.items };
       const payload = {
-        ...(editingId !== null ? { number: form.number.trim() } : {}),
+        ...(editingId !== null && !creatingAddendumFor ? { number: form.number.trim() } : {}),
         customerId: form.customerId, deliveryTerm: form.deliveryTerm,
         ...(form.shippingMode !== null ? { shippingMode: form.shippingMode } : {}),
         terms: draftData ? buildContractDraftText(draftData, draftContext) : form.terms.trim(),
@@ -105,12 +113,21 @@ export default function ShopContracts() {
         isActive: form.isActive,
         items: form.items.map((item) => ({ productId: item.productId, maxQuantity: Number(item.maxQuantity), unitPrice: Number(item.unitPrice) })),
       };
-      const response = await fetch(editingId === null ? "/api/admin/shop/contracts" : `/api/admin/shop/contracts/${editingId}`, { method: editingId === null ? "POST" : "PUT", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const response = await fetch(creatingAddendumFor
+        ? `/api/admin/shop/contracts/${creatingAddendumFor.id}/addenda`
+        : editingId === null ? "/api/admin/shop/contracts" : `/api/admin/shop/contracts/${editingId}`, {
+        method: creatingAddendumFor || editingId === null ? "POST" : "PUT",
+        credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
+      });
       const result = await response.json().catch(() => ({}));
       if (!response.ok || result.success === false) throw new Error(result.message || result.error || tx.saveFailed);
       return result;
     },
-    onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/contracts"] }); setDialogOpen(false); setEditingId(null); setRefreshSeller(false); setForm(emptyForm()); setCustomerSearch(""); setProductSearch(""); setFormError(""); },
+    onSuccess: async () => {
+      if (creatingAddendumFor) await queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/contracts", creatingAddendumFor.id, "addenda"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/admin/shop/contracts"] });
+      setDialogOpen(false); setEditingId(null); setCreatingAddendumFor(null); setRefreshSeller(false); setForm(emptyForm()); setCustomerSearch(""); setProductSearch(""); setFormError("");
+    },
     onError: (error) => setFormError(errorMessage(error)),
   });
   const endMutation = useMutation({
@@ -128,14 +145,21 @@ export default function ShopContracts() {
     },
     onError: () => setEndError(tx.endFailed),
   });
-  const openCreate = () => { setEditingId(null); setRefreshSeller(false); setForm(emptyForm()); setDraftData(emptyContractDraft()); setCustomerSearch(""); setProductSearch(""); setFormError(""); setDialogOpen(true); };
+  const openCreate = () => { setCreatingAddendumFor(null); setEditingId(null); setRefreshSeller(false); setForm(emptyForm()); setDraftData(emptyContractDraft()); setCustomerSearch(""); setProductSearch(""); setFormError(""); setDialogOpen(true); };
   const openEdit = (contract: Contract) => {
     if (contract.endedAt) return;
+    setCreatingAddendumFor(null);
     setEditingId(contract.id);
     setForm({ number: contract.number || "", customerId: contract.customerId, customerName: contract.customerName || "", deliveryTerm: contract.deliveryTerm || null, shippingMode: contract.shippingMode ?? null, terms: contract.terms || "", isActive: Boolean(contract.isActive), items: (contract.items || []).map((item) => ({ productId: item.productId, productName: item.productName, maxQuantity: String(item.maxQuantity), unitPrice: String(item.unitPrice), usedQuantity: Number(item.usedQuantity) || 0 })) });
     setDraftData(contract.draftData || null);
     setRefreshSeller(false);
     setCustomerSearch(""); setProductSearch(""); setFormError(""); setDialogOpen(true);
+  };
+  const openAddendum = (contract: Contract) => {
+    if (contract.endedAt) return;
+    openEdit(contract);
+    setCreatingAddendumFor(contract);
+    setExpanded(contract.id);
   };
   const addProduct = (product: Product) => { if (form.items.some((item) => String(item.productId) === String(product.id))) return; setForm((current) => ({ ...current, items: [...current.items, { productId: product.id, productName: product.name, maxQuantity: "", unitPrice: "", usedQuantity: 0 }] })); setProductSearch(""); };
   const updateItem = (index: number, field: "maxQuantity" | "unitPrice", value: string) => setForm((current) => ({ ...current, items: current.items.map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value } : item) }));
@@ -175,11 +199,90 @@ export default function ShopContracts() {
     }
     saveMutation.mutate();
   };
-  const renderContractTable = (rows: Contract[], ended: boolean) => rows.length === 0 ? <div className="rounded-lg border border-dashed p-12 text-center text-muted-foreground">{ended ? tx.noEnded : tx.noCurrent}</div> : <div className="overflow-x-auto rounded-lg border"><Table className="min-w-[980px] [&_th]:text-start"><TableHeader><TableRow><TableHead>{tx.number}</TableHead><TableHead>{tx.customer}</TableHead><TableHead>{tx.status}</TableHead><TableHead>{tx.delivery}</TableHead><TableHead>{tx.summary}</TableHead><TableHead className="text-end">{tx.actions}</TableHead></TableRow></TableHeader><TableBody>
-    {rows.map((contract) => <Fragment key={contract.id}><TableRow className="cursor-pointer" onClick={(event) => { if (!(event.target as HTMLElement).closest("button, a, input, select, textarea")) setExpanded(expanded === contract.id ? null : contract.id); }}><TableCell className="font-semibold"><button type="button" className="inline-flex items-center gap-2 text-start text-primary hover:underline" aria-expanded={expanded === contract.id} aria-controls={`contract-detail-${contract.id}`} onClick={() => setExpanded(expanded === contract.id ? null : contract.id)}>{contract.number}{expanded === contract.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}</button></TableCell><TableCell>{contract.customerName || String(contract.customerId)}</TableCell><TableCell><Badge variant={ended ? "destructive" : contract.isActive ? "default" : "secondary"}>{ended ? tx.endedStatus : contract.isActive ? tx.active : tx.inactive}</Badge></TableCell><TableCell>{contract.deliveryTerm ? <span className="font-medium">{contract.deliveryTerm}</span> : <span className="text-muted-foreground">—</span>}</TableCell><TableCell><button type="button" className="flex items-center gap-2 text-start hover:text-primary" aria-expanded={expanded === contract.id} aria-controls={`contract-detail-${contract.id}`} onClick={() => setExpanded(expanded === contract.id ? null : contract.id)}><span>{contract.items?.length || 0} {tx.products.toLowerCase()}</span></button></TableCell><TableCell className="text-end"><div className="flex flex-wrap justify-end gap-2"><input id={`row-upload-${contract.id}`} type="file" accept="application/pdf,.pdf" className="sr-only" tabIndex={-1} aria-label={documentActions.upload} onClick={(event) => event.stopPropagation()} onChange={(event) => { const file = event.target.files?.[0]; if (file) { setRowUpload({ contractId: String(contract.id), file }); setExpanded(contract.id); } event.target.value = ""; }} /><Button variant="outline" size="sm" onClick={() => document.getElementById(`row-upload-${contract.id}`)?.click()}><Upload className="me-1 h-4 w-4" />{documentActions.upload}</Button><Button variant="outline" size="sm" onClick={() => setExpanded(contract.id)}><Download className="me-1 h-4 w-4" />{documentActions.download}</Button>{!ended && <><Button variant="outline" size="sm" onClick={() => openEdit(contract)}>{tx.edit}</Button><Button variant="destructive" size="sm" onClick={() => { setEndError(""); setEndingContract(contract); }}>{tx.end}</Button></>}</div></TableCell></TableRow>
-      {expanded === contract.id && <TableRow key={`${contract.id}-detail`}><TableCell colSpan={6} id={`contract-detail-${contract.id}`} className="bg-muted/30"><div className="space-y-5 p-1"><div><h3 className="mb-3 font-semibold">{documentActions.details}</h3><div className="grid gap-3 md:grid-cols-2">{(contract.items || []).map((item) => <div key={item.productId} className="rounded-md border bg-background p-3"><p className="font-medium">{item.productName}</p><div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-muted-foreground"><span>{tx.max}</span><span className="text-end text-foreground">{item.maxQuantity}</span><span>{tx.used}</span><span className="text-end text-foreground">{item.usedQuantity}</span><span>{tx.remaining}</span><span className="text-end text-foreground">{item.remainingQuantity}</span><span>{tx.unitPrice}</span><span className="text-end text-foreground">{Number(item.unitPrice).toLocaleString(language)} {tx.currency}</span></div></div>)}</div>{contract.terms && <div className="mt-4 border-t pt-3"><p className="text-sm font-medium">{tx.termsLabel}</p><p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">{contract.terms}</p></div>}</div><ContractSignedDocuments contractId={contract.id} selectedFile={rowUpload?.contractId === String(contract.id) ? rowUpload.file : null} onFileArchived={() => setRowUpload((current) => current?.contractId === String(contract.id) ? null : current)} /></div></TableCell></TableRow>}
-    </Fragment>)}
-  </TableBody></Table></div>;
+  const renderContractTable = (rows: Contract[], ended: boolean) => rows.length === 0
+    ? <div className="rounded-lg border border-dashed p-12 text-center text-muted-foreground">{ended ? tx.noEnded : tx.noCurrent}</div>
+    : <div className="overflow-x-auto rounded-lg border">
+        <Table className="min-w-[1080px] [&_th]:text-start">
+          <TableHeader><TableRow>
+            <TableHead>{tx.number}</TableHead><TableHead>{tx.customer}</TableHead><TableHead>{tx.status}</TableHead>
+            <TableHead>{tx.delivery}</TableHead><TableHead>{tx.summary}</TableHead><TableHead className="text-end">{tx.actions}</TableHead>
+          </TableRow></TableHeader>
+          <TableBody>{rows.map((contract) => (
+            <Fragment key={contract.id}>
+              <TableRow className="cursor-pointer" onClick={(event) => {
+                if (!(event.target as HTMLElement).closest("button, a, input, select, textarea"))
+                  setExpanded(expanded === contract.id ? null : contract.id);
+              }}>
+                <TableCell className="font-semibold">
+                  <button type="button" className="inline-flex items-center gap-2 text-start text-primary hover:underline"
+                    aria-expanded={expanded === contract.id} aria-controls={`contract-detail-${contract.id}`}
+                    onClick={() => setExpanded(expanded === contract.id ? null : contract.id)}>
+                    {contract.number}
+                    {Number(contract.addendumCount) > 0 && <span role="img" aria-label={addendumLabels.led} title={addendumLabels.led}
+                      className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-violet-500 shadow-[0_0_8px_2px_rgba(139,92,246,0.6)]" />}
+                    {expanded === contract.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </button>
+                </TableCell>
+                <TableCell>{contract.customerName || String(contract.customerId)}</TableCell>
+                <TableCell><Badge variant={ended ? "destructive" : contract.isActive ? "default" : "secondary"}>{ended ? tx.endedStatus : contract.isActive ? tx.active : tx.inactive}</Badge></TableCell>
+                <TableCell>{contract.deliveryTerm || "—"}</TableCell>
+                <TableCell><button type="button" className="text-start hover:text-primary" aria-expanded={expanded === contract.id}
+                  onClick={() => setExpanded(expanded === contract.id ? null : contract.id)}>
+                  {contract.items?.length || 0} {tx.products.toLowerCase()}
+                </button></TableCell>
+                <TableCell className="text-end">
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <input id={`row-upload-${contract.id}`} type="file" accept="application/pdf,.pdf" className="sr-only"
+                      tabIndex={-1} aria-label={documentActions.upload} onClick={(event) => event.stopPropagation()}
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        if (file) { setRowUpload({ contractId: String(contract.id), file }); setExpanded(contract.id); }
+                        event.target.value = "";
+                      }} />
+                    <Button variant="outline" size="sm" onClick={() => document.getElementById(`row-upload-${contract.id}`)?.click()}>
+                      <Upload className="me-1 h-4 w-4" />{documentActions.upload}
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setExpanded(contract.id)}>
+                      <Download className="me-1 h-4 w-4" />{documentActions.download}
+                    </Button>
+                    {!ended && <>
+                      <Button size="sm" variant="outline" className="border-violet-300 text-violet-800 hover:bg-violet-50"
+                        onClick={() => openAddendum(contract)}>{addendumLabels.create}</Button>
+                      {!Number(contract.addendumCount) && <Button variant="outline" size="sm" onClick={() => openEdit(contract)}>{tx.edit}</Button>}
+                      <Button variant="destructive" size="sm" onClick={() => { setEndError(""); setEndingContract(contract); }}>{tx.end}</Button>
+                    </>}
+                  </div>
+                </TableCell>
+              </TableRow>
+              {expanded === contract.id && <TableRow>
+                <TableCell colSpan={6} id={`contract-detail-${contract.id}`} className="bg-muted/30">
+                  <div className="space-y-5 p-1">
+                    <div>
+                      <h3 className="mb-3 font-semibold">{documentActions.details}</h3>
+                      <div className="grid gap-3 md:grid-cols-2">{(contract.items || []).map((item) => (
+                        <div key={item.productId} className="rounded-md border bg-background p-3">
+                          <p className="font-medium">{item.productName}</p>
+                          <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                            <span>{tx.max}</span><span className="text-end text-foreground">{item.maxQuantity}</span>
+                            <span>{tx.used}</span><span className="text-end text-foreground">{item.usedQuantity}</span>
+                            <span>{tx.remaining}</span><span className="text-end text-foreground">{item.remainingQuantity}</span>
+                            <span>{tx.unitPrice}</span><span className="text-end text-foreground">{Number(item.unitPrice).toLocaleString(language)} {tx.currency}</span>
+                          </div>
+                        </div>
+                      ))}</div>
+                      {contract.terms && <div className="mt-4 border-t pt-3"><p className="text-sm font-medium">{tx.termsLabel}</p><p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">{contract.terms}</p></div>}
+                    </div>
+                    <ContractAddenda contractId={contract.id} count={Number(contract.addendumCount) || 0} ended={ended} onCreate={() => openAddendum(contract)} />
+                    <ContractSignedDocuments contractId={contract.id}
+                      selectedFile={rowUpload?.contractId === String(contract.id) ? rowUpload.file : null}
+                      onFileArchived={() => setRowUpload((current) => current?.contractId === String(contract.id) ? null : current)} />
+                  </div>
+                </TableCell>
+              </TableRow>}
+            </Fragment>
+          ))}</TableBody>
+        </Table>
+      </div>;
 
   return (
     <section dir={direction} className="space-y-6">
@@ -199,9 +302,14 @@ export default function ShopContracts() {
          <TabsContent value="ended">{renderContractTable(endedContracts, true)}</TabsContent>
        </Tabs>}
 
-       <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setFormError(""); }}><DialogContent dir={direction} className="max-h-[92vh] overflow-y-auto sm:max-w-4xl"><DialogHeader><DialogTitle>{editingId === null ? tx.createTitle : tx.editTitle}</DialogTitle><DialogDescription>{tx.dialogHint}</DialogDescription></DialogHeader>
+        <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { setFormError(""); setCreatingAddendumFor(null); } }}><DialogContent dir={direction} className={`max-h-[92vh] overflow-y-auto sm:max-w-4xl ${creatingAddendumFor ? "border-violet-400 bg-violet-50 dark:border-violet-700 dark:bg-violet-950" : ""}`}><DialogHeader><DialogTitle className={creatingAddendumFor ? "text-violet-800 dark:text-violet-200" : undefined}>{creatingAddendumFor ? addendumLabels.title : editingId === null ? tx.createTitle : tx.editTitle}</DialogTitle><DialogDescription>{creatingAddendumFor ? {
+          fa: "این متمم با ثبت، شرایط فروش قرارداد اصلی را به‌روزرسانی می‌کند؛ سفارش‌های قبلی تغییر نمی‌کنند.",
+          en: "Saving this addendum updates the parent contract's sales terms; prior orders remain unchanged.",
+          ar: "حفظ هذا الملحق يحدّث شروط بيع العقد الأصلي؛ لا تتغير الطلبات السابقة.",
+          tr: "Bu ek kaydedildiğinde asıl sözleşmenin satış koşulları güncellenir; eski siparişler değişmez.",
+        }[language] : tx.dialogHint}</DialogDescription></DialogHeader>
         <div className="space-y-5">{formError && <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertDescription>{formError}</AlertDescription></Alert>}
-          <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-2"><Label htmlFor="contract-number">{tx.number}</Label><Input id="contract-number" value={form.number} readOnly={editingId !== null} placeholder={editingId === null ? tx.autoNumber : undefined} className={editingId === null ? "text-muted-foreground" : undefined} /><p className="text-xs text-muted-foreground">{editingId === null ? tx.autoNumber : ""}</p></div><div className="space-y-2"><Label htmlFor="customer-search">{tx.customer}</Label><Input id="customer-search" value={customerSearch} placeholder={form.customerName || tx.customerSearch} onChange={(e) => { setCustomerSearch(e.target.value); setForm({ ...form, customerId: null, customerName: "" }); }} />{customerQuery.isLoading && <p className="text-xs text-muted-foreground">{tx.searchingCustomers}</p>}{customerQuery.isError && <p className="text-xs text-destructive">{errorMessage(customerQuery.error)}</p>}{customers.length > 0 && <div className="max-h-36 overflow-auto rounded-md border" role="listbox">{customers.map((customer) => <button type="button" key={customer.id} role="option" className="block w-full px-3 py-2 text-start text-sm hover:bg-accent" onClick={() => { setForm({ ...form, customerId: customer.id, customerName: customerLabel(customer) }); setCustomerSearch(""); }}><span className="block font-medium">{customerLabel(customer)}</span>{customer.email && <span className="text-xs text-muted-foreground">{customer.email}</span>}</button>)}</div>}{form.customerId && <p className="text-sm text-primary">{tx.selected} {form.customerName}</p>}</div></div>
+           <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-2"><Label htmlFor="contract-number">{tx.number}</Label><Input id="contract-number" value={creatingAddendumFor ? `${creatingAddendumFor.number}-${(creatingAddendumFor.addendumCount || 0) + 1}` : form.number} readOnly={editingId !== null} placeholder={editingId === null ? tx.autoNumber : undefined} className={editingId === null ? "text-muted-foreground" : undefined} /><p className="text-xs text-muted-foreground">{editingId === null ? tx.autoNumber : ""}</p></div><div className="space-y-2"><Label htmlFor="customer-search">{tx.customer}</Label><Input id="customer-search" value={customerSearch} disabled={!!creatingAddendumFor} placeholder={form.customerName || tx.customerSearch} onChange={(e) => { setCustomerSearch(e.target.value); setForm({ ...form, customerId: null, customerName: "" }); }} />{customerQuery.isLoading && <p className="text-xs text-muted-foreground">{tx.searchingCustomers}</p>}{customerQuery.isError && <p className="text-xs text-destructive">{errorMessage(customerQuery.error)}</p>}{customers.length > 0 && <div className="max-h-36 overflow-auto rounded-md border" role="listbox">{customers.map((customer) => <button type="button" key={customer.id} role="option" className="block w-full px-3 py-2 text-start text-sm hover:bg-accent" onClick={() => { setForm({ ...form, customerId: customer.id, customerName: customerLabel(customer) }); setCustomerSearch(""); }}><span className="block font-medium">{customerLabel(customer)}</span>{customer.email && <span className="text-xs text-muted-foreground">{customer.email}</span>}</button>)}</div>}{form.customerId && <p className="text-sm text-primary">{tx.selected} {form.customerName}</p>}</div></div>
           <div className="grid gap-4 sm:grid-cols-[minmax(155px,200px)_minmax(0,1fr)_minmax(0,1fr)]">
             <div className="space-y-2"><Label htmlFor="contract-delivery-term">{tx.delivery}{editingId === null ? " *" : ""}</Label><Select value={form.deliveryTerm || undefined} onValueChange={(value) => setForm({ ...form, deliveryTerm: value as IncotermCode })}><SelectTrigger id="contract-delivery-term" aria-label={tx.delivery}><SelectValue placeholder={tx.chooseDelivery} /></SelectTrigger><SelectContent>{INCOTERMS_2020.map((term) => <SelectItem key={term.code} value={term.code}>{term.code} — {term.name}</SelectItem>)}</SelectContent></Select></div>
             <div className="flex items-center gap-3 rounded-md border p-3">
@@ -224,7 +332,7 @@ export default function ShopContracts() {
                      if (editingId !== null) setRefreshSeller(true);
                    } else setDraftData(next);
                  }}
-                 context={{ customerName: form.customerName, contractNumber: form.number, deliveryTerm: form.deliveryTerm, items: form.items }}
+                  context={{ customerName: form.customerName, contractNumber: creatingAddendumFor ? `${creatingAddendumFor.number}-${(creatingAddendumFor.addendumCount || 0) + 1}` : form.number, deliveryTerm: form.deliveryTerm, items: form.items }}
                  language={language}
                  sellerLoading={sellerQuery.isLoading || sellerQuery.isFetching}
                  sellerError={sellerQuery.isError}
@@ -243,7 +351,7 @@ export default function ShopContracts() {
                    {language === "fa" ? "استفاده از سازندهٔ جدید" : language === "ar" ? "استخدام النموذج الجديد" : language === "tr" ? "Yeni taslağı kullan" : "Use new contract builder"}
                  </Button>
                </div>}
-         </div>{formError && <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertDescription>{formError}</AlertDescription></Alert>}<DialogFooter className="gap-2 sm:gap-0"><Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saveMutation.isPending}>{tx.cancel}</Button><Button onClick={submit} disabled={saveMutation.isPending}>{saveMutation.isPending && <Loader2 className="me-2 h-4 w-4 animate-spin" />}{saveMutation.isPending ? tx.saving : editingId === null ? tx.create : tx.save}</Button></DialogFooter>
+          </div>{formError && <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertDescription>{formError}</AlertDescription></Alert>}<DialogFooter className="gap-2 sm:gap-0"><Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saveMutation.isPending}>{tx.cancel}</Button><Button onClick={submit} className={creatingAddendumFor ? "bg-violet-700 text-white hover:bg-violet-800" : undefined} disabled={saveMutation.isPending}>{saveMutation.isPending && <Loader2 className="me-2 h-4 w-4 animate-spin" />}{saveMutation.isPending ? tx.saving : creatingAddendumFor ? addendumLabels.save : editingId === null ? tx.create : tx.save}</Button></DialogFooter>
       </DialogContent></Dialog>
 
       <AlertDialog open={endingContract !== null} onOpenChange={(open) => { if (!open && !endMutation.isPending) { setEndingContract(null); setEndError(""); } }}>

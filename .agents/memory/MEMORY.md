@@ -52,3 +52,4 @@
 - [Retiring used contract lines](retiring-used-contract-lines.md) — removed used lines stop future sales while preserving historical allocation records.
 - [React SSR smoke tests](react-ssr-smoke-tests.md) — standalone TSX rendering must match Vite's automatic JSX transform and normalize hydration comments.
 - [Contract lifecycle distinction](contract-lifecycle-distinction.md) — ending is explicit and irreversible through editing; ordinary inactivity is still editable.
+- [Contract addendum timing](contract-addendum-timing.md) — snapshot terms when a cart claims contract capacity, not when its order attaches; legacy terms may be unknowable.

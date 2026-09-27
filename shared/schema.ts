@@ -23,6 +23,7 @@ export * from "./webrtc-schema";
 export * from "./blog-schema";
 export * from "./email-schema";
 export * from "./email-marketing-schema";
+export { shopContractOrderSnapshots } from "./customer-schema";
 
 // =============================================================================
 // AI API SETTINGS SYSTEM
@@ -2053,6 +2054,8 @@ export const shopContracts = pgTable("shop_contracts", {
   customerId: integer("customer_id").notNull().references(() => crmCustomers.id),
   terms: text("terms").notNull().default(""),
   draftData: jsonb("draft_data").$type<ShopContractDraftData | null>(),
+  originalContractSnapshot: jsonb("original_contract_snapshot").$type<Record<string, unknown> | null>(),
+  originalSnapshotAt: timestamp("original_snapshot_at", { withTimezone: true }),
   shippingMode: text("shipping_mode").$type<ShopContractShippingMode | null>(),
   isActive: boolean("is_active").notNull().default(true),
   endedAt: timestamp("ended_at", { withTimezone: true }),
@@ -2075,11 +2078,24 @@ export const shopContractItems = pgTable("shop_contract_items", {
   nonnegativeUnitPrice: check("shop_contract_items_unit_price_ck", sql`${table.unitPrice} >= 0`),
 }));
 
+export const shopContractAddenda = pgTable("shop_contract_addenda", {
+  id: serial("id").primaryKey(),
+  parentContractId: integer("parent_contract_id").notNull().references(() => shopContracts.id, { onDelete: "restrict" }),
+  sequence: integer("sequence").notNull(),
+  number: text("number").notNull().unique(),
+  contractSnapshot: jsonb("contract_snapshot").notNull().$type<Record<string, unknown>>(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  contractSequenceUnique: uniqueIndex("shop_contract_addenda_parent_sequence_uidx").on(table.parentContractId, table.sequence),
+  positiveSequence: check("shop_contract_addenda_sequence_ck", sql`${table.sequence} > 0`),
+}));
+
 export const shopContractHolds = pgTable("shop_contract_holds", {
   id: uuid("id").primaryKey().defaultRandom(),
   contractId: integer("contract_id").notNull().references(() => shopContracts.id),
   customerId: integer("customer_id").notNull().references(() => crmCustomers.id),
   orderId: integer("order_id"),
+  contractSnapshot: jsonb("contract_snapshot").$type<Record<string, unknown> | null>(),
   status: text("status").notNull().default("active"),
   expiresAt: timestamp("expires_at").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
