@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useForm } from "react-hook-form";
+import { useForm, type SubmitErrorHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { marked } from "marked";
@@ -200,6 +200,16 @@ const blogFormSchema = z.object({
 
 type BlogFormData = z.infer<typeof blogFormSchema>;
 
+const formValidationCopy: Record<Language, string> = {
+  en: "Complete the author details and the title, slug, excerpt, and content in all four language tabs before saving.",
+  ar: "أكمل بيانات الكاتب والعنوان والرابط المختصر والملخص والمحتوى في تبويبات اللغات الأربع قبل الحفظ.",
+  tr: "Kaydetmeden önce yazar bilgilerini ve dört dil sekmesinin her birinde başlık, bağlantı, özet ve içeriği tamamlayın.",
+  fa: "پیش از ذخیره، مشخصات نویسنده و عنوان، نشانی، خلاصه و متن را در هر چهار زبانه تکمیل کنید.",
+};
+
+const blogLanguages = ["en", "ar", "tr", "fa"] as const;
+type BlogLanguage = typeof blogLanguages[number];
+
 export default function BlogManagement() {
   const { toast } = useToast();
   const { language, direction } = useLanguage();
@@ -208,6 +218,8 @@ export default function BlogManagement() {
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<BlogPostWithTranslations | null>(null);
+  const [activeTab, setActiveTab] = useState<BlogLanguage>("en");
+  const [submitAttempted, setSubmitAttempted] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "draft" | "published">("all");
   const [tagFilter, setTagFilter] = useState("");
@@ -508,6 +520,8 @@ export default function BlogManagement() {
   // Open create dialog
   const handleCreate = () => {
     setEditingPost(null);
+    setActiveTab("en");
+    setSubmitAttempted(false);
     form.reset();
     setMarkdownPreview({ en: "", ar: "", tr: "", fa: "" });
     setIsDialogOpen(true);
@@ -516,6 +530,8 @@ export default function BlogManagement() {
   // Open edit dialog
   const handleEdit = (post: BlogPostWithTranslations) => {
     setEditingPost(post);
+    setActiveTab("en");
+    setSubmitAttempted(false);
     const enTranslation = post.translations.find(t => t.language === "en");
     const arTranslation = post.translations.find(t => t.language === "ar");
     const trTranslation = post.translations.find(t => t.language === "tr");
@@ -579,6 +595,21 @@ export default function BlogManagement() {
       createMutation.mutate(data);
     }
   };
+
+  const onInvalid: SubmitErrorHandler<BlogFormData> = (errors) => {
+    setSubmitAttempted(true);
+    const firstInvalidLanguage = blogLanguages.find((lang) => {
+      const suffix = lang.charAt(0).toUpperCase() + lang.slice(1);
+      return Object.keys(errors).some((field) => field.endsWith(suffix));
+    });
+    if (firstInvalidLanguage) setActiveTab(firstInvalidLanguage);
+    toast({ title: copy.error, description: formValidationCopy[language], variant: "destructive" });
+  };
+
+  const invalidLanguages = blogLanguages.filter((lang) => {
+    const suffix = lang.charAt(0).toUpperCase() + lang.slice(1);
+    return Object.keys(form.formState.errors).some((field) => field.endsWith(suffix));
+  });
 
   // Get translation for display
   const getTranslation = (post: BlogPostWithTranslations) => {
@@ -915,7 +946,7 @@ export default function BlogManagement() {
           </DialogHeader>
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-6">
               {/* General Fields */}
               <div className="space-y-4">
                 <FormField
@@ -1069,19 +1100,19 @@ export default function BlogManagement() {
               </div>
 
               {/* Language Tabs */}
-              <Tabs defaultValue="en" className="w-full">
+              <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as BlogLanguage)} className="w-full">
                 <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="en" data-testid="tab-english">
-                    English
+                    English {submitAttempted && invalidLanguages.includes("en") && <span aria-label="Incomplete" className="text-red-600">!</span>}
                   </TabsTrigger>
                   <TabsTrigger value="ar" data-testid="tab-arabic">
-                    العربية
+                    العربية {submitAttempted && invalidLanguages.includes("ar") && <span aria-label="ناقص" className="text-red-600">!</span>}
                   </TabsTrigger>
                   <TabsTrigger value="tr" data-testid="tab-turkish">
-                    Türkçe
+                    Türkçe {submitAttempted && invalidLanguages.includes("tr") && <span aria-label="Eksik" className="text-red-600">!</span>}
                   </TabsTrigger>
                   <TabsTrigger value="fa" data-testid="tab-persian">
-                    فارسی
+                    فارسی {submitAttempted && invalidLanguages.includes("fa") && <span aria-label="ناقص" className="text-red-600">!</span>}
                   </TabsTrigger>
                 </TabsList>
 
@@ -1481,6 +1512,11 @@ export default function BlogManagement() {
                 </TabsContent>
               </Tabs>
 
+              {submitAttempted && Object.keys(form.formState.errors).length > 0 && (
+                <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-100">
+                  {formValidationCopy[language]}
+                </p>
+              )}
               <DialogFooter>
                 <Button
                   type="button"

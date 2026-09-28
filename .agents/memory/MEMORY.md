@@ -54,3 +54,4 @@
 - [Contract lifecycle distinction](contract-lifecycle-distinction.md) — ending is explicit and irreversible through editing; ordinary inactivity is still editable.
 - [Contract addendum timing](contract-addendum-timing.md) — snapshot terms when a cart claims contract capacity, not when its order attaches; legacy terms may be unknowable.
 - [Shop translation freshness](shop-translation-freshness.md) — generated translations of existing products must match current source text; never show stale claims after an edit.
+- [Multilingual form validation visibility](multilingual-form-validation-visibility.md) — required fields in hidden language tabs can make Save appear inert unless the form opens the invalid tab and explains why.
