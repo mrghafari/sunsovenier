@@ -39,6 +39,7 @@ import { db, pool } from "./db";
 import { sql, eq, and, or, ne, isNull, isNotNull, desc, gte, inArray, asc } from "drizzle-orm";
 import { findCorruptedOrders, getDataIntegrityStats, validateOrderIntegrity, markCorruptedOrderAsDeleted } from './data-integrity-tools';
 import { z } from "zod";
+import { normalizeBlogPublishDate, parseNewBlogPost } from "./blog-post-input";
 import * as schema from "@shared/schema";
 import { iranProvinces } from "../client/src/lib/iran-locations";
 const { crmCustomers, iraqiProvinces, iraqiCities, abandonedOrders, contentItems, footerSettings, paymentMethodSettings, shopSettings, aiApiSettings, insertAiApiSettingsSchema, vendors, postalServices } = schema;
@@ -59387,7 +59388,7 @@ momtazchem.com
       const { post, translations } = req.body;
 
       // Validate post data
-      const validatedPost = insertBlogPostSchema.parse(post);
+      const validatedPost = parseNewBlogPost(post);
 
       const supportedBlogLanguages = ["en", "ar", "tr", "fa"] as const;
       if (!translations || translations.length !== supportedBlogLanguages.length) {
@@ -59435,7 +59436,7 @@ momtazchem.com
       });
     } catch (error: any) {
       console.error("Error creating blog post:", error);
-      res.status(500).json({
+      res.status(error instanceof z.ZodError ? 400 : 500).json({
         success: false,
         message: "خطا في إنشاء المقال / Error creating blog post",
         error: error.message,
@@ -59490,9 +59491,9 @@ momtazchem.com
         ...post,
         updatedAt: new Date(),
       };
-      // Convert publishDate string to Date if provided
-      if (post.publishDate) {
-        postData.publishDate = new Date(post.publishDate);
+      // The form sends a date string; Drizzle expects a Date or null.
+      if (Object.prototype.hasOwnProperty.call(post, "publishDate")) {
+        postData.publishDate = normalizeBlogPublishDate(post.publishDate);
       }
       const [updatedPost] = await db
         .update(blogPosts)
@@ -59530,7 +59531,7 @@ momtazchem.com
       });
     } catch (error: any) {
       console.error("Error updating blog post:", error);
-      res.status(500).json({
+      res.status(error instanceof z.ZodError ? 400 : 500).json({
         success: false,
         message: "خطا في تحديث المقال / Error updating blog post",
         error: error.message,
