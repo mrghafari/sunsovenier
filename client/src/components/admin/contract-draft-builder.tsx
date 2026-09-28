@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import ContractDatePicker, { type ContractLanguage } from "./contract-date-picker";
+import { loadContractLogoDataUrl, renderContractDocumentHtml } from "./contract-document-html";
+import bundledCompanyLogo from "@assets/company-logo.png";
 
 type DraftContext = ContractDocumentContext;
 type DraftLanguage = "en" | "fa" | "ar" | "tr";
@@ -86,17 +88,12 @@ export function emptyContractDraft(): ShopContractDraftData {
   };
 }
 
-const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (character) => ({
-  "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
-})[character] || character);
-const documentHtml = (number: string, text: string, language: ContractLanguage) =>
-  `<!doctype html><html lang="${language}" dir="${language === "fa" || language === "ar" ? "rtl" : "ltr"}"><head><meta charset="utf-8"><title>${escapeHtml(number)}</title><style>body{font:15px/2 Tahoma,Arial,sans-serif;max-width:800px;margin:40px auto;padding:0 24px}pre{white-space:pre-wrap;font:inherit}</style></head><body><h1>${escapeHtml(number)}</h1><pre>${escapeHtml(text)}</pre></body></html>`;
-
-export default function ContractDraftBuilder({ value, onChange, context, language, onRefreshSeller, sellerLoading, sellerError }: {
+export default function ContractDraftBuilder({ value, onChange, context, language, logoUrl, onRefreshSeller, sellerLoading, sellerError }: {
   value: ShopContractDraftData;
   onChange: (next: ShopContractDraftData) => void;
   context: DraftContext;
   language: DraftLanguage;
+  logoUrl?: string | null;
   onRefreshSeller?: () => void;
   sellerLoading?: boolean;
   sellerError?: boolean;
@@ -111,21 +108,30 @@ export default function ContractDraftBuilder({ value, onChange, context, languag
     <div className="space-y-1.5" key={key}><Label>{label}</Label><p className="min-h-10 rounded-md border bg-muted px-3 py-2 text-sm">{value.seller[key] || "—"}</p></div>;
   const buyerField = (key: keyof ShopContractDraftData["buyer"], label: string) =>
     field(`buyer-${key}`, label, value.buyer[key], (next) => set("buyer", { ...value.buyer, [key]: next }));
-  const saveDoc = () => {
-    const html = documentHtml(context.contractNumber || tx.pendingNumber, text, documentLanguage);
-    const url = URL.createObjectURL(new Blob(["\ufeff", html], { type: "application/msword" }));
-    const link = document.createElement("a");
-    link.href = url; link.download = "contract-draft.doc"; link.click();
-    setTimeout(() => URL.revokeObjectURL(url), 60_000);
-  };
-  const printDoc = () => {
-    const url = URL.createObjectURL(new Blob([documentHtml(context.contractNumber || tx.pendingNumber, text, documentLanguage)], { type: "text/html;charset=utf-8" }));
-    const printWindow = window.open(url, "_blank");
-    if (printWindow) {
-      printWindow.addEventListener("load", () => printWindow.print(), { once: true });
+  const saveDoc = async () => {
+    try {
+      const logo = await loadContractLogoDataUrl(logoUrl, bundledCompanyLogo);
+      const html = renderContractDocumentHtml(context.contractNumber || tx.pendingNumber, text, documentLanguage, logo);
+      const url = URL.createObjectURL(new Blob(["\ufeff", html], { type: "application/msword" }));
+      const link = document.createElement("a");
+      link.href = url; link.download = "contract-draft.doc"; link.click();
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
-    } else {
-      URL.revokeObjectURL(url);
+    } catch {
+      window.alert(language === "fa" ? "لوگوی شرکت بارگذاری نشد؛ لطفاً دوباره تلاش کنید." : language === "ar" ? "تعذر تحميل شعار الشركة. حاول مرة أخرى." : language === "tr" ? "Şirket logosu yüklenemedi. Lütfen tekrar deneyin." : "Company logo could not be loaded. Please try again.");
+    }
+  };
+  const printDoc = async () => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+    try {
+      const logo = await loadContractLogoDataUrl(logoUrl, bundledCompanyLogo);
+      printWindow.addEventListener("load", () => printWindow.print(), { once: true });
+      printWindow.document.open();
+      printWindow.document.write(renderContractDocumentHtml(context.contractNumber || tx.pendingNumber, text, documentLanguage, logo));
+      printWindow.document.close();
+    } catch {
+      printWindow.close();
+      window.alert(language === "fa" ? "لوگوی شرکت بارگذاری نشد؛ لطفاً دوباره تلاش کنید." : language === "ar" ? "تعذر تحميل شعار الشركة. حاول مرة أخرى." : language === "tr" ? "Şirket logosu yüklenemedi. Lütfen tekrar deneyin." : "Company logo could not be loaded. Please try again.");
     }
   };
   return <div className="space-y-5">

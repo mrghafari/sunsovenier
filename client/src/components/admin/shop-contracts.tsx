@@ -90,6 +90,11 @@ export default function ShopContracts() {
     enabled: dialogOpen && draftData !== null && (editingId === null || refreshSeller),
     staleTime: 0,
   });
+  const companyQuery = useQuery<{ success: boolean; data: { logoUrl?: string | null } | null }>({
+    queryKey: ["/api/company-information"],
+    queryFn: () => readJson("/api/company-information"),
+    enabled: dialogOpen && draftData !== null,
+  });
   useEffect(() => {
     if (!sellerQuery.data?.seller || (!refreshSeller && editingId !== null)) return;
     setDraftData((current) => current && (current.language || "fa") === documentLanguage
@@ -334,6 +339,7 @@ export default function ShopContracts() {
                  }}
                   context={{ customerName: form.customerName, contractNumber: creatingAddendumFor ? `${creatingAddendumFor.number}-${(creatingAddendumFor.addendumCount || 0) + 1}` : form.number, deliveryTerm: form.deliveryTerm, items: form.items }}
                  language={language}
+                  logoUrl={companyQuery.data?.data?.logoUrl}
                  sellerLoading={sellerQuery.isLoading || sellerQuery.isFetching}
                  sellerError={sellerQuery.isError}
                  onRefreshSeller={() => { if (editingId !== null) setRefreshSeller(true); void sellerQuery.refetch(); }}
