@@ -3,6 +3,7 @@ import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { formatIQDAmount } from "@/lib/currency-utils";
+import { hasCurrentShopProductTranslation, localizeShopProduct, localizeShopCategory, productDetailCopy } from "@/lib/shop-product-localization";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -54,7 +55,8 @@ export default function ShopProductPage() {
 
   const [imgIndex, setImgIndex] = useState(0);
 
-  const { data: product, isLoading, isError } = useQuery<ShopProduct>({
+  const tx = productDetailCopy[language];
+  const { data: rawProduct, isLoading, isError } = useQuery<ShopProduct>({
     queryKey: ["/api/shop/products", id],
     queryFn: async () => {
       const res = await fetch(`/api/shop/products/${id}`);
@@ -73,6 +75,7 @@ export default function ShopProductPage() {
   const avgRating: number = (reviewsData as any)?.data?.stats?.averageRating || 0;
   const totalReviews: number = (reviewsData as any)?.data?.stats?.totalReviews || 0;
   const previewReviews = reviews.slice(0, 3);
+  const product = rawProduct ? localizeShopProduct(rawProduct, language) : null;
 
   // ── loading ───────────────────────────────────────────────────────────────
   if (isLoading) {
@@ -94,10 +97,10 @@ export default function ShopProductPage() {
   if (isError || !product) {
     return (
       <div className={`max-w-4xl mx-auto p-6 text-center ${language === "fa" ? "shop-lang-fa" : ""}`}>
-        <p className="text-gray-500 text-lg mb-4">محصول پیدا نشد</p>
+        <p className="text-gray-500 text-lg mb-4">{tx.missing}</p>
         <Button variant="outline" onClick={() => navigate("/shop")}>
           {isRtl ? <ArrowRight className="w-4 h-4 ml-2" /> : <ArrowLeft className="w-4 h-4 mr-2" />}
-          بازگشت به فروشگاه
+          {tx.back}
         </Button>
       </div>
     );
@@ -125,7 +128,7 @@ export default function ShopProductPage() {
           {isRtl
             ? <ArrowRight className="w-4 h-4" />
             : <ArrowLeft className="w-4 h-4" />}
-          <span>بازگشت به فروشگاه</span>
+          <span>{tx.back}</span>
         </Button>
 
         {/* ── Title ──────────────────────────────────────────────────────── */}
@@ -141,10 +144,15 @@ export default function ShopProductPage() {
           {product.isFlammable && (
             <div className="flex items-center gap-1 bg-orange-50 border border-orange-200 rounded-lg px-3 py-1.5 text-orange-700 text-sm font-medium">
               <Flame className="w-4 h-4" />
-              <span>آتش‌زا</span>
+              <span>{tx.flammable}</span>
             </div>
           )}
         </div>
+        {!hasCurrentShopProductTranslation(rawProduct!, language) && (
+          <p role="status" className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
+            {tx.translationPending}
+          </p>
+        )}
 
         {/* ── Image gallery ──────────────────────────────────────────────── */}
         {images.length > 0 && (
@@ -194,12 +202,12 @@ export default function ShopProductPage() {
         {/* ── Info cards ─────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div className="bg-white dark:bg-gray-900 rounded-xl border p-4">
-            <p className="text-xs text-gray-400 mb-1">دسته‌بندی</p>
-            <p className="font-semibold text-gray-800 dark:text-gray-200">{product.category}</p>
+            <p className="text-xs text-gray-400 mb-1">{tx.category}</p>
+            <p className="font-semibold text-gray-800 dark:text-gray-200">{localizeShopCategory(product.category, language)}</p>
           </div>
 
           <div className="bg-white dark:bg-gray-900 rounded-xl border p-4">
-            <p className="text-xs text-gray-400 mb-1">قیمت</p>
+            <p className="text-xs text-gray-400 mb-1">{tx.price}</p>
             {parseFloat(product.price || '0') === 1 ? (
               <p className="font-bold text-blue-600 text-base">{t.callForPrice}</p>
             ) : (
@@ -215,22 +223,22 @@ export default function ShopProductPage() {
           <div className={`bg-white dark:bg-gray-900 rounded-xl border p-4 ${
             !product.inStock ? "border-red-200" : ""
           }`}>
-            <p className="text-xs text-gray-400 mb-1">موجودی</p>
+            <p className="text-xs text-gray-400 mb-1">{tx.availability}</p>
             <Badge variant={product.inStock ? "secondary" : "destructive"} className="text-sm">
-              {product.inStock ? "موجود" : "ناموجود"}
+              {product.inStock ? tx.inStock : tx.outOfStock}
             </Badge>
           </div>
 
           {product.barcode && (
             <div className="bg-white dark:bg-gray-900 rounded-xl border p-4">
-              <p className="text-xs text-gray-400 mb-1">بارکد</p>
+              <p className="text-xs text-gray-400 mb-1">{tx.barcode}</p>
               <p className="font-semibold text-gray-800 dark:text-gray-200 text-sm">{product.barcode}</p>
             </div>
           )}
 
           {(product.netWeight || product.grossWeight) && (
             <div className="bg-white dark:bg-gray-900 rounded-xl border p-4">
-              <p className="text-xs text-gray-400 mb-1">وزن</p>
+              <p className="text-xs text-gray-400 mb-1">{tx.weight}</p>
               <p className="font-semibold text-gray-800 dark:text-gray-200">
                 {product.netWeight || product.grossWeight} {product.weightUnit || "kg"}
               </p>
@@ -239,7 +247,7 @@ export default function ShopProductPage() {
 
           {product.minimumOrderQuantity && product.minimumOrderQuantity > 1 && (
             <div className="bg-white dark:bg-gray-900 rounded-xl border p-4">
-              <p className="text-xs text-gray-400 mb-1">حداقل سفارش</p>
+              <p className="text-xs text-gray-400 mb-1">{tx.minimum}</p>
               <p className="font-semibold text-gray-800 dark:text-gray-200">
                 {product.minimumOrderQuantity} {product.priceUnit}
               </p>
@@ -252,10 +260,10 @@ export default function ShopProductPage() {
           <div className="bg-white dark:bg-gray-900 rounded-2xl border p-6">
             <h2 className={`flex items-center gap-2 font-bold text-gray-800 dark:text-gray-200 text-lg mb-3 ${isRtl ? "flex-row-reverse" : ""}`}>
               <Info className="w-5 h-5 text-blue-500" />
-              توضیحات محصول
+              {tx.description}
             </h2>
             <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-              {product.description}
+              {product.description || product.shortDescription}
             </p>
             {product.shortDescription && product.description !== product.shortDescription && (
               <>
@@ -273,7 +281,7 @@ export default function ShopProductPage() {
           <div className="bg-white dark:bg-gray-900 rounded-2xl border p-6">
             <h2 className={`flex items-center gap-2 font-bold text-gray-800 dark:text-gray-200 text-lg mb-4 ${isRtl ? "flex-row-reverse" : ""}`}>
               <Weight className="w-5 h-5 text-purple-500" />
-              مشخصات فنی
+              {tx.specs}
             </h2>
             <div className="rounded-xl overflow-hidden border">
               {Object.entries(specs).map(([key, value], i, arr) => (
@@ -300,7 +308,7 @@ export default function ShopProductPage() {
           <div className="bg-white dark:bg-gray-900 rounded-2xl border p-6">
             <h2 className={`flex items-center gap-2 font-bold text-gray-800 dark:text-gray-200 text-lg mb-4 ${isRtl ? "flex-row-reverse" : ""}`}>
               <CheckCircle2 className="w-5 h-5 text-green-500" />
-              ویژگی‌ها
+              {tx.features}
             </h2>
             <ul className="space-y-2.5">
               {features.map((f, i) => (
@@ -318,7 +326,7 @@ export default function ShopProductPage() {
           <div className="bg-white dark:bg-gray-900 rounded-2xl border p-6">
             <h2 className={`flex items-center gap-2 font-bold text-gray-800 dark:text-gray-200 text-lg mb-4 ${isRtl ? "flex-row-reverse" : ""}`}>
               <CircleDot className="w-5 h-5 text-blue-500" />
-              کاربردها
+              {tx.applications}
             </h2>
             <ul className="space-y-2.5">
               {applications.map((a, i) => (
@@ -336,7 +344,7 @@ export default function ShopProductPage() {
           <div className="bg-white dark:bg-gray-900 rounded-2xl border p-6">
             <h2 className={`flex items-center gap-2 font-bold text-gray-800 dark:text-gray-200 text-lg mb-3 ${isRtl ? "flex-row-reverse" : ""}`}>
               <Tag className="w-5 h-5 text-orange-500" />
-              برچسب‌ها
+              {tx.tags}
             </h2>
             <div className={`flex flex-wrap gap-2 ${isRtl ? "justify-end" : "justify-start"}`}>
               {tags.map((tag, i) => (
@@ -351,7 +359,7 @@ export default function ShopProductPage() {
           <div className={`flex items-center justify-between mb-4 ${isRtl ? "flex-row-reverse" : ""}`}>
             <h2 className={`flex items-center gap-2 font-bold text-gray-800 dark:text-gray-200 text-lg ${isRtl ? "flex-row-reverse" : ""}`}>
               <Star className="w-5 h-5 text-yellow-500 fill-yellow-400" />
-              نظرات و امتیازات
+              {tx.reviews}
             </h2>
             <Button
               variant="outline"
@@ -360,7 +368,7 @@ export default function ShopProductPage() {
               onClick={() => navigate(`/product-reviews/${id}`)}
             >
               <ExternalLink className="w-4 h-4" />
-              مشاهده همه نظرات
+              {tx.allReviews}
             </Button>
           </div>
 
@@ -370,7 +378,7 @@ export default function ShopProductPage() {
               <div className="text-center">
                 <div className="text-4xl font-bold text-yellow-600">{avgRating.toFixed(1)}</div>
                 <StarRating rating={avgRating} size="md" />
-                <div className="text-xs text-gray-500 mt-1">{totalReviews} نظر</div>
+                <div className="text-xs text-gray-500 mt-1">{totalReviews} {tx.reviewUnit}</div>
               </div>
               <Separator orientation="vertical" className="h-16" />
               <div className="text-sm text-gray-600 dark:text-gray-400">
@@ -392,14 +400,14 @@ export default function ShopProductPage() {
           ) : (
             <div className="text-center py-6 text-gray-400">
               <MessageSquare className="w-10 h-10 mx-auto mb-2 text-gray-300" />
-              <p className="text-sm">هنوز نظری ثبت نشده</p>
+              <p className="text-sm">{tx.noReviews}</p>
               <Button
                 variant="link"
                 size="sm"
                 className="text-blue-600 mt-1"
                 onClick={() => navigate(`/product-reviews/${id}`)}
               >
-                اولین نفر باشید که نظر می‌دهد
+                {tx.firstReview}
               </Button>
             </div>
           )}
@@ -417,7 +425,7 @@ export default function ShopProductPage() {
                       <span className="font-semibold text-sm text-gray-800 dark:text-gray-200">{review.customerName}</span>
                       <StarRating rating={review.rating} size="sm" />
                       <span className="text-xs text-gray-400">
-                        {new Date(review.createdAt).toLocaleDateString("fa-IR")}
+                        {new Date(review.createdAt).toLocaleDateString(language)}
                       </span>
                     </div>
                     {review.comment && (
@@ -436,7 +444,7 @@ export default function ShopProductPage() {
                   onClick={() => navigate(`/product-reviews/${id}`)}
                 >
                   <ExternalLink className="w-4 h-4" />
-                  مشاهده {reviews.length - 3} نظر دیگر
+                  {tx.moreReviews(reviews.length - 3)}
                 </Button>
               )}
             </div>
@@ -449,7 +457,7 @@ export default function ShopProductPage() {
               onClick={() => navigate(`/product-reviews/${id}`)}
             >
               <MessageSquare className="w-4 h-4" />
-              ثبت نظر و امتیاز
+              {tx.leaveReview}
             </Button>
           </div>
         </div>
@@ -460,7 +468,7 @@ export default function ShopProductPage() {
           <div className="bg-white dark:bg-gray-900 rounded-2xl border p-6">
             <h2 className={`flex items-center gap-2 font-bold text-gray-800 dark:text-gray-200 text-lg mb-4 ${isRtl ? "flex-row-reverse" : ""}`}>
               <FileText className="w-5 h-5 text-gray-500" />
-              اسناد و مدارک
+              {tx.documents}
             </h2>
             <div className="flex flex-wrap gap-4">
               {product.showCatalogToCustomers && product.pdfCatalogUrl && (
@@ -471,7 +479,7 @@ export default function ShopProductPage() {
                   className="flex items-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg px-4 py-2.5 text-sm font-medium transition"
                 >
                   <Download className="w-4 h-4" />
-                  {product.catalogFileName || "کاتالوگ محصول"}
+                  {product.catalogFileName || tx.catalog}
                 </a>
               )}
               {product.showMsdsToCustomers && product.msdsUrl && (
@@ -482,7 +490,7 @@ export default function ShopProductPage() {
                   className="flex items-center gap-2 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-lg px-4 py-2.5 text-sm font-medium transition"
                 >
                   <Download className="w-4 h-4" />
-                  {product.msdsFileName || "برگه اطلاعات ایمنی (MSDS)"}
+                  {product.msdsFileName || tx.msds}
                 </a>
               )}
             </div>
@@ -499,7 +507,7 @@ export default function ShopProductPage() {
             {isRtl
               ? <ArrowRight className="w-4 h-4" />
               : <ArrowLeft className="w-4 h-4" />}
-            بازگشت به فروشگاه
+            {tx.back}
           </Button>
         </div>
 

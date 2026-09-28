@@ -53,3 +53,4 @@
 - [React SSR smoke tests](react-ssr-smoke-tests.md) — standalone TSX rendering must match Vite's automatic JSX transform and normalize hydration comments.
 - [Contract lifecycle distinction](contract-lifecycle-distinction.md) — ending is explicit and irreversible through editing; ordinary inactivity is still editable.
 - [Contract addendum timing](contract-addendum-timing.md) — snapshot terms when a cart claims contract capacity, not when its order attaches; legacy terms may be unknowable.
+- [Shop translation freshness](shop-translation-freshness.md) — generated translations of existing products must match current source text; never show stale claims after an edit.

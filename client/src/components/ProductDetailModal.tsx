@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { formatIQDAmount } from "@/lib/currency-utils";
+import { hasCurrentShopProductTranslation, localizeShopProduct, localizeShopCategory, productDetailCopy } from "@/lib/shop-product-localization";
 import type { ShopProduct } from "@shared/shop-schema";
 
 interface ProductDetailModalProps {
@@ -55,9 +56,11 @@ function parseJsonObject(field: any): Record<string, string> {
   return {};
 }
 
-export function ProductDetailModal({ product, isOpen, onClose }: ProductDetailModalProps) {
-  const { t, direction } = useLanguage();
+export function ProductDetailModal({ product: rawProduct, isOpen, onClose }: ProductDetailModalProps) {
+  const { t, direction, language } = useLanguage();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const product = rawProduct ? localizeShopProduct(rawProduct, language) : null;
+  const tx = productDetailCopy[language];
 
   if (!product) return null;
 
@@ -86,7 +89,7 @@ export function ProductDetailModal({ product, isOpen, onClose }: ProductDetailMo
               {product.name}
             </h2>
             {product.isFlammable && (
-              <Flame className="w-5 h-5 text-orange-500" title="Flammable" />
+              <span title={tx.flammable} aria-label={tx.flammable}><Flame className="w-5 h-5 text-orange-500" /></span>
             )}
           </div>
           <Button
@@ -100,6 +103,9 @@ export function ProductDetailModal({ product, isOpen, onClose }: ProductDetailMo
         </div>
 
         <div className="p-6 space-y-6">
+          {!hasCurrentShopProductTranslation(rawProduct!, language) && (
+            <p role="status" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">{tx.translationPending}</p>
+          )}
           {/* Images carousel */}
           {images.length > 0 && (
             <div className="relative w-full rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800">
@@ -142,7 +148,7 @@ export function ProductDetailModal({ product, isOpen, onClose }: ProductDetailMo
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
               <p className="text-xs text-blue-600 dark:text-blue-400 font-medium mb-1">{t.category || "Category"}</p>
-              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{product.category}</p>
+              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{localizeShopCategory(product.category, language)}</p>
             </div>
             <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3">
               <p className="text-xs text-green-600 dark:text-green-400 font-medium mb-1">
@@ -311,7 +317,7 @@ export function ProductDetailModal({ product, isOpen, onClose }: ProductDetailMo
                       className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 hover:underline"
                     >
                       <Download className="w-4 h-4" />
-                      {product.catalogFileName || "Product Catalog"}
+                  {product.catalogFileName || tx.catalog}
                     </a>
                   )}
                   {product.showMsdsToCustomers && product.msdsUrl && (
@@ -322,7 +328,7 @@ export function ProductDetailModal({ product, isOpen, onClose }: ProductDetailMo
                       className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 hover:underline"
                     >
                       <Download className="w-4 h-4" />
-                      {product.msdsFileName || "Safety Data Sheet"}
+                  {product.msdsFileName || tx.msds}
                     </a>
                   )}
                 </div>

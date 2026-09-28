@@ -249,10 +249,6 @@
       "count": 1
     },
     {
-      "key": "[\"client/src/components/ProductDetailModal.tsx\",2322,\"Type '{ className: string; title: string; }' is not assignable to type 'IntrinsicAttributes & Omit<LucideProps, \\\"ref\\\"> & RefAttributes<SVGSVGElement>'.\\n  Property 'title' does not exist on type 'IntrinsicAttributes & Omit<LucideProps, \\\"ref\\\"> & RefAttributes<SVGSVGElement>'.\",\"<Flame className=\\\"w-5 h-5 text-orange-500\\\" title=\\\"Flammable\\\" />\"]",
-      "count": 1
-    },
-    {
       "key": "[\"client/src/components/ProductDetailModal.tsx\",2339,\"Property 'barcode' does not exist on type 'Translation'.\",\"<p className=\\\"text-xs text-gray-500 font-medium mb-1\\\">{t.barcode || \\\"Barcode\\\"}</p>\"]",
       "count": 1
     },
