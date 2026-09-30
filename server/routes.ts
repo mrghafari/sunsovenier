@@ -28905,12 +28905,40 @@ Leading Chemical Solutions Provider
   });
 
   // Get all CRM customers with pagination
+  const withCustomerPurchaseTotals = async <T extends { id: number }>(customers: T[]) => {
+    if (customers.length === 0) return customers.map(customer => ({ ...customer, purchaseTotals: [] }));
+    const totals = await customerDb
+      .select({
+        customerId: customerOrders.customerId,
+        currency: customerOrders.currency,
+        amount: sql<string>`sum(${customerOrders.totalAmount})::text`,
+      })
+      .from(customerOrders)
+      .where(and(
+        inArray(customerOrders.customerId, customers.map(customer => customer.id)),
+        sql`${customerOrders.status} not in ('cancelled', 'failed', 'deleted')`,
+        ne(customerOrders.paymentStatus, "failed"),
+      ))
+      .groupBy(customerOrders.customerId, customerOrders.currency);
+
+    const byCustomer = new Map<number, Array<{ currency: string; amount: string }>>();
+    for (const total of totals) {
+      const entries = byCustomer.get(total.customerId) || [];
+      entries.push({ currency: total.currency, amount: total.amount });
+      byCustomer.set(total.customerId, entries);
+    }
+    return customers.map(customer => ({
+      ...customer,
+      purchaseTotals: (byCustomer.get(customer.id) || []).sort((a, b) => a.currency.localeCompare(b.currency)),
+    }));
+  };
+
   app.get("/api/crm/customers", requireAuth, async (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 50;
       const offset = parseInt(req.query.offset as string) || 0;
       
-      const customers = await crmStorage.getCrmCustomers(limit, offset);
+      const customers = await withCustomerPurchaseTotals(await crmStorage.getCrmCustomers(limit, offset));
       res.json({
         success: true,
         data: customers,
@@ -28940,7 +28968,7 @@ Leading Chemical Solutions Provider
         });
       }
 
-      const customers = await crmStorage.searchCrmCustomers(query);
+      const customers = await withCustomerPurchaseTotals(await crmStorage.searchCrmCustomers(query));
       res.json({
         success: true,
         data: customers

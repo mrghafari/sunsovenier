@@ -376,6 +376,7 @@ interface CrmCustomer {
   // Statistics
   totalOrdersCount: number;
   totalSpent: string;
+  purchaseTotals?: Array<{ currency: string; amount: string }>;
   averageOrderValue: string;
   lastOrderDate?: string;
   createdAt: string;
@@ -533,8 +534,13 @@ export default function CRM() {
         bValue = (b.company || "").toLowerCase();
         break;
       case "totalSpent":
-        aValue = parseFloat(a.totalSpent) || 0;
-        bValue = parseFloat(b.totalSpent) || 0;
+        // Compare amounts only when they are in the same currency.
+        aValue = a.purchaseTotals?.[0]?.currency || "IQD";
+        bValue = b.purchaseTotals?.[0]?.currency || "IQD";
+        if (aValue === bValue) {
+          aValue = Number(a.purchaseTotals?.[0]?.amount || 0);
+          bValue = Number(b.purchaseTotals?.[0]?.amount || 0);
+        }
         break;
       case "totalOrdersCount":
         aValue = a.totalOrdersCount || 0;
@@ -962,6 +968,15 @@ export default function CRM() {
     return crmCurrency(amount, language, validCurrencies.includes(currency) ? currency : 'IQD');
   };
 
+  const formatPurchaseTotals = (customer: CrmCustomer) => {
+    if (!customer.purchaseTotals?.length) return [formatCurrency(0)];
+    return customer.purchaseTotals.map(({ amount, currency }) =>
+      ['USD', 'EUR', 'IQD', 'IRR'].includes(currency)
+        ? formatCurrency(amount, currency)
+        : `${amount} ${currency}`
+    );
+  };
+
   const formatDate = (dateString: string) => {
     return crmDate(dateString, language);
   };
@@ -1232,7 +1247,7 @@ export default function CRM() {
                         onClick={() => handleSort("totalSpent")}
                       >
                         <div className="flex items-center gap-2">
-                          Total Purchases
+                          {crmText(language, "totalPurchases")}
                           {getSortIcon("totalSpent")}
                         </div>
                       </TableHead>
@@ -1277,8 +1292,8 @@ export default function CRM() {
                           </Badge>
                         </TableCell>
                         <TableCell className="py-2 px-3">
-                          <div className="truncate max-w-[100px]">
-                            {formatCurrency(customer.totalSpent)}
+                          <div className="min-w-[120px] whitespace-nowrap">
+                            {formatPurchaseTotals(customer).map((amount, index) => <div key={index}>{amount}</div>)}
                           </div>
                         </TableCell>
                         <TableCell className="py-2 px-3">
@@ -1699,7 +1714,7 @@ export default function CRM() {
                   </div>
                   <div>
                     <Label>{crmText(language, "totalPurchases")}</Label>
-                    <p className="font-medium">{formatCurrency(selectedCustomer.totalSpent)}</p>
+                    <div className="font-medium">{formatPurchaseTotals(selectedCustomer).map((amount, index) => <div key={index}>{amount}</div>)}</div>
                   </div>
                   <div>
                     <Label>{crmText(language, "orders")}</Label>
