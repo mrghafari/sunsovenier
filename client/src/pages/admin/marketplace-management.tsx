@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Calculator, Check, Eye, MapPin, Pencil, Search, Settings, Star, Store, X } from "lucide-react";
+import { Calculator, Check, Eye, MapPin, Pencil, Search, Settings, Star, Store, Trash2, X } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -45,11 +45,17 @@ export default function MarketplaceManagement() {
     ar: { edit: "تعديل بيانات البائع", title: "تعديل البائع", hint: "ستتغير هذه البيانات الحالية فقط. ستبقى الطلبات والمدفوعات وبيانات البائع الأخرى محفوظة.", email: "البريد الإلكتروني", phone: "الهاتف", save: "حفظ التغييرات", saved: "تم تحديث بيانات البائع.", failed: "تعذر تحديث بيانات البائع.", required: "أكمل جميع الحقول قبل الحفظ.", duplicate: "هذا البريد الإلكتروني مستخدم لبائع آخر." },
     tr: { edit: "Satıcı bilgilerini düzenle", title: "Satıcıyı düzenle", hint: "Yalnızca bu güncel profil bilgileri değişir. Siparişler, ödemeler ve diğer satıcı verileri korunur.", email: "E-posta", phone: "Telefon", save: "Değişiklikleri kaydet", saved: "Satıcı bilgileri güncellendi.", failed: "Satıcı bilgileri güncellenemedi.", required: "Kaydetmeden önce tüm alanları doldurun.", duplicate: "Bu e-posta başka bir satıcı tarafından kullanılıyor." },
   }[language];
+  const deleteText = {
+    en: { action: "Delete", title: "Permanently delete vendor?", body: "This permanently deletes {name} and their vendor login accounts. It cannot be undone. Only inactive vendors with no products, sales or financial history can be deleted.", confirm: "Permanently delete", success: "Vendor deleted.", failed: "Could not delete vendor.", ineligible: "This vendor now has products or history, or is active. Nothing was deleted." },
+    fa: { action: "حذف", title: "حذف دائمی فروشنده؟", body: "{name} و حساب‌های ورود وندور برای همیشه حذف می‌شوند و قابل بازگردانی نیستند. فقط فروشندهٔ غیرفعال بدون کالا، فروش یا سابقهٔ مالی قابل حذف است.", confirm: "حذف دائمی", success: "فروشنده حذف شد.", failed: "حذف فروشنده ممکن نیست.", ineligible: "این فروشنده اکنون فعال است یا کالا و سابقه دارد. چیزی حذف نشد." },
+    ar: { action: "حذف", title: "حذف البائع نهائيًا؟", body: "سيُحذف {name} وحسابات تسجيل دخوله نهائيًا دون إمكانية الاستعادة. يُسمح بذلك فقط للبائع غير النشط الذي ليس لديه منتجات أو مبيعات أو سجل مالي.", confirm: "حذف نهائي", success: "تم حذف البائع.", failed: "تعذر حذف البائع.", ineligible: "البائع نشط الآن أو لديه منتجات أو سجل. لم يُحذف شيء." },
+    tr: { action: "Sil", title: "Satıcı kalıcı olarak silinsin mi?", body: "{name} ve satıcı giriş hesapları kalıcı olarak silinecek; bu işlem geri alınamaz. Yalnızca ürünü, satışı veya finansal geçmişi olmayan pasif satıcılar silinebilir.", confirm: "Kalıcı olarak sil", success: "Satıcı silindi.", failed: "Satıcı silinemedi.", ineligible: "Satıcı artık aktif veya ürünü ya da geçmişi var. Hiçbir şey silinmedi." },
+  }[language];
   const { toast } = useToast();
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
   const [profile, setProfile] = useState<VendorProfile>({ vendorName: "", contactEmail: "", contactPhone: "", address: "", businessLicense: "" });
   const [rejectionReason, setRejectionReason] = useState("");
-  const [dialog, setDialog] = useState<"reject" | "approve" | "toggle" | "details" | "edit" | null>(null);
+  const [dialog, setDialog] = useState<"reject" | "approve" | "toggle" | "details" | "edit" | "delete" | null>(null);
   const [toggleAction, setToggleAction] = useState<{ vendorId: number; currentStatus: boolean } | null>(null);
   const [vendorSearch, setVendorSearch] = useState("");
   const [vendorStatusFilter, setVendorStatusFilter] = useState<"all" | "active" | "inactive">("all");
@@ -67,6 +73,7 @@ export default function MarketplaceManagement() {
   const rejected = useQuery<{ vendors: Vendor[] }>({ queryKey: ["/api/admin/vendors/rejected"] });
   const changes = useQuery<{ vendors: VendorWithPendingChanges[] }>({ queryKey: ["/api/admin/vendors/pending-profile-changes"] });
   const stats = useQuery<{ stats: Record<number, VendorProductStats> }>({ queryKey: ["/api/admin/vendors/product-stats"] });
+  const deletable = useQuery<{ vendorIds: number[] }>({ queryKey: ["/api/admin/vendors/deletable"] });
   const displaySettings = useQuery<{ vendorEntryVisible: boolean }>({ queryKey: ["/api/marketplace/display-settings"] });
   const settingsText = {
     en: { tab: "Display settings", title: "Public vendor entry", description: "Show the Vendor button on the home page and vendor links in the footer.", visible: "Vendor entry is visible", hidden: "Vendor entry is hidden", saved: "Display setting saved.", error: "Could not save the display setting." },
@@ -83,12 +90,27 @@ export default function MarketplaceManagement() {
     onError: () => toast({ title: t.failure, description: settingsText.error, variant: "destructive" }),
   });
 
-  const refresh = () => [all, pending, approved, rejected, changes, stats].forEach((q) => q.refetch());
+  const refresh = () => [all, pending, approved, rejected, changes, stats, deletable].forEach((q) => q.refetch());
   const invalidate = (keys: string[]) => keys.forEach((key) => queryClient.invalidateQueries({ queryKey: [key] }));
   const mutationOptions = (success: string, failure: string, keys: string[]) => ({ onSuccess: () => { invalidate(keys); toast({ title: t.success, description: success }); }, onError: () => toast({ title: t.failure, description: failure, variant: "destructive" as const }) });
-  const approveMutation = useMutation({ mutationFn: (id: number) => apiRequest(`/api/admin/vendors/${id}/approve`, { method: "POST" }), ...mutationOptions(t.approvedToast, t.approveError, ["/api/admin/vendors", "/api/admin/vendors/pending", "/api/admin/vendors/approved"]) });
+  const approveMutation = useMutation({ mutationFn: (id: number) => apiRequest(`/api/admin/vendors/${id}/approve`, { method: "POST" }), ...mutationOptions(t.approvedToast, t.approveError, ["/api/admin/vendors", "/api/admin/vendors/pending", "/api/admin/vendors/approved", "/api/admin/vendors/deletable"]) });
   const rejectMutation = useMutation({ mutationFn: ({ id, reason }: { id: number; reason: string }) => apiRequest(`/api/admin/vendors/${id}/reject`, { method: "POST", body: { reason } }), ...mutationOptions(t.rejectedToast, t.rejectError, ["/api/admin/vendors", "/api/admin/vendors/pending", "/api/admin/vendors/approved", "/api/admin/vendors/rejected"]), onSuccess: () => { invalidate(["/api/admin/vendors", "/api/admin/vendors/pending", "/api/admin/vendors/approved", "/api/admin/vendors/rejected"]); setDialog(null); setRejectionReason(""); toast({ title: t.success, description: t.rejectedToast }); } });
-  const statusMutation = useMutation({ mutationFn: ({ id, isActive }: { id: number; isActive: boolean }) => apiRequest(`/api/admin/vendors/${id}`, { method: "PATCH", body: { isActive } }), ...mutationOptions(t.statusToast, t.statusError, ["/api/admin/vendors", "/api/admin/vendors/approved"]) });
+  const statusMutation = useMutation({ mutationFn: ({ id, isActive }: { id: number; isActive: boolean }) => apiRequest(`/api/admin/vendors/${id}`, { method: "PATCH", body: { isActive } }), ...mutationOptions(t.statusToast, t.statusError, ["/api/admin/vendors", "/api/admin/vendors/approved", "/api/admin/vendors/deletable"]) });
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => apiRequest(`/api/admin/vendors/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      invalidate(["/api/admin/vendors", "/api/admin/vendors/pending", "/api/admin/vendors/approved", "/api/admin/vendors/rejected",
+        "/api/admin/vendors/pending-profile-changes", "/api/admin/vendors/product-stats", "/api/admin/vendors/deletable",
+        "/api/admin/vendor-accounting/balances"]);
+      setDialog(null);
+      setSelectedVendor(null);
+      toast({ title: t.success, description: deleteText.success });
+    },
+    onError: (error: Error) => {
+      void deletable.refetch();
+      toast({ title: t.failure, description: error.message.includes("Vendor is active or has products") ? deleteText.ineligible : deleteText.failed, variant: "destructive" });
+    },
+  });
   const profileMutation = useMutation({
     mutationFn: ({ id, changes }: { id: number; changes: Partial<VendorProfile> }) =>
       apiRequest(`/api/admin/vendors/${id}/profile`, { method: "PATCH", body: changes }),
@@ -100,7 +122,7 @@ export default function MarketplaceManagement() {
     },
     onError: (error: Error) => toast({
       title: t.failure,
-      description: error.message.includes("409") ? editText.duplicate : editText.failed,
+      description: error.message.includes("Email is already in use") ? editText.duplicate : editText.failed,
       variant: "destructive",
     }),
   });
@@ -189,7 +211,20 @@ export default function MarketplaceManagement() {
         <TableCell className="border-e border-slate-200 px-3 py-2 text-center">{s?.totalOrders ?? 0}</TableCell>
         <TableCell className="border-e border-slate-200 px-3 py-2 whitespace-nowrap"><Star className="me-1 inline h-3.5 w-3.5 text-amber-500" />{Number(vendor.rating || 0).toFixed(1)} <span className="text-slate-500">({vendor.totalReviews})</span></TableCell>
         <TableCell className="border-e border-slate-200 px-3 py-2 whitespace-nowrap">{date(vendor.createdAt)}</TableCell>
-        <TableCell className="px-3 py-2"><div className="flex max-w-[260px] flex-wrap gap-1"><Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => action(vendor, "details")} data-testid={kind === "rejected" ? `button-view-details-rejected-${vendor.id}` : `button-view-details-${vendor.id}`}><Eye className="me-1 h-3.5 w-3.5" />{t.view}</Button>{!vendor.isApproved && <><Button size="sm" className="h-7 bg-emerald-600 px-2 text-xs hover:bg-emerald-700" onClick={() => action(vendor, "approve")} data-testid={kind === "rejected" ? `button-reapprove-${vendor.id}` : `button-approve-${vendor.id}`}><Check className="me-1 h-3.5 w-3.5" />{vendor.rejectionReason ? t.reapprove : t.approve}</Button><Button size="sm" variant="destructive" className="h-7 px-2 text-xs" onClick={() => action(vendor, "reject")} data-testid={`button-reject-${vendor.id}`}><X className="me-1 h-3.5 w-3.5" />{t.reject}</Button></>}{vendor.isApproved && <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => action(vendor, "toggle")} data-testid={`button-toggle-status-${vendor.id}`}>{vendor.isActive ? t.disable : t.enable}</Button>}</div></TableCell>
+        <TableCell className="px-3 py-2">
+          <div className="flex max-w-[290px] flex-wrap gap-1">
+            <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => action(vendor, "details")} data-testid={kind === "rejected" ? `button-view-details-rejected-${vendor.id}` : `button-view-details-${vendor.id}`}><Eye className="me-1 h-3.5 w-3.5" />{t.view}</Button>
+            {!vendor.isApproved && <>
+              <Button size="sm" className="h-7 bg-emerald-600 px-2 text-xs hover:bg-emerald-700" onClick={() => action(vendor, "approve")} data-testid={kind === "rejected" ? `button-reapprove-${vendor.id}` : `button-approve-${vendor.id}`}><Check className="me-1 h-3.5 w-3.5" />{vendor.rejectionReason ? t.reapprove : t.approve}</Button>
+              <Button size="sm" variant="destructive" className="h-7 px-2 text-xs" onClick={() => action(vendor, "reject")} data-testid={`button-reject-${vendor.id}`}><X className="me-1 h-3.5 w-3.5" />{t.reject}</Button>
+            </>}
+            {vendor.isApproved && <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => action(vendor, "toggle")} data-testid={`button-toggle-status-${vendor.id}`}>{vendor.isActive ? t.disable : t.enable}</Button>}
+            {!vendor.isActive && deletable.data?.vendorIds.includes(vendor.id) && (
+              <Button size="sm" variant="destructive" className="h-7 px-2 text-xs" onClick={() => { setSelectedVendor(vendor); setDialog("delete"); }}
+                data-testid={`button-delete-vendor-${vendor.id}`}><Trash2 className="me-1 h-3.5 w-3.5" />{deleteText.action}</Button>
+            )}
+          </div>
+        </TableCell>
       </TableRow>; })}</TableBody>
     </Table></div></CardContent></Card>}</div>;
   };
@@ -273,5 +308,19 @@ export default function MarketplaceManagement() {
     <Dialog open={dialog === "reject"} onOpenChange={(open) => !open && setDialog(null)}><DialogContent data-testid="dialog-reject"><DialogHeader><DialogTitle>{t.confirmReject}</DialogTitle><DialogDescription>{t.rejectQuestion.replace("{name}", selectedVendor ? localizedVendorName(selectedVendor) : "")}</DialogDescription></DialogHeader><div className="space-y-2 py-3"><Label htmlFor="rejection-reason">{t.reason}</Label><Textarea id="rejection-reason" placeholder={t.reasonPlaceholder} value={rejectionReason} onChange={(e) => setRejectionReason(e.target.value)} rows={4} data-testid="input-rejection-reason" /></div><div className="flex justify-end gap-2"><Button variant="outline" onClick={() => setDialog(null)} data-testid="button-cancel-reject">{t.cancel}</Button><Button variant="destructive" onClick={confirmReject} disabled={rejectMutation.isPending} data-testid="button-confirm-reject">{rejectMutation.isPending ? t.processing : t.reject}</Button></div></DialogContent></Dialog>
     <AlertDialog open={dialog === "approve"} onOpenChange={(open) => !open && setDialog(null)}><AlertDialogContent data-testid="dialog-approve-confirm"><AlertDialogHeader><AlertDialogTitle>{t.confirmApprove}</AlertDialogTitle><AlertDialogDescription>{t.approveQuestion.replace("{name}", selectedVendor ? localizedVendorName(selectedVendor) : "")}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel data-testid="button-cancel-approve">{t.cancel}</AlertDialogCancel><AlertDialogAction onClick={confirmApprove} className="bg-emerald-600 hover:bg-emerald-700" data-testid="button-confirm-approve">{t.confirm}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
     <AlertDialog open={dialog === "toggle"} onOpenChange={(open) => !open && setDialog(null)}><AlertDialogContent data-testid="dialog-toggle-status-confirm"><AlertDialogHeader><AlertDialogTitle>{t.confirmToggle}</AlertDialogTitle><AlertDialogDescription>{t.toggleQuestion.replace("{name}", selectedVendor ? localizedVendorName(selectedVendor) : "").replace("{action}", toggleAction?.currentStatus ? t.disable : t.enable)}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel data-testid="button-cancel-toggle">{t.cancel}</AlertDialogCancel><AlertDialogAction onClick={confirmToggle} data-testid="button-confirm-toggle">{t.confirm}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+    <AlertDialog open={dialog === "delete"} onOpenChange={(open) => !open && setDialog(null)}>
+      <AlertDialogContent dir={direction} data-testid="dialog-delete-vendor">
+        <AlertDialogHeader>
+          <AlertDialogTitle>{deleteText.title}</AlertDialogTitle>
+          <AlertDialogDescription>{deleteText.body.replace("{name}", selectedVendor ? localizedVendorName(selectedVendor) : "")}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={deleteMutation.isPending}>{t.cancel}</AlertDialogCancel>
+          <Button type="button" variant="destructive" disabled={!selectedVendor || deleteMutation.isPending}
+            onClick={() => selectedVendor && deleteMutation.mutate(selectedVendor.id)}
+            data-testid="button-confirm-delete-vendor">{deleteMutation.isPending ? t.processing : deleteText.confirm}</Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </div>;
 }
