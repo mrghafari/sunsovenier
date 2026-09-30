@@ -51,6 +51,7 @@ const INVOICE_TRANSLATIONS: Record<string, InvoiceTranslation> = {
   sendError: { en: 'Invoice could not be emailed', ar: 'تعذر إرسال الفاتورة', tr: 'Fatura e-posta ile gönderilemedi', fa: 'ارسال ایمیل فاکتور انجام نشد' },
   missingEmail: { en: 'This customer has no valid email address.', ar: 'لا يوجد عنوان بريد إلكتروني صالح لهذا العميل.', tr: 'Bu müşterinin geçerli bir e-posta adresi yok.', fa: 'برای این مشتری ایمیل معتبر ثبت نشده است.' },
   chooseSender: { en: 'Send from', ar: 'الإرسال من', tr: 'Gönderen adresi', fa: 'ارسال از ایمیل' },
+  chooseLanguage: { en: 'Invoice and email language', ar: 'لغة الفاتورة والبريد الإلكتروني', tr: 'Fatura ve e-posta dili', fa: 'زبان فاکتور و ایمیل' },
   recipient: { en: 'Recipient', ar: 'المستلم', tr: 'Alıcı', fa: 'گیرنده' },
   noSenders: { en: 'No active email senders configured.', ar: 'لا توجد عناوين مرسل نشطة.', tr: 'Etkin e-posta göndericisi tanımlanmamış.', fa: 'هیچ ایمیل فرستندهٔ فعالی تنظیم نشده است.' },
   senderError: { en: 'Could not load sender addresses.', ar: 'تعذر تحميل عناوين المرسلين.', tr: 'Gönderen adresleri yüklenemedi.', fa: 'دریافت ایمیل‌های فرستنده ممکن نشد.' },
@@ -138,6 +139,7 @@ export default function ShopInvoiceManagement() {
   const [showInvoicePreview, setShowInvoicePreview] = useState(false);
   const [orderToSend, setOrderToSend] = useState<PaidOrder | null>(null);
   const [senderId, setSenderId] = useState('');
+  const [sendLanguage, setSendLanguage] = useState<InvoiceLanguage>(language);
 
   // Fetch paid orders only (completed payments) - NEW API PATH
   const { data: ordersResponse, isLoading: ordersLoading } = useQuery({
@@ -176,12 +178,12 @@ export default function ShopInvoiceManagement() {
     staleTime: 30_000,
   });
   const sendInvoice = useMutation({
-    mutationFn: async ({ order, senderId }: { order: PaidOrder; senderId: number }) => {
+    mutationFn: async ({ order, senderId, invoiceLanguage }: { order: PaidOrder; senderId: number; invoiceLanguage: InvoiceLanguage }) => {
       const response = await fetch(`/api/invoices/paid/${order.id}/send`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ senderId, expectedEmail: order.customerEmail }),
+        body: JSON.stringify({ senderId, expectedEmail: order.customerEmail, language: invoiceLanguage }),
       });
       if (!response.ok) throw new Error(`Invoice email request failed (${response.status})`);
       return response.json() as Promise<{ success: boolean; recipient: string }>;
@@ -286,7 +288,7 @@ export default function ShopInvoiceManagement() {
 
   // Use the same server-generated PDF for preview, print, download and email.
   const requestInvoicePDF = async (order: PaidOrder) => {
-    const response = await fetch(`/api/invoices/paid/${order.id}/pdf`, { credentials: 'include' });
+    const response = await fetch(`/api/invoices/paid/${order.id}/pdf?lang=${language}`, { credentials: 'include' });
     if (!response.ok) {
       throw new Error(`Invoice PDF request failed (${response.status})`);
     }
@@ -752,6 +754,7 @@ export default function ShopInvoiceManagement() {
       return;
     }
     setSenderId('');
+    setSendLanguage(language);
     setOrderToSend(order);
   };
 
@@ -1044,7 +1047,7 @@ export default function ShopInvoiceManagement() {
           <DialogHeader><DialogTitle>{tr('preview')} — {selectedOrder?.orderNumber}</DialogTitle></DialogHeader>
           {selectedOrder && <iframe
             title={`${tr('preview')} ${selectedOrder.orderNumber}`}
-            src={`/api/invoices/paid/${selectedOrder.id}/pdf`}
+            src={`/api/invoices/paid/${selectedOrder.id}/pdf?lang=${language}`}
             className="min-h-0 w-full flex-1 rounded border"
           />}
         </DialogContent>
@@ -1071,8 +1074,20 @@ export default function ShopInvoiceManagement() {
                   </Select>
                 ) : <p className="text-sm text-amber-700">{tr('noSenders')}</p>}
             </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="invoice-send-language">{tr('chooseLanguage')}</label>
+              <Select value={sendLanguage} onValueChange={(value: InvoiceLanguage) => setSendLanguage(value)} disabled={sendInvoice.isPending}>
+                <SelectTrigger id="invoice-send-language"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="fa">فارسی</SelectItem>
+                  <SelectItem value="ar">العربية</SelectItem>
+                  <SelectItem value="en">English</SelectItem>
+                  <SelectItem value="tr">Türkçe</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <Button type="button" className="w-full gap-2" disabled={!senderId || sendInvoice.isPending}
-              onClick={() => orderToSend && sendInvoice.mutate({ order: orderToSend, senderId: Number(senderId) })}>
+              onClick={() => orderToSend && sendInvoice.mutate({ order: orderToSend, senderId: Number(senderId), invoiceLanguage: sendLanguage })}>
               <Send className="h-4 w-4" />{sendInvoice.isPending ? tr('sending') : tr('send')}
             </Button>
           </div>

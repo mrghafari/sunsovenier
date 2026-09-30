@@ -26044,8 +26044,9 @@ ${procedure.content}
       return res.status(400).json({ success: false, message: "Invalid order ID" });
     }
     const senderId = Number(req.body?.senderId);
-    if (!Number.isSafeInteger(senderId) || senderId < 1 || typeof req.body?.expectedEmail !== 'string') {
-      return res.status(400).json({ success: false, message: "Select a sender and confirm the customer email" });
+    const language = parseInvoiceLanguage(req.body?.language);
+    if (!Number.isSafeInteger(senderId) || senderId < 1 || typeof req.body?.expectedEmail !== 'string' || !language) {
+      return res.status(400).json({ success: false, message: "Select a sender and language, and confirm the customer email" });
     }
     try {
       const { loadPaidInvoice, createPaidInvoicePdf } = await import('./paid-invoice-pdf');
@@ -26059,7 +26060,6 @@ ${procedure.content}
         return res.status(409).json({ success: false, message: "Customer email changed; refresh the invoice list" });
       }
       if (!invoice.items.length) return res.status(422).json({ success: false, message: "Order has no invoice items" });
-      const language = parseInvoiceLanguage(invoice.order.preferred_language) || 'en';
       const pdf = await createPaidInvoicePdf(invoice, language);
       const orderNumber = String(invoice.order.order_number || `M-${orderId}`);
       const filename = orderNumber.replace(/[^a-zA-Z0-9_-]/g, '_');
