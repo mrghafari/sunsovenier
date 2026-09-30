@@ -232,6 +232,49 @@ export function createAdminVendorRouter() {
   });
 
   // Update vendor (admin can update any field)
+  // Profile edits are deliberately restricted to current contact/identity fields.
+  // Do not replace the vendor row: orders, payments and transaction references
+  // continue to point at the same vendor ID.
+  router.patch("/:id/profile", async (req, res) => {
+    const vendorId = Number(req.params.id);
+    if (!Number.isSafeInteger(vendorId) || vendorId <= 0) {
+      return res.status(400).json({ success: false, message: "Invalid vendor ID" });
+    }
+
+    const allowed = ["vendorName", "contactPhone", "contactEmail", "address", "businessLicense"] as const;
+    const body = req.body;
+    if (!body || typeof body !== "object" || Array.isArray(body) ||
+        Object.keys(body).length === 0 ||
+        Object.keys(body).some(key => !allowed.includes(key as typeof allowed[number]))) {
+      return res.status(400).json({ success: false, message: "Only vendor name, phone, email, address and business license can be edited" });
+    }
+
+    const changes: Partial<Record<typeof allowed[number], string>> = {};
+    for (const key of allowed) {
+      if (!(key in body)) continue;
+      const value = body[key];
+      if (typeof value !== "string" || !value.trim() || value.trim().length > 500 ||
+          (key === "contactEmail" && (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim()) || value.trim().length > 254))) {
+        return res.status(400).json({ success: false, message: `Invalid ${key}` });
+      }
+      changes[key] = value.trim();
+    }
+
+    try {
+      const existing = await vendorStorage.getVendorById(vendorId);
+      if (!existing) return res.status(404).json({ success: false, message: "Vendor not found" });
+      const vendor = await vendorStorage.updateVendor(vendorId, changes);
+      res.json({ success: true, vendor });
+    } catch (error: any) {
+      if (error?.code === "23505") {
+        return res.status(409).json({ success: false, message: "Email is already in use" });
+      }
+      console.error("Error updating vendor profile:", error);
+      res.status(500).json({ success: false, message: "Error updating vendor profile" });
+    }
+  });
+
+  // Existing status update remains separate from the restricted profile edit.
   router.patch("/:id", async (req, res) => {
     try {
       const vendorId = parseInt(req.params.id);

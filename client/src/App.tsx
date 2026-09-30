@@ -150,7 +150,6 @@ import AdminAbandonedOrders from "@/pages/admin-abandoned-orders";
 import FooterManagement from "@/pages/admin/footer-management";
 import ShopManagement from "@/pages/admin/shop-management";
 import MarketplaceManagement from "@/pages/admin/marketplace-management";
-import VendorAccounting from "@/pages/admin/vendor-accounting";
 import VendorRegistration from "@/pages/vendor-registration";
 import VendorLogin from "@/pages/vendor-login";
 import VendorForgotPassword from "@/pages/vendor-forgot-password";
@@ -350,7 +349,6 @@ function Router() {
           <Route path="/mrg/shop-management" component={() => <AdminRoute><ShopManagement /></AdminRoute>} />
           <Route path="/mrg/marketplace-management" component={() => <AdminRoute><MarketplaceManagement /></AdminRoute>} />
           <Route path="/mrg/marketplace_management" component={() => <AdminRoute><MarketplaceManagement /></AdminRoute>} />
-          <Route path="/mrg/vendor-accounting" component={() => <AdminRoute><VendorAccounting /></AdminRoute>} />
           <Route path="/mrg/email-templates" component={() => <AdminRoute><EmailTemplatesFixed /></AdminRoute>} />
           <Route path="/mrg/email-templates-fixed" component={() => <AdminRoute><EmailTemplatesFixed /></AdminRoute>} />
           <Route path="/mrg/email-templates-central" component={() => <AdminRoute><EmailTemplatesCentral /></AdminRoute>} />

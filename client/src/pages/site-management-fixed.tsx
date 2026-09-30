@@ -528,7 +528,7 @@ export default function SiteManagement() {
       id: "marketplace-management",
       ...getModuleText("marketplace-management"),
       icon: Store,
-      onClick: () => trackButtonClick("marketplace-management", () => setLocation("/admin/marketplace-management")),
+      onClick: () => trackButtonClick("marketplace-management", () => setLocation("/mrg/marketplace-management")),
       className: "border-purple-300 text-purple-600 hover:bg-purple-50 hover:text-purple-800",
       moduleId: "marketplace_management"
     },

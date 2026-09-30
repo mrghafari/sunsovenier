@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Calculator, Check, Eye, MapPin, Search, Settings, Star, Store, X } from "lucide-react";
+import { Calculator, Check, Eye, MapPin, Pencil, Search, Settings, Star, Store, X } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,10 +20,12 @@ import VendorAccountingTab from "./vendor-accounting-tab";
 
 type Vendor = {
   id: number; vendorName: string; vendorNameAr: string; vendorNameKu: string; vendorNameTr: string;
-  contactEmail: string; contactPhone: string; businessAddress: string; businessLicense: string; taxId: string;
+  contactEmail: string; contactPhone: string | null; address: string | null; businessLicense: string | null; taxId: string;
   description: string; logo: string | null; isApproved: boolean; isActive: boolean; approvedBy: number | null;
   approvedAt: string | null; rejectionReason: string | null; totalSales: string; rating: string; totalReviews: number; createdAt: string;
 };
+type VendorProfile = { vendorName: string; contactEmail: string; contactPhone: string; address: string; businessLicense: string };
+const editableProfileKeys = ["vendorName", "contactEmail", "contactPhone", "address", "businessLicense"] as const;
 type VendorWithPendingChanges = Vendor & { pendingProfileChanges: Record<string, any> | null; pendingChangesSubmittedAt: string | null };
 type VendorProductStats = { inStock: number; lowStock: number; outOfStock: number; hiddenProducts: number; totalProducts: number; totalSales: number; totalOrders: number };
 
@@ -37,10 +39,17 @@ const copy = {
 export default function MarketplaceManagement() {
   const { language, direction } = useLanguage();
   const t = copy[language];
+  const editText = {
+    en: { edit: "Edit vendor details", title: "Edit vendor", hint: "Only these current profile fields will change. Orders, payments and other vendor data are preserved.", email: "Email", phone: "Phone", save: "Save changes", saved: "Vendor details updated.", failed: "Could not update vendor details.", required: "Fill in every field before saving.", duplicate: "This email is already used by another vendor." },
+    fa: { edit: "ویرایش اطلاعات فروشنده", title: "ویرایش فروشنده", hint: "فقط همین اطلاعات فعلی تغییر می‌کنند. سفارش‌ها، پرداخت‌ها و دیگر داده‌های فروشنده حفظ می‌شوند.", email: "ایمیل", phone: "تلفن", save: "ذخیره تغییرات", saved: "اطلاعات فروشنده به‌روزرسانی شد.", failed: "به‌روزرسانی اطلاعات فروشنده ممکن نیست.", required: "پیش از ذخیره همه فیلدها را تکمیل کنید.", duplicate: "این ایمیل قبلاً برای فروشنده دیگری ثبت شده است." },
+    ar: { edit: "تعديل بيانات البائع", title: "تعديل البائع", hint: "ستتغير هذه البيانات الحالية فقط. ستبقى الطلبات والمدفوعات وبيانات البائع الأخرى محفوظة.", email: "البريد الإلكتروني", phone: "الهاتف", save: "حفظ التغييرات", saved: "تم تحديث بيانات البائع.", failed: "تعذر تحديث بيانات البائع.", required: "أكمل جميع الحقول قبل الحفظ.", duplicate: "هذا البريد الإلكتروني مستخدم لبائع آخر." },
+    tr: { edit: "Satıcı bilgilerini düzenle", title: "Satıcıyı düzenle", hint: "Yalnızca bu güncel profil bilgileri değişir. Siparişler, ödemeler ve diğer satıcı verileri korunur.", email: "E-posta", phone: "Telefon", save: "Değişiklikleri kaydet", saved: "Satıcı bilgileri güncellendi.", failed: "Satıcı bilgileri güncellenemedi.", required: "Kaydetmeden önce tüm alanları doldurun.", duplicate: "Bu e-posta başka bir satıcı tarafından kullanılıyor." },
+  }[language];
   const { toast } = useToast();
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
+  const [profile, setProfile] = useState<VendorProfile>({ vendorName: "", contactEmail: "", contactPhone: "", address: "", businessLicense: "" });
   const [rejectionReason, setRejectionReason] = useState("");
-  const [dialog, setDialog] = useState<"reject" | "approve" | "toggle" | "details" | null>(null);
+  const [dialog, setDialog] = useState<"reject" | "approve" | "toggle" | "details" | "edit" | null>(null);
   const [toggleAction, setToggleAction] = useState<{ vendorId: number; currentStatus: boolean } | null>(null);
   const [vendorSearch, setVendorSearch] = useState("");
   const [vendorStatusFilter, setVendorStatusFilter] = useState<"all" | "active" | "inactive">("all");
@@ -80,12 +89,51 @@ export default function MarketplaceManagement() {
   const approveMutation = useMutation({ mutationFn: (id: number) => apiRequest(`/api/admin/vendors/${id}/approve`, { method: "POST" }), ...mutationOptions(t.approvedToast, t.approveError, ["/api/admin/vendors", "/api/admin/vendors/pending", "/api/admin/vendors/approved"]) });
   const rejectMutation = useMutation({ mutationFn: ({ id, reason }: { id: number; reason: string }) => apiRequest(`/api/admin/vendors/${id}/reject`, { method: "POST", body: { reason } }), ...mutationOptions(t.rejectedToast, t.rejectError, ["/api/admin/vendors", "/api/admin/vendors/pending", "/api/admin/vendors/approved", "/api/admin/vendors/rejected"]), onSuccess: () => { invalidate(["/api/admin/vendors", "/api/admin/vendors/pending", "/api/admin/vendors/approved", "/api/admin/vendors/rejected"]); setDialog(null); setRejectionReason(""); toast({ title: t.success, description: t.rejectedToast }); } });
   const statusMutation = useMutation({ mutationFn: ({ id, isActive }: { id: number; isActive: boolean }) => apiRequest(`/api/admin/vendors/${id}`, { method: "PATCH", body: { isActive } }), ...mutationOptions(t.statusToast, t.statusError, ["/api/admin/vendors", "/api/admin/vendors/approved"]) });
+  const profileMutation = useMutation({
+    mutationFn: ({ id, changes }: { id: number; changes: Partial<VendorProfile> }) =>
+      apiRequest(`/api/admin/vendors/${id}/profile`, { method: "PATCH", body: changes }),
+    onSuccess: (result: { vendor: Vendor }) => {
+      invalidate(["/api/admin/vendors", "/api/admin/vendors/pending", "/api/admin/vendors/approved", "/api/admin/vendors/rejected", "/api/admin/vendors/pending-profile-changes"]);
+      setSelectedVendor(result.vendor);
+      setDialog("details");
+      toast({ title: t.success, description: editText.saved });
+    },
+    onError: (error: Error) => toast({
+      title: t.failure,
+      description: error.message.includes("409") ? editText.duplicate : editText.failed,
+      variant: "destructive",
+    }),
+  });
   const approveChanges = useMutation({ mutationFn: (id: number) => apiRequest(`/api/admin/vendors/${id}/profile-changes/approve`, { method: "POST" }), ...mutationOptions(t.changeApproved, t.changeError, ["/api/admin/vendors/pending-profile-changes", "/api/admin/vendors"]) });
   const rejectChanges = useMutation({ mutationFn: (id: number) => apiRequest(`/api/admin/vendors/${id}/profile-changes/reject`, { method: "POST" }), ...mutationOptions(t.changeRejected, t.changeError, ["/api/admin/vendors/pending-profile-changes"]) });
 
   const localizedVendorName = (vendor: Vendor) => language === "tr" && vendor.vendorNameTr ? vendor.vendorNameTr : language === "ar" && vendor.vendorNameAr ? vendor.vendorNameAr : vendor.vendorName;
   const date = (value: string | null) => value ? new Date(value).toLocaleDateString(language === "fa" ? "fa-IR" : language === "ar" ? "ar-IQ" : language === "tr" ? "tr-TR" : "en-US") : t.noData;
 
+  const startEditing = (vendor: Vendor) => {
+    setProfile({
+      vendorName: vendor.vendorName || "", contactEmail: vendor.contactEmail || "",
+      contactPhone: vendor.contactPhone || "", address: vendor.address || "",
+      businessLicense: vendor.businessLicense || "",
+    });
+    setSelectedVendor(vendor);
+    setDialog("edit");
+  };
+  const saveProfile = () => {
+    if (!selectedVendor || profileMutation.isPending) return;
+    const changes: Partial<VendorProfile> = {};
+    for (const key of editableProfileKeys) {
+      const value = profile[key].trim();
+      if (value !== (selectedVendor[key] || "")) {
+        if (!value) {
+          toast({ title: t.failure, description: editText.required, variant: "destructive" });
+          return;
+        }
+        changes[key] = value;
+      }
+    }
+    if (Object.keys(changes).length) profileMutation.mutate({ id: selectedVendor.id, changes });
+  };
   const action = (vendor: Vendor, type: "approve" | "reject" | "toggle" | "details") => { setSelectedVendor(vendor); setDialog(type); if (type === "toggle") setToggleAction({ vendorId: vendor.id, currentStatus: vendor.isActive }); };
   const confirmApprove = () => { if (selectedVendor) approveMutation.mutate(selectedVendor.id); setDialog(null); };
   const confirmToggle = () => { if (toggleAction) statusMutation.mutate({ id: toggleAction.vendorId, isActive: !toggleAction.currentStatus }); setDialog(null); };
@@ -101,7 +149,7 @@ export default function MarketplaceManagement() {
     if (error) return <Card><CardContent className="py-12 text-center text-rose-600"><p>{t.error}</p><Button variant="outline" size="sm" className="mt-3" onClick={refresh}>{t.retry}</Button></CardContent></Card>;
     const query = vendorSearch.trim().toLowerCase();
     const filteredVendors = vendors.filter((vendor) => {
-      const matchesSearch = !query || [localizedVendorName(vendor), vendor.vendorName, vendor.vendorNameAr, vendor.vendorNameTr, vendor.contactEmail, vendor.contactPhone, vendor.businessAddress]
+      const matchesSearch = !query || [localizedVendorName(vendor), vendor.vendorName, vendor.vendorNameAr, vendor.vendorNameTr, vendor.contactEmail, vendor.contactPhone, vendor.address]
         .some((value) => String(value || "").toLowerCase().includes(query));
       const matchesStatus = vendorStatusFilter === "all" || (vendorStatusFilter === "active" ? vendor.isActive : !vendor.isActive);
       return matchesSearch && matchesStatus;
@@ -134,7 +182,7 @@ export default function MarketplaceManagement() {
        <TableBody>{filteredVendors.map((vendor) => { const s = stats.data?.stats?.[vendor.id]; return <TableRow key={vendor.id} className="border-slate-200 odd:bg-slate-50 even:bg-white hover:bg-amber-50" data-testid={kind === "rejected" ? `rejected-vendor-card-${vendor.id}` : `vendor-card-${vendor.id}`}>
         <TableCell className="border-e border-slate-200 px-3 py-2"><div className="flex items-center gap-2.5"><div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-md bg-slate-100">{vendor.logo ? <img src={vendor.logo} alt={localizedVendorName(vendor)} className="h-full w-full object-cover" /> : <Store className="h-4 w-4 text-slate-500" />}</div><div><div className="font-semibold text-slate-900" data-testid={`vendor-name-${vendor.id}`}>{localizedVendorName(vendor)}</div><div className="font-mono text-[10px] text-slate-500">#{vendor.id}</div></div></div></TableCell>
         <TableCell className="border-e border-slate-200 px-3 py-2"><div data-testid={`vendor-email-${vendor.id}`}>{vendor.contactEmail || t.noData}</div><div className="text-slate-500" data-testid={`vendor-phone-${vendor.id}`}>{vendor.contactPhone || t.noData}</div></TableCell>
-        <TableCell className="max-w-[190px] border-e border-slate-200 px-3 py-2"><div className="flex items-start gap-1.5"><MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" /><span className="line-clamp-2" data-testid={`vendor-address-${vendor.id}`}>{vendor.businessAddress || t.noData}</span></div></TableCell>
+        <TableCell className="max-w-[190px] border-e border-slate-200 px-3 py-2"><div className="flex items-start gap-1.5"><MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" /><span className="line-clamp-2" data-testid={`vendor-address-${vendor.id}`}>{vendor.address || t.noData}</span></div></TableCell>
         <TableCell className="border-e border-slate-200 px-3 py-2"><Status vendor={vendor} /></TableCell>
         <TableCell className="border-e border-slate-200 px-3 py-2" data-testid={`vendor-product-stats-${vendor.id}`}><div className="grid grid-cols-2 gap-x-2 gap-y-1 whitespace-nowrap"><span className="text-emerald-700">{t.available}: {s?.inStock ?? 0}</span><span className="text-amber-700">{t.low}: {s?.lowStock ?? 0}</span><span className="text-rose-700">{t.out}: {s?.outOfStock ?? 0}</span><span className="text-slate-500">{t.hidden}: {s?.hiddenProducts ?? 0}</span><span className="font-semibold text-slate-700">{t.total}: {s?.totalProducts ?? 0}</span></div></TableCell>
         <TableCell className="border-e border-slate-200 px-3 py-2 font-mono whitespace-nowrap">{(s?.totalSales ?? Number(vendor.totalSales || 0)).toLocaleString()} IQD</TableCell>
@@ -176,7 +224,52 @@ export default function MarketplaceManagement() {
       </Tabs>
     </div>
 
-    <Dialog open={dialog === "details"} onOpenChange={(open) => !open && setDialog(null)}><DialogContent className="max-w-2xl" data-testid="dialog-details"><DialogHeader><DialogTitle>{t.details}</DialogTitle><DialogDescription>{selectedVendor && localizedVendorName(selectedVendor)}</DialogDescription></DialogHeader>{selectedVendor && <div className="grid gap-3 text-sm sm:grid-cols-2"><div><Label>{t.name}</Label><p className="font-semibold" data-testid="details-vendor-name">{localizedVendorName(selectedVendor)}</p></div><div><Label>{t.contact}</Label><p>{selectedVendor.contactEmail}<br />{selectedVendor.contactPhone}</p></div><div><Label>{t.address}</Label><p>{selectedVendor.businessAddress || t.noData}</p></div><div><Label>{t.businessLicense}</Label><p data-testid="details-business-license">{selectedVendor.businessLicense || t.noData}</p></div><div><Label>{t.taxId}</Label><p data-testid="details-tax-id">{selectedVendor.taxId || t.noData}</p></div><div className="sm:col-span-2"><Label>{t.description}</Label><p data-testid="details-description">{selectedVendor.description || t.noData}</p></div><div><Label>{t.status}</Label><Status vendor={selectedVendor} /></div><div><Label>{t.approvedAt}</Label><p data-testid="details-approved-at">{date(selectedVendor.approvedAt)}</p></div><div><Label>{t.totalSales}</Label><p className="font-semibold">{Number(selectedVendor.totalSales || 0).toLocaleString()} IQD</p></div><div><Label>{t.rating}</Label><p className="font-semibold">{Number(selectedVendor.rating || 0).toFixed(1)} ({selectedVendor.totalReviews} {t.reviews})</p></div>{selectedVendor.rejectionReason && <div className="sm:col-span-2"><Label>{t.reason}</Label><p className="text-rose-700" data-testid={`rejection-reason-${selectedVendor.id}`}>{selectedVendor.rejectionReason}</p></div>}</div>}</DialogContent></Dialog>
+    <Dialog open={dialog === "details"} onOpenChange={(open) => !open && setDialog(null)}>
+      <DialogContent className="max-h-[85dvh] max-w-2xl overflow-y-auto" dir={direction} data-testid="dialog-details">
+        <DialogHeader><DialogTitle>{t.details}</DialogTitle><DialogDescription>{selectedVendor && localizedVendorName(selectedVendor)}</DialogDescription></DialogHeader>
+        {selectedVendor && <>
+          <div className="grid gap-3 text-sm sm:grid-cols-2">
+            <div><Label>{t.name}</Label><p className="font-semibold" data-testid="details-vendor-name">{localizedVendorName(selectedVendor)}</p></div>
+            <div><Label>{t.contact}</Label><p>{selectedVendor.contactEmail}<br />{selectedVendor.contactPhone || t.noData}</p></div>
+            <div><Label>{t.address}</Label><p>{selectedVendor.address || t.noData}</p></div>
+            <div><Label>{t.businessLicense}</Label><p data-testid="details-business-license">{selectedVendor.businessLicense || t.noData}</p></div>
+            <div><Label>{t.taxId}</Label><p data-testid="details-tax-id">{selectedVendor.taxId || t.noData}</p></div>
+            <div className="sm:col-span-2"><Label>{t.description}</Label><p data-testid="details-description">{selectedVendor.description || t.noData}</p></div>
+            <div><Label>{t.status}</Label><Status vendor={selectedVendor} /></div>
+            <div><Label>{t.approvedAt}</Label><p data-testid="details-approved-at">{date(selectedVendor.approvedAt)}</p></div>
+            <div><Label>{t.totalSales}</Label><p className="font-semibold">{Number(selectedVendor.totalSales || 0).toLocaleString()} IQD</p></div>
+            <div><Label>{t.rating}</Label><p className="font-semibold">{Number(selectedVendor.rating || 0).toFixed(1)} ({selectedVendor.totalReviews} {t.reviews})</p></div>
+            {selectedVendor.rejectionReason && <div className="sm:col-span-2"><Label>{t.reason}</Label><p className="text-rose-700">{selectedVendor.rejectionReason}</p></div>}
+          </div>
+          <Button type="button" variant="outline" onClick={() => startEditing(selectedVendor)} data-testid="button-edit-vendor"><Pencil className="me-2 h-4 w-4" />{editText.edit}</Button>
+        </>}
+      </DialogContent>
+    </Dialog>
+    <Dialog open={dialog === "edit"} onOpenChange={(open) => !open && setDialog(null)}>
+      <DialogContent className="max-h-[85dvh] max-w-lg overflow-y-auto" dir={direction} data-testid="dialog-edit-vendor">
+        <DialogHeader><DialogTitle>{editText.title}</DialogTitle><DialogDescription>{editText.hint}</DialogDescription></DialogHeader>
+        <form className="space-y-3" onSubmit={(event) => { event.preventDefault(); saveProfile(); }}>
+          {([
+            ["vendorName", t.name], ["contactEmail", editText.email], ["contactPhone", editText.phone],
+            ["address", t.address], ["businessLicense", t.businessLicense],
+          ] as [keyof VendorProfile, string][]).map(([key, label]) => (
+            <div key={key} className="space-y-1">
+              <Label htmlFor={`edit-vendor-${key}`}>{label}</Label>
+              <Input id={`edit-vendor-${key}`} type={key === "contactEmail" ? "email" : "text"}
+                value={profile[key]} maxLength={key === "contactEmail" ? 254 : 500}
+                onChange={(event) => setProfile(current => ({ ...current, [key]: event.target.value }))}
+                data-testid={`input-vendor-${key}`} />
+            </div>
+          ))}
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={() => setDialog("details")}>{t.cancel}</Button>
+            <Button type="submit" disabled={profileMutation.isPending || !selectedVendor ||
+              !editableProfileKeys.some(key => profile[key].trim() !== (selectedVendor[key] || ""))}
+              data-testid="button-save-vendor">{profileMutation.isPending ? t.processing : editText.save}</Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
     <Dialog open={dialog === "reject"} onOpenChange={(open) => !open && setDialog(null)}><DialogContent data-testid="dialog-reject"><DialogHeader><DialogTitle>{t.confirmReject}</DialogTitle><DialogDescription>{t.rejectQuestion.replace("{name}", selectedVendor ? localizedVendorName(selectedVendor) : "")}</DialogDescription></DialogHeader><div className="space-y-2 py-3"><Label htmlFor="rejection-reason">{t.reason}</Label><Textarea id="rejection-reason" placeholder={t.reasonPlaceholder} value={rejectionReason} onChange={(e) => setRejectionReason(e.target.value)} rows={4} data-testid="input-rejection-reason" /></div><div className="flex justify-end gap-2"><Button variant="outline" onClick={() => setDialog(null)} data-testid="button-cancel-reject">{t.cancel}</Button><Button variant="destructive" onClick={confirmReject} disabled={rejectMutation.isPending} data-testid="button-confirm-reject">{rejectMutation.isPending ? t.processing : t.reject}</Button></div></DialogContent></Dialog>
     <AlertDialog open={dialog === "approve"} onOpenChange={(open) => !open && setDialog(null)}><AlertDialogContent data-testid="dialog-approve-confirm"><AlertDialogHeader><AlertDialogTitle>{t.confirmApprove}</AlertDialogTitle><AlertDialogDescription>{t.approveQuestion.replace("{name}", selectedVendor ? localizedVendorName(selectedVendor) : "")}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel data-testid="button-cancel-approve">{t.cancel}</AlertDialogCancel><AlertDialogAction onClick={confirmApprove} className="bg-emerald-600 hover:bg-emerald-700" data-testid="button-confirm-approve">{t.confirm}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
     <AlertDialog open={dialog === "toggle"} onOpenChange={(open) => !open && setDialog(null)}><AlertDialogContent data-testid="dialog-toggle-status-confirm"><AlertDialogHeader><AlertDialogTitle>{t.confirmToggle}</AlertDialogTitle><AlertDialogDescription>{t.toggleQuestion.replace("{name}", selectedVendor ? localizedVendorName(selectedVendor) : "").replace("{action}", toggleAction?.currentStatus ? t.disable : t.enable)}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel data-testid="button-cancel-toggle">{t.cancel}</AlertDialogCancel><AlertDialogAction onClick={confirmToggle} data-testid="button-confirm-toggle">{t.confirm}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>

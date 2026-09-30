@@ -288,7 +288,7 @@ const ManagementDashboard = () => {
                 <LinkItem icon={ShoppingCart} label={t("orders")} href="/mrg/order-management" />
                 <LinkItem icon={Package} label={t("warehouse")} href="/mrg/warehouse-management" />
                 <LinkItem icon={CircleDollarSign} label={t("finance")} href="/mrg/finance-orders" />
-                <LinkItem icon={Building2} label={t("vendors")} href="/mrg/vendor-accounting" />
+                <LinkItem icon={Building2} label={t("vendors")} href="/mrg/marketplace-management" />
                 <LinkItem icon={BriefcaseBusiness} label={t("contracts")} href="/mrg/legal-affairs" />
               </div>
             </Panel>
