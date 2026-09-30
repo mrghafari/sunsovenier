@@ -12409,39 +12409,33 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
   app.get("/api/management/dashboard", requireAuth, async (req, res) => {
     try {
       const { pool } = await import('./db');
-      const [summaryResult, statusResult, performanceResult, inventoryResult] = await Promise.all([
+      const [summaryResult, salesResult, statusResult, inventoryResult, contractResult, vendorCountResult, vendorSalesResult] = await Promise.all([
         pool.query(`
           SELECT
-            COALESCE(SUM(total_amount) FILTER (
-              WHERE created_at >= CURRENT_DATE
-                AND status NOT IN ('cancelled', 'failed', 'payment_failed', 'deleted')
-            ), 0)::numeric AS daily_sales,
-            COUNT(*) FILTER (
-              WHERE status NOT IN ('delivered', 'completed', 'cancelled', 'failed', 'payment_failed', 'deleted', 'expired')
-            )::int AS active_orders,
             (
               SELECT COUNT(*)::int FROM session
               WHERE expire > NOW() AND (sess->>'customUserId') IS NOT NULL
             ) AS online_customers
+        `),
+        pool.query(`
+          SELECT currency, SUM(total_amount)::text AS amount
           FROM customer_orders
+          WHERE created_at >= CURRENT_DATE
+            AND status NOT IN ('cancelled', 'failed', 'deleted', 'payment_failed', 'expired')
+            AND payment_status <> 'failed'
+          GROUP BY currency
+          ORDER BY currency
         `),
         pool.query(`
           SELECT
             COUNT(*) FILTER (WHERE current_status IN ('pending', 'finance_pending', 'payment_uploaded'))::int AS pending,
             COUNT(*) FILTER (WHERE current_status IN ('financial_approved', 'warehouse_pending', 'warehouse_processing'))::int AS processing,
             COUNT(*) FILTER (WHERE current_status IN ('warehouse_approved', 'warehouse_ready', 'logistics_assigned', 'logistics_dispatched', 'in_transit'))::int AS ready_to_ship,
-            COUNT(*) FILTER (WHERE current_status IN ('delivered', 'completed'))::int AS delivered,
-            COUNT(*) FILTER (WHERE current_status IN ('financial_rejected', 'payment_failed', 'expired', 'warehouse_rejected', 'logistics_failed'))::int AS alerts
-          FROM order_management
-        `),
-        pool.query(`
-          SELECT
-            COALESCE(ROUND(100.0 * COUNT(*) FILTER (WHERE financial_reviewed_at IS NOT NULL) /
-              NULLIF(COUNT(*) FILTER (WHERE payment_receipt_url IS NOT NULL OR payment_method IS NOT NULL), 0)), 0)::int AS finance,
-            COALESCE(ROUND(100.0 * COUNT(*) FILTER (WHERE warehouse_processed_at IS NOT NULL) /
-              NULLIF(COUNT(*) FILTER (WHERE financial_reviewed_at IS NOT NULL), 0)), 0)::int AS warehouse,
-            COALESCE(ROUND(100.0 * COUNT(*) FILTER (WHERE logistics_processed_at IS NOT NULL OR actual_delivery_date IS NOT NULL) /
-              NULLIF(COUNT(*) FILTER (WHERE warehouse_processed_at IS NOT NULL), 0)), 0)::int AS logistics
+            COUNT(*) FILTER (WHERE current_status IN ('delivered', 'completed', 'logistics_delivered'))::int AS delivered,
+            COUNT(*) FILTER (WHERE current_status IN ('financial_rejected', 'payment_failed', 'expired', 'warehouse_rejected', 'logistics_failed'))::int AS alerts,
+            COUNT(*) FILTER (WHERE current_status IN ('pending', 'finance_pending', 'payment_uploaded'))::int AS finance_queue,
+            COUNT(*) FILTER (WHERE current_status IN ('financial_approved', 'warehouse_pending', 'warehouse_processing'))::int AS warehouse_queue,
+            COUNT(*) FILTER (WHERE current_status IN ('warehouse_approved', 'warehouse_ready', 'logistics_assigned', 'logistics_dispatched', 'in_transit'))::int AS logistics_queue
           FROM order_management
         `),
         pool.query(`
@@ -12456,18 +12450,44 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
             AND COALESCE(stock_quantity, 0) <= GREATEST(COALESCE(low_stock_threshold, 0), COALESCE(min_stock_level, 0))
           ORDER BY stock_quantity ASC, name ASC
           LIMIT 8
+        `),
+        pool.query(`
+          SELECT sc.id, sc.number, COALESCE(NULLIF(c.company, ''),
+            NULLIF(TRIM(CONCAT_WS(' ', c.first_name, c.last_name)), ''), c.email) AS customer_name
+          FROM shop_contracts sc
+          JOIN crm_customers c ON c.id = sc.customer_id
+          WHERE sc.is_active = TRUE AND sc.ended_at IS NULL
+          ORDER BY sc.created_at DESC, sc.id DESC
+        `),
+        pool.query(`
+          SELECT COUNT(*)::int AS active_vendors
+          FROM vendors WHERE is_active = TRUE AND is_approved = TRUE
+        `),
+        pool.query(`
+          SELECT vt.vendor_id, v.vendor_name, vt.currency,
+            SUM(CASE WHEN vt.transaction_type = 'refund' THEN -ABS(vt.amount) ELSE vt.amount END)::text AS amount,
+            COUNT(DISTINCT vt.customer_order_id) FILTER (WHERE vt.transaction_type = 'sale')::int AS orders
+          FROM vendor_transactions vt
+          JOIN vendors v ON v.id = vt.vendor_id
+          JOIN customer_orders co ON co.id = vt.customer_order_id
+          WHERE vt.transaction_type IN ('sale', 'refund') AND vt.status = 'completed'
+            AND co.status NOT IN ('cancelled', 'failed', 'deleted', 'payment_failed', 'expired')
+            AND co.payment_status <> 'failed'
+          GROUP BY vt.vendor_id, v.vendor_name, vt.currency
+          ORDER BY vt.vendor_id, vt.currency
         `)
       ]);
 
       const summary = summaryResult.rows[0];
       const statuses = statusResult.rows[0];
-      const performance = performanceResult.rows[0];
       const dashboardData = {
         summary: {
-          dailySales: Number(summary.daily_sales),
-          activeOrders: summary.active_orders,
+          dailySalesByCurrency: salesResult.rows,
+          activeOrders: statuses.pending + statuses.processing + statuses.ready_to_ship,
           onlineCustomers: summary.online_customers,
-          systemAlerts: statuses.alerts
+          systemAlerts: statuses.alerts,
+          activeContracts: contractResult.rows.length,
+          activeVendors: vendorCountResult.rows[0].active_vendors
         },
         quickStats: {
           orderStatuses: {
@@ -12476,12 +12496,19 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
             readyToShip: statuses.ready_to_ship,
             delivered: statuses.delivered
           },
-          departmentPerformance: {
-            finance: performance.finance,
-            warehouse: performance.warehouse,
-            logistics: performance.logistics
+          departmentQueues: {
+            finance: statuses.finance_queue,
+            warehouse: statuses.warehouse_queue,
+            logistics: statuses.logistics_queue
           },
-          criticalInventory: inventoryResult.rows
+          criticalInventory: inventoryResult.rows,
+          activeContractList: contractResult.rows.map(row => ({
+            id: row.id, number: row.number, customerName: row.customer_name
+          })),
+          vendorSales: vendorSalesResult.rows.map(row => ({
+            vendorId: row.vendor_id, vendorName: row.vendor_name,
+            currency: row.currency, amount: row.amount, orders: row.orders
+          }))
         }
       };
       
@@ -12503,7 +12530,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       const { pool } = await import('./db');
       const memory = Math.round((1 - os.freemem() / os.totalmem()) * 100);
       const cpu = Math.min(100, Math.round((os.loadavg()[0] / Math.max(os.cpus().length, 1)) * 100));
-      let disk = 0;
+      let disk: number | null = null;
       try {
         const diskStats = fs.statfsSync(process.cwd());
         disk = Math.round((1 - Number(diskStats.bavail) / Number(diskStats.blocks)) * 100);
@@ -12518,7 +12545,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           cpu,
           memory,
           disk,
-          status: "healthy"
+          status: "online"
         },
         services: {
           database: "online",
