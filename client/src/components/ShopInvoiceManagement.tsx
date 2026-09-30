@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileText, Download, Eye, Search, Filter, Receipt, Calendar, Building, CheckCircle, Printer } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { FileText, Download, Send, Search, Filter, Receipt, Calendar, Building, CheckCircle, Printer } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -42,6 +43,18 @@ const INVOICE_TRANSLATIONS: Record<string, InvoiceTranslation> = {
   actions: { en: 'Actions', ar: 'الإجراءات', tr: 'İşlemler', fa: 'عملیات' },
   settled: { en: 'Settled', ar: 'مسدد', tr: 'Ödendi', fa: 'تسویه شده' },
   preview: { en: 'Preview invoice', ar: 'معاينة الفاتورة', tr: 'Faturayı önizle', fa: 'پیش‌نمایش فاکتور' },
+  send: { en: 'Send', ar: 'إرسال', tr: 'Gönder', fa: 'ارسال' },
+  sending: { en: 'Sending…', ar: 'جارٍ الإرسال…', tr: 'Gönderiliyor…', fa: 'در حال ارسال…' },
+  confirmSend: { en: 'Email this invoice as a PDF to {email}?', ar: 'هل تريد إرسال الفاتورة بصيغة PDF إلى {email}؟', tr: 'Fatura PDF olarak {email} adresine gönderilsin mi?', fa: 'فاکتور PDF به {email} ایمیل شود؟' },
+  sendAccepted: { en: 'Invoice submitted to the mail server', ar: 'تم تسليم الفاتورة لخادم البريد', tr: 'Fatura posta sunucusuna iletildi', fa: 'فاکتور به سرور ایمیل تحویل داده شد' },
+  sendAcceptedDescription: { en: 'Invoice for {number} was accepted for {email}.', ar: 'تم قبول فاتورة {number} لإرسالها إلى {email}.', tr: '{number} faturası {email} için kabul edildi.', fa: 'ارسال فاکتور {number} برای {email} پذیرفته شد.' },
+  sendError: { en: 'Invoice could not be emailed', ar: 'تعذر إرسال الفاتورة', tr: 'Fatura e-posta ile gönderilemedi', fa: 'ارسال ایمیل فاکتور انجام نشد' },
+  missingEmail: { en: 'This customer has no valid email address.', ar: 'لا يوجد عنوان بريد إلكتروني صالح لهذا العميل.', tr: 'Bu müşterinin geçerli bir e-posta adresi yok.', fa: 'برای این مشتری ایمیل معتبر ثبت نشده است.' },
+  chooseSender: { en: 'Send from', ar: 'الإرسال من', tr: 'Gönderen adresi', fa: 'ارسال از ایمیل' },
+  recipient: { en: 'Recipient', ar: 'المستلم', tr: 'Alıcı', fa: 'گیرنده' },
+  noSenders: { en: 'No active email senders configured.', ar: 'لا توجد عناوين مرسل نشطة.', tr: 'Etkin e-posta göndericisi tanımlanmamış.', fa: 'هیچ ایمیل فرستندهٔ فعالی تنظیم نشده است.' },
+  senderError: { en: 'Could not load sender addresses.', ar: 'تعذر تحميل عناوين المرسلين.', tr: 'Gönderen adresleri yüklenemedi.', fa: 'دریافت ایمیل‌های فرستنده ممکن نشد.' },
+  sendErrorDescription: { en: 'Check the recipient and sender settings, then try again.', ar: 'تحقق من المستلم وإعدادات المرسل ثم أعد المحاولة.', tr: 'Alıcı ve gönderici ayarlarını kontrol edip tekrar deneyin.', fa: 'ایمیل گیرنده و تنظیمات فرستنده را بررسی کرده و دوباره تلاش کنید.' },
   print: { en: 'Print invoice', ar: 'طباعة الفاتورة', tr: 'Faturayı yazdır', fa: 'چاپ فاکتور' },
   download: { en: 'Download invoice', ar: 'تنزيل الفاتورة', tr: 'Faturayı indir', fa: 'دانلود فاکتور' },
   noInvoices: { en: 'No issuable invoices found', ar: 'لم يتم العثور على فواتير قابلة للإصدار', tr: 'Düzenlenebilir fatura bulunamadı', fa: 'هیچ فاکتور قابل صدوری یافت نشد' },
@@ -123,6 +136,8 @@ export default function ShopInvoiceManagement() {
   const [toDate, setToDate] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<PaidOrder | null>(null);
   const [showInvoicePreview, setShowInvoicePreview] = useState(false);
+  const [orderToSend, setOrderToSend] = useState<PaidOrder | null>(null);
+  const [senderId, setSenderId] = useState('');
 
   // Fetch paid orders only (completed payments) - NEW API PATH
   const { data: ordersResponse, isLoading: ordersLoading } = useQuery({
@@ -150,6 +165,37 @@ export default function ShopInvoiceManagement() {
   });
 
   const paidOrders: PaidOrder[] = ordersResponse || [];
+  const sendersQuery = useQuery<{ success: boolean; senders: Array<{ id: number; fromEmail: string; fromName: string; categoryName: string | null }> }>({
+    queryKey: ['/api/invoices/senders'],
+    enabled: !!orderToSend,
+    queryFn: async () => {
+      const response = await fetch('/api/invoices/senders', { credentials: 'include' });
+      if (!response.ok) throw new Error(`Could not load email senders (${response.status})`);
+      return response.json();
+    },
+    staleTime: 30_000,
+  });
+  const sendInvoice = useMutation({
+    mutationFn: async ({ order, senderId }: { order: PaidOrder; senderId: number }) => {
+      const response = await fetch(`/api/invoices/paid/${order.id}/send`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ senderId, expectedEmail: order.customerEmail }),
+      });
+      if (!response.ok) throw new Error(`Invoice email request failed (${response.status})`);
+      return response.json() as Promise<{ success: boolean; recipient: string }>;
+    },
+    onSuccess: (result, { order }) => {
+      setOrderToSend(null);
+      setSenderId('');
+      toast({ title: tr('sendAccepted'), description: tr('sendAcceptedDescription', { number: order.orderNumber, email: result.recipient }) });
+    },
+    onError: (error) => {
+      console.error('Invoice email request failed:', error);
+      toast({ title: tr('sendError'), description: tr('sendErrorDescription'), variant: 'destructive' });
+    },
+  });
 
   // Filter orders based on search and status
   const filteredOrders = paidOrders.filter(order => {
@@ -238,48 +284,9 @@ export default function ShopInvoiceManagement() {
     return parts.length > 0 ? parts.join(', ') : '';
   };
 
-  // Use the localized server PDF for both actions. The server owns logo
-  // selection and bidi-safe PDF rendering, so print and download stay in sync.
+  // Use the same server-generated PDF for preview, print, download and email.
   const requestInvoicePDF = async (order: PaidOrder) => {
-    const response = await fetch('/api/pdf/invoice', {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        invoiceType: 'FINAL',
-        invoiceNumber: order.orderNumber,
-        orderNumber: order.orderNumber,
-        invoiceDate: order.createdAt,
-        language,
-        customer: {
-          name: getCustomerDisplayName(order),
-          email: order.customerEmail,
-          phone: order.customerPhone,
-          address: getCustomerAddress(order),
-        },
-        items: (order.items || []).map(item => ({
-          name: item.productName,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          total: item.totalPrice,
-        })),
-        subtotal: Math.round(
-          Number(order.totalAmount || 0) -
-          Number(order.shippingCost || 0) -
-          Number(order.vatAmount || 0) -
-          Number(order.surchargeAmount || 0)
-        ),
-        vatAmount: order.vatAmount || 0,
-        dutiesAmount: order.surchargeAmount || 0,
-        shippingCost: order.shippingCost || 0,
-        discountAmount: order.discountAmount || 0,
-        total: order.totalAmount,
-        currency: order.currency || 'IQD',
-        paymentMethod: order.paymentMethod,
-        paymentStatus: order.status,
-        companyInfo: companyInfo?.data || companyInfo,
-      }),
-    });
+    const response = await fetch(`/api/invoices/paid/${order.id}/pdf`, { credentials: 'include' });
     if (!response.ok) {
       throw new Error(`Invoice PDF request failed (${response.status})`);
     }
@@ -739,6 +746,14 @@ export default function ShopInvoiceManagement() {
     setSelectedOrder(order);
     setShowInvoicePreview(true);
   };
+  const handleSendInvoice = (order: PaidOrder) => {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(order.customerEmail || '')) {
+      toast({ title: tr('sendError'), description: tr('missingEmail'), variant: 'destructive' });
+      return;
+    }
+    setSenderId('');
+    setOrderToSend(order);
+  };
 
   // Download all invoices as ZIP
   const handleDownloadAllInvoices = async () => {
@@ -950,7 +965,13 @@ export default function ShopInvoiceManagement() {
               <tbody>
                 {filteredOrders.map((order) => (
                   <tr key={order.id} className="border-b hover:bg-gray-50">
-                    <td className="p-3 font-medium text-blue-600">{order.orderNumber}</td>
+                    <td className="p-3 font-medium">
+                      <button type="button" onClick={() => handlePreviewInvoice(order)}
+                        className="text-blue-600 underline-offset-2 hover:underline focus-visible:rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600"
+                        title={tr('preview')} aria-label={`${tr('preview')} ${order.orderNumber}`}>
+                        {order.orderNumber}
+                      </button>
+                    </td>
                     <td className="p-3">
                       <div>
                         <div className="font-medium">{getCustomerDisplayName(order)}</div>
@@ -975,11 +996,13 @@ export default function ShopInvoiceManagement() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handlePreviewInvoice(order)}
-                          className="text-blue-600 hover:text-blue-800"
-                          title={tr('preview')}
+                          onClick={() => handleSendInvoice(order)}
+                          className="text-blue-600 hover:text-blue-800 gap-1.5"
+                          title={tr('send')}
+                          aria-label={`${tr('send')} ${order.orderNumber}`}
                         >
-                          <Eye className="w-4 h-4" />
+                          <Send className="w-4 h-4" />
+                          {tr('send')}
                         </Button>
                         <Button
                           size="sm" 
@@ -1013,6 +1036,48 @@ export default function ShopInvoiceManagement() {
           </div>
         </CardContent>
       </Card>
+      <Dialog open={showInvoicePreview} onOpenChange={(open) => {
+        setShowInvoicePreview(open);
+        if (!open) setSelectedOrder(null);
+      }}>
+        <DialogContent className="flex h-[90vh] max-w-5xl flex-col">
+          <DialogHeader><DialogTitle>{tr('preview')} — {selectedOrder?.orderNumber}</DialogTitle></DialogHeader>
+          {selectedOrder && <iframe
+            title={`${tr('preview')} ${selectedOrder.orderNumber}`}
+            src={`/api/invoices/paid/${selectedOrder.id}/pdf`}
+            className="min-h-0 w-full flex-1 rounded border"
+          />}
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!orderToSend} onOpenChange={(open) => {
+        if (!open && !sendInvoice.isPending) { setOrderToSend(null); setSenderId(''); }
+      }}>
+        <DialogContent className="max-w-md" dir={direction}>
+          <DialogHeader><DialogTitle>{tr('send')} PDF — {orderToSend?.orderNumber}</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">{tr('recipient')}: <strong className="text-gray-900" dir="ltr">{orderToSend?.customerEmail}</strong></p>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">{tr('chooseSender')}</label>
+              {sendersQuery.isLoading ? <p className="text-sm text-gray-500">{tr('loading')}</p>
+                : sendersQuery.isError ? <p role="alert" className="text-sm text-red-600">{tr('senderError')}</p>
+                : sendersQuery.data?.senders.length ? (
+                  <Select value={senderId} onValueChange={setSenderId}>
+                    <SelectTrigger aria-label={tr('chooseSender')}><SelectValue placeholder={tr('chooseSender')} /></SelectTrigger>
+                    <SelectContent>{sendersQuery.data.senders.map(sender => (
+                      <SelectItem key={sender.id} value={String(sender.id)}>
+                        {sender.fromEmail} {sender.categoryName ? `(${sender.categoryName})` : ''}
+                      </SelectItem>
+                    ))}</SelectContent>
+                  </Select>
+                ) : <p className="text-sm text-amber-700">{tr('noSenders')}</p>}
+            </div>
+            <Button type="button" className="w-full gap-2" disabled={!senderId || sendInvoice.isPending}
+              onClick={() => orderToSend && sendInvoice.mutate({ order: orderToSend, senderId: Number(senderId) })}>
+              <Send className="h-4 w-4" />{sendInvoice.isPending ? tr('sending') : tr('send')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -25867,7 +25867,7 @@ ${procedure.content}
   });
 
   // REAL INVOICES API - DIFFERENT PATH TO AVOID MIDDLEWARE
-  app.get("/api/invoices/paid", async (req, res) => {
+  app.get("/api/invoices/paid", requireModuleAccess('shop_management', 'view'), async (req, res) => {
     console.log('🔍 [REAL INVOICE DEBUG] Real invoices API called!');
     
     try {
@@ -25879,21 +25879,24 @@ ${procedure.content}
       // Query with JOIN to get customer names
       const query = `
         SELECT co.id, co.order_number, co.customer_id, co.total_amount, co.status, 
-               co.payment_method, co.created_at, co.updated_at,
+               co.payment_method, co.currency, co.created_at, co.updated_at,
                co.shipping_cost, co.vat_amount, co.surcharge_amount, co.vat_rate,
                c.first_name as customer_first_name, c.last_name as customer_last_name, 
-               c.email as customer_email, c.phone as customer_phone,
+               COALESCE(NULLIF(TRIM(c.email), ''), NULLIF(TRIM(co.guest_email), '')) as customer_email,
+               c.phone as customer_phone,
                c.address as customer_address, c.city_region as customer_city,
                c.province as customer_province
         FROM customer_orders co
         LEFT JOIN crm_customers c ON co.customer_id = c.id
-        WHERE co.status IN ('completed', 'delivered')
-           OR co.payment_method IN ('wallet_full', 'wallet_partial', 'bank_transfer')
+        WHERE (co.status IN ('completed', 'delivered')
+           OR co.payment_method IN ('wallet_full', 'wallet_partial', 'bank_transfer'))
+          AND co.status NOT IN ('cancelled', 'failed', 'deleted', 'payment_failed', 'expired')
+          AND co.payment_status IS DISTINCT FROM 'failed'
         ORDER BY co.created_at DESC
       `;
       
       const result = await db.execute(sql.raw(query));
-      console.log(`✅ [REAL INVOICE DEBUG] SQL Result type:`, typeof result, result);
+      console.log(`✅ [REAL INVOICE DEBUG] SQL result received`);
       
       // Handle different result formats safely
       let orders = [];
@@ -25929,7 +25932,7 @@ ${procedure.content}
           const items = orderItems.map((item: any) => ({
             id: item.id,
             productId: item.product_id,
-            productName: item.product_name || item.sku || 'محصول نامشخص',
+             productName: item.product_name || item.product_sku || 'محصول نامشخص',
             quantity: item.quantity,
             unitPrice: item.unit_price,
             totalPrice: item.total_price
@@ -25995,6 +25998,85 @@ ${procedure.content}
     } catch (error: any) {
       console.error("❌ [REAL INVOICE DEBUG] Error:", error.message);
       res.status(500).json({ success: false, message: "Database error" });
+    }
+  });
+
+  app.get("/api/invoices/senders", requireModuleAccess('shop_management', 'view'), async (_req, res) => {
+    try {
+      return res.json({ success: true, senders: await emailService.listInvoiceSenders() });
+    } catch (error) {
+      console.error("Failed to list invoice senders:", error);
+      return res.status(500).json({ success: false, message: "Could not load email senders" });
+    }
+  });
+
+  // Render the same authoritative PDF for preview, printing, downloading and emailing.
+  app.get("/api/invoices/paid/:id/pdf", requireModuleAccess('shop_management', 'view'), async (req, res) => {
+    const orderId = Number(req.params.id);
+    if (!Number.isSafeInteger(orderId) || orderId < 1) {
+      return res.status(400).json({ success: false, message: "Invalid order ID" });
+    }
+    const requestedLanguage = req.query.lang === undefined ? null : parseInvoiceLanguage(req.query.lang);
+    if (req.query.lang !== undefined && !requestedLanguage) {
+      return res.status(400).json({ success: false, message: "Invalid invoice language" });
+    }
+    try {
+      const { loadPaidInvoice, createPaidInvoicePdf } = await import('./paid-invoice-pdf');
+      const invoice = await loadPaidInvoice(orderId);
+      if (!invoice) return res.status(404).json({ success: false, message: "Issuable order not found" });
+      if (!invoice.items.length) return res.status(422).json({ success: false, message: "Order has no invoice items" });
+      const language = requestedLanguage || parseInvoiceLanguage(invoice.order.preferred_language) || 'en';
+      const pdf = await createPaidInvoicePdf(invoice, language);
+      const filename = String(invoice.order.order_number || `M-${orderId}`).replace(/[^a-zA-Z0-9_-]/g, '_');
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="invoice-${filename}.pdf"`);
+      res.setHeader('Cache-Control', 'private, no-store');
+      return res.send(pdf);
+    } catch (error) {
+      console.error("Failed to render paid invoice PDF:", error);
+      return res.status(500).json({ success: false, message: "Could not generate invoice PDF" });
+    }
+  });
+
+  app.post("/api/invoices/paid/:id/send", requireModuleAccess('shop_management', 'edit'), async (req, res) => {
+    const orderId = Number(req.params.id);
+    if (!Number.isSafeInteger(orderId) || orderId < 1) {
+      return res.status(400).json({ success: false, message: "Invalid order ID" });
+    }
+    const senderId = Number(req.body?.senderId);
+    if (!Number.isSafeInteger(senderId) || senderId < 1 || typeof req.body?.expectedEmail !== 'string') {
+      return res.status(400).json({ success: false, message: "Select a sender and confirm the customer email" });
+    }
+    try {
+      const { loadPaidInvoice, createPaidInvoicePdf } = await import('./paid-invoice-pdf');
+      const invoice = await loadPaidInvoice(orderId);
+      if (!invoice) return res.status(404).json({ success: false, message: "Issuable order not found" });
+      const email = String(invoice.order.email || '').trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return res.status(422).json({ success: false, message: "Customer has no valid email address" });
+      }
+      if (email.toLowerCase() !== req.body.expectedEmail.trim().toLowerCase()) {
+        return res.status(409).json({ success: false, message: "Customer email changed; refresh the invoice list" });
+      }
+      if (!invoice.items.length) return res.status(422).json({ success: false, message: "Order has no invoice items" });
+      const language = parseInvoiceLanguage(invoice.order.preferred_language) || 'en';
+      const pdf = await createPaidInvoicePdf(invoice, language);
+      const orderNumber = String(invoice.order.order_number || `M-${orderId}`);
+      const filename = orderNumber.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const emailCopy = {
+        en: { subject: `Invoice for order ${orderNumber}`, text: `Dear customer,\nYour invoice for order ${orderNumber} is attached as a PDF.\nMomtaz Chemical` },
+        ar: { subject: `فاتورة الطلب ${orderNumber}`, text: `عميلنا العزيز،\nمرفق فاتورة الطلب ${orderNumber} بصيغة PDF.\nممتازكيم` },
+        tr: { subject: `${orderNumber} numaralı sipariş faturası`, text: `Değerli müşterimiz,\n${orderNumber} numaralı siparişinizin faturası PDF olarak ektedir.\nMomtaz Chemical` },
+        fa: { subject: `فاکتور سفارش ${orderNumber}`, text: `مشتری گرامی،\nفاکتور سفارش ${orderNumber} به صورت PDF پیوست شده است.\nممتازشیمی` },
+      }[language];
+      await emailService.sendPdfAttachment({
+        to: email, subject: emailCopy.subject, text: emailCopy.text, senderId,
+        filename: `invoice-${filename}.pdf`, content: pdf,
+      });
+      return res.json({ success: true, recipient: email });
+    } catch (error) {
+      console.error(`Failed to submit invoice email for order ${orderId}:`, error);
+      return res.status(502).json({ success: false, message: "Invoice email was not accepted by the mail server" });
     }
   });
 
@@ -34293,7 +34375,7 @@ ${message ? `Additional Requirements:\n${message}` : ''}
           const permissions = Array.isArray(role?.permissions)
             ? role.permissions
             : JSON.parse(role?.permissions || '[]');
-          if (['super_admin', 'admin'].includes(role?.name) || permissions.includes(moduleId)) return next();
+          if (['super_admin', 'Supper Admin', 'admin'].includes(role?.name) || permissions.includes(moduleId)) return next();
         } else {
           const result = await pool.query(`
             SELECT ar.id::text AS role_id, ar.name
@@ -34302,7 +34384,8 @@ ${message ? `Additional Requirements:\n${message}` : ''}
             WHERE u.id = $1 AND u.is_active = true AND ar.is_active = true
           `, [session.adminId]);
           const role = result.rows[0];
-          if (['super_admin', 'admin'].includes(role?.name)) return next();
+          if (['super_admin', 'Supper Admin', 'admin'].includes(role?.name)
+              || (moduleId === 'shop_management' && role?.name === 'shop_admin')) return next();
           if (role?.role_id) {
             const permission = await pool.query(`
               SELECT can_view, can_edit, can_approve

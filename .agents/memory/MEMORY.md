@@ -18,7 +18,7 @@
 - [Legacy super-admin role](legacy-super-admin-role.md) — the active super-admin role may use the historical “Supper Admin” spelling; authorization must canonicalize only this known alias.
 - [Warehouse settings authorization](warehouse-settings-authorization.md) — warehouse module permission, not department assignment alone, grants management access including administrators.
 - [Permissioned marketing email](permissioned-marketing-email.md) — campaign recipients require verified consent, global suppression, safe queueing, and explicit worker activation.
-- [Sender address previews](sender-address-previews.md) — show the effective SMTP sender, including fallback, rather than inferring an address from an email category.
+- [Sender address previews](sender-address-previews.md) — show the effective SMTP sender; explicitly chosen invoice senders must not silently fall back.
 - [Multi-date-picker module interop](multi-date-picker-interop.md) — resolve the package’s inner default export before rendering or Persian mode can crash with React error 130.
 - [Legacy warehouse history](legacy-warehouse-history.md) — some older orders lack warehouse timestamps; retain history using workflow transitions as well as current terminal status.
 - [Legacy private receipt fallback](legacy-private-receipt-fallback.md) — retain stable legacy receipt URLs and serve deterministic private-S3 copies when production cannot read old Object Storage.
