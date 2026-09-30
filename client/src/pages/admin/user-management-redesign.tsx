@@ -694,20 +694,18 @@ type Module = {
   moduleId?: string;
 };
 
-// Function to extract modules dynamically from Site Management configuration
+// Presentation metadata only. The API catalog determines which modules exist.
 const extractSiteManagementModules = (
   financialApprovalLabel: string,
   moduleLabels: Record<string, string>,
   moduleWord: string
 ): Module[] => {
-  // Role-assignment catalog currently contains 37 Site Management modules.
   const siteManagementModules = [
     { moduleId: 'kpi_dashboard', label: 'KPI Dashboard', icon: BarChart3, color: 'bg-purple-600' },
     { moduleId: 'management_dashboard', label: 'Management Dashboard', icon: LayoutDashboard, color: 'bg-indigo-600' },
     { moduleId: 'syncing_shop', label: 'Syncing Shop', icon: Database, color: 'bg-blue-500' },
     { moduleId: 'shop_management', label: 'Commercial', icon: ShoppingCart, color: 'bg-purple-500' },
     { moduleId: 'product_management', label: 'Product Management', icon: Package, color: 'bg-violet-500' },
-    { moduleId: 'order_management', label: 'Order Management', icon: Truck, color: 'bg-orange-500' },
     { moduleId: 'warehouse_management', label: 'Warehouse Management', icon: Warehouse, color: 'bg-emerald-500' },
     { moduleId: 'logistics_management', label: 'Logistics Management', icon: Truck, color: 'bg-indigo-500' },
     { moduleId: 'delivery_confirmation', label: 'Courier / Carrier Delivery Confirmation', icon: CheckCircle, color: 'bg-teal-500' },
@@ -747,7 +745,7 @@ const extractSiteManagementModules = (
     displayName: module.moduleId === 'finance' ? financialApprovalLabel : (moduleLabels[module.moduleId] || module.label),
     description: `${moduleLabels[module.moduleId] || module.label} ${moduleWord}`,
     category: 'system',
-    isCore: ['syncing_shop', 'shop_management', 'product_management', 'order_management', 'warehouse_management', 'crm', 'user_management', 'finance', 'accounting_management'].includes(module.moduleId),
+    isCore: ['syncing_shop', 'shop_management', 'product_management', 'warehouse_management', 'crm', 'user_management', 'finance', 'accounting_management'].includes(module.moduleId),
     icon: module.icon,
     color: module.color
   }));
@@ -895,6 +893,13 @@ function UserManagement() {
       };
     });
   }, [modulesData, financialApprovalLabel, t]);
+  const activeModuleIds = React.useMemo(
+    () => new Set(availableModules.map((module: Module) => module.name)),
+    [availableModules]
+  );
+  // Keep legacy permission IDs in the saved role so retiring a catalog entry
+  // does not silently revoke access to operational order workflows.
+  const assignedActivePermissions = selectedPermissions.filter(id => activeModuleIds.has(id));
 
 
   // Mutations
@@ -1639,7 +1644,7 @@ function UserManagement() {
                             <Key className="h-4 w-4" />
                              {t.moduleAssignment}
                             <Badge variant="outline" className="text-xs">
-                               {formatTranslation(t.assigned, { count: selectedPermissions.length })}
+                               {formatTranslation(t.assigned, { count: assignedActivePermissions.length })}
                             </Badge>
                           </label>
                           
@@ -1695,13 +1700,13 @@ function UserManagement() {
                                 <CheckCircle className="h-4 w-4 text-green-600" />
                                  <h3 className="font-medium text-green-800">{t.assignedModules}</h3>
                                 <Badge variant="secondary" className="ml-auto">
-                                  {selectedPermissions.length}
+                                   {assignedActivePermissions.length}
                                 </Badge>
                               </div>
                               
                               <div className="max-h-80 overflow-y-auto p-3 bg-gray-50 rounded border-2 border-dashed border-gray-300">
                                 <div className="space-y-2">
-                                  {selectedPermissions.map((permissionName) => {
+                                   {assignedActivePermissions.map((permissionName) => {
                                     const module = availableModules.find((m: Module) => m.name === permissionName);
                                     if (!module) return null;
                                     
@@ -1729,7 +1734,7 @@ function UserManagement() {
                                     );
                                   })}
                                 </div>
-                                {selectedPermissions.length === 0 && (
+                                 {assignedActivePermissions.length === 0 && (
                                   <div className="text-center text-gray-500 py-8">
                                     <CheckCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
                                      <p className="text-sm">{t.noModulesAssigned}</p>
@@ -1841,7 +1846,7 @@ function UserManagement() {
                         </div>
                         <div className="flex items-center justify-between">
                            <span className="text-sm">{t.permissions}</span>
-                          <Badge variant="outline">{role.permissionCount || role.permissions?.length || 0}</Badge>
+                           <Badge variant="outline">{role.permissions?.filter((id: string) => activeModuleIds.has(id)).length ?? 0}</Badge>
                         </div>
                         <div className="flex items-center justify-between">
                            <span className="text-sm">{t.status}:</span>

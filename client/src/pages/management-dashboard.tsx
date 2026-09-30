@@ -10,12 +10,21 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type Language = "en" | "ar" | "tr" | "fa";
+const salesPeriods = ["week", "month", "quarter", "halfYear", "year", "all"] as const;
+type SalesPeriod = typeof salesPeriods[number];
+const salesPeriodLabels: Record<Language, Record<SalesPeriod, string>> = {
+  en: { week: "Weekly", month: "Monthly", quarter: "3 months", halfYear: "6 months", year: "Yearly", all: "All time" },
+  ar: { week: "أسبوعي", month: "شهري", quarter: "3 أشهر", halfYear: "6 أشهر", year: "سنوي", all: "الكل" },
+  tr: { week: "Haftalık", month: "Aylık", quarter: "3 ay", halfYear: "6 ay", year: "Yıllık", all: "Tüm zamanlar" },
+  fa: { week: "هفتگی", month: "ماهانه", quarter: "سه‌ماهه", halfYear: "شش‌ماهه", year: "سالانه", all: "کلی" },
+};
 type DashboardPayload = {
   summary: {
-    dailySalesByCurrency: { currency: string; amount: string }[];
+    salesByCurrency: { currency: string; amount: string }[];
     activeOrders: number;
     onlineCustomers: number;
     systemAlerts: number;
@@ -43,7 +52,7 @@ const copy: Record<Language, Record<string, string>> = {
     title: "Management overview", eyebrow: "MOMTAZCHEM · OPERATIONS", subtitle: "A clear read on today's business and the systems behind it.",
     back: "Site management", refresh: "Refresh data", refreshing: "Refreshing", overview: "Overview", operations: "Operations", analytics: "Analytics", system: "System health",
     live: "Live signals", dailySales: "Sales today", activeOrders: "Active orders", onlineCustomers: "Active customer sessions", alerts: "Orders requiring attention", activeContracts: "Active contracts", activeVendors: "Active vendors",
-    salesByCurrency: "Sales by currency", currenciesNote: "Each currency is reported separately.", noSales: "No eligible orders today — sales are 0 across currencies.",
+    salesByCurrency: "Sales by currency", currenciesNote: "Each currency is reported separately.", noSales: "No eligible orders in this period.", salesPeriod: "Sales period",
     quickAccess: "Quick access", orders: "Order management", warehouse: "Warehouse", finance: "Finance orders", vendors: "Vendor accounting", contracts: "Contract management",
     orderFlow: "Order flow", pending: "Pending", processing: "Processing", readyToShip: "Ready to ship", delivered: "Delivered",
     queues: "Department queues", financeQueue: "Finance", warehouseQueue: "Warehouse", logistics: "Logistics", queueCount: "items in queue",
@@ -61,7 +70,7 @@ const copy: Record<Language, Record<string, string>> = {
     title: "نظرة عامة للإدارة", eyebrow: "ممتازكيم · العمليات", subtitle: "قراءة واضحة لأعمال اليوم والأنظمة التي تدعمها.",
     back: "إدارة الموقع", refresh: "تحديث البيانات", refreshing: "جارٍ التحديث", overview: "نظرة عامة", operations: "العمليات", analytics: "التحليلات", system: "صحة النظام",
     live: "مؤشرات مباشرة", dailySales: "مبيعات اليوم", activeOrders: "الطلبات النشطة", onlineCustomers: "جلسات العملاء النشطة", alerts: "طلبات تتطلب الانتباه", activeContracts: "العقود النشطة", activeVendors: "الموردون النشطون",
-    salesByCurrency: "المبيعات حسب العملة", currenciesNote: "تُعرض كل عملة بشكل مستقل.", noSales: "لا توجد طلبات مؤهلة اليوم — المبيعات 0 عبر العملات.",
+    salesByCurrency: "المبيعات حسب العملة", currenciesNote: "تُعرض كل عملة بشكل مستقل.", noSales: "لا توجد طلبات مؤهلة في هذه الفترة.", salesPeriod: "فترة المبيعات",
     quickAccess: "وصول سريع", orders: "إدارة الطلبات", warehouse: "المستودع", finance: "الطلبات المالية", vendors: "محاسبة الموردين", contracts: "إدارة العقود", contractsList: "سجل العقود النشطة",
     orderFlow: "تدفق الطلبات", pending: "قيد الانتظار", processing: "قيد المعالجة", readyToShip: "جاهز للشحن", delivered: "تم التسليم",
     queues: "قوائم انتظار الأقسام", financeQueue: "المالية", warehouseQueue: "المستودع", logistics: "الخدمات اللوجستية", queueCount: "عناصر في القائمة",
@@ -79,7 +88,7 @@ const copy: Record<Language, Record<string, string>> = {
     title: "Yönetim özeti", eyebrow: "MOMTAZCHEM · OPERASYONLAR", subtitle: "Bugünün işleyişi ve arkasındaki sistemlere net bir bakış.",
     back: "Site yönetimi", refresh: "Verileri yenile", refreshing: "Yenileniyor", overview: "Genel bakış", operations: "Operasyonlar", analytics: "Analizler", system: "Sistem sağlığı",
     live: "Canlı göstergeler", dailySales: "Bugünkü satış", activeOrders: "Aktif siparişler", onlineCustomers: "Aktif müşteri oturumları", alerts: "İlgi gerektiren siparişler", activeContracts: "Aktif sözleşmeler", activeVendors: "Aktif tedarikçiler",
-    salesByCurrency: "Para birimine göre satış", currenciesNote: "Her para birimi ayrı raporlanır.", noSales: "Bugün uygun sipariş yok — tüm para birimlerinde satış 0.",
+    salesByCurrency: "Para birimine göre satış", currenciesNote: "Her para birimi ayrı raporlanır.", noSales: "Bu dönemde uygun sipariş yok.", salesPeriod: "Satış dönemi",
     quickAccess: "Hızlı erişim", orders: "Sipariş yönetimi", warehouse: "Depo", finance: "Finans siparişleri", vendors: "Tedarikçi muhasebesi", contracts: "Sözleşme yönetimi", contractsList: "Aktif sözleşme kaydı",
     orderFlow: "Sipariş akışı", pending: "Bekliyor", processing: "İşleniyor", readyToShip: "Gönderime hazır", delivered: "Teslim edildi",
     queues: "Departman kuyrukları", financeQueue: "Finans", warehouseQueue: "Depo", logistics: "Lojistik", queueCount: "kuyruk öğesi",
@@ -97,7 +106,7 @@ const copy: Record<Language, Record<string, string>> = {
     title: "نمای کلی مدیریت", eyebrow: "ممتازکیم · عملیات", subtitle: "نگاهی روشن به کسب‌وکار امروز و سامانه‌های پشتیبان آن.",
     back: "مدیریت سایت", refresh: "تازه‌سازی داده‌ها", refreshing: "در حال تازه‌سازی", overview: "نمای کلی", operations: "عملیات", analytics: "تحلیل‌ها", system: "سلامت سیستم",
     live: "سیگنال‌های زنده", dailySales: "فروش امروز", activeOrders: "سفارش‌های فعال", onlineCustomers: "نشست‌های فعال مشتریان", alerts: "سفارش‌های نیازمند رسیدگی", activeContracts: "قراردادهای فعال", activeVendors: "فروشندگان فعال",
-    salesByCurrency: "فروش به تفکیک ارز", currenciesNote: "هر ارز جداگانه گزارش می‌شود.", noSales: "امروز سفارش واجد شرایطی نیست — فروش در همه ارزها ۰ است.",
+    salesByCurrency: "فروش به تفکیک ارز", currenciesNote: "هر ارز جداگانه گزارش می‌شود.", noSales: "در این بازه سفارش واجد شرایطی وجود ندارد.", salesPeriod: "بازهٔ فروش",
     quickAccess: "دسترسی سریع", orders: "مدیریت سفارش‌ها", warehouse: "انبار", finance: "سفارش‌های مالی", vendors: "حسابداری فروشندگان", contracts: "مدیریت قراردادها", contractsList: "فهرست قراردادهای فعال",
     orderFlow: "جریان سفارش‌ها", pending: "در انتظار", processing: "در حال پردازش", readyToShip: "آماده ارسال", delivered: "تحویل‌شده",
     queues: "صف بخش‌ها", financeQueue: "مالی", warehouseQueue: "انبار", logistics: "لجستیک", queueCount: "مورد در صف",
@@ -142,11 +151,12 @@ const ManagementDashboard = () => {
   const language = (selectedLanguage in copy ? selectedLanguage : "en") as Language;
   const t = (key: string) => copy[language][key] || copy.en[key] || key;
   const locale = language === "fa" ? "fa-IR-u-ca-persian" : language === "ar" ? "ar-IQ" : language === "tr" ? "tr-TR" : "en-US";
+  const [salesPeriod, setSalesPeriod] = React.useState<SalesPeriod>("all");
   const dashboard = useQuery<Envelope<DashboardPayload>>({
-    queryKey: ["/api/management/dashboard"],
+    queryKey: ["/api/management/dashboard", salesPeriod],
     enabled: !!user,
     queryFn: async () => {
-      const response = await fetch("/api/management/dashboard", { credentials: "include" });
+      const response = await fetch(`/api/management/dashboard?period=${salesPeriod}`, { credentials: "include" });
       if (!response.ok) throw new Error(`Request failed (${response.status})`);
       const result = await response.json();
       if (!result?.success) throw new Error(result?.message || "Dashboard request failed");
@@ -191,6 +201,17 @@ const ManagementDashboard = () => {
   const system = health.data?.data;
   const isRefreshing = dashboard.isFetching || health.isFetching;
   const back = () => setLocation("/mrg/site-management");
+  const SalesHeading = () => <div className="flex flex-wrap items-start justify-between gap-2 pe-5 sm:pe-6">
+    <PanelHeading icon={CircleDollarSign} title={t("salesByCurrency")} note={t("currenciesNote")} />
+    <div className="pb-4 pt-5">
+      <Select value={salesPeriod} onValueChange={(value: SalesPeriod) => setSalesPeriod(value)}>
+        <SelectTrigger className="h-9 w-[150px] border-[#cbd8ce] bg-[#fffefa] text-xs" aria-label={t("salesPeriod")} data-testid="sales-period-filter">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>{salesPeriods.map(period => <SelectItem key={period} value={period}>{salesPeriodLabels[language][period]}</SelectItem>)}</SelectContent>
+      </Select>
+    </div>
+  </div>;
 
   if (!user) return <div dir={direction} className="min-h-[75dvh] bg-[#f2f5ef] px-5 py-20 text-center text-[#173b34]">
     <div className="mx-auto max-w-md rounded-3xl border border-[#d7dfd9] bg-[#fffefa] p-10 shadow-sm"><Building2 className="mx-auto mb-5 h-8 w-8 text-[#3c7862]" /><h1 className="text-2xl font-semibold">{t("authTitle")}</h1><p className="mt-2 text-sm text-[#71817a]">{t("authText")}</p><Button onClick={back} className="mt-6 bg-[#1e5145] text-white hover:bg-[#173f36]"><ArrowLeft className="me-2 h-4 w-4" />{t("goToSite")}</Button></div>
@@ -274,9 +295,9 @@ const ManagementDashboard = () => {
 
           <div className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
             <Panel>
-              <PanelHeading icon={CircleDollarSign} title={t("salesByCurrency")} note={t("currenciesNote")} />
-              {dashboard.isLoading ? <SkeletonBlock rows={2} /> : payload ? (payload.summary?.dailySalesByCurrency?.length ?
-                <div className="grid gap-2 px-5 pb-5 sm:grid-cols-2 sm:px-6">{payload.summary.dailySalesByCurrency.map((sale, index) =>
+               <SalesHeading />
+               {dashboard.isLoading ? <SkeletonBlock rows={2} /> : payload ? (payload.summary?.salesByCurrency?.length ?
+                 <div className="grid gap-2 px-5 pb-5 sm:grid-cols-2 sm:px-6">{payload.summary.salesByCurrency.map((sale, index) =>
                   <div key={`${sale.currency}-${index}`} className="flex min-w-0 items-center justify-between gap-4 rounded-xl border border-[#e1e8df] bg-[#f7f8f3] px-4 py-3.5 transition-colors hover:bg-[#eff4ec]">
                     <span className="flex min-w-0 items-center gap-2"><span className="h-2 w-2 rounded-sm bg-[#b3c65c]" /><span className="truncate text-xs font-semibold uppercase tracking-[0.08em] text-[#6e7e74]">{sale.currency}</span></span>
                     <span className="font-mono text-lg font-semibold tracking-tight text-[#214c3e]">{formatNumber(sale.amount)} <small className="text-[10px] font-medium text-[#76867c]">{sale.currency}</small></span>
@@ -347,9 +368,9 @@ const ManagementDashboard = () => {
 
         <TabsContent value="analytics" className="mt-0 space-y-5 focus-visible:outline-none">
           <div className="grid gap-5 xl:grid-cols-[0.85fr_1.15fr]">
-            <Panel><PanelHeading icon={CircleDollarSign} title={t("salesByCurrency")} note={t("currenciesNote")} />
-              {dashboard.isLoading ? <SkeletonBlock rows={3} /> : payload ? (payload.summary?.dailySalesByCurrency?.length ?
-                <div className="space-y-2 px-5 pb-5 sm:px-6">{payload.summary.dailySalesByCurrency.map((sale, i) => <div key={`${sale.currency}-${i}`} className="flex items-center justify-between gap-3 rounded-xl border border-[#e1e8df] bg-[#f7f8f3] p-4"><span className="text-xs font-semibold uppercase tracking-[0.1em] text-[#718178]">{sale.currency}</span><strong className="font-mono text-xl text-[#214c3e]">{formatNumber(sale.amount)} <small className="text-[10px]">{sale.currency}</small></strong></div>)}</div> : <EmptyRow>{t("noSales")}</EmptyRow>) : null}
+             <Panel><SalesHeading />
+               {dashboard.isLoading ? <SkeletonBlock rows={3} /> : payload ? (payload.summary?.salesByCurrency?.length ?
+                 <div className="space-y-2 px-5 pb-5 sm:px-6">{payload.summary.salesByCurrency.map((sale, i) => <div key={`${sale.currency}-${i}`} className="flex items-center justify-between gap-3 rounded-xl border border-[#e1e8df] bg-[#f7f8f3] p-4"><span className="text-xs font-semibold uppercase tracking-[0.1em] text-[#718178]">{sale.currency}</span><strong className="font-mono text-xl text-[#214c3e]">{formatNumber(sale.amount)} <small className="text-[10px]">{sale.currency}</small></strong></div>)}</div> : <EmptyRow>{t("noSales")}</EmptyRow>) : null}
             </Panel>
             <Panel><PanelHeading icon={ShoppingBag} title={t("vendorSales")} note={t("vendorSalesNote")} />
               {dashboard.isLoading ? <SkeletonBlock rows={4} /> : payload ? (payload.quickStats?.vendorSales?.length ?

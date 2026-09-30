@@ -1,4 +1,5 @@
 import express, { type Express, type RequestHandler, Request, Response, NextFunction } from "express";
+import { siteManagementModuleIds } from "@shared/site-management-modules";
 import { registerFibRoutes } from "./fib-routes";
 import { createServer, type Server } from "http";
 import { logBuffer } from "./log-buffer";
@@ -8602,42 +8603,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
     try {
       const { pool } = await import('./db');
       
-      // Define the main system modules - these are the 33 Site Management modules
-      const mainModules = [
-        'syncing_shop',
-        'inquiries', 
-        'barcode',
-        'email_settings',
-        'database_backup',
-        'crm',
-        'seo',
-        'categories',
-        'sms',
-        'factory',
-        'user_management',
-        'shop_management',
-        'procedures',
-        'order_management',
-        'product_management',
-        'payment_management',
-        'accounting_management',
-        'wallet_management',
-        'geography_analytics',
-        'ai_settings',
-        'refresh_control',
-        'finance',
-        'content_management',
-        'warehouse_management',
-        'logistics_management',
-        'delivery_confirmation',
-        'ticketing_system',
-        'remote_desktop',
-        'server_config',
-        'kpi_dashboard',
-        'management_dashboard',
-        'user_guide',
-        'legal_affairs'
-      ];
+      const mainModules = getSiteManagementModules();
 
       // Get super admin role (admin@momtazchem.com has user ID 7)
       const superAdminRoleId = '7';
@@ -8693,53 +8659,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
   });
 
   // User Management sync modules endpoint
-  // Function to get current Site Management modules dynamically
-  const getSiteManagementModules = () => {
-    // This should be the SINGLE SOURCE OF TRUTH for all modules
-    // Any changes here will automatically sync to User Management
-    return [
-      'kpi_dashboard',
-      'management_dashboard',
-      'syncing_shop',
-      'shop_management', 
-      'product_management',
-      'order_management',
-      'warehouse_management',
-      'logistics_management',
-      'inquiries',
-      'crm',
-      'barcode',
-      'email_settings',
-      'database_backup',
-      'seo',
-      'categories',
-      'sms',
-      'factory',
-      'user_management',
-      'procedures',
-      'payment_management',
-      'accounting_management',
-      'finance',
-      'wallet_management',
-      'geography_analytics',
-      'ai_settings',
-      'refresh_control',
-      'content_management',
-      'ticketing_system',
-      'remote_desktop',
-      'server_config',
-      'company_information',
-      'legal_affairs',
-      'user_guide',
-      'marketing_module',
-      'aws_s3_settings',
-      'whatsapp_crm',
-      'blog',
-            'marketplace_management',
-      'vendor_accounting',
-      // Total: 39 modules - automatically synced with Site Management
-    ];
-  };
+  const getSiteManagementModules = () => [...siteManagementModuleIds];
 
   app.post("/api/user-management/sync-modules", requireAuth, async (req, res) => {
     try {
@@ -11152,7 +11072,6 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         'syncing_shop': { name: 'همگام‌سازی فروشگاه', description: 'همگام‌سازی محصولات کاردکس با فروشگاه', category: 'commerce' },
         'shop_management': { name: 'Commercial', description: 'مدیریت واحدهای فروش و تدارکات', category: 'commerce' },
         'product_management': { name: 'مدیریت محصولات', description: 'مدیریت کاردکس و محصولات', category: 'commerce' },
-        'order_management': { name: 'مدیریت سفارشات', description: 'پردازش و تایید سفارشات', category: 'commerce' },
         'warehouse_management': { name: 'مدیریت انبار', description: 'کنترل موجودی و انبارداری', category: 'warehouse' },
         'logistics_management': { name: 'مدیریت لجستیک', description: 'مدیریت حمل و نقل و تحویل', category: 'logistics' },
         'delivery_confirmation': { name: 'تأیید تحویل پیک / حمل‌کننده', description: 'تأیید تحویل سفارش توسط حمل‌کننده', category: 'logistics' },
@@ -12408,6 +12327,14 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
   // Get management dashboard data
   app.get("/api/management/dashboard", requireAuth, async (req, res) => {
     try {
+      const period = req.query.period ?? "all";
+      const salesIntervals: Record<string, string | null> = {
+        week: "7 days", month: "1 month", quarter: "3 months",
+        halfYear: "6 months", year: "1 year", all: null
+      };
+      if (typeof period !== "string" || !Object.prototype.hasOwnProperty.call(salesIntervals, period)) {
+        return res.status(400).json({ success: false, message: "Invalid sales period" });
+      }
       const { pool } = await import('./db');
       const [summaryResult, salesResult, statusResult, inventoryResult, contractResult, vendorCountResult, vendorSalesResult] = await Promise.all([
         pool.query(`
@@ -12418,14 +12345,16 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
             ) AS online_customers
         `),
         pool.query(`
-          SELECT currency, SUM(total_amount)::text AS amount
+          SELECT currency,
+            COALESCE(SUM(total_amount) FILTER (
+              WHERE $1::interval IS NULL OR created_at >= NOW() - $1::interval
+            ), 0)::text AS amount
           FROM customer_orders
-          WHERE created_at >= CURRENT_DATE
-            AND status NOT IN ('cancelled', 'failed', 'deleted', 'payment_failed', 'expired')
+          WHERE status NOT IN ('cancelled', 'failed', 'deleted', 'payment_failed', 'expired')
             AND payment_status <> 'failed'
           GROUP BY currency
           ORDER BY currency
-        `),
+        `, [salesIntervals[period]]),
         pool.query(`
           SELECT
             COUNT(*) FILTER (WHERE current_status IN ('pending', 'finance_pending', 'payment_uploaded'))::int AS pending,
@@ -12482,7 +12411,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       const statuses = statusResult.rows[0];
       const dashboardData = {
         summary: {
-          dailySalesByCurrency: salesResult.rows,
+          salesByCurrency: salesResult.rows,
           activeOrders: statuses.pending + statuses.processing + statuses.ready_to_ship,
           onlineCustomers: summary.online_customers,
           systemAlerts: statuses.alerts,

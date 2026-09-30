@@ -56,3 +56,4 @@
 - [Shop translation freshness](shop-translation-freshness.md) — generated translations of existing products must match current source text; never show stale claims after an edit.
 - [Multilingual form validation visibility](multilingual-form-validation-visibility.md) — required fields in hidden language tabs can make Save appear inert unless the form opens the invalid tab and explains why.
 - [CRM purchase metrics](crm-purchase-metrics.md) — historical CRM spend counters may be empty despite linked orders; show eligible order totals per currency instead of trusting cached spend.
+- [Module catalog retirement](module-catalog-retirement.md) — hide retired assignable modules without deleting legacy grants needed by live order workflows.

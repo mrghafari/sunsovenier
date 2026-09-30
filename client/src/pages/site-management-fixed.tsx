@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { siteManagementModuleIds } from "@shared/site-management-modules";
 
 type SiteManagementLanguage = "en" | "fa" | "ar" | "tr";
 const QUICK_ACTION_ORDER_KEY = "site-management-quick-action-order";
@@ -702,14 +703,6 @@ export default function SiteManagement() {
       moduleId: "marketing_module"
     },
     {
-      id: "super-admin-order-management",
-      ...getModuleText("super-admin-order-management"),
-      icon: Shield,
-      onClick: () => trackButtonClick("super-admin-order-management", () => setLocation("/admin/super-admin-order-management")),
-      className: "border-red-300 text-red-600 hover:bg-red-50 hover:text-red-800 font-semibold",
-      moduleId: "order_management"
-    },
-    {
       id: "whatsapp-crm",
       ...getModuleText("whatsapp-crm"),
       icon: MessageCircle,
@@ -730,7 +723,13 @@ export default function SiteManagement() {
     
     // Try both the modules array and permissions array for compatibility
     const allowedModules = permissions.modules || permissions.permissions?.map((p: any) => p.moduleId) || [];
-    const allButtons = getInitialButtons();
+    // Keep the navigation in sync with the assignable module catalog.
+    // These two older auxiliary shortcuts have separate permissions.
+    const auxiliaryModules = new Set(["missing_images_management", "fib_payment_settings"]);
+    const activeModules = new Set<string>(siteManagementModuleIds);
+    const allButtons = getInitialButtons().filter(button =>
+      !button.moduleId || activeModules.has(button.moduleId) || auxiliaryModules.has(button.moduleId)
+    );
     console.log('🔍 [DEBUG] Total allButtons count:', allButtons.length);
     console.log('🔍 [DEBUG] AI Settings exists in allButtons:', !!allButtons.find(b => b.id === 'ai-settings'));
     console.log('🔍 [DEBUG] Content Management exists in allButtons:', !!allButtons.find(b => b.id === 'content-management'));
