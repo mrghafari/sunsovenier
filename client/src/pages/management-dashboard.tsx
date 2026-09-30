@@ -351,7 +351,7 @@ const ManagementDashboard = () => {
                       color="bg-blue-500"
                       count={dashboardData?.data?.quickStats?.orderStatuses?.pending || 0}
                        itemLabel={t('items')}
-                      onClick={() => setLocation("/admin/shop-admin")}
+                      onClick={() => setLocation("/mrg/order-management")}
                     />
                     <QuickActionWidget
                        title={t('inventoryManagement')}
