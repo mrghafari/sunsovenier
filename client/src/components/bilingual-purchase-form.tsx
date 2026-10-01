@@ -23,6 +23,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { formatIQDAmount, displayCurrencyAmountWithSymbol } from "@/lib/currency-utils";
 import { shippingWeightKg } from "@/lib/shipping-weight";
 import { contractQuantityLimit, keepContractCartItems } from "@/lib/contract-cart";
+import { contractTheme } from "@/lib/contract-theme";
 
 // Language types
 type Language = 'en' | 'ar' | 'fa' | 'tr';
@@ -2924,7 +2925,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                 const itemTotal = Math.round(discountedPrice * quantity);
                 
                 return (
-                  <div key={productId} className="bg-white dark:bg-gray-800 p-3 rounded-lg border">
+                  <div key={productId} className={`p-3 rounded-lg border ${usesContractPrice ? contractTheme.panel : "bg-white dark:bg-gray-800"}`}>
                     <div className="flex items-start justify-between gap-3">
                       {/* Product Info */}
                       <div className="flex-1 min-w-0">
@@ -2948,14 +2949,19 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                           </div>
                           <h4 className="font-medium text-sm truncate flex items-center gap-1">
                             {product.name}
+                            {usesContractPrice && (
+                              <span className={contractTheme.badge}>
+                                {language === 'fa' ? 'قرارداد' : language === 'ar' ? 'عقد' : language === 'tr' ? 'Sözleşme' : 'Contract'} {selectedContract?.number}
+                              </span>
+                            )}
                             {product.isFlammable && (
                               <Flame className="w-3 h-3 text-orange-500 flex-shrink-0" aria-label="محصول آتش‌زا" />
                             )}
                           </h4>
                         </div>
                         <p className="text-xs text-muted-foreground">{product.category}</p>
-                        {usesContractPrice && <p className="text-xs text-muted-foreground">{language === 'fa' ? 'سقف باقیماندهٔ قرارداد' : language === 'ar' ? 'الحد المتبقي للعقد' : language === 'tr' ? 'Kalan sözleşme sınırı' : 'Remaining contract limit'}: {contractLimit ?? '—'}</p>}
-                        <p className="text-sm font-medium mt-1">
+                        {usesContractPrice && <p className={`mt-2 ${contractTheme.badge}`}>{language === 'fa' ? 'سقف باقیماندهٔ قرارداد' : language === 'ar' ? 'الحد المتبقي للعقد' : language === 'tr' ? 'Kalan sözleşme sınırı' : 'Remaining contract limit'}: {contractLimit ?? '—'}</p>}
+                        <p className={`text-sm font-medium mt-1 ${usesContractPrice ? contractTheme.text : ""}`}>
                           {!usesContractPrice && discountedPrice < basePrice && (
                             <span className="line-through text-gray-400 mr-2">{formatCurrency(basePrice)}</span>
                           )}
@@ -3627,8 +3633,8 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                       </div>
                     )}
                     {selectedContract && selectedContract.items.some(item => !(cart[item.productId] > 0)) && (
-                      <div className="rounded-md border p-3 space-y-3">
-                        <Button type="button" variant="outline" size="sm" aria-expanded={showContractProducts} onClick={() => setShowContractProducts(open => !open)}>
+                      <div className={`space-y-3 p-3 ${contractTheme.panel}`}>
+                        <Button type="button" variant="outline" className={contractTheme.outline} size="sm" aria-expanded={showContractProducts} onClick={() => setShowContractProducts(open => !open)}>
                           {language === 'fa' ? 'افزودن کالاهای قرارداد' : language === 'ar' ? 'إضافة منتجات العقد' : language === 'tr' ? 'Sözleşme ürünleri ekle' : 'Add contract products'}
                         </Button>
                         {showContractProducts && selectedContract.items.filter(item => !(cart[item.productId] > 0)).map(item => {
@@ -3637,7 +3643,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                           const stock = Number(product?.stockQuantity) || 0;
                           const available = Math.min(limit ?? 0, stock);
                           return (
-                            <div key={item.productId} className="flex flex-wrap items-center gap-2 text-sm">
+                            <div key={item.productId} className={`flex flex-wrap items-center gap-2 border-t border-teal-900/10 pt-2 text-sm dark:border-teal-100/10 ${contractTheme.text}`}>
                               <span className="flex-1 min-w-32">{item.productName}</span>
                               <span className="text-muted-foreground">{language === 'fa' ? 'باقیمانده' : language === 'ar' ? 'المتبقي' : language === 'tr' ? 'Kalan' : 'Remaining'}: {limit ?? '—'}</span>
                               <Input
@@ -3651,7 +3657,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
                                 className="w-20"
                                 aria-label={`${item.productName} ${language === 'fa' ? 'تعداد' : 'quantity'}`}
                               />
-                              <Button type="button" size="sm" variant="outline" onClick={() => { void addContractItem(item.productId); }}
+                              <Button type="button" size="sm" variant="outline" className={contractTheme.outline} onClick={() => { void addContractItem(item.productId); }}
                                 disabled={available < 1 || isFilteringContractCart || isLoadingContracts || isFetchingContracts || !!contractsError || pendingContractAdditions.includes(item.productId)}>
                                 <Plus className="w-4 h-4 mr-1" />
                                 {language === 'fa' ? 'افزودن' : language === 'ar' ? 'إضافة' : language === 'tr' ? 'Ekle' : 'Add'}

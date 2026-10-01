@@ -6,6 +6,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { contractTheme } from "@/lib/contract-theme";
 
 type Document = { id: number; fileName: string; size: number; uploadedAt: string };
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
@@ -98,8 +99,8 @@ export default function ContractSignedDocuments({
   const errorText = queryError?.status === 401 ? tx.auth : queryError?.status === 403 ? tx.forbidden : queryError?.message;
 
   return (
-    <section className="space-y-3 rounded-md border bg-background p-4" aria-label={tx.title}>
-      <h3 className="flex items-center gap-2 font-semibold"><FileCheck2 className="h-4 w-4" />{tx.title}</h3>
+    <section className={`space-y-3 p-4 ${contractTheme.panel}`} aria-label={tx.title}>
+      <h3 className={`flex items-center gap-2 font-semibold ${contractTheme.text}`}><FileCheck2 className="h-4 w-4" />{tx.title}</h3>
       {error && <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertDescription>{error}</AlertDescription></Alert>}
       {success && <Alert><AlertDescription>{success}</AlertDescription></Alert>}
       <div className="flex flex-wrap items-end gap-2">
@@ -107,7 +108,7 @@ export default function ContractSignedDocuments({
           <Label htmlFor={`signed-pdf-${contractId}`}>{tx.choose}</Label>
           <Input ref={inputRef} id={`signed-pdf-${contractId}`} type="file" accept="application/pdf,.pdf" disabled={upload.isPending} onChange={(event) => chooseFile(event.target.files?.[0] || null)} />
         </div>
-        <Button type="button" size="sm" disabled={!file || upload.isPending} onClick={() => file && upload.mutate(file)}>
+        <Button type="button" size="sm" className={contractTheme.button} disabled={!file || upload.isPending} onClick={() => file && upload.mutate(file)}>
           {upload.isPending ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <Upload className="me-2 h-4 w-4" />}{upload.isPending ? tx.uploading : tx.upload}
         </Button>
       </div>
@@ -122,7 +123,7 @@ export default function ContractSignedDocuments({
             <p className="break-all font-medium">{document.fileName}</p>
             <p className="text-xs text-muted-foreground">{new Date(document.uploadedAt).toLocaleString(language)} · {new Intl.NumberFormat(language, { maximumFractionDigits: 1 }).format(document.size / (1024 * 1024))} MiB</p>
           </div>
-          <Button type="button" size="sm" variant="outline" onClick={() => download(document.id)}>
+          <Button type="button" size="sm" variant="outline" className={contractTheme.outline} onClick={() => download(document.id)}>
             <Download className="me-2 h-4 w-4" />{tx.download}
           </Button>
         </div>

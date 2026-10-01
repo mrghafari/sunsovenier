@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import ContractDatePicker, { type ContractLanguage } from "./contract-date-picker";
 import { loadContractLogoDataUrl, renderContractDocumentHtml } from "./contract-document-html";
 import bundledCompanyLogo from "@assets/company-logo.png";
+import { contractTheme } from "@/lib/contract-theme";
 
 type DraftContext = ContractDocumentContext;
 type DraftLanguage = "en" | "fa" | "ar" | "tr";
@@ -135,28 +136,28 @@ export default function ContractDraftBuilder({ value, onChange, context, languag
     }
   };
   return <div className="space-y-5">
-    <div><h3 className="font-semibold">{tx.heading}</h3><p className="text-xs text-muted-foreground">{tx.hint}</p><p className="mt-1 text-xs text-amber-700">{tx.languageNote}</p></div>
-    <fieldset className="space-y-3 rounded-md border p-4"><legend className="px-2 font-semibold">{tx.deal}</legend>
+    <div className={`rounded-md border-s-4 border-teal-800 ps-3 dark:border-teal-300`}><h3 className={`font-semibold ${contractTheme.text}`}>{tx.heading}</h3><p className="text-xs text-muted-foreground">{tx.hint}</p><p className="mt-1 text-xs text-amber-700">{tx.languageNote}</p></div>
+    <fieldset className={`space-y-3 p-4 ${contractTheme.panel}`}><legend className={`px-2 font-semibold ${contractTheme.text}`}>{tx.deal}</legend>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5"><Label htmlFor="draft-language">{tx.documentLanguage}</Label><Select value={documentLanguage} onValueChange={(next) => set("language", next as ContractLanguage)}><SelectTrigger id="draft-language"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="fa">فارسی</SelectItem><SelectItem value="ar">العربية</SelectItem><SelectItem value="en">English</SelectItem><SelectItem value="tr">Türkçe</SelectItem></SelectContent></Select></div>
         <div className="space-y-1.5"><Label htmlFor="draft-deal">{tx.deal}</Label><Select value={value.dealType === "iraq" ? undefined : value.dealType} onValueChange={(next) => onChange({ ...value, version: 2, dealType: next as "iran" | "iraqLocal" | "intl" })}><SelectTrigger id="draft-deal"><SelectValue placeholder={value.dealType === "iraq" ? tx.oldDeal : undefined} /></SelectTrigger><SelectContent><SelectItem value="iran">{tx.iran}</SelectItem><SelectItem value="iraqLocal">{tx.iraq}</SelectItem><SelectItem value="intl">{tx.intl}</SelectItem></SelectContent></Select>{value.dealType === "iraq" && <p className="text-xs text-amber-700">{tx.oldDeal}</p>}</div>
         <ContractDatePicker id="draft-date" label={tx.date} language={documentLanguage} value={value.date} onChange={(next) => set("date", next)} />
       </div>
     </fieldset>
-    <fieldset className="rounded-md border p-4"><legend className="px-2 font-semibold">{tx.seller}</legend><p className="mb-3 text-xs text-muted-foreground">{tx.companySource}</p>{sellerLoading && <p role="status" className="text-sm">{tx.sellerLoading}</p>}{sellerError && <p role="alert" className="text-sm text-destructive">{tx.sellerError}</p>}<div className="grid gap-4 sm:grid-cols-2">
+    <fieldset className={`p-4 ${contractTheme.panel}`}><legend className={`px-2 font-semibold ${contractTheme.text}`}>{tx.seller}</legend><p className="mb-3 text-xs text-muted-foreground">{tx.companySource}</p>{sellerLoading && <p role="status" className="text-sm">{tx.sellerLoading}</p>}{sellerError && <p role="alert" className="text-sm text-destructive">{tx.sellerError}</p>}<div className="grid gap-4 sm:grid-cols-2">
       {sellerField("name", tx.name)}{sellerField("registration", tx.registration)}{sellerField("address", tx.address)}
       {sellerField("representative", tx.representative)}{sellerField("contact", tx.contact)}
       {sellerField("taxNumber", language === "fa" ? "شمارهٔ مالیاتی" : language === "ar" ? "الرقم الضريبي" : language === "tr" ? "Vergi numarası" : "Tax number")}
       {sellerField("country", tx.country)}{sellerField("city", language === "fa" ? "شهر" : language === "ar" ? "المدينة" : language === "tr" ? "Şehir" : "City")}
       {sellerField("postalCode", language === "fa" ? "کد پستی" : language === "ar" ? "الرمز البريدي" : language === "tr" ? "Posta kodu" : "Postal code")}
       {sellerField("website", language === "fa" ? "وب‌سایت" : language === "ar" ? "الموقع الإلكتروني" : language === "tr" ? "Web sitesi" : "Website")}
-    </div>{onRefreshSeller && <Button type="button" variant="outline" className="mt-3" onClick={onRefreshSeller} disabled={sellerLoading}>{tx.refreshSeller}</Button>}</fieldset>
-    <fieldset className="rounded-md border p-4"><legend className="px-2 font-semibold">{tx.buyer}</legend><div className="grid gap-4 sm:grid-cols-2">
+    </div>{onRefreshSeller && <Button type="button" variant="outline" className={`mt-3 ${contractTheme.outline}`} onClick={onRefreshSeller} disabled={sellerLoading}>{tx.refreshSeller}</Button>}</fieldset>
+    <fieldset className={`p-4 ${contractTheme.panel}`}><legend className={`px-2 font-semibold ${contractTheme.text}`}>{tx.buyer}</legend><div className="grid gap-4 sm:grid-cols-2">
       <div className="space-y-1.5"><Label>{tx.customer}</Label><p className="rounded-md border bg-muted px-3 py-2 text-sm">{context.customerName || "—"}</p></div>
       {buyerField("country", tx.country)}{buyerField("registration", tx.registration)}{buyerField("address", tx.address)}
       {buyerField("representative", tx.representative)}{buyerField("contact", tx.contact)}
     </div></fieldset>
-    <fieldset className="space-y-3 rounded-md border p-4"><legend className="px-2 font-semibold">{tx.products}</legend><p className="text-xs text-muted-foreground">{tx.productHint}</p>
+    <fieldset className={`space-y-3 p-4 ${contractTheme.panel}`}><legend className={`px-2 font-semibold ${contractTheme.text}`}>{tx.products}</legend><p className="text-xs text-muted-foreground">{tx.productHint}</p>
       {context.items.length === 0 && <p className="text-sm text-muted-foreground">{tx.noProducts}</p>}
       {context.items.map((item) => {
         const key = String(item.productId);
@@ -172,11 +173,11 @@ export default function ContractDraftBuilder({ value, onChange, context, languag
         </div>;
       })}
     </fieldset>
-    <fieldset className="rounded-md border p-4"><legend className="px-2 font-semibold">{tx.payment}</legend><p className="mb-3 text-sm text-muted-foreground">{tx.currency}</p><div className="grid gap-4 sm:grid-cols-2">
+    <fieldset className={`p-4 ${contractTheme.panel}`}><legend className={`px-2 font-semibold ${contractTheme.text}`}>{tx.payment}</legend><p className="mb-3 text-sm text-muted-foreground">{tx.currency}</p><div className="grid gap-4 sm:grid-cols-2">
       <div className="space-y-1.5"><Label htmlFor="draft-payment">{tx.method}</Label><Select value={value.payment.method} onValueChange={(method) => set("payment", { ...value.payment, method: method as ShopContractDraftData["payment"]["method"] })}><SelectTrigger id="draft-payment"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="advance">{tx.advance}</SelectItem><SelectItem value="lc">{tx.lc}</SelectItem><SelectItem value="tt">{tx.tt}</SelectItem><SelectItem value="credit">{tx.credit}</SelectItem></SelectContent></Select></div>
       {field("draft-days", tx.days, value.payment.days, (days) => set("payment", { ...value.payment, days }))}
     </div></fieldset>
-    <fieldset className="rounded-md border p-4"><legend className="px-2 font-semibold">{tx.delivery}</legend><div className="grid gap-4 sm:grid-cols-2">
+    <fieldset className={`p-4 ${contractTheme.panel}`}><legend className={`px-2 font-semibold ${contractTheme.text}`}>{tx.delivery}</legend><div className="grid gap-4 sm:grid-cols-2">
       <div><Label>{tx.incoterm}</Label><p className="rounded-md border bg-muted px-3 py-2 text-sm">{context.deliveryTerm || "—"}</p></div>
       {field("draft-location", tx.location, value.delivery.location, (location) => set("delivery", { ...value.delivery, location }))}
       <ContractDatePicker id="draft-delivery-date" label={tx.deliveryDate} language={documentLanguage} value={value.delivery.date} onChange={(date) => set("delivery", { ...value.delivery, date })} />
@@ -185,10 +186,10 @@ export default function ContractDraftBuilder({ value, onChange, context, languag
     <div className="space-y-3"><Label htmlFor="contract-draft-preview">{tx.preview}</Label>
       <Textarea id="contract-draft-preview" dir={documentLanguage === "fa" || documentLanguage === "ar" ? "rtl" : "ltr"} lang={documentLanguage} readOnly value={text} rows={16} className="leading-7" />
       <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="outline" onClick={() => navigator.clipboard.writeText(text).then(() => window.alert(tx.copied)).catch(() => window.alert(tx.copyFailed))}><Copy className="me-2 h-4 w-4" />{tx.copy}</Button>
-        <Button type="button" variant="outline" onClick={saveDoc}><Download className="me-2 h-4 w-4" />{tx.word}</Button>
-        <Button type="button" variant="outline" onClick={printDoc}><Printer className="me-2 h-4 w-4" />{tx.print}</Button>
-        <Button type="button" variant="outline" onClick={() => onChange({ ...emptyContractDraft(), language: documentLanguage, seller: value.seller })}>{tx.reset}</Button>
+        <Button type="button" variant="outline" className={contractTheme.outline} onClick={() => navigator.clipboard.writeText(text).then(() => window.alert(tx.copied)).catch(() => window.alert(tx.copyFailed))}><Copy className="me-2 h-4 w-4" />{tx.copy}</Button>
+        <Button type="button" variant="outline" className={contractTheme.outline} onClick={saveDoc}><Download className="me-2 h-4 w-4" />{tx.word}</Button>
+        <Button type="button" variant="outline" className={contractTheme.outline} onClick={printDoc}><Printer className="me-2 h-4 w-4" />{tx.print}</Button>
+        <Button type="button" variant="outline" className={contractTheme.outline} onClick={() => onChange({ ...emptyContractDraft(), language: documentLanguage, seller: value.seller })}>{tx.reset}</Button>
       </div>
     </div>
   </div>;

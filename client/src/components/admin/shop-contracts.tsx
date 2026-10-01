@@ -20,6 +20,7 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { contractTheme } from "@/lib/contract-theme";
 
 type ContractItem = { productId: number | string; productName: string; maxQuantity: number; usedQuantity: number; remainingQuantity: number; unitPrice: number };
 type ShippingMode = "automatic_vehicle" | "self_transport";
@@ -207,24 +208,24 @@ export default function ShopContracts() {
   const renderContractTable = (rows: Contract[], ended: boolean) => rows.length === 0
     ? <div className="rounded-lg border border-dashed p-12 text-center text-muted-foreground">{ended ? tx.noEnded : tx.noCurrent}</div>
     : <div className="overflow-x-auto rounded-lg border">
-        <Table className="min-w-[1080px] [&_th]:text-start">
-          <TableHeader><TableRow>
-            <TableHead>{tx.number}</TableHead><TableHead>{tx.customer}</TableHead><TableHead>{tx.status}</TableHead>
-            <TableHead>{tx.delivery}</TableHead><TableHead>{tx.summary}</TableHead><TableHead className="text-end">{tx.actions}</TableHead>
+        <Table className={`min-w-[1080px] [&_th]:text-start ${contractTheme.table}`}>
+          <TableHeader className={contractTheme.tableHead}><TableRow className="hover:bg-transparent">
+            <TableHead className="text-teal-50 dark:text-teal-100">{tx.number}</TableHead><TableHead className="text-teal-50 dark:text-teal-100">{tx.customer}</TableHead><TableHead className="text-teal-50 dark:text-teal-100">{tx.status}</TableHead>
+            <TableHead className="text-teal-50 dark:text-teal-100">{tx.delivery}</TableHead><TableHead className="text-teal-50 dark:text-teal-100">{tx.summary}</TableHead><TableHead className="text-end text-teal-50 dark:text-teal-100">{tx.actions}</TableHead>
           </TableRow></TableHeader>
           <TableBody>{rows.map((contract) => (
             <Fragment key={contract.id}>
-              <TableRow className="cursor-pointer" onClick={(event) => {
+              <TableRow className={`cursor-pointer ${contractTheme.row}`} onClick={(event) => {
                 if (!(event.target as HTMLElement).closest("button, a, input, select, textarea"))
                   setExpanded(expanded === contract.id ? null : contract.id);
               }}>
                 <TableCell className="font-semibold">
-                  <button type="button" className="inline-flex items-center gap-2 text-start text-primary hover:underline"
+                  <button type="button" className={`inline-flex items-center gap-2 text-start font-semibold hover:underline ${contractTheme.text}`}
                     aria-expanded={expanded === contract.id} aria-controls={`contract-detail-${contract.id}`}
                     onClick={() => setExpanded(expanded === contract.id ? null : contract.id)}>
                     {contract.number}
                     {Number(contract.addendumCount) > 0 && <span role="img" aria-label={addendumLabels.led} title={addendumLabels.led}
-                      className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-violet-500 shadow-[0_0_8px_2px_rgba(139,92,246,0.6)]" />}
+                      className="inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-teal-700 ring-2 ring-teal-200 dark:bg-teal-300 dark:ring-teal-900" />}
                     {expanded === contract.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                   </button>
                 </TableCell>
@@ -244,28 +245,28 @@ export default function ShopContracts() {
                         if (file) { setRowUpload({ contractId: String(contract.id), file }); setExpanded(contract.id); }
                         event.target.value = "";
                       }} />
-                    <Button variant="outline" size="sm" onClick={() => document.getElementById(`row-upload-${contract.id}`)?.click()}>
+                    <Button variant="outline" className={contractTheme.outline} size="sm" onClick={() => document.getElementById(`row-upload-${contract.id}`)?.click()}>
                       <Upload className="me-1 h-4 w-4" />{documentActions.upload}
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => setExpanded(contract.id)}>
+                    <Button variant="outline" className={contractTheme.outline} size="sm" onClick={() => setExpanded(contract.id)}>
                       <Download className="me-1 h-4 w-4" />{documentActions.download}
                     </Button>
                     {!ended && <>
-                      <Button size="sm" variant="outline" className="border-violet-300 text-violet-800 hover:bg-violet-50"
+                      <Button size="sm" variant="outline" className={contractTheme.outline}
                         onClick={() => openAddendum(contract)}>{addendumLabels.create}</Button>
-                      {!Number(contract.addendumCount) && <Button variant="outline" size="sm" onClick={() => openEdit(contract)}>{tx.edit}</Button>}
+                      {!Number(contract.addendumCount) && <Button variant="outline" className={contractTheme.outline} size="sm" onClick={() => openEdit(contract)}>{tx.edit}</Button>}
                       <Button variant="destructive" size="sm" onClick={() => { setEndError(""); setEndingContract(contract); }}>{tx.end}</Button>
                     </>}
                   </div>
                 </TableCell>
               </TableRow>
               {expanded === contract.id && <TableRow>
-                <TableCell colSpan={6} id={`contract-detail-${contract.id}`} className="bg-muted/30">
+                <TableCell colSpan={6} id={`contract-detail-${contract.id}`} className="bg-teal-50/60 dark:bg-teal-950/30">
                   <div className="space-y-5 p-1">
                     <div>
                       <h3 className="mb-3 font-semibold">{documentActions.details}</h3>
                       <div className="grid gap-3 md:grid-cols-2">{(contract.items || []).map((item) => (
-                        <div key={item.productId} className="rounded-md border bg-background p-3">
+                        <div key={item.productId} className={`rounded-md border p-3 ${contractTheme.panel}`}>
                           <p className="font-medium">{item.productName}</p>
                           <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-muted-foreground">
                             <span>{tx.max}</span><span className="text-end text-foreground">{item.maxQuantity}</span>
@@ -293,7 +294,7 @@ export default function ShopContracts() {
     <section dir={direction} className="space-y-6">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div><h1 className="flex items-center gap-2 text-2xl font-bold"><FileText className="h-6 w-6 text-primary" />{tx.title}</h1><p className="mt-1 text-sm text-muted-foreground">{tx.subtitle}</p></div>
-        <Button onClick={openCreate}><Plus className={direction === "rtl" ? "ml-2 h-4 w-4" : "mr-2 h-4 w-4"} />{tx.new}</Button>
+        <Button onClick={openCreate} className={contractTheme.button}><Plus className={direction === "rtl" ? "ml-2 h-4 w-4" : "mr-2 h-4 w-4"} />{tx.new}</Button>
       </header>
       {contractsQuery.isLoading && <div className="py-12 text-center text-muted-foreground">{tx.loading}</div>}
       {contractsQuery.isError && <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertDescription>{errorMessage(contractsQuery.error)}</AlertDescription></Alert>}
@@ -307,7 +308,7 @@ export default function ShopContracts() {
          <TabsContent value="ended">{renderContractTable(endedContracts, true)}</TabsContent>
        </Tabs>}
 
-        <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { setFormError(""); setCreatingAddendumFor(null); } }}><DialogContent dir={direction} className={`max-h-[92vh] overflow-y-auto sm:max-w-4xl ${creatingAddendumFor ? "border-violet-400 bg-violet-50 dark:border-violet-700 dark:bg-violet-950" : ""}`}><DialogHeader><DialogTitle className={creatingAddendumFor ? "text-violet-800 dark:text-violet-200" : undefined}>{creatingAddendumFor ? addendumLabels.title : editingId === null ? tx.createTitle : tx.editTitle}</DialogTitle><DialogDescription>{creatingAddendumFor ? {
+        <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { setFormError(""); setCreatingAddendumFor(null); } }}><DialogContent dir={direction} className={`max-h-[92vh] overflow-y-auto sm:max-w-4xl ${creatingAddendumFor ? "border-teal-700 bg-teal-50 dark:border-teal-300 dark:bg-teal-950" : ""}`}><DialogHeader><DialogTitle className={creatingAddendumFor ? contractTheme.text : undefined}>{creatingAddendumFor ? addendumLabels.title : editingId === null ? tx.createTitle : tx.editTitle}</DialogTitle><DialogDescription>{creatingAddendumFor ? {
           fa: "این متمم با ثبت، شرایط فروش قرارداد اصلی را به‌روزرسانی می‌کند؛ سفارش‌های قبلی تغییر نمی‌کنند.",
           en: "Saving this addendum updates the parent contract's sales terms; prior orders remain unchanged.",
           ar: "حفظ هذا الملحق يحدّث شروط بيع العقد الأصلي؛ لا تتغير الطلبات السابقة.",
@@ -357,7 +358,7 @@ export default function ShopContracts() {
                    {language === "fa" ? "استفاده از سازندهٔ جدید" : language === "ar" ? "استخدام النموذج الجديد" : language === "tr" ? "Yeni taslağı kullan" : "Use new contract builder"}
                  </Button>
                </div>}
-          </div>{formError && <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertDescription>{formError}</AlertDescription></Alert>}<DialogFooter className="gap-2 sm:gap-0"><Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saveMutation.isPending}>{tx.cancel}</Button><Button onClick={submit} className={creatingAddendumFor ? "bg-violet-700 text-white hover:bg-violet-800" : undefined} disabled={saveMutation.isPending}>{saveMutation.isPending && <Loader2 className="me-2 h-4 w-4 animate-spin" />}{saveMutation.isPending ? tx.saving : creatingAddendumFor ? addendumLabels.save : editingId === null ? tx.create : tx.save}</Button></DialogFooter>
+          </div>{formError && <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertDescription>{formError}</AlertDescription></Alert>}<DialogFooter className="gap-2 sm:gap-0"><Button variant="outline" className={contractTheme.outline} onClick={() => setDialogOpen(false)} disabled={saveMutation.isPending}>{tx.cancel}</Button><Button onClick={submit} className={contractTheme.button} disabled={saveMutation.isPending}>{saveMutation.isPending && <Loader2 className="me-2 h-4 w-4 animate-spin" />}{saveMutation.isPending ? tx.saving : creatingAddendumFor ? addendumLabels.save : editingId === null ? tx.create : tx.save}</Button></DialogFooter>
       </DialogContent></Dialog>
 
       <AlertDialog open={endingContract !== null} onOpenChange={(open) => { if (!open && !endMutation.isPending) { setEndingContract(null); setEndError(""); } }}>

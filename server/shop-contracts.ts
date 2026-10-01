@@ -9,6 +9,7 @@ import {
   type ShopContractDraftData,
 } from "@shared/contract-draft";
 import { buildContractDraftText } from "@shared/contract-document";
+import { buildShopContractSummary, type ShopContractSummary } from "@shared/shop-contract-summary";
 import { registerSignedContractDocuments } from "./signed-contract-documents";
 
 const HOLD_TTL_MINUTES = 5;
@@ -354,6 +355,99 @@ async function reconcileContractHolds(client: import("pg").PoolClient): Promise<
 
 async function reconcileShopContractHolds(): Promise<void> {
   await inTransaction(reconcileContractHolds);
+}
+
+/**
+ * Load current contract balances for a batch of the session customer's orders.
+ * The relationship is checked from both sides so a malformed order reference
+ * can never expose another CRM customer's contract.
+ */
+export async function getCustomerOrderContractSummaries(
+  rawCustomerId: unknown,
+  rawOrderIds: unknown[],
+): Promise<Map<number, ShopContractSummary>> {
+  const customerId = Number(rawCustomerId);
+  if (!Number.isSafeInteger(customerId) || customerId <= 0) return new Map();
+  const orderIds = [...new Set(rawOrderIds
+    .map(Number)
+    .filter((id) => Number.isSafeInteger(id) && id > 0))];
+  if (orderIds.length === 0) return new Map();
+
+  return inTransaction(async (client) => {
+    await reconcileContractHolds(client);
+    const contractRows = await client.query(
+      `SELECT co.id AS order_id, c.id, c.number, c.is_active, c.ended_at, c.draft_data
+         FROM customer_orders co
+         LEFT JOIN shop_contract_order_snapshots os ON os.order_id = co.id
+         JOIN shop_contracts c ON c.id = COALESCE(co.contract_id, os.contract_id)
+        WHERE co.id = ANY($1::integer[])
+          AND co.customer_id = $2
+          AND c.customer_id = $2`,
+      [orderIds, customerId],
+    );
+    if (contractRows.rows.length === 0) return new Map();
+
+    const contractIds = [...new Set(contractRows.rows.map((row: any) => Number(row.id)))];
+    const itemRows = await client.query(
+      `SELECT ci.contract_id, ci.product_id, sp.name AS product_name,
+              ci.max_quantity, ci.used_quantity, ci.unit_price
+         FROM shop_contract_items ci
+         JOIN shop_products sp ON sp.id = ci.product_id
+        WHERE ci.contract_id = ANY($1::integer[]) AND ci.is_active = true
+        ORDER BY ci.id`,
+      [contractIds],
+    );
+
+    const itemsByContractId = new Map<number, any[]>();
+    for (const row of itemRows.rows) {
+      const contractId = Number(row.contract_id);
+      const items = itemsByContractId.get(contractId) || [];
+      items.push({
+        productId: row.product_id,
+        productName: row.product_name,
+        maxQuantity: row.max_quantity,
+        usedQuantity: row.used_quantity,
+        unitPrice: row.unit_price,
+      });
+      itemsByContractId.set(contractId, items);
+    }
+
+    const summariesByContractId = new Map<number, ShopContractSummary>();
+    for (const row of contractRows.rows) {
+      const contractId = Number(row.id);
+      if (!summariesByContractId.has(contractId)) {
+        summariesByContractId.set(contractId, buildShopContractSummary({
+          id: row.id,
+          number: row.number,
+          isActive: row.is_active,
+          endedAt: row.ended_at,
+          draftData: row.draft_data,
+        }, itemsByContractId.get(contractId) || []));
+      }
+    }
+
+    const summariesByOrderId = new Map<number, ShopContractSummary>();
+    for (const row of contractRows.rows) {
+      const summary = summariesByContractId.get(Number(row.id));
+      if (summary) summariesByOrderId.set(Number(row.order_id), summary);
+    }
+    return summariesByOrderId;
+  });
+}
+
+export function enrichOrderWithContractSummary<T extends {
+  contractId?: unknown;
+  contractNumber?: unknown;
+}>(
+  order: T,
+  summary: ShopContractSummary | null | undefined,
+) {
+  return {
+    ...order,
+    contractId: summary?.id ?? order.contractId ?? null,
+    contractNumber: summary?.number ?? order.contractNumber ?? null,
+    contractSummary: summary ?? null,
+  };
 }
 
 function contractResponse(row: any, itemRows: any[]) {

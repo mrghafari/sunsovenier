@@ -22,6 +22,7 @@ import ContractSelector, { type ShopContract } from "@/components/checkout/contr
 import { loadCustomerAddresses, saveCustomerAddress } from "@/lib/customer-addresses";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { translations, type Translation } from "@/lib/i18n";
+import { contractTheme } from "@/lib/contract-theme";
 
 const EMPTY_SHIPPING_OPTIONS: any[] = [];
 const EMPTY_PAYMENT_SETTINGS: any[] = [];
@@ -660,6 +661,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
       quantity,
       discountedUnitPrice,
       hasDiscount,
+      usesContractPrice: Boolean(contractItem),
       originalUnitPrice: contractItem ? discountedUnitPrice : basePrice,
       totalPrice: discountedUnitPrice * quantity
     };
@@ -3679,11 +3681,16 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                   {/* Cart Items */}
                   <div className="space-y-3">
                     {cartItems.map((item) => (
-                      <div key={item.id} className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                      <div key={item.id} className={`p-3 rounded-lg ${item.usesContractPrice ? contractTheme.panel : "bg-gray-50 dark:bg-gray-800"}`}>
                         <div className="flex justify-between items-start mb-2">
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
                               <h4 className="font-medium text-sm">{item.name}</h4>
+                              {item.usesContractPrice && (
+                                <span className={contractTheme.badge}>
+                                  {language === 'fa' ? 'قرارداد' : language === 'ar' ? 'عقد' : language === 'tr' ? 'Sözleşme' : 'Contract'} {selectedContract?.number}
+                                </span>
+                              )}
                               {item.isFlammable && (
                                 <div className="flex items-center">
                                   <Flame className="w-4 h-4 text-red-500" />
@@ -3736,7 +3743,9 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                           </div>
                           <div className="text-right">
                             <div className="text-xs text-gray-500">
-                              {item.quantity} × {item.hasDiscount ? (
+                              {item.quantity} × {item.usesContractPrice ? (
+                                <span className={contractTheme.text}>{Math.round(item.discountedUnitPrice).toLocaleString()}</span>
+                              ) : item.hasDiscount ? (
                                 <span>
                                   <span className="line-through text-gray-400 mr-1">{item.originalUnitPrice.toLocaleString()}</span>
                                   <span className="text-green-600 font-semibold">{Math.round(item.discountedUnitPrice).toLocaleString()}</span>
@@ -3745,7 +3754,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                                 <span>{parseFloat(item.price).toLocaleString()}</span>
                               )} IQD
                             </div>
-                            <div className="font-medium">
+                            <div className={`font-medium ${item.usesContractPrice ? contractTheme.text : ""}`}>
                               {Math.round(item.totalPrice).toLocaleString()} IQD
                             </div>
                             {item.hasDiscount && (

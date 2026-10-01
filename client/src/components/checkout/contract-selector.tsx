@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import type { IncotermCode } from '@shared/incoterms';
+import { contractTheme } from '@/lib/contract-theme';
 
 export type ShopContract = {
   id: number;
@@ -99,7 +100,7 @@ export function ContractSelector({
     }, 0);
 
   return (
-    <Card dir={isRtl ? 'rtl' : 'ltr'}>
+    <Card dir={isRtl ? 'rtl' : 'ltr'} className={contractTheme.panel}>
       <CardHeader>
         <CardTitle>{text.title}</CardTitle>
         <CardDescription>{text.description}</CardDescription>
@@ -137,7 +138,7 @@ export function ContractSelector({
             <label
               htmlFor="contract-option-contract"
               className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors hover:bg-muted/50 ${
-                saleType === 'contract' ? 'border-primary bg-primary/5' : ''
+              saleType === 'contract' ? contractTheme.selected : ''
               } ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
             >
               <RadioGroupItem id="contract-option-contract" value="contract" className="mt-1" />
@@ -152,7 +153,7 @@ export function ContractSelector({
             value={selectedContractId === null ? undefined : String(selectedContractId)}
             onValueChange={(value) => onSelect(Number(value))}
             disabled={disabled}
-            className="mt-3 space-y-2 border-s-2 border-primary/20 ps-4"
+            className="mt-3 space-y-2 border-s-2 border-teal-800/30 ps-4 dark:border-teal-200/30"
           >
             {activeContracts.map((contract) => {
               const value = String(contract.id);
@@ -162,7 +163,7 @@ export function ContractSelector({
                   key={contract.id}
                   htmlFor={`contract-option-${contract.id}`}
                   className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50 ${
-                    selected ? 'border-primary bg-primary/5' : ''
+                    selected ? contractTheme.selected : ''
                   } ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
                 >
                   <RadioGroupItem

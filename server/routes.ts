@@ -21372,6 +21372,18 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         WHERE co.customer_id = $1
         ORDER BY co.created_at DESC
       `, [finalCustomerId]);
+
+      const contractOrderIds = [
+        ...detailedOrders.map((order: any) => order.id),
+        ...allOrdersResult.rows.map((order: any) => order.id),
+      ];
+      const {
+        getCustomerOrderContractSummaries,
+        enrichOrderWithContractSummary,
+      } = await import("./shop-contracts");
+      const contractSummariesByOrderId = contractOrderIds.length
+        ? await getCustomerOrderContractSummaries(finalCustomerId, contractOrderIds)
+        : new Map<number, any>();
       
       // Get order items in a single batch query (optimized to prevent connection timeout)
       const orderIds = allOrdersResult.rows.map((o: any) => o.id);
@@ -21420,46 +21432,55 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       }));
 
       // Format customer orders to match regular order structure
-      const customerOrders = allOrdersWithItems.map((row: any) => ({
-        id: row.id,
-        orderNumber: row.order_number,
-        contractId: row.contract_id == null ? null : Number(row.contract_id),
-        status: row.status,
-        totalAmount: row.total_amount,
-        shippingCost: row.shipping_cost,
-        vatAmount: row.vat_amount,
-        surchargeAmount: row.surcharge_amount,
-        vatRate: row.vat_rate,
-        surchargeRate: row.surcharge_rate,
-        currency: row.currency,
-        paymentStatus: row.payment_status,
-        paymentMethod: row.payment_method,
-        createdAt: row.created_at,
-        updatedAt: row.updated_at,
-        items: row.items || [],
-        orderType: row.order_category, // 'temporary' or 'regular'
-        orderCategory: row.order_category, // New field for order classification
-        currentStatus: row.current_status, // Current order status in workflow
-        financiallyApproved: row.financial_reviewed_at !== null,
-        gracePeriodExpires: row.payment_grace_period_end,
-        gracePeriodStatus: row.grace_period_status,
-        hoursRemaining: Math.max(0, Math.floor(row.hours_remaining || 0)),
-        isOrderLocked: row.is_order_locked,
-        paymentGracePeriodStart: row.payment_grace_period_start,
-        paymentGracePeriodEnd: row.payment_grace_period_end,
-        customerName: row.guest_name,
-        customerEmail: row.guest_email,
-        customerPhone: row.recipient_phone,
-        recipientName: row.recipient_name,
-        recipientPhone: row.recipient_phone,
-        recipientAddress: row.recipient_address
-      }));
+      const customerOrders = allOrdersWithItems.map((row: any) => {
+        const contractSummary = contractSummariesByOrderId.get(Number(row.id)) ?? null;
+        const contractFields = {
+          id: row.id,
+          orderNumber: row.order_number,
+          contractId: row.contract_id == null ? null : Number(row.contract_id),
+          contractNumber: row.contractNumber ?? row.contract_number ?? null,
+        };
+        const enrichedContractFields = enrichOrderWithContractSummary(contractFields, contractSummary);
+        return {
+          ...enrichedContractFields,
+          status: row.status,
+          totalAmount: row.total_amount,
+          shippingCost: row.shipping_cost,
+          vatAmount: row.vat_amount,
+          surchargeAmount: row.surcharge_amount,
+          vatRate: row.vat_rate,
+          surchargeRate: row.surcharge_rate,
+          currency: row.currency,
+          paymentStatus: row.payment_status,
+          paymentMethod: row.payment_method,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+          items: row.items || [],
+          orderType: row.order_category, // 'temporary' or 'regular'
+          orderCategory: row.order_category, // New field for order classification
+          currentStatus: row.current_status, // Current order status in workflow
+          financiallyApproved: row.financial_reviewed_at !== null,
+          gracePeriodExpires: row.payment_grace_period_end,
+          gracePeriodStatus: row.grace_period_status,
+          hoursRemaining: Math.max(0, Math.floor(row.hours_remaining || 0)),
+          isOrderLocked: row.is_order_locked,
+          paymentGracePeriodStart: row.payment_grace_period_start,
+          paymentGracePeriodEnd: row.payment_grace_period_end,
+          customerName: row.guest_name,
+          customerEmail: row.guest_email,
+          customerPhone: row.recipient_phone,
+          recipientName: row.recipient_name,
+          recipientPhone: row.recipient_phone,
+          recipientAddress: row.recipient_address
+        };
+      });
 
       const managementByOrderId = new Map(
         allOrdersResult.rows.map((row: any) => [row.id, row])
       );
       const enrichedDetailedOrders = detailedOrders.map((order: any) => {
         const management = managementByOrderId.get(order.id);
+        const contractSummary = contractSummariesByOrderId.get(Number(order.id)) ?? null;
         const isExpiredGraceCancellation =
           order.status === 'deleted' &&
           (
@@ -21467,10 +21488,10 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
             order.paymentMethod === 'واریز بانکی با مهلت 3 روزه'
           );
         const enrichedOrder = {
-          ...order,
-          contractId: management?.contract_id == null
-            ? (order.contractId ?? null)
-            : Number(management.contract_id),
+          ...enrichOrderWithContractSummary({
+            ...order,
+            contractId: management?.contract_id ?? order.contractId,
+          }, contractSummary),
           financialReviewedAt: management?.financial_reviewed_at ?? null,
           financiallyApproved: management?.financial_reviewed_at != null,
           currentStatus: management?.current_status ?? order.status,
@@ -21682,7 +21703,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       console.log('🔍 [COMPLETE HISTORY API] Customer purchase history request received');
       
       // Get customer ID from session
-      const customerId = req.session?.customerId || req.session?.crmCustomerId;
+      const customerId = req.session?.crmCustomerId || req.session?.customerId;
       
       if (!customerId) {
         console.log('❌ [COMPLETE HISTORY API] No customer session found');
@@ -21698,23 +21719,35 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       const orders = await customerStorage.getCompleteOrderHistory(customerId);
       const orderIds = orders.map((order: any) => order.id);
       let managementByOrderId = new Map<number, any>();
+      let contractSummariesByOrderId = new Map<number, any>();
+      const {
+        getCustomerOrderContractSummaries,
+        enrichOrderWithContractSummary,
+      } = await import("./shop-contracts");
 
       if (orderIds.length > 0) {
         const { pool } = await import('./db');
         const managementResult = await pool.query(`
-          SELECT customer_order_id, current_status, financial_reviewed_at, financial_notes
-          FROM order_management
-          WHERE customer_order_id = ANY($1)
+          SELECT om.customer_order_id, om.current_status, om.financial_reviewed_at,
+                 om.financial_notes, co.contract_id
+          FROM order_management om
+          LEFT JOIN customer_orders co ON co.id = om.customer_order_id
+          WHERE om.customer_order_id = ANY($1)
         `, [orderIds]);
         managementByOrderId = new Map(
           managementResult.rows.map((row: any) => [row.customer_order_id, row])
         );
+        contractSummariesByOrderId = await getCustomerOrderContractSummaries(customerId, orderIds);
       }
 
       const enrichedOrders = orders.map((order: any) => {
         const management = managementByOrderId.get(order.id);
+        const contractSummary = contractSummariesByOrderId.get(Number(order.id)) ?? null;
         const enrichedOrder = {
-          ...order,
+          ...enrichOrderWithContractSummary({
+            ...order,
+            contractId: management?.contract_id ?? order.contractId,
+          }, contractSummary),
           financialReviewedAt: management?.financial_reviewed_at ?? null,
           financiallyApproved: management?.financial_reviewed_at != null,
           currentStatus: management?.current_status ?? order.status,

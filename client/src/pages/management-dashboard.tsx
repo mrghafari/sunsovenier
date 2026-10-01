@@ -12,6 +12,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { contractTheme } from "@/lib/contract-theme";
 
 type Language = "en" | "ar" | "tr" | "fa";
 const salesPeriods = ["week", "month", "quarter", "halfYear", "year", "all"] as const;
@@ -379,9 +380,9 @@ const ManagementDashboard = () => {
             </Panel>
             <Panel className="xl:col-span-2"><PanelHeading icon={BriefcaseBusiness} title={t("contractsList")} />
               {dashboard.isLoading ? <SkeletonBlock rows={3} /> : payload ? <>
-                <div className="px-5 pb-3 sm:px-6"><div className="inline-flex items-center gap-2 rounded-lg bg-[#edf2e9] px-3 py-2 text-xs text-[#65776d]"><BriefcaseBusiness size={14} />{t("activeContracts")} <strong className="font-mono text-[#285542]">{formatNumber(payload.summary?.activeContracts)}</strong></div></div>
+                <div className="px-5 pb-3 sm:px-6"><div className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs ${contractTheme.panel} ${contractTheme.text}`}><BriefcaseBusiness size={14} />{t("activeContracts")} <strong className="font-mono">{formatNumber(payload.summary?.activeContracts)}</strong></div></div>
                 {payload.quickStats?.activeContractList?.length ?
-                  <div className="overflow-x-auto px-5 pb-5 sm:px-6"><table className="w-full min-w-[480px] text-start text-sm"><thead><tr className="border-b border-[#e4e9e2] text-[11px] uppercase tracking-[0.1em] text-[#87938b]"><th className="py-3 font-medium">{t("contract")}</th><th className="py-3 font-medium">{t("customer")}</th></tr></thead><tbody>{payload.quickStats.activeContractList.map((contract) => <tr key={contract.id} className="border-b border-[#edf0ea] last:border-0"><td className="py-3.5 font-mono font-medium text-[#315a49]">{contract.number}</td><td className="py-3.5 text-[#4e6559]">{contract.customerName}</td></tr>)}</tbody></table></div>
+                  <div className="overflow-x-auto px-5 pb-5 sm:px-6"><table className={`min-w-[480px] text-start ${contractTheme.table}`}><thead className={contractTheme.tableHead}><tr><th className="px-3 py-3 font-medium">{t("contract")}</th><th className="px-3 py-3 font-medium">{t("customer")}</th></tr></thead><tbody>{payload.quickStats.activeContractList.map((contract) => <tr key={contract.id} className={contractTheme.tableRow}><td className={`px-3 py-3.5 font-mono font-semibold ${contractTheme.text}`}>{contract.number}</td><td className="px-3 py-3.5">{contract.customerName}</td></tr>)}</tbody></table></div>
                   : <EmptyRow>{t("noContracts")}</EmptyRow>}
               </> : null}
             </Panel>

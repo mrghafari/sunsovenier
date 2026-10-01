@@ -14,6 +14,8 @@ import PaymentMethodBadge from "@/components/PaymentMethodBadge";
 import { BankReceiptUploadModal } from "@/components/BankReceiptUploadModal";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getOrderStatusLabel, resolveOrderStatus, type OrderStatusLanguage } from "@shared/order-status";
+import { contractTheme } from "@/lib/contract-theme";
+import OrderContractSummary from "@/components/contracts/order-contract-summary";
 import DatePickerModule, { type DateObject } from "react-multi-date-picker";
 import persian from "react-date-object/calendars/persian";
 import persianFa from "react-date-object/locales/persian_fa";
@@ -1455,7 +1457,9 @@ const CustomerProfile = () => {
                           <div
                             key={order.id}
                               className={`grid grid-cols-[44px_1.4fr_1fr_1fr_1fr_1fr_1.6fr_1.4fr] gap-0 border-b border-x-0 border-slate-200 text-xs ${
-                              is3DayBankTransfer
+                              isContractOrder(order)
+                                ? contractTheme.row
+                                : is3DayBankTransfer
                                 ? "border-orange-300 bg-orange-50"
                                 : order.status === "pending" || order.status === "payment_grace_period"
                                 ? "border-amber-200 bg-amber-50"
@@ -1471,7 +1475,7 @@ const CustomerProfile = () => {
                                     aria-expanded={expandedOrderId === order.id}
                                     aria-controls={`order-details-${order.id}`}
                                     onClick={() => setExpandedOrderId(expandedOrderId === order.id ? null : order.id)}
-                                    className="rounded-sm text-start font-semibold text-slate-900 underline decoration-slate-300 underline-offset-2 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
+                                    className={`rounded-sm text-start font-semibold underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 ${isContractOrder(order) ? contractTheme.text : "text-slate-900 decoration-slate-300 hover:text-slate-700"}`}
                                   >
                                     {order.orderNumber}
                                   </button>
@@ -1489,13 +1493,18 @@ const CustomerProfile = () => {
                               </div>
                               <div className="col-start-4 row-start-1 flex min-w-0 items-center border-e border-slate-200 px-3 py-2">
                                 {isContractOrder(order) ? (
-                                  <span
-                                    className="inline-flex h-7 w-7 items-center justify-center rounded border border-emerald-700 bg-emerald-50 text-base font-black text-emerald-800"
-                                    aria-label={pt.contractPurchase}
+                                  <button
+                                    type="button"
+                                    onClick={() => setExpandedOrderId(expandedOrderId === order.id ? null : order.id)}
+                                    aria-expanded={expandedOrderId === order.id}
+                                    aria-controls={`order-details-${order.id}`}
+                                    className={`inline-flex flex-wrap items-center gap-1.5 rounded border px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 ${contractTheme.badge}`}
+                                    aria-label={`${pt.contractPurchase} ${order.contractNumber || order.contractSummary?.number || ""}`}
                                     title={pt.contractPurchase}
                                   >
-                                    C
-                                  </span>
+                                    <span className="text-base font-black">C</span>
+                                    <span dir="ltr" className="break-all font-mono">{order.contractNumber || order.contractSummary?.number || "—"}</span>
+                                  </button>
                                 ) : (
                                   <span className="text-xs font-medium text-slate-600" aria-label={pt.normalPurchase} title={pt.normalPurchase}>
                                     {pt.normalPurchase}
@@ -1591,7 +1600,7 @@ const CustomerProfile = () => {
                                  )}
                                </div>
                             {expandedOrderId === order.id && (
-                               <div id={`order-details-${order.id}`} className="col-span-8 min-w-0 border-t border-slate-300 bg-slate-50 p-3">
+                               <div id={`order-details-${order.id}`} className={`col-span-8 min-w-0 border-t p-3 ${isContractOrder(order) ? contractTheme.panel : "border-slate-300 bg-slate-50"}`}>
                                 {is3DayBankTransfer && (order.status === "pending" || order.status === "payment_grace_period") && (
                                   <div className="mb-3 rounded border border-orange-300 bg-orange-100 p-3">
                                     <div className="mb-2 flex items-center justify-between">
@@ -1677,19 +1686,19 @@ const CustomerProfile = () => {
                                 const vatAmount = parseFloat(order.vatAmount || "0");
                                 const surchargeAmount = parseFloat(order.surchargeAmount || "0");
                                 return (
-                                  <div className="overflow-x-auto border border-emerald-900">
-                                    <table className="w-full min-w-[620px] border-collapse text-xs">
-                                      <thead className="bg-emerald-800 text-left text-[11px] font-semibold uppercase tracking-wide text-white">
+                                  <div className={`overflow-x-auto border ${isContractOrder(order) ? contractTheme.panel : "border-slate-300"}`}>
+                                    <table className={`min-w-[620px] ${isContractOrder(order) ? contractTheme.table : "w-full border-collapse text-xs"}`}>
+                                      <thead className={`text-start text-[11px] font-semibold uppercase tracking-wide ${isContractOrder(order) ? contractTheme.tableHead : "bg-slate-700 text-white"}`}>
                                         <tr>
-                                          <th className="w-12 border border-emerald-700 px-2 py-2">#</th>
-                                          <th className="border border-emerald-700 px-3 py-2">{pt.orderItems}</th>
-                                          <th className="border border-emerald-700 px-3 py-2">{pt.quantity}</th>
-                                          <th className="border border-emerald-700 px-3 py-2">{pt.totalAmount}</th>
+                                          <th className="w-12 border border-current/20 px-2 py-2">#</th>
+                                          <th className="border border-current/20 px-3 py-2">{pt.orderItems}</th>
+                                          <th className="border border-current/20 px-3 py-2">{pt.quantity}</th>
+                                          <th className="border border-current/20 px-3 py-2">{pt.totalAmount}</th>
                                         </tr>
                                       </thead>
                                       <tbody>
                                         {normalizedItems.map((item: any, index: number) => (
-                                          <tr key={item.id || index} className="odd:bg-emerald-50 even:bg-white">
+                                          <tr key={item.id || index} className={isContractOrder(order) ? contractTheme.tableRow : "odd:bg-slate-50 even:bg-white"}>
                                             <td className="border border-slate-300 px-2 py-2 font-mono text-slate-500">{index + 1}</td>
                                             <td className="border border-slate-300 px-3 py-2 text-slate-800">{item.productName || pt.unknownProduct}</td>
                                             <td className="border border-slate-300 px-3 py-2 text-slate-700">{item.quantity}</td>
@@ -1712,7 +1721,7 @@ const CustomerProfile = () => {
                                           <th colSpan={3} className="border border-slate-300 px-3 py-2 text-start font-medium">{pt.surcharge}</th>
                                           <td className="border border-slate-300 px-3 py-2">{Math.floor(surchargeAmount)} IQD</td>
                                         </tr>
-                                        <tr className="bg-emerald-100 font-bold text-emerald-950">
+                                        <tr className={`font-bold ${isContractOrder(order) ? contractTheme.tableTotal : "bg-slate-200 text-slate-950"}`}>
                                           <th colSpan={3} className="border border-slate-300 px-3 py-2 text-start">{pt.totalAmount}</th>
                                           <td className="border border-slate-300 px-3 py-2">{Math.floor(getOrderTotal(order))} IQD</td>
                                         </tr>
@@ -1721,6 +1730,9 @@ const CustomerProfile = () => {
                                   </div>
                                 );
                               })()}
+                              {isContractOrder(order) && (
+                                <OrderContractSummary summary={order.contractSummary} language={language} />
+                              )}
 
                             {/* Actions */}
                             <div className="mt-2 flex flex-wrap gap-2 border-t border-slate-200 pt-3">
