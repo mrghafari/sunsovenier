@@ -661,10 +661,6 @@
       "count": 1
     },
     {
-      "key": "[\"client/src/pages/admin/blog-management.tsx\",2345,\"Argument of type '\\\"ogImageAr\\\"' is not assignable to parameter of type '\\\"featuredImage\\\"'.\",\"if (file) handleImageUpload(file, \\\"ogImageAr\\\");\"]",
-      "count": 1
-    },
-    {
       "key": "[\"client/src/pages/admin/company-information.tsx\",2322,\"Type '\\\"active\\\"' is not assignable to type '\\\"draft\\\" | \\\"approved\\\" | \\\"printed\\\" | \\\"distributed\\\"'.\",\"cardStatus: 'active'\"]",
       "count": 1
     },
@@ -4245,10 +4241,6 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",7005,\"Variable 'updatedTranslations' implicitly has an 'any[]' type.\",\"translations: updatedTranslations,\"]",
-      "count": 1
-    },
-    {
       "key": "[\"server/routes.ts\",7006,\"Parameter 'cell' implicitly has an 'any' type.\",\"...csvRows.map(row => row.map(cell => `\\\"${cell}\\\"`).join(','))\"]",
       "count": 1
     },
@@ -4321,10 +4313,6 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",7006,\"Parameter 't' implicitly has an 'any' type.\",\"validatedTranslations.map((t) => ({\"]",
-      "count": 1
-    },
-    {
       "key": "[\"server/routes.ts\",7034,\"Variable 'itemsResult' implicitly has type 'any[]' in some locations where its type cannot be determined.\",\"let itemsResult = [];\"]",
       "count": 1
     },
@@ -4334,10 +4322,6 @@
     },
     {
       "key": "[\"server/routes.ts\",7034,\"Variable 'paymentReceiptsResult' implicitly has type 'any[]' in some locations where its type cannot be determined.\",\"let paymentReceiptsResult = [];\"]",
-      "count": 1
-    },
-    {
-      "key": "[\"server/routes.ts\",7034,\"Variable 'updatedTranslations' implicitly has type 'any[]' in some locations where its type cannot be determined.\",\"let updatedTranslations = [];\"]",
       "count": 1
     },
     {

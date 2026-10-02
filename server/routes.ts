@@ -33,7 +33,8 @@ import { customerDb, customerPool } from "./customer-db";
 import { insertEmailCategorySchema, insertSmtpSettingSchema, insertEmailRecipientSchema, smtpConfigSchema, emailLogs, emailCategories, smtpSettings, emailRecipients, categoryEmailAssignments, insertCategoryEmailAssignmentSchema } from "@shared/email-schema";
 import { insertShopProductSchema, insertShopCategorySchema, paymentGateways, shopProducts } from "@shared/shop-schema";
 import { sendContactEmail } from "./email";
-import { insertBlogPostSchema, insertBlogPostTranslationSchema, blogPosts, blogPostTranslations } from "@shared/blog-schema";
+import { insertBlogPostSchema, blogPosts, blogPostTranslations } from "@shared/blog-schema";
+import { blogTranslationsSchema, selectBlogTranslation } from "@shared/blog-localization";
 import TemplateProcessor from "./template-processor";
 import InventoryAlertService from "./inventory-alerts";
 import { db, pool } from "./db";
@@ -59480,7 +59481,7 @@ momtazchem.com
 
   /**
    * POST /api/admin/blog
-   * Create new blog post with both English and Arabic translations
+   * Create a blog post with one or more selected language translations
    * @access Admin only
    */
   app.post("/api/admin/blog", requireAdmin, async (req, res) => {
@@ -59490,42 +59491,16 @@ momtazchem.com
       // Validate post data
       const validatedPost = parseNewBlogPost(post);
 
-      const supportedBlogLanguages = ["en", "ar", "tr", "fa"] as const;
-      if (!translations || translations.length !== supportedBlogLanguages.length) {
-        return res.status(400).json({
-          success: false,
-          message: "Translations are required for English, Arabic, Turkish, and Persian",
-        });
-      }
+      const validatedTranslations = blogTranslationsSchema.parse(translations);
 
-      const validatedTranslations = translations.map((t: any) =>
-        insertBlogPostTranslationSchema.parse(t)
-      );
-
-      const submittedLanguages = new Set(validatedTranslations.map((t: { language: string }) => t.language));
-      if (supportedBlogLanguages.some((language) => !submittedLanguages.has(language))) {
-        return res.status(400).json({
-          success: false,
-          message: "Translations are required for English, Arabic, Turkish, and Persian",
-        });
-      }
-
-      // Create blog post
-      const [newPost] = await db
-        .insert(blogPosts)
-        .values(validatedPost)
-        .returning();
-
-      // Create translations
-      const newTranslations = await db
-        .insert(blogPostTranslations)
-        .values(
-          validatedTranslations.map((t) => ({
-            ...t,
-            postId: newPost.id,
-          }))
-        )
-        .returning();
+      // Never leave a post without translations if one of the inserts fails.
+      const { newPost, newTranslations } = await db.transaction(async tx => {
+        const [newPost] = await tx.insert(blogPosts).values(validatedPost).returning();
+        const newTranslations = await tx.insert(blogPostTranslations).values(
+          validatedTranslations.map(t => ({ ...t, postId: newPost.id }))
+        ).returning();
+        return { newPost, newTranslations };
+      });
 
       res.json({
         success: true,
@@ -59553,23 +59528,7 @@ momtazchem.com
     try {
       const postId = parseInt(req.params.id);
       const { post, translations } = req.body;
-      const supportedBlogLanguages = ["en", "ar", "tr", "fa"] as const;
-      if (!translations || translations.length !== supportedBlogLanguages.length) {
-        return res.status(400).json({
-          success: false,
-          message: "Translations are required for English, Arabic, Turkish, and Persian",
-        });
-      }
-      const validatedTranslations = translations.map((translation: any) =>
-        insertBlogPostTranslationSchema.parse(translation)
-      );
-      const submittedLanguages = new Set(validatedTranslations.map((translation: { language: string }) => translation.language));
-      if (supportedBlogLanguages.some((language) => !submittedLanguages.has(language))) {
-        return res.status(400).json({
-          success: false,
-          message: "Translations are required for English, Arabic, Turkish, and Persian",
-        });
-      }
+      const validatedTranslations = blogTranslationsSchema.parse(translations);
 
       // Check if post exists
       const existingPost = await db
@@ -59595,32 +59554,16 @@ momtazchem.com
       if (Object.prototype.hasOwnProperty.call(post, "publishDate")) {
         postData.publishDate = normalizeBlogPublishDate(post.publishDate);
       }
-      const [updatedPost] = await db
-        .update(blogPosts)
-        .set(postData)
-        .where(eq(blogPosts.id, postId))
-        .returning();
-
-      // Update translations if provided
-      let updatedTranslations = [];
-      if (translations && translations.length > 0) {
-        // Delete existing translations
-        await db
-          .delete(blogPostTranslations)
-          .where(eq(blogPostTranslations.postId, postId));
-
-        // Insert new translations
-        updatedTranslations = await db
-          .insert(blogPostTranslations)
-          .values(
-            validatedTranslations.map((t: Record<string, unknown>) => ({
-              ...t,
-              postId: postId,
-              updatedAt: new Date(),
-            }))
-          )
-          .returning();
-      }
+      // Deleting an omitted language and saving the rest is one atomic operation.
+      const { updatedPost, updatedTranslations } = await db.transaction(async tx => {
+        const [updatedPost] = await tx.update(blogPosts).set(postData)
+          .where(eq(blogPosts.id, postId)).returning();
+        await tx.delete(blogPostTranslations).where(eq(blogPostTranslations.postId, postId));
+        const updatedTranslations = await tx.insert(blogPostTranslations).values(
+          validatedTranslations.map(t => ({ ...t, postId, updatedAt: new Date() }))
+        ).returning();
+        return { updatedPost, updatedTranslations };
+      });
 
       res.json({
         success: true,
@@ -59706,6 +59649,18 @@ momtazchem.com
       const newStatus = currentStatus === "published" ? "draft" : "published";
       const publishDate = newStatus === "published" ? new Date() : null;
 
+      if (newStatus === "published") {
+        const translations = await db.select().from(blogPostTranslations)
+          .where(eq(blogPostTranslations.postId, postId));
+        const validation = blogTranslationsSchema.safeParse(translations);
+        if (!validation.success) {
+          return res.status(400).json({
+            success: false,
+            message: "حداقل یک زبان کامل برای انتشار لازم است / At least one complete language is required to publish",
+          });
+        }
+      }
+
       const [updatedPost] = await db
         .update(blogPosts)
         .set({
@@ -59761,9 +59716,13 @@ momtazchem.com
         });
       }
 
-      const publishedPostCondition = tag
+      const statusAndTagCondition = tag
         ? and(eq(blogPosts.status, "published"), sql`${tag} = ANY(${blogPosts.tags})`)
         : eq(blogPosts.status, "published");
+      const publishedPostCondition = and(
+        statusAndTagCondition,
+        sql`EXISTS (SELECT 1 FROM ${blogPostTranslations} bt WHERE bt.post_id = ${blogPosts.id})`
+      );
 
       const posts = await db
         .select()
@@ -59777,14 +59736,9 @@ momtazchem.com
         const translations = await db
           .select()
           .from(blogPostTranslations)
-          .where(and(
-            eq(blogPostTranslations.postId, post.id),
-            sql`${blogPostTranslations.language} IN (${language}, 'en')`
-          ));
-        const translation =
-          translations.find((item) => item.language === language) ||
-          translations.find((item) => item.language === "en");
-        return { ...post, translation };
+          .where(eq(blogPostTranslations.postId, post.id));
+        const translation = selectBlogTranslation(translations, language);
+        return { ...post, translation, availableLanguages: translations.map(item => item.language) };
       }));
 
       // Get total count
@@ -59834,8 +59788,7 @@ momtazchem.com
         });
       }
 
-      // Resolve the post from any known language slug, then return only the
-      // translation matching the currently selected site language.
+      // Resolve any retained slug, preferring the site language when available.
       const [slugTranslation] = await db
         .select()
         .from(blogPostTranslations)
@@ -59868,23 +59821,11 @@ momtazchem.com
         });
       }
 
-      const [requestedTranslation] = await db
+      const postTranslations = await db
         .select()
         .from(blogPostTranslations)
-        .where(and(
-          eq(blogPostTranslations.postId, post.id),
-          eq(blogPostTranslations.language, language as "en" | "ar" | "tr" | "fa")
-        ))
-        .limit(1);
-      const [englishTranslation] = requestedTranslation ? [] : await db
-        .select()
-        .from(blogPostTranslations)
-        .where(and(
-          eq(blogPostTranslations.postId, post.id),
-          eq(blogPostTranslations.language, "en")
-        ))
-        .limit(1);
-      const resolvedTranslation = requestedTranslation || englishTranslation;
+        .where(eq(blogPostTranslations.postId, post.id));
+      const resolvedTranslation = selectBlogTranslation(postTranslations, language);
       if (!resolvedTranslation) {
         return res.status(404).json({
           success: false,
@@ -59906,6 +59847,7 @@ momtazchem.com
           ...post,
           viewCount: (post.viewCount || 0) + 1,
           translation: resolvedTranslation,
+          availableLanguages: postTranslations.map(item => item.language),
         },
       });
     } catch (error: any) {
@@ -59976,19 +59918,14 @@ momtazchem.com
         const translations = await db
           .select()
           .from(blogPostTranslations)
-          .where(and(
-            eq(blogPostTranslations.postId, post.id),
-            sql`${blogPostTranslations.language} IN (${language}, 'en')`
-          ));
-        const translation =
-          translations.find((item) => item.language === language) ||
-          translations.find((item) => item.language === "en");
-        return { ...post, translation };
+          .where(eq(blogPostTranslations.postId, post.id));
+        const translation = selectBlogTranslation(translations, language);
+        return { ...post, translation, availableLanguages: translations.map(item => item.language) };
       }));
 
       res.json({
         success: true,
-        data: localizedRelatedPosts,
+        data: localizedRelatedPosts.filter(post => post.translation),
       });
     } catch (error: any) {
       console.error("Error fetching related blog posts:", error);

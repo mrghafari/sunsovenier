@@ -1,6 +1,13 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import {
+  blogLanguageFields,
+  buildBlogTranslations,
+  getInitialBlogLanguages,
+  validateEnabledBlogLanguages,
+  type BlogFormTranslationInput,
+} from "@/lib/blog-form";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useForm, type SubmitErrorHandler } from "react-hook-form";
@@ -68,8 +75,10 @@ import {
   Upload,
   Image,
   Loader2,
+  X,
 } from "lucide-react";
 import type { BlogPostWithTranslations } from "@shared/blog-schema";
+import { blogLanguages, type BlogLanguage } from "@shared/blog-localization";
 import type { Language } from "@/lib/i18n";
 
 const blogAdminCopy: Record<Language, {
@@ -82,6 +91,9 @@ const blogAdminCopy: Record<Language, {
   page: (current: number, total: number) => string; previous: string; next: string; editPost: string; createPost: string;
   dialogDescription: string; authorName: string; authorPlaceholder: string; featuredImage: string; imageRecommendation: string;
   upload: string; tagsLabel: string; tagsPlaceholder: string; cancel: string; saving: string; save: string;
+  languageHelp: string; addLanguage: string; removeLanguage: string; confirmRemoveTitle: string;
+  confirmRemove: (name: string) => string; confirmRemoveDescription: (name: string) => string;
+  keepLanguage: string; removeOnSave: string; minimumLanguage: string; completeLanguage: (name: string) => string;
 }> = {
   en: {
     success: "Success", error: "Error", created: "Blog post created successfully", createFailed: "Failed to create blog post",
@@ -95,10 +107,15 @@ const blogAdminCopy: Record<Language, {
     showing: (shown, total) => `Showing ${shown} of ${total} posts`, noPosts: "No posts found", postTitle: "Title",
     status: "Status", publishDate: "Publish Date", views: "Views", tags: "Tags", actions: "Actions",
     page: (current, total) => `Page ${current} of ${total}`, previous: "Previous", next: "Next", editPost: "Edit Blog Post",
-    createPost: "Create New Blog Post", dialogDescription: "Complete the English, Arabic, Turkish, and Persian translations",
+    createPost: "Create New Blog Post", dialogDescription: "Choose the languages this post should include. Complete each enabled translation before saving.",
     authorName: "Author Name", authorPlaceholder: "Enter author name", featuredImage: "Featured Image",
     imageRecommendation: "Recommended size: 1200 × 628 px (1.91:1 aspect ratio)", upload: "Upload",
-    tagsLabel: "Tags (comma-separated)", tagsPlaceholder: "tech, tutorial, news", cancel: "Cancel", saving: "Saving...", save: "Save"
+    tagsLabel: "Tags (comma-separated)", tagsPlaceholder: "tech, tutorial, news", cancel: "Cancel", saving: "Saving...", save: "Save",
+    languageHelp: "Choose one or more languages for this post. Removed translations are deleted only when you save.",
+    addLanguage: "Add language", removeLanguage: "Remove", confirmRemoveTitle: "Remove this translation?",
+    confirmRemove: (name) => `Remove ${name}`, confirmRemoveDescription: (name) => `The existing ${name} translation will be deleted when you save this post. You can cancel now; nothing has been changed in the database.`,
+    keepLanguage: "Keep translation", removeOnSave: "Remove on save", minimumLanguage: "At least one language must remain enabled.",
+    completeLanguage: (name) => `Complete the title, slug, excerpt, and content for ${name}.`,
   },
   fa: {
     success: "موفق", error: "خطا", created: "مطلب وبلاگ با موفقیت ایجاد شد", createFailed: "ایجاد مطلب وبلاگ ناموفق بود",
@@ -112,10 +129,15 @@ const blogAdminCopy: Record<Language, {
     showing: (shown, total) => `نمایش ${shown} مطلب از ${total} مطلب`, noPosts: "مطلبی پیدا نشد", postTitle: "عنوان",
     status: "وضعیت", publishDate: "تاریخ انتشار", views: "بازدیدها", tags: "برچسب‌ها", actions: "عملیات",
     page: (current, total) => `صفحه ${current} از ${total}`, previous: "قبلی", next: "بعدی", editPost: "ویرایش مطلب وبلاگ",
-    createPost: "ایجاد مطلب جدید", dialogDescription: "ترجمه‌های انگلیسی، عربی، ترکی و فارسی را کامل کنید",
+    createPost: "ایجاد مطلب جدید", dialogDescription: "زبان‌های این مطلب را انتخاب کنید و ترجمه‌های فعال را تکمیل کنید.",
     authorName: "نام نویسنده", authorPlaceholder: "نام نویسنده را وارد کنید", featuredImage: "تصویر شاخص",
     imageRecommendation: "اندازه پیشنهادی: ۱۲۰۰ × ۶۲۸ پیکسل (نسبت ۱٫۹۱:۱)", upload: "بارگذاری",
-    tagsLabel: "برچسب‌ها (با کاما جدا کنید)", tagsPlaceholder: "فناوری، آموزش، خبر", cancel: "انصراف", saving: "در حال ذخیره...", save: "ذخیره"
+    tagsLabel: "برچسب‌ها (با کاما جدا کنید)", tagsPlaceholder: "فناوری، آموزش، خبر", cancel: "انصراف", saving: "در حال ذخیره...", save: "ذخیره",
+    languageHelp: "یک یا چند زبان را انتخاب کنید. ترجمه‌های حذف‌شده فقط هنگام ذخیره پاک می‌شوند.",
+    addLanguage: "افزودن زبان", removeLanguage: "حذف", confirmRemoveTitle: "این ترجمه حذف شود؟",
+    confirmRemove: (name) => `حذف ${name}`, confirmRemoveDescription: (name) => `ترجمهٔ موجود ${name} هنگام ذخیرهٔ مطلب حذف می‌شود. می‌توانید انصراف دهید؛ هنوز تغییری در پایگاه داده انجام نشده است.`,
+    keepLanguage: "نگه‌داشتن ترجمه", removeOnSave: "حذف هنگام ذخیره", minimumLanguage: "حداقل یک زبان باید فعال بماند.",
+    completeLanguage: (name) => `عنوان، نشانی، خلاصه و متن ${name} را تکمیل کنید.`,
   },
   ar: {
     success: "نجاح", error: "خطأ", created: "تم إنشاء المقالة بنجاح", createFailed: "فشل إنشاء المقالة",
@@ -129,10 +151,15 @@ const blogAdminCopy: Record<Language, {
     showing: (shown, total) => `عرض ${shown} من ${total} مقالة`, noPosts: "لا توجد مقالات", postTitle: "العنوان",
     status: "الحالة", publishDate: "تاريخ النشر", views: "المشاهدات", tags: "الوسوم", actions: "الإجراءات",
     page: (current, total) => `صفحة ${current} من ${total}`, previous: "السابق", next: "التالي", editPost: "تعديل المقالة",
-    createPost: "إنشاء مقالة جديدة", dialogDescription: "أكمل الترجمات الإنجليزية والعربية والتركية والفارسية",
+    createPost: "إنشاء مقالة جديدة", dialogDescription: "اختر لغات المقالة وأكمل الترجمات المفعّلة.",
     authorName: "اسم الكاتب", authorPlaceholder: "أدخل اسم الكاتب", featuredImage: "الصورة المميزة",
     imageRecommendation: "الحجم الموصى به: 1200 × 628 بكسل (نسبة 1.91:1)", upload: "رفع",
-    tagsLabel: "الوسوم (مفصولة بفاصلة)", tagsPlaceholder: "تقنية، درس، أخبار", cancel: "إلغاء", saving: "جاري الحفظ...", save: "حفظ"
+    tagsLabel: "الوسوم (مفصولة بفاصلة)", tagsPlaceholder: "تقنية، درس، أخبار", cancel: "إلغاء", saving: "جاري الحفظ...", save: "حفظ",
+    languageHelp: "اختر لغة واحدة أو أكثر. لن تُحذف الترجمات المستبعدة إلا عند الحفظ.",
+    addLanguage: "إضافة لغة", removeLanguage: "إزالة", confirmRemoveTitle: "إزالة هذه الترجمة؟",
+    confirmRemove: (name) => `إزالة ${name}`, confirmRemoveDescription: (name) => `سيتم حذف ترجمة ${name} الحالية عند حفظ المقالة. يمكنك الإلغاء الآن؛ لم يتغير شيء في قاعدة البيانات.`,
+    keepLanguage: "الإبقاء على الترجمة", removeOnSave: "إزالة عند الحفظ", minimumLanguage: "يجب إبقاء لغة واحدة على الأقل.",
+    completeLanguage: (name) => `أكمل العنوان والرابط والملخص والمحتوى باللغة ${name}.`,
   },
   tr: {
     success: "Başarılı", error: "Hata", created: "Blog yazısı başarıyla oluşturuldu", createFailed: "Blog yazısı oluşturulamadı",
@@ -146,10 +173,15 @@ const blogAdminCopy: Record<Language, {
     showing: (shown, total) => `${total} yazının ${shown} tanesi gösteriliyor`, noPosts: "Yazı bulunamadı", postTitle: "Başlık",
     status: "Durum", publishDate: "Yayın Tarihi", views: "Görüntülenme", tags: "Etiketler", actions: "İşlemler",
     page: (current, total) => `Sayfa ${current} / ${total}`, previous: "Önceki", next: "Sonraki", editPost: "Blog Yazısını Düzenle",
-    createPost: "Yeni Blog Yazısı Oluştur", dialogDescription: "İngilizce, Arapça, Türkçe ve Farsça çevirileri tamamlayın",
+    createPost: "Yeni Blog Yazısı Oluştur", dialogDescription: "Bu yazıda yer alacak dilleri seçin ve etkin çevirileri tamamlayın.",
     authorName: "Yazar Adı", authorPlaceholder: "Yazar adını girin", featuredImage: "Öne Çıkan Görsel",
     imageRecommendation: "Önerilen boyut: 1200 × 628 px (1.91:1 en-boy oranı)", upload: "Yükle",
-    tagsLabel: "Etiketler (virgülle ayrılmış)", tagsPlaceholder: "teknoloji, eğitim, haber", cancel: "İptal", saving: "Kaydediliyor...", save: "Kaydet"
+    tagsLabel: "Etiketler (virgülle ayrılmış)", tagsPlaceholder: "teknoloji, eğitim, haber", cancel: "İptal", saving: "Kaydediliyor...", save: "Kaydet",
+    languageHelp: "Bu yazı için bir veya daha fazla dil seçin. Kaldırılan çeviriler yalnızca kaydettiğinizde silinir.",
+    addLanguage: "Dil ekle", removeLanguage: "Kaldır", confirmRemoveTitle: "Bu çeviri kaldırılsın mı?",
+    confirmRemove: (name) => `${name} dilini kaldır`, confirmRemoveDescription: (name) => `Mevcut ${name} çevirisi yazıyı kaydettiğinizde silinecek. Şimdi vazgeçebilirsiniz; veritabanında henüz değişiklik yapılmadı.`,
+    keepLanguage: "Çeviriyi koru", removeOnSave: "Kaydederken kaldır", minimumLanguage: "En az bir dil etkin kalmalıdır.",
+    completeLanguage: (name) => `${name} için başlık, bağlantı, özet ve içeriği tamamlayın.`,
   }
 };
 
@@ -169,31 +201,31 @@ const blogFormSchema = z.object({
   publishDate: z.string().optional(),
   
   // English translation
-  titleEn: z.string().min(1, "English title is required"),
-  slugEn: z.string().min(1, "English slug is required"),
-  excerptEn: z.string().min(1, "English excerpt is required"),
-  contentEn: z.string().min(1, "English content is required"),
+  titleEn: z.string().optional(),
+  slugEn: z.string().optional(),
+  excerptEn: z.string().optional(),
+  contentEn: z.string().optional(),
   metaTitleEn: z.string().optional(),
   metaDescriptionEn: z.string().optional(),
   
   // Arabic translation
-  titleAr: z.string().min(1, "Arabic title is required"),
-  slugAr: z.string().min(1, "Arabic slug is required"),
-  excerptAr: z.string().min(1, "Arabic excerpt is required"),
-  contentAr: z.string().min(1, "Arabic content is required"),
+  titleAr: z.string().optional(),
+  slugAr: z.string().optional(),
+  excerptAr: z.string().optional(),
+  contentAr: z.string().optional(),
   metaTitleAr: z.string().optional(),
   metaDescriptionAr: z.string().optional(),
   ogImageAr: imageUrlSchema,
-  titleTr: z.string().min(1, "Turkish title is required"),
-  slugTr: z.string().min(1, "Turkish slug is required"),
-  excerptTr: z.string().min(1, "Turkish excerpt is required"),
-  contentTr: z.string().min(1, "Turkish content is required"),
+  titleTr: z.string().optional(),
+  slugTr: z.string().optional(),
+  excerptTr: z.string().optional(),
+  contentTr: z.string().optional(),
   metaTitleTr: z.string().optional(),
   metaDescriptionTr: z.string().optional(),
-  titleFa: z.string().min(1, "Persian title is required"),
-  slugFa: z.string().min(1, "Persian slug is required"),
-  excerptFa: z.string().min(1, "Persian excerpt is required"),
-  contentFa: z.string().min(1, "Persian content is required"),
+  titleFa: z.string().optional(),
+  slugFa: z.string().optional(),
+  excerptFa: z.string().optional(),
+  contentFa: z.string().optional(),
   metaTitleFa: z.string().optional(),
   metaDescriptionFa: z.string().optional(),
 });
@@ -201,15 +233,18 @@ const blogFormSchema = z.object({
 type BlogFormData = z.infer<typeof blogFormSchema>;
 
 const formValidationCopy: Record<Language, string> = {
-  en: "Complete the author details and the title, slug, excerpt, and content in all four language tabs before saving.",
-  ar: "أكمل بيانات الكاتب والعنوان والرابط المختصر والملخص والمحتوى في تبويبات اللغات الأربع قبل الحفظ.",
-  tr: "Kaydetmeden önce yazar bilgilerini ve dört dil sekmesinin her birinde başlık, bağlantı, özet ve içeriği tamamlayın.",
-  fa: "پیش از ذخیره، مشخصات نویسنده و عنوان، نشانی، خلاصه و متن را در هر چهار زبانه تکمیل کنید.",
+  en: "Complete the author details and each enabled language before saving.",
+  ar: "أكمل بيانات الكاتب وكل لغة مفعّلة قبل الحفظ.",
+  tr: "Kaydetmeden önce yazar bilgilerini ve etkin dillerin her birini tamamlayın.",
+  fa: "پیش از ذخیره، مشخصات نویسنده و همهٔ زبان‌های فعال را تکمیل کنید.",
 };
 
-const blogLanguages = ["en", "ar", "tr", "fa"] as const;
-type BlogLanguage = typeof blogLanguages[number];
-
+const languageNames: Record<BlogLanguage, Record<Language, string>> = {
+  en: { en: "English", ar: "الإنجليزية", tr: "İngilizce", fa: "انگلیسی" },
+  ar: { en: "Arabic", ar: "العربية", tr: "Arapça", fa: "عربی" },
+  tr: { en: "Turkish", ar: "التركية", tr: "Türkçe", fa: "ترکی" },
+  fa: { en: "Persian", ar: "الفارسية", tr: "Farsça", fa: "فارسی" },
+};
 export default function BlogManagement() {
   const { toast } = useToast();
   const { language, direction } = useLanguage();
@@ -219,6 +254,8 @@ export default function BlogManagement() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<BlogPostWithTranslations | null>(null);
   const [activeTab, setActiveTab] = useState<BlogLanguage>("en");
+  const [enabledLanguages, setEnabledLanguages] = useState<BlogLanguage[]>([...blogLanguages]);
+  const [languageToRemove, setLanguageToRemove] = useState<BlogLanguage | null>(null);
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "draft" | "published">("all");
@@ -247,6 +284,10 @@ export default function BlogManagement() {
   const posts = postsData?.data || [];
   const totalPosts = postsData?.total || posts.length;
   const totalPages = Math.ceil(totalPosts / postsPerPage);
+  const invalidatePublicBlogQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/blog"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/blog/"] });
+  };
 
   // Form
   const form = useForm<BlogFormData>({
@@ -297,45 +338,7 @@ export default function BlogManagement() {
           status: data.status,
           publishDate: data.publishDate || null,
         },
-        translations: [
-          {
-            language: "en",
-            title: data.titleEn,
-            slug: data.slugEn,
-            excerpt: data.excerptEn,
-            content: data.contentEn,
-            metaTitle: data.metaTitleEn || null,
-            metaDescription: data.metaDescriptionEn || null,
-          },
-          {
-            language: "ar",
-            title: data.titleAr,
-            slug: data.slugAr,
-            excerpt: data.excerptAr,
-            content: data.contentAr,
-            metaTitle: data.metaTitleAr || null,
-            metaDescription: data.metaDescriptionAr || null,
-            ogImage: data.ogImageAr || null,
-          },
-          {
-            language: "tr",
-            title: data.titleTr,
-            slug: data.slugTr,
-            excerpt: data.excerptTr,
-            content: data.contentTr,
-            metaTitle: data.metaTitleTr || null,
-            metaDescription: data.metaDescriptionTr || null,
-          },
-          {
-            language: "fa",
-            title: data.titleFa,
-            slug: data.slugFa,
-            excerpt: data.excerptFa,
-            content: data.contentFa,
-            metaTitle: data.metaTitleFa || null,
-            metaDescription: data.metaDescriptionFa || null,
-          },
-        ],
+        translations: buildBlogTranslations(data as unknown as BlogFormTranslationInput, enabledLanguages),
       };
       return apiRequest('/api/admin/blog', { method: 'POST', body: payload });
     },
@@ -345,9 +348,13 @@ export default function BlogManagement() {
         description: copy.created,
       });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/blog'] });
+      invalidatePublicBlogQueries();
       setIsDialogOpen(false);
       form.reset();
       setMarkdownPreview({ en: "", ar: "", tr: "", fa: "" });
+      setEnabledLanguages([...blogLanguages]);
+      setActiveTab("en");
+      setSubmitAttempted(false);
     },
     onError: (error: any) => {
       toast({
@@ -370,45 +377,7 @@ export default function BlogManagement() {
           status: data.status,
           publishDate: data.publishDate || null,
         },
-        translations: [
-          {
-            language: "en",
-            title: data.titleEn,
-            slug: data.slugEn,
-            excerpt: data.excerptEn,
-            content: data.contentEn,
-            metaTitle: data.metaTitleEn || null,
-            metaDescription: data.metaDescriptionEn || null,
-          },
-          {
-            language: "ar",
-            title: data.titleAr,
-            slug: data.slugAr,
-            excerpt: data.excerptAr,
-            content: data.contentAr,
-            metaTitle: data.metaTitleAr || null,
-            metaDescription: data.metaDescriptionAr || null,
-            ogImage: data.ogImageAr || null,
-          },
-          {
-            language: "tr",
-            title: data.titleTr,
-            slug: data.slugTr,
-            excerpt: data.excerptTr,
-            content: data.contentTr,
-            metaTitle: data.metaTitleTr || null,
-            metaDescription: data.metaDescriptionTr || null,
-          },
-          {
-            language: "fa",
-            title: data.titleFa,
-            slug: data.slugFa,
-            excerpt: data.excerptFa,
-            content: data.contentFa,
-            metaTitle: data.metaTitleFa || null,
-            metaDescription: data.metaDescriptionFa || null,
-          },
-        ],
+        translations: buildBlogTranslations(data as unknown as BlogFormTranslationInput, enabledLanguages),
       };
       return apiRequest(`/api/admin/blog/${id}`, { method: 'PUT', body: payload });
     },
@@ -418,10 +387,14 @@ export default function BlogManagement() {
         description: copy.updated,
       });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/blog'] });
+      invalidatePublicBlogQueries();
       setIsDialogOpen(false);
       setEditingPost(null);
       form.reset();
       setMarkdownPreview({ en: "", ar: "", tr: "", fa: "" });
+      setEnabledLanguages([...blogLanguages]);
+      setActiveTab("en");
+      setSubmitAttempted(false);
     },
     onError: (error: any) => {
       toast({
@@ -441,6 +414,7 @@ export default function BlogManagement() {
         description: copy.deleted,
       });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/blog'] });
+      invalidatePublicBlogQueries();
     },
     onError: (error: any) => {
       toast({
@@ -461,6 +435,7 @@ export default function BlogManagement() {
         description: copy.statusUpdated,
       });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/blog'] });
+      invalidatePublicBlogQueries();
     },
     onError: (error: any) => {
       toast({
@@ -483,7 +458,7 @@ export default function BlogManagement() {
   };
 
   // Handle image upload to S3
-  const handleImageUpload = async (file: File, targetField: "featuredImage" = "featuredImage") => {
+  const handleImageUpload = async (file: File, targetField: "featuredImage" | "ogImageAr" = "featuredImage") => {
     setIsUploadingImage(true);
     try {
       const formData = new FormData();
@@ -520,6 +495,8 @@ export default function BlogManagement() {
   // Open create dialog
   const handleCreate = () => {
     setEditingPost(null);
+    setEnabledLanguages([...blogLanguages]);
+    setLanguageToRemove(null);
     setActiveTab("en");
     setSubmitAttempted(false);
     form.reset();
@@ -530,7 +507,10 @@ export default function BlogManagement() {
   // Open edit dialog
   const handleEdit = (post: BlogPostWithTranslations) => {
     setEditingPost(post);
-    setActiveTab("en");
+    const availableLanguages = getInitialBlogLanguages(post.translations);
+    setEnabledLanguages(availableLanguages);
+    setLanguageToRemove(null);
+    setActiveTab(availableLanguages[0]);
     setSubmitAttempted(false);
     const enTranslation = post.translations.find(t => t.language === "en");
     const arTranslation = post.translations.find(t => t.language === "ar");
@@ -589,6 +569,20 @@ export default function BlogManagement() {
 
   // Handle form submit
   const onSubmit = (data: BlogFormData) => {
+    const validation = validateEnabledBlogLanguages(data as unknown as BlogFormTranslationInput, enabledLanguages);
+    if (!validation.valid) {
+      form.clearErrors();
+      for (const { field, language: lang } of validation.missingFields) {
+        form.setError(field as keyof BlogFormData, {
+          type: "required",
+          message: copy.completeLanguage(languageNames[lang][language]),
+        });
+      }
+      setSubmitAttempted(true);
+      if (validation.firstInvalidLanguage) setActiveTab(validation.firstInvalidLanguage);
+      toast({ title: copy.error, description: formValidationCopy[language], variant: "destructive" });
+      return;
+    }
     if (editingPost) {
       updateMutation.mutate({ id: editingPost.id, data });
     } else {
@@ -598,23 +592,51 @@ export default function BlogManagement() {
 
   const onInvalid: SubmitErrorHandler<BlogFormData> = (errors) => {
     setSubmitAttempted(true);
-    const firstInvalidLanguage = blogLanguages.find((lang) => {
-      const suffix = lang.charAt(0).toUpperCase() + lang.slice(1);
-      return Object.keys(errors).some((field) => field.endsWith(suffix));
+    const firstInvalidLanguage = enabledLanguages.find((lang) => {
+      return blogLanguageFields(lang).some((field) => field in errors);
     });
     if (firstInvalidLanguage) setActiveTab(firstInvalidLanguage);
     toast({ title: copy.error, description: formValidationCopy[language], variant: "destructive" });
   };
 
-  const invalidLanguages = blogLanguages.filter((lang) => {
-    const suffix = lang.charAt(0).toUpperCase() + lang.slice(1);
-    return Object.keys(form.formState.errors).some((field) => field.endsWith(suffix));
-  });
+  const invalidLanguages = enabledLanguages.filter((lang) =>
+    blogLanguageFields(lang).some((field) => field in form.formState.errors)
+  );
 
   // Get translation for display
   const getTranslation = (post: BlogPostWithTranslations) => {
-    return post.translations.find(t => t.language === language)
-      || post.translations.find(t => t.language === "en");
+    const preference: BlogLanguage[] = [language as BlogLanguage, "en", "ar", "tr", "fa"];
+    return preference.map((lang) => post.translations.find((t) => t.language === lang)).find(Boolean);
+  };
+
+  const requestLanguageRemoval = (lang: BlogLanguage) => {
+    if (enabledLanguages.length <= 1) return;
+    const existingTranslation = editingPost?.translations.find((translation) => translation.language === lang);
+    const hasContent = blogLanguageFields(lang).some((field) => Boolean(form.getValues(field as keyof BlogFormData)?.trim()))
+      || Boolean(existingTranslation && [existingTranslation.title, existingTranslation.slug, existingTranslation.excerpt, existingTranslation.content].some((value) => Boolean(value?.trim())));
+    if (hasContent && existingTranslation) {
+      setLanguageToRemove(lang);
+      return;
+    }
+    setEnabledLanguages((current) => current.filter((item) => item !== lang));
+    form.clearErrors([...blogLanguageFields(lang)] as (keyof BlogFormData)[]);
+    if (activeTab === lang) setActiveTab(enabledLanguages.find((item) => item !== lang)!);
+  };
+
+  const confirmLanguageRemoval = () => {
+    if (!languageToRemove) return;
+    const lang = languageToRemove;
+    setEnabledLanguages((current) => current.filter((item) => item !== lang));
+    form.clearErrors([...blogLanguageFields(lang)] as (keyof BlogFormData)[]);
+    if (activeTab === lang) setActiveTab(enabledLanguages.find((item) => item !== lang)!);
+    setLanguageToRemove(null);
+  };
+
+  const addLanguage = (lang: BlogLanguage) => {
+    if (!enabledLanguages.includes(lang)) {
+      setEnabledLanguages((current) => [...current, lang].sort((a, b) => blogLanguages.indexOf(a) - blogLanguages.indexOf(b)));
+      setActiveTab(lang);
+    }
   };
 
   return (
@@ -1099,25 +1121,64 @@ export default function BlogManagement() {
                 </div>
               </div>
 
+              {/* Per-post language selection */}
+              <section className="space-y-3 rounded-lg border bg-muted/30 p-4" aria-label={copy.languageHelp}>
+                <div>
+                  <p className="text-sm font-semibold">{copy.languageHelp}</p>
+                  <p className="text-xs text-muted-foreground">{copy.minimumLanguage}</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {enabledLanguages.map((lang) => (
+                    <div key={lang} className="inline-flex items-center gap-1 rounded-full border bg-background px-3 py-1 text-sm">
+                      <span>{languageNames[lang][language]}</span>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-2 text-muted-foreground"
+                        onClick={() => requestLanguageRemoval(lang)}
+                        disabled={enabledLanguages.length === 1}
+                        aria-label={`${copy.removeLanguage}: ${languageNames[lang][language]}`}
+                        data-testid={`remove-language-${lang}`}
+                      >
+                        <X className="h-3 w-3" />
+                        <span className="ms-1">{copy.removeLanguage}</span>
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                {enabledLanguages.length < blogLanguages.length && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm text-muted-foreground">{copy.addLanguage}:</span>
+                    {blogLanguages.filter((lang) => !enabledLanguages.includes(lang)).map((lang) => (
+                      <Button key={lang} type="button" size="sm" variant="outline" onClick={() => addLanguage(lang)} data-testid={`add-language-${lang}`}>
+                        <Plus className="me-1 h-3 w-3" />
+                        {languageNames[lang][language]}
+                      </Button>
+                    ))}
+                  </div>
+                )}
+              </section>
+
               {/* Language Tabs */}
               <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as BlogLanguage)} className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
-                  <TabsTrigger value="en" data-testid="tab-english">
+                <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${enabledLanguages.length}, minmax(0, 1fr))` }}>
+                  {enabledLanguages.includes("en") && <TabsTrigger value="en" data-testid="tab-english">
                     English {submitAttempted && invalidLanguages.includes("en") && <span aria-label="Incomplete" className="text-red-600">!</span>}
-                  </TabsTrigger>
-                  <TabsTrigger value="ar" data-testid="tab-arabic">
+                  </TabsTrigger>}
+                  {enabledLanguages.includes("ar") && <TabsTrigger value="ar" data-testid="tab-arabic">
                     العربية {submitAttempted && invalidLanguages.includes("ar") && <span aria-label="ناقص" className="text-red-600">!</span>}
-                  </TabsTrigger>
-                  <TabsTrigger value="tr" data-testid="tab-turkish">
+                  </TabsTrigger>}
+                  {enabledLanguages.includes("tr") && <TabsTrigger value="tr" data-testid="tab-turkish">
                     Türkçe {submitAttempted && invalidLanguages.includes("tr") && <span aria-label="Eksik" className="text-red-600">!</span>}
-                  </TabsTrigger>
-                  <TabsTrigger value="fa" data-testid="tab-persian">
+                  </TabsTrigger>}
+                  {enabledLanguages.includes("fa") && <TabsTrigger value="fa" data-testid="tab-persian">
                     فارسی {submitAttempted && invalidLanguages.includes("fa") && <span aria-label="ناقص" className="text-red-600">!</span>}
-                  </TabsTrigger>
+                  </TabsTrigger>}
                 </TabsList>
 
                 {/* English Tab */}
-                <TabsContent value="en" className="space-y-4 mt-4" dir="ltr">
+                {enabledLanguages.includes("en") && <TabsContent value="en" className="space-y-4 mt-4" dir="ltr">
                   <FormField
                     control={form.control}
                     name="titleEn"
@@ -1254,10 +1315,10 @@ export default function BlogManagement() {
                       </FormItem>
                     )}
                   />
-                </TabsContent>
+                </TabsContent>}
 
                 {/* Arabic Tab */}
-                <TabsContent value="ar" className="space-y-4 mt-4" dir="rtl">
+                {enabledLanguages.includes("ar") && <TabsContent value="ar" className="space-y-4 mt-4" dir="rtl">
                   <FormField
                     control={form.control}
                     name="titleAr"
@@ -1465,9 +1526,9 @@ export default function BlogManagement() {
                       </FormItem>
                     )}
                   />
-                </TabsContent>
+                </TabsContent>}
 
-                <TabsContent value="tr" className="space-y-4 mt-4">
+                {enabledLanguages.includes("tr") && <TabsContent value="tr" className="space-y-4 mt-4">
                   <FormField control={form.control} name="titleTr" render={({ field }) => (
                     <FormItem><FormLabel>Başlık</FormLabel><FormControl><Input {...field} placeholder="Türkçe başlık" onChange={(e) => { field.onChange(e); if (!editingPost) form.setValue("slugTr", generateSlug(e.target.value)); }} /></FormControl><FormMessage /></FormItem>
                   )} />
@@ -1487,9 +1548,9 @@ export default function BlogManagement() {
                   <FormField control={form.control} name="metaDescriptionTr" render={({ field }) => (
                     <FormItem><FormLabel>SEO Açıklaması</FormLabel><FormControl><Textarea {...field} placeholder="SEO açıklaması" rows={2} /></FormControl><FormMessage /></FormItem>
                   )} />
-                </TabsContent>
+                </TabsContent>}
 
-                <TabsContent value="fa" className="space-y-4 mt-4" dir="rtl">
+                {enabledLanguages.includes("fa") && <TabsContent value="fa" className="space-y-4 mt-4" dir="rtl">
                   <FormField control={form.control} name="titleFa" render={({ field }) => (
                     <FormItem><FormLabel>عنوان</FormLabel><FormControl><Input {...field} placeholder="عنوان فارسی" onChange={(e) => { field.onChange(e); if (!editingPost) form.setValue("slugFa", generateSlug(e.target.value)); }} /></FormControl><FormMessage /></FormItem>
                   )} />
@@ -1509,7 +1570,7 @@ export default function BlogManagement() {
                   <FormField control={form.control} name="metaDescriptionFa" render={({ field }) => (
                     <FormItem><FormLabel>توضیحات سئو</FormLabel><FormControl><Textarea {...field} placeholder="توضیحات سئو" rows={2} /></FormControl><FormMessage /></FormItem>
                   )} />
-                </TabsContent>
+                </TabsContent>}
               </Tabs>
 
               {submitAttempted && Object.keys(form.formState.errors).length > 0 && (
@@ -1546,6 +1607,25 @@ export default function BlogManagement() {
               </DialogFooter>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={languageToRemove !== null} onOpenChange={(open) => { if (!open) setLanguageToRemove(null); }}>
+        <DialogContent dir={direction}>
+          <DialogHeader>
+            <DialogTitle>{copy.confirmRemoveTitle}</DialogTitle>
+            <DialogDescription>
+              {languageToRemove && copy.confirmRemoveDescription(languageNames[languageToRemove][language])}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setLanguageToRemove(null)}>
+              {copy.keepLanguage}
+            </Button>
+            <Button type="button" variant="destructive" onClick={confirmLanguageRemoval}>
+              {copy.confirmRemove(languageToRemove ? languageNames[languageToRemove][language] : "")}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
