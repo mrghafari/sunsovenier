@@ -987,7 +987,7 @@ const Shop = () => {
   if (productsLoading) {
     return (
       <div className={`min-h-screen bg-gray-50 p-8 ${language === 'fa' ? 'shop-lang-fa' : ''}`}>
-        <div className="max-w-7xl mx-auto">
+        <div className="w-full">
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
             <p className="mt-4 text-gray-600">{t.loading}</p>
@@ -1010,7 +1010,7 @@ const Shop = () => {
       
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-2 sm:px-4 py-3 sm:py-6">
+        <div className="w-full px-2 sm:px-4 lg:px-8 py-3 sm:py-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 relative">
             <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
               <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">{t.shop.title}</h1>
@@ -1118,7 +1118,7 @@ const Shop = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-8">
+      <div className="w-full px-2 sm:px-4 lg:px-8 py-4 sm:py-8">
         {/* Global Volume Discount Incentive Banner - Controlled by Content Management */}
         {discountBannerEnabled && (
           <div className="mb-4 sm:mb-6 bg-gradient-to-r from-purple-600 via-pink-600 to-red-600 rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-2xl border border-purple-300 overflow-hidden relative">
@@ -1342,7 +1342,7 @@ const Shop = () => {
             )}
             <div className={`transition-opacity duration-200 ${productsFetching && !productsLoading ? 'opacity-60' : 'opacity-100'} ${
               viewMode === "grid" 
-                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6" 
+                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6"
                 : "flex flex-col gap-3 sm:gap-4"
             }`}>
               {productsLoading ? (
