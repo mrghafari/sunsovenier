@@ -15,14 +15,14 @@ export const accountingCompanies = pgTable("accounting_companies", {
 });
 export const accountingAccounts = pgTable("accounting_accounts", {
   id: serial("id").primaryKey(), companyId: integer("company_id").notNull().references(() => accountingCompanies.id),
-  code: text("code").notNull(), nameAr: text("name_ar").notNull(), nameEn: text("name_en").notNull(),
+  code: text("code").notNull(), nameFa: text("name_fa").notNull().default(""), nameAr: text("name_ar").notNull(), nameEn: text("name_en").notNull(),
   type: text("type").notNull(), parentId: integer("parent_id").references((): AnyPgColumn => accountingAccounts.id),
   isPosting: boolean("is_posting").notNull().default(true), isActive: boolean("is_active").notNull().default(true),
 }, t => [uniqueIndex("accounting_accounts_company_code").on(t.companyId, t.code),
   check("accounting_account_type", sql`${t.type} in ('asset','liability','equity','revenue','expense')`)]);
 export const accountingCostCenters = pgTable("accounting_cost_centers", {
   id: serial("id").primaryKey(), companyId: integer("company_id").notNull().references(() => accountingCompanies.id),
-  code: text("code").notNull(), nameAr: text("name_ar").notNull(), nameEn: text("name_en").notNull(),
+  code: text("code").notNull(), nameFa: text("name_fa").notNull().default(""), nameAr: text("name_ar").notNull(), nameEn: text("name_en").notNull(),
   isActive: boolean("is_active").notNull().default(true),
 }, t => [uniqueIndex("accounting_cost_centers_company_code").on(t.companyId, t.code)]);
 export const accountingFiscalYears = pgTable("accounting_fiscal_years", {

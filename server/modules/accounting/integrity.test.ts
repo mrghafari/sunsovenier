@@ -6,6 +6,7 @@ import { accountingDb, type AccountingTransaction } from "./db";
 import { pool } from "../../db";
 import * as s from "./schema";
 import { postJournalEntry, reverseJournalEntry } from "./postJournalEntry";
+import {accountingSettingsSchemas} from "@shared/accounting-api";
 
 // Opt-in: all fixtures, journal entries and audit rows are rolled back together.
 test("live accounting database integrity (rollback-only)", {skip:process.env.ACCOUNTING_DB_TEST!=="1"}, async t => {
@@ -27,6 +28,37 @@ test("live accounting database integrity (rollback-only)", {skip:process.env.ACC
         {companyId:company.id,code:"3",nameEn:"Test wallet",nameAr:"اختبار",type:"liability"},
       ]).returning();
       const actor = {actorId:1,actorType:"admin" as const,canManage:true};
+      await t.test("Persian-only account/center names and exact IRR journals without toman conversion",async()=>{
+        const [iran]=await tx.insert(s.accountingCompanies).values({
+          name:"آزمون موقت ریالی",countryCode:"IR",timezone:"Asia/Tehran",baseCurrency:"IRR",
+        }).returning();
+        await tx.insert(s.accountingFiscalYears).values({companyId:iran.id,name:"دوره آزمون",startsOn:"2026-01-01",endsOn:"2026-12-31"});
+        const [asset,sales]=await tx.insert(s.accountingAccounts).values([
+          accountingSettingsSchemas.accounts.parse({companyId:iran.id,code:"FA1",nameFa:"بانک ریالی",type:"asset"}),
+          accountingSettingsSchemas.accounts.parse({companyId:iran.id,code:"FA2",nameFa:"درآمد فروش",type:"revenue"}),
+        ]).returning();
+        const [center]=await tx.insert(s.accountingCostCenters).values(
+          accountingSettingsSchemas["cost-centers"].parse({companyId:iran.id,code:"FA",nameFa:"مرکز هزینه فارسی"})
+        ).returning();
+        assert.equal(asset.nameFa,"بانک ریالی");assert.equal(asset.nameAr,"");
+        assert.equal(center.nameFa,"مرکز هزینه فارسی");
+        const amount="10000000000000001";
+        const {entry}=await postJournalEntry({companyId:iran.id,entryDate:"2026-06-01",
+          description:"آزمون ریال؛ بدون تبدیل به تومان",sourceType:"Test",sourceId:randomUUID(),
+          lines:[{accountId:asset.id,currency:"IRR",debit:amount,credit:"0"},
+            {accountId:sales.id,currency:"IRR",debit:"0",credit:amount}]},actor,tx);
+        const line=(await tx.select().from(s.accountingJournalLines).where(eq(s.accountingJournalLines.entryId,entry.id))).find(l=>l.accountId===asset.id)!;
+        assert.equal(line.currency,"IRR");assert.equal(line.debit,amount+".00000000");
+        assert.equal(line.exchangeRate,"1.000000000000");
+        assert.equal(line.baseDebit,amount+".00000000");
+        assert.equal((await tx.execute(sql`select count(*)::int as n from accounting_exchange_rates where company_id=${iran.id}`)).rows[0].n,0);
+        await fails(tx=>postJournalEntry({companyId:iran.id,entryDate:"2026-06-01",sourceType:"Test",sourceId:randomUUID(),
+          description:"Invalid fractional rial",lines:[{accountId:asset.id,currency:"IRR",debit:"0.1",credit:"0"},
+            {accountId:sales.id,currency:"IRR",debit:"0",credit:"0.1"}]},actor,tx));
+        await fails(tx=>postJournalEntry({companyId:iran.id,entryDate:"2026-06-01",sourceType:"Test",sourceId:randomUUID(),
+          description:"Missing official USD/IRR rate",lines:[{accountId:asset.id,currency:"USD",debit:"1",credit:"0"},
+            {accountId:sales.id,currency:"USD",debit:"0",credit:"1"}]},actor,tx));
+      });
       const input = {
         companyId:company.id,entryDate:"2026-06-01",description:"Rollback-only fixture",sourceType:"Test",sourceId:randomUUID(),
         lines:[{accountId:bank.id,currency:"IQD",debit:"100",credit:"0"},{accountId:revenue.id,currency:"IQD",debit:"0",credit:"100"}],

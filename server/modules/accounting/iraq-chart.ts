@@ -1,5 +1,5 @@
 import type { PostingKey } from "@shared/accounting-api";
-export const iraqChart: {code:string;nameAr:string;nameEn:string;type:string;key?:PostingKey}[] = [
+const chart: {code:string;nameAr:string;nameEn:string;type:string;key?:PostingKey}[] = [
   {code:"1100",nameAr:"البنك",nameEn:"Bank",type:"asset",key:"BANK"},
   {code:"1130",nameAr:"مستحقات بوابة الدفع",nameEn:"Payment gateway clearing",type:"asset",key:"GATEWAY"},
   {code:"1110",nameAr:"الصندوق",nameEn:"Cash",type:"asset",key:"CASH"},
@@ -29,3 +29,14 @@ export const iraqChart: {code:string;nameAr:string;nameEn:string;type:string;key
   {code:"5510",nameAr:"أجور السائقين",nameEn:"Driver wages",type:"expense"},
   {code:"5520",nameAr:"استهلاك الأسطول",nameEn:"Fleet depreciation",type:"expense"},
 ];
+const persianNames:Record<string,string>={
+  "1100":"بانک","1130":"حساب واسط درگاه پرداخت","1110":"صندوق","1115":"چک‌های دریافت‌شده",
+  "1120":"چک‌های در جریان وصول","1200":"حساب‌های دریافتنی","1300":"موجودی محصولات آماده",
+  "1310":"مواد اولیه","1320":"تولید در جریان","1500":"دارایی‌های ثابت",
+  "2100":"پیش‌دریافت و مانده حساب مشتریان","2110":"مالیات پرداختنی","2200":"حساب‌های پرداختنی حمل‌کنندگان",
+  "2210":"حساب‌های پرداختنی","3100":"سرمایه","3200":"سود انباشته","3900":"طرف مقابل مانده افتتاحیه",
+  "4100":"درآمد فروش","4200":"درآمد حمل","4300":"سود تسعیر ارز","5100":"بهای تمام‌شده کالای فروش‌رفته",
+  "5200":"هزینه حمل","5210":"هزینه جذب‌شده ناوگان","5300":"کارمزد بانکی","5400":"زیان تسعیر ارز",
+  "5500":"سوخت ناوگان","5510":"دستمزد رانندگان","5520":"استهلاک ناوگان",
+};
+export const iraqChart=chart.map(row=>({...row,nameFa:persianNames[row.code]}));

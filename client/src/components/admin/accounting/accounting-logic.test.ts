@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { accountingRecordId, accountingViewerCapabilities, postingKeyLabel, sanitizeAccountingRecord } from "./accounting-logic";
+import { accountingRecordId, accountingViewerCapabilities, postingKeyLabel, sanitizeAccountingRecord, accountingName, accountingCurrencyName, normalizeAccountingDigits } from "./accounting-logic";
+import {accountingSettingsSchemas} from "../../../../../shared/accounting-api";
 
 test("existing rows are reset with only strict-schema keys and keep form defaults", () => {
   const values = sanitizeAccountingRecord(
@@ -34,4 +35,19 @@ test("viewer form affordances stay read-only while managers retain edit controls
   assert.deepEqual(accountingViewerCapabilities(true), {
     canCreate: true, canEdit: true, fieldsDisabled: false, showSave: true, rowAction: "edit",
   });
+});
+
+test("Persian account names, currency labels and exact digit normalization",()=>{
+  assert.equal(accountingName({nameFa:"بانک",nameAr:"البنك",nameEn:"Bank"},"fa"),"بانک");
+  assert.equal(accountingName({nameAr:"البنك",nameEn:"Bank"},"fa"),"Bank");
+  assert.equal(accountingName({nameFa:"بانک"},"en"),"بانک");
+  assert.equal(accountingCurrencyName("IRR","fa"),"ریال ایران");
+  assert.equal(normalizeAccountingDigits("۱۲۳۴۵۶۷۸۹۰٫۰۰"),"1234567890.00");
+  assert.equal(normalizeAccountingDigits("١٢٣٫٤٥"),"123.45");
+  assert.equal(normalizeAccountingDigits("۱۲۳٬۴۵۶"),"123٬456"); // ambiguous grouping is not silently removed
+  assert.equal(accountingSettingsSchemas.accounts.parse({companyId:1,code:"BANK",nameFa:"بانک",type:"asset"}).nameFa,"بانک");
+  assert.equal("nameFa" in accountingSettingsSchemas.accounts.parse({companyId:1,code:"BANK",nameEn:"Bank",type:"asset"}),false);
+  const c=accountingSettingsSchemas.companies.parse({name:"شرکت",countryCode:"IR",timezone:"Asia/Tehran",baseCurrency:"IRR"});
+  assert.equal(c.baseCurrency,"IRR");
+  assert.equal(accountingSettingsSchemas.companies.safeParse({...c,baseCurrency:"تومان"}).success,false);
 });

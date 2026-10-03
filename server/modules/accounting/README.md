@@ -12,8 +12,8 @@ The operator explicitly authorized building a new core from the specification.
 - Generated Drizzle schema migration plus custom PostgreSQL ledger guards.
 - Decimal-string money, base-currency balance validation, immutable posted entries,
   exact, reasoned reversal, source-payload idempotency and fiscal locking.
-- Iraq country pack, manufacturing chart, IQD/USD, current Baghdad-calendar fiscal
-  year, Fleet cost center and all posting-rule mappings.
+- Iraq and Iran reference packs, editable operational chart, IQD/USD/IRR,
+  Persian/Arabic/English account and cost-center names, Fleet center and posting mappings.
 - Active management roles and accounting module permissions are checked server-side.
   Authenticated finance viewers have no setting mutation permission. API mutations
   and seed actions are audited. System/developer seed runs are explicitly identified.
@@ -44,9 +44,11 @@ are not modified.
 
 ## Financial defaults and assumptions
 
-- Iraq is the only enabled country pack; unsupported countries fail explicitly.
-  Gregorian DATE and UTC timestamptz storage; company timezone Asia/Baghdad.
-- Functional currency is seeded IQD with 0 decimals; USD with 2. Currency precision
+- Iraq uses Asia/Baghdad; Iran uses Asia/Tehran. Other countries fail explicitly.
+  Gregorian DATE and UTC timestamptz storage are unchanged. Iran's actual fiscal
+  period must be configured explicitly; setup does not invent Solar-Hijri boundaries.
+- IQD and IRR are seeded with 0 decimals; USD with 2. IRR means Iranian rial,
+  not toman: amounts are never divided or multiplied by ten. Currency precision
   and base currency cannot change after relevant journals exist.
 - No VAT or exchange rate is guessed. No tax rules or USD rate are seeded. Admins
   must enter dated central-bank rates and a verifiable source reference.
@@ -158,6 +160,17 @@ Files applied in order:
 3. `server/modules/accounting/0002_ledger_hardening.sql`
 4. `server/modules/accounting/0003_transactional_outbox.sql`
 5. `server/modules/accounting/0004_event_capture_hardening.sql`
+6. Subsequent wallet/receipt migrations through `0008_receipt_wallet_guard_hardening.sql`
+7. `server/modules/accounting/0009_persian_rial.sql` — additive localized columns,
+   IRR reference currency and translations only for unchanged template labels.
+
+New Persian-only accounts/centers are permitted; at least one nonblank localized
+name is required. Old clients omitting `nameFa` do not erase an existing Persian
+name. The authenticated setup action now accepts `{countryCode:"IQ"|"IR"}` and
+does not change existing company currencies, customer wallets, rates or balances.
+The Iran chart is an editable operational suggestion, not certified statutory
+compliance or an electronic tax-invoice integration. No Iran company is created
+by the migration; setup still requires an explicit management action.
 
 Do not modify an already-applied migration. Add another migration for changes.
 

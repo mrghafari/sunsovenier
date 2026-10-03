@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, type Resolver } from "react-hook-form";
 import { accountingSettingsSchemas, type AccountingResource, type AccountingRow } from "@shared/accounting-api";
-import { accountingRecordId, accountingViewerCapabilities, postingKeyLabel, sanitizeAccountingRecord } from "./accounting-logic";
+import { accountingRecordId, accountingViewerCapabilities, postingKeyLabel, sanitizeAccountingRecord, accountingName, accountingCurrencyName, normalizeAccountingDigits } from "./accounting-logic";
 import {
   useAccountingBootstrap, useAccountingResource, useSaveAccountingResource, useSeedAccounting,
 } from "@/lib/accounting-api";
@@ -49,17 +49,17 @@ const resourceCopy: Record<AccountingResource, AccountingCopyKey> = {
 const asText = (row: AccountingRow, key: string) => row[key] === null || row[key] === undefined ? "" : String(row[key]);
 const rowId = (row: AccountingRow) => Number(row.id);
 
-function defaultsFor(resource: AccountingResource, companyId: number | undefined): Record<string, unknown> {
+function defaultsFor(resource: AccountingResource, companyId: number | undefined,language:string,companyCountry:string): Record<string, unknown> {
   const company = companyId ?? null;
   switch (resource) {
-    case "companies": return { name: "", countryCode: "IQ", timezone: "Asia/Baghdad", baseCurrency: "IQD", isActive: true };
+    case "companies": return { name: "", countryCode: language==="fa"?"IR":"IQ", timezone: language==="fa"?"Asia/Tehran":"Asia/Baghdad", baseCurrency: language==="fa"?"IRR":"IQD", isActive: true };
     case "currencies": return { code: "", name: "", decimals: 3, isActive: true };
-    case "accounts": return { companyId: company, code: "", nameAr: "", nameEn: "", type: "asset", parentId: null, isPosting: true, isActive: true };
-    case "cost-centers": return { companyId: company, code: "", nameAr: "", nameEn: "", isActive: true };
+    case "accounts": return { companyId: company, code: "", nameFa:"", nameAr: "", nameEn: "", type: "asset", parentId: null, isPosting: true, isActive: true };
+    case "cost-centers": return { companyId: company, code: "", nameFa:"", nameAr: "", nameEn: "", isActive: true };
     case "fiscal-years": return { companyId: company, name: "", startsOn: "", endsOn: "", status: "open" };
     case "posting-rules": return { companyId: company, key: "", accountId: null };
     case "exchange-rates": return { companyId: company, currency: "USD", effectiveOn: "", rate: "", source: "central_bank", reference: "" };
-    case "tax-rules": return { companyId: company, countryCode: "IQ", productGroup: "", ratePercent: "", validFrom: "", validTo: null, isActive: true };
+    case "tax-rules": return { companyId: company, countryCode: companyCountry, productGroup: "", ratePercent: "", validFrom: "", validTo: null, isActive: true };
     case "settings": return { companyId: company, weightTolerancePercent: "0", fleetRate: "0", fleetRateBasis: "per_ton", fleetCostCenterId: null };
   }
 }
@@ -88,6 +88,7 @@ export default function AccountingManagement() {
   const saveTaxes = useSaveAccountingResource("tax-rules");
   const saveSettings = useSaveAccountingResource("settings");
   const seedMutation = useSeedAccounting();
+  const [seedCountry,setSeedCountry]=useState<"IR"|"IQ">(language==="fa"?"IR":"IQ");
   const [activeResource, setActiveResource] = useState<AccountingResource>("companies");
   const [record, setRecord] = useState<AccountingRow | undefined>();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -127,14 +128,14 @@ export default function AccountingManagement() {
 
   const form = useForm<Record<string, unknown>>({
     resolver: zodResolver(accountingSettingsSchemas[activeResource]) as Resolver<Record<string, unknown>>,
-    defaultValues: defaultsFor(activeResource, companyId),
+    defaultValues: defaultsFor(activeResource, companyId,language,String(companyRows.find(row=>rowId(row)===companyId)?.countryCode??"IQ")),
     mode: "onSubmit",
   });
   const { reset } = form;
   useEffect(() => {
     if (dialogOpen) {
       const schemaKeys = Object.keys(accountingSettingsSchemas[activeResource].shape);
-      reset(sanitizeAccountingRecord(schemaKeys, defaultsFor(activeResource, companyId), record));
+      reset(sanitizeAccountingRecord(schemaKeys, defaultsFor(activeResource, companyId,language,String(companyRows.find(row=>rowId(row)===companyId)?.countryCode??"IQ")), record));
     }
   }, [dialogOpen, record, activeResource, reset]);
 
@@ -146,6 +147,10 @@ export default function AccountingManagement() {
   const onSubmit = async (values: Record<string, unknown>) => {
     setServerError("");
     const payload = Object.fromEntries(Object.keys(accountingSettingsSchemas[activeResource].shape).map(key => [key, values[key]]));
+    if(["accounts","cost-centers"].includes(activeResource)&&!["nameFa","nameAr","nameEn"].some(key=>String(payload[key]??"").trim())){
+      form.setError(language==="fa"?"nameFa":language==="ar"?"nameAr":"nameEn",{type:"manual",message:txt("errorRequired")});
+      return;
+    }
     if (activeResource === "fiscal-years" && record?.status === "closed" && payload.status === "open") {
       setServerError(txt("closeBlocked"));
       return;
@@ -164,7 +169,8 @@ export default function AccountingManagement() {
     setSeedError("");
     setSeedDone(false);
     try {
-      await seedMutation.mutateAsync();
+      const result=await seedMutation.mutateAsync(seedCountry);
+      setCompanyId(result.companyId);
       setSeedDone(true);
     } catch (error) {
       setSeedError(error instanceof Error ? error.message : txt("seedError"));
@@ -180,20 +186,20 @@ export default function AccountingManagement() {
 
   const fields: Record<AccountingResource, FieldSpec[]> = {
     companies: [
-      { key: "name" }, { key: "countryCode", kind: "fixed" }, { key: "timezone", kind: "fixed" },
-      { key: "baseCurrency", kind: "select", options: currencyRows.filter(row => row.isActive !== false).map(row => ({ value: asText(row, "code"), label: `${asText(row, "code")} · ${asText(row, "name")}` })) },
+      { key: "name" }, { key: "countryCode", kind: "select",options:[{value:"IR",label:txt("iran")},{value:"IQ",label:txt("iraq")}] }, { key: "timezone", kind: "fixed" },
+      { key: "baseCurrency", kind: "select", options: currencyRows.filter(row => row.isActive !== false).map(row => ({ value: asText(row, "code"), label: `${asText(row, "code")} · ${accountingCurrencyName(asText(row,"code"),language,asText(row,"name"))}` })) },
       { key: "isActive", kind: "boolean" },
     ],
     currencies: [{ key: "code" }, { key: "name" }, { key: "decimals", kind: "number" }, { key: "isActive", kind: "boolean" }],
     accounts: [
       { key: "companyId", kind: "select", options: companyRows.map(row => ({ value: asText(row, "id"), label: asText(row, "name") })) },
-      { key: "code" }, { key: "nameAr" }, { key: "nameEn" },
+      { key: "code" }, { key:"nameFa" }, { key: "nameAr" }, { key: "nameEn" },
       { key: "type", kind: "select", options: ["asset", "liability", "equity", "revenue", "expense"].map(value => ({ value, label: txt(`type_${value}` as AccountingCopyKey) })) },
       { key: "parentId", kind: "account" }, { key: "isPosting", kind: "boolean" }, { key: "isActive", kind: "boolean" },
     ],
     "cost-centers": [
       { key: "companyId", kind: "select", options: companyRows.map(row => ({ value: asText(row, "id"), label: asText(row, "name") })) },
-      { key: "code" }, { key: "nameAr" }, { key: "nameEn" }, { key: "isActive", kind: "boolean" },
+      { key: "code" }, { key:"nameFa" }, { key: "nameAr" }, { key: "nameEn" }, { key: "isActive", kind: "boolean" },
     ],
     "fiscal-years": [
       { key: "companyId", kind: "select", options: companyRows.map(row => ({ value: asText(row, "id"), label: asText(row, "name") })) },
@@ -207,7 +213,7 @@ export default function AccountingManagement() {
     ],
     "exchange-rates": [
       { key: "companyId", kind: "select", options: companyRows.map(row => ({ value: asText(row, "id"), label: asText(row, "name") })) },
-      { key: "currency", kind: "select", options: currencyRows.filter(row => row.isActive !== false).map(row => ({ value: asText(row, "code"), label: `${asText(row, "code")} · ${asText(row, "name")}` })) },
+      { key: "currency", kind: "select", options: currencyRows.filter(row => row.isActive !== false).map(row => ({ value: asText(row, "code"), label: `${asText(row, "code")} · ${accountingCurrencyName(asText(row,"code"),language,asText(row,"name"))}` })) },
       { key: "effectiveOn", kind: "date" }, { key: "rate", kind: "decimal" },
       { key: "source", kind: "fixed" }, { key: "reference", kind: "text" },
     ],
@@ -244,6 +250,11 @@ export default function AccountingManagement() {
       {viewer.canCreate && <div className="flex max-w-md flex-col gap-2 rounded-2xl border border-[#8da89b]/25 bg-[#20454a] p-4">
               <div className="flex items-center gap-2 text-sm font-semibold"><ShieldCheck className="h-4 w-4 text-[#d6b66e]" />{txt("seed")}</div>
               <p className="text-xs leading-5 text-[#c1d0ca]">{txt("seedHelp")}</p>
+              <label className="mt-2 flex items-center gap-2 text-xs">{txt("seedCountry")}
+                <select aria-label={txt("seedCountry")} value={seedCountry} disabled={seedMutation.isPending} onChange={e=>setSeedCountry(e.target.value as "IR"|"IQ")} className="rounded border border-[#d8e1d8] bg-white px-2 py-1" data-testid="accounting-seed-country">
+                  <option value="IR">{txt("iran")} · IRR</option><option value="IQ">{txt("iraq")} · IQD</option>
+                </select>
+              </label>
               <Button onClick={onSeed} disabled={seedMutation.isPending} className="mt-1 h-9 w-fit bg-[#d6b66e] text-[#263b3a] hover:bg-[#e3c985]" data-testid="accounting-seed">
                 {seedMutation.isPending ? <LoaderCircle className="me-2 h-4 w-4 animate-spin" /> : <RefreshCw className="me-2 h-4 w-4" />}
                 {seedMutation.isPending ? txt("seeding") : txt("seed")}
@@ -392,12 +403,11 @@ function StatusPill({ row, resource, txt }: { row: AccountingRow; resource: Acco
 
 function displayName(row: AccountingRow, resource: AccountingResource, companies: AccountingRow[], currencies: AccountingRow[], language: string) {
   if (resource === "accounts" || resource === "cost-centers") {
-    const primary = language === "fa" || language === "ar" ? asText(row, "nameAr") : asText(row, "nameEn");
-    const secondary = language === "fa" || language === "ar" ? asText(row, "nameEn") : asText(row, "nameAr");
-    return `${primary} / ${secondary}`;
+    return accountingName(row,language);
   }
-  if (resource === "companies" || resource === "currencies" || resource === "fiscal-years") return asText(row, "name");
-  if (resource === "exchange-rates") return currencies.find(item => item.code === row.currency)?.name ?? asText(row, "currency");
+  if (resource==="currencies")return accountingCurrencyName(asText(row,"code"),language,asText(row,"name"));
+  if (resource === "companies" || resource === "fiscal-years") return asText(row, "name");
+  if (resource === "exchange-rates") return accountingCurrencyName(asText(row,"currency"),language,String(currencies.find(item=>item.code===row.currency)?.name??row.currency));
   if (resource === "posting-rules") return postingKeyLabel(asText(row, "key"), language);
   if (resource === "tax-rules") return asText(row, "productGroup");
   return companies.find(item => Number(item.id) === Number(row.companyId))?.name as string ?? `#${String(row.companyId ?? "")}`;
@@ -429,7 +439,7 @@ function FormField({
   const commonLabel = <Label htmlFor={`accounting-${name}`} className="text-xs font-semibold text-[#53665d]">{label}</Label>;
   const fieldError = error ? <span className="mt-1 block text-xs text-[#a2473c]">{txt("errorInvalid")}</span> : null;
   const currentCompany = Number(watch("companyId") ?? 0);
-  const fixedValue = name === "countryCode" ? "IQ" : name === "timezone" ? "Asia/Baghdad" : name === "source" ? "central_bank" : "IQ";
+  const fixedValue = name === "countryCode" ? String(watch("countryCode")??"IQ") : name === "timezone" ? watch("countryCode")==="IR"?"Asia/Tehran":"Asia/Baghdad" : name === "source" ? "central_bank" : "IQ";
   useEffect(() => {
     if (spec.kind === "fixed") setValue(name, fixedValue, { shouldValidate: false });
   }, [fixedValue, name, setValue, spec.kind]);
@@ -443,11 +453,11 @@ function FormField({
     let options = spec.options ?? [];
     let nullable = false;
     if (spec.kind === "account") {
-    options = accountOptions.filter(row => Number(row.companyId) === currentCompany).map(row => ({ value: asText(row, "id"), label: `${asText(row, "code")} · ${asText(row, language === "fa" || language === "ar" ? "nameAr" : "nameEn")}` }));
+    options = accountOptions.filter(row => Number(row.companyId) === currentCompany).map(row => ({ value: asText(row, "id"), label: `${asText(row, "code")} · ${accountingName(row,language)}` }));
       nullable = name === "parentId";
     }
     if (spec.kind === "center") {
-      options = centerOptions.filter(row => Number(row.companyId) === currentCompany).map(row => ({ value: asText(row, "id"), label: `${asText(row, "code")} · ${asText(row, language === "fa" || language === "ar" ? "nameAr" : "nameEn")}` }));
+      options = centerOptions.filter(row => Number(row.companyId) === currentCompany).map(row => ({ value: asText(row, "id"), label: `${asText(row, "code")} · ${accountingName(row,language)}` }));
       nullable = true;
     }
     if ((spec.kind === "account" && options.length === 0 && !nullable) || (spec.kind === "center" && options.length === 0 && !nullable)) {
@@ -471,7 +481,7 @@ function FormField({
     const nullableDate = name === "validTo";
     const inputProps = {
       id: `accounting-${name}`,
-      ...register(name, numeric ? { setValueAs: (value: string) => value === "" ? NaN : Number(value) } : nullableDate ? { setValueAs: (value: string) => value === "" ? null : value } : {}),
+      ...register(name, numeric ? { setValueAs: (value: string) => value === "" ? NaN : Number(normalizeAccountingDigits(value)) } : spec.kind==="decimal"?{setValueAs:(value:string)=>normalizeAccountingDigits(value)}:nullableDate ? { setValueAs: (value: string) => value === "" ? null : value } : {}),
       readOnly: disabled, disabled,
       "data-testid": `accounting-field-${name}`,
     };

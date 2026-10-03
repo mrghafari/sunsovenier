@@ -27,6 +27,24 @@ export function postingKeyLabel(key: string, language: string): string {
   return `${key} · ${localized}`;
 }
 
+export function accountingName(row:AccountingRow,language:string):string {
+  const keys=language==="fa"?["nameFa","nameEn","nameAr"]:language==="ar"?["nameAr","nameEn","nameFa"]:["nameEn","nameFa","nameAr"];
+  return keys.map(key=>String(row[key]??"").trim()).find(Boolean)??String(row.code??"");
+}
+export function accountingCurrencyName(code:string,language:string,fallback=code):string {
+  const names:Record<string,Record<string,string>>={
+    IRR:{fa:"ریال ایران",ar:"الريال الإيراني",en:"Iranian rial",tr:"İran riyali"},
+    IQD:{fa:"دینار عراق",ar:"الدينار العراقي",en:"Iraqi dinar",tr:"Irak dinarı"},
+    USD:{fa:"دلار آمریکا",ar:"الدولار الأمريكي",en:"US dollar",tr:"ABD doları"},
+  };
+  return names[code]?.[language]??fallback;
+}
+// API amounts remain exact ASCII decimal strings; never convert rials to tomans.
+export function normalizeAccountingDigits(value:string):string {
+  return value.replace(/[۰-۹]/g,d=>String(d.charCodeAt(0)-0x6f0))
+    .replace(/[٠-٩]/g,d=>String(d.charCodeAt(0)-0x660)).replace(/٫/g,".");
+}
+
 export function sanitizeAccountingRecord(
   allowedKeys: readonly string[],
   defaults: Record<string, unknown>,

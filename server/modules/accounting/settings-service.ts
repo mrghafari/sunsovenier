@@ -41,6 +41,12 @@ export async function saveResource(resource: AccountingResource, input: unknown,
   const parsed = accountingSettingsSchemas[resource].safeParse(input);
   if (!parsed.success) throw new AccountingError(parsed.error.issues.map(i=>`${i.path.join(".")}: ${i.message}`).join("; "));
   const data = parsed.data;
+  if ((resource==="accounts"||resource==="cost-centers") && "nameAr" in data
+    && !data.nameFa && !data.nameAr && !data.nameEn) throw new AccountingError("At least one account or cost-center name is required");
+  if(resource==="companies"&&"countryCode" in data&&"timezone" in data){
+    const timezone=data.countryCode==="IR"?"Asia/Tehran":"Asia/Baghdad";
+    if(data.timezone!==timezone)throw new AccountingError("Company time zone must match the selected country");
+  }
   if ("ratePercent" in data && decimal(data.ratePercent).gt("100")) throw new AccountingError("Tax percentage must be between 0 and 100");
   if ("weightTolerancePercent" in data && decimal(data.weightTolerancePercent).gt("100")) throw new AccountingError("Weight tolerance must be between 0 and 100");
   for (const [key,value] of Object.entries(data)) {

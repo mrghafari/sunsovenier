@@ -10,6 +10,7 @@ export const dateString = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(v => {
 const id = z.number().int().positive();
 const code = z.string().trim().min(1).max(40);
 const name = z.string().trim().min(1).max(200);
+const localizedName = z.string().trim().max(200).default("");
 export const currencyCode = z.string().regex(/^[A-Z]{3}$/);
 export const POSTING_KEYS = [
   "BANK", "GATEWAY", "CASH", "CHEQUES_ON_HAND", "CHEQUE_CLEARING", "ACCOUNTS_RECEIVABLE",
@@ -21,16 +22,16 @@ export type PostingKey = typeof POSTING_KEYS[number];
 export const accountTypes = ["asset", "liability", "equity", "revenue", "expense"] as const;
 export const accountingSettingsSchemas = {
   companies: z.object({
-    name, countryCode: z.literal("IQ"),
-    timezone: z.literal("Asia/Baghdad"), baseCurrency: currencyCode.default("IQD"),
+    name, countryCode: z.enum(["IQ","IR"]),
+    timezone: z.enum(["Asia/Baghdad","Asia/Tehran"]), baseCurrency: currencyCode,
     isActive: z.boolean().default(true),
   }).strict(),
   currencies: z.object({ code: currencyCode, name, decimals: z.number().int().min(0).max(8), isActive: z.boolean().default(true) }).strict(),
   accounts: z.object({
-    companyId: id, code, nameAr: name, nameEn: name, type: z.enum(accountTypes),
+    companyId: id, code, nameFa: localizedName.optional(), nameAr: localizedName, nameEn: localizedName, type: z.enum(accountTypes),
     parentId: id.nullable().default(null), isPosting: z.boolean().default(true), isActive: z.boolean().default(true),
   }).strict(),
-  "cost-centers": z.object({ companyId: id, code, nameAr: name, nameEn: name, isActive: z.boolean().default(true) }).strict(),
+  "cost-centers": z.object({ companyId: id, code, nameFa: localizedName.optional(), nameAr: localizedName, nameEn: localizedName, isActive: z.boolean().default(true) }).strict(),
   "fiscal-years": z.object({ companyId: id, name, startsOn: dateString, endsOn: dateString, status: z.enum(["open", "closed"]).default("open") }).strict(),
   "posting-rules": z.object({ companyId: id, key: z.enum(POSTING_KEYS), accountId: id }).strict(),
   "exchange-rates": z.object({
@@ -38,7 +39,7 @@ export const accountingSettingsSchemas = {
     source: z.literal("central_bank").default("central_bank"), reference: z.string().trim().min(3).max(1000),
   }).strict(),
   "tax-rules": z.object({
-    companyId: id, countryCode: z.literal("IQ"), productGroup: code,
+    companyId: id, countryCode: z.enum(["IQ","IR"]), productGroup: code,
     ratePercent: decimalString, validFrom: dateString, validTo: dateString.nullable().default(null),
     isActive: z.boolean().default(true),
   }).strict(),

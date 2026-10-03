@@ -14,7 +14,14 @@ const iraq: CountryPack = {
   countryCode: "IQ", timezone: "Asia/Baghdad", baseCurrency: "IQD",
   invoiceCalendar: "gregorian", electronicInvoiceProvider: null, defaultTaxRule: null, chart: iraqChart,
 };
+const iran: CountryPack={
+  countryCode:"IR",timezone:"Asia/Tehran",baseCurrency:"IRR",
+  invoiceCalendar:"gregorian",electronicInvoiceProvider:null,defaultTaxRule:null,
+  // Editable operational template, not a government-mandated Iranian chart.
+  chart:iraqChart,
+};
 export function getCountryPack(countryCode: string): CountryPack {
-  if (countryCode !== "IQ") throw new Error(`Country pack is not configured: ${countryCode}`);
-  return iraq;
+  if(countryCode==="IQ")return iraq;
+  if(countryCode==="IR")return iran;
+  throw new Error(`Country pack is not configured: ${countryCode}`);
 }

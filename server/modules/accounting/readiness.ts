@@ -15,6 +15,8 @@ export async function assertLedgerReady(db: typeof accountingDb | AccountingTran
       join pg_namespace n on n.oid=c.relnamespace
     where n.nspname='public' and c.relname like 'accounting_%'
       and not t.tgisinternal and t.tgenabled in ('O','A')
+      and (select count(*) from pg_attribute a where a.attname='name_fa' and not a.attisdropped
+        and a.attrelid in (to_regclass('public.accounting_accounts'),to_regclass('public.accounting_cost_centers')))=2
   `);
   const found = new Set(result.rows.map(r=>String(r.tgname)));
   if (requiredGuards.some(g=>!found.has(g))) {

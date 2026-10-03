@@ -31,7 +31,7 @@ export function useSaveAccountingResource(resource: AccountingResource) {
 export function useSeedAccounting() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn:()=>request<{companyId:number;postingKeyCount:number}>("/seed",{method:"POST"}),
+    mutationFn:(countryCode:"IQ"|"IR")=>request<{companyId:number;postingKeyCount:number}>("/seed",{method:"POST",body:JSON.stringify({countryCode})}),
     onSuccess:()=>client.invalidateQueries({queryKey:[base]}),
   });
 }

@@ -38,11 +38,13 @@ export function createAccountingRouter() {
       res.json({access:res.locals.accountingAccess,companies,currencies,resources:accountingResources,postingKeys:POSTING_KEYS,integrationEnabled:false});
     } catch (error) { next(error); }
   });
-  router.post("/v2/seed",async (_req,res,next) => {
+  router.post("/v2/seed",async (req,res,next) => {
     try {
       const actor = res.locals.accountingAccess as AccountingAccess;
       if (!actor.canManage) throw new AccountingError("Finance management permission required",403,"ACCESS_DENIED");
-      res.json(await seedAccounting(actor));
+      const countryCode=req.body?.countryCode??"IQ";
+      if(!["IQ","IR"].includes(countryCode))throw new AccountingError("Supported accounting country required");
+      res.json(await seedAccounting(actor,countryCode));
     } catch (error) { next(error); }
   });
   router.get("/v2/settings/:resource",async (req,res,next) => {
