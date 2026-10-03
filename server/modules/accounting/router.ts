@@ -10,6 +10,8 @@ import { assertLedgerReady } from "./readiness";
 import { captureOperationalEvent } from "./events";
 import {linkWallet,recordWalletMovement,releaseWalletHold,approveWalletOrder} from "./wallet";
 import {recordCustomerReceipt,transitionCheque,readReceivables,returnCustomerReceipt} from "./receipts";
+import {readReceiptList,readReceiptDetail,readReceiptCustomers,readReceiptOpenItems} from "./receipt-workbench";
+import {receiptListCsv} from "./receipt-workbench-csv";
 import {settleWalletReceivable} from "./wallet-settlement";
 import {readAccountingReport} from "./reports";
 import {accountingReportCsv} from "./report-csv";
@@ -143,6 +145,25 @@ export function createAccountingRouter() {
   });
   router.post("/v2/receipts",async(req,res,next)=>{
     try{res.status(201).json(await recordCustomerReceipt(req.body,res.locals.accountingAccess));}catch(e){next(e);}
+  });
+  router.get("/v2/receipts/csv",async(req,res,next)=>{
+    try{const data=await readReceiptList(req.query,undefined,true);
+      res.set({"Content-Type":"text/csv; charset=utf-8","Cache-Control":"private, no-store",
+        "Content-Disposition":`attachment; filename="accounting-receipts-${data.metadata.company.id}.csv"`});
+      res.send(receiptListCsv(data));
+    }catch(e){next(e);}
+  });
+  router.get("/v2/receipts",async(req,res,next)=>{
+    try{res.set("Cache-Control","private, no-store");res.json(await readReceiptList(req.query));}catch(e){next(e);}
+  });
+  router.get("/v2/receipts/:id",async(req,res,next)=>{
+    try{res.set("Cache-Control","private, no-store");res.json(await readReceiptDetail(req.params.id,req.query.companyId));}catch(e){next(e);}
+  });
+  router.get("/v2/receipt-workbench/customers",async(req,res,next)=>{
+    try{res.set("Cache-Control","private, no-store");res.json(await readReceiptCustomers(req.query));}catch(e){next(e);}
+  });
+  router.get("/v2/receipt-workbench/receivables",async(req,res,next)=>{
+    try{res.set("Cache-Control","private, no-store");res.json(await readReceiptOpenItems(req.query));}catch(e){next(e);}
   });
   router.post("/v2/receipts/:id/cheque/:action",async(req,res,next)=>{
     try{const receiptId=Number(req.params.id),action=req.params.action;

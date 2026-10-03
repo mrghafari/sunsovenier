@@ -11,6 +11,8 @@ import {settleWalletReceivable} from "./wallet-settlement";
 import {readCustomerReport} from "./customer-reports";
 import {customerReportCsv} from "./customer-report-csv";
 import {Money} from "./money";
+import {readReceiptList,readReceiptDetail,readReceiptCustomers,readReceiptOpenItems} from "./receipt-workbench";
+import {receiptListCsv} from "./receipt-workbench-csv";
 
 test("customer statements and historical aging (rollback-only)",{skip:process.env.ACCOUNTING_DB_TEST!=="1"},async t=>{
   const rollback=new Error("ROLLBACK_CUSTOMER_REPORTS");let complete=false;
@@ -166,6 +168,65 @@ test("customer statements and historical aging (rollback-only)",{skip:process.en
       await assert.rejects(()=>readCustomerReport("receivables-aging",{companyId:company,asOf:"2026-01-01",from:"2026-01-01"},tx));
       await assert.rejects(()=>readCustomerReport("receivables-aging",{companyId:company,asOf:"2026-01-01",currency:"ZZZ"},tx));
       assert.ok(opening.entry.id);
+    });
+    await t.test("receipt workbench has real scoped list/detail/allocations, paged invoices and evidence history",async()=>{
+      const f={companyId:company,pageSize:1};
+      const list=await readReceiptList(f,tx);
+      assert.equal(list.items.length,1);assert.equal(list.pagination.totalRows,3);
+      assert.equal(list.metadata.processingReady,true);
+      assert.equal(list.metadata.ledgerGuardsReady,true);
+      assert.equal(list.summaries.length,3);
+      assert.equal(list.summaries.find(s=>s.currency==="USD")?.status,"bounced");
+      const all=await readReceiptList({...f,page:10},tx,true);
+      assert.equal(all.items.length,3);assert.equal(all.pagination.page,1);
+      assert.ok(receiptListCsv(all).includes("Received cheques are provisional"));
+      const filter=await readReceiptList({companyId:company,method:"CHEQUE",currency:"USD",status:"bounced",
+        from:"2026-02-01",to:"2026-02-28"},tx);
+      assert.equal(filter.items.length,1);assert.equal(filter.items[0].id,cheque.receipt.id);
+      assert.equal(filter.items[0].chequeNumber,"usd-cheque");assert.equal(filter.items[0].amount,"40.00000000");
+      const detail=await readReceiptDetail(cash.receipt.id,company,tx);
+      assert.equal(detail.allocations.length,1);assert.equal(detail.allocations[0].receivableId,cashInvoice.id);
+      assert.equal(detail.allocations[0].openAmount,"100.00000000");
+      assert.deepEqual(detail.events.map(e=>e.action),["received","returned"]);
+      assert.equal(detail.events[0].entryDate,"2026-02-10");assert.equal(detail.events[1].entryDate,"2026-03-01");
+      assert.ok(detail.events.every(e=>e.journalStatus==="posted"&&e.journalId>0&&e.evidenceReference.length>=5));
+      assert.equal(detail.receipt.evidenceReference,"Rollback staff attestation");
+      await assert.rejects(()=>readReceiptDetail(cash.receipt.id,other,tx),{code:"NOT_FOUND"});
+      const choices=await readReceiptCustomers({companyId:company,q:String(customer+1)},tx);
+      assert.equal(choices.items.length,1);assert.equal(choices.items[0].id,customer+1);
+      assert.equal((await readReceiptCustomers({companyId:other,q:String(customer)},tx)).items.length,0);
+      const invoices=await readReceiptOpenItems({companyId:company,customerId:customer,currency:"IQD"},tx);
+      assert.ok(invoices.items.some(r=>r.id===cashInvoice.id));
+      assert.ok(!invoices.items.some(r=>r.invoiceReference==="void-invoice"));
+      assert.ok(invoices.items.every(r=>r.customerId===customer&&r.currency==="IQD"));
+      assert.equal((await readReceiptOpenItems({companyId:company,customerId:customer,currency:"USD"},tx)).items.length,0);
+      assert.equal((await readReceiptOpenItems({companyId:company,customerId:customer,currency:"IQD",page:2},tx)).items.length,0);
+      const voided=(await tx.execute(sql`select id from accounting_receivable_items
+        where company_id=${company} and invoice_reference='void-invoice'`)).rows[0];
+      await assert.rejects(()=>recordCustomerReceipt({companyId:company,customerId:customer,currency:"IQD",
+        sourceId:"must-not-pay-voided-invoice",entryDate:"2026-04-04",amount:"12",method:"BANK",
+        evidenceReference:"Actual evidence",reason:"Stale invoice selection",
+        allocations:[{receivableId:Number(voided.id),amount:"12"}]},actor,tx),{code:"POSTED_INVOICE_REQUIRED"});
+      const disabled=await readReceiptList({companyId:other},tx);
+      assert.equal(disabled.metadata.processingReady,false);assert.equal(disabled.metadata.walletCutoverReady,false);
+      assert.equal(disabled.metadata.receiptCutoverReady,false);assert.equal(disabled.pagination.totalRows,0);
+      await tx.execute(sql`update accounting_receipt_cutovers set processing_ready=false where company_id=${company}`);
+      assert.equal((await readReceiptDetail(cash.receipt.id,company,tx)).metadata.processingReady,false);
+      await assert.rejects(()=>recordCustomerReceipt({companyId:company,customerId:customer,currency:"IQD",
+        sourceId:"must-not-save-blocked",entryDate:"2026-04-02",amount:"1",method:"BANK",
+        evidenceReference:"Actual evidence",reason:"Blocked guard test",allocations:[]},actor,tx),
+        {code:"RECEIPT_CUTOVER_BLOCKED"});
+      await assert.rejects(()=>transitionCheque(Number(cheque.receipt.id),"deposited",{sourceId:"must-not-transition",
+        entryDate:"2026-04-02",evidenceReference:"Actual evidence",reason:"Blocked guard test"},actor,tx),
+        {code:"RECEIPT_CUTOVER_BLOCKED"});
+      await assert.rejects(()=>returnCustomerReceipt(Number(cash.receipt.id),{sourceId:"must-not-return",
+        entryDate:"2026-04-02",evidenceReference:"Actual evidence",reason:"Blocked guard test"},actor,tx),
+        {code:"RECEIPT_CUTOVER_BLOCKED"});
+      await assert.rejects(()=>recordCustomerReceipt({companyId:company,customerId:customer,currency:"IQD",
+        sourceId:"viewer-must-not-save",entryDate:"2026-04-02",amount:"1",method:"BANK",
+        evidenceReference:"Actual evidence",reason:"Viewer guard test",allocations:[]},{...actor,canManage:false},tx),
+        {code:"ACCESS_DENIED"});
+      assert.equal((await readReceiptList({companyId:company},tx)).pagination.totalRows,3);
     });
     complete=true;throw rollback;
   });}catch(e){if(e!==rollback)throw e;}finally{await pool.end();}

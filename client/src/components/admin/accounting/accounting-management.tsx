@@ -8,6 +8,7 @@ import {
 } from "@/lib/accounting-api";
 import { accountingCopy, type AccountingCopyKey } from "@/lib/accounting-copy";
 import AccountingReports from "./accounting-reports";
+import AccountingReceipts from "./accounting-receipts";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -91,7 +92,7 @@ export default function AccountingManagement() {
   const seedMutation = useSeedAccounting();
   const [seedCountry,setSeedCountry]=useState<"IR"|"IQ">(language==="fa"?"IR":"IQ");
   const [activeResource, setActiveResource] = useState<AccountingResource>("companies");
-  const [activePanel, setActivePanel] = useState<"setup" | "reports">("setup");
+  const [activePanel, setActivePanel] = useState<"setup" | "reports" | "receipts">("setup");
   const [record, setRecord] = useState<AccountingRow | undefined>();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -284,8 +285,11 @@ export default function AccountingManagement() {
         <div className="mt-5 flex flex-wrap gap-2" role="tablist" aria-label={txt("title")}>
           <button type="button" role="tab" aria-selected={activePanel === "setup"} onClick={() => setActivePanel("setup")} className={`rounded-lg px-4 py-2 text-sm font-semibold ${activePanel === "setup" ? "bg-[#20484a] text-[#f4f2e7]" : "bg-[#e6ece4] text-[#52655b]"}`}>{txt("setupNav")}</button>
           <button type="button" role="tab" aria-selected={activePanel === "reports"} onClick={() => setActivePanel("reports")} className={`rounded-lg px-4 py-2 text-sm font-semibold ${activePanel === "reports" ? "bg-[#20484a] text-[#f4f2e7]" : "bg-[#e6ece4] text-[#52655b]"}`}>{txt("reportsNav")}</button>
+          <button type="button" role="tab" aria-selected={activePanel === "receipts"} onClick={() => setActivePanel("receipts")} className={`rounded-lg px-4 py-2 text-sm font-semibold ${activePanel === "receipts" ? "bg-[#20484a] text-[#f4f2e7]" : "bg-[#e6ece4] text-[#52655b]"}`}>{language === "fa" ? "رسیدها و چک‌ها" : language === "ar" ? "الإيصالات والشيكات" : language === "tr" ? "Tahsilatlar ve çekler" : "Receipts & cheques"}</button>
         </div>
-        {activePanel === "reports" ? <div className="mt-5"><AccountingReports companies={companyRows.map(row => ({ id: rowId(row), name: asText(row, "name") }))} onSetup={() => setActivePanel("setup")} /></div> : <div className="mt-6 grid items-start gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
+        {activePanel === "reports" ? <div className="mt-5"><AccountingReports companies={companyRows.map(row => ({ id: rowId(row), name: asText(row, "name") }))} onSetup={() => setActivePanel("setup")} /></div> :
+        activePanel === "receipts" ? <div className="mt-5"><AccountingReceipts companies={companyRows.map(row => ({ id: rowId(row), name: asText(row, "name") }))} canManage={canManage} onReports={() => setActivePanel("reports")} /></div> :
+        <div className="mt-6 grid items-start gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
           <aside className="rounded-[22px] border border-[#dce2db] bg-[#e8ede7] p-3">
             <p className="px-3 pb-2 pt-3 text-[10px] font-bold uppercase tracking-[.2em] text-[#718078]">{txt("stepOne")}</p>
             {resources.filter(item => item.step === 1).map(item => {

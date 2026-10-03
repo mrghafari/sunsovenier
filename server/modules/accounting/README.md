@@ -576,3 +576,48 @@ checks actual posted receipt returns, foreign cheque bounces, wallet settlements
 historical statements, unknown due debts/credits, bucket boundaries and exports.
 `node client/src/components/admin/accounting/run-customer-reports-ssr-smoke.mjs`
 checks four-language presentation, exact amounts and honest no-row openings.
+
+### Receipts and cheques workbench
+
+The accounting workspace has a separate Receipts & Cheques view. It lists actual
+receipt records, with company/customer/currency/method/current-status and original
+receipt-date filters, server pagination and full-scope exact per-currency summaries.
+Summary amounts are original receipt/credited amounts by current lifecycle status,
+not net available cash or a customer's current wallet balance. Received/deposited
+cheques are provisional, not cleared funds. Empty history does not verify old
+financial openings.
+
+Read endpoints share the accounting viewer permission:
+- `GET /api/accounting/v2/receipts` and `/receipts/csv` (max 10,000 full-filter rows).
+- `GET /api/accounting/v2/receipts/:id?companyId=...` returns current invoice
+  allocations, receipt evidence and chronological journal-linked lifecycle events.
+- `GET /api/accounting/v2/receipt-workbench/customers?companyId=...&q=...`
+  searches company-linked customer names/business codes without exposing contact
+  data or treating the business code as the CRM primary key.
+- `GET /api/accounting/v2/receipt-workbench/receivables?companyId=...&customerId=...&currency=...`
+  returns up to 100 eligible open posted, unreversed invoices per page.
+
+Read endpoints use a repeatable-read, read-only snapshot and no-store responses.
+The metadata reports actual company activity, installed ledger guards, active
+currencies and existing receipt/wallet cutover flags. These flags cannot be enabled
+from the workbench. Disabled processing leaves records readable, not writable.
+
+Managers use the existing validated receipt and lifecycle writers: actual
+bank/cash/cheque receipt, cheque deposit/clear/bounce and full bank/cash return.
+The form requires staff attestation, evidence, reason and an explicit entry date.
+Allocation amounts stay exact strings, same customer/currency and within both
+the selected invoice's current outstanding amount and the receipt total.
+Unallocated funds require an explicitly linked same-currency CRM wallet; the
+server does not silently create one. Native receipts now reject a stale selection
+of a reversed invoice, matching existing foreign-invoice protection.
+
+Mutation permission, cutover checks, date/evidence validation, atomic journal
+posting, money precision, wallet reconciliation and lifecycle/idempotency checks
+remain enforced by the server even if UI controls are bypassed. Source identifiers
+remain stable on retries; automatic mutation retries are disabled. Returns/bounces
+explicitly disclose restoration of invoice debt and recovery of credited funds or
+new debt when consumed. No partial refund or arbitrary outgoing amount is added.
+
+No financial cutover, migration, processor or other business module is activated.
+DB workbench checks run inside the existing rollback-only customer-report fixture;
+receipt/return regression suites verify unchanged posting and carrying values.

@@ -5,22 +5,11 @@ import {AccountingError} from "./access";
 import {assertLedgerReady} from "./readiness";
 import {decimal,exactMoney,Money} from "./money";
 import {postJournalEntry,type JournalInput} from "./postJournalEntry";
-import {dateString,positiveDecimal,currencyCode,type AccountingAccess} from "@shared/accounting-api";
+import {dateString,type AccountingAccess} from "@shared/accounting-api";
+import {receiptInputSchema,receiptEventSchema as chequeSchema} from "@shared/accounting-receipts";
+export {receiptInputSchema} from "@shared/accounting-receipts";
 import {lockedWallet,account,reconciled,nativeMoney,available} from "./wallet";
 import {transitionForeignCheque} from "./foreign-cheques";
-const id=z.number().int().positive();
-export const receiptInputSchema=z.object({
-  companyId:id,customerId:id,currency:currencyCode,sourceId:z.string().trim().min(3).max(150),
-  entryDate:dateString,amount:positiveDecimal,method:z.enum(["BANK","CASH","CHEQUE"]),
-  evidenceReference:z.string().trim().min(5).max(500),reason:z.string().trim().min(5).max(500),
-  chequeNumber:z.string().trim().min(1).max(100).optional(),
-  allocations:z.array(z.object({receivableId:id,amount:positiveDecimal}).strict()).max(100).default([]),
-}).strict().superRefine((d,c)=>{
-  if(d.method==="CHEQUE"&&!d.chequeNumber)c.addIssue({code:"custom",message:"Cheque number required"});
-  if(new Set(d.allocations.map(a=>a.receivableId)).size!==d.allocations.length)c.addIssue({code:"custom",message:"Duplicate receivable allocation"});
-});
-const chequeSchema=z.object({sourceId:z.string().trim().min(3).max(150),entryDate:dateString,
-  evidenceReference:z.string().trim().min(5).max(500),reason:z.string().trim().min(5).max(500)}).strict();
 function manager(a:AccountingAccess){
   if(!a.canManage||!Number.isSafeInteger(a.actorId)||a.actorId<=0||!["admin","custom"].includes(a.actorType))
     throw new AccountingError("Receipt management permission required",403,"ACCESS_DENIED");
@@ -107,6 +96,10 @@ export async function recordCustomerReceipt(input:z.input<typeof receiptInputSch
       const r=result.rows[0];
       if(!r||r.company_id!==d.companyId||r.customer_id!==d.customerId||r.currency!==d.currency)
         throw new AccountingError("Allocations must share company, CRM customer and currency",409,"RECEIVABLE_MISMATCH");
+      const issued=await tx.execute(sql`select id from accounting_journal_entries e
+        where e.id=${r.invoice_journal_id} and e.company_id=${d.companyId} and e.status='posted'
+          and not exists(select 1 from accounting_journal_entries rev where rev.reversal_of_id=e.id and rev.status='posted')`);
+      if(!issued.rows.length)throw new AccountingError("A posted, unreversed invoice receivable is required",409,"POSTED_INVOICE_REQUIRED");
       if(d.entryDate<String(r.issued_on))throw new AccountingError("Receipt cannot settle an invoice before its issue date");
       if(decimal(a.amount).gt(decimal(String(r.amount)).minus(String(r.settled_amount))))
         throw new AccountingError("Allocation exceeds open invoice amount",409,"OVER_SETTLEMENT");
