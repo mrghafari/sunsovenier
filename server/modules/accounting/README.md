@@ -388,12 +388,31 @@ positive base totals and dated official rates. Proofs cannot be orphaned or
 reused for another settlement; backdating before the wallet's latest posting,
 unknown prior allocations and unreconciled balances are blocked.
 
-**Still required in this phase:** foreign BANK/CASH/CHEQUE asset/receipt/return
-carrying values and foreign refund handling. These operations still require
-company base currency; unsupported FX
-fails explicitly before any write. Do not simply clear the currency guard: invoice
-AR and prepaid liability must use their actual historical remaining book values,
-not today's rate, with explicit realized FX and exact final residual closure.
+Foreign BANK/CASH receipt confirmation is now supported, using a dated official
+rate for the actual incoming asset and any prepaid excess, and each allocated
+invoice's own remaining historical carrying value for AR. A receipt can settle
+several invoices with different historical rates without averaging their original
+debts. Partial allocations consume proportional remaining values; final allocations
+consume exact residuals. Their shared invoice valuation also accounts for previous
+wallet settlements, and later wallet settlements account for these receipts.
+Explicit base-currency FX_GAIN/FX_LOSS balances the actual asset against the
+historical AR and prepaid excess (including base-unit rounding differences).
+
+The immutable DB-derived receipt proof controls source, accounts, parties, native
+amounts, base amounts, allocations and official rate. Receipt, proof, allocation
+rows, AR balances, journal, native wallet credit and audit commit together.
+Orphan proofs, unproven journals, independently reversed receipts/settled invoices,
+invented AR balances and backdated allocations are blocked. Legitimate zero-base
+foreign minor-unit receipts are proven narrowly, not rounded up to invented money.
+Returned `bookValues` include the booked asset, closed AR, credited liability,
+per-invoice snapshots and explicit realized FX. Funds remain staff-attested; this
+does not claim provider verification or introduce a bank integration.
+
+**Still required in this phase:** foreign CHEQUE receipt/deposit/clearance/bounce
+and foreign bank/cash returns and wallet refunds. These operations remain blocked;
+asset outflows must close actual remaining asset carrying values rather than
+blindly use today's rate. Do not erase historical AR/prepaid values or invent
+conversion between a customer's currencies.
 Financial activation still requires the full invoice/stock/cost pipeline, opening
 reconciliation and approved cutover. Receipt UI belongs to the planned frontend
 integration; signed-in UI has not been verified here.
@@ -401,4 +420,5 @@ integration; signed-in UI has not been verified here.
 Run `npm run test:accounting:db` for rollback-only receipt lifecycle, guards,
 over-allocation, retry, chargeback, Native/GL/AR parity and older accounting tests.
 `ACCOUNTING_DB_TEST=1 ACCOUNTING_FX_ONLY=1 npx tsx --test server/modules/accounting/receipts.test.ts`
-runs the isolated foreign wallet cases; the normal suite never uses this filter.
+runs the isolated foreign wallet and BANK/CASH receipt cases; the normal suite
+never uses this filter.

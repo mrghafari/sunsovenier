@@ -13,6 +13,9 @@ const requiredGuards = [
   "accounting_wallet_settlement_journal_evidence",
   "accounting_wallet_book_guard","accounting_wallet_book_immutable","accounting_wallet_book_used",
   "accounting_assert_wallet_book_journal",
+  "accounting_receipt_book_guard","accounting_receipt_book_immutable","accounting_receipt_book_used",
+  "accounting_assert_receipt_book_journal","accounting_foreign_receipt_complete","accounting_foreign_allocation_guard",
+  "accounting_foreign_ar_parity",
 ];
 export async function assertLedgerReady(db: typeof accountingDb | AccountingTransaction = accountingDb) {
   const result = await db.execute(sql`

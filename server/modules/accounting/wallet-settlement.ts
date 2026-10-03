@@ -119,7 +119,7 @@ export async function settleWalletReceivable(input:z.input<typeof walletSettleme
     await tx.execute(sql`insert into accounting_outbox(company_id,event_type,source_id,payload,status,processed_at)
       values(${d.companyId},'WalletSettlement',${`wallet-settlement:${d.sourceId}`},${JSON.stringify(payload)}::jsonb,'processed',now())`);
     await tx.execute(sql`set constraints accounting_wallet_settlement_native_evidence,
-      accounting_wallet_settlement_journal_evidence,accounting_wallet_book_used immediate`);
+      accounting_wallet_settlement_journal_evidence,accounting_wallet_book_used,accounting_foreign_ar_parity immediate`);
     return {...payload,duplicate:false};
   };
   return callerTx?run(callerTx):accountingDb.transaction(run);

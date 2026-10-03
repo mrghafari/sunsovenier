@@ -24,7 +24,7 @@ function manager(a:AccountingAccess){
   if(!a.canManage||!Number.isSafeInteger(a.actorId)||a.actorId<=0||!["admin","custom"].includes(a.actorType))
     throw new AccountingError("Receipt management permission required",403,"ACCESS_DENIED");
 }
-async function ready(tx:AccountingTransaction,companyId:number,currency:string,invoiceRegistration=false){
+async function ready(tx:AccountingTransaction,companyId:number,currency:string,foreignSupported=false){
   await assertLedgerReady(tx);
   const r=await tx.execute(sql`select c.base_currency,cc.decimals from accounting_companies c
     join accounting_currencies cc on cc.code=${currency} and cc.is_active
@@ -32,7 +32,7 @@ async function ready(tx:AccountingTransaction,companyId:number,currency:string,i
     join accounting_receipt_cutovers g on g.company_id=c.id and g.processing_ready
     where c.id=${companyId} and c.is_active`);
   if(!r.rows.length)throw new AccountingError("Receipt processing is blocked until financial cutover is approved",503,"RECEIPT_CUTOVER_BLOCKED");
-  if(!invoiceRegistration&&currency!==r.rows[0].base_currency)throw new AccountingError("Foreign BANK/CASH/CHEQUE receipts need their own asset, allocation and realized-FX book values; automatic conversion is blocked",422,"FX_SETTLEMENT_NOT_READY");
+  if(!foreignSupported&&currency!==r.rows[0].base_currency)throw new AccountingError("Foreign cheques require their own deposit, clearance and return carrying values; automatic conversion is blocked",422,"FX_SETTLEMENT_NOT_READY");
   return r.rows[0].decimals as number;
 }
 async function same(tx:AccountingTransaction,a:unknown,b:unknown){
@@ -96,7 +96,7 @@ export async function recordCustomerReceipt(input:z.input<typeof receiptInputSch
   if(!parsed.success)throw new AccountingError(parsed.error.issues[0].message);
   const run=async(tx:AccountingTransaction)=>{
     await tx.execute(sql`select pg_advisory_xact_lock(718392,0)`);
-    const precision=await ready(tx,parsed.data.companyId,parsed.data.currency);
+    const precision=await ready(tx,parsed.data.companyId,parsed.data.currency,parsed.data.method!=="CHEQUE");
     const d={...parsed.data,amount:exactMoney(parsed.data.amount,precision),allocations:parsed.data.allocations
       .map(a=>({...a,amount:exactMoney(a.amount,precision)})).sort((a,b)=>a.receivableId-b.receivableId)};
     const previous=await tx.execute(sql`select * from accounting_customer_receipts where company_id=${d.companyId} and source_id=${d.sourceId}`);
@@ -119,13 +119,21 @@ export async function recordCustomerReceipt(input:z.input<typeof receiptInputSch
     if(wallet)await reconciled(tx,wallet,d.companyId,liability!);
     const funding=await account(tx,d.companyId,d.method==="CHEQUE"?"CHEQUES_ON_HAND":d.method);
     const ar=await account(tx,d.companyId,"ACCOUNTS_RECEIVABLE");
+    const baseCurrency=String((await tx.execute(sql`select base_currency from accounting_companies where id=${d.companyId}`)).rows[0].base_currency);
+    const foreign=d.currency!==baseCurrency;
+    if(foreign)await tx.execute(sql`set constraints accounting_receipt_book_used,accounting_foreign_receipt_complete deferred`);
     const receipt=(await tx.execute(sql`insert into accounting_customer_receipts(company_id,customer_id,currency,source_id,
       entry_date,method,amount,wallet_credit,wallet_id,input,status) values(${d.companyId},${d.customerId},${d.currency},${d.sourceId},
       ${d.entryDate},${d.method},${d.amount},${excess},${wallet?.id??null},${JSON.stringify(d)}::jsonb,
       ${d.method==="CHEQUE"?"received":"confirmed"}) returning *`)).rows[0];
+    const book=foreign?(await tx.execute(sql`insert into accounting_receipt_book_values(receipt_id) values(${receipt.id}) returning *`)).rows[0]:undefined;
+    const difference=book?decimal(String(book.receivable_base)).plus(String(book.wallet_base)).minus(String(book.funding_base)):decimal("0");
     const lines:JournalInput["lines"]=[{accountId:funding,currency:d.currency,debit:d.amount,credit:"0"}];
     if(total.gt(0))lines.push({accountId:ar,currency:d.currency,debit:"0",credit:total.toFixed(),partyType:"customer",partyId:d.customerId});
     if(wallet)lines.push({accountId:liability!,currency:d.currency,debit:"0",credit:excess,partyType:"customer",partyId:d.customerId});
+    if(!difference.isZero())lines.push({accountId:book!.fx_account_id as number,currency:baseCurrency,
+      debit:difference.gt(0)?difference.toFixed():"0",credit:difference.lt(0)?difference.abs().toFixed():"0",
+      description:"Realized FX on confirmed receipt and historical receivable"});
     const {entry}=await postJournalEntry({companyId:d.companyId,entryDate:d.entryDate,sourceType:"PaymentReceived",
       sourceId:d.sourceId,description:d.reason,lines},actor,tx);
     for(const a of d.allocations){
@@ -136,12 +144,17 @@ export async function recordCustomerReceipt(input:z.input<typeof receiptInputSch
       {receiptId:receipt.id,evidenceReference:d.evidenceReference,verification:"staff_attestation",provisional:d.method==="CHEQUE"});
     await tx.execute(sql`insert into accounting_receipt_events(receipt_id,action,source_id,input,journal_id)
       values(${receipt.id},'received',${d.sourceId},${JSON.stringify(d)}::jsonb,${entry.id})`);
-    await audit(tx,d.companyId,actor,"record_customer_receipt",receipt.id as number,{...d,journalId:entry.id,walletCredit:excess});
+    const bookValues=book?{baseCurrency,assetBaseBooked:String(book.funding_base),receivableBaseSettled:String(book.receivable_base),
+      walletBaseCredited:String(book.wallet_base),officialRate:String(book.official_rate),allocations:book.allocations,
+      realizedFx:{gain:difference.lt(0)?difference.abs().toFixed():"0",loss:difference.gt(0)?difference.toFixed():"0"}}:undefined;
+    await audit(tx,d.companyId,actor,"record_customer_receipt",receipt.id as number,{...d,journalId:entry.id,walletCredit:excess,bookValues});
     await tx.execute(sql`insert into accounting_outbox(company_id,event_type,source_id,payload,status,processed_at)
       values(${d.companyId},'PaymentReceived',${`receipt:${d.sourceId}`},${JSON.stringify({receiptId:receipt.id,journalId:entry.id,
         amount:d.amount,currency:d.currency,method:d.method,verification:"staff_attestation",
-        fundsAvailability:d.method==="CHEQUE"?"uncleared":"confirmed",postingEligible:false})}::jsonb,'processed',now())`);
-    return {receipt,journalId:entry.id,duplicate:false};
+        fundsAvailability:d.method==="CHEQUE"?"uncleared":"confirmed",postingEligible:false,bookValues})}::jsonb,'processed',now())`);
+    if(foreign)await tx.execute(sql`set constraints accounting_receipt_book_used,accounting_foreign_receipt_complete,
+      accounting_foreign_ar_parity immediate`);
+    return {receipt,journalId:entry.id,bookValues,duplicate:false};
   };
   return callerTx?run(callerTx):accountingDb.transaction(run);
 }

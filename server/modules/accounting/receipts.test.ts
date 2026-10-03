@@ -355,8 +355,72 @@ test("receipt/cheque integration remains rollback-only",{skip:process.env.ACCOUN
           values(${draft.id},${ids.WALLET_LIABILITY},'USD',1,1,0,0,0,'customer',${fxCustomer},'historical_carrying')`);
       });
       await rejects(()=>recordCustomerReceipt({companyId:company,customerId:fxCustomer,currency:"USD",sourceId:"still-blocked-fx-receipt",
-        entryDate:"2026-06-10",method:"BANK",amount:"1",evidenceReference:"Foreign receipt not implemented",
-        reason:"No invented foreign asset carrying value"},actor,tx));
+        entryDate:"2026-06-10",method:"CHEQUE",chequeNumber:"not-yet-supported",amount:"1",evidenceReference:"Foreign cheque not implemented",
+        reason:"No invented foreign cheque carrying value"},actor,tx));
+      const receive=async(source:string,date:string,amount:string,method:"BANK"|"CASH",
+        allocations:{receivableId:number;amount:string}[]=[])=>recordCustomerReceipt({
+        companyId:company,customerId:fxCustomer,currency:"USD",sourceId:source,entryDate:date,amount,method,allocations,
+        reason:"Rollback-only actual foreign receipt",evidenceReference:"Staff-attested rollback statement"},actor,tx);
+      await rate("2026-06-11","2");const cashClaim=await issue("fx-cash-claim","2026-06-11","100");
+      await rate("2026-06-12","3");
+      const received=await receive("fx-bank-partial","2026-06-12","50","BANK",[{receivableId:cashClaim.id as number,amount:"50"}]);
+      assert.equal(received.bookValues?.assetBaseBooked,"150.00000000");
+      assert.equal(received.bookValues?.receivableBaseSettled,"100.00000000");
+      assert.deepEqual(received.bookValues?.realizedFx,{gain:"50",loss:"0"});
+      assert.equal((await receive("fx-bank-partial","2026-06-12","50.00","BANK",
+        [{receivableId:cashClaim.id as number,amount:"50.000"}])).duplicate,true);
+      await rejects(()=>receive("fx-bank-partial","2026-06-12","51","BANK",[{receivableId:cashClaim.id as number,amount:"50"}]));
+      const surplus=await receive("fx-bank-surplus","2026-06-12","25","BANK",[{receivableId:cashClaim.id as number,amount:"10"}]);
+      assert.equal(surplus.bookValues?.walletBaseCredited,"45.00000000");
+      assert.deepEqual(surplus.bookValues?.realizedFx,{gain:"10",loss:"0"});
+      await rejects(()=>receive("fx-backdated-receipt","2026-06-11","1","CASH",[{receivableId:cashClaim.id as number,amount:"1"}]));
+      const fromExcess=await settle("fx-surplus-setoff","2026-06-12","10",cashClaim.id as number);
+      assert.equal("walletBaseSettled" in fromExcess&&fromExcess.walletBaseSettled,"30.00000000");
+      assert.equal("receivableBaseSettled" in fromExcess&&fromExcess.receivableBaseSettled,"20.00000000");
+      await rate("2026-06-13","1");
+      const lossReceipt=await receive("fx-cash-loss","2026-06-13","25","CASH",[{receivableId:cashClaim.id as number,amount:"25"}]);
+      assert.deepEqual(lossReceipt.bookValues?.realizedFx,{gain:"0",loss:"25"});
+      await rate("2026-06-14","4");
+      const finalReceipt=await receive("fx-bank-final","2026-06-14","5","BANK",[{receivableId:cashClaim.id as number,amount:"5"}]);
+      assert.equal(finalReceipt.bookValues?.receivableBaseSettled,"10.00000000");
+      assert.deepEqual(await ledger(ids.ACCOUNTS_RECEIVABLE),{native:"0.00000000",base:"0.00000000"});
+      await rejects(()=>reverseJournalEntry(received.journalId as number,"2026-06-14","Unsafe isolated receipt reversal",actor,tx));
+      await rejects(()=>reverseJournalEntry(cashClaim.invoice_journal_id as number,"2026-06-14","Unsafe settled invoice reversal",actor,tx));
+      await rejects(()=>tx.execute(sql`update accounting_receipt_book_values set funding_base=999 where receipt_id=${received.receipt.id}`));
+      await rejects(()=>tx.execute(sql`delete from accounting_receipt_book_values where receipt_id=${received.receipt.id}`));
+      await rejects(async()=>{
+        await tx.execute(sql`update accounting_receivable_items set settled_amount=99 where id=${cashClaim.id}`);
+        await tx.execute(sql`set constraints accounting_foreign_ar_parity immediate`);
+      });
+      await rate("2026-06-15","2");const surplusClaim=await issue("fx-excess-claim","2026-06-15","5");
+      await settle("fx-excess-close","2026-06-15","5",surplusClaim.id as number);
+      assert.deepEqual(await ledger(ids.WALLET_LIABILITY),{native:"0.00000000",base:"0.00000000"});
+      await rate("2026-06-16","1");const firstClaim=await issue("fx-multi-invoice-1","2026-06-16","20");
+      await rate("2026-06-17","3");const secondClaim=await issue("fx-multi-invoice-2","2026-06-17","20");
+      await rate("2026-06-18","2");
+      const multi=await receive("fx-multiple-claims","2026-06-18","40","CASH",[
+        {receivableId:firstClaim.id as number,amount:"20"},{receivableId:secondClaim.id as number,amount:"20"}]);
+      assert.equal(multi.bookValues?.assetBaseBooked,"80.00000000");
+      assert.equal(multi.bookValues?.receivableBaseSettled,"80.00000000");
+      assert.deepEqual(multi.bookValues?.realizedFx,{gain:"0",loss:"0"});
+      const amounts=(multi.bookValues?.allocations as {baseSettled:string}[]).map(x=>Number(x.baseSettled));
+      assert.deepEqual(amounts,[20,60]);
+      await rejects(()=>receive("fx-rate-missing","2026-02-01","1","BANK"));
+      await rejects(()=>receive("fx-over-allocation","2026-06-18","5","BANK",[{receivableId:firstClaim.id as number,amount:"6"}]));
+      await rate("2026-06-19","1");
+      const zeroReceipt=await receive("fx-zero-receipt","2026-06-19","0.01","BANK");
+      assert.equal(zeroReceipt.bookValues?.assetBaseBooked,"0.00000000");
+      assert.equal(zeroReceipt.bookValues?.walletBaseCredited,"0.00000000");
+      const smallClaim=await issue("fx-tiny-receipt-claim","2026-06-19","1");
+      await settle("fx-zero-excess-setoff","2026-06-19","0.01",smallClaim.id as number);
+      await receive("fx-tiny-final-receipt","2026-06-19","0.99","CASH",[{receivableId:smallClaim.id as number,amount:"0.99"}]);
+      assert.deepEqual(await ledger(ids.ACCOUNTS_RECEIVABLE),{native:"0.00000000",base:"0.00000000"});
+      assert.deepEqual(await ledger(ids.WALLET_LIABILITY),{native:"0.00000000",base:"0.00000000"});
+      await rejects(()=>postJournalEntry({companyId:company,entryDate:"2026-06-19",sourceType:"PaymentReceived",
+        sourceId:"fx-no-receipt-proof",description:"Reject fabricated receipt journal",lines:[
+          {accountId:ids.BANK,currency:"USD",debit:"1"},
+          {accountId:ids.ACCOUNTS_RECEIVABLE,currency:"USD",credit:"1",partyType:"customer",partyId:fxCustomer},
+        ]},actor,tx));
     });
     done=true;throw end;
   });}catch(e){if(e!==end)throw e;}finally{await pool.end();}
