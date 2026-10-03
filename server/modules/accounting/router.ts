@@ -11,6 +11,8 @@ import { captureOperationalEvent } from "./events";
 import {linkWallet,recordWalletMovement,releaseWalletHold,approveWalletOrder} from "./wallet";
 import {recordCustomerReceipt,transitionCheque,readReceivables,returnCustomerReceipt} from "./receipts";
 import {settleWalletReceivable} from "./wallet-settlement";
+import {readAccountingReport} from "./reports";
+import {accountingReportCsv} from "./report-csv";
 
 export function createAccountingRouter() {
   const router = Router();
@@ -38,6 +40,18 @@ export function createAccountingRouter() {
       const currencies = await accountingDb.select().from(accountingCurrencies);
       res.json({access:res.locals.accountingAccess,companies,currencies,resources:accountingResources,postingKeys:POSTING_KEYS,integrationEnabled:false});
     } catch (error) { next(error); }
+  });
+  router.get("/v2/reports/:report/csv",async(req,res,next)=>{
+    try{
+      const report=await readAccountingReport(req.params.report,req.query,undefined,true);
+      res.set({"Content-Type":"text/csv; charset=utf-8","Cache-Control":"private, no-store",
+        "Content-Disposition":`attachment; filename="accounting-${report.report}-${report.company.id}-${report.filters.from}-${report.filters.to}.csv"`});
+      res.send(accountingReportCsv(report));
+    }catch(e){next(e);}
+  });
+  router.get("/v2/reports/:report",async(req,res,next)=>{
+    try{res.set("Cache-Control","private, no-store");res.json(await readAccountingReport(req.params.report,req.query));}
+    catch(e){next(e);}
   });
   router.post("/v2/wallets/settle",async(req,res,next)=>{
     try{res.json(await settleWalletReceivable(req.body,res.locals.accountingAccess));}

@@ -20,8 +20,10 @@ The operator explicitly authorized building a new core from the specification.
 
 **Financial steps 4–10 are not complete.** Business events are captured transactionally;
 no accounting consumer is running and no captured event is eligible for posting.
-No real invoices, customer receivables, wallet movements, receipts, cheques or
-financial reports are produced by this module yet. The UI states this explicitly.
+No live invoice/stock/receipt/wallet pipeline has been activated. Reports now inspect
+real posted ledger records (including manually posted records and their reversals),
+but do not import or verify legacy openings or infer business balances from an empty
+ledger. The UI states these limits explicitly.
 The legacy accounting-only sample invoice endpoints now return 410 rather than
 pretending to persist invoices. Existing shop invoices and manual invoice records
 are not modified.
@@ -470,3 +472,58 @@ never uses this filter.
 `ACCOUNTING_DB_TEST=1 npx tsx --test server/modules/accounting/receipt-returns.test.ts`
 runs the isolated full bank/cash return checks, including base/foreign values,
 pooled residuals, spent excess, debt settlement, protected funds and DB provenance.
+
+### Posted ledger reports and visible accounting workspace
+
+By explicit user choice, report UI work precedes the remaining foreign wallet
+refund and external finance credit-limit integration. Those paths remain deferred;
+no native finance approval behavior or financial activation flag changed.
+
+The existing `/mrg/accounting-management` page has Reference setup and Reports
+views. Reports cover Journal (posted entry lines and provenance, with entry-ID
+detail filtering), General ledger (one account, with opening/movement/closing and
+running balances), and Trial balance (account opening, period debits/credits and
+closing debit/credit). All three have real CSV export and fa/ar/en/tr copy.
+
+Read-only authenticated accounting viewers and managers share these routes:
+- `GET /api/accounting/v2/reports/journal`
+- `GET /api/accounting/v2/reports/ledger`
+- `GET /api/accounting/v2/reports/trial-balance`
+- Append `/csv` for the whole matching scope, not just the visible page.
+
+Queries require `companyId`, Gregorian `from` and `to`; optional `accountId`,
+`currency`, `costCenterId`, and paired `partyType` (`customer`/`carrier`) plus
+`partyId` filter the same opening/period/closing scope. Ledger requires an
+account. Journal alone accepts `entryId`. IDs are company-checked; currencies
+must exist. Page size is 1–200 (default 50). Reports include inactive historical
+accounts/centers/currencies, not just current operational choices.
+
+Only posted entries count. Drafts and captured-only events are excluded. Both
+the original posted entry and its posted reversal remain in the ledger; effects
+cancel at the reversal date rather than rewriting earlier reports. Rows sort by
+entry date, entry ID and line ID, so running balances include earlier pages.
+Money stays an exact decimal string; native running balances and totals are
+partitioned by transaction currency, never added across currencies. Trial balance
+uses company base currency. Filtered dimensions can legitimately form an
+unbalanced subset; they are explicitly not the full company's trial balance.
+
+Each standalone report runs in a repeatable-read, read-only transaction, so
+metadata, count, openings, totals and the page share one snapshot. Whole-filter
+totals do not change with pagination. JSON/CSV responses are private and no-store.
+CSV includes UTF-8 BOM, coverage/filter/base-currency/total metadata, exact native
+currency summaries, properly quoted Unicode and multiline text, and spreadsheet
+formula protection for untrusted text. Exports above 10,000 rows fail explicitly
+instead of silently truncating; narrow the filters.
+
+Coverage shows actual posted-entry counts and current receipt/wallet cutover
+flags. No posted records means no posted records, not zero legacy business
+balances. These reports do not certify legacy opening reconciliation.
+
+`ACCOUNTING_DB_TEST=1 npx tsx --test server/modules/accounting/reports-db.test.ts`
+checks rollback-only report fixtures, huge exact values, opening/running balances,
+currency partitioning, reversals, scoped filters, company isolation and exports.
+`npm run test:accounting` includes query-validation and safe-CSV unit checks.
+`node client/src/components/admin/accounting/run-report-ssr-smoke.mjs` checks the
+presentation layer in all four languages, exact decimal strings, separate native
+currency summaries, and empty periods that still have an opening balance. This
+supplements, rather than replaces, the complete app build and type check.
