@@ -1,4 +1,5 @@
 import { customerDb } from "./customer-db";
+type WalletTransactionDb = Parameters<Parameters<typeof customerDb.transaction>[0]>[0];
 import { 
   customers,
   customerWallets, 
@@ -88,13 +89,13 @@ export class WalletStorage implements IWalletStorage {
     return wallet;
   }
 
-  async updateWalletBalance(walletId: number, newBalance: number): Promise<CustomerWallet> {
+  async updateWalletBalance(walletId: number, newBalance: number, tx?: WalletTransactionDb): Promise<CustomerWallet> {
     // 🚫 CRITICAL: هیچگاه اجازه موجودی منفی را نده
     if (newBalance < 0) {
       throw new Error(`Cannot update wallet to negative balance: ${newBalance}`);
     }
     
-    const [wallet] = await customerDb
+    const [wallet] = await (tx ?? customerDb)
       .update(customerWallets)
       .set({ 
         balance: newBalance.toString(),
@@ -132,8 +133,8 @@ export class WalletStorage implements IWalletStorage {
   }
 
   // Transaction management
-  async createTransaction(transactionData: InsertWalletTransaction): Promise<WalletTransaction> {
-    const [transaction] = await customerDb
+  async createTransaction(transactionData: InsertWalletTransaction, tx?: WalletTransactionDb): Promise<WalletTransaction> {
+    const [transaction] = await (tx ?? customerDb)
       .insert(walletTransactions)
       .values(transactionData)
       .returning();
@@ -189,6 +190,8 @@ export class WalletStorage implements IWalletStorage {
     const currentBalance = parseFloat(wallet.balance);
     const newBalance = currentBalance + amount;
 
+    // Preserve legacy amounts/timing, but commit the native credit, balance and outbox together.
+    return customerDb.transaction(async tx => {
     // Create transaction record
     const transaction = await this.createTransaction({
       walletId: wallet.id,
@@ -203,12 +206,13 @@ export class WalletStorage implements IWalletStorage {
       referenceId,
       status: "completed",
       processedBy
-    });
+    }, tx);
 
     // Update wallet balance
-    await this.updateWalletBalance(wallet.id, newBalance);
+    await this.updateWalletBalance(wallet.id, newBalance, tx);
 
     return transaction;
+    });
   }
 
   async debitWallet(
@@ -241,6 +245,8 @@ export class WalletStorage implements IWalletStorage {
       throw new Error(`Operation would result in negative balance. Current: ${currentBalance}, Debit: ${amount}, Result: ${newBalance}`);
     }
 
+    // Couple the existing debit record and balance write; do not move the debit in the workflow.
+    return customerDb.transaction(async tx => {
     // Create transaction record
     const transaction = await this.createTransaction({
       walletId: wallet.id,
@@ -255,12 +261,13 @@ export class WalletStorage implements IWalletStorage {
       referenceId,
       status: "completed",
       processedBy
-    });
+    }, tx);
 
     // Update wallet balance
-    await this.updateWalletBalance(wallet.id, newBalance);
+    await this.updateWalletBalance(wallet.id, newBalance, tx);
 
     return transaction;
+    });
   }
 
   // رزرو مبلغ برای سفارش در انتظار
@@ -598,8 +605,10 @@ export class WalletStorage implements IWalletStorage {
     const amount = parseFloat(reservation.amount);
     const newBalance = currentBalance - amount;
 
+    // Preserve confirmation timing while making status and balance inseparable.
+    await customerDb.transaction(async tx => {
     // Update the reservation transaction to completed
-    await customerDb
+    await tx
       .update(walletTransactions)
       .set({
         status: "completed",
@@ -612,7 +621,8 @@ export class WalletStorage implements IWalletStorage {
       .where(eq(walletTransactions.id, reservationId));
 
     // Actually deduct from wallet balance
-    await this.updateWalletBalance(wallet.id, newBalance);
+    await this.updateWalletBalance(wallet.id, newBalance, tx);
+    });
 
     const updatedTransaction = await this.getTransactionById(reservationId);
     console.log(`✅ [WALLET CONFIRM] Confirmed reservation ${reservationId}: ${amount} IQD deducted from customer ${reservation.customerId}`);

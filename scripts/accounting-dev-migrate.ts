@@ -15,6 +15,8 @@ try {
     "migrations/accounting/0000_strange_praxagora.sql",
     "server/modules/accounting/0001_ledger_guards.sql",
     "server/modules/accounting/0002_ledger_hardening.sql",
+    "server/modules/accounting/0003_transactional_outbox.sql",
+    "server/modules/accounting/0004_event_capture_hardening.sql",
   ];
   for (const file of files) {
     const content = await readFile(file,"utf8");

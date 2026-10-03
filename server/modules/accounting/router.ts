@@ -7,6 +7,7 @@ import { seedAccounting } from "./seed";
 import { POSTING_KEYS, accountingResources, type AccountingAccess } from "@shared/accounting-api";
 import { databaseErrorCode } from "./errors";
 import { assertLedgerReady } from "./readiness";
+import { captureOperationalEvent } from "./events";
 
 export function createAccountingRouter() {
   const router = Router();
@@ -64,6 +65,10 @@ export function createAccountingRouter() {
   // Retire the mock-only accounting endpoints. Real shop/manual invoices remain untouched.
   router.all(["/invoices","/invoices/:id"],(_req,res) => {
     res.status(410).json({code:"LEGACY_MOCK_RETIRED",message:"The old sample invoice service is retired; use the centralized accounting module"});
+  });
+  router.post("/v2/integrations/operational-events",async(req,res,next)=>{
+    try { res.status(201).json(await captureOperationalEvent(req.body,res.locals.accountingAccess)); }
+    catch(error){next(error);}
   });
   router.use((error: unknown,_req: Request,res: Response,_next: NextFunction) => {
     if (error instanceof AccountingError) return res.status(error.status).json({code:error.code,message:error.message});

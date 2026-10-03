@@ -21,3 +21,15 @@ export async function assertLedgerReady(db: typeof accountingDb | AccountingTran
     throw new AccountingError("Accounting database guards are not installed or enabled; financial changes are blocked",503,"LEDGER_GUARDS_MISSING");
   }
 }
+export async function assertEventBridgeReady(db: typeof accountingDb | AccountingTransaction = accountingDb) {
+  const result = await db.execute(sql`select t.tgname from pg_trigger t join pg_class c on c.oid=t.tgrelid
+    join pg_namespace n on n.oid=c.relnamespace where n.nspname='public'
+    and not t.tgisinternal and t.tgenabled in ('O','A')`);
+  const found = new Set(result.rows.map(r=>String(r.tgname)));
+  const required = ["accounting_capture_order_snapshot","accounting_capture_line_snapshot",
+    "accounting_emit_customer_order","accounting_emit_managed_order","accounting_emit_wallet",
+    "accounting_emit_operational_fact","accounting_guard_event_payload"];
+  if (required.some(g=>!found.has(g))) {
+    throw new AccountingError("Accounting event bridge migration is missing or disabled",503,"EVENT_BRIDGE_MISSING");
+  }
+}

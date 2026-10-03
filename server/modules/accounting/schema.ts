@@ -100,3 +100,16 @@ export const accountingOutbox = pgTable("accounting_outbox", {
   createdAt: createdAt(), processedAt: timestamp("processed_at", { withTimezone: true }),
 }, t => [uniqueIndex("accounting_outbox_event_identity").on(t.companyId, t.eventType, t.sourceId),
   index("accounting_outbox_pending").on(t.status, t.nextAttemptAt)]);
+
+export const accountingSourceBindings = pgTable("accounting_source_bindings", {
+  sourceModule:text("source_module").primaryKey(),
+  companyId:integer("company_id").notNull().references(()=>accountingCompanies.id),
+  captureEnabled:boolean("capture_enabled").notNull().default(false),
+});
+export const accountingOperationalFacts = pgTable("accounting_operational_facts", {
+  id:serial("id").primaryKey(), companyId:integer("company_id").notNull().references(()=>accountingCompanies.id),
+  orderId:integer("order_id").notNull(), eventType:text("event_type").notNull(),
+  sourceId:text("source_id").notNull(), payload:jsonb("payload").notNull(),
+  actorId:integer("actor_id").notNull(),actorType:text("actor_type").notNull(),
+  createdAt:createdAt(),
+}, t=>[uniqueIndex("accounting_fact_identity").on(t.companyId,t.eventType,t.sourceId)]);
