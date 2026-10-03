@@ -17,7 +17,7 @@ export const tables = {
   settings:schema.accountingSettings,
 };
 export const expectedAccountTypes: Record<PostingKey,string> = {
-  BANK:"asset", CASH:"asset", CHEQUE_CLEARING:"asset", ACCOUNTS_RECEIVABLE:"asset",
+  BANK:"asset", GATEWAY:"asset", CASH:"asset", CHEQUE_CLEARING:"asset", ACCOUNTS_RECEIVABLE:"asset",
   INVENTORY:"asset", WALLET_LIABILITY:"liability", TAX_PAYABLE:"liability", CARRIER_PAYABLE:"liability",
   SALES_REVENUE:"revenue", SHIPPING_REVENUE:"revenue", FX_GAIN:"revenue",
   SHIPPING_EXPENSE:"expense", FLEET_COST_ABSORBED:"expense", COGS:"expense", BANK_FEES:"expense",

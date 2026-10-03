@@ -3,7 +3,7 @@ import { pool } from "../../db";
 import type { AccountingAccess } from "@shared/accounting-api";
 
 export class AccountingError extends Error {
-  constructor(message: string, public status = 422, public code = "ACCOUNTING_VALIDATION") { super(message); }
+  constructor(message: string, public status = 422, public code = "ACCOUNTING_VALIDATION") { super(message); this.name="AccountingError"; }
 }
 export async function resolveAccountingAccess(req: Request): Promise<AccountingAccess> {
   const session = req.session;

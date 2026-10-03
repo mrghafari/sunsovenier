@@ -126,8 +126,13 @@ export class WalletStorage implements IWalletStorage {
     const totalBalance = parseFloat(wallet.balance);
     const creditLimit = parseFloat(wallet.creditLimit || "0");
     const pendingReservations = await this.getPendingReservations(customerId);
-    const reservedBalance = pendingReservations.reduce((sum, r) => sum + parseFloat(r.amount), 0);
-    const availableBalance = totalBalance + creditLimit - reservedBalance;
+    const {newWalletAccountingState} = await import("./modules/accounting/wallet");
+    const accountingState=await newWalletAccountingState(wallet.id);
+    const legacyReserved=pendingReservations.reduce((sum, r) => sum + parseFloat(r.amount), 0);
+    const reservedBalance = (accountingState.controlled?Math.max(legacyReserved,Number(wallet.reservedBalance)):legacyReserved)
+      + Number(accountingState.held);
+    // Numbers here preserve the legacy display contract; financial authorization uses decimal strings and locked rows.
+    const availableBalance = totalBalance + (accountingState.controlled?0:creditLimit) - reservedBalance;
     
     return { totalBalance, reservedBalance, availableBalance, creditLimit };
   }
@@ -504,12 +509,16 @@ export class WalletStorage implements IWalletStorage {
 
     // Calculate reserved balance (pending wallet reservations)
     const pendingReservations = await this.getPendingReservations(customerId);
-    const reservedBalance = pendingReservations.reduce((sum, r) => sum + parseFloat(r.amount), 0);
+    const {newWalletAccountingState} = await import("./modules/accounting/wallet");
+    const accountingState=wallet?await newWalletAccountingState(wallet.id):{held:"0",controlled:false};
+    const legacyReserved=pendingReservations.reduce((sum, r) => sum + parseFloat(r.amount), 0);
+    const reservedBalance = (accountingState.controlled?Math.max(legacyReserved,Number(wallet?.reservedBalance||0)):legacyReserved)
+      + Number(accountingState.held);
     
     // Calculate available balance (total balance - reserved + credit limit)
     const currentBalance = wallet ? parseFloat(wallet.balance) : 0;
     const creditLimit = wallet ? parseFloat(wallet.creditLimit || "0") : 0;
-    const availableBalance = currentBalance + creditLimit - reservedBalance;
+    const availableBalance = currentBalance + (accountingState.controlled?0:creditLimit) - reservedBalance;
 
     return {
       wallet,

@@ -12,7 +12,7 @@ const code = z.string().trim().min(1).max(40);
 const name = z.string().trim().min(1).max(200);
 export const currencyCode = z.string().regex(/^[A-Z]{3}$/);
 export const POSTING_KEYS = [
-  "BANK", "CASH", "CHEQUE_CLEARING", "ACCOUNTS_RECEIVABLE",
+  "BANK", "GATEWAY", "CASH", "CHEQUE_CLEARING", "ACCOUNTS_RECEIVABLE",
   "WALLET_LIABILITY", "SALES_REVENUE", "TAX_PAYABLE", "SHIPPING_REVENUE",
   "SHIPPING_EXPENSE", "CARRIER_PAYABLE", "FLEET_COST_ABSORBED",
   "INVENTORY", "COGS", "BANK_FEES", "FX_GAIN", "FX_LOSS", "OPENING_BALANCE_EQUITY",

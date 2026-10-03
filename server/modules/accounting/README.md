@@ -65,6 +65,74 @@ are not modified.
 
 ## Development commands
 
+### Step 4 — staged customer prepaid liability
+
+The native wallet remains the single customer balance; it is a **company payable
+to the customer**, not revenue. Added migrations `0005_wallet_liability.sql`
+and `0006_wallet_write_guards.sql` are additive, development-only, checksum tracked.
+Wallet schema inventory is included in both Drizzle configurations. Do not use
+blind `db:push`: snapshot columns and custom SQL guards still require the
+reviewed migration path described below.
+
+Implemented:
+- Explicit immutable wallet/company/CRM/currency links, with audited setup.
+  Portal customer IDs are never presumed equal to independent CRM IDs.
+- Exact decimal-string top-up: Dr configured BANK or GATEWAY asset / Cr
+  WALLET_LIABILITY, party = CRM customer. Gateway clearing has its own posting
+  key and an editable, localized mapping, not a hardcoded account ID.
+- Refund of **unblocked prepaid funds**: Dr WALLET_LIABILITY / Cr selected
+  BANK/GATEWAY. A staff-attested evidence reference and reason are mandatory;
+  this does not claim automatic provider or bank-statement verification.
+- Native balance, transaction, posted journal, immutable movement, audit and
+  outbox event commit in one transaction. Source retries match normalized
+  input; changed input conflicts instead of moving funds again.
+- `FOR UPDATE` wallet locks, fiscal/currency precision checks and conservative
+  native `numeric(12,2)` transaction range checks. No financial floats.
+- Full-wallet new-order registration in both existing checkouts. Checkout does
+  not debit or mark paid; finance approval holds the locked quoted order total.
+  Holds block available balance but create **no journal and no revenue**.
+- The existing finance management-ID approval URL intercepts only registered
+  new prepaid orders, using active accounting permissions. Other native finance
+  status writers share the database hold guard. Zero-ID auto-approval cannot
+  create a new hold. Invalid states and insufficient funds fail atomically.
+- Hold release on native order cancellation/deletion, plus a reasoned manager
+  release API. Hold evidence cannot be erased or reactivated. Customer wallet
+  summary includes new holds. A controlled prepaid account does not treat a
+  credit limit as company-held customer cash.
+- Controlled native wallets reject unjournaled legacy credits/debits and direct
+  balance edits, including after deactivation when financial evidence remains.
+  Old/unlinked wallets are unchanged. New prepared quotes/identities are immutable.
+
+Manager APIs under `/api/accounting`: `POST /v2/wallets/link`,
+`POST /v2/wallets/topup`, `POST /v2/wallets/refund`,
+`POST /v2/wallet-orders/:orderId/approve`, and
+`POST /v2/wallet-holds/:orderId/release`. Linking uses `{companyId,walletId}`.
+Movement requires `{companyId,walletId,sourceId,entryDate,amount,channel,
+evidenceReference,reason}`; money is a string and channel is BANK or GATEWAY.
+
+**Not activated:** cutover rows default to `pipeline_ready=false`; there is no
+activation UI/API. An opening reference alone is not an activation authorization.
+Do not change this flag in live data until the remaining financial pipeline,
+verified opening/party/currency reconciliation and an audited rollout are complete.
+No legacy balances, receipts or captured events are promoted to financial facts.
+Already paid, pre-cutover, contract and cross-currency orders cannot be enrolled.
+Split wallet/bank processing, receipt allocation, loading consumption/partial
+settlement and paid transitions await the following steps. Step 4 intentionally
+blocks native paid transitions for future-cutover wallet orders until that bridge
+exists. It is **not yet safe to activate** the full business flow.
+
+Before activation, retire/reroute all recharge, manual adjustment and mixed-payment
+writers for controlled wallets; resolve old pending reservations and pending wallet
+orders. Do not activate a shared wallet while legacy mutations still need to run:
+those mutations cannot safely bypass its liability ledger. Native pricing and
+physical stock behavior have not been rewritten. Weight/ton conversion and FIFO
+valuation sources remain prerequisites for the later loading pipeline.
+
+`wallet.test.ts` uses one rollback-only fixture transaction and synthetic temporary
+cutover proof. It leaves no company, balance, posted journal or native test order.
+Customer/admin signed-in screens require separate authenticated UI verification;
+unauthenticated screenshots cannot validate those screens.
+
 ```
 npm run accounting:generate
 npm run accounting:migrate:dev

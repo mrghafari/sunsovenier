@@ -19395,6 +19395,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       // Handle wallet payments with smart conversion
       let finalPaymentStatus = "pending";
       let actualWalletUsed = 0;
+      let accountingWalletDeferred = false;
       let finalPaymentMethod = paymentMethod || "bank_transfer";
       
       // Import currency utilities for IQD formatting
@@ -19522,6 +19523,12 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
               finalPaymentStatus = "pending"; // Not paid yet - waiting for bank confirmation
               console.log('💰 [PAYMENT STATUS] Set to PENDING - wallet_partial awaiting bank payment');
             } else if (finalPaymentMethod === 'wallet_full') {
+              const accountingWallet = await import("./modules/accounting/wallet");
+              accountingWalletDeferred = await accountingWallet.shouldDeferWalletCheckout(Number(customerId && crmCustomerId || 0));
+              if (accountingWalletDeferred) {
+                actualWalletUsed = 0;
+                finalPaymentStatus = "pending";
+              } else {
               // Full wallet payment - deduct immediately
               const transaction = await walletStorage.debitWallet(
                 customerIdToUse,
@@ -19536,9 +19543,11 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
               actualWalletUsed = walletUsage;
               finalPaymentStatus = "paid"; // Fully paid by wallet
               console.log('💰 [PAYMENT STATUS] Set to PAID - wallet_full payment complete');
+              }
             }
 
           } catch (error) {
+            if (error instanceof Error && error.name === "AccountingError") throw error;
             console.error('❌ [WALLET ERROR] Failed to process wallet payment:', error);
             // Don't fail the order if wallet payment fails - set to pending
             finalPaymentStatus = "pending";
@@ -19557,7 +19566,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       const orderData = {
         orderNumber, // Will be null for bank payments initially
         customerId: customerId || null,
-        ...(contractHoldId !== null ? { currency: "IQD" } : {}),
+        ...(contractHoldId !== null || accountingWalletDeferred ? { currency: "IQD" } : {}),
         totalAmount: Math.round(serverTotalAmount).toString(),
         shippingCost: Math.round(serverShippingCost).toString(),
         vatAmount: serverVatAmount.toString(),
@@ -19708,6 +19717,16 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       });
       
       // If wallet covers full amount, mark as paid and route to finance department
+      if (accountingWalletDeferred) {
+        const {prepareWalletOrder} = await import("./modules/accounting/wallet");
+        await prepareWalletOrder(order.id,Number(crmCustomerId));
+        return res.json({success:true,requiresBankPayment:false,paymentMethod:"wallet_full",
+          message:"سفارش منتظر تأیید مالی و بلوکه‌کردن موجودی حساب نزد شرکت است.",
+          order:{id:order.id,orderNumber:order.orderNumber,totalAmount:order.totalAmount,
+            status:"finance_pending",paymentStatus:"pending",paymentMethod:"wallet_full"},
+          orderId:order.id,orderNumber:order.orderNumber,
+          awaitingFinanceApproval:true,walletDebited:false});
+      }
       if (isFullWalletPayment || walletCoversFullAmount) {
         console.log('✅ [FULL WALLET] Payment covers full amount - routing to finance department', {
           isFullWalletPayment,
@@ -20120,6 +20139,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       // Handle payment method processing
       let finalPaymentStatus = "pending";
       let walletAmountUsed = 0;
+      let accountingCustomerWalletDeferred = false;
       let remainingAmount = totalAmount;
       let finalPaymentMethod = orderData.paymentMethod || "traditional";
 
@@ -20173,6 +20193,13 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
             // CRITICAL: For wallet_partial payments, RESERVE funds instead of deducting
             // Actual deduction happens ONLY after bank payment is confirmed
             if (Math.round(remainingAmount) <= 1) {
+              const accountingWallet = await import("./modules/accounting/wallet");
+              accountingCustomerWalletDeferred = await accountingWallet.shouldDeferWalletCheckout(Number(customerId && crmCustomerId || 0));
+              if (accountingCustomerWalletDeferred) {
+                walletAmountUsed = 0;
+                finalPaymentStatus = "pending";
+                finalPaymentMethod = "wallet_full";
+              } else {
               // Full wallet payment - deduct immediately
               const transaction = await walletStorage.debitWallet(
                 finalCustomerId,
@@ -20187,6 +20214,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
               finalPaymentStatus = "paid"; // Fully paid by wallet
               finalPaymentMethod = "wallet_full"; // Ensure correct method
               console.log(`🏪 [WAREHOUSE DIRECT] Order ${orderNumber} fully paid by wallet - direct to warehouse`);
+              }
             } else {
               // Partial wallet payment - RESERVE funds, don't deduct yet
               const reservation = await walletStorage.reserveWallet(
@@ -20204,6 +20232,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
               console.log(`🏦 [BANK REQUIRED] Order ${orderNumber} - wallet reserved, remaining ${remainingAmount} needs bank payment`);
             }
           } catch (walletError) {
+            if (walletError instanceof Error && walletError.name === "AccountingError") throw walletError;
             console.log(`❌ Wallet payment failed for order ${orderNumber}:`, walletError);
             // TODO: Delete the order to free up the number
             return res.status(400).json({
@@ -20245,7 +20274,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         paymentMethod: finalPaymentMethod,
         totalAmount: Math.round(totalAmount).toString(),
         shippingCost: Math.round(shippingAmount).toString(),
-        currency: contractHoldId !== null ? "IQD" : (orderData.currency || "IQD"),
+        currency: contractHoldId !== null || accountingCustomerWalletDeferred ? "IQD" : (orderData.currency || "IQD"),
         notes: orderData.notes || "",
           // Add calculated weight
           totalWeight: calculatedTotalWeight > 0 ? calculatedTotalWeight.toFixed(3) : null,
@@ -20904,6 +20933,16 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       }
       
       // 💰 [PURE_WALLET] Handle pure wallet payment method FIRST (before bank routing)
+      if (accountingCustomerWalletDeferred) {
+        const {prepareWalletOrder} = await import("./modules/accounting/wallet");
+        await prepareWalletOrder(order.id,Number(crmCustomerId));
+        return res.json({success:true,requiresBankPayment:false,paymentMethod:"wallet_full",
+          message:"سفارش منتظر تأیید مالی و بلوکه‌کردن موجودی حساب نزد شرکت است.",
+          order:{id:order.id,orderNumber:order.orderNumber,totalAmount:order.totalAmount,
+            status:"finance_pending",paymentStatus:"pending",paymentMethod:"wallet_full"},
+          orderId:order.id,orderNumber:order.orderNumber,
+          awaitingFinanceApproval:true,walletDebited:false});
+      }
       if (finalPaymentMethod === 'wallet' || finalPaymentMethod === 'wallet_full') {
         console.log(`💰 [PURE_WALLET] Processing pure wallet payment for ${totalAmount} IQD`);
         
@@ -31872,6 +31911,27 @@ ${message ? `Additional Requirements:\n${message}` : ''}
 
   // Approve financial order with smart wallet management (public access for financial department)
   app.post('/api/finance/orders/:id/approve', async (req: Request, res: Response) => {
+    // Preserve legacy ID semantics (management ID), but new prepaid orders never enter the old paid/debit branch.
+    try {
+      const {pool}=await import("./db");
+      const installed=await pool.query("select to_regclass('public.accounting_wallet_orders') as relation");
+      if(installed.rows[0].relation) {
+        const linked=await pool.query(`select o.order_id from accounting_wallet_orders o
+          join order_management m on m.customer_order_id=o.order_id where m.id=$1`,[req.params.id]);
+        if(linked.rows.length) {
+          const {resolveAccountingAccess}=await import("./modules/accounting/access");
+          const {approveWalletOrder}=await import("./modules/accounting/wallet");
+          const actor=await resolveAccountingAccess(req);
+          const result=await approveWalletOrder(linked.rows[0].order_id,String(req.body.notes||""),actor);
+          return res.json({success:true,message:"تأیید مالی انجام شد؛ مبلغ حساب نزد شرکت بلوکه شد و هنوز کسر نشده است.",...result});
+        }
+      }
+    } catch(e) {
+      const {AccountingError}=await import("./modules/accounting/access");
+      return res.status(e instanceof AccountingError?e.status:409).json({
+        success:false,code:e instanceof AccountingError?e.code:"WALLET_APPROVAL_FAILED",
+        message:e instanceof AccountingError?e.message:"Financial approval failed; no successful hold is implied"});
+    }
     try {
       const orderId = parseInt(req.params.id);
       const { notes, receiptAmount } = req.body; // receiptAmount: مبلغ واریزی در فیش

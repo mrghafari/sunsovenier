@@ -2,6 +2,7 @@ import type { AccountingResource, AccountingRow, PostingKey } from "@shared/acco
 
 const postingLabels: Record<PostingKey, Record<string, string>> = {
   BANK: { en: "Bank", fa: "بانک", ar: "البنك", tr: "Banka" },
+  GATEWAY: { en: "Payment gateway clearing", fa: "حساب واسط درگاه پرداخت", ar: "مستحقات بوابة الدفع", tr: "Ödeme geçidi takas hesabı" },
   CASH: { en: "Cash", fa: "نقد", ar: "نقد", tr: "Nakit" },
   CHEQUE_CLEARING: { en: "Cheque clearing", fa: "وصول چک", ar: "مقاصة الشيكات", tr: "Çek takası" },
   ACCOUNTS_RECEIVABLE: { en: "Accounts receivable", fa: "حساب‌های دریافتنی", ar: "الذمم المدينة", tr: "Ticari alacaklar" },

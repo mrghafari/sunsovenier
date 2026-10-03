@@ -1,6 +1,7 @@
 import type { PostingKey } from "@shared/accounting-api";
 export const iraqChart: {code:string;nameAr:string;nameEn:string;type:string;key?:PostingKey}[] = [
   {code:"1100",nameAr:"البنك",nameEn:"Bank",type:"asset",key:"BANK"},
+  {code:"1130",nameAr:"مستحقات بوابة الدفع",nameEn:"Payment gateway clearing",type:"asset",key:"GATEWAY"},
   {code:"1110",nameAr:"الصندوق",nameEn:"Cash",type:"asset",key:"CASH"},
   {code:"1120",nameAr:"شيكات قيد التحصيل",nameEn:"Cheques in clearing",type:"asset",key:"CHEQUE_CLEARING"},
   {code:"1200",nameAr:"الذمم المدينة",nameEn:"Accounts receivable",type:"asset",key:"ACCOUNTS_RECEIVABLE"},

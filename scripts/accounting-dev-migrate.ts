@@ -17,6 +17,8 @@ try {
     "server/modules/accounting/0002_ledger_hardening.sql",
     "server/modules/accounting/0003_transactional_outbox.sql",
     "server/modules/accounting/0004_event_capture_hardening.sql",
+    "server/modules/accounting/0005_wallet_liability.sql",
+    "server/modules/accounting/0006_wallet_write_guards.sql",
   ];
   for (const file of files) {
     const content = await readFile(file,"utf8");
