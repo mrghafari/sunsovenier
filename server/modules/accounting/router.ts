@@ -10,6 +10,7 @@ import { assertLedgerReady } from "./readiness";
 import { captureOperationalEvent } from "./events";
 import {linkWallet,recordWalletMovement,releaseWalletHold,approveWalletOrder} from "./wallet";
 import {recordCustomerReceipt,transitionCheque,readReceivables} from "./receipts";
+import {settleWalletReceivable} from "./wallet-settlement";
 
 export function createAccountingRouter() {
   const router = Router();
@@ -37,6 +38,10 @@ export function createAccountingRouter() {
       const currencies = await accountingDb.select().from(accountingCurrencies);
       res.json({access:res.locals.accountingAccess,companies,currencies,resources:accountingResources,postingKeys:POSTING_KEYS,integrationEnabled:false});
     } catch (error) { next(error); }
+  });
+  router.post("/v2/wallets/settle",async(req,res,next)=>{
+    try{res.json(await settleWalletReceivable(req.body,res.locals.accountingAccess));}
+    catch(error){next(error);}
   });
   router.post("/v2/seed",async (req,res,next) => {
     try {

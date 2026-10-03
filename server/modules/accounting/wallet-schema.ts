@@ -27,13 +27,16 @@ export const accountingWalletHolds=pgTable("accounting_wallet_holds",{
   walletId:integer("wallet_id").notNull().references(()=>accountingWalletLinks.walletId),
   orderId:integer("order_id").notNull().unique().references(()=>accountingWalletOrders.orderId),
   amount:amount(),currency:text("currency").notNull().references(()=>accountingCurrencies.code),
+  consumedAmount:numeric("consumed_amount",{precision:38,scale:8}).notNull().default("0"),
   status:text("status").notNull().default("active"),createdBy:integer("created_by").notNull(),createdAt:created(),
   releasedAt:timestamp("released_at",{withTimezone:true}),releaseReason:text("release_reason"),
 },t=>[index("accounting_wallet_active_holds").on(t.walletId,t.status),
   check("accounting_wallet_holds_amount_check",sql`${t.amount}>0`),
-  check("accounting_wallet_holds_status_check",sql`${t.status} in ('active','released')`),
-  check("accounting_wallet_holds_check",sql`(${t.status}='active' and ${t.releasedAt} is null) or
-    (${t.status}='released' and ${t.releasedAt} is not null and length(trim(${t.releaseReason}))>=5)`)]);
+  check("accounting_wallet_holds_consumed_amount_check",sql`${t.consumedAmount}>=0 and ${t.consumedAmount}<=${t.amount}`),
+  check("accounting_wallet_holds_status_check",sql`${t.status} in ('active','released','consumed')`),
+  check("accounting_wallet_holds_check",sql`(${t.status}='active' and ${t.consumedAmount}<${t.amount} and ${t.releasedAt} is null and ${t.releaseReason} is null) or
+    (${t.status}='consumed' and ${t.consumedAmount}=${t.amount} and ${t.releasedAt} is null and ${t.releaseReason} is null) or
+    (${t.status}='released' and ${t.consumedAmount}<${t.amount} and ${t.releasedAt} is not null and length(trim(${t.releaseReason}))>=5)`)]);
 export const accountingWalletMovements=pgTable("accounting_wallet_movements",{
   id:serial("id").primaryKey(),companyId:integer("company_id").notNull().references(()=>accountingCompanies.id),
   walletId:integer("wallet_id").notNull().references(()=>accountingWalletLinks.walletId),

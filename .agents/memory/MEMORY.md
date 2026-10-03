@@ -61,4 +61,5 @@
 - [Accounting redesign boundary](accounting-redesign-boundary.md) — redesign accounting fully; ask before necessary changes to other business modules.
 - [Customer business identifiers](customer-business-identifiers.md) — customer codes must have seven digits, start with 9, and use the second digit for customer type.
 - [Settlement book values](settlement-book-values.md) — foreign-currency settlement must clear historical carrying values and explicitly recognize realized FX.
+- [Loading holds and completion](loading-hold-completion.md) — settling one truck’s invoice does not finish its order or justify releasing all remaining held funds.
 - [Persian and rial accounting](accounting-persian-rial.md) — accounting must support Persian and Iranian rials, without treating Persian as Arabic or converting current balances.

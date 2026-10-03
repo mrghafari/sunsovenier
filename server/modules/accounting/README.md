@@ -335,6 +335,7 @@ Routes under `/api/accounting`:
 - `GET /v2/receivables?companyId=...`
 - `POST /v2/receipts`
 - `POST /v2/receipts/:id/cheque/deposited|cleared|bounced`
+- `POST /v2/wallets/settle`
 
 Receivable registration is a trusted invoice integration, not an HTTP endpoint
 accepting arbitrary amounts. A new posted LoadingCompleted/SalesInvoice journal
@@ -347,9 +348,28 @@ no activation UI/endpoint. The backend is not an activated financial pipeline or
 finished phase-five UI. New receipt guards retain financial control even if a
 prepaid gate is later disabled.
 
-**Still required in this phase:** consuming order holds against loading invoices,
-the wallet-to-AR settlement bridge, and correct foreign-currency book-value/realized
-FX handling. Receipts currently require company base currency; unsupported FX
+The wallet-to-AR bridge now posts liability debit / AR credit and atomically
+records native wallet debit, invoice allocation, audit and immutable settlement
+evidence. It accepts `companyId`, `walletId`, `receivableId`, decimal-string
+`amount`, `entryDate`, unique `sourceId`, `reason`, and optional `holdId`.
+Company, CRM and currency must match; a new unreversed posted invoice is required.
+An order hold additionally requires that exact order's measured LoadingCompleted
+fact and matching posted loading invoice. Invoice amounts are not calculated from
+estimated weights. It changes neither order paid status nor stock.
+
+Partial settlement consumes only the required part of the hold. Availability
+subtracts remaining, not original, held amounts. Additional payment beyond the
+remaining quote uses available free funds only. Other orders' holds, legacy
+reservations and uncleared cheques remain blocked. Explicit release frees only
+the unconsumed remainder, without increasing wallet balance or emitting a false
+refund. Full consumption is terminal. Generic journal reversal cannot reverse
+a settlement or its paid invoice without coordinated AR/native handling.
+Journal provenance and native/AR/hold consistency are verified by deferred DB
+guards; replay is idempotent, conflicting replay fails.
+
+**Still required in this phase:** correct foreign-currency book-value/realized
+FX handling. Receipts, wallet-to-AR and new wallet refunds currently require
+company base currency; unsupported FX
 fails explicitly before any write. Do not simply clear the currency guard: invoice
 AR and prepaid liability must use their actual historical remaining book values,
 not today's rate, with explicit realized FX and exact final residual closure.

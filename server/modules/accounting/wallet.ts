@@ -45,7 +45,7 @@ export async function account(tx:AccountingTransaction,companyId:number,key:stri
 }
 export async function available(tx:AccountingTransaction,walletId:number,balance:string) {
   const result=await tx.execute(sql`select
-    (select coalesce(sum(amount),0) from accounting_wallet_holds where wallet_id=${walletId} and status='active')::text as held,
+    (select coalesce(sum(amount-consumed_amount),0) from accounting_wallet_holds where wallet_id=${walletId} and status='active')::text as held,
     greatest(w.reserved_balance,(select coalesce(sum(amount),0) from wallet_transactions where wallet_id=w.id and status='reserved'))::text as legacy
     from customer_wallets w where w.id=${walletId}`);
   const r=result.rows[0] as {held:string;legacy:string};
@@ -86,6 +86,11 @@ export async function recordWalletMovement(kind:"topup"|"refund",input:MovementI
       const same=await tx.execute(sql`select ${JSON.stringify(normalized)}::jsonb=${JSON.stringify(previous.rows[0].input)}::jsonb as same`);
       if(!same.rows[0].same) throw new AccountingError("Wallet source was reused with different data",409,"IDEMPOTENCY_CONFLICT");
       return {movementId:previous.rows[0].id,journalId:previous.rows[0].journal_id,duplicate:true};
+    }
+    if(kind==="refund"){
+      const c=(await tx.execute(sql`select base_currency from accounting_companies where id=${data.companyId}`)).rows[0];
+      if(w.currency!==c.base_currency)throw new AccountingError(
+        "Foreign-currency refunds require historical liability book value and realized FX",422,"FX_SETTLEMENT_NOT_READY");
     }
     const liability=await account(tx,data.companyId,"WALLET_LIABILITY");
     const funding=await account(tx,data.companyId,data.channel);
@@ -203,6 +208,7 @@ export async function releaseWalletHold(orderId:number,reason:string,actor:Accou
     await ready(tx,h.company_id as number);
     await lockedWallet(tx,h.wallet_id as number,h.company_id as number);
     if(h.status==="released") return {holdId:h.id,duplicate:true};
+    if(h.status==="consumed")throw new AccountingError("Consumed funds cannot be released; a coordinated reversal is required",409,"HOLD_ALREADY_CONSUMED");
     await tx.execute(sql`update accounting_wallet_holds set status='released',released_at=now(),release_reason=${reason.trim()} where id=${h.id}`);
     await tx.execute(sql`insert into accounting_audit_logs(company_id,actor_id,actor_type,action,entity_type,entity_id,after)
       values(${h.company_id},${actor.actorId},${actor.actorType},'manual_hold_release','wallet_hold',${String(h.id)},
@@ -215,7 +221,7 @@ export async function newWalletAccountingState(walletId:number):Promise<{held:st
   const exists=await accountingDb.execute(sql`select to_regclass('public.accounting_wallet_holds') as relation`);
   if(!exists.rows[0].relation) return {held:"0",controlled:false}; // Pre-migration legacy compatibility, never a financial fallback.
   const r=await accountingDb.execute(sql`select
-    (select coalesce(sum(amount),0)::text from accounting_wallet_holds where wallet_id=${walletId} and status='active') as held,
+    (select coalesce(sum(amount-consumed_amount),0)::text from accounting_wallet_holds where wallet_id=${walletId} and status='active') as held,
     exists(select 1 from accounting_wallet_links l where l.wallet_id=${walletId} and (
       exists(select 1 from accounting_wallet_cutovers g where g.company_id=l.company_id and g.pipeline_ready)
       or exists(select 1 from accounting_wallet_movements m where m.wallet_id=l.wallet_id)
