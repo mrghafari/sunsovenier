@@ -24,7 +24,7 @@ function manager(a:AccountingAccess){
   if(!a.canManage||!Number.isSafeInteger(a.actorId)||a.actorId<=0||!["admin","custom"].includes(a.actorType))
     throw new AccountingError("Receipt management permission required",403,"ACCESS_DENIED");
 }
-async function ready(tx:AccountingTransaction,companyId:number,currency:string){
+async function ready(tx:AccountingTransaction,companyId:number,currency:string,invoiceRegistration=false){
   await assertLedgerReady(tx);
   const r=await tx.execute(sql`select c.base_currency,cc.decimals from accounting_companies c
     join accounting_currencies cc on cc.code=${currency} and cc.is_active
@@ -32,7 +32,7 @@ async function ready(tx:AccountingTransaction,companyId:number,currency:string){
     join accounting_receipt_cutovers g on g.company_id=c.id and g.processing_ready
     where c.id=${companyId} and c.is_active`);
   if(!r.rows.length)throw new AccountingError("Receipt processing is blocked until financial cutover is approved",503,"RECEIPT_CUTOVER_BLOCKED");
-  if(currency!==r.rows[0].base_currency)throw new AccountingError("Foreign-currency settlement needs historical book-value and realized-FX support; automatic conversion is blocked",422,"FX_SETTLEMENT_NOT_READY");
+  if(!invoiceRegistration&&currency!==r.rows[0].base_currency)throw new AccountingError("Foreign BANK/CASH/CHEQUE receipts need their own asset, allocation and realized-FX book values; automatic conversion is blocked",422,"FX_SETTLEMENT_NOT_READY");
   return r.rows[0].decimals as number;
 }
 async function same(tx:AccountingTransaction,a:unknown,b:unknown){
@@ -66,7 +66,7 @@ export async function registerInvoiceReceivable(input:{companyId:number;customer
   invoiceJournalId:number;invoiceReference:string;dueOn:string;orderId?:number},actor:AccountingAccess,tx:AccountingTransaction){
   manager(actor);dateString.parse(input.dueOn);
   await tx.execute(sql`select pg_advisory_xact_lock(718392,0)`);
-  await ready(tx,input.companyId,input.currency);
+  await ready(tx,input.companyId,input.currency,true);
   const existing=await tx.execute(sql`select * from accounting_receivable_items where company_id=${input.companyId}
     and invoice_journal_id=${input.invoiceJournalId} and customer_id=${input.customerId} and currency=${input.currency}`);
   if(existing.rows.length){

@@ -24,6 +24,7 @@ try {
     "server/modules/accounting/0009_persian_rial.sql",
     "server/modules/accounting/0010_wallet_settlement.sql",
     "server/modules/accounting/0011_wallet_settlement_evidence.sql",
+    "server/modules/accounting/0012_wallet_carrying_values.sql",
   ];
   for (const file of files) {
     const content = await readFile(file,"utf8");

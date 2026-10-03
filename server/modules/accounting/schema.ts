@@ -78,12 +78,16 @@ export const accountingJournalLines = pgTable("accounting_journal_lines", {
   exchangeRate: numeric("exchange_rate", { precision: 38, scale: 12 }).notNull(),
   debit: amount("debit").notNull().default("0"), credit: amount("credit").notNull().default("0"),
   baseDebit: amount("base_debit").notNull().default("0"), baseCredit: amount("base_credit").notNull().default("0"),
+  valuationBasis:text("valuation_basis").notNull().default("official_rate"),
   partyType: text("party_type"), partyId: integer("party_id"),
   costCenterId: integer("cost_center_id").references(() => accountingCostCenters.id),
   description: text("description").notNull().default(""),
 }, t => [index("accounting_lines_entry").on(t.entryId), index("accounting_lines_account").on(t.accountId),
-  check("accounting_line_amounts", sql`(${t.debit} > 0 and ${t.credit} = 0 and ${t.baseDebit} > 0 and ${t.baseCredit} = 0)
-    or (${t.credit} > 0 and ${t.debit} = 0 and ${t.baseCredit} > 0 and ${t.baseDebit} = 0)`),
+  check("accounting_line_amounts", sql`(${t.debit} > 0 and ${t.credit} = 0 and ${t.baseCredit} = 0 and
+      (${t.baseDebit}>0 or (${t.baseDebit}=0 and ${t.valuationBasis}='historical_carrying')))
+    or (${t.credit} > 0 and ${t.debit} = 0 and ${t.baseDebit} = 0 and
+      (${t.baseCredit}>0 or (${t.baseCredit}=0 and ${t.valuationBasis}='historical_carrying')))`),
+  check("accounting_journal_lines_valuation_basis_check",sql`${t.valuationBasis} in ('official_rate','historical_carrying')`),
   check("accounting_line_rate", sql`${t.exchangeRate} > 0`),
   check("accounting_line_party", sql`(${t.partyType} is null and ${t.partyId} is null) or (${t.partyType} in ('customer','carrier') and ${t.partyId} > 0)`)]);
 export const accountingAuditLogs = pgTable("accounting_audit_logs", {

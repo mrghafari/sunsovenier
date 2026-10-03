@@ -367,8 +367,29 @@ a settlement or its paid invoice without coordinated AR/native handling.
 Journal provenance and native/AR/hold consistency are verified by deferred DB
 guards; replay is idempotent, conflicting replay fails.
 
-**Still required in this phase:** correct foreign-currency book-value/realized
-FX handling. Receipts, wallet-to-AR and new wallet refunds currently require
+Wallet-to-AR also supports an explicitly linked foreign wallet and a posted
+receivable in that **same** customer currency (no cross-currency conversion).
+Foreign invoice registration remains a trusted integration, not a new public
+invoice endpoint. Settlement takes the liability's pooled remaining GL carrying
+value and the individual invoice's remaining carrying value. Native and base
+balances are both closed; differences post to configured FX_GAIN/FX_LOSS in the
+company's base currency. The current exchange rate is not used to erase either
+historical balance. Partial payments proportionally consume the remaining values;
+the final payment consumes the exact residual. Valid zero-base minor-unit
+remainders can still close their nonzero native balances.
+
+`valuationBasis`, `walletBaseSettled`, `receivableBaseSettled`, `baseCurrency`
+and `realizedFx` are included in the settlement audit/result. Historical journal
+lines are explicitly tagged; their rate is a carrying-value indicator, not an
+assertion about the current official rate. An immutable DB-derived proof controls
+the precise accounts, parties, native amounts, base values and realized-FX line.
+Clients cannot submit manual base overrides; ordinary journals still require
+positive base totals and dated official rates. Proofs cannot be orphaned or
+reused for another settlement; backdating before the wallet's latest posting,
+unknown prior allocations and unreconciled balances are blocked.
+
+**Still required in this phase:** foreign BANK/CASH/CHEQUE asset/receipt/return
+carrying values and foreign refund handling. These operations still require
 company base currency; unsupported FX
 fails explicitly before any write. Do not simply clear the currency guard: invoice
 AR and prepaid liability must use their actual historical remaining book values,
@@ -379,3 +400,5 @@ integration; signed-in UI has not been verified here.
 
 Run `npm run test:accounting:db` for rollback-only receipt lifecycle, guards,
 over-allocation, retry, chargeback, Native/GL/AR parity and older accounting tests.
+`ACCOUNTING_DB_TEST=1 ACCOUNTING_FX_ONLY=1 npx tsx --test server/modules/accounting/receipts.test.ts`
+runs the isolated foreign wallet cases; the normal suite never uses this filter.

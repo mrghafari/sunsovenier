@@ -21,7 +21,10 @@ test("receipts use exact money, unique allocations and cheque identity",()=>{
   assert.equal(walletSettlementSchema.safeParse({...settlement,amount:10}).success,false);
   assert.equal(walletSettlementSchema.safeParse({...settlement,baseAmount:"20"}).success,false);
 });
-test("receipt/cheque integration remains rollback-only",{skip:process.env.ACCOUNTING_DB_TEST!=="1"},async t=>{
+test("receipt/cheque integration remains rollback-only",{skip:process.env.ACCOUNTING_DB_TEST!=="1"},async context=>{
+  const t={test:(name:string,fn:()=>Promise<void>)=>context.test(name,{
+    skip:process.env.ACCOUNTING_FX_ONLY==="1"&&!name.startsWith("foreign wallet"),
+  },fn)};
   const end=new Error("ROLLBACK_RECEIPTS");let done=false;
   try{await accountingDb.transaction(async tx=>{
     await tx.execute(sql`select pg_advisory_xact_lock(718392,0)`);
@@ -184,7 +187,7 @@ test("receipt/cheque integration remains rollback-only",{skip:process.env.ACCOUN
       await tx.execute(sql`insert into customer_wallets(id,customer_id,balance,currency) values(${foreignWallet},${foreignWallet},0,'USD')`);
       await tx.execute(sql`insert into accounting_wallet_links(wallet_id,company_id,customer_id,currency)
         values(${foreignWallet},${company},${foreignWallet},'USD')`);
-      assert.equal((await rejects(()=>settleWalletReceivable({...request,walletId:foreignWallet,sourceId:"blocked-fx"},actor,tx)) as {code:string}).code,"FX_SETTLEMENT_NOT_READY");
+      assert.equal((await rejects(()=>settleWalletReceivable({...request,walletId:foreignWallet,sourceId:"wrong-currency-customer"},actor,tx)) as {code:string}).code,"RECEIVABLE_MISMATCH");
       assert.equal((await rejects(()=>recordWalletMovement("refund",{companyId:company,walletId:foreignWallet,sourceId:"blocked-fx-refund",
         entryDate:"2026-06-02",amount:"1",channel:"BANK",evidenceReference:"Unsupported FX evidence",reason:"Unsupported FX refund"},actor,tx)) as {code:string}).code,"FX_SETTLEMENT_NOT_READY");
       await rejects(()=>settleWalletReceivable(request,{...actor,canManage:false},tx));
@@ -257,6 +260,103 @@ test("receipt/cheque integration remains rollback-only",{skip:process.env.ACCOUN
           where e.company_id=${company} and l.account_id=${ids.ACCOUNTS_RECEIVABLE} and e.status='posted')::text as ar,
         (select sum(amount-settled_amount) from accounting_receivable_items where company_id=${company})::text as items`)).rows[0];
       assert.equal(totals.wallet,"25.00000000");assert.equal(totals.ar,totals.items);
+    });
+    await t.test("foreign wallet settlement closes historical invoice and pooled liability values, not today's rate",async()=>{
+      await tx.execute(sql`update accounting_receipt_cutovers set processing_ready=true where company_id=${company}`);
+      const fxCustomer=customer+3;
+      await tx.execute(sql`insert into crm_customers(id,email,first_name,last_name)
+        values(${fxCustomer},${randomUUID()+"@example.invalid"},'FX','Rollback fixture')`);
+      await tx.execute(sql`insert into customer_wallets(id,customer_id,balance,currency) values(${fxCustomer},${fxCustomer},0,'USD')`);
+      await tx.execute(sql`insert into accounting_wallet_links(wallet_id,company_id,customer_id,currency)
+        values(${fxCustomer},${company},${fxCustomer},'USD')`);
+      for(const [key,code,type] of [["FX_GAIN","FX990","revenue"],["FX_LOSS","FX991","expense"]]){
+        ids[key]=(await tx.execute(sql`insert into accounting_accounts(company_id,code,name_ar,name_en,type)
+          values(${company},${code},'اختبار فروق العملة',${key},${type}) returning id`)).rows[0].id as number;
+        await tx.execute(sql`insert into accounting_posting_rules(company_id,key,account_id) values(${company},${key},${ids[key]})`);
+      }
+      const rate=async(date:string,value:string)=>tx.execute(sql`insert into accounting_exchange_rates(company_id,currency,effective_on,rate,source,reference)
+        values(${company},'USD',${date},${value},'central_bank','Rollback-only central bank reference')`);
+      const fund=async(source:string,date:string,amount:string)=>recordWalletMovement("topup",{
+        companyId:company,walletId:fxCustomer,sourceId:source,entryDate:date,amount,channel:"BANK",
+        evidenceReference:"Rollback foreign funding evidence",reason:"Foreign wallet funding"},actor,tx);
+      const issue=async(source:string,date:string,amount:string)=>{
+        const {entry}=await postJournalEntry({companyId:company,sourceType:"SalesInvoice",sourceId:source,entryDate:date,
+          description:"Rollback foreign invoice",lines:[
+            {accountId:ids.ACCOUNTS_RECEIVABLE,currency:"USD",debit:amount,partyType:"customer",partyId:fxCustomer},
+            {accountId:ids.SALES_REVENUE,currency:"USD",credit:amount},
+          ]},actor,tx);
+        return registerInvoiceReceivable({companyId:company,customerId:fxCustomer,currency:"USD",
+          invoiceJournalId:entry.id,invoiceReference:source,dueOn:date},actor,tx);
+      };
+      const settle=async(source:string,date:string,amount:string,receivableId:number)=>settleWalletReceivable({
+        companyId:company,walletId:fxCustomer,receivableId,sourceId:source,entryDate:date,amount,reason:"Close historic foreign book values"},actor,tx);
+      const ledger=async(accountId:number)=> (await tx.execute(sql`select coalesce(sum(l.debit-l.credit),0)::text as native,
+        coalesce(sum(l.base_debit-l.base_credit),0)::text as base from accounting_journal_lines l
+        join accounting_journal_entries e on e.id=l.entry_id and e.status='posted'
+        where e.company_id=${company} and l.account_id=${accountId} and l.party_type='customer'
+          and l.party_id=${fxCustomer} and l.currency='USD'`)).rows[0];
+      await rate("2026-06-01","1.2");await fund("fx-funded-1","2026-06-01","100");
+      await rate("2026-06-02","1.4");await fund("fx-funded-2","2026-06-02","100");
+      await rate("2026-06-03","1.7");const claim=await issue("fx-invoice-1","2026-06-03","200");
+      await rate("2026-06-04","9");
+      const partial=await settle("fx-partial-1","2026-06-04","33.33",claim.id as number);
+      assert.equal("walletBaseSettled" in partial&&partial.walletBaseSettled,"43.00000000");
+      assert.equal("receivableBaseSettled" in partial&&partial.receivableBaseSettled,"57.00000000");
+      assert.deepEqual("realizedFx" in partial&&partial.realizedFx,{gain:"0",loss:"14"});
+      assert.equal((await settle("fx-partial-1","2026-06-04","33.330",claim.id as number)).duplicate,true);
+      await rejects(()=>settle("fx-partial-1","2026-06-04","34",claim.id as number));
+      await rejects(()=>settle("fx-backdated","2026-06-03","1",claim.id as number));
+      const second=await settle("fx-partial-2","2026-06-04","66.67",claim.id as number);
+      assert.equal("walletBaseSettled" in second&&second.walletBaseSettled,"87.00000000");
+      assert.equal("receivableBaseSettled" in second&&second.receivableBaseSettled,"113.00000000");
+      const closed=await settle("fx-final-1","2026-06-04","100",claim.id as number);
+      assert.equal("walletBaseSettled" in closed&&closed.walletBaseSettled,"130.00000000");
+      assert.equal("receivableBaseSettled" in closed&&closed.receivableBaseSettled,"170.00000000");
+      assert.deepEqual(await ledger(ids.WALLET_LIABILITY),{native:"0.00000000",base:"0.00000000"});
+      assert.deepEqual(await ledger(ids.ACCOUNTS_RECEIVABLE),{native:"0.00000000",base:"0.00000000"});
+      const loss=(await tx.execute(sql`select sum(l.base_debit-l.base_credit)::text as value from accounting_journal_lines l
+        join accounting_journal_entries e on e.id=l.entry_id and e.status='posted'
+        where e.company_id=${company} and l.account_id=${ids.FX_LOSS}`)).rows[0];
+      assert.equal(loss.value,"80.00000000");
+      await rejects(()=>tx.execute(sql`delete from accounting_wallet_book_values where source_id='fx-partial-1' and company_id=${company}`));
+      await rejects(()=>reverseJournalEntry(closed.journalId as number,"2026-06-04","Uncoordinated FX reversal",actor,tx));
+      // A falling receivable valuation realizes a gain, without changing the current rate.
+      await rate("2026-06-05","2");await fund("fx-gain-funding","2026-06-05","50");
+      await rate("2026-06-06","1");const gainClaim=await issue("fx-invoice-gain","2026-06-06","50");
+      await rate("2026-06-07","4");
+      const gain=await settle("fx-gain-close","2026-06-07","50",gainClaim.id as number);
+      assert.deepEqual("realizedFx" in gain&&gain.realizedFx,{gain:"50",loss:"0"});
+      // Legitimate native foreign remainders may already have zero base carrying value.
+      await rate("2026-06-08","1");await fund("fx-zero-funding","2026-06-08","1");
+      const tiny=await issue("fx-invoice-tiny","2026-06-08","1");
+      await settle("fx-zero-partial","2026-06-09","0.50",tiny.id as number);
+      await tx.execute(sql`savepoint orphan_book_fixture`);
+      await tx.execute(sql`set constraints accounting_wallet_book_used deferred`);
+      const derived=(await tx.execute(sql`insert into accounting_wallet_book_values(company_id,source_id,entry_date,wallet_id,
+        receivable_id,amount,wallet_base,receivable_base) values(${company},'orphan-proof','2026-06-10',${fxCustomer},
+          ${tiny.id},0.5,999,999) returning wallet_base::text,receivable_base::text`)).rows[0];
+      assert.deepEqual(derived,{wallet_base:"0.00000000",receivable_base:"0.00000000"});
+      await rejects(()=>tx.execute(sql`set constraints accounting_wallet_book_used immediate`));
+      await tx.execute(sql`rollback to savepoint orphan_book_fixture`);await tx.execute(sql`release savepoint orphan_book_fixture`);
+      const finalTiny=await settle("fx-zero-final","2026-06-10","0.50",tiny.id as number);
+      const zeroLines=(await tx.execute(sql`select currency,debit::text,credit::text,base_debit::text,base_credit::text,
+        valuation_basis from accounting_journal_lines where entry_id=${finalTiny.journalId}`)).rows;
+      assert.equal(zeroLines.length,2);assert.ok(zeroLines.every(l=>l.base_debit==="0.00000000"&&
+        l.base_credit==="0.00000000"&&l.valuation_basis==="historical_carrying"));
+      assert.deepEqual(await ledger(ids.WALLET_LIABILITY),{native:"0.00000000",base:"0.00000000"});
+      assert.deepEqual(await ledger(ids.ACCOUNTS_RECEIVABLE),{native:"0.00000000",base:"0.00000000"});
+      await rejects(async()=>{
+        const draft=(await tx.execute(sql`insert into accounting_journal_entries(company_id,fiscal_year_id,entry_date,
+          description,source_type,source_id,source_hash,created_by,actor_type,status)
+          select ${company},id,'2026-06-10','Reject manual historical conversion','WalletSettlement','forged-history',
+            ${"f".repeat(64)},1,'admin','draft' from accounting_fiscal_years where company_id=${company} returning id`)).rows[0];
+        await tx.execute(sql`insert into accounting_journal_lines(entry_id,account_id,currency,exchange_rate,debit,
+          credit,base_debit,base_credit,party_type,party_id,valuation_basis)
+          values(${draft.id},${ids.WALLET_LIABILITY},'USD',1,1,0,0,0,'customer',${fxCustomer},'historical_carrying')`);
+      });
+      await rejects(()=>recordCustomerReceipt({companyId:company,customerId:fxCustomer,currency:"USD",sourceId:"still-blocked-fx-receipt",
+        entryDate:"2026-06-10",method:"BANK",amount:"1",evidenceReference:"Foreign receipt not implemented",
+        reason:"No invented foreign asset carrying value"},actor,tx));
     });
     done=true;throw end;
   });}catch(e){if(e!==end)throw e;}finally{await pool.end();}

@@ -5,7 +5,7 @@ import {AccountingError} from "./access";
 import {assertLedgerReady} from "./readiness";
 import {account,available,lockedWallet,nativeMoney,reconciled} from "./wallet";
 import {decimal,exactMoney} from "./money";
-import {postJournalEntry} from "./postJournalEntry";
+import {postJournalEntry,type JournalInput} from "./postJournalEntry";
 import {dateString,positiveDecimal,type AccountingAccess} from "@shared/accounting-api";
 
 const id=z.number().int().positive();
@@ -32,9 +32,6 @@ export async function settleWalletReceivable(input:z.input<typeof walletSettleme
     if(!gate)throw new AccountingError("Settlement is blocked until financial cutover is approved",503,"SETTLEMENT_CUTOVER_BLOCKED");
     const w=await lockedWallet(tx,parsed.data.walletId,parsed.data.companyId);
     const d={...parsed.data,amount:nativeMoney(exactMoney(parsed.data.amount,w.decimals))};
-    // Keep unsupported valuations blocked; never extinguish currency while leaving false base balances.
-    if(w.currency!==gate.base_currency)throw new AccountingError(
-      "Foreign-currency settlement requires historical book-value posting",422,"FX_SETTLEMENT_NOT_READY");
     const old=(await tx.execute(sql`select * from accounting_wallet_settlements
       where company_id=${d.companyId} and source_id=${d.sourceId}`)).rows[0];
     if(old){
@@ -79,12 +76,20 @@ export async function settleWalletReceivable(input:z.input<typeof walletSettleme
     const consumed=decimal(d.amount).gt(remaining)?remaining:decimal(d.amount);
     const after=nativeMoney(decimal(w.balance).minus(d.amount).toFixed());
     await tx.execute(sql`set constraints accounting_wallet_settlement_native_evidence,
-      accounting_wallet_settlement_journal_evidence deferred`);
+      accounting_wallet_settlement_journal_evidence,accounting_wallet_book_used deferred`);
+    const book=w.currency!==gate.base_currency?(await tx.execute(sql`insert into accounting_wallet_book_values
+      (company_id,source_id,entry_date,wallet_id,receivable_id,amount)
+      values(${d.companyId},${d.sourceId},${d.entryDate},${w.id},${r.id},${d.amount}) returning *`)).rows[0]:undefined;
+    const lines:JournalInput["lines"]=[
+      {accountId:liability,currency:w.currency,debit:d.amount,credit:"0",partyType:"customer",partyId:w.customer_id},
+      {accountId:ar,currency:w.currency,debit:"0",credit:d.amount,partyType:"customer",partyId:w.customer_id},
+    ];
+    const difference=book?decimal(String(book.receivable_base)).minus(String(book.wallet_base)):decimal("0");
+    if(!difference.isZero())lines.push({accountId:book!.fx_account_id as number,currency:String(gate.base_currency),
+      debit:difference.gt(0)?difference.toFixed():"0",credit:difference.lt(0)?difference.abs().toFixed():"0",
+      description:"Realized FX on historical wallet/receivable carrying values"});
     const {entry}=await postJournalEntry({companyId:d.companyId,entryDate:d.entryDate,
-      sourceType:"WalletSettlement",sourceId:d.sourceId,description:d.reason,lines:[
-        {accountId:liability,currency:w.currency,debit:d.amount,credit:"0",partyType:"customer",partyId:w.customer_id},
-        {accountId:ar,currency:w.currency,debit:"0",credit:d.amount,partyType:"customer",partyId:w.customer_id},
-      ]},actor,tx);
+      sourceType:"WalletSettlement",sourceId:d.sourceId,description:d.reason,lines},actor,tx);
     const saved=(await tx.execute(sql`insert into accounting_wallet_settlements(company_id,wallet_id,receivable_id,
       hold_id,hold_consumed_amount,source_id,input,amount,currency,journal_id,created_by,actor_type)
       values(${d.companyId},${w.id},${r.id},${d.holdId??null},${consumed.toFixed()},${d.sourceId},
@@ -104,13 +109,17 @@ export async function settleWalletReceivable(input:z.input<typeof walletSettleme
     await reconciled(tx,{...w,balance:after},d.companyId,liability);
     const payload={...d,settlementId:saved.id,journalId:entry.id,currency:w.currency,holdConsumed:consumed.toFixed(),
       remainingHeld:remaining.minus(consumed).toFixed(),remainingReceivable:open.minus(d.amount).toFixed(),
-      balance:after,postingEligible:false};
+      balance:after,postingEligible:false,
+      valuationBasis:book?"historical_carrying":"official_rate",
+      walletBaseSettled:book?String(book.wallet_base):d.amount,receivableBaseSettled:book?String(book.receivable_base):d.amount,
+      baseCurrency:String(gate.base_currency),
+      realizedFx:{gain:difference.lt(0)?difference.abs().toFixed():"0",loss:difference.gt(0)?difference.toFixed():"0"}};
     await tx.execute(sql`insert into accounting_audit_logs(company_id,actor_id,actor_type,action,entity_type,entity_id,after)
       values(${d.companyId},${actor.actorId},${actor.actorType},'settle_wallet_receivable','wallet_settlement',${String(saved.id)},${JSON.stringify(payload)}::jsonb)`);
     await tx.execute(sql`insert into accounting_outbox(company_id,event_type,source_id,payload,status,processed_at)
       values(${d.companyId},'WalletSettlement',${`wallet-settlement:${d.sourceId}`},${JSON.stringify(payload)}::jsonb,'processed',now())`);
     await tx.execute(sql`set constraints accounting_wallet_settlement_native_evidence,
-      accounting_wallet_settlement_journal_evidence immediate`);
+      accounting_wallet_settlement_journal_evidence,accounting_wallet_book_used immediate`);
     return {...payload,duplicate:false};
   };
   return callerTx?run(callerTx):accountingDb.transaction(run);

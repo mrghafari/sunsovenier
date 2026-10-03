@@ -32,7 +32,14 @@ async function postWithinTransaction(tx: AccountingTransaction, input: JournalIn
   await assertLedgerReady(tx);
   // Only normalized source data is hashed, not changing rate lookup results.
   const normalized = {...data,lines:data.lines.map(l=>({...l,debit:decimal(l.debit).toFixed(),credit:decimal(l.credit).toFixed()}))};
-  const sourceHash = createHash("sha256").update(JSON.stringify(normalized)).digest("hex");
+  // Historical overrides come ONLY from an immutable, DB-derived settlement proof.
+  // They are not fields in journalInputSchema and cannot be supplied by an HTTP client.
+  const book=data.sourceType==="WalletSettlement"?(await tx.execute(sql`select * from accounting_wallet_book_values
+    where company_id=${data.companyId} and source_id=${data.sourceId}`)).rows[0]:undefined;
+  const sourceHash = createHash("sha256").update(JSON.stringify(book?{...normalized,carryingProof:{
+    id:book.id,walletBase:book.wallet_base,receivableBase:book.receivable_base,
+    walletRate:book.wallet_rate,receivableRate:book.receivable_rate,
+  }}:normalized)).digest("hex");
   const [existing] = await tx.select().from(entries).where(and(
     eq(entries.companyId,data.companyId),eq(entries.sourceType,data.sourceType),eq(entries.sourceId,data.sourceId),
   )).limit(1);
@@ -63,7 +70,11 @@ async function postWithinTransaction(tx: AccountingTransaction, input: JournalIn
   for (const [lineIndex,line] of data.lines.entries()) {
     const currency = currencyRows.find(c=>c.code===line.currency && c.isActive);
     if (!currency) throw new AccountingError(`Active currency required: ${line.currency}`);
-    let rate = data.reversalOfId ? originalLines[lineIndex]?.exchangeRate : cachedRates.get(line.currency);
+    const historical=book&&line.currency===book.currency&&
+      (line.accountId===book.liability_account_id||line.accountId===book.receivable_account_id);
+    const bookAmount=historical?String(line.accountId===book.liability_account_id?book.wallet_base:book.receivable_base):undefined;
+    let rate = historical?String(line.accountId===book.liability_account_id?book.wallet_rate:book.receivable_rate):
+      data.reversalOfId ? originalLines[lineIndex]?.exchangeRate : cachedRates.get(line.currency);
     if (data.reversalOfId && !rate) throw new AccountingError("Reversal line count does not match the original");
     if (!rate) {
       const [official] = await tx.select().from(rates).where(and(
@@ -76,9 +87,16 @@ async function postWithinTransaction(tx: AccountingTransaction, input: JournalIn
     if (decimal(debit).gt(0)===decimal(credit).gt(0)) throw new AccountingError("Each line must have exactly one positive debit or credit");
     if (Boolean(line.partyType)!==Boolean(line.partyId)) throw new AccountingError("Party type and ID must be provided together");
     prepared.push({...line,debit,credit,exchangeRate:rate,
-      baseDebit:convertBase(debit,rate,base.decimals),baseCredit:convertBase(credit,rate,base.decimals)});
+      valuationBasis:historical?"historical_carrying":"official_rate",
+      baseDebit:bookAmount!==undefined?(decimal(debit).gt(0)?exactMoney(bookAmount,base.decimals):"0"):convertBase(debit,rate,base.decimals),
+      baseCredit:bookAmount!==undefined?(decimal(credit).gt(0)?exactMoney(bookAmount,base.decimals):"0"):convertBase(credit,rate,base.decimals)});
   }
-  assertBalanced(prepared);
+  // A final foreign minor-unit remainder can have zero base carrying value.
+  // This narrow exception is proven again by the database; ordinary zero journals still fail.
+  if(book&&decimal(String(book.wallet_base)).isZero()&&decimal(String(book.receivable_base)).isZero()){
+    if(prepared.length!==2||prepared.some(l=>!decimal(l.baseDebit).isZero()||!decimal(l.baseCredit).isZero()))
+      throw new AccountingError("Zero carrying value requires exactly the two proven native settlement lines");
+  }else assertBalanced(prepared);
   const [draft] = await tx.insert(entries).values({
     companyId:data.companyId,fiscalYearId:year.id,entryDate:data.entryDate,description:data.description,
     sourceType:data.sourceType,sourceId:data.sourceId,sourceHash,reversalOfId:data.reversalOfId,
@@ -90,7 +108,8 @@ async function postWithinTransaction(tx: AccountingTransaction, input: JournalIn
   await tx.execute(sql`set constraints accounting_balance_header, accounting_balance_lines immediate`);
   await tx.insert(audits).values({
     companyId:data.companyId,actorId:actor.actorId,actorType:actor.actorType,
-    action:"post_journal",entityType:"journal",entityId:String(posted.id),after:{sourceType:data.sourceType,sourceId:data.sourceId},
+    action:"post_journal",entityType:"journal",entityId:String(posted.id),after:{sourceType:data.sourceType,sourceId:data.sourceId,
+      ...(book?{valuationBasis:"historical_carrying",carryingProofId:book.id}: {})},
   });
   return {entry:posted,duplicate:false};
 }

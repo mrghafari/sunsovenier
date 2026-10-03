@@ -11,6 +11,8 @@ const requiredGuards = [
   "accounting_wallet_settlement_guard","accounting_wallet_settlement_native_evidence",
   "accounting_wallet_settlement_immutable","accounting_settlement_reversal_guard",
   "accounting_wallet_settlement_journal_evidence",
+  "accounting_wallet_book_guard","accounting_wallet_book_immutable","accounting_wallet_book_used",
+  "accounting_assert_wallet_book_journal",
 ];
 export async function assertLedgerReady(db: typeof accountingDb | AccountingTransaction = accountingDb) {
   const result = await db.execute(sql`
