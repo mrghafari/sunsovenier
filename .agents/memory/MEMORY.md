@@ -65,3 +65,4 @@
 - [Persian and rial accounting](accounting-persian-rial.md) — accounting must support Persian and Iranian rials, without treating Persian as Arabic or converting current balances.
 - [Composed financial constraints](composed-financial-constraints.md) — immediate constraint settings persist across calls sharing a transaction; defer evidence checks before the first dependent write.
 - [Preview warmup](preview-warmup.md) — early blank screenshots after restart may precede module loading; verify a longer browser load before treating them as a crash.
+- [Historical receivables](historical-receivables-reporting.md) — reconstruct as-of settlements from posted event dates; current statuses and balances cannot prove earlier debt.

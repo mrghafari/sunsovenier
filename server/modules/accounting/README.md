@@ -527,3 +527,52 @@ currency partitioning, reversals, scoped filters, company isolation and exports.
 presentation layer in all four languages, exact decimal strings, separate native
 currency summaries, and empty periods that still have an opening balance. This
 supplements, rather than replaces, the complete app build and type check.
+
+### Customer statements and historical receivables aging
+
+The Reports view now includes customer statements and receivables aging.
+`GET /api/accounting/v2/customer-reports/customer-statement` requires company,
+CRM primary-key `customerId`, Gregorian `from` and `to`. It shows AR-only
+opening, posted movement, closing and running native/base carrying balances.
+`GET /api/accounting/v2/customer-reports/receivables-aging` requires company
+and Gregorian `asOf`; customer is optional. Both accept an optional native
+currency and bounded paging, and `/csv` exports the whole filtered scope
+(maximum 10,000 rows, with explicit rejection rather than truncation).
+Customer business codes and names are displayed; business codes are not
+silently treated as CRM primary keys. No CRM email/phone is exposed.
+
+AR scope includes current mappings, historical receipt/wallet book-value account
+evidence, and unambiguous registered invoice asset-debit evidence. Thus inactive
+historical AR accounts remain readable. Missing AR configuration/evidence and
+no posted data remain explicitly distinguishable from zero legacy debt.
+
+Aging uses stored invoice due dates and reconstructs settlement at the selected
+posted-entry date, not the mutable current settled counter or receipt status.
+Receipt received events reduce debt; later posted returns or cheque bounces
+restore it only from their own entry date. Posted wallet settlements count from
+their journal date. Posted invoice/journal reversals count only when effective.
+Invalid negative invoice balances fail as reconciliation errors rather than
+being silently clamped away.
+
+Native amounts are grouped by currency. Aging buckets are not overdue (due on
+or after as-of), 1–30, 31–60, 61–90 and over 90 days. Registered invoice amounts
+are not translated at today's FX rate. Statement base balances retain historical
+book values; per-invoice base aging is not invented.
+
+Ledger-minus-tracked-invoice differences are shown per customer and currency:
+positive differences have unknown due dates; negative differences are
+unclassified/unapplied credits. They are not assigned a guessed invoice or due
+date and are not netted across customers. Currency summaries preserve these
+debit and credit amounts separately and reconcile to the native ledger closing.
+Legacy opening reconciliation is still explicitly unverified.
+
+Read-only repeatable-read snapshots, viewer access, no-store responses and
+safe quoted UTF-8 CSV follow the existing ledger reports. No cutover,
+processor, external business module or production schema is activated/changed.
+Opt-in DB fixtures enable processing only inside their rolled-back transaction.
+
+`ACCOUNTING_DB_TEST=1 npx tsx --test server/modules/accounting/customer-reports-db.test.ts`
+checks actual posted receipt returns, foreign cheque bounces, wallet settlements,
+historical statements, unknown due debts/credits, bucket boundaries and exports.
+`node client/src/components/admin/accounting/run-customer-reports-ssr-smoke.mjs`
+checks four-language presentation, exact amounts and honest no-row openings.

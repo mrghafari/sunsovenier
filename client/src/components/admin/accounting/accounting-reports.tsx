@@ -7,6 +7,8 @@ import { normalizeAccountingDigits, accountingName, accountingCurrencyName } fro
 import { reportCopy, reportPartyType } from "./accounting-reports-copy";
 import type { ReportCopyKey } from "./accounting-reports-copy";
 import { ReportResult } from "./accounting-report-result";
+import CustomerAccountingReports from "./customer-accounting-reports";
+import { customerReportCopy } from "./customer-reports-copy";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -23,6 +25,7 @@ export default function AccountingReports({ companies, onSetup }: { companies: {
  const { language, direction } = useLanguage();
  const t = (k: ReportCopyKey) => reportCopy(language, k);
  const [report, setReport] = useState<AccountingReportName>("journal");
+ const [customerView, setCustomerView] = useState(false);
  const [draft, setDraft] = useState<Draft>(blankDraft);
  const [applied, setApplied] = useState<AccountingReportFilters>();
  const [formError, setFormError] = useState("");
@@ -79,9 +82,9 @@ export default function AccountingReports({ companies, onSetup }: { companies: {
       <div><div className="mb-2 text-[10px] font-bold uppercase tracking-[.18em] text-[#829087]">MOMTAZCOM · RECORDS</div><h2 className="font-display text-2xl font-semibold tracking-[-.025em] text-[#273d3a]">{t("reports")}</h2><p className="mt-1 text-sm text-[#758179]">{t("reportsIntro")}</p></div>
       <Button variant="outline" onClick={onSetup} className="border-[#d6dfd6] text-[#365750]"><BookOpenCheck className="me-2 h-4 w-4"/>{t("setup")}</Button>
      </div>
-      <div className="mt-5 flex flex-wrap gap-2" role="tablist" aria-label={t("reports")}>{reportTabs.map(tab=><button key={tab.id} type="button" role="tab" aria-selected={report===tab.id} onClick={()=>{setReport(tab.id);setApplied(undefined);setExportError("");setFormError("");setDraft(d=>({...d,entryId:""}));}} className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${report===tab.id?"bg-[#20484a] text-[#f4f2e7]":"bg-[#edf1eb] text-[#52655b] hover:bg-[#e0e8df]"}`}>{t(tab.label)}</button>)}</div>
+       <div className="mt-5 flex flex-wrap gap-2" role="tablist" aria-label={t("reports")}>{reportTabs.map(tab=><button key={tab.id} type="button" role="tab" aria-selected={!customerView&&report===tab.id} onClick={()=>{setCustomerView(false);setReport(tab.id);setApplied(undefined);setExportError("");setFormError("");setDraft(d=>({...d,entryId:""}));}} className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${!customerView&&report===tab.id?"bg-[#20484a] text-[#f4f2e7]":"bg-[#edf1eb] text-[#52655b] hover:bg-[#e0e8df]"}`}>{t(tab.label)}</button>)}<button type="button" role="tab" aria-selected={customerView} onClick={()=>setCustomerView(true)} className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${customerView?"bg-[#20484a] text-[#f4f2e7]":"bg-[#edf1eb] text-[#52655b] hover:bg-[#e0e8df]"}`}>{customerReportCopy(language, "title")}</button></div>
     </div>
-    <div className="space-y-5 p-4 md:p-6">
+     {customerView ? <div className="p-4 md:p-6"><CustomerAccountingReports companies={companies}/></div> : <div className="space-y-5 p-4 md:p-6">
      <div role="note" className="rounded-xl border border-[#e6c8bc] bg-[#f8ece6] px-4 py-3 text-xs leading-5 text-[#79473f]">{t("warning")}</div>
      <form onSubmit={e=>{e.preventDefault();apply();}} className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <Field label={t("company")}><select value={draft.companyId} onChange={e=>companyChange(e.target.value)} className={inputClass}><option value="">{t("company")}</option>{companies.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>
@@ -108,7 +111,7 @@ export default function AccountingReports({ companies, onSetup }: { companies: {
       query.isLoading ? <div className="space-y-3" aria-label={t("loading")}>{[0,1,2].map(i=><Skeleton key={i} className="h-14 rounded-xl bg-[#e8ede7]"/>)}</div> :
       query.isError ? <Alert variant="destructive"><AlertCircle className="h-4 w-4"/><AlertTitle>{t("failed")}</AlertTitle><AlertDescription className="mt-2 flex flex-wrap items-center gap-3"><span>{query.error instanceof Error?query.error.message:t("failed")}</span><Button variant="outline" size="sm" onClick={()=>query.refetch()}>{t("retry")}</Button></AlertDescription></Alert> :
        data ? <ReportResult report={report} data={data} language={language} page={applied.page??1} changePage={changePage}/> : null}
-    </div>
+     </div>}
    </div>
  </section>;
 }
