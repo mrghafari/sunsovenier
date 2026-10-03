@@ -233,3 +233,24 @@ export async function readReceivables(companyId:number){
     from accounting_receivable_items where company_id=${companyId} order by due_on,id`);
   return r.rows;
 }
+// Full, evidence-backed return of one actual BANK/CASH receipt, not a wallet refund.
+// Partial refunds and arbitrary outbound amounts are intentionally not accepted here.
+export async function returnCustomerReceipt(receiptId:number,input:z.input<typeof chequeSchema>,
+  actor:AccountingAccess,callerTx?:AccountingTransaction){
+  manager(actor);
+  if(!Number.isSafeInteger(receiptId)||receiptId<=0)throw new AccountingError("Valid receipt ID required");
+  const parsed=chequeSchema.safeParse(input);
+  if(!parsed.success)throw new AccountingError(parsed.error.issues[0].message);
+  const d=parsed.data;
+  const run=async(tx:AccountingTransaction)=>{
+    await tx.execute(sql`select pg_advisory_xact_lock(718392,0)`);
+    const r=(await tx.execute(sql`select * from accounting_customer_receipts where id=${receiptId} for update`)).rows[0];
+    if(!r||!["BANK","CASH"].includes(String(r.method)))throw new AccountingError("Bank/cash receipt not found",404,"NOT_FOUND");
+    await ready(tx,Number(r.company_id),String(r.currency));
+    const old=(await tx.execute(sql`select * from accounting_receipt_events where receipt_id=${receiptId} and action='returned'`)).rows[0];
+    if(old){await same(tx,d,old.input);return {receiptId,status:r.status,journalId:old.journal_id,duplicate:true};}
+    if(r.status!=="confirmed")throw new AccountingError("Only a confirmed receipt can be returned",409,"INVALID_RECEIPT_STATE");
+    return transitionForeignCheque(tx,receiptId,"returned",d,actor);
+  };
+  return callerTx?run(callerTx):accountingDb.transaction(run);
+}

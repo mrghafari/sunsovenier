@@ -335,6 +335,7 @@ Routes under `/api/accounting`:
 - `GET /v2/receivables?companyId=...`
 - `POST /v2/receipts`
 - `POST /v2/receipts/:id/cheque/deposited|cleared|bounced`
+- `POST /v2/receipts/:id/return`
 - `POST /v2/wallets/settle`
 
 Receivable registration is a trusted invoice integration, not an HTTP endpoint
@@ -430,11 +431,33 @@ event, allocations, debt and native recovery must commit together; direct status
 changes, orphan proofs, fabricated foreign journals and independent reversals fail.
 Receipt/cheque mutations retain permission, fiscal, evidence and retry checks.
 
-**Still required in this phase:** foreign bank/cash returns and wallet refunds.
-These operations remain blocked;
-asset outflows must close actual remaining asset carrying values rather than
-blindly use today's rate. Do not erase historical AR/prepaid values or invent
-conversion between a customer's currencies.
+Full BANK/CASH receipt returns now support both company base currency and the
+original foreign currency. The return endpoint takes a unique `sourceId`,
+Gregorian `entryDate`, `evidenceReference` and `reason`; it does not accept a
+manual amount, account, rate, or valuation override. This is a staff-attested
+full return of one actual receipt, not an arbitrary wallet refund or provider
+verification. Partial receipt returns are not implemented.
+
+The return consumes the original funding account/currency's actual pooled
+remaining asset carrying value (exact residual for a full outflow), reopens every
+original invoice allocation at its stored book value and recovers only free
+same-currency prepaid funds using pooled remaining liability value. Other active
+holds, legacy reservations and uncleared cheques remain protected. Spent excess
+becomes an explicit, subsequently settleable historical receivable; neither bank/
+cash nor wallet balances may be overdrawn. The balancing difference is explicit
+base-currency FX. Base-currency original evidence is derived from the immutable
+received journal, not invented historical rates.
+
+Returns share the immutable lifecycle proof infrastructure with cheques. Proof,
+complete journal, returned status, allocation reopening, native debit, optional
+new debt, event and audit commit together. Matching retries are harmless; changed
+retries, direct status changes, orphan evidence, fabricated journals, independent
+reversal, unsupported dates and insufficient assets fail closed. Ordinary receipt
+creation, cheque processing and wallet settlement remain backward compatible.
+
+**Still required in this phase:** foreign wallet refunds. Partial receipt returns
+are also unsupported. These operations remain blocked; never erase historical AR/prepaid
+values or invent conversion between a customer's currencies.
 Financial activation still requires the full invoice/stock/cost pipeline, opening
 reconciliation and approved cutover. Receipt UI belongs to the planned frontend
 integration; signed-in UI has not been verified here.
@@ -444,3 +467,6 @@ over-allocation, retry, chargeback, Native/GL/AR parity and older accounting tes
 `ACCOUNTING_DB_TEST=1 ACCOUNTING_FX_ONLY=1 npx tsx --test server/modules/accounting/receipts.test.ts`
 runs the isolated foreign wallet and BANK/CASH receipt cases; the normal suite
 never uses this filter.
+`ACCOUNTING_DB_TEST=1 npx tsx --test server/modules/accounting/receipt-returns.test.ts`
+runs the isolated full bank/cash return checks, including base/foreign values,
+pooled residuals, spent excess, debt settlement, protected funds and DB provenance.

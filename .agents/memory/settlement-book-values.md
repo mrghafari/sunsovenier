@@ -55,3 +55,15 @@ recoverable prepaid funds from the remaining pooled liability. Give spent excess
 an explicit historical debt and expose any balancing FX instead of negative cash
 or wallet balances. Block outflows when current balances or chronology cannot be
 reconciled.
+
+A receipt return and a wallet refund are different operations. Returning a whole
+identified receipt restores its original invoice allocations and accounts for its
+original excess; a wallet refund pays available customer prepaid funds and must
+not implicitly undo an invoice or a selected receipt.
+
+**Why:** Reusing a generic refund or independently reversing a receipt journal
+can leave native balances, invoice allocations and the asset ledger inconsistent.
+
+**How to apply:** Require the original receipt identity and coordinated provenance
+for returns. Keep arbitrary wallet payouts and any future partial-return policy
+separate, with their own evidence and allocation rules.

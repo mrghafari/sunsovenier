@@ -11,9 +11,9 @@ type ProvenLine=NonNullable<JournalInput["lines"]>[number];
 // Called only after the receipt manager, cutover, retry and lifecycle checks.
 // All money and account choices are derived by the database, not this caller.
 export async function transitionForeignCheque(tx:AccountingTransaction,receiptId:number,
-  action:"deposited"|"cleared"|"bounced",input:Evidence,actor:AccountingAccess) {
+  action:"deposited"|"cleared"|"bounced"|"returned",input:Evidence,actor:AccountingAccess) {
   await tx.execute(sql`set constraints accounting_cheque_book_used,accounting_foreign_cheque_status,
-    accounting_foreign_cheque_event,accounting_foreign_ar_parity deferred`);
+    accounting_foreign_cheque_event,accounting_receipt_return_complete,accounting_foreign_ar_parity deferred`);
   const proof=(await tx.execute(sql`insert into accounting_cheque_book_values(receipt_id,action,entry_date,input)
     values(${receiptId},${action},${input.entryDate},${JSON.stringify(input)}::jsonb) returning *`)).rows[0];
   const company=Number(proof.company_id);
@@ -21,11 +21,11 @@ export async function transitionForeignCheque(tx:AccountingTransaction,receiptId
   const journalLines=(proof.lines as ProvenLine[]).map(({accountId,currency,debit,credit,partyType,partyId})=>
     ({accountId,currency,debit,credit,partyType,partyId}));
   const {entry}=await postJournalEntry({companyId:company,entryDate:input.entryDate,
-    sourceType:action==="deposited"?"ChequeDeposited":action==="cleared"?"ChequeCleared":"ChequeBounced",
+    sourceType:action==="returned"?"ReceiptReturned":action==="deposited"?"ChequeDeposited":action==="cleared"?"ChequeCleared":"ChequeBounced",
     sourceId:String(proof.source_id),description:input.reason,lines:journalLines},actor,tx);
   await tx.execute(sql`update accounting_customer_receipts set status=${action} where id=${receiptId}`);
   const recover=String(proof.recovered_native),newDebt=String(proof.new_debt_native);
-  if(action==="bounced"){
+  if(action==="bounced"||action==="returned"){
     const allocations=(await tx.execute(sql`select * from accounting_receipt_allocations
       where receipt_id=${receiptId} order by receivable_id`)).rows;
     for(const a of allocations){
@@ -46,7 +46,7 @@ export async function transitionForeignCheque(tx:AccountingTransaction,receiptId
     }
     if(decimal(newDebt).gt(0))await tx.execute(sql`insert into accounting_receivable_items(company_id,customer_id,currency,
       invoice_journal_id,invoice_reference,issued_on,due_on,amount) values(${company},${receipt.customer_id},${receipt.currency},
-      ${entry.id},${`Cheque return ${receiptId}`},${input.entryDate},${input.entryDate},${newDebt})`);
+      ${entry.id},${`${action==="returned"?"Receipt":"Cheque"} return ${receiptId}`},${input.entryDate},${input.entryDate},${newDebt})`);
   }
   await tx.execute(sql`insert into accounting_receipt_events(receipt_id,action,source_id,input,journal_id)
     values(${receiptId},${action},${input.sourceId},${JSON.stringify(input)}::jsonb,${entry.id})`);
@@ -54,9 +54,9 @@ export async function transitionForeignCheque(tx:AccountingTransaction,receiptId
     walletBaseRecovered:String(proof.wallet_base),receivableBaseRestored:String(proof.restored_ar_base),
     newReceivableBase:String(proof.new_debt_base),lines:proof.lines};
   await tx.execute(sql`insert into accounting_audit_logs(company_id,actor_id,actor_type,action,entity_type,entity_id,after)
-    values(${company},${actor.actorId},${actor.actorType},${`cheque_${action}`},'customer_receipt',${String(receiptId)},
+    values(${company},${actor.actorId},${actor.actorType},${action==="returned"?"receipt_returned":`cheque_${action}`},'customer_receipt',${String(receiptId)},
       ${JSON.stringify({...input,journalId:entry.id,recoveredWalletAmount:recover,newReceivable:newDebt,bookValues})}::jsonb)`);
   await tx.execute(sql`set constraints accounting_cheque_book_used,accounting_foreign_cheque_status,
-    accounting_foreign_cheque_event,accounting_foreign_ar_parity immediate`);
+    accounting_foreign_cheque_event,accounting_receipt_return_complete,accounting_foreign_ar_parity immediate`);
   return {receiptId,status:action,journalId:entry.id,recoveredWalletAmount:recover,newReceivable:newDebt,bookValues,duplicate:false};
 }

@@ -38,9 +38,9 @@ async function postWithinTransaction(tx: AccountingTransaction, input: JournalIn
     where company_id=${data.companyId} and source_id=${data.sourceId}`)).rows[0]:undefined;
   const receiptBook=data.sourceType==="PaymentReceived"?(await tx.execute(sql`select * from accounting_receipt_book_values
     where company_id=${data.companyId} and source_id=${data.sourceId}`)).rows[0]:undefined;
-  const chequeBook=["ChequeDeposited","ChequeCleared","ChequeBounced"].includes(data.sourceType)?
+  const chequeBook=["ChequeDeposited","ChequeCleared","ChequeBounced","ReceiptReturned"].includes(data.sourceType)?
     (await tx.execute(sql`select * from accounting_cheque_book_values where company_id=${data.companyId}
-      and source_id=${data.sourceId} and action=${data.sourceType==="ChequeDeposited"?"deposited":data.sourceType==="ChequeCleared"?"cleared":"bounced"}`)).rows[0]:undefined;
+      and source_id=${data.sourceId} and action=${data.sourceType==="ReceiptReturned"?"returned":data.sourceType==="ChequeDeposited"?"deposited":data.sourceType==="ChequeCleared"?"cleared":"bounced"}`)).rows[0]:undefined;
   const receiptValues=new Map<number,{base:string;rate:string}>();
   if(receiptBook){
     receiptValues.set(receiptBook.funding_account_id as number,{base:String(receiptBook.funding_base),rate:String(receiptBook.official_rate)});

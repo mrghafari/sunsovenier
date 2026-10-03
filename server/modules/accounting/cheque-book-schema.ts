@@ -18,7 +18,7 @@ export const accountingChequeBookValues=pgTable("accounting_cheque_book_values",
 },t=>[
   uniqueIndex("accounting_cheque_book_values_receipt_id_action_key").on(t.receiptId,t.action),
   uniqueIndex("accounting_cheque_book_values_company_id_action_source_id_key").on(t.companyId,t.action,t.sourceId),
-  check("accounting_cheque_book_values_action_check",sql`${t.action} in ('deposited','cleared','bounced')`),
+  check("accounting_cheque_book_values_action_check",sql`${t.action} in ('deposited','cleared','bounced','returned')`),
   check("accounting_cheque_book_values_recovered_native_check",sql`${t.recoveredNative}>=0`),
   check("accounting_cheque_book_values_new_debt_native_check",sql`${t.newDebtNative}>=0`),
   check("accounting_cheque_book_values_asset_base_check",sql`${t.assetBase}>=0`),

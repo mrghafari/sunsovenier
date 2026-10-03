@@ -9,7 +9,7 @@ import { databaseErrorCode } from "./errors";
 import { assertLedgerReady } from "./readiness";
 import { captureOperationalEvent } from "./events";
 import {linkWallet,recordWalletMovement,releaseWalletHold,approveWalletOrder} from "./wallet";
-import {recordCustomerReceipt,transitionCheque,readReceivables} from "./receipts";
+import {recordCustomerReceipt,transitionCheque,readReceivables,returnCustomerReceipt} from "./receipts";
 import {settleWalletReceivable} from "./wallet-settlement";
 
 export function createAccountingRouter() {
@@ -122,6 +122,10 @@ export function createAccountingRouter() {
         throw new AccountingError("Valid cheque action required");
       res.json(await transitionCheque(receiptId,action as "deposited"|"cleared"|"bounced",req.body,res.locals.accountingAccess));
     }catch(e){next(e);}
+  });
+  router.post("/v2/receipts/:id/return",async(req,res,next)=>{
+    try{res.json(await returnCustomerReceipt(Number(req.params.id),req.body,res.locals.accountingAccess));}
+    catch(e){next(e);}
   });
   router.use((error: unknown,_req: Request,res: Response,_next: NextFunction) => {
     if (error instanceof AccountingError) return res.status(error.status).json({code:error.code,message:error.message});

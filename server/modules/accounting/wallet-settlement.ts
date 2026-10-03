@@ -43,7 +43,7 @@ export async function settleWalletReceivable(input:z.input<typeof walletSettleme
       join accounting_journal_entries e on e.id=r.invoice_journal_id and e.status='posted'
       join accounting_wallet_cutovers g on g.company_id=e.company_id and e.created_at>=g.enabled_at
       where r.id=${d.receivableId} and r.company_id=${d.companyId} and e.company_id=r.company_id
-      and e.source_type in ('LoadingCompleted','SalesInvoice','ChequeBounced')
+      and e.source_type in ('LoadingCompleted','SalesInvoice','ChequeBounced','ReceiptReturned')
       and not exists(select 1 from accounting_journal_entries v where v.reversal_of_id=e.id)
       for update of r`)).rows[0];
     if(!r||r.customer_id!==w.customer_id||r.currency!==w.currency)
