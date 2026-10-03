@@ -975,6 +975,7 @@ export const crmCustomers = pgTable("crm_customers", {
   registrationNumber: text("registration_number"), // Company registration number
   annualRevenue: text("annual_revenue"),
   customerType: text("customer_type").notNull().default("retail"), // retail, wholesale, b2b, distributor
+  customerCode: text("customer_code"), // Generated business identifier; never replaces the native CRM primary key.
   customerStatus: text("customer_status").notNull().default("active"), // active, inactive, vip, blacklisted
   customerSource: text("customer_source").notNull().default("website"), // website, referral, marketing, cold_call, trade_show
   assignedSalesRep: text("assigned_sales_rep"),
@@ -1020,6 +1021,7 @@ export const crmCustomers = pgTable("crm_customers", {
 
 export const insertCrmCustomerSchema = createInsertSchema(crmCustomers).omit({
   id: true,
+  customerCode: true,
   totalOrdersCount: true,
   totalSpent: true,
   averageOrderValue: true,

@@ -299,3 +299,50 @@ changing existing super-admin deletion behavior.
   explicit native-unit-to-ton pricing and real stock-cost source before financial
   activation. Connecting a weighbridge-entry UI needs a separately scoped change;
   it must not substitute estimates for actual measurements.
+
+### Step 5 — receipts and cheque accounting foundation (in progress, disabled)
+
+This increment implements operator-attested BANK/CASH/CHEQUE receipts, exact
+same-company/customer/currency allocation to multiple posted receivables, partial
+settlement, and transfer of unallocated funds to an explicitly linked CRM prepaid
+account. Amounts are never inferred from a screenshot, order status or provider
+configuration. Staff evidence references are attestations, not provider verification.
+
+Received cheques debit CHEQUES_ON_HAND; deposit transfers the instrument to
+CHEQUE_CLEARING; clearance transfers it to BANK. Receipt allocation credits AR,
+and unallocated funds credit the customer's prepaid liability. That credit remains
+blocked from refunds and order holds until clearance. A bounced cheque reopens
+its allocations, recovers only legally available prepaid funds, and books any
+already-spent cleared-cheque excess as a separate receivable instead of a negative
+prepaid balance. Events, original receipt facts and allocations cannot be erased
+or rewritten. A duplicate source with matching normalized input is harmless;
+conflicting evidence is rejected atomically.
+
+Routes under `/api/accounting`:
+- `GET /v2/receivables?companyId=...`
+- `POST /v2/receipts`
+- `POST /v2/receipts/:id/cheque/deposited|cleared|bounced`
+
+Receivable registration is a trusted invoice integration, not an HTTP endpoint
+accepting arbitrary amounts. A new posted LoadingCompleted/SalesInvoice journal
+must already contain the matching CRM customer's AR debit. The receipt flow cannot
+create an invoice, revenue, loading measurement or stock deduction. No legacy
+order or payment backfill is run.
+
+The receipt and prepaid cutover gates both default to closed. There is deliberately
+no activation UI/endpoint. The backend is not an activated financial pipeline or a
+finished phase-five UI. New receipt guards retain financial control even if a
+prepaid gate is later disabled.
+
+**Still required in this phase:** consuming order holds against loading invoices,
+the wallet-to-AR settlement bridge, and correct foreign-currency book-value/realized
+FX handling. Receipts currently require company base currency; unsupported FX
+fails explicitly before any write. Do not simply clear the currency guard: invoice
+AR and prepaid liability must use their actual historical remaining book values,
+not today's rate, with explicit realized FX and exact final residual closure.
+Financial activation still requires the full invoice/stock/cost pipeline, opening
+reconciliation and approved cutover. Receipt UI belongs to the planned frontend
+integration; signed-in UI has not been verified here.
+
+Run `npm run test:accounting:db` for rollback-only receipt lifecycle, guards,
+over-allocation, retry, chargeback, Native/GL/AR parity and older accounting tests.

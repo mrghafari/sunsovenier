@@ -3,6 +3,7 @@ export const iraqChart: {code:string;nameAr:string;nameEn:string;type:string;key
   {code:"1100",nameAr:"البنك",nameEn:"Bank",type:"asset",key:"BANK"},
   {code:"1130",nameAr:"مستحقات بوابة الدفع",nameEn:"Payment gateway clearing",type:"asset",key:"GATEWAY"},
   {code:"1110",nameAr:"الصندوق",nameEn:"Cash",type:"asset",key:"CASH"},
+  {code:"1115",nameAr:"شيكات مستلمة",nameEn:"Cheques on hand",type:"asset",key:"CHEQUES_ON_HAND"},
   {code:"1120",nameAr:"شيكات قيد التحصيل",nameEn:"Cheques in clearing",type:"asset",key:"CHEQUE_CLEARING"},
   {code:"1200",nameAr:"الذمم المدينة",nameEn:"Accounts receivable",type:"asset",key:"ACCOUNTS_RECEIVABLE"},
   {code:"1300",nameAr:"مخزون المنتجات النهائية",nameEn:"Finished goods inventory",type:"asset",key:"INVENTORY"},

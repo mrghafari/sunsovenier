@@ -978,6 +978,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Every route carrying this name must verify an active super-admin role.
   // A generic authenticated customer or non-super-admin session is not enough.
   const requireSuperAdmin = requireSuperAdminRole;
+  const {registerCustomerCodeRoutes}=await import("./customer-codes");
+  registerCustomerCodeRoutes(app,requireSuperAdminRole);
   
   // Add department middleware to all authenticated routes (excluding ticket creation for guest access)
   app.use('/api', (req, res, next) => {

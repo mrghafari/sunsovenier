@@ -21,7 +21,7 @@
     "accounting:migrate:dev": "NODE_ENV=development tsx scripts/accounting-dev-migrate.ts",
     "accounting:seed:dev": "NODE_ENV=development tsx scripts/accounting-dev-seed.ts",
     "test:accounting": "tsx --test server/modules/accounting/money.test.ts client/src/components/admin/accounting/accounting-logic.test.ts",
-    "test:accounting:db": "ACCOUNTING_DB_TEST=1 tsx --test --test-concurrency=1 server/modules/accounting/integrity.test.ts server/modules/accounting/outbox.test.ts server/modules/accounting/wallet.test.ts"
+    "test:accounting:db": "ACCOUNTING_DB_TEST=1 tsx --test --test-concurrency=1 server/modules/accounting/integrity.test.ts server/modules/accounting/outbox.test.ts server/modules/accounting/wallet.test.ts server/modules/accounting/receipts.test.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1130.0",

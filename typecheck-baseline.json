@@ -1785,15 +1785,15 @@
       "count": 1
     },
     {
-      "key": "[\"server/crm-storage.ts\",2416,\"Property 'createOrUpdateCustomerFromOrder' in type 'CrmStorage' is not assignable to the same property in base type 'ICrmStorage'.\\n  Type '(orderData: { email: string; firstName: string; lastName: string; company?: string | undefined; phone: string; country: string; city: string; address: string; postalCode?: string | undefined; orderValue: number; }) => Promise<...>' is not assignable to type '(orderData: { email: string; firstName: string; lastName: string; company?: string | undefined; phone: string; country: string; city: string; address: string; postalCode?: string | undefined; orderValue: number; }) => Promise<...>'. Two different types with this name exist, but they are unrelated.\\n    Type 'Promise<{ address: string; id: number; email: string; state: string | null; country: string; tags: unknown; province: string; createdAt: Date; updatedAt: Date; isActive: boolean | null; averageOrderValue: string | null; ... 37 more ...; resetPasswordExpires: Date | null; }>' is not assignable to type 'Promise<{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 44 more ...; creditStatus: string | null; }>'.\\n      Type '{ address: string; id: number; email: string; state: string | null; country: string; tags: unknown; province: string; createdAt: Date; updatedAt: Date; isActive: boolean | null; averageOrderValue: string | null; ... 37 more ...; resetPasswordExpires: Date | null; }' is missing the following properties from type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 44 more ...; creditStatus: string | null; }': priceRange, createdBy, taxId, website, and 10 more.\",\"async createOrUpdateCustomerFromOrder(orderData: {\"]",
+      "key": "[\"server/crm-storage.ts\",2416,\"Property 'createOrUpdateCustomerFromOrder' in type 'CrmStorage' is not assignable to the same property in base type 'ICrmStorage'.\\n  Type '(orderData: { email: string; firstName: string; lastName: string; company?: string | undefined; phone: string; country: string; city: string; address: string; postalCode?: string | undefined; orderValue: number; }) => Promise<...>' is not assignable to type '(orderData: { email: string; firstName: string; lastName: string; company?: string | undefined; phone: string; country: string; city: string; address: string; postalCode?: string | undefined; orderValue: number; }) => Promise<...>'. Two different types with this name exist, but they are unrelated.\\n    Type 'Promise<{ address: string; id: number; email: string; state: string | null; country: string; tags: unknown; province: string; createdAt: Date; updatedAt: Date; isActive: boolean | null; averageOrderValue: string | null; ... 37 more ...; resetPasswordExpires: Date | null; }>' is not assignable to type 'Promise<{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 45 more ...; creditStatus: string | null; }>'.\\n      Type '{ address: string; id: number; email: string; state: string | null; country: string; tags: unknown; province: string; createdAt: Date; updatedAt: Date; isActive: boolean | null; averageOrderValue: string | null; ... 37 more ...; resetPasswordExpires: Date | null; }' is missing the following properties from type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 45 more ...; creditStatus: string | null; }': priceRange, createdBy, taxId, website, and 11 more.\",\"async createOrUpdateCustomerFromOrder(orderData: {\"]",
       "count": 1
     },
     {
-      "key": "[\"server/crm-storage.ts\",2416,\"Property 'getCustomersInSegment' in type 'CrmStorage' is not assignable to the same property in base type 'ICrmStorage'.\\n  Type '(segmentId: number) => Promise<{ address: string; id: number; email: string; state: string | null; country: string; tags: unknown; province: string; createdAt: Date; updatedAt: Date; isActive: boolean | null; ... 38 more ...; resetPasswordExpires: Date | null; }[]>' is not assignable to type '(segmentId: number) => Promise<{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; ... 45 more ...; creditStatus: string | null; }[]>'.\\n    Type 'Promise<{ address: string; id: number; email: string; state: string | null; country: string; tags: unknown; province: string; createdAt: Date; updatedAt: Date; isActive: boolean | null; averageOrderValue: string | null; ... 37 more ...; resetPasswordExpires: Date | null; }[]>' is not assignable to type 'Promise<{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 44 more ...; creditStatus: string | null; }[]>'.\\n      Type '{ address: string; id: number; email: string; state: string | null; country: string; tags: unknown; province: string; createdAt: Date; updatedAt: Date; isActive: boolean | null; averageOrderValue: string | null; ... 37 more ...; resetPasswordExpires: Date | null; }[]' is not assignable to type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 44 more ...; creditStatus: string | null; }[]'.\\n        Type '{ address: string; id: number; email: string; state: string | null; country: string; tags: unknown; province: string; createdAt: Date; updatedAt: Date; isActive: boolean | null; averageOrderValue: string | null; ... 37 more ...; resetPasswordExpires: Date | null; }' is missing the following properties from type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 44 more ...; creditStatus: string | null; }': priceRange, createdBy, taxId, website, and 10 more.\",\"async getCustomersInSegment(segmentId: number): Promise<Customer[]> {\"]",
+      "key": "[\"server/crm-storage.ts\",2416,\"Property 'getCustomersInSegment' in type 'CrmStorage' is not assignable to the same property in base type 'ICrmStorage'.\\n  Type '(segmentId: number) => Promise<{ address: string; id: number; email: string; state: string | null; country: string; tags: unknown; province: string; createdAt: Date; updatedAt: Date; isActive: boolean | null; ... 38 more ...; resetPasswordExpires: Date | null; }[]>' is not assignable to type '(segmentId: number) => Promise<{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; ... 46 more ...; creditStatus: string | null; }[]>'.\\n    Type 'Promise<{ address: string; id: number; email: string; state: string | null; country: string; tags: unknown; province: string; createdAt: Date; updatedAt: Date; isActive: boolean | null; averageOrderValue: string | null; ... 37 more ...; resetPasswordExpires: Date | null; }[]>' is not assignable to type 'Promise<{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 45 more ...; creditStatus: string | null; }[]>'.\\n      Type '{ address: string; id: number; email: string; state: string | null; country: string; tags: unknown; province: string; createdAt: Date; updatedAt: Date; isActive: boolean | null; averageOrderValue: string | null; ... 37 more ...; resetPasswordExpires: Date | null; }[]' is not assignable to type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 45 more ...; creditStatus: string | null; }[]'.\\n        Type '{ address: string; id: number; email: string; state: string | null; country: string; tags: unknown; province: string; createdAt: Date; updatedAt: Date; isActive: boolean | null; averageOrderValue: string | null; ... 37 more ...; resetPasswordExpires: Date | null; }' is missing the following properties from type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 45 more ...; creditStatus: string | null; }': priceRange, createdBy, taxId, website, and 11 more.\",\"async getCustomersInSegment(segmentId: number): Promise<Customer[]> {\"]",
       "count": 1
     },
     {
-      "key": "[\"server/crm-storage.ts\",2740,\"Type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 44 more ...; creditStatus: string | null; }' is missing the following properties from type '{ address: string; id: number; email: string; state: string | null; country: string; tags: unknown; province: string; createdAt: Date; updatedAt: Date; isActive: boolean | null; averageOrderValue: string | null; ... 37 more ...; resetPasswordExpires: Date | null; }': state, whatsappNumber, googleId, facebookId, and 5 more.\",\"return customer;\"]",
+      "key": "[\"server/crm-storage.ts\",2740,\"Type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 45 more ...; creditStatus: string | null; }' is missing the following properties from type '{ address: string; id: number; email: string; state: string | null; country: string; tags: unknown; province: string; createdAt: Date; updatedAt: Date; isActive: boolean | null; averageOrderValue: string | null; ... 37 more ...; resetPasswordExpires: Date | null; }': state, whatsappNumber, googleId, facebookId, and 5 more.\",\"return customer;\"]",
       "count": 1
     },
     {
@@ -2797,31 +2797,31 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'city' does not exist on type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 44 more ...; creditStatus: string | null; }'.\",\"<p class=\\\"multilingual-text\\\"><strong>${t.address}:</strong> ${customer.address}, ${customer.city}, ${customer.country}</p>\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'city' does not exist on type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 45 more ...; creditStatus: string | null; }'.\",\"<p class=\\\"multilingual-text\\\"><strong>${t.address}:</strong> ${customer.address}, ${customer.city}, ${customer.country}</p>\"]",
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'city' does not exist on type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 44 more ...; creditStatus: string | null; }'.\",\"addressParts.push(crmCustomer.cityRegion || crmCustomer.city);\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'city' does not exist on type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 45 more ...; creditStatus: string | null; }'.\",\"addressParts.push(crmCustomer.cityRegion || crmCustomer.city);\"]",
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'city' does not exist on type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 44 more ...; creditStatus: string | null; }'.\",\"city: crmCustomer.city || customerDetails.city,\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'city' does not exist on type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 45 more ...; creditStatus: string | null; }'.\",\"city: crmCustomer.city || customerDetails.city,\"]",
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'city' does not exist on type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 44 more ...; creditStatus: string | null; }'.\",\"city: crmCustomer.city,\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'city' does not exist on type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 45 more ...; creditStatus: string | null; }'.\",\"city: crmCustomer.city,\"]",
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'city' does not exist on type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 44 more ...; creditStatus: string | null; }'.\",\"city: customer.city,\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'city' does not exist on type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 45 more ...; creditStatus: string | null; }'.\",\"city: customer.city,\"]",
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'city' does not exist on type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 44 more ...; creditStatus: string | null; }'.\",\"city: customer.cityRegion || customer.city || 'Baghdad',\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'city' does not exist on type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 45 more ...; creditStatus: string | null; }'.\",\"city: customer.cityRegion || customer.city || 'Baghdad',\"]",
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'city' does not exist on type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 44 more ...; creditStatus: string | null; }'.\",\"if (crmCustomer.cityRegion || crmCustomer.city) {\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'city' does not exist on type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 45 more ...; creditStatus: string | null; }'.\",\"if (crmCustomer.cityRegion || crmCustomer.city) {\"]",
       "count": 1
     },
     {
@@ -2833,19 +2833,19 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'city' does not exist on type 'PgTableWithColumns<{ name: \\\"crm_customers\\\"; schema: undefined; columns: { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"crm_customers\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; notNull: true; ... 7 more ...; generated: undefined; }, {}, {}>; ... 52 more ...; createdBy: PgColumn<...>; }...'.\",\".groupBy(crmCustomers.city, crmCustomers.country)\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'city' does not exist on type 'PgTableWithColumns<{ name: \\\"crm_customers\\\"; schema: undefined; columns: { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"crm_customers\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; notNull: true; ... 7 more ...; generated: undefined; }, {}, {}>; ... 53 more ...; createdBy: PgColumn<...>; }...'.\",\".groupBy(crmCustomers.city, crmCustomers.country)\"]",
       "count": 2
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'city' does not exist on type 'PgTableWithColumns<{ name: \\\"crm_customers\\\"; schema: undefined; columns: { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"crm_customers\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; notNull: true; ... 7 more ...; generated: undefined; }, {}, {}>; ... 52 more ...; createdBy: PgColumn<...>; }...'.\",\".where(and(isNotNull(crmCustomers.city), isNotNull(crmCustomers.country)))\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'city' does not exist on type 'PgTableWithColumns<{ name: \\\"crm_customers\\\"; schema: undefined; columns: { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"crm_customers\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; notNull: true; ... 7 more ...; generated: undefined; }, {}, {}>; ... 53 more ...; createdBy: PgColumn<...>; }...'.\",\".where(and(isNotNull(crmCustomers.city), isNotNull(crmCustomers.country)))\"]",
       "count": 2
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'city' does not exist on type 'PgTableWithColumns<{ name: \\\"crm_customers\\\"; schema: undefined; columns: { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"crm_customers\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; notNull: true; ... 7 more ...; generated: undefined; }, {}, {}>; ... 52 more ...; createdBy: PgColumn<...>; }...'.\",\"city: crmCustomers.city,\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'city' does not exist on type 'PgTableWithColumns<{ name: \\\"crm_customers\\\"; schema: undefined; columns: { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"crm_customers\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; notNull: true; ... 7 more ...; generated: undefined; }, {}, {}>; ... 53 more ...; createdBy: PgColumn<...>; }...'.\",\"city: crmCustomers.city,\"]",
       "count": 3
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'city' does not exist on type 'PgTableWithColumns<{ name: \\\"crm_customers\\\"; schema: undefined; columns: { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"crm_customers\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; notNull: true; ... 7 more ...; generated: undefined; }, {}, {}>; ... 52 more ...; createdBy: PgColumn<...>; }...'.\",\"isNotNull(crmCustomers.city),\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'city' does not exist on type 'PgTableWithColumns<{ name: \\\"crm_customers\\\"; schema: undefined; columns: { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"crm_customers\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; notNull: true; ... 7 more ...; generated: undefined; }, {}, {}>; ... 53 more ...; createdBy: PgColumn<...>; }...'.\",\"isNotNull(crmCustomers.city),\"]",
       "count": 1
     },
     {
@@ -3189,11 +3189,11 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'password' does not exist on type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 44 more ...; creditStatus: string | null; }'.\",\"hasPassword: !!customer.password,\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'password' does not exist on type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 45 more ...; creditStatus: string | null; }'.\",\"hasPassword: !!customer.password,\"]",
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'password' does not exist on type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 44 more ...; creditStatus: string | null; }'.\",\"password: customer.password // Only return to admin\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'password' does not exist on type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 45 more ...; creditStatus: string | null; }'.\",\"password: customer.password // Only return to admin\"]",
       "count": 1
     },
     {
@@ -3441,7 +3441,7 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2339,\"Property 'totalOrders' does not exist on type 'PgTableWithColumns<{ name: \\\"crm_customers\\\"; schema: undefined; columns: { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"crm_customers\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; notNull: true; ... 7 more ...; generated: undefined; }, {}, {}>; ... 52 more ...; createdBy: PgColumn<...>; }...'.\",\"totalOrders: crmCustomers.totalOrders,\"]",
+      "key": "[\"server/routes.ts\",2339,\"Property 'totalOrders' does not exist on type 'PgTableWithColumns<{ name: \\\"crm_customers\\\"; schema: undefined; columns: { id: PgColumn<{ name: \\\"id\\\"; tableName: \\\"crm_customers\\\"; dataType: \\\"number\\\"; columnType: \\\"PgSerial\\\"; data: number; driverParam: number; notNull: true; ... 7 more ...; generated: undefined; }, {}, {}>; ... 53 more ...; createdBy: PgColumn<...>; }...'.\",\"totalOrders: crmCustomers.totalOrders,\"]",
       "count": 1
     },
     {
@@ -3877,19 +3877,19 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2551,\"Property 'first_name' does not exist on type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 44 more ...; creditStatus: string | null; }'. Did you mean 'firstName'?\",\"displayName: `${customer.firstName || customer.first_name} ${customer.lastName || customer.last_name}`,\"]",
+      "key": "[\"server/routes.ts\",2551,\"Property 'first_name' does not exist on type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 45 more ...; creditStatus: string | null; }'. Did you mean 'firstName'?\",\"displayName: `${customer.firstName || customer.first_name} ${customer.lastName || customer.last_name}`,\"]",
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2551,\"Property 'first_name' does not exist on type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 44 more ...; creditStatus: string | null; }'. Did you mean 'firstName'?\",\"displayText: `${customer.phone} - ${customer.firstName || customer.first_name} ${customer.lastName || customer.last_name}`\"]",
+      "key": "[\"server/routes.ts\",2551,\"Property 'first_name' does not exist on type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 45 more ...; creditStatus: string | null; }'. Did you mean 'firstName'?\",\"displayText: `${customer.phone} - ${customer.firstName || customer.first_name} ${customer.lastName || customer.last_name}`\"]",
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2551,\"Property 'first_name' does not exist on type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 44 more ...; creditStatus: string | null; }'. Did you mean 'firstName'?\",\"first_name: customer.first_name,\"]",
+      "key": "[\"server/routes.ts\",2551,\"Property 'first_name' does not exist on type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 45 more ...; creditStatus: string | null; }'. Did you mean 'firstName'?\",\"first_name: customer.first_name,\"]",
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2551,\"Property 'first_name' does not exist on type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 44 more ...; creditStatus: string | null; }'. Did you mean 'firstName'?\",\"firstName: customer.firstName || customer.first_name,\"]",
+      "key": "[\"server/routes.ts\",2551,\"Property 'first_name' does not exist on type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 45 more ...; creditStatus: string | null; }'. Did you mean 'firstName'?\",\"firstName: customer.firstName || customer.first_name,\"]",
       "count": 2
     },
     {
@@ -3913,19 +3913,19 @@
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2551,\"Property 'last_name' does not exist on type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 44 more ...; creditStatus: string | null; }'. Did you mean 'lastName'?\",\"displayName: `${customer.firstName || customer.first_name} ${customer.lastName || customer.last_name}`,\"]",
+      "key": "[\"server/routes.ts\",2551,\"Property 'last_name' does not exist on type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 45 more ...; creditStatus: string | null; }'. Did you mean 'lastName'?\",\"displayName: `${customer.firstName || customer.first_name} ${customer.lastName || customer.last_name}`,\"]",
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2551,\"Property 'last_name' does not exist on type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 44 more ...; creditStatus: string | null; }'. Did you mean 'lastName'?\",\"displayText: `${customer.phone} - ${customer.firstName || customer.first_name} ${customer.lastName || customer.last_name}`\"]",
+      "key": "[\"server/routes.ts\",2551,\"Property 'last_name' does not exist on type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 45 more ...; creditStatus: string | null; }'. Did you mean 'lastName'?\",\"displayText: `${customer.phone} - ${customer.firstName || customer.first_name} ${customer.lastName || customer.last_name}`\"]",
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2551,\"Property 'last_name' does not exist on type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 44 more ...; creditStatus: string | null; }'. Did you mean 'lastName'?\",\"last_name: customer.last_name\"]",
+      "key": "[\"server/routes.ts\",2551,\"Property 'last_name' does not exist on type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 45 more ...; creditStatus: string | null; }'. Did you mean 'lastName'?\",\"last_name: customer.last_name\"]",
       "count": 1
     },
     {
-      "key": "[\"server/routes.ts\",2551,\"Property 'last_name' does not exist on type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 44 more ...; creditStatus: string | null; }'. Did you mean 'lastName'?\",\"lastName: customer.lastName || customer.last_name,\"]",
+      "key": "[\"server/routes.ts\",2551,\"Property 'last_name' does not exist on type '{ address: string | null; id: number; email: string; country: string | null; tags: unknown; priceRange: string | null; province: string | null; createdBy: string | null; createdAt: Date; ... 45 more ...; creditStatus: string | null; }'. Did you mean 'lastName'?\",\"lastName: customer.lastName || customer.last_name,\"]",
       "count": 2
     },
     {

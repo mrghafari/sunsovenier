@@ -4,6 +4,7 @@ const postingLabels: Record<PostingKey, Record<string, string>> = {
   BANK: { en: "Bank", fa: "بانک", ar: "البنك", tr: "Banka" },
   GATEWAY: { en: "Payment gateway clearing", fa: "حساب واسط درگاه پرداخت", ar: "مستحقات بوابة الدفع", tr: "Ödeme geçidi takas hesabı" },
   CASH: { en: "Cash", fa: "نقد", ar: "نقد", tr: "Nakit" },
+  CHEQUES_ON_HAND: { en: "Cheques on hand", fa: "چک‌های دریافت‌شده", ar: "شيكات مستلمة", tr: "Alınan çekler" },
   CHEQUE_CLEARING: { en: "Cheque clearing", fa: "وصول چک", ar: "مقاصة الشيكات", tr: "Çek takası" },
   ACCOUNTS_RECEIVABLE: { en: "Accounts receivable", fa: "حساب‌های دریافتنی", ar: "الذمم المدينة", tr: "Ticari alacaklar" },
   WALLET_LIABILITY: { en: "Wallet liability", fa: "بدهی کیف پول", ar: "التزام المحفظة", tr: "Cüzdan yükümlülüğü" },

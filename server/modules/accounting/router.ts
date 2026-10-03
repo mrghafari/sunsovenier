@@ -9,6 +9,7 @@ import { databaseErrorCode } from "./errors";
 import { assertLedgerReady } from "./readiness";
 import { captureOperationalEvent } from "./events";
 import {linkWallet,recordWalletMovement,releaseWalletHold,approveWalletOrder} from "./wallet";
+import {recordCustomerReceipt,transitionCheque,readReceivables} from "./receipts";
 
 export function createAccountingRouter() {
   const router = Router();
@@ -97,6 +98,22 @@ export function createAccountingRouter() {
       const orderId=Number(req.params.orderId);
       if(!Number.isSafeInteger(orderId)||orderId<=0) throw new AccountingError("Valid order ID required");
       res.json(await approveWalletOrder(orderId,String(req.body.notes||""),res.locals.accountingAccess));
+    }catch(e){next(e);}
+  });
+  router.get("/v2/receivables",async(req,res,next)=>{
+    try{const companyId=Number(req.query.companyId);
+      if(!Number.isSafeInteger(companyId)||companyId<=0)throw new AccountingError("Valid company ID required");
+      res.json({items:await readReceivables(companyId)});
+    }catch(e){next(e);}
+  });
+  router.post("/v2/receipts",async(req,res,next)=>{
+    try{res.status(201).json(await recordCustomerReceipt(req.body,res.locals.accountingAccess));}catch(e){next(e);}
+  });
+  router.post("/v2/receipts/:id/cheque/:action",async(req,res,next)=>{
+    try{const receiptId=Number(req.params.id),action=req.params.action;
+      if(!Number.isSafeInteger(receiptId)||receiptId<=0||!["deposited","cleared","bounced"].includes(action))
+        throw new AccountingError("Valid cheque action required");
+      res.json(await transitionCheque(receiptId,action as "deposited"|"cleared"|"bounced",req.body,res.locals.accountingAccess));
     }catch(e){next(e);}
   });
   router.use((error: unknown,_req: Request,res: Response,_next: NextFunction) => {

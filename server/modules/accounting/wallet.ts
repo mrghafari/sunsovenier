@@ -26,7 +26,7 @@ async function ready(tx:AccountingTransaction,companyId:number) {
   if(!gate.rows.length) throw new AccountingError("Wallet financial cutover is blocked until pipeline and opening reconciliation are approved",503,"WALLET_CUTOVER_BLOCKED");
   return gate.rows[0];
 }
-async function lockedWallet(tx:AccountingTransaction,walletId:number,companyId:number) {
+export async function lockedWallet(tx:AccountingTransaction,walletId:number,companyId:number) {
   const result=await tx.execute(sql`select w.*,l.company_id,c.decimals from customer_wallets w
     join accounting_wallet_links l on l.wallet_id=w.id and l.customer_id=w.customer_id and l.currency=w.currency
     join accounting_currencies c on c.code=w.currency and c.is_active
@@ -35,7 +35,7 @@ async function lockedWallet(tx:AccountingTransaction,walletId:number,companyId:n
   if(!w || w.status!=="active") throw new AccountingError("An active, explicitly linked customer wallet is required",409,"WALLET_LINK_REQUIRED");
   return w as typeof w & {id:number;customer_id:number;balance:string;currency:string;decimals:number};
 }
-async function account(tx:AccountingTransaction,companyId:number,key:string) {
+export async function account(tx:AccountingTransaction,companyId:number,key:string) {
   const rows=await tx.execute(sql`select a.id,a.type from accounting_posting_rules r
     join accounting_accounts a on a.id=r.account_id and a.company_id=r.company_id and a.is_active and a.is_posting
     where r.company_id=${companyId} and r.key=${key}`);
@@ -43,22 +43,24 @@ async function account(tx:AccountingTransaction,companyId:number,key:string) {
   if(!a || a.type!==(key==="WALLET_LIABILITY"?"liability":"asset")) throw new AccountingError(`Configure the ${key} posting account`);
   return a.id as number;
 }
-async function available(tx:AccountingTransaction,walletId:number,balance:string) {
+export async function available(tx:AccountingTransaction,walletId:number,balance:string) {
   const result=await tx.execute(sql`select
     (select coalesce(sum(amount),0) from accounting_wallet_holds where wallet_id=${walletId} and status='active')::text as held,
     greatest(w.reserved_balance,(select coalesce(sum(amount),0) from wallet_transactions where wallet_id=w.id and status='reserved'))::text as legacy
     from customer_wallets w where w.id=${walletId}`);
   const r=result.rows[0] as {held:string;legacy:string};
-  return decimal(balance).minus(r.held).minus(r.legacy);
+  const relation=await tx.execute(sql`select to_regprocedure('accounting_pending_cheque_funds(integer)') as relation`);
+  const pending=relation.rows[0].relation?(await tx.execute(sql`select accounting_pending_cheque_funds(${walletId})::text as amount`)).rows[0].amount:"0";
+  return decimal(balance).minus(r.held).minus(r.legacy).minus(String(pending));
 }
-async function reconciled(tx:AccountingTransaction,w:{customer_id:number;balance:string;currency:string},companyId:number,liability:number) {
+export async function reconciled(tx:AccountingTransaction,w:{customer_id:number;balance:string;currency:string},companyId:number,liability:number) {
   const r=await tx.execute(sql`select coalesce(sum(l.credit-l.debit),0)::text as balance
     from accounting_journal_lines l join accounting_journal_entries e on e.id=l.entry_id and e.status='posted'
     where e.company_id=${companyId} and l.account_id=${liability} and l.party_type='customer'
     and l.party_id=${w.customer_id} and l.currency=${w.currency}`);
   if(!decimal(String(r.rows[0].balance)).eq(w.balance)) throw new AccountingError("Customer balance does not reconcile with company wallet liability",409,"WALLET_RECONCILIATION_REQUIRED");
 }
-function nativeMoney(value:string) {
+export function nativeMoney(value:string) {
   // Native transaction amounts/before/after are numeric(12,2); never truncate to fit.
   if(decimal(value).gte("10000000000") || decimal(value).decimalPlaces()>2)
     throw new AccountingError("Amount exceeds existing wallet storage precision",422,"NATIVE_WALLET_PRECISION");
@@ -218,7 +220,11 @@ export async function newWalletAccountingState(walletId:number):Promise<{held:st
       exists(select 1 from accounting_wallet_cutovers g where g.company_id=l.company_id and g.pipeline_ready)
       or exists(select 1 from accounting_wallet_movements m where m.wallet_id=l.wallet_id)
       or exists(select 1 from accounting_wallet_holds h where h.wallet_id=l.wallet_id and h.status='active'))) as controlled`);
-  return {held:String(r.rows[0].held),controlled:Boolean(r.rows[0].controlled)};
+  const pendingFunction=await accountingDb.execute(sql`select to_regprocedure('accounting_pending_cheque_funds(integer)') as relation`);
+  if(!pendingFunction.rows[0].relation)return {held:String(r.rows[0].held),controlled:Boolean(r.rows[0].controlled)};
+  const state=await accountingDb.execute(sql`select accounting_pending_cheque_funds(${walletId})::text as pending,
+    accounting_wallet_controlled(${walletId}) as controlled`);
+  return {held:decimal(String(r.rows[0].held)).plus(String(state.rows[0].pending)).toFixed(),controlled:Boolean(state.rows[0].controlled)};
 }
 
 export async function linkWallet(companyId:number,walletId:number,actor:AccountingAccess,callerTx?:AccountingTransaction) {

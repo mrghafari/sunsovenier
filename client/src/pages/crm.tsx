@@ -21,6 +21,7 @@ import { PasswordManagement } from "@/components/PasswordManagement";
 import { apiRequest } from "@/lib/queryClient";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { crmCurrency, crmDate, crmEnum, crmText } from "@/lib/crm-localization";
+import { CustomerCodeSettings, CustomerCodeValue, customerCodeText } from "@/components/crm/customer-code-settings";
 
 // Province and City components for Iraq geographical data
 
@@ -337,6 +338,7 @@ function CitySelect({ editingCustomer, setEditingCustomer }: {
 
 interface CrmCustomer {
   id: number;
+  customerCode?: string | null;
   email: string;
   firstName: string;
   lastName: string;
@@ -1223,6 +1225,7 @@ export default function CRM() {
                           {getSortIcon("email")}
                         </div>
                       </TableHead>
+                      <TableHead className="py-2 px-3">{customerCodeText(language, "code")}</TableHead>
                       <TableHead 
                         className="cursor-pointer hover:bg-gray-50 select-none py-2 px-3"
                         onClick={() => handleSort("company")}
@@ -1275,6 +1278,9 @@ export default function CRM() {
                           <div className="truncate max-w-[150px]">
                             {customer.email}
                           </div>
+                        </TableCell>
+                        <TableCell className="py-2 px-3">
+                          <CustomerCodeValue code={customer.customerCode} />
                         </TableCell>
                         <TableCell className="py-2 px-3">
                           <div className="truncate max-w-[100px]">
@@ -1413,6 +1419,7 @@ export default function CRM() {
               <VerificationSettingsPanel />
             </CardContent>
           </Card>
+          <CustomerCodeSettings />
         </TabsContent>
       </Tabs>
 
@@ -1703,6 +1710,10 @@ export default function CRM() {
                   <div>
                     <Label>{crmText(language, "email")}</Label>
                     <p className="font-medium">{selectedCustomer.email}</p>
+                  </div>
+                  <div>
+                    <Label>{customerCodeText(language, "code")}</Label>
+                    <p className="font-medium"><CustomerCodeValue code={selectedCustomer.customerCode} /></p>
                   </div>
                   <div>
                     <Label>{crmText(language, "company")}</Label>
