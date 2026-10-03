@@ -16,7 +16,12 @@
     "check:baseline:update": "node scripts/typecheck-baseline.mjs --update",
     "test:order-weight": "tsx --test server/order-management-storage.test.ts",
     "test:product-weight": "tsx --test server/product-weight-sync.test.ts",
-    "db:push": "drizzle-kit push"
+    "db:push": "drizzle-kit push",
+    "accounting:generate": "drizzle-kit generate --config=server/modules/accounting/drizzle.config.ts",
+    "accounting:migrate:dev": "NODE_ENV=development tsx scripts/accounting-dev-migrate.ts",
+    "accounting:seed:dev": "NODE_ENV=development tsx scripts/accounting-dev-seed.ts",
+    "test:accounting": "tsx --test server/modules/accounting/money.test.ts client/src/components/admin/accounting/accounting-logic.test.ts",
+    "test:accounting:db": "ACCOUNTING_DB_TEST=1 tsx --test server/modules/accounting/integrity.test.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1130.0",
@@ -90,6 +95,7 @@
     "cron": "^4.3.4",
     "crypto": "^1.0.1",
     "date-fns": "^3.6.0",
+    "decimal.js": "^10.6.0",
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.45.2",
     "drizzle-zod": "^0.7.0",

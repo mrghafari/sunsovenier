@@ -19,6 +19,7 @@ import { bankReceiptReminderService } from "./bank-receipt-reminder";
 import { incompletePaymentCleaner } from "./incomplete-payment-cleaner";
 import { setupVite, serveStatic, log } from "./vite";
 import passport from "./passport-config";
+import { createAccountingRouter } from "./modules/accounting/router";
 import { monitoringService } from "./monitoring-service";
 import { sequenceSyncService } from "./sequence-sync";
 import { startMarketingEmailWorker, stopMarketingEmailWorker } from "./marketing-email-worker";
@@ -376,6 +377,9 @@ app.use((req, res, next) => {
     const adminVendorRouter = createAdminVendorRouter();
     app.use('/api/admin/vendors', adminVendorRouter);
     log('👨‍💼 [ADMIN-VENDOR] Admin vendor management routes registered');
+
+    // Accounting owns only its API namespace; no business workflow is changed.
+    app.use('/api/accounting', createAccountingRouter());
 
     // Register routes BEFORE Vite middleware to ensure API routes take precedence
     const server = await registerRoutes(app);

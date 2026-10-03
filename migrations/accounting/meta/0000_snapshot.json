@@ -1,0 +1,1453 @@
+{
+  "id": "4a982335-52d7-4b51-b650-ac526c638236",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.accounting_accounts": {
+      "name": "accounting_accounts",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "company_id": {
+          "name": "company_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name_ar": {
+          "name": "name_ar",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name_en": {
+          "name": "name_en",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parent_id": {
+          "name": "parent_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_posting": {
+          "name": "is_posting",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        }
+      },
+      "indexes": {
+        "accounting_accounts_company_code": {
+          "name": "accounting_accounts_company_code",
+          "columns": [
+            {
+              "expression": "company_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "code",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "accounting_accounts_company_id_accounting_companies_id_fk": {
+          "name": "accounting_accounts_company_id_accounting_companies_id_fk",
+          "tableFrom": "accounting_accounts",
+          "tableTo": "accounting_companies",
+          "columnsFrom": [
+            "company_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "accounting_accounts_parent_id_accounting_accounts_id_fk": {
+          "name": "accounting_accounts_parent_id_accounting_accounts_id_fk",
+          "tableFrom": "accounting_accounts",
+          "tableTo": "accounting_accounts",
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "accounting_account_type": {
+          "name": "accounting_account_type",
+          "value": "\"accounting_accounts\".\"type\" in ('asset','liability','equity','revenue','expense')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.accounting_audit_logs": {
+      "name": "accounting_audit_logs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "company_id": {
+          "name": "company_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "actor_id": {
+          "name": "actor_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actor_type": {
+          "name": "actor_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "action": {
+          "name": "action",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entity_type": {
+          "name": "entity_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entity_id": {
+          "name": "entity_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "before": {
+          "name": "before",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "after": {
+          "name": "after",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "accounting_audit_logs_company_id_accounting_companies_id_fk": {
+          "name": "accounting_audit_logs_company_id_accounting_companies_id_fk",
+          "tableFrom": "accounting_audit_logs",
+          "tableTo": "accounting_companies",
+          "columnsFrom": [
+            "company_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.accounting_companies": {
+      "name": "accounting_companies",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "country_code": {
+          "name": "country_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "timezone": {
+          "name": "timezone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "base_currency": {
+          "name": "base_currency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "accounting_companies_base_currency_accounting_currencies_code_fk": {
+          "name": "accounting_companies_base_currency_accounting_currencies_code_fk",
+          "tableFrom": "accounting_companies",
+          "tableTo": "accounting_currencies",
+          "columnsFrom": [
+            "base_currency"
+          ],
+          "columnsTo": [
+            "code"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.accounting_cost_centers": {
+      "name": "accounting_cost_centers",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "company_id": {
+          "name": "company_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name_ar": {
+          "name": "name_ar",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name_en": {
+          "name": "name_en",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        }
+      },
+      "indexes": {
+        "accounting_cost_centers_company_code": {
+          "name": "accounting_cost_centers_company_code",
+          "columns": [
+            {
+              "expression": "company_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "code",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "accounting_cost_centers_company_id_accounting_companies_id_fk": {
+          "name": "accounting_cost_centers_company_id_accounting_companies_id_fk",
+          "tableFrom": "accounting_cost_centers",
+          "tableTo": "accounting_companies",
+          "columnsFrom": [
+            "company_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.accounting_currencies": {
+      "name": "accounting_currencies",
+      "schema": "",
+      "columns": {
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "decimals": {
+          "name": "decimals",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "accounting_currency_decimals": {
+          "name": "accounting_currency_decimals",
+          "value": "\"accounting_currencies\".\"decimals\" between 0 and 8"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.accounting_exchange_rates": {
+      "name": "accounting_exchange_rates",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "company_id": {
+          "name": "company_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "currency": {
+          "name": "currency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "effective_on": {
+          "name": "effective_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rate": {
+          "name": "rate",
+          "type": "numeric(38, 12)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'central_bank'"
+        },
+        "reference": {
+          "name": "reference",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "accounting_exchange_rate_date": {
+          "name": "accounting_exchange_rate_date",
+          "columns": [
+            {
+              "expression": "company_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "currency",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "effective_on",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "accounting_exchange_rates_company_id_accounting_companies_id_fk": {
+          "name": "accounting_exchange_rates_company_id_accounting_companies_id_fk",
+          "tableFrom": "accounting_exchange_rates",
+          "tableTo": "accounting_companies",
+          "columnsFrom": [
+            "company_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "accounting_exchange_rates_currency_accounting_currencies_code_fk": {
+          "name": "accounting_exchange_rates_currency_accounting_currencies_code_fk",
+          "tableFrom": "accounting_exchange_rates",
+          "tableTo": "accounting_currencies",
+          "columnsFrom": [
+            "currency"
+          ],
+          "columnsTo": [
+            "code"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "accounting_exchange_rate_positive": {
+          "name": "accounting_exchange_rate_positive",
+          "value": "\"accounting_exchange_rates\".\"rate\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.accounting_fiscal_years": {
+      "name": "accounting_fiscal_years",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "company_id": {
+          "name": "company_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "starts_on": {
+          "name": "starts_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ends_on": {
+          "name": "ends_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'open'"
+        }
+      },
+      "indexes": {
+        "accounting_fiscal_year_company_name": {
+          "name": "accounting_fiscal_year_company_name",
+          "columns": [
+            {
+              "expression": "company_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "accounting_fiscal_years_company_id_accounting_companies_id_fk": {
+          "name": "accounting_fiscal_years_company_id_accounting_companies_id_fk",
+          "tableFrom": "accounting_fiscal_years",
+          "tableTo": "accounting_companies",
+          "columnsFrom": [
+            "company_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "accounting_fiscal_year_dates": {
+          "name": "accounting_fiscal_year_dates",
+          "value": "\"accounting_fiscal_years\".\"starts_on\" <= \"accounting_fiscal_years\".\"ends_on\""
+        },
+        "accounting_fiscal_year_status": {
+          "name": "accounting_fiscal_year_status",
+          "value": "\"accounting_fiscal_years\".\"status\" in ('open','closed')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.accounting_journal_entries": {
+      "name": "accounting_journal_entries",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "company_id": {
+          "name": "company_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fiscal_year_id": {
+          "name": "fiscal_year_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entry_date": {
+          "name": "entry_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_type": {
+          "name": "source_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_hash": {
+          "name": "source_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'draft'"
+        },
+        "reversal_of_id": {
+          "name": "reversal_of_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actor_type": {
+          "name": "actor_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "accounting_journal_idempotency": {
+          "name": "accounting_journal_idempotency",
+          "columns": [
+            {
+              "expression": "company_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "source_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "source_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "accounting_journal_one_reversal": {
+          "name": "accounting_journal_one_reversal",
+          "columns": [
+            {
+              "expression": "reversal_of_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "accounting_journal_company_date": {
+          "name": "accounting_journal_company_date",
+          "columns": [
+            {
+              "expression": "company_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "entry_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "accounting_journal_entries_company_id_accounting_companies_id_fk": {
+          "name": "accounting_journal_entries_company_id_accounting_companies_id_fk",
+          "tableFrom": "accounting_journal_entries",
+          "tableTo": "accounting_companies",
+          "columnsFrom": [
+            "company_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "accounting_journal_entries_fiscal_year_id_accounting_fiscal_years_id_fk": {
+          "name": "accounting_journal_entries_fiscal_year_id_accounting_fiscal_years_id_fk",
+          "tableFrom": "accounting_journal_entries",
+          "tableTo": "accounting_fiscal_years",
+          "columnsFrom": [
+            "fiscal_year_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "accounting_journal_entries_reversal_of_id_accounting_journal_entries_id_fk": {
+          "name": "accounting_journal_entries_reversal_of_id_accounting_journal_entries_id_fk",
+          "tableFrom": "accounting_journal_entries",
+          "tableTo": "accounting_journal_entries",
+          "columnsFrom": [
+            "reversal_of_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "accounting_journal_status": {
+          "name": "accounting_journal_status",
+          "value": "\"accounting_journal_entries\".\"status\" in ('draft','posted')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.accounting_journal_lines": {
+      "name": "accounting_journal_lines",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "entry_id": {
+          "name": "entry_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "currency": {
+          "name": "currency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "exchange_rate": {
+          "name": "exchange_rate",
+          "type": "numeric(38, 12)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "debit": {
+          "name": "debit",
+          "type": "numeric(38, 8)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "credit": {
+          "name": "credit",
+          "type": "numeric(38, 8)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "base_debit": {
+          "name": "base_debit",
+          "type": "numeric(38, 8)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "base_credit": {
+          "name": "base_credit",
+          "type": "numeric(38, 8)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "party_type": {
+          "name": "party_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "party_id": {
+          "name": "party_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cost_center_id": {
+          "name": "cost_center_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        }
+      },
+      "indexes": {
+        "accounting_lines_entry": {
+          "name": "accounting_lines_entry",
+          "columns": [
+            {
+              "expression": "entry_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "accounting_lines_account": {
+          "name": "accounting_lines_account",
+          "columns": [
+            {
+              "expression": "account_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "accounting_journal_lines_entry_id_accounting_journal_entries_id_fk": {
+          "name": "accounting_journal_lines_entry_id_accounting_journal_entries_id_fk",
+          "tableFrom": "accounting_journal_lines",
+          "tableTo": "accounting_journal_entries",
+          "columnsFrom": [
+            "entry_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "accounting_journal_lines_account_id_accounting_accounts_id_fk": {
+          "name": "accounting_journal_lines_account_id_accounting_accounts_id_fk",
+          "tableFrom": "accounting_journal_lines",
+          "tableTo": "accounting_accounts",
+          "columnsFrom": [
+            "account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "accounting_journal_lines_currency_accounting_currencies_code_fk": {
+          "name": "accounting_journal_lines_currency_accounting_currencies_code_fk",
+          "tableFrom": "accounting_journal_lines",
+          "tableTo": "accounting_currencies",
+          "columnsFrom": [
+            "currency"
+          ],
+          "columnsTo": [
+            "code"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "accounting_journal_lines_cost_center_id_accounting_cost_centers_id_fk": {
+          "name": "accounting_journal_lines_cost_center_id_accounting_cost_centers_id_fk",
+          "tableFrom": "accounting_journal_lines",
+          "tableTo": "accounting_cost_centers",
+          "columnsFrom": [
+            "cost_center_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "accounting_line_amounts": {
+          "name": "accounting_line_amounts",
+          "value": "(\"accounting_journal_lines\".\"debit\" > 0 and \"accounting_journal_lines\".\"credit\" = 0 and \"accounting_journal_lines\".\"base_debit\" > 0 and \"accounting_journal_lines\".\"base_credit\" = 0)\n    or (\"accounting_journal_lines\".\"credit\" > 0 and \"accounting_journal_lines\".\"debit\" = 0 and \"accounting_journal_lines\".\"base_credit\" > 0 and \"accounting_journal_lines\".\"base_debit\" = 0)"
+        },
+        "accounting_line_rate": {
+          "name": "accounting_line_rate",
+          "value": "\"accounting_journal_lines\".\"exchange_rate\" > 0"
+        },
+        "accounting_line_party": {
+          "name": "accounting_line_party",
+          "value": "(\"accounting_journal_lines\".\"party_type\" is null and \"accounting_journal_lines\".\"party_id\" is null) or (\"accounting_journal_lines\".\"party_type\" in ('customer','carrier') and \"accounting_journal_lines\".\"party_id\" > 0)"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.accounting_outbox": {
+      "name": "accounting_outbox",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "company_id": {
+          "name": "company_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "event_type": {
+          "name": "event_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "payload": {
+          "name": "payload",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "attempts": {
+          "name": "attempts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "last_error": {
+          "name": "last_error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "next_attempt_at": {
+          "name": "next_attempt_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "processed_at": {
+          "name": "processed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "accounting_outbox_event_identity": {
+          "name": "accounting_outbox_event_identity",
+          "columns": [
+            {
+              "expression": "company_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "event_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "source_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "accounting_outbox_pending": {
+          "name": "accounting_outbox_pending",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "next_attempt_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "accounting_outbox_company_id_accounting_companies_id_fk": {
+          "name": "accounting_outbox_company_id_accounting_companies_id_fk",
+          "tableFrom": "accounting_outbox",
+          "tableTo": "accounting_companies",
+          "columnsFrom": [
+            "company_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.accounting_posting_rules": {
+      "name": "accounting_posting_rules",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "company_id": {
+          "name": "company_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "key": {
+          "name": "key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "accounting_posting_rule_company_key": {
+          "name": "accounting_posting_rule_company_key",
+          "columns": [
+            {
+              "expression": "company_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "accounting_posting_rules_company_id_accounting_companies_id_fk": {
+          "name": "accounting_posting_rules_company_id_accounting_companies_id_fk",
+          "tableFrom": "accounting_posting_rules",
+          "tableTo": "accounting_companies",
+          "columnsFrom": [
+            "company_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "accounting_posting_rules_account_id_accounting_accounts_id_fk": {
+          "name": "accounting_posting_rules_account_id_accounting_accounts_id_fk",
+          "tableFrom": "accounting_posting_rules",
+          "tableTo": "accounting_accounts",
+          "columnsFrom": [
+            "account_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.accounting_settings": {
+      "name": "accounting_settings",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "company_id": {
+          "name": "company_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "weight_tolerance_percent": {
+          "name": "weight_tolerance_percent",
+          "type": "numeric(12, 8)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "fleet_rate": {
+          "name": "fleet_rate",
+          "type": "numeric(38, 8)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "fleet_rate_basis": {
+          "name": "fleet_rate_basis",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'per_ton'"
+        },
+        "fleet_cost_center_id": {
+          "name": "fleet_cost_center_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "accounting_settings_company_id_accounting_companies_id_fk": {
+          "name": "accounting_settings_company_id_accounting_companies_id_fk",
+          "tableFrom": "accounting_settings",
+          "tableTo": "accounting_companies",
+          "columnsFrom": [
+            "company_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "accounting_settings_fleet_cost_center_id_accounting_cost_centers_id_fk": {
+          "name": "accounting_settings_fleet_cost_center_id_accounting_cost_centers_id_fk",
+          "tableFrom": "accounting_settings",
+          "tableTo": "accounting_cost_centers",
+          "columnsFrom": [
+            "fleet_cost_center_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "accounting_settings_company_id_unique": {
+          "name": "accounting_settings_company_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "company_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "accounting_settings_tolerance": {
+          "name": "accounting_settings_tolerance",
+          "value": "\"accounting_settings\".\"weight_tolerance_percent\" between 0 and 100"
+        },
+        "accounting_settings_fleet_rate": {
+          "name": "accounting_settings_fleet_rate",
+          "value": "\"accounting_settings\".\"fleet_rate\" >= 0"
+        },
+        "accounting_settings_fleet_basis": {
+          "name": "accounting_settings_fleet_basis",
+          "value": "\"accounting_settings\".\"fleet_rate_basis\" in ('per_ton','per_km')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.accounting_tax_rules": {
+      "name": "accounting_tax_rules",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "company_id": {
+          "name": "company_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "country_code": {
+          "name": "country_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "product_group": {
+          "name": "product_group",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rate_percent": {
+          "name": "rate_percent",
+          "type": "numeric(12, 8)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "valid_from": {
+          "name": "valid_from",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "valid_to": {
+          "name": "valid_to",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "accounting_tax_rules_company_id_accounting_companies_id_fk": {
+          "name": "accounting_tax_rules_company_id_accounting_companies_id_fk",
+          "tableFrom": "accounting_tax_rules",
+          "tableTo": "accounting_companies",
+          "columnsFrom": [
+            "company_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "accounting_tax_percent": {
+          "name": "accounting_tax_percent",
+          "value": "\"accounting_tax_rules\".\"rate_percent\" between 0 and 100"
+        },
+        "accounting_tax_dates": {
+          "name": "accounting_tax_dates",
+          "value": "\"accounting_tax_rules\".\"valid_to\" is null or \"accounting_tax_rules\".\"valid_to\" >= \"accounting_tax_rules\".\"valid_from\""
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
