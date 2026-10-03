@@ -1,0 +1,31 @@
+# Task: Complete the centralized Accounting module for Momtazcom (Iraq-first, petrochemical manufacturer)
+
+## Context
+This is an existing full-stack TypeScript app: React 18 + Vite + Tailwind + shadcn/ui, Node.js + Express 4, PostgreSQL + Drizzle ORM, TanStack Query, Wouter, React Hook Form + Zod, Passport sessions, i18n (fa/ar/en/tr with RTL). It already has a modular order flow: customer purchase order → finance approval → warehouse approval → logistics/loading.
+
+I have drafted the core of an accounting module (files are in `server/modules/accounting/`: schema.ts, postJournalEntry.ts, handlers.ts, consumer.ts, 0001_ledger_guards.sql). Your job is to integrate, harden, and complete it. Do NOT rewrite existing business modules; connect to them via a Transactional Outbox.
+
+## Step 0 — Inspect first, change nothing
+Before coding, read the repo and report back (briefly):
+1. The existing tables/files for customers, orders, order lines, finance approval, warehouse approval, loading/logistics, wallet (customer prepaid balance), and how the db instance is exported.
+2. Where exactly an order's status changes happen (so outbox events can be written in the SAME DB transaction).
+3. Conflicts between my draft schema and existing tables (names, types). Propose a mapping; reuse existing customer/wallet tables instead of duplicating (e.g., if a wallet table exists, adapt `wallet_accounts`/`wallet_transactions` to it rather than creating a parallel one).
+Then wait for no confirmation: proceed with your best mapping and list assumptions at the end.
+
+## Business rules (fixed decisions)
+- First country: Iraq. Functional (base) currency IQD. Multi-currency must be supported by design (transaction currency, rate, base amount on every journal line). Use official central-bank rates stored in `exchange_rates`. Use Gregorian dates for Iraq; store DATE/UTC, display per user locale. Company has `countryCode` and `timezone` (Asia/Baghdad).
+- Country-specific logic (tax rules, chart of accounts template, e-invoicing) must sit behind a country-pack interface so other countries can be added later.
+- Tax: do NOT hardcode a VAT rate. Iraq may currently have no general VAT. Tax rate comes from `tax_rules` (country, product group, validity dates) and is snapshotted on the order line at order creation. Rate 0 or no rule = no tax lines.
+- Pricing: price, tax rate and shipping terms are LOCKED at order creation (snapshot on the order line). Invoice amount = ACTUAL loaded weight (weighbridge) × locked unit price, plus shipping and tax per snapshot. Add a configurable weight tolerance (%) setting: within tolerance auto-invoice; beyond it requires finance approval.
+- Revenue recognition: at loading completion (`LoadingCompleted`), per loading (one order may have several loadings/trucks). Warehouse approval only reserves stock; it creates no journal entry.
+- Invoices ALWAYS post first to Accounts Receivable, then get settled (by wallet or receipt), even if settled instantly.
+- Wallet: customer prepaid balance, single currency per customer. It is a LIABILITY (control account WALLET_LIABILITY), never revenue. On finance approval, HOLD (block) the order total (goods + shipping + tax) in `wallet_holds` for wallet-paying orders; holds have no journal entry. Loading consumes the hold; leftover hold is released when the order is closed/cancelled. Wallet subledger must reconcile with the GL control account (build a daily reconciliation report). Order currency must equal wallet currency.
+- Credit sales exist (payment terms in days → due date). Finance approval must check: open receivables + uncleared cheques + new order amount ≤ customer credit limit (add `credit_limit` per customer/currency if missing).
+- Shipping: each order has `shippingMode` = CUSTOMER_ARRANGED or SELLER_ARRANGED. For SELLER_ARRANGED, shipping price is locked on the order (per unit or fixed, fixed is split across loadings) and posts to SHIPPING_REVENUE. Actual shipping cost is recorded separately per loading via `ShipmentCostRecorded`: EXTERNAL_CARRIER → Dr SHIPPING_EXPENSE / Cr CARRIER_PAYABLE (party = carrier); INTERNAL_FLEET → Dr SHIPPING_EXPENSE (fleet cost center) / Cr FLEET_COST_ABSORBED at an internal rate (per ton or per km, configurable). Real fleet costs (fuel, driver, depreciation) are posted to the fleet cost center via manual journal entries; build a period report of absorbed vs actual (over/under absorption) and shipping margin per loading/order.
+- Ledger integrity: double-entry, balanced on BASE amounts, posted entries immutable, corrections only by reversal entries, period locking via fiscal years, idempotency by (sourceType, sourceId), all money via decimal.js / numeric (never JS number/float), per-currency decimals from `currencies.decimals` (IQD = 0 by default, configurable).
+- Account mapping lives in `posting_rules` (key → account), never hardcoded account IDs in code.
+
+## Work to do (in this order; keep each step working before the next)
+1. **Integrate & migrate**: add schema to Drizzle config, generate migration, apply `0001_ledger_guards.sql` as a custom migration. Fix any type/import errors in my draft files. Add `decimal.js`.
+2. **Seed script** (idempotent): currencies (IQD, USD), a company (Iraq), current fiscal year, a basic chart of accounts template for a manufacturing company with Arabic + English names, cost centers (e.g., Fleet), and `posting_rules` for ALL keys in POSTING_KEYS. Provide an admin UI/API to edit posting rules, accounts, fiscal years, exchange rates, tax rules.
+3. **Emit outbox events** from existing modules, inside the same DB transaction as the business change, with the order snapshot embedded in the payload (see `LoadingCompletedPayload`): `LoadingCompleted`, `ShipmentCostRecorded`, `WalletTopUp`, `WalletHoldCreated`, `WalletHoldReleased`, `PaymentReceived`, `OrderCancelled`. Do not change existing behavior or responses. Add the order-snapshot columns (locked price, taxRate, shippingMode, shipping price, payment terms) with safe defaults and backfill existing rows.
