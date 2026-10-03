@@ -354,9 +354,6 @@ test("receipt/cheque integration remains rollback-only",{skip:process.env.ACCOUN
           credit,base_debit,base_credit,party_type,party_id,valuation_basis)
           values(${draft.id},${ids.WALLET_LIABILITY},'USD',1,1,0,0,0,'customer',${fxCustomer},'historical_carrying')`);
       });
-      await rejects(()=>recordCustomerReceipt({companyId:company,customerId:fxCustomer,currency:"USD",sourceId:"still-blocked-fx-receipt",
-        entryDate:"2026-06-10",method:"CHEQUE",chequeNumber:"not-yet-supported",amount:"1",evidenceReference:"Foreign cheque not implemented",
-        reason:"No invented foreign cheque carrying value"},actor,tx));
       const receive=async(source:string,date:string,amount:string,method:"BANK"|"CASH",
         allocations:{receivableId:number;amount:string}[]=[])=>recordCustomerReceipt({
         companyId:company,customerId:fxCustomer,currency:"USD",sourceId:source,entryDate:date,amount,method,allocations,
@@ -421,6 +418,146 @@ test("receipt/cheque integration remains rollback-only",{skip:process.env.ACCOUN
           {accountId:ids.BANK,currency:"USD",debit:"1"},
           {accountId:ids.ACCOUNTS_RECEIVABLE,currency:"USD",credit:"1",partyType:"customer",partyId:fxCustomer},
         ]},actor,tx));
+    });
+    await t.test("foreign wallet and cheque lifecycle preserve instrument, pooled assets and original invoice book values",async()=>{
+      const fxCustomer=customer+4;
+      await tx.execute(sql`insert into crm_customers(id,email,first_name,last_name)
+        values(${fxCustomer},${randomUUID()+"@example.invalid"},'Cheque FX','Rollback fixture')`);
+      await tx.execute(sql`insert into customer_wallets(id,customer_id,balance,currency) values(${fxCustomer},${fxCustomer},0,'USD')`);
+      await tx.execute(sql`insert into accounting_wallet_links(wallet_id,company_id,customer_id,currency)
+        values(${fxCustomer},${company},${fxCustomer},'USD')`);
+      const rate=async(date:string,value:string)=>tx.execute(sql`insert into accounting_exchange_rates(company_id,currency,effective_on,rate,source,reference)
+        values(${company},'USD',${date},${value},'central_bank','Rollback FX cheque rate')`);
+      const issue=async(source:string,date:string,amount:string)=>{
+        const {entry}=await postJournalEntry({companyId:company,entryDate:date,sourceType:"SalesInvoice",sourceId:source,
+          description:"Foreign cheque invoice",lines:[
+            {accountId:ids.ACCOUNTS_RECEIVABLE,currency:"USD",debit:amount,partyType:"customer",partyId:fxCustomer},
+            {accountId:ids.SALES_REVENUE,currency:"USD",credit:amount},
+          ]},actor,tx);
+        return registerInvoiceReceivable({companyId:company,customerId:fxCustomer,currency:"USD",
+          invoiceJournalId:entry.id,invoiceReference:source,dueOn:"2026-12-01"},actor,tx);
+      };
+      const receive=async(source:string,date:string,amount:string,allocations:{receivableId:number;amount:string}[]=[],method:"CHEQUE"|"BANK"="CHEQUE")=>
+        recordCustomerReceipt({companyId:company,customerId:fxCustomer,currency:"USD",sourceId:source,entryDate:date,
+          method,chequeNumber:method==="CHEQUE"?source:undefined,amount,allocations,
+          evidenceReference:"Rollback staff cheque attestation",reason:"Actual cheque received, not automatically verified"},actor,tx);
+      const transition=async(rid:number,action:"deposited"|"cleared"|"bounced",date:string,source=`${action}-${rid}`)=>
+        transitionCheque(rid,action,{entryDate:date,sourceId:source,evidenceReference:"Rollback bank cheque document",
+          reason:"Actual staff-attested cheque lifecycle"},actor,tx);
+      const gl=async(aid:number,liability=false)=>(await tx.execute(sql`select
+        coalesce(sum(l.debit-l.credit),0)::text as native,coalesce(sum(l.base_debit-l.base_credit),0)::text as base
+        from accounting_journal_lines l join accounting_journal_entries e on e.id=l.entry_id and e.status='posted'
+        where e.company_id=${company} and l.account_id=${aid} and l.currency='USD'
+        and (${!liability} or l.party_id=${fxCustomer})`)).rows[0];
+      await rate("2026-07-01","2");const claim=await issue("cheque-fx-original","2026-07-01","20");
+      await rate("2026-07-02","3");
+      const received=await receive("cheque-fx-received","2026-07-02","30",[{receivableId:Number(claim.id),amount:"20"}]);
+      const rid=Number(received.receipt.id);
+      assert.equal(received.bookValues?.assetBaseBooked,"90.00000000");
+      assert.equal(received.bookValues?.receivableBaseSettled,"40.00000000");
+      assert.equal(received.bookValues?.walletBaseCredited,"30.00000000");
+      assert.equal((await receive("cheque-fx-received","2026-07-02","30.00",[{receivableId:Number(claim.id),amount:"20"}])).duplicate,true);
+      const nextClaim=await issue("cheque-fx-spending","2026-07-02","10");
+      await rejects(()=>settleWalletReceivable({companyId:company,walletId:fxCustomer,receivableId:Number(nextClaim.id),
+        sourceId:"cheque-fx-unavailable",entryDate:"2026-07-02",amount:"1",reason:"Cannot spend an uncleared cheque"},actor,tx));
+      await rejects(()=>transition(rid,"cleared","2026-07-02"));
+      await rejects(()=>transition(rid,"deposited","2026-07-01"));
+      await rate("2026-07-03","9");
+      const deposited=await transition(rid,"deposited","2026-07-03");
+      assert.equal("bookValues" in deposited&&deposited.bookValues.assetBaseTransferred,"90.00000000");
+      assert.equal((await transition(rid,"deposited","2026-07-03")).duplicate,true);
+      await rejects(()=>transition(rid,"deposited","2026-07-03","different-deposit-source"));
+      assert.equal((await gl(ids.CHEQUES_ON_HAND)).base,"0.00000000");
+      assert.equal((await gl(ids.CHEQUE_CLEARING)).base,"90.00000000");
+      await rate("2026-07-04","11");
+      const cleared=await transition(rid,"cleared","2026-07-04");
+      assert.equal("bookValues" in cleared&&cleared.bookValues.assetBaseTransferred,"90.00000000");
+      assert.equal((await gl(ids.CHEQUE_CLEARING)).base,"0.00000000");
+      await settleWalletReceivable({companyId:company,walletId:fxCustomer,receivableId:Number(nextClaim.id),
+        sourceId:"cheque-fx-consumed",entryDate:"2026-07-04",amount:"10",reason:"Spend only a cleared cheque"},actor,tx);
+      // Other bank inflows affect the pooled bank basis, not the returned cheque's original AR.
+      await rate("2026-07-05","4");await receive("cheque-fx-other-bank","2026-07-05","10",[],"BANK");
+      const bank=await gl(ids.BANK);
+      const expectedBankBase=(await tx.execute(sql`select round(${bank.base}::numeric*30/${bank.native}::numeric,0)::text as n`)).rows[0].n;
+      const bounced=await transition(rid,"bounced","2026-07-05");
+      assert.equal(bounced.recoveredWalletAmount,"10.00000000");
+      assert.equal(bounced.newReceivable,"0.00000000");
+      assert.equal("bookValues" in bounced&&Number(bounced.bookValues.assetBaseTransferred),Number(expectedBankBase));
+      assert.equal("bookValues" in bounced&&bounced.bookValues.receivableBaseRestored,"40.00000000");
+      assert.equal("bookValues" in bounced&&bounced.bookValues.walletBaseRecovered,"40.00000000");
+      assert.equal((await transition(rid,"bounced","2026-07-05")).duplicate,true);
+      assert.equal((await gl(ids.WALLET_LIABILITY,true)).native,"0.00000000");
+      assert.equal((await tx.execute(sql`select settled_amount::text as n from accounting_receivable_items where id=${claim.id}`)).rows[0].n,"0.00000000");
+      await rejects(()=>reverseJournalEntry(cleared.journalId as number,"2026-07-05","Do not reverse one cheque transfer",actor,tx));
+      await rejects(()=>transition(rid,"cleared","2026-07-05"));
+      await rejects(()=>tx.execute(sql`update accounting_cheque_book_values set asset_base=999 where receipt_id=${rid}`));
+      await rejects(()=>tx.execute(sql`delete from accounting_cheque_book_values where receipt_id=${rid}`));
+      // A spent excess becomes a separate, subsequently settleable historical receivable.
+      await rate("2026-07-06","2");
+      const debtClaim=await issue("cheque-fx-return-debt","2026-07-06","5");
+      const spent=await receive("cheque-fx-all-spent","2026-07-06","5");
+      const spentId=Number(spent.receipt.id);
+      await transition(spentId,"deposited","2026-07-06");
+      await transition(spentId,"cleared","2026-07-06");
+      await settleWalletReceivable({companyId:company,walletId:fxCustomer,receivableId:Number(debtClaim.id),
+        sourceId:"cheque-fx-spent-all",entryDate:"2026-07-06",amount:"5",reason:"Spend cleared funds"},actor,tx);
+      const debtReturn=await transition(spentId,"bounced","2026-07-06");
+      assert.equal(debtReturn.recoveredWalletAmount,"0.00000000");
+      assert.equal(debtReturn.newReceivable,"5.00000000");
+      assert.equal("bookValues" in debtReturn&&debtReturn.bookValues.newReceivableBase,"10.00000000");
+      const debt=(await tx.execute(sql`select * from accounting_receivable_items where invoice_journal_id=${debtReturn.journalId}`)).rows[0];
+      const paidDebt=await receive("cheque-fx-pay-return-debt","2026-07-06","5",[{receivableId:Number(debt.id),amount:"2"}],"BANK");
+      assert.equal(paidDebt.bookValues?.receivableBaseSettled,"4.00000000");
+      const walletDebt=await settleWalletReceivable({companyId:company,walletId:fxCustomer,receivableId:Number(debt.id),
+        sourceId:"cheque-fx-wallet-return-debt",entryDate:"2026-07-06",amount:"3",reason:"Close proven cheque debt with prepaid funds"},actor,tx);
+      assert.equal("receivableBaseSettled" in walletDebt&&walletDebt.receivableBaseSettled,"6.00000000");
+      // Bounces before clearance recover all blocked excess and restore the exact original invoice basis.
+      const pending=await receive("cheque-fx-pending-bounce","2026-07-06","3",[{receivableId:Number(claim.id),amount:"2"}]);
+      const pendingReturn=await transition(Number(pending.receipt.id),"bounced","2026-07-06");
+      assert.equal(pendingReturn.recoveredWalletAmount,"1.00000000");
+      assert.equal("bookValues" in pendingReturn&&pendingReturn.bookValues.receivableBaseRestored,"4.00000000");
+      const clearing=await receive("cheque-fx-clearing-bounce","2026-07-06","1");
+      await transition(Number(clearing.receipt.id),"deposited","2026-07-06");
+      await transition(Number(clearing.receipt.id),"bounced","2026-07-06");
+      assert.equal((await gl(ids.CHEQUES_ON_HAND)).native,"0.00000000");
+      assert.equal((await gl(ids.CHEQUE_CLEARING)).native,"0.00000000");
+      // Proven zero-base native minor units must not invent a base-currency unit.
+      const tiny=await receive("cheque-fx-zero-base","2026-07-06","0.01");
+      const tinyId=Number(tiny.receipt.id);
+      await transition(tinyId,"deposited","2026-07-06");
+      await transition(tinyId,"bounced","2026-07-06");
+      assert.equal((await gl(ids.WALLET_LIABILITY,true)).base,"0.00000000");
+      // Direct status changes, orphan proofs, and fabricated foreign transfer journals fail closed.
+      const orphan=await receive("cheque-fx-orphan-source","2026-07-06","1");
+      await rejects(async()=>{
+        await tx.execute(sql`update accounting_customer_receipts set status='deposited' where id=${orphan.receipt.id}`);
+        await tx.execute(sql`set constraints accounting_foreign_cheque_status immediate`);
+      });
+      await rejects(async()=>{
+        await tx.execute(sql`insert into accounting_cheque_book_values(receipt_id,action,entry_date,input)
+          values(${orphan.receipt.id},'deposited','2026-07-06',
+            '{"sourceId":"orphan-proof","entryDate":"2026-07-06","reason":"Missing completed journal","evidenceReference":"Rollback orphan evidence"}'::jsonb)`);
+        await tx.execute(sql`set constraints accounting_cheque_book_used immediate`);
+      });
+      await rejects(()=>postJournalEntry({companyId:company,entryDate:"2026-07-06",sourceType:"ChequeDeposited",
+        sourceId:"cheque-fx-forged-transfer",description:"Cannot invent a foreign cheque transfer",lines:[
+          {accountId:ids.CHEQUE_CLEARING,currency:"USD",debit:"1"},
+          {accountId:ids.CHEQUES_ON_HAND,currency:"USD",credit:"1"}]},actor,tx));
+      await rejects(()=>transitionCheque(Number(orphan.receipt.id),"deposited",{sourceId:"viewer-cheque",
+        entryDate:"2026-07-06",reason:"Viewer cannot mutate cheque",evidenceReference:"Viewer cheque evidence"},
+        {...actor,canManage:false},tx));
+      await rejects(async()=>{
+        const proof=(await tx.execute(sql`insert into accounting_cheque_book_values(receipt_id,action,entry_date,input)
+          values(${orphan.receipt.id},'deposited','2026-07-06',
+          '{"sourceId":"padded-proof","entryDate":"2026-07-06","reason":"Reject padded transfer","evidenceReference":"Rollback padded evidence"}'::jsonb) returning *`)).rows[0];
+        const proven=(proof.lines as {accountId:number;currency:string;debit:string;credit:string;partyType:null;partyId:null}[])
+          .map(({accountId,currency,debit,credit,partyType,partyId})=>({accountId,currency,debit,credit,partyType,partyId}));
+        await postJournalEntry({companyId:company,entryDate:"2026-07-06",sourceType:"ChequeDeposited",
+          sourceId:String(proof.source_id),description:"No unrelated balanced padding",lines:[...proven,
+            {accountId:ids.CASH,currency:"IQD",debit:"1"},
+            {accountId:ids.BANK,currency:"IQD",credit:"1"}]},actor,tx);
+      });
+      await tx.execute(sql`set constraints all immediate`);
     });
     done=true;throw end;
   });}catch(e){if(e!==end)throw e;}finally{await pool.end();}

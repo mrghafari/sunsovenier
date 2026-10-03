@@ -39,3 +39,19 @@ debt open; fabricating a minimum base unit invents money.
 **How to apply:** Allow this only for explicitly proven historical settlement
 lines. Preserve the native amount and exact zero base residual; ordinary journals
 must retain their positive-base and official-rate safeguards.
+
+An uncleared foreign cheque retains its instrument-specific carrying value through
+deposit and clearance. Once cleared into a bank account, its cash is fungible:
+subsequent asset outflows consume the bank/account-currency's pooled remaining
+carrying value proportionally, with exact final residual closure.
+
+**Why:** Moving the same instrument between accounts is not an FX realization;
+after clearance, assuming its original funding value still identifies particular
+bank cash can overdraw the bank's actual remaining book value.
+
+**How to apply:** Keep instrument transfers separate from cleared cash outflows.
+Reopen original invoice allocations at their stored allocated values; value
+recoverable prepaid funds from the remaining pooled liability. Give spent excess
+an explicit historical debt and expose any balancing FX instead of negative cash
+or wallet balances. Block outflows when current balances or chronology cannot be
+reconciled.

@@ -16,6 +16,8 @@ const requiredGuards = [
   "accounting_receipt_book_guard","accounting_receipt_book_immutable","accounting_receipt_book_used",
   "accounting_assert_receipt_book_journal","accounting_foreign_receipt_complete","accounting_foreign_allocation_guard",
   "accounting_foreign_ar_parity",
+  "accounting_cheque_book_guard","accounting_cheque_book_immutable","accounting_cheque_book_used",
+  "accounting_assert_cheque_book_journal","accounting_foreign_cheque_status","accounting_foreign_cheque_event",
 ];
 export async function assertLedgerReady(db: typeof accountingDb | AccountingTransaction = accountingDb) {
   const result = await db.execute(sql`

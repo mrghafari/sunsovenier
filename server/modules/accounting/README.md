@@ -408,8 +408,30 @@ Returned `bookValues` include the booked asset, closed AR, credited liability,
 per-invoice snapshots and explicit realized FX. Funds remain staff-attested; this
 does not claim provider verification or introduce a bank integration.
 
-**Still required in this phase:** foreign CHEQUE receipt/deposit/clearance/bounce
-and foreign bank/cash returns and wallet refunds. These operations remain blocked;
+Foreign CHEQUE receipt/deposit/clearance/bounce is now implemented. Received
+instruments use a dated official rate, with invoice-specific historical AR closure
+and blocked prepaid excess. Deposit and clearance preserve that instrument's
+exact native and base amounts; changing the exchange rate does not create a
+gain/loss merely for moving the same cheque between asset accounts.
+
+A bounce before clearance removes the instrument's original asset basis. After
+clearance, bank cash is fungible: the outflow consumes the bank account/currency's
+pooled remaining GL carrying value, with exact residual closure for a full outflow.
+Insufficient or negative asset values and out-of-order outflows fail closed.
+Original invoice allocations reopen at their exact original allocated book values.
+Recoverable excess consumes the customer's pooled wallet liability value without
+spending other holds, legacy reservations or other uncleared cheques. Already-spent
+excess becomes a separately valued, settleable AR debt, never a negative wallet.
+Differences are explicit base-currency realized FX, not implicit current-rate changes.
+Legitimate proven zero-base minor-unit transfers and returns remain supported.
+
+Immutable DB-derived cheque proofs control the complete journal multiset. Status,
+event, allocations, debt and native recovery must commit together; direct status
+changes, orphan proofs, fabricated foreign journals and independent reversals fail.
+Receipt/cheque mutations retain permission, fiscal, evidence and retry checks.
+
+**Still required in this phase:** foreign bank/cash returns and wallet refunds.
+These operations remain blocked;
 asset outflows must close actual remaining asset carrying values rather than
 blindly use today's rate. Do not erase historical AR/prepaid values or invent
 conversion between a customer's currencies.

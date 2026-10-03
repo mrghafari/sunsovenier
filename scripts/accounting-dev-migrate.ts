@@ -27,6 +27,8 @@ try {
     "server/modules/accounting/0012_wallet_carrying_values.sql",
     "server/modules/accounting/0013_foreign_receipts.sql",
     "server/modules/accounting/0014_receipt_guard_alias.sql",
+    "server/modules/accounting/0015_foreign_cheques.sql",
+    "server/modules/accounting/0016_cheque_debt_settlement.sql",
   ];
   for (const file of files) {
     const content = await readFile(file,"utf8");

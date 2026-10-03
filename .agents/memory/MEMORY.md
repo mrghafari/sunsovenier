@@ -64,3 +64,4 @@
 - [Loading holds and completion](loading-hold-completion.md) — settling one truck’s invoice does not finish its order or justify releasing all remaining held funds.
 - [Persian and rial accounting](accounting-persian-rial.md) — accounting must support Persian and Iranian rials, without treating Persian as Arabic or converting current balances.
 - [Composed financial constraints](composed-financial-constraints.md) — immediate constraint settings persist across calls sharing a transaction; defer evidence checks before the first dependent write.
+- [Preview warmup](preview-warmup.md) — early blank screenshots after restart may precede module loading; verify a longer browser load before treating them as a crash.

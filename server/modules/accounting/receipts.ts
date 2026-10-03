@@ -7,6 +7,7 @@ import {decimal,exactMoney,Money} from "./money";
 import {postJournalEntry,type JournalInput} from "./postJournalEntry";
 import {dateString,positiveDecimal,currencyCode,type AccountingAccess} from "@shared/accounting-api";
 import {lockedWallet,account,reconciled,nativeMoney,available} from "./wallet";
+import {transitionForeignCheque} from "./foreign-cheques";
 const id=z.number().int().positive();
 export const receiptInputSchema=z.object({
   companyId:id,customerId:id,currency:currencyCode,sourceId:z.string().trim().min(3).max(150),
@@ -24,7 +25,7 @@ function manager(a:AccountingAccess){
   if(!a.canManage||!Number.isSafeInteger(a.actorId)||a.actorId<=0||!["admin","custom"].includes(a.actorType))
     throw new AccountingError("Receipt management permission required",403,"ACCESS_DENIED");
 }
-async function ready(tx:AccountingTransaction,companyId:number,currency:string,foreignSupported=false){
+async function ready(tx:AccountingTransaction,companyId:number,currency:string){
   await assertLedgerReady(tx);
   const r=await tx.execute(sql`select c.base_currency,cc.decimals from accounting_companies c
     join accounting_currencies cc on cc.code=${currency} and cc.is_active
@@ -32,7 +33,6 @@ async function ready(tx:AccountingTransaction,companyId:number,currency:string,f
     join accounting_receipt_cutovers g on g.company_id=c.id and g.processing_ready
     where c.id=${companyId} and c.is_active`);
   if(!r.rows.length)throw new AccountingError("Receipt processing is blocked until financial cutover is approved",503,"RECEIPT_CUTOVER_BLOCKED");
-  if(!foreignSupported&&currency!==r.rows[0].base_currency)throw new AccountingError("Foreign cheques require their own deposit, clearance and return carrying values; automatic conversion is blocked",422,"FX_SETTLEMENT_NOT_READY");
   return r.rows[0].decimals as number;
 }
 async function same(tx:AccountingTransaction,a:unknown,b:unknown){
@@ -66,7 +66,7 @@ export async function registerInvoiceReceivable(input:{companyId:number;customer
   invoiceJournalId:number;invoiceReference:string;dueOn:string;orderId?:number},actor:AccountingAccess,tx:AccountingTransaction){
   manager(actor);dateString.parse(input.dueOn);
   await tx.execute(sql`select pg_advisory_xact_lock(718392,0)`);
-  await ready(tx,input.companyId,input.currency,true);
+   await ready(tx,input.companyId,input.currency);
   const existing=await tx.execute(sql`select * from accounting_receivable_items where company_id=${input.companyId}
     and invoice_journal_id=${input.invoiceJournalId} and customer_id=${input.customerId} and currency=${input.currency}`);
   if(existing.rows.length){
@@ -96,7 +96,7 @@ export async function recordCustomerReceipt(input:z.input<typeof receiptInputSch
   if(!parsed.success)throw new AccountingError(parsed.error.issues[0].message);
   const run=async(tx:AccountingTransaction)=>{
     await tx.execute(sql`select pg_advisory_xact_lock(718392,0)`);
-    const precision=await ready(tx,parsed.data.companyId,parsed.data.currency,parsed.data.method!=="CHEQUE");
+    const precision=await ready(tx,parsed.data.companyId,parsed.data.currency);
     const d={...parsed.data,amount:exactMoney(parsed.data.amount,precision),allocations:parsed.data.allocations
       .map(a=>({...a,amount:exactMoney(a.amount,precision)})).sort((a,b)=>a.receivableId-b.receivableId)};
     const previous=await tx.execute(sql`select * from accounting_customer_receipts where company_id=${d.companyId} and source_id=${d.sourceId}`);
@@ -176,6 +176,8 @@ export async function transitionCheque(receiptId:number,action:"deposited"|"clea
     const latest=await tx.execute(sql`select e.entry_date from accounting_receipt_events ev
       join accounting_journal_entries e on e.id=ev.journal_id where ev.receipt_id=${receiptId} order by ev.id desc limit 1`);
     if(d.entryDate<String(latest.rows[0]?.entry_date||r.entry_date))throw new AccountingError("Cheque event date cannot precede its previous event");
+    const baseCurrency=String((await tx.execute(sql`select base_currency from accounting_companies where id=${r.company_id}`)).rows[0].base_currency);
+    if(String(r.currency)!==baseCurrency)return transitionForeignCheque(tx,receiptId,action,d,actor);
     const company=r.company_id as number,customer=r.customer_id as number,currency=String(r.currency),amount=String(r.amount);
     let lines:JournalInput["lines"]=[];
     let wallet:Awaited<ReturnType<typeof lockedWallet>>|null=null,recover="0",newDebt="0";
