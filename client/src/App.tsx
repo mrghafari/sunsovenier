@@ -166,6 +166,7 @@ import FibPaymentPage from "@/pages/fib-payment";
 
 import NotFound from "@/pages/not-found";
 import AdminRoute from "@/components/AdminRoute";
+import LoadingManagement from "@/modules/loading/LoadingManagement";
 
 const INTERNAL_ADMIN_PREFIX = "/admin";
 const PUBLIC_ADMIN_PREFIX = "/mrg";
@@ -319,6 +320,8 @@ function Router() {
           <Route path="/mrg/abandoned-cart-management" component={() => <AdminRoute><AbandonedCartManagement /></AdminRoute>} />
           <Route path="/site-management" component={() => <AdminRoute><SiteManagementFixed /></AdminRoute>} />
           <Route path="/mrg/site-management" component={() => <AdminRoute><SiteManagementFixed /></AdminRoute>} />
+          <Route path="/management/loading" component={() => <AdminRoute><LoadingManagement /></AdminRoute>} />
+          <Route path="/management/loading/:section" component={() => <AdminRoute><LoadingManagement /></AdminRoute>} />
           <Route path="/mrg/products" component={() => <AdminRoute><ProductsPage /></AdminRoute>} />
           <Route path="/vendor/products" component={ProductsPage} />
           <Route path="/mrg/product-variants" component={() => <AdminRoute><ProductVariants /></AdminRoute>} />

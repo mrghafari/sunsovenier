@@ -43,4 +43,5 @@ export const siteManagementModuleIds = [
   "blog",
   "marketplace_management",
   "vendor_accounting",
+  "loading_management",
 ] as const;

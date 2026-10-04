@@ -1,5 +1,6 @@
 import express, { type Express, type RequestHandler, Request, Response, NextFunction } from "express";
 import { siteManagementModuleIds } from "@shared/site-management-modules";
+import { loadingPermissionDefinition } from "./modules/loading/registration";
 import { registerFibRoutes } from "./fib-routes";
 import { createServer, type Server } from "http";
 import { logBuffer } from "./log-buffer";
@@ -8553,6 +8554,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       'product_management': 'مدیریت محصولات',
       'payment_management': 'مدیریت پرداخت',
       'accounting_management': 'مدیریت حسابداری',
+      'loading_management': 'مدیریت بارگیری',
       'finance': 'تایید مالی',
       'wallet_management': 'مدیریت کیف پول',
       'geography_analytics': 'آمار جغرافیایی',
@@ -11093,6 +11095,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         'procedures': { name: 'مدیریت روش‌ها', description: 'مدیریت اسناد و روش‌های کاری', category: 'content' },
         'payment_management': { name: 'مدیریت پرداخت', description: 'تنظیمات درگاه پرداخت', category: 'finance' },
         'accounting_management': { name: 'مدیریت حسابداری', description: 'مدیریت فاکتورها و حسابداری کسب‌وکار', category: 'finance' },
+        ...loadingPermissionDefinition,
         'finance': { name: 'تایید مالی', description: 'بررسی و تایید مالی سفارشات', category: 'finance' },
         'wallet_management': { name: 'مدیریت کیف پول', description: 'مدیریت کیف پول مشتریان', category: 'finance' },
         'geography_analytics': { name: 'آمار جغرافیایی', description: 'تحلیل آمار منطقه‌ای', category: 'analytics' },

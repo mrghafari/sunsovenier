@@ -12,6 +12,8 @@ import { queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { siteManagementModuleIds } from "@shared/site-management-modules";
+import { useLoadingModuleStatus } from "@/modules/loading/use-loading-module-status";
+import { loadingManagementMenuLabel } from "@/modules/loading/copy";
 
 type SiteManagementLanguage = "en" | "fa" | "ar" | "tr";
 const QUICK_ACTION_ORDER_KEY = "site-management-quick-action-order";
@@ -339,6 +341,7 @@ export default function SiteManagement() {
   const { toast } = useToast();
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const { language, direction } = useLanguage();
+  const loadingStatusQuery = useLoadingModuleStatus();
   const siteManagementCopy = siteManagementTranslations[language];
   const [showKardexSync, setShowKardexSync] = useState(false);
   const [buttons, setButtons] = useState<QuickActionButton[]>([]);
@@ -384,7 +387,7 @@ export default function SiteManagement() {
       const filteredButtons = getFilteredButtons();
       setButtons(mergeSavedOrder(filteredButtons));
     }
-  }, [userPermissions, language]);
+  }, [userPermissions, language, loadingStatusQuery.data?.enabled]);
 
   // Helper functions
   const getModuleText = (id: SiteManagementModuleId) => ({
@@ -393,7 +396,8 @@ export default function SiteManagement() {
 
   const trackButtonClick = (_buttonId: string, action: () => void) => action();
 
-  const getInitialButtons = (): QuickActionButton[] => [
+  const getInitialButtons = (): QuickActionButton[] => {
+    const initialButtons: QuickActionButton[] = [
     {
       id: "kpi-dashboard",
       ...getModuleText("kpi-dashboard"),
@@ -711,7 +715,19 @@ export default function SiteManagement() {
       moduleId: "whatsapp_crm"
     }
 
-  ];
+    ];
+    if (loadingStatusQuery.data?.enabled === true) {
+      initialButtons.push({
+        id: "loading_management",
+        label: loadingManagementMenuLabel(language),
+        icon: Truck,
+        onClick: () => trackButtonClick("loading_management", () => setLocation("/management/loading")),
+        className: "border-[#b7c8be] text-[#355b50] hover:bg-[#eaf0e9] hover:text-[#244c47]",
+        moduleId: "loading_management",
+      });
+    }
+    return initialButtons;
+  };
 
   const getFilteredButtons = () => {
     if (isLoadingPermissions || !userPermissions || typeof userPermissions !== 'object' || !('success' in userPermissions) || !userPermissions.success) return [];
@@ -728,7 +744,7 @@ export default function SiteManagement() {
     const auxiliaryModules = new Set(["missing_images_management", "fib_payment_settings"]);
     const activeModules = new Set<string>(siteManagementModuleIds);
     const allButtons = getInitialButtons().filter(button =>
-      !button.moduleId || activeModules.has(button.moduleId) || auxiliaryModules.has(button.moduleId)
+      !button.moduleId || activeModules.has(button.moduleId) || auxiliaryModules.has(button.moduleId) || button.moduleId === "loading_management"
     );
     console.log('🔍 [DEBUG] Total allButtons count:', allButtons.length);
     console.log('🔍 [DEBUG] AI Settings exists in allButtons:', !!allButtons.find(b => b.id === 'ai-settings'));
