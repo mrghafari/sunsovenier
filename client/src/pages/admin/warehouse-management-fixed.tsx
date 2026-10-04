@@ -21,6 +21,8 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { getOrderStatusLabel, resolveOrderStatus } from '@shared/order-status';
 import WarehouseReadyNotificationSettings from '@/components/WarehouseReadyNotificationSettings';
 import { localizeFinanceNote } from '@/lib/localize-wallet-text';
+import LoadingMeasurementCapture from '@/components/admin/accounting/loading-measurement-capture';
+import { loadingCaptureCopy } from '@/components/admin/accounting/loading-measurement-capture-copy';
 
 type PageLanguage = 'en' | 'fa' | 'ar' | 'tr';
 
@@ -1186,7 +1188,7 @@ const WarehouseManagementFixed: React.FC = () => {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={changeTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsList className="mb-6 grid w-full grid-cols-2 md:grid-cols-4">
             <TabsTrigger value="orders" className="flex items-center gap-2">
               <Package className="w-4 h-4" />
               {t('orders')}
@@ -1198,6 +1200,10 @@ const WarehouseManagementFixed: React.FC = () => {
             <TabsTrigger value="settings" className="flex items-center gap-2">
               <Bell className="w-4 h-4" />
               {t('settings')}
+            </TabsTrigger>
+            <TabsTrigger value="measured-loading" className="flex items-center gap-2">
+              <Weight className="w-4 h-4" />
+              {loadingCaptureCopy(language, 'tab')}
             </TabsTrigger>
           </TabsList>
 
@@ -1793,6 +1799,9 @@ const WarehouseManagementFixed: React.FC = () => {
           </TabsContent>
           <TabsContent value="settings" className="space-y-6">
             <WarehouseReadyNotificationSettings />
+          </TabsContent>
+          <TabsContent value="measured-loading" className="space-y-6">
+            <LoadingMeasurementCapture />
           </TabsContent>
         </Tabs>
 

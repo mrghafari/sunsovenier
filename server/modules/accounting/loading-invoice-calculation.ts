@@ -2,6 +2,7 @@ import {z} from "zod";
 import {dateString} from "@shared/accounting-api";
 import type {LoadingPreviewRow,LoadingPreviewIssue,LoadingInvoiceAmounts} from "@shared/accounting-loading-preview";
 import {Money,decimal,exactMoney} from "./money";
+import {capturedMetricPricing} from "./loading-pricing-evidence";
 
 type Obj=Record<string,unknown>;
 const object=(v:unknown):Obj=>v!==null&&typeof v==="object"&&!Array.isArray(v)?v as Obj:{};
@@ -28,6 +29,8 @@ export function calculateLoadingInvoicePreview(fact:{id:number;companyId:number;
   if(order.companyId!==fact.companyId||order.orderId!==fact.orderId)fail("SNAPSHOT_IDENTITY");
   if(precision===undefined||!Number.isInteger(precision)||precision<0||precision>8)fail("UNKNOWN_CURRENCY");
   const snapshotLines=Array.isArray(order.lines)?order.lines.map(object):[];
+  const metricPricing=capturedMetricPricing(order);
+  const capturedPricing=Array.isArray(p.pricingEvidence)?p.pricingEvidence.map(object):[];
   const measured=Array.isArray(input.lines)?input.lines.map(object):[];
   if(!snapshotLines.length)fail("LINE_SNAPSHOT_REQUIRED");
   if(!measured.length)fail("INVALID_MEASUREMENTS");
@@ -43,15 +46,19 @@ export function calculateLoadingInvoicePreview(fact:{id:number;companyId:number;
     measuredIds.add(load.orderItemId);
     const line=snapshotLines.find(s=>s.orderItemId===load.orderItemId);
     if(!line||line.version!==1){fail("LINE_SNAPSHOT_REQUIRED");continue;}
-    // native_order_unit is acceptable ONLY when the stored unit explicitly means metric tons.
-    // Per-kg/package native prices cannot be multiplied directly by weighbridge tons.
-    if(line.priceBasis!=="per_ton"&&!(line.priceBasis==="native_order_unit"&&unit.safeParse(line.unit).success))
+    // Native prices need either explicit tons or new immutable metric conversion
+    // evidence. Per-kg/package prices are never directly multiplied by tons.
+    const metric=metricPricing.find(l=>l.orderItemId===load.orderItemId);
+    const evidenced=metric&&capturedPricing.some(e=>e.orderItemId===metric.orderItemId&&e.basis===metric.basis&&
+      e.nativeUnit===metric.nativeUnit&&e.lockedUnitPrice===metric.lockedUnitPrice&&e.pricePerTon===metric.pricePerTon&&
+      e.tonsToPriceUnits===metric.tonsToPriceUnits);
+    if(!evidenced&&line.priceBasis!=="per_ton"&&!(line.priceBasis==="native_order_unit"&&unit.safeParse(line.unit).success))
       fail("PRICE_BASIS_REQUIRED");
     try{
       const tons=amount(load.actualWeightTons);
       if(!tons.gt(0)){fail("INVALID_MEASUREMENTS");continue;}
       weight=weight.plus(tons);
-      const price=amount(line.lockedUnitPrice);
+      const price=amount(evidenced?metric!.pricePerTon:line.lockedUnitPrice);
       const net=tons.times(price).toDecimalPlaces(precision??0);
       let lineTax=new Money(0);
       try{

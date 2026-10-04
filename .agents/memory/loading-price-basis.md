@@ -16,3 +16,14 @@ especially for older or partially loaded orders.
 and valuation evidence before live invoice/COGS handlers, and retain separate
 weight approval, settlement and opening/cutover prerequisites. Do not rewrite
 historical snapshots or use today's catalog to complete old facts.
+
+New metric conversion evidence may derive only from explicit, immutable kg/ton
+units and their physical 1,000 kg/ton relationship. Older facts without conversion
+evidence stay blocked; package weights and sale prices are not inventory costs.
+
+**Why:** The limited loading connection must preserve historical pricing and
+cannot turn a staff document reference into proof of verified FIFO carrying value.
+
+**How to apply:** Record normalization separately from unchanged order snapshots.
+Treat manually documented batch costs as attestations until independently tied to
+stock valuation; keep COGS and financial activation prerequisites explicit.

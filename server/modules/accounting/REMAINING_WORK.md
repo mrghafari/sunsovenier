@@ -11,6 +11,9 @@
   cost-center/fleet absorption and booked shipping-margin reports.
 - Four-language UI for reference setup, reports, receipts and manual documents.
 - Read-only captured-loading arithmetic and metadata-only audit history.
+- Capture-only loading entry linked to frozen shop orders, with exact measured
+  line weights, explicit kg/ton price conversion and documented inventory-cost
+  attestations. This is not verified inventory valuation or invoice issuance.
 
 These foundations do not mean a loading creates a live invoice, inventory
 valuation is verified, legacy openings are reconciled, or a consumer is enabled.
@@ -24,7 +27,9 @@ valuation is verified, legacy openings are reconciled, or a consumer is enabled.
    without allocation evidence. Still required: a frozen, reviewed fixed-shipping
    allocation/residual policy; actual FIFO/stock cost attribution; aggregate
    loaded-vs-ordered weight/tolerance controls and excess-weight finance approval.
-   Required changes to warehouse/logistics/order modules need prior user approval.
+   The user approved only the limited measurement/document-evidence connection
+   in warehouse/logistics/order surfaces. Changes to reservation, physical stock,
+   selling prices, payment timing or live financial activation remain excluded.
 2. **Implement staged transactional consumers/handlers.** Invoice recognition
    must post AR first, attach a real receivable item and COGS evidence, then
    settle/release only that loading's approved hold. Original event identity,
@@ -60,7 +65,8 @@ native order status, estimated delivery weight or edited customer terms is used.
 
 The calculator validates company/order/source identity and weighbridge reference.
 Every measured line must have a unique stored line ID and explicit metric-ton
-price basis (or a native unit explicitly identifying metric tons). Captured line
+price basis (or a native unit explicitly identifying metric tons, or new matching
+immutable evidence for the physical 1,000 kg/ton conversion). Captured line
 weights must sum exactly to the captured total. Goods and tax round per line at
 the registered transaction currency precision; tax is the captured goods-line
 percentage, not a current-country default. This preliminary calculator does not
@@ -73,6 +79,43 @@ snapshots are not accepted by updating them. Results carry unconditional
 `postingAllowed:false`, `readOnly:true` and explicit pending inventory-cost,
 weight-approval, AR/settlement and opening/cutover dependencies. Even valid
 arithmetic is **not** an issued invoice or financial posting readiness.
+
+## Limited measured-loading connection
+
+`GET /api/accounting/v2/loading-context` resolves one native customer order ID or
+its actual business order number, scoped to the selected bound accounting company.
+`POST /api/accounting/v2/loading-capture` requires accounting management permission.
+Operational department access alone does not grant permission to attest cost data.
+Source binding must already be configured; company choice cannot bind/reprice an
+unconfigured order. No automatic source binding, opening or financial activation
+is performed.
+
+The additional warehouse/logistics surface records a stable loading reference,
+real weighbridge-ticket reference, Gregorian event day and measured decimal-string
+weights for persisted order lines. Totals must match exactly. Future company-local
+days are rejected. It never copies an estimated dispatch weight or updates native
+order/warehouse status, inventory, quantity, price, wallet balance or reservation.
+
+Optional batch cost attestations specify the order line, batch reference, purchase
+document reference, measured batch weight, actual documented amount and currency.
+Several batches may cover one line; supplied batch weights must equal that measured
+line. Cost amounts respect active currency precision. No cost is inferred from
+`batch_sales_tracking.unit_price`, which is sale information, and no default costs
+are generated for undocumented lines. This is staff-document attestation only,
+not verified purchase evidence, FIFO allocation or stock carrying value; all
+inventory-cost posting dependencies remain pending.
+
+Immutable native price snapshots are unchanged. New loading facts separately
+freeze the exact conversion for explicit metric units only, so a captured kg price
+can be converted by 1,000; unknown package conversions and legacy snapshots remain
+blocked. Existing loading facts are never amended or retroactively enabled.
+
+The operational fact, cost/price evidence, actor, accounting audit and ineligible
+outbox event are written in one transaction. Stable source identity supports exact
+retries and rejects conflicting input. No edit/delete or consumer activation is
+provided. Stored attestations are visible in the loading history. Rollback-only
+tests cover scope, idempotency, precision, nonmutation and absence of financial
+entries. No schema migration is needed.
 
 No migration is required. Unit tests include the 24.350-ton case, IQD/USD/IRR,
 rounding, unknown units/taxes, duplicates, malformed facts, fixed shipping and

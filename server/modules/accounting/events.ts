@@ -6,6 +6,8 @@ import { accountingOperationalFacts as facts,accountingAuditLogs as audits } fro
 import { AccountingError } from "./access";
 import { decimal,exactMoney } from "./money";
 import { assertLedgerReady,assertEventBridgeReady } from "./readiness";
+import {inventoryCostCaptureSchema} from "@shared/accounting-loading-capture";
+import {capturedMetricPricing} from "./loading-pricing-evidence";
 
 const positiveDecimal = decimalString.refine(v=>{
   try { return decimal(v).gt(0) && decimal(v).lt("1e30") && decimal(v).decimalPlaces()<=8; }
@@ -17,6 +19,7 @@ export const operationalEventSchema = z.union([
   z.object({...common,eventType:z.literal("LoadingCompleted"),weighbridgeReference:reference,
     actualWeightTons:positiveDecimal,
     lines:z.array(z.object({orderItemId:z.number().int().positive(),actualWeightTons:positiveDecimal}).strict()).min(1).max(500),
+    inventoryCosts:z.array(inventoryCostCaptureSchema).min(1).max(500).optional(),
   }).strict(),
   z.object({...common,eventType:z.literal("ShipmentCostRecorded"),loadingSourceId:reference,
     costType:z.literal("EXTERNAL_CARRIER"),carrierReference:reference,
@@ -71,6 +74,24 @@ export async function recordOperationalEvent(tx:AccountingTransaction,input:Oper
     if (!data.lines.reduce((sum,l)=>sum.plus(l.actualWeightTons),decimal("0")).eq(data.actualWeightTons)) {
       throw new AccountingError("Actual loading line weights must equal measured total weight");
     }
+    if(data.inventoryCosts){
+      const keys=new Set<string>(),precisions=new Map<string,number>();
+      const weights=new Map<number,ReturnType<typeof decimal>>();
+      for(const cost of data.inventoryCosts){
+        const key=JSON.stringify([cost.orderItemId,cost.batchReference,cost.documentReference]);
+        if(keys.has(key)||!ids.includes(cost.orderItemId))throw new AccountingError("Inventory evidence must identify distinct batches/documents from measured order lines");
+        keys.add(key);
+        if(!precisions.has(cost.currency)){
+          const cur=(await tx.execute(sql`select decimals from accounting_currencies where code=${cost.currency} and is_active`)).rows[0];
+          if(!cur)throw new AccountingError("Active inventory evidence currency required");
+          precisions.set(cost.currency,Number(cur.decimals));
+        }
+        try{exactMoney(cost.amount,precisions.get(cost.currency)!);}catch{throw new AccountingError("Inventory evidence amount exceeds currency precision");}
+        weights.set(cost.orderItemId,(weights.get(cost.orderItemId)??decimal("0")).plus(cost.weightTons));
+      }
+      for(const [id,total] of weights)if(!total.eq(data.lines.find(l=>l.orderItemId===id)!.actualWeightTons))
+        throw new AccountingError("Documented batch weights must equal the measured weight for each evidenced line");
+    }
   } else {
     const [loading] = await tx.select().from(facts).where(and(
       eq(facts.companyId,companyId),eq(facts.eventType,"LoadingCompleted"),
@@ -95,7 +116,12 @@ export async function recordOperationalEvent(tx:AccountingTransaction,input:Oper
   }
   const [fact] = await tx.insert(facts).values({
     companyId,orderId:data.orderId,eventType:data.eventType,sourceId:identity,
-    payload:{origin:"operator_recorded_measurement",input:data,order,fleet,actor:{id:actor.actorId,type:actor.actorType}},
+    payload:{origin:"operator_recorded_measurement",input:data,order,fleet,actor:{id:actor.actorId,type:actor.actorType},
+      ...(data.eventType==="LoadingCompleted"?{
+        pricingEvidence:capturedMetricPricing(order),
+        inventoryEvidence:{basis:"staff-document-attestation-not-verified-stock-valuation",costs:data.inventoryCosts??[],
+          actorId:actor.actorId,actorType:actor.actorType},
+      }:{})},
     actorId:actor.actorId,actorType:actor.actorType,
   }).returning({id:facts.id});
   await tx.insert(audits).values({companyId,actorId:actor.actorId,actorType:actor.actorType,

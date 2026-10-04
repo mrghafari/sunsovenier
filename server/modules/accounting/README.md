@@ -273,10 +273,13 @@ excluding changes to wallet deduction timing, inventory rules or pricing behavio
   Before publishing, reconcile schema inventory/migration metadata and verify that
   the approved schema path preserves these columns, indexes, functions and triggers.
   Do not use blind schema push to remove this drift.
-- Existing logistics has no authoritative multi-truck weighbridge capture. Dispatch,
-  estimated weights, warehouse approval and delivery do not emit LoadingCompleted.
-  There is no operational weight-entry UI connected yet; the adapter is the backend
-  foundation, not a claim of a completed weighbridge workflow.
+- Existing dispatch, estimated weights, warehouse approval and delivery do not
+  emit LoadingCompleted and are not weighbridge proof. A separately approved,
+  capture-only entry in logistics/warehouse now records actual ticket/line weights
+  and optional documented batch-cost attestations via `/v2/loading-context` and
+  `/v2/loading-capture`. It preserves native order/status/stock/price/wallet flows.
+  Manual batch documents are not verified FIFO carrying value; invoice/COGS and
+  financial activation remain blocked. See `REMAINING_WORK.md`.
 
 ### Public operational recording interface
 
@@ -319,8 +322,8 @@ changing existing super-admin deletion behavior.
   events. Signed-in UI must be checked separately; screenshots cannot sign in.
 - Decide financial cutover/opening reconciliation, existing versus new order policy,
   explicit native-unit-to-ton pricing and real stock-cost source before financial
-  activation. Connecting a weighbridge-entry UI needs a separately scoped change;
-  it must not substitute estimates for actual measurements.
+  activation. The limited weighbridge-entry connection must not substitute
+  estimates for actual measurements or broaden source-module financial behavior.
 
 ### Step 5 — receipts and cheque accounting foundation (in progress, disabled)
 

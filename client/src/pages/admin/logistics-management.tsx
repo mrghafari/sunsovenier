@@ -66,6 +66,8 @@ import LogisticsWorkspaceHeader from '@/components/admin/logistics-redesign/Logi
 import LogisticsCenterRouteEditor from '@/components/admin/logistics-redesign/LogisticsCenterRouteEditor';
 import CustomerNotificationSettings from '@/components/admin/logistics-redesign/CustomerNotificationSettings';
 import { formatDeliveryAppointment } from '../../../../shared/delivery-timezone';
+import LoadingMeasurementCapture from '@/components/admin/accounting/loading-measurement-capture';
+import { loadingCaptureCopy } from '@/components/admin/accounting/loading-measurement-capture-copy';
 
 // Types for vehicle history
 interface VehicleDeliveryHistory {
@@ -5984,6 +5986,7 @@ const LogisticsManagement = () => {
           <TabsTrigger value="vehicle-templates">{t('tabVehicleTemplates')}</TabsTrigger>
           <TabsTrigger value="fleet-vehicles">{t('tabFleet')}</TabsTrigger>
           <TabsTrigger value="vehicle-history">{t('tabVehicleHistory')}</TabsTrigger>
+          <TabsTrigger value="measured-loading">{loadingCaptureCopy(language, 'tab')}</TabsTrigger>
           <TabsTrigger value="postal">{t('tabPostalServices')}</TabsTrigger>
           <TabsTrigger value="postal-params">{t('tabPostalRates')}</TabsTrigger>
           <TabsTrigger value="settings">{t('tabSettings')}</TabsTrigger>
@@ -6012,6 +6015,10 @@ const LogisticsManagement = () => {
 
         <TabsContent value="vehicle-history">
           <VehicleHistorySection />
+        </TabsContent>
+
+        <TabsContent value="measured-loading">
+          <LoadingMeasurementCapture />
         </TabsContent>
 
         <TabsContent value="postal">
