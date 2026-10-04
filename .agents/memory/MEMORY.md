@@ -69,3 +69,4 @@
 - [Historical cost classification](historical-cost-classification.md) — disclose current mappings in retrospective fleet analytics; immutable amounts do not prove past settings.
 - [Shipping margin evidence](shipping-margin-evidence.md) — capture is not posting; loading-level booked margins need explicit attribution, not inferred allocation of invoice history.
 - [Loading price basis](loading-price-basis.md) — weighbridge tons require frozen per-ton price/conversion evidence; correct arithmetic alone is not posting readiness.
+- [Independent loading module](loading-module-boundary.md) — standalone management module, loading_-owned data, only menu/permission/route registration edits; analysis approval precedes coding.
