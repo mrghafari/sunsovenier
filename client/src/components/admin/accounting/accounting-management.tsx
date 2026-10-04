@@ -10,6 +10,7 @@ import { accountingCopy, type AccountingCopyKey } from "@/lib/accounting-copy";
 import AccountingReports from "./accounting-reports";
 import AccountingReceipts from "./accounting-receipts";
 import AccountingDocuments from "./accounting-documents";
+import AccountingCredit, {creditCopy} from "./accounting-credit";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -93,7 +94,7 @@ export default function AccountingManagement() {
   const seedMutation = useSeedAccounting();
   const [seedCountry,setSeedCountry]=useState<"IR"|"IQ">(language==="fa"?"IR":"IQ");
   const [activeResource, setActiveResource] = useState<AccountingResource>("companies");
-  const [activePanel, setActivePanel] = useState<"setup" | "reports" | "receipts" | "documents">("setup");
+  const [activePanel, setActivePanel] = useState<"setup" | "reports" | "receipts" | "documents" | "credit">("setup");
   const [record, setRecord] = useState<AccountingRow | undefined>();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -284,12 +285,14 @@ export default function AccountingManagement() {
         {!canManage && <div className="mt-5 flex items-start gap-3 rounded-xl border border-[#e6d8b7] bg-[#f6f0df] px-4 py-3 text-sm text-[#695638]"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" /><div><strong>{txt("readOnly")}</strong><p className="mt-1 text-xs">{txt("readOnlyHelp")}</p></div></div>}
 
         <div className="mt-5 flex flex-wrap gap-2" role="tablist" aria-label={txt("title")}>
+          <button type="button" role="tab" aria-selected={activePanel === "credit"} onClick={() => setActivePanel("credit")} className={`rounded-lg px-4 py-2 text-sm font-semibold ${activePanel === "credit" ? "bg-[#20484a] text-[#f4f2e7]" : "bg-[#e6ece4] text-[#52655b]"}`}>{(creditCopy[language as keyof typeof creditCopy]??creditCopy.en).title}</button>
           <button type="button" role="tab" aria-selected={activePanel === "setup"} onClick={() => setActivePanel("setup")} className={`rounded-lg px-4 py-2 text-sm font-semibold ${activePanel === "setup" ? "bg-[#20484a] text-[#f4f2e7]" : "bg-[#e6ece4] text-[#52655b]"}`}>{txt("setupNav")}</button>
           <button type="button" role="tab" aria-selected={activePanel === "reports"} onClick={() => setActivePanel("reports")} className={`rounded-lg px-4 py-2 text-sm font-semibold ${activePanel === "reports" ? "bg-[#20484a] text-[#f4f2e7]" : "bg-[#e6ece4] text-[#52655b]"}`}>{txt("reportsNav")}</button>
           <button type="button" role="tab" aria-selected={activePanel === "receipts"} onClick={() => setActivePanel("receipts")} className={`rounded-lg px-4 py-2 text-sm font-semibold ${activePanel === "receipts" ? "bg-[#20484a] text-[#f4f2e7]" : "bg-[#e6ece4] text-[#52655b]"}`}>{language === "fa" ? "رسیدها و چک‌ها" : language === "ar" ? "الإيصالات والشيكات" : language === "tr" ? "Tahsilatlar ve çekler" : "Receipts & cheques"}</button>
           <button type="button" role="tab" aria-selected={activePanel === "documents"} onClick={() => setActivePanel("documents")} className={`rounded-lg px-4 py-2 text-sm font-semibold ${activePanel === "documents" ? "bg-[#20484a] text-[#f4f2e7]" : "bg-[#e6ece4] text-[#52655b]"}`}>{language === "fa" ? "اسناد دستی و هزینه‌ها" : language === "ar" ? "المستندات اليدوية والمصروفات" : language === "tr" ? "Manuel belgeler ve giderler" : "Manual docs & expenses"}</button>
         </div>
-        {activePanel === "reports" ? <div className="mt-5"><AccountingReports companies={companyRows.map(row => ({ id: rowId(row), name: asText(row, "name") }))} onSetup={() => setActivePanel("setup")} /></div> :
+        {activePanel === "credit" ? <div className="mt-5"><AccountingCredit companies={companyRows.map(row => ({ id: rowId(row), name: asText(row, "name") }))} canManage={canManage}/></div> :
+         activePanel === "reports" ? <div className="mt-5"><AccountingReports companies={companyRows.map(row => ({ id: rowId(row), name: asText(row, "name") }))} onSetup={() => setActivePanel("setup")} /></div> :
          activePanel === "receipts" ? <div className="mt-5"><AccountingReceipts companies={companyRows.map(row => ({ id: rowId(row), name: asText(row, "name") }))} canManage={canManage} onReports={() => setActivePanel("reports")} /></div> :
          activePanel === "documents" ? <div className="mt-5"><AccountingDocuments companies={companyRows.map(row => ({ id: rowId(row), name: asText(row, "name") }))} canManage={canManage} /></div> :
         <div className="mt-6 grid items-start gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">

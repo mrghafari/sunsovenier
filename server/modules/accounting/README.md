@@ -1,5 +1,41 @@
 # Centralized accounting — integration boundary
 
+## Staged credit approval (not live financial completion)
+
+The accounting panel now includes four-language credit exposure and explicit
+credit-order registration/approval. Migration 0022 adds a separate, closed credit
+opening gate; 0023 stores immutable reviewed order/customer associations. Both
+are included in the explicit development migration runner and schema inventory.
+No company gate is enabled by these migrations or by the UI.
+
+- `GET /api/accounting/v2/credit-exposure?companyId=…&walletId=…` reads one
+  explicitly linked active CRM customer/currency policy. It reports observed
+  open invoice AR, active allocations of uncleared cheques, approved unbilled
+  commitments, ledger parity and unavailable/unapproved dependencies.
+- `POST /api/accounting/v2/credit-orders` requires company, linked wallet, new
+  internal customer order ID and an explicit staff-reviewed identity reference.
+  It does not infer customer identity from equal IDs, names or contact details.
+  Only unpaid, non-contract bank/cash orders after the approved boundary can
+  enroll. The full frozen order amount is committed as credit at approval.
+- `POST /api/accounting/v2/credit-orders/:orderId/approve` checks the currency
+  credit limit under the financial advisory lock. Native finance approval for
+  new cutover orders invokes the same service and never falls through to the
+  old paid/debit branch. New prepaid approvals also check credit opening/parity.
+- A cheque's unallocated wallet credit is liability, not credit exposure.
+  Depositing a cheque does not remove its AR exposure; clearing it does.
+  Each registered invoice replaces the corresponding part of an unbilled
+  order commitment. Existing invoices still count in open AR until settled.
+- Approval updates only the new order's finance/warehouse readiness and audit;
+  payment remains pending, no wallet debit occurs and no invoice is fabricated.
+  Native prices, stock/reservation rules and the independent loading module
+  are unchanged. Historical orders retain their previous route.
+
+The credit gate is an explicit approval record, not proof that a loading
+consumer is operational. Actual opening/cheque evidence, verified stock costs,
+loading invoice/COGS consumers, coordinated returns/reversals and complete
+end-to-end verification remain required. Do not enable a gate merely because
+the credit panel or its tests succeed. See REMAINING_WORK.md.
+
 ## Scope and current status
 
 Manual journals and paid-expense drafts, their separate closed activation gate

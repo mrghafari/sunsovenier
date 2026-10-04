@@ -1,7 +1,7 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
 import { accountingDb } from "./db";
 import { accountingCompanies, accountingCurrencies } from "./schema";
-import { resolveAccountingAccess, AccountingError } from "./access";
+import { resolveAccountingAccess, AccountingError, assertAccountingOrigin } from "./access";
 import { resourceName, listResource, saveResource } from "./settings-service";
 import { seedAccounting } from "./seed";
 import { POSTING_KEYS, accountingResources, type AccountingAccess } from "@shared/accounting-api";
@@ -24,6 +24,8 @@ import {readLoadingCaptureContext,captureMeasuredLoading} from "./loading-captur
 import {readAccountingAudit,accountingAuditCsv} from "./audit-reports";
 import {readCustomerReport} from "./customer-reports";
 import {customerReportCsv} from "./customer-report-csv";
+import {readCreditExposure} from "./credit-exposure";
+import {registerCreditOrder,approveCreditOrder} from "./credit-orders";
 import {readManualMetadata,readManualDocuments,readManualDocument,previewManualDocument,
   saveManualDocument,postManualDocument,discardManualDocument,reverseManualDocument} from "./manual-documents";
 
@@ -33,14 +35,7 @@ export function createAccountingRouter() {
     try {
       res.locals.accountingAccess = await resolveAccountingAccess(req);
       if (!["GET","HEAD","OPTIONS"].includes(req.method)) {
-        const origin = req.get("origin");
-        let originHost: string | undefined;
-        try {
-          const url = new URL(origin || "");
-          if (["https:","http:"].includes(url.protocol)) originHost = url.host;
-        } catch { /* Missing/invalid Origin is denied, not silently allowed. */ }
-        const allowedHosts = [req.get("host"),req.get("x-forwarded-host")?.split(",")[0].trim()].filter(Boolean);
-        if (!originHost || !allowedHosts.includes(originHost)) throw new AccountingError("Same-origin management request required",403,"ORIGIN_DENIED");
+        assertAccountingOrigin(req);
       }
       await assertLedgerReady();
       next();
@@ -193,6 +188,20 @@ export function createAccountingRouter() {
       if(!Number.isSafeInteger(companyId)||companyId<=0)throw new AccountingError("Valid company ID required");
       res.json({items:await readReceivables(companyId)});
     }catch(e){next(e);}
+  });
+  router.get("/v2/credit-exposure",async(req,res,next)=>{
+    try {
+      res.set("Cache-Control","private, no-store");
+      res.json(await readCreditExposure(Number(req.query.companyId),Number(req.query.walletId)));
+    }catch(e){next(e);}
+  });
+  router.post("/v2/credit-orders",async(req,res,next)=>{
+    try { res.status(201).json(await registerCreditOrder(req.body,res.locals.accountingAccess)); }
+    catch(e){next(e);}
+  });
+  router.post("/v2/credit-orders/:orderId/approve",async(req,res,next)=>{
+    try { res.json(await approveCreditOrder(Number(req.params.orderId),req.body.notes,res.locals.accountingAccess)); }
+    catch(e){next(e);}
   });
   router.post("/v2/receipts",async(req,res,next)=>{
     try{res.status(201).json(await recordCustomerReceipt(req.body,res.locals.accountingAccess));}catch(e){next(e);}

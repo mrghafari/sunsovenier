@@ -5,6 +5,16 @@ import type { AccountingAccess } from "@shared/accounting-api";
 export class AccountingError extends Error {
   constructor(message: string, public status = 422, public code = "ACCOUNTING_VALIDATION") { super(message); this.name="AccountingError"; }
 }
+export function assertAccountingOrigin(req:Request) {
+  let originHost:string|undefined;
+  try {
+    const url=new URL(req.get("origin")||"");
+    if(["https:","http:"].includes(url.protocol))originHost=url.host;
+  }catch { /* An absent/invalid origin is denied. */ }
+  const hosts=[req.get("host"),req.get("x-forwarded-host")?.split(",")[0].trim()].filter(Boolean);
+  if(!originHost||!hosts.includes(originHost))
+    throw new AccountingError("Same-origin management request required",403,"ORIGIN_DENIED");
+}
 export async function resolveAccountingAccess(req: Request): Promise<AccountingAccess> {
   const session = req.session;
   const admin = Boolean(session?.adminId), custom = Boolean(session?.customUserId);

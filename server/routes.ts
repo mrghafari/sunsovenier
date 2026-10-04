@@ -31924,11 +31924,25 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         const linked=await pool.query(`select o.order_id from accounting_wallet_orders o
           join order_management m on m.customer_order_id=o.order_id where m.id=$1`,[req.params.id]);
         if(linked.rows.length) {
-          const {resolveAccountingAccess}=await import("./modules/accounting/access");
+          const {resolveAccountingAccess,assertAccountingOrigin}=await import("./modules/accounting/access");
+          assertAccountingOrigin(req);
           const {approveWalletOrder}=await import("./modules/accounting/wallet");
           const actor=await resolveAccountingAccess(req);
           const result=await approveWalletOrder(linked.rows[0].order_id,String(req.body.notes||""),actor);
           return res.json({success:true,message:"تأیید مالی انجام شد؛ مبلغ حساب نزد شرکت بلوکه شد و هنوز کسر نشده است.",...result});
+        }
+      }
+      const creditInstalled=await pool.query("select to_regclass('public.accounting_credit_cutovers') as relation");
+      if(creditInstalled.rows[0].relation) {
+        const candidate=await pool.query(`select o.id from order_management m join customer_orders o on o.id=m.customer_order_id
+          join accounting_credit_cutovers g on g.company_id=o.accounting_company_id and g.processing_ready
+          where m.id=$1 and o.created_at>=g.enabled_at`,[req.params.id]);
+        if(candidate.rows.length) {
+          const {resolveAccountingAccess,assertAccountingOrigin}=await import("./modules/accounting/access");
+          assertAccountingOrigin(req);
+          const {approveCreditOrder}=await import("./modules/accounting/credit-orders");
+          const result=await approveCreditOrder(candidate.rows[0].id,String(req.body.notes||""),await resolveAccountingAccess(req));
+          return res.json({success:true,message:"تأیید اعتباری انجام شد؛ پرداخت همچنان در انتظار است و از حساب مشتری کسر نشده است.",...result});
         }
       }
     } catch(e) {

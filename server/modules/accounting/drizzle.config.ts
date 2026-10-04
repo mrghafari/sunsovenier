@@ -3,6 +3,6 @@ import { defineConfig } from "drizzle-kit";
 // Generation only. Does not connect to or alter any database.
 export default defineConfig({
   dialect: "postgresql",
-  schema: ["./server/modules/accounting/schema.ts","./server/modules/accounting/wallet-schema.ts","./server/modules/accounting/receipt-schema.ts","./server/modules/accounting/settlement-schema.ts","./server/modules/accounting/receipt-book-schema.ts","./server/modules/accounting/cheque-book-schema.ts","./server/modules/accounting/manual-document-schema.ts","./server/modules/accounting/manual-expense-book-schema.ts"],
+  schema: ["./server/modules/accounting/schema.ts","./server/modules/accounting/wallet-schema.ts","./server/modules/accounting/receipt-schema.ts","./server/modules/accounting/settlement-schema.ts","./server/modules/accounting/receipt-book-schema.ts","./server/modules/accounting/cheque-book-schema.ts","./server/modules/accounting/manual-document-schema.ts","./server/modules/accounting/manual-expense-book-schema.ts","./server/modules/accounting/credit-schema.ts"],
   out: "./migrations/accounting",
 });

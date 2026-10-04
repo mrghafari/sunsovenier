@@ -7,6 +7,9 @@ import {pool} from "../../db";
 import {linkWallet,prepareWalletOrder,recordWalletMovement,approveWalletOrder,walletMovementSchema} from "./wallet";
 import {iraqChart} from "./iraq-chart";
 import {postJournalEntry} from "./postJournalEntry";
+import {readCreditExposure} from "./credit-exposure";
+import {registerCreditOrder,approveCreditOrder} from "./credit-orders";
+import {registerInvoiceReceivable,recordCustomerReceipt,transitionCheque} from "./receipts";
 
 test("prepaid customer money is liability and movement amounts are strings",()=>{
   assert.equal(iraqChart.find(a=>a.key==="WALLET_LIABILITY")?.type,"liability");
@@ -24,7 +27,7 @@ test("new prepaid wallet integration: rollback-only",{skip:process.env.ACCOUNTIN
         values('Wallet rollback fixture','IQ','Asia/Baghdad','IQD') returning id`)).rows[0].id as number;
       await tx.execute(sql`insert into accounting_fiscal_years(company_id,name,starts_on,ends_on)
         values(${company},'2026','2026-01-01','2026-12-31')`);
-      for(const key of ["BANK","GATEWAY","WALLET_LIABILITY"]){
+      for(const key of ["BANK","GATEWAY","WALLET_LIABILITY","ACCOUNTS_RECEIVABLE","SALES_REVENUE","CHEQUES_ON_HAND","CHEQUE_CLEARING"]){
         const a=iraqChart.find(a=>a.key===key)!;
         const account=(await tx.execute(sql`insert into accounting_accounts(company_id,code,name_ar,name_en,type)
           values(${company},${a.code},${a.nameAr},${a.nameEn},${a.type}) returning id`)).rows[0].id;
@@ -33,6 +36,8 @@ test("new prepaid wallet integration: rollback-only",{skip:process.env.ACCOUNTIN
       await tx.execute(sql`insert into accounting_source_bindings(source_module,company_id,capture_enabled)
         values('shop',${company},true) on conflict(source_module) do update set company_id=excluded.company_id,capture_enabled=true`);
       await tx.execute(sql`insert into accounting_wallet_cutovers(company_id) values(${company})`);
+      await tx.execute(sql`insert into accounting_credit_cutovers(company_id) values(${company})`);
+      await tx.execute(sql`insert into accounting_receipt_cutovers(company_id,processing_ready) values(${company},true)`);
       const fixture=1900000000+randomInt(1,1000000);
       await tx.execute(sql`insert into crm_customers(id,email,first_name,last_name)
         values(${fixture},${randomUUID()+"@example.invalid"},'Wallet','Fixture')`);
@@ -50,10 +55,10 @@ test("new prepaid wallet integration: rollback-only",{skip:process.env.ACCOUNTIN
         await tx.execute(sql`release savepoint wallet_failure`);
         assert.ok(e,"Operation must fail");
       }
-      const order=async(id:number,total:string,created="2026-06-01",currency="IQD",paid=false)=>{
+      const order=async(id:number,total:string,created="2026-06-01",currency="IQD",paid=false,method="wallet_full")=>{
         await tx.execute(sql`insert into customer_orders(id,order_number,customer_id,total_amount,currency,
           shipping_address,payment_method,payment_status,created_at) values(${id},${randomUUID()},${fixture},
-          ${total},${currency},'{}','wallet_full',${paid?"paid":"pending"},${created}::timestamp)`);
+          ${total},${currency},'{}',${method},${paid?"paid":"pending"},${created}::timestamp)`);
         await tx.execute(sql`insert into order_items(id,order_id,product_name,product_sku,quantity,unit_price,total_price)
           values(${id},${id},'Wallet fixture','WALLET-FIXTURE',1,${total},${total})`);
       };
@@ -92,6 +97,10 @@ test("new prepaid wallet integration: rollback-only",{skip:process.env.ACCOUNTIN
         await rejects(()=>prepareWalletOrder(fixture+3,fixture,tx));
       });
       await t.test("finance hold blocks money but creates no revenue/journal/debit; retry is safe",async()=>{
+        await rejects(()=>approveWalletOrder(fixture,"Credit opening not yet approved",actor,tx));
+        assert.equal((await tx.execute(sql`select count(*)::text as n from accounting_wallet_holds where order_id=${fixture}`)).rows[0].n,"0");
+        await tx.execute(sql`update accounting_credit_cutovers set processing_ready=true,enabled_at='2026-01-01',
+          opening_reference='rollback AR opening proof',reviewed_by=1 where company_id=${company}`);
         const countBefore=(await tx.execute(sql`select count(*) as n from accounting_journal_entries where company_id=${company}`)).rows[0].n;
         await approveWalletOrder(fixture,"Confirmed prepaid order",actor,tx);
         assert.equal(await balance(),"100.00");
@@ -100,6 +109,59 @@ test("new prepaid wallet integration: rollback-only",{skip:process.env.ACCOUNTIN
         assert.equal((await approveWalletOrder(fixture,"Retry",actor,tx)).duplicate,true);
         assert.equal((await tx.execute(sql`select count(*) as n from accounting_journal_entries where company_id=${company}`)).rows[0].n,countBefore);
         assert.equal((await tx.execute(sql`select payment_status from customer_orders where id=${fixture}`)).rows[0].payment_status,"pending");
+      });
+      await t.test("credit exposure, cheque lifecycle and staged bank order approval are atomic",async()=>{
+        await tx.execute(sql`savepoint credit_scenario`);
+        const mapped=async(key:string)=>Number((await tx.execute(sql`select account_id from accounting_posting_rules where company_id=${company} and key=${key}`)).rows[0].account_id);
+        const invoice=async(source:string,amount:string,orderId?:number)=>{
+          const {entry}=await postJournalEntry({companyId:company,entryDate:"2026-06-01",sourceType:"SalesInvoice",
+            sourceId:source,description:"Rollback credit exposure invoice",lines:[
+              {accountId:await mapped("ACCOUNTS_RECEIVABLE"),currency:"IQD",debit:amount,credit:"0",partyType:"customer",partyId:fixture},
+              {accountId:await mapped("SALES_REVENUE"),currency:"IQD",debit:"0",credit:amount},
+            ]},actor,tx);
+          return registerInvoiceReceivable({companyId:company,customerId:fixture,currency:"IQD",
+            invoiceJournalId:entry.id,invoiceReference:source,dueOn:"2026-07-01",orderId},actor,tx);
+        };
+        const ar=await invoice("credit-exposure-invoice","1000");
+        const receipt=await recordCustomerReceipt({companyId:company,customerId:fixture,currency:"IQD",
+          sourceId:"credit-cheque",entryDate:"2026-06-02",method:"CHEQUE",amount:"250",evidenceReference:"credit-cheque-proof",
+          reason:"Rollback cheque exposure",allocations:[{receivableId:Number(ar.id),amount:"200"}],
+          chequeNumber:"CHEQUE-CREDIT"},actor,tx);
+        let exposure=await readCreditExposure(company,fixture,tx);
+        assert.equal(exposure.openReceivables,"800.00000000");
+        assert.equal(exposure.unclearedChequeAllocations,"200.00000000");
+        assert.equal(exposure.exposure,"1000"); // Not 1250: unallocated customer funds are not credit exposure.
+        await order(fixture+10,"150","2026-06-01","IQD",false,"bank_transfer");
+        const registration={companyId:company,walletId:fixture,orderId:fixture+10,evidenceReference:"CRM identity review document"};
+        await registerCreditOrder(registration,actor,tx);
+        assert.equal((await registerCreditOrder(registration,actor,tx)).duplicate,true);
+        await rejects(()=>registerCreditOrder({...registration,evidenceReference:"different proof"},actor,tx));
+        await rejects(()=>approveCreditOrder(fixture+10,"Uncleared cheque leaves no credit",actor,tx));
+        await transitionCheque(Number(receipt.receipt.id),"deposited",{sourceId:"credit-deposit",entryDate:"2026-06-03",
+          reason:"Deposit cheque",evidenceReference:"deposit-proof"},actor,tx);
+        assert.equal((await readCreditExposure(company,fixture,tx)).exposure,"1000");
+        await transitionCheque(Number(receipt.receipt.id),"cleared",{sourceId:"credit-clearance",entryDate:"2026-06-04",
+          reason:"Clear cheque",evidenceReference:"clearance-proof"},actor,tx);
+        const balanceBefore=await balance();
+        await approveCreditOrder(fixture+10,"Approve documented new credit sale",actor,tx);
+        assert.equal((await approveCreditOrder(fixture+10,"Safe retry",actor,tx)).duplicate,true);
+        assert.equal(await balance(),balanceBefore);
+        assert.equal((await tx.execute(sql`select payment_status from customer_orders where id=${fixture+10}`)).rows[0].payment_status,"pending");
+        exposure=await readCreditExposure(company,fixture,tx);
+        assert.equal(exposure.exposure,"950");
+        assert.equal(exposure.approvedUnbilledCredit,"150.00000000");
+        await invoice("credit-partial-loading-invoice","50",fixture+10);
+        exposure=await readCreditExposure(company,fixture,tx);
+        assert.equal(exposure.exposure,"950"); // Issuing one invoice replaces, not duplicates, its unbilled commitment.
+        assert.equal(exposure.approvedUnbilledCredit,"100.00000000");
+        await order(fixture+11,"60","2026-06-01","IQD",false,"bank_transfer");
+        await registerCreditOrder({...registration,orderId:fixture+11},actor,tx);
+        await rejects(()=>approveCreditOrder(fixture+11,"Competing order exceeds remaining credit",actor,tx));
+        await order(fixture+12,"10","2025-01-01","IQD",false,"bank_transfer");
+        await rejects(()=>registerCreditOrder({...registration,orderId:fixture+12},actor,tx));
+        await rejects(()=>registerCreditOrder({...registration,orderId:fixture+11},{...actor,canManage:false},tx));
+        await tx.execute(sql`rollback to savepoint credit_scenario`);
+        await tx.execute(sql`release savepoint credit_scenario`);
       });
       await t.test("credit limit is not prepaid cash and competing orders cannot over-hold",async()=>{
         await order(fixture+4,"30");

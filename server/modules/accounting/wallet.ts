@@ -6,6 +6,7 @@ import {assertLedgerReady} from "./readiness";
 import {decimal,exactMoney} from "./money";
 import {postJournalEntry} from "./postJournalEntry";
 import {dateString,positiveDecimal,type AccountingAccess} from "@shared/accounting-api";
+import {assertPrepaidCreditApproval} from "./credit-exposure";
 
 const id=z.number().int().positive();
 export const walletMovementSchema=z.object({
@@ -185,13 +186,15 @@ export async function approveWalletOrder(orderId:number,notes:string,actor:Accou
     if(held.rows[0]?.status==="active") return {orderId,holdCreated:true,duplicate:true};
     if(!["finance_pending","financial_pending","pending"].includes(String(management.current_status)))
       throw new AccountingError("Order is not awaiting financial approval",409,"INVALID_ORDER_STATE");
+    const w=await lockedWallet(tx,Number(link.wallet_id),Number(link.company_id));
+    const credit=await assertPrepaidCreditApproval(tx,Number(link.company_id),w.id,orderId);
     await tx.execute(sql`update order_management set current_status='warehouse_pending',financial_reviewer_id=${actor.actorId},
       financial_reviewed_at=now(),financial_notes=${notes},updated_at=now() where id=${management.id}`);
     // The BEFORE trigger creates the hold atomically; payment remains pending until actual loading.
     await tx.execute(sql`update customer_orders set status='warehouse_ready',updated_at=now() where id=${orderId}`);
     await tx.execute(sql`insert into accounting_audit_logs(company_id,actor_id,actor_type,action,entity_type,entity_id,after)
       values(${link.company_id},${actor.actorId},${actor.actorType},'approve_prepaid_hold','order',${String(orderId)},
-      ${JSON.stringify({notes,holdCreated:true,paymentStatus:"pending"})}::jsonb)`);
+       ${JSON.stringify({notes,holdCreated:true,paymentStatus:"pending",credit})}::jsonb)`);
     return {orderId,holdCreated:true,duplicate:false};
   };
   return callerTx?run(callerTx):accountingDb.transaction(run);

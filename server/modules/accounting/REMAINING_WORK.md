@@ -41,10 +41,22 @@ valuation is verified, legacy openings are reconciled, or a consumer is enabled.
    pooled native/base book values, original allocations and settlement evidence,
    protect holds/other currencies, and recognize realized FX explicitly.
    No direct balance/status edits or independent reversal shortcuts.
-4. **Connect credit exposure to finance approval.** Use validated customer/CRM
-   identities, customer-currency limits, open AR and uncleared cheques without
-   counting the same cheque exposure twice. Explain exact external-module
-   changes and obtain approval before editing finance approval.
+4. **Credit approval connection is staged, not activated.** New prepaid orders
+   and explicitly registered new bank/cash credit orders have a finance approval
+   path. Customer/currency policies come from explicitly linked CRM wallets.
+   Exposure includes open AR, only active AR allocations of uncleared cheques,
+   and approved unbilled order commitments. Partial invoices replace rather than
+   duplicate their corresponding commitments. Ledger parity and a separate
+   reconciled credit opening are mandatory. Historical, paid and contract orders
+   cannot be enrolled. A four-language accounting panel exposes real amounts,
+   missing evidence and management registration/approval actions.
+   The user approved new-order finance connections while preserving pricing and
+   inventory rules. Native finance changes are limited to the new-order branch;
+   old orders retain their previous route. Both new finance branches require
+   accounting management permission and same-origin requests.
+   Still required before activation: actual AR/cheque opening evidence, complete
+   invoice/COGS/settlement consumers, coordinated reversal/cancellation of issued
+   documents and full signed-in/multi-currency end-to-end verification.
 5. **Reconcile openings and approve a cutover.** Obtain actual opening/stock/
    wallet/AR/asset evidence, reconcile native balances with GL and freeze the
    old/new order boundary. Never manufacture zeros or conversion rates.
