@@ -68,3 +68,4 @@
 - [Historical receivables](historical-receivables-reporting.md) — reconstruct as-of settlements from posted event dates; current statuses and balances cannot prove earlier debt.
 - [Historical cost classification](historical-cost-classification.md) — disclose current mappings in retrospective fleet analytics; immutable amounts do not prove past settings.
 - [Shipping margin evidence](shipping-margin-evidence.md) — capture is not posting; loading-level booked margins need explicit attribution, not inferred allocation of invoice history.
+- [Loading price basis](loading-price-basis.md) — weighbridge tons require frozen per-ton price/conversion evidence; correct arithmetic alone is not posting readiness.

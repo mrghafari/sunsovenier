@@ -1,0 +1,155 @@
+import type { Language } from "@/lib/i18n";
+import type { LoadingPreviewIssue } from "@shared/accounting-loading-preview";
+
+const copy = {
+  en: {
+    title: "Captured-loading invoice arithmetic",
+    intro: "A read-only calculation preview from captured loading facts.",
+    safety: "CALCULATION ONLY — NOT AN ISSUED INVOICE, GL DOCUMENT, POSTING READINESS, OR PROOF OF INVENTORY COST.",
+    safetyDetail: "No financial action is available here. Posting is always disallowed.",
+    company: "Company", orderId: "Order ID (optional)", apply: "Apply filters", refresh: "Refresh",
+    choose: "Choose a company and apply filters to inspect captured loading facts.",
+    noCompanies: "No companies are available for this view.",
+    invalid: "Enter a valid company ID and, if supplied, a positive numeric order ID.",
+    loading: "Loading captured facts…", failed: "Could not load this preview", retry: "Retry",
+    stale: "The draft scope has changed. Apply again to show results for the new scope.",
+    noRows: "No captured loading facts match this scope.",
+    fact: "Fact source", order: "Order", reference: "Loading reference", date: "Event date",
+    currency: "Currency", issues: "Calculation issues", result: "Calculated amounts",
+    weight: "Weight", line: "Goods / tax", goods: "Goods", tax: "Tax", shipping: "Shipping",
+    total: "Total", due: "Due date", page: "Page", of: "of", rows: "facts",
+    previous: "Previous", next: "Next", unknownIssue: "Unrecognized issue",
+    nullAmounts: "Amounts unavailable — resolve the listed evidence issues.",
+    noIssues: "No calculation issues reported.",
+    readOnly: "READ ONLY", postingOff: "POSTING OFF",
+    pendingTitle: "Still pending — not covered by this calculation",
+    pending: ["COGS / inventory-cost evidence", "Weight-tolerance approval", "Receivables and settlement", "Opening balances and cutover"],
+    issuesMap: {
+      INVALID_CAPTURE: "Captured values are invalid",
+      LEGACY_SNAPSHOT: "Legacy snapshot is incomplete or not verified",
+      SNAPSHOT_IDENTITY: "Captured identity does not match",
+      UNKNOWN_CURRENCY: "Currency is not recognized",
+      INVALID_MEASUREMENTS: "Measurements are invalid",
+      LINE_SNAPSHOT_REQUIRED: "Order-line snapshot is required",
+      PRICE_BASIS_REQUIRED: "Price basis is required",
+      TAX_SNAPSHOT_REQUIRED: "Tax snapshot is required",
+      SHIPPING_SNAPSHOT_REQUIRED: "Shipping snapshot is required",
+      FIXED_SHIPPING_ALLOCATION_REQUIRED: "Fixed shipping allocation is missing; no allocation is inferred",
+      TERMS_REQUIRED: "Payment terms are required",
+      AMOUNT_OUT_OF_RANGE: "Calculated amount is outside the supported range",
+    } satisfies Record<LoadingPreviewIssue, string>,
+  },
+  fa: {
+    title: "پیش‌نمایش محاسبات فاکتور بارگیری ثبت‌شده",
+    intro: "پیش‌نمایش محاسبه فقط‌خواندنی بر پایهٔ واقعیت‌های بارگیری ثبت‌شده.",
+    safety: "فقط محاسبه — فاکتور صادرشده، سند کل، آمادگی ثبت یا مدرک بهای موجودی نیست.",
+    safetyDetail: "در این بخش هیچ اقدام مالی در دسترس نیست. ثبت همیشه غیرفعال است.",
+    company: "شرکت", orderId: "شناسه سفارش (اختیاری)", apply: "اعمال فیلترها", refresh: "به‌روزرسانی",
+    choose: "برای بررسی واقعیت‌های بارگیری، شرکت را انتخاب و فیلترها را اعمال کنید.",
+    noCompanies: "شرکتی برای این نما موجود نیست.",
+    invalid: "شناسه شرکت معتبر و در صورت ورود، شناسه سفارش عددی مثبت وارد کنید.",
+    loading: "در حال دریافت واقعیت‌های ثبت‌شده…", failed: "بارگذاری پیش‌نمایش ممکن نشد", retry: "تلاش دوباره",
+    stale: "محدودهٔ پیش‌نویس تغییر کرده است. برای نمایش نتایج محدودهٔ جدید دوباره اعمال کنید.",
+    noRows: "واقعیت بارگیری ثبت‌شده‌ای با این محدوده پیدا نشد.",
+    fact: "منبع واقعیت", order: "سفارش", reference: "ارجاع بارگیری", date: "تاریخ رویداد",
+    currency: "ارز", issues: "ایرادهای محاسبه", result: "مبالغ محاسبه‌شده",
+    weight: "وزن", line: "کالا / مالیات", goods: "کالا", tax: "مالیات", shipping: "حمل",
+    total: "جمع کل", due: "سررسید", page: "صفحه", of: "از", rows: "واقعیت",
+    previous: "قبلی", next: "بعدی", unknownIssue: "ایراد ناشناخته",
+    nullAmounts: "مبالغ در دسترس نیست — ایرادهای شواهد را برطرف کنید.",
+    noIssues: "ایرادی برای محاسبه گزارش نشده است.",
+    readOnly: "فقط‌خواندنی", postingOff: "ثبت غیرفعال",
+    pendingTitle: "موارد همچنان در انتظار — خارج از این محاسبه",
+    pending: ["بهای کالای فروش‌رفته (COGS) و شواهد موجودی", "تأیید تلرانس وزن", "دریافتنی و تسویه", "مانده‌های افتتاحیه و انتقال"],
+    issuesMap: {
+      INVALID_CAPTURE: "مقادیر ثبت‌شده نامعتبر است", LEGACY_SNAPSHOT: "تصویر قدیمی ناقص یا تأییدنشده است",
+      SNAPSHOT_IDENTITY: "هویت ثبت‌شده مطابقت ندارد", UNKNOWN_CURRENCY: "ارز شناخته‌شده نیست",
+      INVALID_MEASUREMENTS: "اندازه‌گیری‌ها نامعتبر است", LINE_SNAPSHOT_REQUIRED: "تصویر ردیف سفارش لازم است",
+      PRICE_BASIS_REQUIRED: "مبنای قیمت لازم است", TAX_SNAPSHOT_REQUIRED: "تصویر مالیات لازم است",
+      SHIPPING_SNAPSHOT_REQUIRED: "تصویر حمل لازم است",
+      FIXED_SHIPPING_ALLOCATION_REQUIRED: "تخصیص حمل ثابت موجود نیست؛ تخصیصی فرض نمی‌شود",
+      TERMS_REQUIRED: "شرایط پرداخت لازم است", AMOUNT_OUT_OF_RANGE: "مبلغ محاسبه‌شده خارج از محدودهٔ مجاز است",
+    } satisfies Record<LoadingPreviewIssue, string>,
+  },
+  ar: {
+    title: "معاينة حساب فاتورة التحميل المسجل",
+    intro: "معاينة حساب للقراءة فقط تستند إلى وقائع التحميل المسجلة.",
+    safety: "للحساب فقط — ليست فاتورة صادرة أو مستند أستاذ عام أو جاهزية ترحيل أو إثبات تكلفة مخزون.",
+    safetyDetail: "لا يتوفر أي إجراء مالي هنا. الترحيل غير مسموح دائمًا.",
+    company: "الشركة", orderId: "رقم الطلب (اختياري)", apply: "تطبيق المرشحات", refresh: "تحديث",
+    choose: "اختر شركة وطبّق المرشحات لفحص وقائع التحميل المسجلة.",
+    noCompanies: "لا توجد شركات لهذا العرض.",
+    invalid: "أدخل رقم شركة صالحًا ورقم طلب موجبًا عند إدخاله.",
+    loading: "جارٍ تحميل الوقائع المسجلة…", failed: "تعذر تحميل المعاينة", retry: "إعادة المحاولة",
+    stale: "تغير نطاق المسودة. طبّق المرشحات مجددًا لعرض نطاق النتائج الجديد.",
+    noRows: "لا توجد وقائع تحميل مسجلة تطابق هذا النطاق.",
+    fact: "مصدر الواقعة", order: "الطلب", reference: "مرجع التحميل", date: "تاريخ الحدث",
+    currency: "العملة", issues: "مشكلات الحساب", result: "المبالغ المحسوبة",
+    weight: "الوزن", line: "السلع / الضريبة", goods: "السلع", tax: "الضريبة", shipping: "الشحن",
+    total: "الإجمالي", due: "تاريخ الاستحقاق", page: "صفحة", of: "من", rows: "وقائع",
+    previous: "السابق", next: "التالي", unknownIssue: "مشكلة غير معروفة",
+    nullAmounts: "المبالغ غير متاحة — عالج مشكلات الأدلة المدرجة.",
+    noIssues: "لم تُسجل مشكلات للحساب.",
+    readOnly: "للقراءة فقط", postingOff: "الترحيل معطل",
+    pendingTitle: "ما يزال قيد الانتظار — خارج نطاق هذا الحساب",
+    pending: ["تكلفة البضاعة المباعة (COGS) وأدلة المخزون", "اعتماد تفاوت الوزن", "الذمم المدينة والتسوية", "الأرصدة الافتتاحية والانتقال"],
+    issuesMap: {
+      INVALID_CAPTURE: "القيم المسجلة غير صالحة", LEGACY_SNAPSHOT: "اللقطة القديمة ناقصة أو غير موثقة",
+      SNAPSHOT_IDENTITY: "هوية اللقطة غير مطابقة", UNKNOWN_CURRENCY: "العملة غير معروفة",
+      INVALID_MEASUREMENTS: "القياسات غير صالحة", LINE_SNAPSHOT_REQUIRED: "لقطة بند الطلب مطلوبة",
+      PRICE_BASIS_REQUIRED: "أساس السعر مطلوب", TAX_SNAPSHOT_REQUIRED: "لقطة الضريبة مطلوبة",
+      SHIPPING_SNAPSHOT_REQUIRED: "لقطة الشحن مطلوبة",
+      FIXED_SHIPPING_ALLOCATION_REQUIRED: "تخصيص الشحن الثابت مفقود؛ لا يُفترض أي تخصيص",
+      TERMS_REQUIRED: "شروط الدفع مطلوبة", AMOUNT_OUT_OF_RANGE: "المبلغ المحسوب خارج النطاق المدعوم",
+    } satisfies Record<LoadingPreviewIssue, string>,
+  },
+  tr: {
+    title: "Kaydedilmiş yükleme fatura hesaplama önizlemesi",
+    intro: "Kaydedilmiş yükleme olgularına dayalı salt okunur hesaplama önizlemesi.",
+    safety: "YALNIZCA HESAPLAMA — KESİLMİŞ FATURA, DEFTER BELGESİ, KAYIT HAZIRLIĞI VEYA STOK MALİYETİ KANITI DEĞİLDİR.",
+    safetyDetail: "Burada finansal işlem yapılamaz. Muhasebeleştirmeye her durumda izin verilmez.",
+    company: "Şirket", orderId: "Sipariş kimliği (isteğe bağlı)", apply: "Filtreleri uygula", refresh: "Yenile",
+    choose: "Kaydedilmiş yükleme olgularını incelemek için şirket seçip filtreleri uygulayın.",
+    noCompanies: "Bu görünüm için şirket bulunmuyor.",
+    invalid: "Geçerli şirket kimliği ve girilmişse pozitif sayısal sipariş kimliği girin.",
+    loading: "Kaydedilmiş olgular yükleniyor…", failed: "Önizleme yüklenemedi", retry: "Yeniden dene",
+    stale: "Taslak kapsamı değişti. Yeni kapsamın sonuçlarını görmek için yeniden uygulayın.",
+    noRows: "Bu kapsama uyan kaydedilmiş yükleme olgusu yok.",
+    fact: "Olgu kaynağı", order: "Sipariş", reference: "Yükleme referansı", date: "Olay tarihi",
+    currency: "Para birimi", issues: "Hesaplama sorunları", result: "Hesaplanan tutarlar",
+    weight: "Ağırlık", line: "Mal / vergi", goods: "Mal", tax: "Vergi", shipping: "Nakliye",
+    total: "Toplam", due: "Vade tarihi", page: "Sayfa", of: "/", rows: "olgu",
+    previous: "Önceki", next: "Sonraki", unknownIssue: "Bilinmeyen sorun",
+    nullAmounts: "Tutarlar kullanılamıyor — listelenen kanıt sorunlarını giderin.",
+    noIssues: "Hesaplama sorunu bildirilmedi.",
+    readOnly: "SALT OKUNUR", postingOff: "MUHASEBELEŞTİRME KAPALI",
+    pendingTitle: "Hâlâ beklemede — bu hesaplamanın kapsamı dışında",
+    pending: ["Satılan malın maliyeti (COGS) / stok maliyeti kanıtı", "Ağırlık toleransı onayı", "Alacaklar ve mutabakat", "Açılış bakiyeleri ve geçiş"],
+    issuesMap: {
+      INVALID_CAPTURE: "Kaydedilen değerler geçersiz", LEGACY_SNAPSHOT: "Eski anlık görüntü eksik veya doğrulanmamış",
+      SNAPSHOT_IDENTITY: "Kaydedilen kimlik eşleşmiyor", UNKNOWN_CURRENCY: "Para birimi tanınmıyor",
+      INVALID_MEASUREMENTS: "Ölçümler geçersiz", LINE_SNAPSHOT_REQUIRED: "Sipariş satırı görüntüsü gerekli",
+      PRICE_BASIS_REQUIRED: "Fiyat temeli gerekli", TAX_SNAPSHOT_REQUIRED: "Vergi görüntüsü gerekli",
+      SHIPPING_SNAPSHOT_REQUIRED: "Nakliye görüntüsü gerekli",
+      FIXED_SHIPPING_ALLOCATION_REQUIRED: "Sabit nakliye dağıtımı eksik; dağıtım varsayılmaz",
+      TERMS_REQUIRED: "Ödeme koşulları gerekli", AMOUNT_OUT_OF_RANGE: "Hesaplanan tutar desteklenen aralığın dışında",
+    } satisfies Record<LoadingPreviewIssue, string>,
+  },
+} as const;
+
+export type LoadingPreviewCopyKey = keyof typeof copy.en;
+export function loadingPreviewCopy(language: Language, key: LoadingPreviewCopyKey): string {
+  const locale = language in copy ? language as keyof typeof copy : "en";
+  const value = copy[locale][key];
+  return typeof value === "string" ? value : copy.en[key] as string;
+}
+export function loadingPreviewPending(language: Language): readonly string[] {
+  const locale = language in copy ? language as keyof typeof copy : "en";
+  return copy[locale].pending;
+}
+export function loadingPreviewIssueCopy(language: Language, issue: string): string {
+  const locale = language in copy ? language as keyof typeof copy : "en";
+  return (copy[locale].issuesMap as Record<string, string>)[issue]
+    ?? (copy.en.issuesMap as Record<string, string>)[issue]
+    ?? `${loadingPreviewCopy(language, "unknownIssue")}: ${issue}`;
+}

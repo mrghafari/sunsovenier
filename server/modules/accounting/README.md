@@ -21,7 +21,11 @@ The operator explicitly authorized building a new core from the specification.
   Authenticated finance viewers have no setting mutation permission. API mutations
   and seed actions are audited. System/developer seed runs are explicitly identified.
 
-**Financial steps 4–10 are not complete.** Business events are captured transactionally;
+**The full live financial pipeline is not complete.** Staged wallet, receipt,
+manual-document and report paths now have their own controls and tests, and the
+workspace includes read-only loading arithmetic and accounting audit history.
+See [REMAINING_WORK.md](REMAINING_WORK.md) for the remaining activation dependencies.
+Business events are captured transactionally;
 no accounting consumer is running and no captured event is eligible for posting.
 No live invoice/stock/receipt/wallet pipeline has been activated. Reports now inspect
 real posted ledger records (including manually posted records and their reversals),
