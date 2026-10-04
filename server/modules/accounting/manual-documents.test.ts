@@ -4,7 +4,8 @@ import {normalizeManualDocument,evaluateManualDocument,saveManualDocument,postMa
 import {manualDocumentSchema,saveManualDocumentSchema,manualDocumentActionSchema,reverseManualDocumentSchema,manualDocumentFiltersSchema,type ManualDocumentMetadata} from "@shared/accounting-documents";
 const meta:ManualDocumentMetadata={
   company:{id:1,name:"Test",baseCurrency:"IRR",isActive:true},currencyDecimals:8,currencyActive:true,
-  postingReady:false,manualCutoverReady:false,pipelineReady:false,ledgerGuardsReady:true,baseCurrencyOnly:true,
+  postingReady:false,manualCutoverReady:false,pipelineReady:false,ledgerGuardsReady:true,baseCurrencyOnly:false,
+  currencies:[{code:"IRR",decimals:8},{code:"USD",decimals:2}],foreignExpenseReady:true,
   accounts:[{id:1,code:"1100",type:"asset",funding:true,nameFa:"بانک",nameAr:"",nameEn:"Bank"},
     {id:2,code:"5500",type:"expense",funding:false,nameFa:"هزینه",nameAr:"",nameEn:"Expense"}],
   costCenters:[{id:3,code:"HQ",nameFa:"مرکز",nameAr:"",nameEn:"Center"}],
@@ -41,7 +42,7 @@ test("paid expenses require two equal expense/bank-cash lines and an expense cen
   assert.throws(()=>evaluateManualDocument(d,{...meta,accounts:meta.accounts.map(a=>({...a,funding:false}))}),/expense/);
 });
 test("clients cannot supply operational sources, foreign rates, ledger IDs or party settlements",()=>{
-  for(const extra of [{sourceType:"PaymentReceived"},{journalId:1},{currency:"USD"},{reversalOfId:1}])
+  for(const extra of [{sourceType:"PaymentReceived"},{journalId:1},{exchangeRate:"1.25"},{fundingBase:"1"},{reversalOfId:1}])
     assert.equal(manualDocumentSchema.safeParse({...input,...extra}).success,false);
   assert.equal(manualDocumentSchema.safeParse({...input,lines:[{...input.lines[0],partyType:"customer"},input.lines[1]]}).success,false);
   assert.equal(saveManualDocumentSchema.safeParse({document:input,id:1}).success,false);
@@ -60,4 +61,12 @@ test("viewer mutation denial precedes malformed-payload parsing and does not ope
     ()=>saveManualDocument({},actor),()=>postManualDocument(0,{},actor),
     ()=>discardManualDocument(0,{},actor),()=>reverseManualDocument(0,{},actor),
   ])await assert.rejects(run,e=>Boolean(e&&typeof e==="object"&&"status" in e&&e.status===403));
+});
+test("foreign paid expenses use active native precision while general foreign journals stay closed",()=>{
+  assert.throws(()=>evaluateManualDocument(normalizeManualDocument({...input,currency:"USD"}),meta),/base-currency/);
+  const d=normalizeManualDocument({...input,kind:"expense",currency:"USD"});
+  assert.equal(evaluateManualDocument(d,meta).currency,"USD");
+  assert.throws(()=>evaluateManualDocument({...d,currency:"EUR"},meta),/active/);
+  assert.throws(()=>evaluateManualDocument({...d,lines:[{...d.lines[0],debit:"12.501"},d.lines[1]]},meta),/precision/);
+  assert.equal(manualDocumentSchema.safeParse({...d,foreignExpense:{fundingBase:"10"}}).success,false);
 });

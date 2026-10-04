@@ -1,10 +1,10 @@
 import {z} from "zod";
-import {dateString,decimalString} from "./accounting-api";
+import {dateString,decimalString,currencyCode} from "./accounting-api";
 const id=z.number().int().positive().max(2147483647);
 export const manualDocumentSchema=z.object({
   companyId:id,sourceId:z.string().trim().min(3).max(150),kind:z.enum(["manual","expense"]),
   entryDate:dateString,description:z.string().trim().min(5).max(2000),
-  evidenceReference:z.string().trim().min(5).max(500),
+  evidenceReference:z.string().trim().min(5).max(500),currency:currencyCode.optional(),
   lines:z.array(z.object({accountId:id,debit:decimalString,credit:decimalString,
     costCenterId:id.nullable().default(null),description:z.string().trim().max(500).default("")}).strict()).min(2).max(100),
 }).strict();
@@ -35,10 +35,19 @@ export interface ManualDocumentMetadata {
   accounts:ManualAccount[];
   costCenters:{id:number;code:string;nameFa:string|null;nameAr:string;nameEn:string}[];
   fiscalPeriods:{id:number;name:string;startsOn:string;endsOn:string;status:string}[];
-  baseCurrencyOnly:true;
+  baseCurrencyOnly:false;
+  currencies:{code:string;decimals:number}[];
+  foreignExpenseReady:boolean;
 }
 export interface ManualDocumentPreview {
   currency:string;debit:string;credit:string;difference:string;balanced:boolean;periodOpen:boolean;
+  foreignExpense?:ForeignExpenseValuation;
+}
+export interface ForeignExpenseValuation {
+  available:boolean;blockingReason:string|null;baseCurrency:string;
+  officialRate:string|null;expenseBase:string|null;fundingBase:string|null;
+  fxGain:string|null;fxLoss:string|null;availableNative:string|null;availableBase:string|null;
+  lines?:ManualDocumentDetail["postedLines"];
 }
 export interface ManualDocumentRow {
   id:number;companyId:number;sourceId:string;kind:"manual"|"expense";entryDate:string;description:string;
@@ -50,6 +59,8 @@ export interface ManualDocumentDetail {
   preview:ManualDocumentPreview;
   history:{id:number;action:string;actorType:string;entryDate:string;createdAt:string;reason:string;evidenceReference:string;journalId:number|null}[];
   postedLines:{accountId:number;currency:string;debit:string;credit:string;baseDebit:string;baseCredit:string;exchangeRate:string;costCenterId:number|null;description:string}[];
+  foreignExpense?:ForeignExpenseValuation;
+  journalAccounts?:ManualAccount[];
 }
 export interface ManualDocumentList {
   metadata:ManualDocumentMetadata;items:ManualDocumentRow[];totalRows:number;page:number;pageSize:number;

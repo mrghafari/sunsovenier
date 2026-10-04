@@ -41,6 +41,8 @@ async function postWithinTransaction(tx: AccountingTransaction, input: JournalIn
   const chequeBook=["ChequeDeposited","ChequeCleared","ChequeBounced","ReceiptReturned"].includes(data.sourceType)?
     (await tx.execute(sql`select * from accounting_cheque_book_values where company_id=${data.companyId}
       and source_id=${data.sourceId} and action=${data.sourceType==="ReceiptReturned"?"returned":data.sourceType==="ChequeDeposited"?"deposited":data.sourceType==="ChequeCleared"?"cleared":"bounced"}`)).rows[0]:undefined;
+   const expenseBook=data.sourceType==="ManualExpense"?(await tx.execute(sql`select * from accounting_manual_expense_books
+     where company_id=${data.companyId} and source_id=${data.sourceId}`)).rows[0]:undefined;
   const receiptValues=new Map<number,{base:string;rate:string}>();
   if(receiptBook){
     receiptValues.set(receiptBook.funding_account_id as number,{base:String(receiptBook.funding_base),rate:String(receiptBook.official_rate)});
@@ -53,7 +55,8 @@ async function postWithinTransaction(tx: AccountingTransaction, input: JournalIn
     id:book.id,walletBase:book.wallet_base,receivableBase:book.receivable_base,
     walletRate:book.wallet_rate,receivableRate:book.receivable_rate,
   }}:receiptBook?{...normalized,receiptCarryingProof:receiptBook}:
-    chequeBook?{...normalized,chequeCarryingProof:chequeBook}:normalized)).digest("hex");
+     chequeBook?{...normalized,chequeCarryingProof:chequeBook}:
+     expenseBook?{...normalized,expenseCarryingProof:expenseBook}:normalized)).digest("hex");
   const [existing] = await tx.select().from(entries).where(and(
     eq(entries.companyId,data.companyId),eq(entries.sourceType,data.sourceType),eq(entries.sourceId,data.sourceId),
   )).limit(1);
@@ -91,11 +94,19 @@ async function postWithinTransaction(tx: AccountingTransaction, input: JournalIn
       baseDebit:string;baseCredit:string;exchangeRate:string;valuationBasis:string;partyType:string|null;partyId:number|null}[])
       .find(l=>l.accountId===line.accountId&&l.currency===line.currency&&decimal(l.debit).eq(line.debit)&&
         decimal(l.credit).eq(line.credit)&&l.partyType===line.partyType&&l.partyId===line.partyId):undefined;
-    const historical=Boolean(walletHistorical||receiptValue||chequeLine?.valuationBasis==="historical_carrying");
+     const expenseLine=expenseBook?((expenseBook.valuation as {lines:{accountId:number;currency:string;debit:string;credit:string;
+       baseDebit:string;baseCredit:string;exchangeRate:string;costCenterId:number|null;description:string}[]}).lines)
+       .find(l=>l.accountId===line.accountId&&l.currency===line.currency&&decimal(l.debit).eq(line.debit)&&
+         decimal(l.credit).eq(line.credit)&&l.costCenterId===line.costCenterId&&l.description===line.description):undefined;
+     const reversalLine=data.reversalOfId?originalLines[lineIndex]:undefined;
+     const historical=Boolean(walletHistorical||receiptValue||chequeLine?.valuationBasis==="historical_carrying"||expenseLine||
+       reversalLine?.valuationBasis==="historical_carrying");
     const bookAmount=walletHistorical?String(line.accountId===book.liability_account_id?book.wallet_base:book.receivable_base):
-      receiptValue?.base??(chequeLine?(decimal(line.debit).gt(0)?chequeLine.baseDebit:chequeLine.baseCredit):undefined);
+       receiptValue?.base??(chequeLine?(decimal(line.debit).gt(0)?chequeLine.baseDebit:chequeLine.baseCredit):
+         expenseLine?(decimal(line.debit).gt(0)?expenseLine.baseDebit:expenseLine.baseCredit):
+         reversalLine?(decimal(line.debit).gt(0)?reversalLine.baseCredit:reversalLine.baseDebit):undefined);
     let rate = walletHistorical?String(line.accountId===book.liability_account_id?book.wallet_rate:book.receivable_rate):
-      receiptValue?receiptValue.rate:chequeLine?chequeLine.exchangeRate:
+       receiptValue?receiptValue.rate:chequeLine?chequeLine.exchangeRate:expenseLine?expenseLine.exchangeRate:
       data.reversalOfId ? originalLines[lineIndex]?.exchangeRate : cachedRates.get(line.currency);
     if (data.reversalOfId && !rate) throw new AccountingError("Reversal line count does not match the original");
     if (!rate) {
@@ -117,7 +128,9 @@ async function postWithinTransaction(tx: AccountingTransaction, input: JournalIn
   // This narrow exception is proven again by the database; ordinary zero journals still fail.
    if((book&&decimal(String(book.wallet_base)).isZero()&&decimal(String(book.receivable_base)).isZero())||
      (receiptBook&&["funding_base","receivable_base","wallet_base"].every(k=>decimal(String(receiptBook[k])).isZero()))||
-     (chequeBook&&(chequeBook.lines as {baseDebit:string;baseCredit:string}[]).every(l=>decimal(l.baseDebit).isZero()&&decimal(l.baseCredit).isZero()))){
+      (chequeBook&&(chequeBook.lines as {baseDebit:string;baseCredit:string}[]).every(l=>decimal(l.baseDebit).isZero()&&decimal(l.baseCredit).isZero()))||
+      (expenseBook&&(expenseBook.valuation as {lines:{baseDebit:string;baseCredit:string}[]}).lines.every(l=>decimal(l.baseDebit).isZero()&&decimal(l.baseCredit).isZero()))||
+      (data.reversalOfId&&originalLines.length>0&&originalLines.every(l=>l.valuationBasis==="historical_carrying"&&decimal(l.baseDebit).isZero()&&decimal(l.baseCredit).isZero()))){
     if((book&&prepared.length!==2)||prepared.some(l=>!decimal(l.baseDebit).isZero()||!decimal(l.baseCredit).isZero()||l.valuationBasis!=="historical_carrying"))
       throw new AccountingError("Zero carrying value requires precisely proven native lines");
   }else assertBalanced(prepared);
@@ -133,7 +146,7 @@ async function postWithinTransaction(tx: AccountingTransaction, input: JournalIn
   await tx.insert(audits).values({
     companyId:data.companyId,actorId:actor.actorId,actorType:actor.actorType,
     action:"post_journal",entityType:"journal",entityId:String(posted.id),after:{sourceType:data.sourceType,sourceId:data.sourceId,
-      ...(book||receiptBook||chequeBook?{valuationBasis:"historical_carrying",carryingProofId:book?.id??receiptBook?.id??chequeBook?.id}: {})},
+       ...(book||receiptBook||chequeBook||expenseBook?{valuationBasis:"historical_carrying",carryingProofId:book?.id??receiptBook?.id??chequeBook?.id??expenseBook?.document_id}: {})},
   });
   return {entry:posted,duplicate:false};
 }

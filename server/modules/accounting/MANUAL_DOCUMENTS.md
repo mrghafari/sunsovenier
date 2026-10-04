@@ -16,7 +16,8 @@ retry and edit; optimistic revision checks prevent stale overwrites. Discarding 
 draft retains immutable history rather than physically deleting its evidence.
 Posted and discarded documents cannot be edited or revived.
 
-Only **company base-currency** documents are supported. There are no client
+General manual journals remain **company base-currency only**. Paid expenses
+also support an active foreign currency through the proven path below. There are no client
 exchange rates, historical overrides, customer/carrier settlement dimensions,
 arbitrary source types or journal IDs. Account mappings that control customer
 receivables, wallets, inventory, cheques and automated FX are excluded. Bank,
@@ -26,6 +27,35 @@ posting accounts are available for ordinary manual journals.
 A **paid expense** has exactly two equal lines: expense debit with an active cost
 center, and mapped bank/cash credit. This is not a supplier invoice, unpaid bill,
 tax calculation, stock-cost posting or wallet-funded expense.
+
+## Foreign paid expenses
+
+Both staff-entered lines use one active native currency and its own precision.
+The official central-bank rate effective on the expense date values the expense.
+The bank/cash credit consumes the account/currency's remaining **pooled historical
+GL carrying value**, proportionally for a partial outflow and exactly for its final
+native residual. The difference is an explicit mapped FX gain/FX loss line in base
+currency. Insufficient native funds, negative/unreconciled carrying values,
+backdated funding, missing official rates and missing FX accounts block posting.
+They do not prohibit preparing a structurally valid draft.
+
+Preview is read-only and uses actual posted ledger balances, not a claim about
+physical cash or a fabricated opening. Posting recalculates under the ledger lock.
+`accounting_manual_expense_books` is immutable, derived by a database trigger and
+contains the original document and complete native/base/FX lines. Clients cannot
+supply historical bases, rates, account overrides, or valuation proofs.
+
+The proof, document linkage, journal and audit commit together. Orphan proofs,
+changed evidence and journals that differ from the proof fail closed. Composable
+writers defer proof checks before their first dependent insert and verify them
+immediately before returning. The native last minor unit may legitimately carry
+zero base value; only exact proven lines get this exception.
+
+Reversal copies every original native amount, rate and base carrying value exactly,
+including zero residuals and the FX line; it never reprices at the cancellation
+date's rate. It cannot predate later movements of the same funding pool.
+Posted detail displays the original proof snapshot, not today's balance or rate.
+Foreign readiness guards are separate from the still-closed financial cutovers.
 
 ## Closed activation boundary
 
@@ -69,7 +99,7 @@ amounts are not combined with posted report totals.
 
 ## Migration and checks
 
-Additive module migration `0018_manual_documents.sql` installs tables and guards.
+Additive module migrations `0018` through `0021` install tables and guards.
 `npm run accounting:migrate:dev` applies it **only in development**, never on
 application startup or build. Production requires the approved migration/rollout
 procedure; do not assume publishing JavaScript installs database tables.
@@ -80,3 +110,8 @@ one new company inside a fully rolled-back transaction. Its activation fixtures
 are never committed; it exercises cutover/RBAC blocks, CRUD, revision/retry safety,
 posting/reporting, reversal, direct tampering and successive financial operations
 after a previous operation made constraints immediate.
+
+The rollback-only foreign expense suite covers bank gains, cash losses, partial
+and exact final consumption, later-rate reversals, zero-value final minor units,
+closed gates, unproven sources, immutable proofs and unsafe chronology. It creates
+its own temporary base currency so real currency precision settings are untouched.

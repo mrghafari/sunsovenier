@@ -69,9 +69,10 @@ for returns. Keep arbitrary wallet payouts and any future partial-return policy
 separate, with their own evidence and allocation rules.
 
 Manual paid expenses must not credit a foreign bank/cash balance at today's
-official rate when its remaining asset carrying value differs. Until the manual
-outflow writer has pooled historical-asset proof and explicit realized FX,
-manual documents are base-currency only and exclude controlled subledger accounts.
+official rate when its remaining asset carrying value differs. Foreign paid
+expenses require pooled historical-asset proof and explicit realized FX.
+General manual journals remain base-currency only and exclude controlled
+subledger accounts.
 
 **Why:** A generic journal form can otherwise bypass wallet/receivable/inventory
 reconciliation or spend foreign cash using invented base carrying values.
@@ -79,3 +80,14 @@ reconciliation or spend foreign cash using invented base carrying values.
 **How to apply:** Do not add currency/party fields to the manual form as a shortcut.
 Extend coordinated posting evidence and realized-FX recognition first; keep
 financial activation closed and preserve the existing operational-module boundary.
+
+Historical expense detail must label its funding-balance snapshot as the balance
+at original posting, not today's available money. Reversal must copy original
+base values exactly, not regenerate them by multiplying a rounded stored rate.
+
+**Why:** A 12-decimal carrying-rate indicator may not reproduce the original
+base rounding or a zero-value native residual; later pool movements also change
+the current balance without changing the original evidence.
+
+**How to apply:** Retain immutable native/base proof and rates, show its original
+date, and block reversals that predate subsequent funding-pool movements.

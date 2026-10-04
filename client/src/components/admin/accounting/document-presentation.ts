@@ -49,12 +49,20 @@ export function documentLanguageName(value: string, language: string) {
 export function expenseDocumentAllowed(detail: ManualDocumentDetail | undefined) {
   if (!detail || detail.row.kind !== "expense" || detail.document.lines.length !== 2) return false;
   const [expense, funding] = detail.document.lines;
+  const currency=detail.document.currency??detail.metadata.company.baseCurrency;
+  const decimals=currency===detail.metadata.company.baseCurrency?detail.metadata.currencyDecimals:detail.metadata.currencies.find(item=>item.code===currency)?.decimals;
+  if(decimals===undefined)return false;
   const expenseAccount = detail.metadata.accounts.find(account => account.id === expense.accountId);
   const fundingAccount = detail.metadata.accounts.find(account => account.id === funding.accountId);
   return Boolean(expenseAccount?.type === "expense" && fundingAccount?.funding
-    && validPositiveAmount(expense.debit) && validPositiveAmount(funding.credit)
+    && validPositiveAmount(expense.debit,decimals) && validPositiveAmount(funding.credit,decimals)
     && equalDocumentAmounts(expense.debit, funding.credit)
     && isZero(expense.credit) && isZero(funding.debit) && expense.costCenterId !== null);
+}
+export function foreignValuationAvailable(value:ManualDocumentDetail["preview"]["foreignExpense"]|ManualDocumentDetail["foreignExpense"],baseCurrency:string) {
+  return Boolean(value?.available&&value.baseCurrency===baseCurrency&&value.officialRate!==null
+    &&value.expenseBase!==null&&value.fundingBase!==null&&value.fxGain!==null&&value.fxLoss!==null
+    &&value.availableNative!==null&&value.availableBase!==null);
 }
 export function documentCapabilities(canManage: boolean, detail: ManualDocumentDetail | undefined, metadata:ManualDocumentMetadata|undefined=detail?.metadata) {
   const draft = Boolean(detail?.row.status === "draft");
@@ -62,11 +70,15 @@ export function documentCapabilities(canManage: boolean, detail: ManualDocumentD
   const financialReady=Boolean(metadata&&detail&&metadata.company.id===detail.row.companyId
     &&metadata.company.isActive&&metadata.currencyActive&&metadata.postingReady&&metadata.ledgerGuardsReady
     &&metadata.manualCutoverReady&&metadata.pipelineReady);
+  const expenseValid=detail?.row.kind!=="expense"||expenseDocumentAllowed(detail);
+  const foreign=Boolean(detail&&detail.row.kind==="expense"&&(detail.document.currency??metadata?.company.baseCurrency)!==metadata?.company.baseCurrency);
+  const foreignCurrencyActive=!foreign||Boolean(metadata&&metadata.currencies.some(currency=>currency.code===detail?.document.currency));
+  const foreignReady=!foreign||Boolean(metadata?.foreignExpenseReady&&foreignCurrencyActive&&foreignValuationAvailable(detail?.preview.foreignExpense,metadata?.company.baseCurrency??""));
   return {
     edit: canManage && draft,
     discard: canManage && draft,
-    post: canManage && draft && financialReady && Boolean(detail?.preview.balanced && detail.preview.periodOpen),
-    reverse: canManage && postedDocument && financialReady && Boolean(detail?.preview.balanced),
+    post: canManage && draft && financialReady && expenseValid && foreignReady && Boolean(detail?.preview.balanced && detail.preview.periodOpen),
+    reverse: canManage && postedDocument && financialReady && (!foreign||Boolean(metadata?.foreignExpenseReady&&foreignCurrencyActive&&foreignValuationAvailable(detail?.foreignExpense,metadata?.company.baseCurrency??""))) && Boolean(detail?.preview.balanced),
   };
 }
 export function documentSaveAllowed(canManage:boolean,metadata:ManualDocumentMetadata|undefined,companyId:number|undefined) {

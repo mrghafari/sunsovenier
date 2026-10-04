@@ -31,6 +31,9 @@ try {
     "server/modules/accounting/0016_cheque_debt_settlement.sql",
     "server/modules/accounting/0017_receipt_returns.sql",
     "server/modules/accounting/0018_manual_documents.sql",
+    "server/modules/accounting/0019_foreign_manual_expenses.sql",
+    "server/modules/accounting/0020_manual_expense_revenue_mapping.sql",
+    "server/modules/accounting/0021_manual_expense_trigger_rows.sql",
   ];
   for (const file of files) {
     const content = await readFile(file,"utf8");
