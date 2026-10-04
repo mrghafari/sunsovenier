@@ -11,6 +11,8 @@ import CustomerAccountingReports from "./customer-accounting-reports";
 import { customerReportCopy } from "./customer-reports-copy";
 import { AccountingCostReports } from "./accounting-cost-reports";
 import { costReportCopy } from "./cost-reports-copy";
+import ShippingMarginReports from "./shipping-margin-reports";
+import { shippingMarginCopy } from "./shipping-margin-copy";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,6 +31,7 @@ export default function AccountingReports({ companies, onSetup }: { companies: {
  const [report, setReport] = useState<AccountingReportName>("journal");
  const [customerView, setCustomerView] = useState(false);
   const [costView, setCostView] = useState(false);
+  const [shippingView, setShippingView] = useState(false);
  const [draft, setDraft] = useState<Draft>(blankDraft);
  const [applied, setApplied] = useState<AccountingReportFilters>();
  const [formError, setFormError] = useState("");
@@ -39,7 +42,7 @@ export default function AccountingReports({ companies, onSetup }: { companies: {
  const currenciesQ = useAccountingResource("currencies");
   const accounts = accountsQ.data ?? [];
   const centers = centersQ.data ?? [];
-  const query = useAccountingReport(report, costView ? undefined : applied);
+  const query = useAccountingReport(report, costView || shippingView ? undefined : applied);
  const data = query.data;
  const companyChange = (companyId: string) => {
     setDraft(d => ({ ...d, companyId, accountId: "", costCenterId: "", partyType: "", partyId: "", entryId: "" }));
@@ -94,9 +97,9 @@ export default function AccountingReports({ companies, onSetup }: { companies: {
       <div><div className="mb-2 text-[10px] font-bold uppercase tracking-[.18em] text-[#829087]">MOMTAZCOM · RECORDS</div><h2 className="font-display text-2xl font-semibold tracking-[-.025em] text-[#273d3a]">{t("reports")}</h2><p className="mt-1 text-sm text-[#758179]">{t("reportsIntro")}</p></div>
       <Button variant="outline" onClick={onSetup} className="border-[#d6dfd6] text-[#365750]"><BookOpenCheck className="me-2 h-4 w-4"/>{t("setup")}</Button>
      </div>
-        <div className="mt-5 flex flex-wrap gap-2" role="tablist" aria-label={t("reports")}>{reportTabs.map(tab=><button key={tab.id} type="button" role="tab" aria-selected={!customerView&&!costView&&report===tab.id} onClick={()=>{setCustomerView(false);setCostView(false);setReport(tab.id);setApplied(undefined);setExportError("");setFormError("");setDraft(d=>({...d,entryId:""}));}} className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${!customerView&&!costView&&report===tab.id?"bg-[#20484a] text-[#f4f2e7]":"bg-[#edf1eb] text-[#52655b] hover:bg-[#e0e8df]"}`}>{t(tab.label)}</button>)}<button type="button" role="tab" aria-selected={costView} onClick={()=>{setCustomerView(false);setCostView(true);setApplied(undefined);setExportError("");setFormError("");}} className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${costView?"bg-[#20484a] text-[#f4f2e7]":"bg-[#edf1eb] text-[#52655b] hover:bg-[#e0e8df]"}`}>{costReportCopy(language,"title")}</button><button type="button" role="tab" aria-selected={customerView} onClick={()=>{setCustomerView(true);setCostView(false);}} className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${customerView?"bg-[#20484a] text-[#f4f2e7]":"bg-[#edf1eb] text-[#52655b] hover:bg-[#e0e8df]"}`}>{customerReportCopy(language, "title")}</button></div>
+         <div className="mt-5 flex flex-wrap gap-2" role="tablist" aria-label={t("reports")}>{reportTabs.map(tab=><button key={tab.id} type="button" role="tab" aria-selected={!customerView&&!costView&&!shippingView&&report===tab.id} onClick={()=>{setCustomerView(false);setCostView(false);setShippingView(false);setReport(tab.id);setApplied(undefined);setExportError("");setFormError("");setDraft(d=>({...d,entryId:""}));}} className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${!customerView&&!costView&&!shippingView&&report===tab.id?"bg-[#20484a] text-[#f4f2e7]":"bg-[#edf1eb] text-[#52655b] hover:bg-[#e0e8df]"}`}>{t(tab.label)}</button>)}<button type="button" role="tab" aria-selected={costView} onClick={()=>{setCustomerView(false);setShippingView(false);setCostView(true);setApplied(undefined);setExportError("");setFormError("");}} className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${costView?"bg-[#20484a] text-[#f4f2e7]":"bg-[#edf1eb] text-[#52655b] hover:bg-[#e0e8df]"}`}>{costReportCopy(language,"title")}</button><button type="button" role="tab" aria-selected={customerView} onClick={()=>{setCustomerView(true);setCostView(false);setShippingView(false);}} className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${customerView?"bg-[#20484a] text-[#f4f2e7]":"bg-[#edf1eb] text-[#52655b] hover:bg-[#e0e8df]"}`}>{customerReportCopy(language, "title")}</button><button type="button" role="tab" aria-selected={shippingView} onClick={()=>{setCustomerView(false);setCostView(false);setShippingView(true);}} className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${shippingView?"bg-[#20484a] text-[#f4f2e7]":"bg-[#edf1eb] text-[#52655b] hover:bg-[#e0e8df]"}`}>{shippingMarginCopy(language,"title")}</button></div>
     </div>
-     {customerView ? <div className="p-4 md:p-6"><CustomerAccountingReports companies={companies}/></div> : <div className="space-y-5 p-4 md:p-6">
+      {customerView ? <div className="p-4 md:p-6"><CustomerAccountingReports companies={companies}/></div> : shippingView ? <div className="p-4 md:p-6"><ShippingMarginReports companies={companies}/></div> : <div className="space-y-5 p-4 md:p-6">
      <div role="note" className="rounded-xl border border-[#e6c8bc] bg-[#f8ece6] px-4 py-3 text-xs leading-5 text-[#79473f]">{t("warning")}</div>
      <form onSubmit={e=>{e.preventDefault();apply();}} className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <Field label={t("company")}><select value={draft.companyId} onChange={e=>companyChange(e.target.value)} className={inputClass}><option value="">{t("company")}</option>{companies.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>

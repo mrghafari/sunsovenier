@@ -13,3 +13,5 @@ load reached the normal protected-route login form with the same unchanged front
 **How to apply:** Check browser errors and verify the page with sufficient loading
 time before changing frontend code or restarting again. Retain authentication:
 seeing the login form confirms the public boundary, not the signed-in accounting UI.
+When repeated short captures remain blank without errors, prefer one sufficiently
+long real-browser load over more short captures or another server restart.

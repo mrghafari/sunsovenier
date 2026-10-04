@@ -669,5 +669,63 @@ closed activation, multicurrency precision, partial scopes, unassigned costs,
 large exact totals, reversals, misplaced absorption, missing configuration and
 historical retired resources. Regression checks include existing GL reports;
 SSR checks render the real result component in all four locales.
+
+### Booked shipping margin per loading/order
+
+`GET /api/accounting/v2/shipping-margin` and `/shipping-margin/csv` are read-only
+accounting-RBAC reports, available before financial activation. Strict filters
+support company, date range, loading/order view, numeric order ID, exact loading
+reference, currency, party and cost center. Loading references are opaque Unicode
+identifiers; only numeric IDs normalize Persian/Arabic digits. CSV exports the
+entire selected scope, bounded to 10,000 grouped rows, with spreadsheet-safe text,
+exact decimal amounts, provenance metadata and explicit blank unknown amounts.
+
+Shipping account classification uses current same-company `SHIPPING_REVENUE`
+(revenue) and `SHIPPING_EXPENSE` (expense) mappings; this is disclosed rather
+than represented as frozen historical configuration. A line is attributable only
+through the original posted journal's exact company/source identity and an
+immutable, same-order operational fact. Revenue requires `LoadingCompleted`;
+cost requires `ShipmentCostRecorded` and its explicit loading reference. Reversals
+inherit their original attribution and retain original posted signs/amounts.
+Unlinked invoices (including `SalesInvoice` without a loading fact), manual
+shipping entries, malformed facts and ambiguous history remain visible as
+unattributed evidence; they are never spread across an order's trucks or guessed
+from current logistics, prices, rates, native order status or outbox amounts.
+
+**Date basis:** row inclusion uses captured fact or posted financial activity in
+FROM..TO. Main row amounts are cumulative posted amounts **through TO** for the
+selected groups, so a late shipment cost can compare with earlier booked revenue.
+Separate period amounts use journal entry dates strictly within FROM..TO.
+Order view includes every captured loading in that selected order through TO,
+even when only one loading had period activity. Totals cover all selected groups,
+not just the current page, and their cumulative basis is explicitly labeled.
+
+**Evidence and unknowns:** capture-only facts are not journals. Missing revenue,
+missing cost for any loading, pending cost facts, partial currency/party/center
+line filters, and incomplete mappings block the margin, not turn unknown cost
+into zero. Original native shipment costs must match immutable external
+actual-cost/currency evidence or the internal frozen rate × frozen measured
+tons/km, rounded at the registered currency precision; reversals are not compared
+as net values against the original expected cost. Missing/malformed snapshots
+and amount/currency mismatches block margin while preserving the booked figures.
+No current fleet rate or FX rate recalculates historical amounts.
+
+Known-margin totals sum only complete groups; full selected-scope margin is null
+when there are incomplete groups, unmatched company-period lines, unlinked
+company facts or no groups. Unmatched-line coverage follows company-period line
+filters, not order/loading selection. Unlinked-fact coverage is company-wide
+through TO and includes invalid-date facts as temporally unknown evidence.
+Invalid calendar dates/decimal JSON are checked without unsafe casts that could
+abort the report. Retained facts survive business deletion; no live customer/
+order edits or financial cutover are performed by this report.
+
+The UI is Persian/Arabic/English/Turkish with RTL and exact base-currency display,
+null-vs-zero semantics, paging, refresh, scope-safe CSV and localized evidence
+warnings. Booked margins do **not** prove physical shipment completion, a verified
+legacy opening, an active event consumer, or all actual transport costs.
+Rollback-only database tests cover the two views, late costs, multicurrency
+filters, company isolation, zero/reversal amounts, pending/mismatched evidence,
+frozen fleet rates, malformed dates and unlinked income. SSR tests render the
+actual result component, including incomplete multi-loading order totals.
 DB workbench checks run inside the existing rollback-only customer-report fixture;
 receipt/return regression suites verify unchanged posting and carrying values.
