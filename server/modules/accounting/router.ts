@@ -17,6 +17,8 @@ import {readAccountingReport} from "./reports";
 import {accountingReportCsv} from "./report-csv";
 import {readCustomerReport} from "./customer-reports";
 import {customerReportCsv} from "./customer-report-csv";
+import {readManualMetadata,readManualDocuments,readManualDocument,previewManualDocument,
+  saveManualDocument,postManualDocument,discardManualDocument,reverseManualDocument} from "./manual-documents";
 
 export function createAccountingRouter() {
   const router = Router();
@@ -175,6 +177,30 @@ export function createAccountingRouter() {
   router.post("/v2/receipts/:id/return",async(req,res,next)=>{
     try{res.json(await returnCustomerReceipt(Number(req.params.id),req.body,res.locals.accountingAccess));}
     catch(e){next(e);}
+  });
+  router.get("/v2/manual-documents/metadata",async(req,res,next)=>{
+    try{res.set("Cache-Control","private, no-store");res.json(await readManualMetadata(req.query.companyId));}catch(e){next(e);}
+  });
+  router.get("/v2/manual-documents",async(req,res,next)=>{
+    try{res.set("Cache-Control","private, no-store");res.json(await readManualDocuments(req.query));}catch(e){next(e);}
+  });
+  router.get("/v2/manual-documents/:id",async(req,res,next)=>{
+    try{res.set("Cache-Control","private, no-store");res.json(await readManualDocument(req.params.id,req.query.companyId));}catch(e){next(e);}
+  });
+  router.post("/v2/manual-documents/preview",async(req,res,next)=>{
+    try{res.set("Cache-Control","private, no-store");res.json(await previewManualDocument(req.body));}catch(e){next(e);}
+  });
+  router.post("/v2/manual-documents",async(req,res,next)=>{
+    try{res.json(await saveManualDocument(req.body,res.locals.accountingAccess));}catch(e){next(e);}
+  });
+  router.post("/v2/manual-documents/:id/post",async(req,res,next)=>{
+    try{res.json(await postManualDocument(req.params.id,req.body,res.locals.accountingAccess));}catch(e){next(e);}
+  });
+  router.post("/v2/manual-documents/:id/discard",async(req,res,next)=>{
+    try{res.json(await discardManualDocument(req.params.id,req.body,res.locals.accountingAccess));}catch(e){next(e);}
+  });
+  router.post("/v2/manual-documents/:id/reverse",async(req,res,next)=>{
+    try{res.json(await reverseManualDocument(req.params.id,req.body,res.locals.accountingAccess));}catch(e){next(e);}
   });
   router.use((error: unknown,_req: Request,res: Response,_next: NextFunction) => {
     if (error instanceof AccountingError) return res.status(error.status).json({code:error.code,message:error.message});

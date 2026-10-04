@@ -2,6 +2,9 @@
 
 ## Scope and current status
 
+Manual journals and paid-expense drafts, their separate closed activation gate
+and exact posting/reversal workflow are documented in [MANUAL_DOCUMENTS.md](MANUAL_DOCUMENTS.md).
+
 Steps 0–2 and the approved limited capture bridge of step 3 are implemented. This is a new
 module because the draft accounting files named in the specification were absent.
 The operator explicitly authorized building a new core from the specification.
