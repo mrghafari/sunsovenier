@@ -9,6 +9,8 @@ import type { ReportCopyKey } from "./accounting-reports-copy";
 import { ReportResult } from "./accounting-report-result";
 import CustomerAccountingReports from "./customer-accounting-reports";
 import { customerReportCopy } from "./customer-reports-copy";
+import { AccountingCostReports } from "./accounting-cost-reports";
+import { costReportCopy } from "./cost-reports-copy";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,6 +28,7 @@ export default function AccountingReports({ companies, onSetup }: { companies: {
  const t = (k: ReportCopyKey) => reportCopy(language, k);
  const [report, setReport] = useState<AccountingReportName>("journal");
  const [customerView, setCustomerView] = useState(false);
+  const [costView, setCostView] = useState(false);
  const [draft, setDraft] = useState<Draft>(blankDraft);
  const [applied, setApplied] = useState<AccountingReportFilters>();
  const [formError, setFormError] = useState("");
@@ -36,7 +39,7 @@ export default function AccountingReports({ companies, onSetup }: { companies: {
  const currenciesQ = useAccountingResource("currencies");
   const accounts = accountsQ.data ?? [];
   const centers = centersQ.data ?? [];
- const query = useAccountingReport(report, applied);
+  const query = useAccountingReport(report, costView ? undefined : applied);
  const data = query.data;
  const companyChange = (companyId: string) => {
     setDraft(d => ({ ...d, companyId, accountId: "", costCenterId: "", partyType: "", partyId: "", entryId: "" }));
@@ -46,16 +49,16 @@ export default function AccountingReports({ companies, onSetup }: { companies: {
    setFormError(""); setExportError("");
    if (!draft.companyId) return setFormError(t("companyRequired"));
    if (!isDate(draft.from) || !isDate(draft.to) || draft.from > draft.to) return setFormError(t("dateRange"));
-   if (report === "ledger" && !draft.accountId) return setFormError(t("accountRequired"));
+    if (!costView && report === "ledger" && !draft.accountId) return setFormError(t("accountRequired"));
    if (Boolean(draft.partyType) !== Boolean(nonBlank(draft.partyId)) || (draft.partyId && !validId(nonBlank(draft.partyId) ?? ""))) return setFormError(t("partyPair"));
-    if (report === "journal" && draft.entryId && !validId(nonBlank(draft.entryId) ?? "")) return setFormError(t("entryIdInvalid"));
+     if ((report === "journal" || costView) && draft.entryId && !validId(nonBlank(draft.entryId) ?? "")) return setFormError(t("entryIdInvalid"));
    const filters: AccountingReportFilters = {
      companyId: Number(draft.companyId), from: draft.from, to: draft.to, page: 1, pageSize: 50,
      ...(nonBlank(draft.accountId) ? { accountId: Number(nonBlank(draft.accountId)) } : {}),
      ...(nonBlank(draft.costCenterId) ? { costCenterId: Number(nonBlank(draft.costCenterId)) } : {}),
      ...(draft.currency ? { currency: draft.currency.toUpperCase() } : {}),
      ...(draft.partyType && nonBlank(draft.partyId) ? { partyType: draft.partyType as AccountingReportFilters["partyType"], partyId: Number(nonBlank(draft.partyId)) } : {}),
-     ...(report === "journal" && nonBlank(draft.entryId) ? { entryId: Number(nonBlank(draft.entryId)) } : {}),
+      ...((report === "journal" || costView) && nonBlank(draft.entryId) ? { entryId: Number(nonBlank(draft.entryId)) } : {}),
    };
    setApplied(filters);
  };
@@ -72,6 +75,15 @@ export default function AccountingReports({ companies, onSetup }: { companies: {
    finally { setExporting(false); }
  };
  const selectedCompany = companies.find(x => String(x.id) === draft.companyId);
+  const draftMatchesApplied = !!applied
+    && Number(draft.companyId) === applied.companyId
+    && draft.from === applied.from && draft.to === applied.to
+    && (nonBlank(draft.accountId) ? Number(nonBlank(draft.accountId)) : undefined) === applied.accountId
+    && (nonBlank(draft.costCenterId) ? Number(nonBlank(draft.costCenterId)) : undefined) === applied.costCenterId
+    && (draft.currency ? draft.currency.toUpperCase() : undefined) === applied.currency
+    && (draft.partyType || undefined) === applied.partyType
+    && (nonBlank(draft.partyId) ? Number(nonBlank(draft.partyId)) : undefined) === applied.partyId
+    && (nonBlank(draft.entryId) ? Number(nonBlank(draft.entryId)) : undefined) === applied.entryId;
  const reportTabs: { id: AccountingReportName; label: ReportCopyKey }[] = [
   { id: "journal", label: "journal" }, { id: "ledger", label: "ledger" }, { id: "trial-balance", label: "trial" },
  ];
@@ -82,7 +94,7 @@ export default function AccountingReports({ companies, onSetup }: { companies: {
       <div><div className="mb-2 text-[10px] font-bold uppercase tracking-[.18em] text-[#829087]">MOMTAZCOM · RECORDS</div><h2 className="font-display text-2xl font-semibold tracking-[-.025em] text-[#273d3a]">{t("reports")}</h2><p className="mt-1 text-sm text-[#758179]">{t("reportsIntro")}</p></div>
       <Button variant="outline" onClick={onSetup} className="border-[#d6dfd6] text-[#365750]"><BookOpenCheck className="me-2 h-4 w-4"/>{t("setup")}</Button>
      </div>
-       <div className="mt-5 flex flex-wrap gap-2" role="tablist" aria-label={t("reports")}>{reportTabs.map(tab=><button key={tab.id} type="button" role="tab" aria-selected={!customerView&&report===tab.id} onClick={()=>{setCustomerView(false);setReport(tab.id);setApplied(undefined);setExportError("");setFormError("");setDraft(d=>({...d,entryId:""}));}} className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${!customerView&&report===tab.id?"bg-[#20484a] text-[#f4f2e7]":"bg-[#edf1eb] text-[#52655b] hover:bg-[#e0e8df]"}`}>{t(tab.label)}</button>)}<button type="button" role="tab" aria-selected={customerView} onClick={()=>setCustomerView(true)} className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${customerView?"bg-[#20484a] text-[#f4f2e7]":"bg-[#edf1eb] text-[#52655b] hover:bg-[#e0e8df]"}`}>{customerReportCopy(language, "title")}</button></div>
+        <div className="mt-5 flex flex-wrap gap-2" role="tablist" aria-label={t("reports")}>{reportTabs.map(tab=><button key={tab.id} type="button" role="tab" aria-selected={!customerView&&!costView&&report===tab.id} onClick={()=>{setCustomerView(false);setCostView(false);setReport(tab.id);setApplied(undefined);setExportError("");setFormError("");setDraft(d=>({...d,entryId:""}));}} className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${!customerView&&!costView&&report===tab.id?"bg-[#20484a] text-[#f4f2e7]":"bg-[#edf1eb] text-[#52655b] hover:bg-[#e0e8df]"}`}>{t(tab.label)}</button>)}<button type="button" role="tab" aria-selected={costView} onClick={()=>{setCustomerView(false);setCostView(true);setApplied(undefined);setExportError("");setFormError("");}} className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${costView?"bg-[#20484a] text-[#f4f2e7]":"bg-[#edf1eb] text-[#52655b] hover:bg-[#e0e8df]"}`}>{costReportCopy(language,"title")}</button><button type="button" role="tab" aria-selected={customerView} onClick={()=>{setCustomerView(true);setCostView(false);}} className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${customerView?"bg-[#20484a] text-[#f4f2e7]":"bg-[#edf1eb] text-[#52655b] hover:bg-[#e0e8df]"}`}>{customerReportCopy(language, "title")}</button></div>
     </div>
      {customerView ? <div className="p-4 md:p-6"><CustomerAccountingReports companies={companies}/></div> : <div className="space-y-5 p-4 md:p-6">
      <div role="note" className="rounded-xl border border-[#e6c8bc] bg-[#f8ece6] px-4 py-3 text-xs leading-5 text-[#79473f]">{t("warning")}</div>
@@ -95,7 +107,7 @@ export default function AccountingReports({ companies, onSetup }: { companies: {
        <Field label={t("currency")}><select value={draft.currency} onChange={e=>setDraft({...draft,currency:e.target.value})} className={inputClass}><option value="">{t("anyCurrency")}</option>{(currenciesQ.data??[]).map(x=><option key={String(x.code)} value={String(x.code)}>{String(x.code)} · {accountingCurrencyName(String(x.code),language,String(x.name??x.code))}</option>)}</select></Field>
       <Field label={t("partyType")}><select value={draft.partyType} onChange={e=>setDraft({...draft,partyType:e.target.value})} className={inputClass}><option value="">{t("partyType")}</option>{(["customer","carrier"] as const).map(x=><option key={x} value={x}>{reportPartyType(language,x)}</option>)}</select></Field>
       <Field label={t("party")}><input inputMode="numeric" value={draft.partyId} onChange={e=>setDraft({...draft,partyId:e.target.value})} className={inputClass}/></Field>
-      {report==="journal"&&<Field label={t("entryId")}><input inputMode="numeric" value={draft.entryId} onChange={e=>setDraft({...draft,entryId:e.target.value})} className={inputClass}/></Field>}
+       {(report==="journal"||costView)&&<Field label={t("entryId")}><input inputMode="numeric" value={draft.entryId} onChange={e=>setDraft({...draft,entryId:e.target.value})} className={inputClass}/></Field>}
       {accountsQ.isError&&<div role="alert" className="text-xs text-[#883f37]">{t("failed")} <button type="button" onClick={()=>accountsQ.refetch()} className="underline">{t("retry")}</button></div>}
       {centersQ.isError&&<div role="alert" className="text-xs text-[#883f37]">{t("failed")} <button type="button" onClick={()=>centersQ.refetch()} className="underline">{t("retry")}</button></div>}
       {currenciesQ.isError&&<div role="alert" className="text-xs text-[#883f37]">{t("failed")} <button type="button" onClick={()=>currenciesQ.refetch()} className="underline">{t("retry")}</button></div>}
@@ -103,10 +115,13 @@ export default function AccountingReports({ companies, onSetup }: { companies: {
       {draft.companyId&&!centersQ.isLoading&&!centersQ.isError&&centers.length===0&&<div className="text-xs text-[#7b887f]">{t("noCenters")}</div>}
       {formError&&<div role="alert" className="sm:col-span-2 xl:col-span-4 rounded-lg border border-[#e4b9b2] bg-[#f9eae6] px-3 py-2 text-sm text-[#883f37]">{formError}</div>}
       {!companies.length&&<div className="sm:col-span-2 xl:col-span-4 rounded-lg border border-dashed border-[#d7e0d7] bg-[#f7f9f5] p-4 text-sm text-[#66776e]">{t("noCompanies")}</div>}
-      <div className="flex flex-wrap items-center gap-2 sm:col-span-2 xl:col-span-4"><Button type="submit" disabled={!companies.length} className="bg-[#20484a] text-white hover:bg-[#2d5d5c]"><RefreshCw className="me-2 h-4 w-4"/>{t("apply")}</Button><Button type="button" variant="outline" disabled={!applied||exporting} onClick={exportCsv} className="border-[#d6dfd6] text-[#365750]"><ArrowDownToLine className="me-2 h-4 w-4"/>{exporting?t("exporting"):t("export")}</Button></div>
+      <div className="flex flex-wrap items-center gap-2 sm:col-span-2 xl:col-span-4"><Button type="submit" disabled={!companies.length} className="bg-[#20484a] text-white hover:bg-[#2d5d5c]"><RefreshCw className="me-2 h-4 w-4"/>{t("apply")}</Button>{!costView&&<Button type="button" variant="outline" disabled={!applied||exporting} onClick={exportCsv} className="border-[#d6dfd6] text-[#365750]"><ArrowDownToLine className="me-2 h-4 w-4"/>{exporting?t("exporting"):t("export")}</Button>}</div>
      </form>
      {exportError&&<Alert variant="destructive"><AlertCircle className="h-4 w-4"/><AlertTitle>{t("exportError")}</AlertTitle><AlertDescription>{exportError}</AlertDescription></Alert>}
-     {!selectedCompany ? <Empty title={companies.length?t("chooseCompany"):t("noCompanies")} detail={companies.length?t("companyRequired"):t("noCompanies")}/> :
+      {costView ? (!selectedCompany ? <Empty title={companies.length?t("chooseCompany"):t("noCompanies")} detail={companies.length?t("companyRequired"):t("noCompanies")}/> :
+       !applied ? <Empty title={costReportCopy(language,"intro")} detail={t("apply")}/> :
+       <AccountingCostReports filters={applied} language={language} isCurrent={draftMatchesApplied} onPageChange={changePage}/>) :
+       !selectedCompany ? <Empty title={companies.length?t("chooseCompany"):t("noCompanies")} detail={companies.length?t("companyRequired"):t("noCompanies")}/> :
       !applied ? <Empty title={t("reportsIntro")} detail={t("apply")}/> :
       query.isLoading ? <div className="space-y-3" aria-label={t("loading")}>{[0,1,2].map(i=><Skeleton key={i} className="h-14 rounded-xl bg-[#e8ede7]"/>)}</div> :
       query.isError ? <Alert variant="destructive"><AlertCircle className="h-4 w-4"/><AlertTitle>{t("failed")}</AlertTitle><AlertDescription className="mt-2 flex flex-wrap items-center gap-3"><span>{query.error instanceof Error?query.error.message:t("failed")}</span><Button variant="outline" size="sm" onClick={()=>query.refetch()}>{t("retry")}</Button></AlertDescription></Alert> :

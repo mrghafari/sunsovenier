@@ -622,5 +622,52 @@ explicitly disclose restoration of invoice debt and recovery of credited funds o
 new debt when consumed. No partial refund or arbitrary outgoing amount is added.
 
 No financial cutover, migration, processor or other business module is activated.
+
+### Cost-center expenses and fleet absorption
+
+`GET /api/accounting/v2/cost-reports` and its `/csv` companion are read-only,
+repeatable-snapshot reports of posted **expense** lines in the requested period.
+They use the strict journal report filters, include original and reversal entries,
+retain unassigned centers and retired historical resources, and export the full
+filtered scope (up to 10,000 grouped center/currency rows), not just the visible
+page. Account, center and entry selections must belong to the selected company.
+These endpoints inherit accounting RBAC and never activate a cutover, post a
+journal, reconstruct an opening balance or change a business module.
+
+Rows separate native actual-expense amounts by currency; cross-currency totals
+are base-currency amounts only. Operating costs exclude the mapped
+`FLEET_COST_ABSORBED` contra-account. A mapped `SHIPPING_EXPENSE` line is an
+internal allocation charge, rather than a second operating expense, only when
+its source is `ShipmentCostRecorded` (or a reversal of that source) and the same
+journal contains the mapped absorption account. Both sides keep their original
+posted signs and amounts. Every result reconciles
+`netExpenseBase = actualCostBase + allocationChargeBase - absorbedBase`.
+Positive `actualCostBase - absorbedBase` means under-absorption; negative means
+over-absorption. Base and native calculations never use JavaScript floating money.
+
+**Safe assumptions and limits:** classification uses the **current** posting
+mapping and configured fleet center, not an invented historical configuration.
+Reports disclose this basis, the unverified legacy openings, and the fact that
+posted ledger amounts do not verify physical trips, fuel use or shipment rates.
+Fleet comparisons are unavailable (null, never fabricated zero) when the center
+or distinct expense-account mappings are missing, when absorption lines use
+another/missing center anywhere in the period, or when an account/party/entry/
+currency filter narrows one side of the comparison. A fleet-center-only filter
+is allowed, but cannot conceal misplaced absorption. Cost-center expense
+analysis remains usable in these narrower scopes.
+
+The four-language report tab exposes the actual cost, allocation, absorption,
+net expense and over/under variance, exact currency precision, full-scope totals,
+pagination and safe CSV download. A recorded cutover flag is not a claim that an
+operational consumer is live. Empty posted scopes are labeled as incomplete
+coverage, not proof that historical costs were zero. Shipping margin per
+loading/order still requires trustworthy posted invoice and shipment attribution;
+this report does not synthesize that missing integration.
+
+Cost-report database tests run rollback-only and cover period/company isolation,
+closed activation, multicurrency precision, partial scopes, unassigned costs,
+large exact totals, reversals, misplaced absorption, missing configuration and
+historical retired resources. Regression checks include existing GL reports;
+SSR checks render the real result component in all four locales.
 DB workbench checks run inside the existing rollback-only customer-report fixture;
 receipt/return regression suites verify unchanged posting and carrying values.
