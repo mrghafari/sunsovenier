@@ -12,6 +12,7 @@ export const stockBookCommandSchema=z.object({
   evidenceReference:z.string().trim().min(5).max(500),
 }).strict();
 export type LoadingInvoiceBlocker="CUTOVER_CLOSED"|"INVALID_CAPTURE"|"FOREIGN_INVOICE_VALUATION_REQUIRED"|
+  "FOREIGN_INVOICE_CUTOVER_CLOSED"|"FOREIGN_INVOICE_BASE_VALUE_REQUIRED"|
   "CUSTOMER_BINDING_REQUIRED"|"LEGACY_OR_PAID_ORDER"|"FINANCE_APPROVAL_REQUIRED"|"COMMERCIAL_REVIEW_REQUIRED"|
   "POSTING_MAPPING_REQUIRED"|"OPEN_PERIOD_REQUIRED"|"EARLIER_LOADING_PENDING"|"VERIFIED_STOCK_SHORTFALL"|"ORDER_WEIGHT_REQUIRED"|
   "BACKDATED_HISTORY_RECONCILIATION_REQUIRED"|"STOCK_RECONCILIATION_REQUIRED";
@@ -19,10 +20,19 @@ export interface StockBookAllocation {
   layerId:number;documentId:number;lineIndex:number;productId:number;orderItemId:number;
   batchReference:string;quantityTons:string;baseCost:string;
 }
+export interface ForeignLoadingInvoiceValuation {
+  available:boolean;blockingReason:string|null;currency:string;baseCurrency:string;
+  rateId:number;officialRate:string;effectiveOn:string;evidenceReference:string;
+  baseTotal:string;baseGoods:string;baseTax:string;baseShipping:string;
+  roundingPolicy:"cumulative_components";customerId:number;
+  lines:{accountId:number;currency:string;debit:string;credit:string;baseDebit:string;baseCredit:string;
+    exchangeRate:string;partyType:"customer"|null;partyId:number|null;costCenterId:null;valuationBasis:"historical_carrying"}[];
+}
 export interface LoadingInvoicePlan {
   companyId:number;factId:number;orderId:number;sourceId:string;eventDate:string|null;
   currency:string|null;baseCurrency:string;customerId:number|null;
   amounts:LoadingInvoiceAmounts|null;allocations:StockBookAllocation[];baseCost:string|null;
+  foreignValuation?:ForeignLoadingInvoiceValuation|null;
   blockers:LoadingInvoiceBlocker[];planHash:string;postingAllowed:boolean;
   posted:{invoiceId:number;journalId:number;cogsJournalId:number|null;receivableId:number;settlementId:number|null}|null;
 }

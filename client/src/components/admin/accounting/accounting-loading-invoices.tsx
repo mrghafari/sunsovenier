@@ -143,9 +143,10 @@ function Workbench({ workbench, language, page, totalPages, changePage, canManag
     {!workbench.rows.length ? <Empty text={t(language,"empty")}/> : <div className="divide-y divide-[#e8ede6]">{workbench.rows.map(plan=><article key={`${plan.factId}-${plan.planHash}`} className="space-y-4 p-4 md:p-5">
       <div className="flex flex-wrap items-start justify-between gap-4"><div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-2 xl:grid-cols-4"><Fact label={t(language,"fact")} value={`#${plan.factId}`} mono/><Fact label={t(language,"order")} value={`#${plan.orderId}`} mono/><Fact label={t(language,"date")} value={plan.eventDate||"—"} mono/><Fact label={t(language,"customer")} value={plan.customerId ? `#${plan.customerId}` : "—"} mono/><Fact label={t(language,"currency")} value={plan.currency||"—"} mono/><Fact label={t(language,"base")} value={plan.baseCurrency} mono/><Fact label={t(language,"baseCost")} value={plan.baseCost===null?"—":`${plan.baseCost} ${plan.baseCurrency}`} mono/></div>
         <span className={`rounded-lg border px-3 py-2 text-[10px] font-bold uppercase tracking-[.08em] ${plan.postingAllowed&&!plan.posted?"border-[#cbdccf] bg-[#edf4eb] text-[#42634e]":"border-[#e6d9c4] bg-[#f8f1e5] text-[#806844]"}`}>{plan.posted?t(language,"posted"):plan.postingAllowed?t(language,"allowed"):t(language,"blocked")}</span></div>
-      {plan.amounts ? <div className="rounded-xl border border-[#dce7dc] bg-[#f3f7f0] p-3"><p className="mb-2 text-[10px] font-bold uppercase tracking-[.1em] text-[#758179]">{t(language,"amounts")}</p><div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+       {plan.amounts ? <div className="rounded-xl border border-[#dce7dc] bg-[#f3f7f0] p-3"><p className="mb-2 text-[10px] font-bold uppercase tracking-[.1em] text-[#758179]">{t(language,"amounts")}</p><div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
         <Amount label={t(language,"goods")} value={plan.amounts.goods} currency={plan.currency}/><Amount label={t(language,"tax")} value={plan.amounts.tax} currency={plan.currency}/><Amount label={t(language,"shipping")} value={plan.amounts.shipping} currency={plan.currency}/><Amount label={t(language,"total")} value={plan.amounts.total} currency={plan.currency} strong/><Fact label={t(language,"due")} value={plan.amounts.dueDate||"—"} mono/>
       </div></div> : <p className="rounded-lg border border-dashed border-[#d7e0d7] bg-[#f7f9f5] px-3 py-2 text-xs text-[#758179]">{t(language,"amounts")}: —</p>}
+       <ForeignInvoiceValuationPanel plan={plan} language={language}/>
       <div className="rounded-xl border border-[#eadfc9] bg-[#fbf7ee] p-3"><div className="flex flex-wrap items-center justify-between gap-2"><h4 className="text-xs font-semibold text-[#664d32]">{t(language,"allocations")} · {plan.allocations.length}</h4><span className="text-[11px] text-[#806844]">{t(language,"allocationHelp")}</span></div>
         {plan.allocations.length ? <div className="mt-3 grid gap-2 md:grid-cols-2">{plan.allocations.map((allocation,index)=><div key={`${allocation.layerId}-${index}`} className="grid gap-2 rounded-lg border border-[#eadfc9] bg-[#fffaf0] p-3 sm:grid-cols-2"><Fact label={t(language,"document")} value={`#${allocation.documentId} · ${allocation.batchReference}`}/><Fact label={t(language,"quantity")} value={`${allocation.quantityTons} t`} mono/><Fact label={t(language,"documentedCost")} value={`${allocation.baseCost} ${plan.baseCurrency}`} mono/><Fact label={t(language,"order")} value={`#${allocation.orderItemId} · #${allocation.productId}`} mono/></div>)}</div> : <p className="mt-2 text-xs text-[#806844]">—</p>}
       </div>
@@ -158,6 +159,64 @@ function Workbench({ workbench, language, page, totalPages, changePage, canManag
         </div>}
     </article>)}</div>}
     {workbench.pagination.totalRows>0 && <div className="flex items-center justify-end gap-2 border-t border-[#e5eae3] px-4 py-3"><Button type="button" variant="outline" size="sm" onClick={()=>changePage(page-1)} disabled={page<=1}>{t(language,"previous")}</Button><span className="px-1 text-xs tabular-nums text-[#687970]">{page} / {totalPages}</span><Button type="button" variant="outline" size="sm" onClick={()=>changePage(page+1)} disabled={page>=totalPages}>{t(language,"next")}</Button></div>}
+  </section>;
+}
+
+export function ForeignInvoiceValuationPanel({ plan, language }: { plan: LoadingInvoicePlan; language: string }) {
+  const invoiceCurrency = plan.currency?.trim();
+  if (!invoiceCurrency || invoiceCurrency.toLocaleUpperCase() === plan.baseCurrency.trim().toLocaleUpperCase()) return null;
+
+  const valuation = plan.foreignValuation;
+  const complete = Boolean(valuation?.available
+    && valuation.currency.trim().toUpperCase() === invoiceCurrency.toUpperCase()
+    && valuation.baseCurrency.trim().toUpperCase() === plan.baseCurrency.trim().toUpperCase()
+    && valuation.officialRate.trim()
+    && valuation.effectiveOn.trim()
+    && valuation.evidenceReference.trim()
+    && valuation.baseTotal !== ""
+    && valuation.baseGoods !== ""
+    && valuation.baseTax !== ""
+    && valuation.baseShipping !== "");
+
+  return <section aria-label={t(language,"foreignValuation")} className="overflow-hidden rounded-xl border border-[#cbd9d1] bg-[#eff5f0]">
+    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#d9e5dc] bg-[#e7f0e8] px-3 py-3">
+      <div><h4 className="text-xs font-bold text-[#294540]">{t(language,"foreignValuation")}</h4><p className="mt-1 text-[10px] font-semibold uppercase tracking-[.08em] text-[#668074]">{invoiceCurrency} → {plan.baseCurrency}</p></div>
+      <span className={`rounded-md border px-2 py-1 text-[10px] font-bold ${complete?"border-[#bdd3c0] bg-[#f7fbf5] text-[#42634e]":"border-[#e2cfad] bg-[#fbf5e9] text-[#806844]"}`}>{complete?t(language,"valuationStatus"):t(language,"notAvailable")}</span>
+    </div>
+    {complete && valuation ? <div className="space-y-3 p-3">
+      {plan.amounts && <Amount label={t(language,"nativeReceivable")} value={plan.amounts.total} currency={plan.currency} strong/>}
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Fact label={t(language,"officialRate")} value={`${valuation.officialRate} ${valuation.baseCurrency} / ${valuation.currency}`} mono/>
+        <Fact label={t(language,"effectiveOn")} value={valuation.effectiveOn} mono/>
+        <Fact label={t(language,"evidenceReference")} value={valuation.evidenceReference}/>
+        <Fact label={t(language,"rateId")} value={`#${valuation.rateId}`} mono/>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        <Amount label={t(language,"baseReceivable")} value={valuation.baseTotal} currency={valuation.baseCurrency} strong/>
+        <Amount label={t(language,"baseGoods")} value={valuation.baseGoods} currency={valuation.baseCurrency}/>
+        <Amount label={t(language,"baseTax")} value={valuation.baseTax} currency={valuation.baseCurrency}/>
+        <Amount label={t(language,"baseShipping")} value={valuation.baseShipping} currency={valuation.baseCurrency}/>
+      </div>
+      <p className="rounded-lg border border-[#d7e2d8] bg-[#f7faf5] px-3 py-2 text-xs leading-5 text-[#52685c]">{t(language,"nativeDebt")} {t(language,"foreignCostSeparation")} {t(language,"rounding")} {plan.posted ? t(language,"postedFrozen") : ""}</p>
+      {valuation.lines.length > 0 && <div className="overflow-x-auto rounded-lg border border-[#d9e3da] bg-[#fbfcf8]">
+        <table className="w-full min-w-[740px] text-start text-[11px]">
+          <thead className="bg-[#eaf1e9] text-[#63776c]"><tr>
+            <th className="px-3 py-2">{t(language,"account")}</th><th className="px-3 py-2">{t(language,"party")}</th>
+            <th className="px-3 py-2">{t(language,"debit")}</th><th className="px-3 py-2">{t(language,"credit")}</th>
+            <th className="px-3 py-2">{t(language,"baseDebit")}</th><th className="px-3 py-2">{t(language,"baseCredit")}</th>
+            <th className="px-3 py-2">{t(language,"lineRate")}</th>
+          </tr></thead><tbody className="divide-y divide-[#e5ebe4]">{valuation.lines.map((line,index)=><tr key={`${line.accountId}-${index}`}>
+            <td dir="ltr" className="px-3 py-2 font-mono">#{line.accountId}</td>
+            <td className="px-3 py-2">{line.partyType ? `${line.partyType}${line.partyId === null ? "" : ` #${line.partyId}`}` : "—"}</td>
+            <td dir="ltr" className="px-3 py-2 font-mono">{line.debit} {line.currency}</td>
+            <td dir="ltr" className="px-3 py-2 font-mono">{line.credit} {line.currency}</td>
+            <td dir="ltr" className="px-3 py-2 font-mono">{line.baseDebit} {valuation.baseCurrency}</td>
+            <td dir="ltr" className="px-3 py-2 font-mono">{line.baseCredit} {valuation.baseCurrency}</td>
+            <td dir="ltr" className="px-3 py-2 font-mono">{line.exchangeRate}</td>
+          </tr>)}</tbody>
+        </table>
+      </div>}
+    </div> : <p className="px-3 py-3 text-xs leading-5 text-[#786545]">{t(language,"valuationUnavailable")}</p>}
   </section>;
 }
 

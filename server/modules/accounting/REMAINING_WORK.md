@@ -10,6 +10,12 @@
   Base-currency opening evidence is required; foreign openings cannot be
   manufactured from current/acquisition rates. All capitalization activation
   remains closed; no real opening, physical stock change or funds are seeded.
+- Foreign loading invoice valuation uses a separately closed gate, real dated
+  official-rate evidence and immutable native/base receivable and component values.
+  Cumulative component conversion conserves the original total without fictional
+  FX rounding income; stock COGS always consumes original base-currency carrying
+  layers. Optional own-order hold settlement clears original AR and pooled wallet
+  carrying values with explicit realized FX, preserving retry and rollback safety.
 
 - Immutable, balanced ledger, fiscal closing, reversal, source idempotency, RBAC
   and accounting action capture.
@@ -59,8 +65,8 @@ purchase cost or stock carrying value. Do not treat it as COGS evidence.
    unknown units, missing/legacy snapshots and nonzero fixed-order shipping
    without allocation evidence. Fixed freight now uses reviewed manual shares;
    its remainder stays explicitly unallocated. Still required:
-   actual opening/historical-consumption reconciliation and posted purchase/
-   opening capitalization evidence. Transactional stock cost attribution and
+   actual opening/historical-consumption reconciliation and real purchase/
+   opening source documents. Closed-gate capitalization, transactional stock cost attribution and
    reviewed weight checks are available in the closed-gate handler.
    Aggregate loaded-vs-ordered
    control and Commercial approval are implemented (the user's designated
@@ -77,7 +83,7 @@ purchase cost or stock carrying value. Do not treat it as COGS evidence.
    The user approved only the limited measurement/document-evidence connection
    in warehouse/logistics/order surfaces. Changes to reservation, physical stock,
    selling prices, payment timing or live financial activation remain excluded.
-2. **Complete the staged financial pipeline.** Base-currency loading invoice,
+2. **Complete the staged financial pipeline.** Base and reviewed foreign-currency loading invoice,
    real receivable, fixed carrying-layer consumption and optional own-hold
    settlement now have a transactional handler and rollback-only integration
    tests. There is no automatic consumer or eligibility change. Stock layers
@@ -85,10 +91,10 @@ purchase cost or stock carrying value. Do not treat it as COGS evidence.
    documentary FIFO or staff cost attestations alone cannot supply them.
    Stock ledger/remaining-layer value must reconcile, earlier late-recorded
    trucks/layers cannot rewrite booked FIFO, and independent reversals/voids
-   of financially attached evidence are blocked. Remaining: closed-gate
-   purchase/opening capitalization from actual documents (the stock registry
-   currently links already-posted originals), foreign invoice/native inventory
-   carrying-value clearing, coordinated invoice/AR/stock/settlement returns,
+   of financially attached evidence are blocked. Closed-gate purchase/opening
+   capitalization and foreign invoices with original base-stock costs now have
+   transactional handlers. Remaining: actual documentary openings and reconciliation,
+   coordinated invoice/AR/stock/settlement returns,
    shipment/fleet handlers, and separately approved worker retry/backoff and
    error provenance. Real opening evidence and activation are still outstanding.
    Never flip event eligibility or start a consumer merely because arithmetic

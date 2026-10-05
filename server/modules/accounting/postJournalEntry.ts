@@ -43,6 +43,8 @@ async function postWithinTransaction(tx: AccountingTransaction, input: JournalIn
       and source_id=${data.sourceId} and action=${data.sourceType==="ReceiptReturned"?"returned":data.sourceType==="ChequeDeposited"?"deposited":data.sourceType==="ChequeCleared"?"cleared":"bounced"}`)).rows[0]:undefined;
    const expenseBook=data.sourceType==="ManualExpense"?(await tx.execute(sql`select * from accounting_manual_expense_books
      where company_id=${data.companyId} and source_id=${data.sourceId}`)).rows[0]:undefined;
+  const foreignInvoiceBook=data.sourceType==="LoadingCompleted"?(await tx.execute(sql`select * from accounting_foreign_loading_books
+    where company_id=${data.companyId} and source_id=${data.sourceId}`)).rows[0]:undefined;
   const receiptValues=new Map<number,{base:string;rate:string}>();
   if(receiptBook){
     receiptValues.set(receiptBook.funding_account_id as number,{base:String(receiptBook.funding_base),rate:String(receiptBook.official_rate)});
@@ -56,7 +58,8 @@ async function postWithinTransaction(tx: AccountingTransaction, input: JournalIn
     walletRate:book.wallet_rate,receivableRate:book.receivable_rate,
   }}:receiptBook?{...normalized,receiptCarryingProof:receiptBook}:
      chequeBook?{...normalized,chequeCarryingProof:chequeBook}:
-     expenseBook?{...normalized,expenseCarryingProof:expenseBook}:normalized)).digest("hex");
+     expenseBook?{...normalized,expenseCarryingProof:expenseBook}:
+     foreignInvoiceBook?{...normalized,foreignInvoiceProof:foreignInvoiceBook}:normalized)).digest("hex");
   const [existing] = await tx.select().from(entries).where(and(
     eq(entries.companyId,data.companyId),eq(entries.sourceType,data.sourceType),eq(entries.sourceId,data.sourceId),
   )).limit(1);
@@ -98,15 +101,22 @@ async function postWithinTransaction(tx: AccountingTransaction, input: JournalIn
        baseDebit:string;baseCredit:string;exchangeRate:string;costCenterId:number|null;description:string}[]}).lines)
        .find(l=>l.accountId===line.accountId&&l.currency===line.currency&&decimal(l.debit).eq(line.debit)&&
          decimal(l.credit).eq(line.credit)&&l.costCenterId===line.costCenterId&&l.description===line.description):undefined;
+     const foreignInvoiceLine=foreignInvoiceBook?((foreignInvoiceBook.valuation as {lines:{accountId:number;currency:string;
+       debit:string;credit:string;baseDebit:string;baseCredit:string;exchangeRate:string;
+       partyType:string|null;partyId:number|null;costCenterId:number|null}[]}).lines)
+       .find(l=>l.accountId===line.accountId&&l.currency===line.currency&&decimal(l.debit).eq(line.debit)&&
+         decimal(l.credit).eq(line.credit)&&l.partyType===line.partyType&&l.partyId===line.partyId&&l.costCenterId===line.costCenterId):undefined;
      const reversalLine=data.reversalOfId?originalLines[lineIndex]:undefined;
-     const historical=Boolean(walletHistorical||receiptValue||chequeLine?.valuationBasis==="historical_carrying"||expenseLine||
+     const historical=Boolean(walletHistorical||receiptValue||chequeLine?.valuationBasis==="historical_carrying"||expenseLine||foreignInvoiceLine||
        reversalLine?.valuationBasis==="historical_carrying");
     const bookAmount=walletHistorical?String(line.accountId===book.liability_account_id?book.wallet_base:book.receivable_base):
        receiptValue?.base??(chequeLine?(decimal(line.debit).gt(0)?chequeLine.baseDebit:chequeLine.baseCredit):
          expenseLine?(decimal(line.debit).gt(0)?expenseLine.baseDebit:expenseLine.baseCredit):
+         foreignInvoiceLine?(decimal(line.debit).gt(0)?foreignInvoiceLine.baseDebit:foreignInvoiceLine.baseCredit):
          reversalLine?(decimal(line.debit).gt(0)?reversalLine.baseCredit:reversalLine.baseDebit):undefined);
     let rate = walletHistorical?String(line.accountId===book.liability_account_id?book.wallet_rate:book.receivable_rate):
        receiptValue?receiptValue.rate:chequeLine?chequeLine.exchangeRate:expenseLine?expenseLine.exchangeRate:
+       foreignInvoiceLine?foreignInvoiceLine.exchangeRate:
       data.reversalOfId ? originalLines[lineIndex]?.exchangeRate : cachedRates.get(line.currency);
     if (data.reversalOfId && !rate) throw new AccountingError("Reversal line count does not match the original");
     if (!rate) {
@@ -146,7 +156,8 @@ async function postWithinTransaction(tx: AccountingTransaction, input: JournalIn
   await tx.insert(audits).values({
     companyId:data.companyId,actorId:actor.actorId,actorType:actor.actorType,
     action:"post_journal",entityType:"journal",entityId:String(posted.id),after:{sourceType:data.sourceType,sourceId:data.sourceId,
-       ...(book||receiptBook||chequeBook||expenseBook?{valuationBasis:"historical_carrying",carryingProofId:book?.id??receiptBook?.id??chequeBook?.id??expenseBook?.document_id}: {})},
+        ...(book||receiptBook||chequeBook||expenseBook||foreignInvoiceBook?{valuationBasis:"historical_carrying",
+          carryingProofId:book?.id??receiptBook?.id??chequeBook?.id??expenseBook?.document_id??foreignInvoiceBook?.fact_id}: {})},
   });
   return {entry:posted,duplicate:false};
 }

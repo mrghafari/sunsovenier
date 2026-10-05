@@ -10,6 +10,17 @@ export const accountingInvoiceCutovers=pgTable("accounting_invoice_cutovers",{
   processingReady:boolean("processing_ready").notNull().default(false),startsOn:date("starts_on"),
   firstOrderId:integer("first_order_id"),reviewedBy:integer("reviewed_by"),evidenceReference:text("evidence_reference"),
 });
+export const accountingForeignInvoiceCutovers=pgTable("accounting_foreign_invoice_cutovers",{
+  companyId:integer("company_id").primaryKey().references(()=>accountingCompanies.id),
+  processingReady:boolean("processing_ready").notNull().default(false),reviewedBy:integer("reviewed_by"),evidenceReference:text("evidence_reference"),
+});
+export const accountingForeignLoadingBooks=pgTable("accounting_foreign_loading_books",{
+  factId:integer("fact_id").primaryKey().references(()=>accountingOperationalFacts.id),
+  companyId:integer("company_id").notNull().references(()=>accountingCompanies.id),
+  sourceId:text("source_id").notNull(),amounts:jsonb("amounts").notNull(),valuation:jsonb("valuation").notNull(),
+  actorId:integer("actor_id").notNull(),actorType:text("actor_type").notNull(),
+  createdAt:timestamp("created_at",{withTimezone:true}).notNull().defaultNow(),
+},t=>[uniqueIndex("accounting_foreign_loading_books_company_source").on(t.companyId,t.sourceId)]);
 export const accountingStockBooks=pgTable("accounting_stock_books",{
   id:serial("id").primaryKey(),companyId:integer("company_id").notNull().references(()=>accountingCompanies.id),
   documentId:integer("document_id").notNull().references(()=>accountingInventoryDocuments.id),

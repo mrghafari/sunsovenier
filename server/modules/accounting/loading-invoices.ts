@@ -11,6 +11,7 @@ import {Money,decimal,exactMoney} from "./money";
 import {postJournalEntry,type JournalInput} from "./postJournalEntry";
 import {settleWalletReceivable} from "./wallet-settlement";
 import {assertLedgerReady} from "./readiness";
+import {readForeignLoadingValuation,assertForeignLoadingReady} from "./foreign-loading-invoice";
 const obj=(v:unknown):Record<string,unknown>=>v&&typeof v==="object"&&!Array.isArray(v)?v as Record<string,unknown>:{};
 function metric(line:Record<string,unknown>){
   if(typeof line.quantity!=="string"||typeof line.unit!=="string")throw new Error("Missing quantity");
@@ -61,7 +62,17 @@ async function planWithin(tx:AccountingTransaction,companyId:number,factId:numbe
     currencies,shipping?{factId,companyId,orderId:Number(f.order_id),currency:String(shipping.currency),orderTotal:String(shipping.total),amount:String(shipping.amount)}:undefined);
   const blockers=new Set<LoadingInvoiceBlocker>();
   if(!quoted.amounts)blockers.add("INVALID_CAPTURE");
-  if(quoted.currency!==c.base_currency)blockers.add("FOREIGN_INVOICE_VALUATION_REQUIRED");
+  let foreignValuation:LoadingInvoicePlan["foreignValuation"]=null;
+  if(quoted.currency&&quoted.currency!==c.base_currency){
+    if(!(await tx.execute(sql`select 1 from accounting_foreign_invoice_cutovers where company_id=${companyId} and processing_ready`)).rows.length)
+      blockers.add("FOREIGN_INVOICE_CUTOVER_CLOSED");
+    if(quoted.amounts){
+      const valuation=await readForeignLoadingValuation(tx,companyId,factId,quoted.amounts);
+      if(valuation.available)foreignValuation=valuation;
+      else blockers.add(["FOREIGN_INVOICE_BASE_VALUE_REQUIRED","CUSTOMER_BINDING_REQUIRED","POSTING_MAPPING_REQUIRED"].includes(valuation.blockingReason??"")
+        ?valuation.blockingReason as LoadingInvoiceBlocker:"FOREIGN_INVOICE_VALUATION_REQUIRED");
+    }else blockers.add("FOREIGN_INVOICE_VALUATION_REQUIRED");
+  }
   const gate=(await tx.execute(sql`select *,starts_on::text as starts_on from accounting_invoice_cutovers where company_id=${companyId}`)).rows[0];
   const live=(await tx.execute(sql`select 1 from accounting_wallet_cutovers w join accounting_receipt_cutovers r
     on r.company_id=w.company_id and r.processing_ready where w.company_id=${companyId} and w.pipeline_ready`)).rows.length>0;
@@ -130,7 +141,7 @@ async function planWithin(tx:AccountingTransaction,companyId:number,factId:numbe
     else blockers.add("VERIFIED_STOCK_SHORTFALL");
   }catch{blockers.add("VERIFIED_STOCK_SHORTFALL");}
   const plan={companyId,factId,orderId:Number(f.order_id),sourceId:String(f.source_id),eventDate:quoted.eventDate,currency:quoted.currency,
-    baseCurrency:String(c.base_currency),customerId,amounts:quoted.amounts,allocations,baseCost,blockers:[...blockers].sort(),
+    baseCurrency:String(c.base_currency),customerId,amounts:quoted.amounts,allocations,baseCost,foreignValuation,blockers:[...blockers].sort(),
     postingAllowed:!blockers.size,posted:null};
   const planHash=createHash("sha256").update(JSON.stringify({plan,
     mappingIds:mappings.map(x=>[x.key,x.account_id]).sort((a,b)=>String(a[0]).localeCompare(String(b[0]))),
@@ -176,6 +187,15 @@ export async function issueLoadingInvoice(input:unknown,actor:AccountingAccess,c
       partyType:"customer",partyId:plan.customerId!}];
     for(const [key,amount] of [["SALES_REVENUE",plan.amounts!.goods],["TAX_PAYABLE",plan.amounts!.tax],["SHIPPING_REVENUE",plan.amounts!.shipping]])
       if(decimal(amount).gt(0))lines.push({accountId:account(key),currency:plan.currency!,credit:amount});
+    if(plan.currency!==plan.baseCurrency){
+      await assertForeignLoadingReady(tx);
+      await tx.execute(sql`set constraints accounting_foreign_loading_book_evidence_guard deferred`);
+      const book=(await tx.execute(sql`insert into accounting_foreign_loading_books(fact_id,company_id,source_id,amounts,valuation,actor_id,actor_type)
+        values(${d.factId},${d.companyId},${plan.sourceId},${JSON.stringify(plan.amounts)}::jsonb,'{}'::jsonb,${actor.actorId},${actor.actorType})
+        returning valuation`)).rows[0];
+      if(JSON.stringify(book.valuation)!==JSON.stringify(plan.foreignValuation))
+        throw new AccountingError("Foreign valuation changed; reload before issuing",409,"STALE_INVOICE_PLAN");
+    }
     await tx.execute(sql`set constraints accounting_balance_header,accounting_balance_lines,accounting_invoice_evidence_guard,accounting_stock_ledger_parity_guard deferred`);
     const invoice=await postJournalEntry({companyId:d.companyId,entryDate:plan.eventDate!,sourceType:"LoadingCompleted",
       sourceId:plan.sourceId,description:d.reason,lines},actor,tx);
@@ -215,6 +235,7 @@ export async function issueLoadingInvoice(input:unknown,actor:AccountingAccess,c
         ${JSON.stringify({factId:d.factId,sourceId:plan.sourceId,planHash:plan.planHash,journalId:invoice.entry.id,cogsJournalId:cogsId,
           receivableId:receivable.id,settlementId,physicalStockChanged:false,orderStatusChanged:false})}::jsonb)`);
     await tx.execute(sql`set constraints accounting_balance_header,accounting_balance_lines,accounting_invoice_evidence_guard,accounting_stock_ledger_parity_guard immediate`);
+    if(plan.foreignValuation)await tx.execute(sql`set constraints accounting_foreign_loading_book_evidence_guard immediate`);
     return {invoiceId:Number(saved.id),journalId:invoice.entry.id,cogsJournalId:cogsId,receivableId:Number(receivable.id),settlementId,duplicate:false};
   };
   if(!callerTx)return accountingDb.transaction(run);
