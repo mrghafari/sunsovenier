@@ -402,6 +402,10 @@ export class DatabaseStorage implements IStorage {
     if (productUpdate.contractOnly !== undefined) {
       updateData.contractOnly = productUpdate.contractOnly === true;
     }
+    if (productUpdate.isBulkSale !== undefined) {
+      if(typeof productUpdate.isBulkSale!=="boolean")throw new Error("Bulk sale must be a boolean");
+      updateData.isBulkSale=productUpdate.isBulkSale;
+    }
     if (productUpdate.syncWithShop !== undefined) {
       updateData.syncWithShop = Boolean(productUpdate.syncWithShop);
     }
@@ -478,14 +482,15 @@ export class DatabaseStorage implements IStorage {
       // controlled by the oldest/base Kardex row so a batch row's default false
       // value can never make a contract-only product publicly sellable.
       let contractOnly = Boolean(showcaseProduct.contractOnly);
+      let isBulkSale=Boolean(showcaseProduct.isBulkSale);
       if (showcaseProduct.barcode) {
         const [baseProduct] = await showcaseDb
-          .select({ contractOnly: showcaseProducts.contractOnly })
+          .select({ contractOnly: showcaseProducts.contractOnly,isBulkSale:showcaseProducts.isBulkSale })
           .from(showcaseProducts)
           .where(eq(showcaseProducts.barcode, showcaseProduct.barcode))
           .orderBy(asc(showcaseProducts.createdAt), asc(showcaseProducts.id))
           .limit(1);
-        if (baseProduct) contractOnly = Boolean(baseProduct.contractOnly);
+        if (baseProduct) {contractOnly = Boolean(baseProduct.contractOnly);isBulkSale=Boolean(baseProduct.isBulkSale);}
       }
       
       // Extract price from unitPrice first, fallback to priceRange
@@ -513,6 +518,7 @@ export class DatabaseStorage implements IStorage {
           thumbnailUrl: showcaseProduct.imageUrl || null,
           isActive: showcaseProduct.isActive,
           contractOnly,
+          isBulkSale,
           tags: showcaseProduct.tags || ["شیمیایی"],
           // Weight fields sync - prioritize new weight fields
           netWeight: showcaseProduct.netWeight || null,
@@ -543,6 +549,7 @@ export class DatabaseStorage implements IStorage {
           thumbnailUrl: showcaseProduct.imageUrl || null,
           isActive: showcaseProduct.isActive,
           contractOnly,
+          isBulkSale,
           isFeatured: false,
           visibleInShop: showcaseProduct.syncWithShop || false,
           tags: showcaseProduct.tags || ["شیمیایی"],

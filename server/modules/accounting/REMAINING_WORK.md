@@ -20,6 +20,15 @@ valuation is verified, legacy openings are reconciled, or a consumer is enabled.
 
 ## Remaining sequence
 
+The user selected **reviewed manual allocation** for fixed-order freight:
+finance enters and approves each loading's share; combined approvals must not
+exceed the immutable order freight total. The shipping-approval migration/service
+draft is not applied or exposed through a route/UI yet; the current preview still
+blocks nonzero fixed freight without approved evidence. Work shifted to the user's
+bulk-contract transport request before this accounting feature was finished.
+The customer cart/contract amount is sales consideration, not verified supplier
+purchase cost or stock carrying value. Do not treat it as COGS evidence.
+
 1. **Complete loading invoice and stock-cost evidence.** The preview calculates
    captured tons × locked per-ton prices, line-rounded goods/tax, explicit
    per-ton shipping, and due dates from captured payment terms. It rejects

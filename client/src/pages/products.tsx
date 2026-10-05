@@ -76,6 +76,7 @@ const formSchema = insertShowcaseProductSchema.extend({
   isNonChemical: z.boolean().default(false),
   // Flammable product flag
   isFlammable: z.boolean().default(false),
+  isBulkSale: z.boolean().default(false),
   // Transportation temperature
   transportationTemperature: z.string().optional(),
   // Display Mode fields
@@ -150,7 +151,7 @@ const getStockLevelIndicator = (current: number, min: number, max: number) => {
 };
 
 export default function ProductsPage() {
-  const { t, direction } = useLanguage();
+  const { t, direction,language } = useLanguage();
   
   // Check if vendor mode (from URL path)
   const isVendorMode = window.location.pathname.startsWith('/vendor/');
@@ -659,6 +660,7 @@ export default function ProductsPage() {
       isNonChemical: false,
       // Flammable product flag
       isFlammable: false,
+      isBulkSale: false,
       // Transportation temperature
       transportationTemperature: "none",
       // Display Mode fields
@@ -1272,6 +1274,7 @@ export default function ProductsPage() {
       contractOnly: product.contractOnly ?? false,
       isNonChemical: product.isNonChemical ?? false,
       isFlammable: product.isFlammable ?? false,
+      isBulkSale: product.isBulkSale ?? false,
       transportationTemperature: product.transportationTemperature || "",
       isActive: product.isActive !== false,
     });
@@ -2127,6 +2130,14 @@ export default function ProductsPage() {
                       </FormItem>
                     )}
                   />
+                  <FormField control={form.control} name="isBulkSale" render={({field})=>(
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 bg-blue-50">
+                      <div className="space-y-0.5">
+                        <FormLabel>{language==="fa"?"فروش فله‌ای":language==="ar"?"بيع سائب":language==="tr"?"Dökme satış":"Bulk transport sale"}</FormLabel>
+                        <p className="text-xs text-slate-600">{language==="fa"?"در فروش قراردادی، خودروهای دستهٔ فله‌ای انتخاب می‌شوند؛ قیمت کالا همان قیمت قرارداد است. این ویژگی برای بچ‌های دارای بارکد مشترک یکسان است.":language==="ar"?"للبيع التعاقدي تُستخدم مركبات الفئة السائبة، ويبقى سعر العقد. يشترك هذا الخيار بين دفعات الباركود نفسه.":language==="tr"?"Sözleşmeli satışta dökme araçlar kullanılır; sözleşme fiyatı değişmez. Aynı barkodlu partiler bu özelliği paylaşır.":"Contract sales use bulk-category vehicles and retain contract prices. Batches sharing a barcode share this setting."}</p>
+                      </div><FormControl><Checkbox checked={field.value} onCheckedChange={value=>field.onChange(value===true)}/></FormControl>
+                    </FormItem>
+                  )}/>
 
                   <FormField
                     control={form.control}

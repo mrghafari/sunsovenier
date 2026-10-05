@@ -70,3 +70,5 @@
 - [Shipping margin evidence](shipping-margin-evidence.md) — capture is not posting; loading-level booked margins need explicit attribution, not inferred allocation of invoice history.
 - [Loading price basis](loading-price-basis.md) — weighbridge tons require frozen per-ton price/conversion evidence; correct arithmetic alone is not posting readiness.
 - [Independent loading module](loading-module-boundary.md) — standalone management module, loading_-owned data, only menu/permission/route registration edits; analysis approval precedes coding.
+- [Contract bulk transport](contract-bulk-transport.md) — Kardex bulk-sale flags select bulk-category vehicles for contract sales; goods retain their contract price.
+- [Manual fixed freight](manual-fixed-freight.md) — fixed order freight is allocated by manually entered, finance-approved shares, capped by the original total.

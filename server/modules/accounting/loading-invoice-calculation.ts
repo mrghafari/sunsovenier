@@ -15,7 +15,7 @@ const unit=z.enum(["ton","tons","tonne","tonnes","t","طن","تن"]);
 // Prices/taxes come ONLY from the immutable order embedded in a captured fact.
 // No catalog lookups, historical repricing, estimated weights or shipping split.
 export function calculateLoadingInvoicePreview(fact:{id:number;companyId:number;orderId:number;sourceId:string;payload:unknown},
-  currencies:{code:string;decimals:number}[]):LoadingPreviewRow {
+  currencies:{code:string;decimals:number}[],approvedShipping?:{factId:number;companyId:number;orderId:number;currency:string;orderTotal:string;amount:string}):LoadingPreviewRow {
   const p=object(fact.payload),input=object(p.input),order=object(p.order),issues=new Set<LoadingPreviewIssue>();
   const fail=(code:LoadingPreviewIssue)=>issues.add(code);
   const reference=typeof input.sourceId==="string"?input.sourceId:"";
@@ -79,9 +79,17 @@ export function calculateLoadingInvoicePreview(fact:{id:number;companyId:number;
       const price=amount(order.shippingPrice);
       if(order.shippingPriceBasis==="per_ton")shipping=price.times(weight).toDecimalPlaces(precision??0);
       else if(order.shippingPriceBasis==="fixed"){
-        // A zero fixed price needs no allocation. Nonzero fixed-order shipping needs
-        // an approved cross-loading allocation/residual policy; do not invent one.
-        if(!price.isZero())fail("FIXED_SHIPPING_ALLOCATION_REQUIRED");
+        // Evidence is supplied only by the separate persisted approval registry.
+        // Neither arbitrary payload JSON nor an estimated share counts as approval.
+        if(!price.isZero()){
+          if(!approvedShipping)fail("FIXED_SHIPPING_ALLOCATION_REQUIRED");
+          else if(approvedShipping.factId!==fact.id||approvedShipping.companyId!==fact.companyId||
+            approvedShipping.orderId!==fact.orderId||approvedShipping.currency!==currency||
+            !amount(approvedShipping.orderTotal).eq(price)||amount(approvedShipping.amount).gt(price)||
+            (precision!==undefined&&!amount(approvedShipping.amount).eq(amount(approvedShipping.amount).toDecimalPlaces(precision))))
+            fail("SHIPPING_SNAPSHOT_REQUIRED");
+          else shipping=amount(approvedShipping.amount);
+        }
       }else fail("SHIPPING_SNAPSHOT_REQUIRED");
     }else fail("SHIPPING_SNAPSHOT_REQUIRED");
   }catch{fail("SHIPPING_SNAPSHOT_REQUIRED");}

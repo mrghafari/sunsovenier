@@ -2,6 +2,7 @@ import crypto from "crypto";
 
 export type ShippingQuoteClaims = {
   version: 1;
+  contractId?:number|null;
   issuedAt: number;
   expiresAt: number;
   center: { cityId: number; countryCode: string };
@@ -13,12 +14,13 @@ export type ShippingQuoteClaims = {
     weightKg: number | null;
     isFlammable: boolean;
     isHazardous: boolean;
+    isBulkSale?:boolean;
   }>;
   totalWeightKg: number;
   isFlammable: boolean;
   isHazardous: boolean;
   method: string;
-  selectedVehicles: Array<{ id: number | string; name: string; type: string }>;
+  selectedVehicles: Array<{ id: number | string; name: string; type: string;transportCategory?:"standard"|"bulk" }>;
   shippingCost: number;
 };
 
@@ -82,6 +84,7 @@ export function assertShippingQuoteBindings(
     isFlammable: boolean;
     isHazardous: boolean;
     method: "smart_vehicle" | "vehicle_quote";
+    contractId?:number|null;
   },
 ): void {
   if (
@@ -95,6 +98,7 @@ export function assertShippingQuoteBindings(
     || claims.isFlammable !== expected.isFlammable
     || claims.isHazardous !== expected.isHazardous
     || claims.method !== expected.method
+    || (claims.contractId??null)!==(expected.contractId??null)
     || !Array.isArray(claims.selectedVehicles)
     || !claims.selectedVehicles.length
     || !Number.isFinite(claims.shippingCost)

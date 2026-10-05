@@ -36,6 +36,7 @@ try {
     "server/modules/accounting/0021_manual_expense_trigger_rows.sql",
     "server/modules/accounting/0022_credit_approval.sql",
     "server/modules/accounting/0023_credit_orders.sql",
+    "server/modules/accounting/0024_loading_shipping.sql",
   ];
   for (const file of files) {
     const content = await readFile(file,"utf8");

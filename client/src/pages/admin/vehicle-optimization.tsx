@@ -21,6 +21,7 @@ interface VehicleTemplate {
   name: string;
   nameEn: string | null;
   vehicleType: string;
+  transportCategory:"standard"|"bulk";
   maxWeightKg: string;
   maxVolumeM3: string | null;
   allowedRoutes: string[];
@@ -146,6 +147,7 @@ export default function VehicleOptimization() {
       name: formData.get('name') as string,
       nameEn: formData.get('nameEn') as string,
       vehicleType: formData.get('vehicleType') as string,
+      transportCategory:(formData.get('transportCategory')==="bulk"?"bulk":"standard") as "bulk"|"standard",
       maxWeightKg: formData.get('maxWeightKg') as string,
       maxVolumeM3: formData.get('maxVolumeM3') as string || null,
       allowedRoutes: (formData.get('allowedRoutes') as string).split(',').map(r => r.trim()),
@@ -216,6 +218,10 @@ export default function VehicleOptimization() {
                       </Select>
                     </div>
                     <div className="space-y-2">
+                      <Label htmlFor="transportCategory">دستهٔ حمل</Label>
+                      <select id="transportCategory" name="transportCategory" defaultValue="standard" className="w-full rounded border p-2">
+                        <option value="standard">حمل عادی / بسته‌بندی‌شده</option><option value="bulk">حمل فله‌ای</option>
+                      </select>
                       <Label htmlFor="maxWeightKg">حداکثر وزن (کیلوگرم) *</Label>
                       <Input id="maxWeightKg" name="maxWeightKg" type="number" required />
                     </div>
@@ -321,7 +327,7 @@ export default function VehicleOptimization() {
                             {vehicle.nameEn && <div className="text-sm text-muted-foreground">{vehicle.nameEn}</div>}
                           </div>
                         </TableCell>
-                        <TableCell>{VEHICLE_TYPES[vehicle.vehicleType as keyof typeof VEHICLE_TYPES]}</TableCell>
+                        <TableCell>{VEHICLE_TYPES[vehicle.vehicleType as keyof typeof VEHICLE_TYPES]}<Badge className="ms-2" variant="outline">{vehicle.transportCategory==="bulk"?"فله‌ای":"عادی"}</Badge></TableCell>
                         <TableCell>{parseFloat(vehicle.maxWeightKg).toLocaleString()} kg</TableCell>
                         <TableCell>
                           <div className="flex gap-1 flex-wrap">
@@ -383,6 +389,7 @@ export default function VehicleOptimization() {
                   name: formData.get('name') as string,
                   nameEn: formData.get('nameEn') as string,
                   vehicleType: formData.get('vehicleType') as string,
+                  transportCategory:(formData.get('transportCategory')==="bulk"?"bulk":"standard") as "bulk"|"standard",
                   maxWeightKg: formData.get('maxWeightKg') as string,
                   maxVolumeM3: formData.get('maxVolumeM3') as string || null,
                   allowedRoutes: (formData.get('allowedRoutes') as string).split(',').map(r => r.trim()),
@@ -424,6 +431,10 @@ export default function VehicleOptimization() {
                     </Select>
                   </div>
                   <div className="space-y-2">
+                    <Label htmlFor="edit-transportCategory">دستهٔ حمل</Label>
+                    <select id="edit-transportCategory" name="transportCategory" defaultValue={editingVehicle.transportCategory??"standard"} className="w-full rounded border p-2">
+                      <option value="standard">حمل عادی / بسته‌بندی‌شده</option><option value="bulk">حمل فله‌ای</option>
+                    </select>
                     <Label htmlFor="edit-maxWeightKg">حداکثر وزن (کیلوگرم) *</Label>
                     <Input id="edit-maxWeightKg" name="maxWeightKg" type="number" defaultValue={editingVehicle.maxWeightKg} required />
                   </div>

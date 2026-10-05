@@ -78,6 +78,8 @@ import {
 import { parsePositiveIntegerId } from "./shipping-route-resolution";
 import { calculateAuthoritativeShippingCost, isActiveCanonicalShippingMethod } from "./order-shipping-pricing";
 import { assertShippingQuoteBindings, signShippingQuote, verifyShippingQuote, type ShippingQuoteClaims } from "./shipping-quote";
+import {requiresBulkContractTransport,eligibleTransportTemplates} from "@shared/bulk-transport";
+import {validateSelectedBulkTemplate} from "./bulk-order-transport";
 import {
   normalizeProductWeightUpdates,
   type ProductWeightField,
@@ -612,6 +614,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         weightKg: weightKg === null ? null : Number(weightKg.toFixed(8)),
         isFlammable,
         isHazardous: shippingClass === "hazardous" && !isFlammable,
+        ...(product.isBulkSale===true?{isBulkSale:true}:{}),
       };
     });
     return {
@@ -630,6 +633,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     method: string;
     selectedVehicles: ShippingQuoteClaims["selectedVehicles"];
     shippingCost: number;
+    contractId?:number|null;
   }) {
     if (!Number.isFinite(input.shippingCost) || input.shippingCost < 0) {
       throw new ShippingConfigurationError("Vehicle quote has no valid server-side price.", 422);
@@ -645,6 +649,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       method: input.method,
       selectedVehicles: input.selectedVehicles,
       shippingCost: input.shippingCost,
+      contractId:input.contractId??null,
     });
   }
 
@@ -847,6 +852,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       throw new ShippingConfigurationError("Hazardous products require smart-vehicle delivery.", 422);
     }
     const needsVehicleQuote = hasHazardousProducts || canonicalMethod === "smart_vehicle";
+    const bulkContract=requiresBulkContractTransport(input.contractId,[...productFacts.values()]);
+    if(bulkContract&&!isPickupMethod&&canonicalMethod!=="smart_vehicle")
+      throw new ShippingConfigurationError("Bulk contract products require a bulk-category vehicle delivery method.",422);
     if (needsVehicleQuote) {
       let quote: ShippingQuoteClaims;
       try {
@@ -864,15 +872,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         weightKg: product.weight === null ? null : Number(Number(product.weight).toFixed(8)),
         isFlammable: product.isFlammable === true || String(product.shippingClass || "").toLowerCase() === "flammable",
         isHazardous: String(product.shippingClass || "").toLowerCase() === "hazardous" && product.isFlammable !== true,
+        ...(product.isBulkSale===true?{isBulkSale:true}:{}),
       })).sort((a, b) => a.id - b.id);
       const currentFlammable = currentCart.some((item) => item.isFlammable);
       const currentHazardous = currentCart.some((item) => item.isHazardous);
+      if(bulkContract){
+        const ids=quote.selectedVehicles.map(v=>Number(v.id));
+        if(ids.some(id=>!Number.isSafeInteger(id)||id<=0))
+          throw new ShippingConfigurationError("Invalid bulk vehicle quote.",422);
+        const activeBulk=await db.select().from(vehicleTemplates).where(and(
+          inArray(vehicleTemplates.id,ids),eq(vehicleTemplates.isActive,true),eq(vehicleTemplates.transportCategory,"bulk")));
+        if(new Set(ids).size!==activeBulk.length||quote.selectedVehicles.some(v=>v.transportCategory!=="bulk"))
+          throw new ShippingConfigurationError("The selected bulk vehicle is no longer active in the bulk category. Recalculate shipping.",422);
+        if(activeBulk.some(v=>(currentFlammable&&(v.supportsFlammable!==true||v.notAllowedFlammable===true))||
+          (currentHazardous&&v.supportsHazardous!==true)))
+          throw new ShippingConfigurationError("The selected bulk vehicle's safety capabilities changed. Recalculate shipping.",422);
+      }
       try {
         assertShippingQuoteBindings(quote, {
           center,
           destinationCityId: route.destinationCityId,
           distanceKm: route.distanceKm,
           cart: currentCart,
+          contractId:contractPricing?Number(input.contractId):null,
           totalWeightKg: Number(totalWeight.toFixed(8)),
           isFlammable: currentFlammable,
           isHazardous: currentHazardous,
@@ -5714,7 +5736,8 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         variantType: productData.variantType || null,
         variantValue: productData.variantValue || null,
         isFlammable: productData.isFlammable || false,
-        contractOnly: productData.contractOnly === true
+        contractOnly: productData.contractOnly === true,
+        isBulkSale: productData.isBulkSale === true
       };
       
       const product = await storage.createProduct(showcaseProductData);
@@ -19258,6 +19281,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         return res.status(422).json({ success: false, message: "Contract order contains invalid items." });
       }
       let shippingFacts: Awaited<ReturnType<typeof validateAndPriceOrderShipping>>;
+      let selectedBulkVehicleTemplateId:number|null=null;
       try {
         const checkoutCart = reservationItems.reduce((cart: Record<string, number>, item: any) => {
           const productId = Number(item.productId);
@@ -19278,6 +19302,10 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           shippingQuoteToken,
           contractId: req.body.contractId,
           customerId: crmCustomerId ?? customerId,
+        });
+        selectedBulkVehicleTemplateId=await validateSelectedBulkTemplate({
+          contractId:req.body.contractId,products:[...shippingFacts.productFacts.values()],
+          selectedTemplateId:req.body.selectedBulkVehicleTemplateId,quotedVehicles:shippingFacts.shippingQuoteVehicle,
         });
       } catch (shippingError) {
         const statusCode = shippingError instanceof ShippingConfigurationError && shippingError.statusCode === 503 ? 503 : 422;
@@ -19571,6 +19599,8 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       const orderData = {
         orderNumber, // Will be null for bank payments initially
         customerId: customerId || null,
+        transportCategory:requiresBulkContractTransport(req.body.contractId,[...shippingFacts.productFacts.values()])?"bulk":"standard",
+        bulkVehicleTemplateId:selectedBulkVehicleTemplateId??(shippingFacts.shippingQuoteVehicle?.[0]?.transportCategory==="bulk"?Number(shippingFacts.shippingQuoteVehicle[0].id):null),
         ...(contractHoldId !== null || accountingWalletDeferred ? { currency: "IQD" } : {}),
         totalAmount: Math.round(serverTotalAmount).toString(),
         shippingCost: Math.round(serverShippingCost).toString(),
@@ -20027,6 +20057,7 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       });
 
       let shippingFacts: Awaited<ReturnType<typeof validateAndPriceOrderShipping>>;
+      let selectedBulkVehicleTemplateId:number|null=null;
       try {
         shippingFacts = await validateAndPriceOrderShipping({
           methodSelector: orderData.selectedShippingMethod,
@@ -20039,6 +20070,10 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
           shippingQuoteToken: orderData.shippingQuoteToken,
           contractId: orderData.contractId,
           customerId: crmCustomerId ?? customerId,
+        });
+        selectedBulkVehicleTemplateId=await validateSelectedBulkTemplate({
+          contractId:orderData.contractId,products:[...shippingFacts.productFacts.values()],
+          selectedTemplateId:orderData.selectedBulkVehicleTemplateId,quotedVehicles:shippingFacts.shippingQuoteVehicle,
         });
       } catch (shippingError) {
         const statusCode = shippingError instanceof ShippingConfigurationError && shippingError.statusCode === 503 ? 503 : 422;
@@ -20271,6 +20306,8 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
 
       const order = await customerStorage.createOrder({
         customerId: finalCustomerId,
+        transportCategory:requiresBulkContractTransport(orderData.contractId,[...shippingFacts.productFacts.values()])?"bulk":"standard",
+        bulkVehicleTemplateId:selectedBulkVehicleTemplateId??(shippingFacts.shippingQuoteVehicle?.[0]?.transportCategory==="bulk"?Number(shippingFacts.shippingQuoteVehicle[0].id):null),
         ...(orderData.contractId != null ? { contractId: Number(orderData.contractId) } : {}),
         orderNumber,
         status: "pending",
@@ -33462,6 +33499,8 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         secondaryAddress,
         destinationCountryCode,
         countryCode,
+        contractId,
+        selectedVehicleTemplateId,
       } = req.body;
 
       // Standardize city and province names to Arabic format
@@ -33472,6 +33511,21 @@ ${message ? `Additional Requirements:\n${message}` : ''}
       const checkoutCartFacts = cart && typeof cart === "object" && Object.keys(cart).length > 0
         ? await getCanonicalCheckoutCartFacts(cart)
         : null;
+      let verifiedContractId:number|null=null;
+      if(contractId!=null){
+        const customerSession=req.session as any;
+        const customerId=Number(customerSession?.crmCustomerId??customerSession?.customerId);
+        if(!checkoutCartFacts||!Number.isSafeInteger(Number(contractId))||Number(contractId)<=0||!customerId)
+          return res.status(422).json({success:false,message:"A customer login and valid contract are required."});
+        const {loadContractPricing}=await import("./shop-contracts");
+        try{await loadContractPricing(Number(contractId),customerId,cart);}
+        catch(error){return res.status(422).json({success:false,message:error instanceof Error?error.message:"Contract unavailable"});}
+        verifiedContractId=Number(contractId);
+      }
+      const bulkTransport=requiresBulkContractTransport(verifiedContractId,checkoutCartFacts?.cart??[]);
+      const templateId=selectedVehicleTemplateId==null?null:Number(selectedVehicleTemplateId);
+      if(templateId!==null&&(!bulkTransport||!Number.isSafeInteger(templateId)||templateId<=0))
+        return res.status(422).json({success:false,message:"Invalid bulk vehicle template selection."});
 
       console.log('🔤 [STANDARDIZATION] Name standardization:', {
         raw: { destinationCity: rawDestinationCity, destinationProvince: rawDestinationProvince },
@@ -33497,12 +33551,13 @@ ${message ? `Additional Requirements:\n${message}` : ''}
       // Get vehicle templates  
       const { vehicleTemplates: vehicleTemplatesTable } = await import('@shared/logistics-schema');
       
-      const vehicleTemplates = await db.select().from(vehicleTemplatesTable).where(eq(vehicleTemplatesTable.isActive, true));
+      const activeTemplates=await db.select().from(vehicleTemplatesTable).where(eq(vehicleTemplatesTable.isActive,true));
+      const vehicleTemplates=eligibleTransportTemplates(activeTemplates,bulkTransport?"bulk":"standard",templateId);
       
       if (!vehicleTemplates.length) {
-        return res.status(500).json({
+        return res.status(422).json({
           success: false,
-          message: "هیچ الگوی خودرویی در دسترس نیست"
+          message: bulkTransport?"هیچ قالب خودروی فعال در دستهٔ فله‌ای برای این انتخاب وجود ندارد":"هیچ الگوی خودرویی در دسترس نیست"
         });
       }
 
@@ -33887,10 +33942,12 @@ ${message ? `Additional Requirements:\n${message}` : ''}
           destinationCityId: destinationCityData.id,
           distanceKm: distance,
           method: "vehicle_quote",
+          contractId:verifiedContractId,
           selectedVehicles: optimalSolution.vehicles.map((vehicle: any) => ({
             id: vehicle.vehicleId,
             name: String(vehicle.vehicleName),
             type: String(vehicle.vehicleType),
+            transportCategory:bulkTransport?"bulk":"standard",
           })),
           shippingCost: optimalSolution.totalCost,
         })
@@ -51761,6 +51818,8 @@ momtazchem.com
       }
 
       const vehicleData = req.body;
+      if(vehicleData.transportCategory!==undefined&&!["standard","bulk"].includes(vehicleData.transportCategory))
+        return res.status(400).json({success:false,message:"Invalid transport category"});
       vehicleData.updatedAt = new Date();
       
       const [updatedVehicle] = await db.update(vehicleTemplates)
@@ -51788,6 +51847,8 @@ momtazchem.com
       }
 
       const vehicleData = req.body;
+      if(vehicleData.transportCategory!==undefined&&!["standard","bulk"].includes(vehicleData.transportCategory))
+        return res.status(400).json({success:false,message:"Invalid transport category"});
       vehicleData.updatedAt = new Date();
       
       const [updatedVehicle] = await db.update(vehicleTemplates)

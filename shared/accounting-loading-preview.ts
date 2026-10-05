@@ -1,4 +1,5 @@
 import {z} from "zod";
+import type {LoadingFixedShipping} from "./accounting-loading-shipping";
 export const loadingPreviewFiltersSchema=z.object({
   companyId:z.coerce.number().int().positive().max(2147483647),
   orderId:z.coerce.number().int().positive().max(2147483647).optional(),
@@ -16,6 +17,7 @@ export interface LoadingInvoiceAmounts {
 export interface LoadingPreviewRow {
   factId:number;orderId:number;orderNumber:string|null;loadingReference:string;eventDate:string|null;currency:string|null;
   issues:LoadingPreviewIssue[];amounts:LoadingInvoiceAmounts|null;
+  fixedShipping?:LoadingFixedShipping;
 }
 export interface LoadingPreviewReport {
   company:{id:number;name:string};

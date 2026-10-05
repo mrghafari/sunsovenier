@@ -85,6 +85,7 @@ export const showcaseProducts = pgTable("showcase_products", {
   syncWithShop: boolean("sync_with_shop").default(true), // Whether to include in shop sync process
   showWhenOutOfStock: boolean("show_when_out_of_stock").default(false), // Whether to show product in shop when stock is 0
   contractOnly: boolean("contract_only").notNull().default(false), // Whether this product is sold only through customer contracts
+  isBulkSale: boolean("is_bulk_sale").notNull().default(false),
   isNonChemical: boolean("is_non_chemical").default(false), // Whether this is a non-chemical product
   isFlammable: boolean("is_flammable").default(false), // Whether this is a flammable product
   // Product Variant Fields

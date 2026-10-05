@@ -2,6 +2,8 @@ import { pgTable, text, serial, timestamp, decimal, boolean, integer, json, json
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { crmCustomers, shopContracts } from "./schema";
+import {vehicleTemplates} from "./logistics-schema";
+import type {AnyPgColumn} from "drizzle-orm/pg-core";
 
 // =============================================================================
 // CUSTOMER PORTAL SCHEMA
@@ -149,6 +151,8 @@ export const customerOrders = pgTable("customer_orders", {
   paymentStatus: text("payment_status").notNull().default("pending"), // pending, paid, failed, refunded
   paymentMethod: text("payment_method"), // bank_transfer, credit_card, check, cash
   shippingAddress: json("shipping_address").notNull(), // Complete shipping address object
+  transportCategory:text("transport_category").notNull().default("standard"),
+  bulkVehicleTemplateId:integer("bulk_vehicle_template_id").references(():AnyPgColumn=>vehicleTemplates.id),
   billingAddress: json("billing_address"), // Complete billing address object
   notes: text("notes"),
   internalNotes: text("internal_notes"), // Notes visible only to admin
