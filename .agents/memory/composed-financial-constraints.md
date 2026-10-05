@@ -26,3 +26,15 @@ field that exists only in another table.
 
 **How to apply:** Validate every trigger-table path, including deferred callbacks,
 not just inserts into the proof table.
+
+Composable multi-record financial operations must roll back their own writes on
+failure, even when a caller supplies the transaction.
+
+**Why:** A caller can catch a JavaScript validation/settlement error and continue
+the outer transaction; without an operation-local savepoint, earlier ledger,
+receivable or hold writes can survive even though the operation failed.
+
+**How to apply:** Use a unique savepoint for a supplied transaction, roll back and
+release it before rethrowing, and test a caught downstream failure followed by
+queries and a successful operation on the same transaction. A caller's ability
+to roll back does not replace the operation's atomicity guarantee.

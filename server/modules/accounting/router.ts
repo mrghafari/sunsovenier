@@ -1,5 +1,6 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
 import { accountingDb } from "./db";
+import {z} from "zod";
 import { accountingCompanies, accountingCurrencies } from "./schema";
 import { resolveAccountingAccess, AccountingError, assertAccountingOrigin } from "./access";
 import { resourceName, listResource, saveResource } from "./settings-service";
@@ -22,6 +23,8 @@ import {shippingMarginCsv} from "./shipping-report-csv";
 import {readLoadingPreviews} from "./loading-previews";
 import {readInventoryDocumentMetadata,readInventoryDocuments,readInventoryDocument,saveInventoryDocument,actInventoryDocument} from "./inventory-documents";
 import {readInventoryFifo} from "./inventory-fifo";
+import {readLoadingInvoiceWorkbench,issueLoadingInvoice} from "./loading-invoices";
+import {stockBookMetadata,registerStockBook} from "./loading-invoice-stock";
 import {approveLoadingShipping} from "./loading-shipping";
 import {readLoadingCaptureContext,captureMeasuredLoading} from "./loading-capture";
 import {readAccountingAudit,accountingAuditCsv} from "./audit-reports";
@@ -272,6 +275,20 @@ export function createAccountingRouter() {
   });
   router.get("/v2/inventory-fifo-preview",async(req,res,next)=>{
     try{res.json(await readInventoryFifo(req.query));}catch(e){next(e);}
+  });
+  router.get("/v2/loading-invoices",async(req,res,next)=>{
+    try{res.set("Cache-Control","private, no-store");res.json(await readLoadingInvoiceWorkbench(req.query));}catch(e){next(e);}
+  });
+  router.post("/v2/loading-invoices",async(req,res,next)=>{
+    try{assertAccountingOrigin(req);res.json(await issueLoadingInvoice(req.body,res.locals.accountingAccess));}catch(e){next(e);}
+  });
+  router.get("/v2/stock-books",async(req,res,next)=>{
+    try{const parsed=z.coerce.number().int().positive().max(2147483647).safeParse(req.query.companyId);
+      if(!parsed.success)throw new AccountingError(parsed.error.issues[0].message);
+      res.set("Cache-Control","private, no-store");res.json(await stockBookMetadata(parsed.data));}catch(e){next(e);}
+  });
+  router.post("/v2/stock-books",async(req,res,next)=>{
+    try{assertAccountingOrigin(req);res.json(await registerStockBook(req.body,res.locals.accountingAccess));}catch(e){next(e);}
   });
   router.get("/v2/inventory-documents",async(req,res,next)=>{
     try{res.json(await readInventoryDocuments(req.query));}catch(e){next(e);}

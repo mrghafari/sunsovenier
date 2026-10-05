@@ -45,6 +45,11 @@ try {
     "server/modules/accounting/0030_inventory_review_timestamp.sql",
     "server/modules/accounting/0031_mixed_role_identity_comparison.sql",
     "server/modules/accounting/0032_inventory_line_alias.sql",
+    "server/modules/accounting/0033_loading_invoice_pipeline.sql",
+    "server/modules/accounting/0034_loading_live_gate_guard.sql",
+    "server/modules/accounting/0035_stock_book_currency_guard.sql",
+    "server/modules/accounting/0036_loading_fifo_chronology.sql",
+    "server/modules/accounting/0037_stock_ledger_parity.sql",
   ];
   for (const file of files) {
     const content = await readFile(file,"utf8");

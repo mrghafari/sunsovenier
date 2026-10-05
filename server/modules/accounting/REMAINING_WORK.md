@@ -20,6 +20,10 @@
   batch quantities, currency-precise documented costs and review/withdrawal history.
 - Read-only documentary FIFO replay with purchase-layer provenance, exact
   cumulative cost rounding and explicit unknown/shortfall states in four languages.
+- Closed-gate loading invoice handler: real AR, immutable posted-stock FIFO
+  allocations, base-currency COGS and optional same-order hold settlement commit
+  atomically. The four-language workbench shows blockers and posted references;
+  it does not offer financial activation.
 
 These foundations do not mean a loading creates a live invoice, inventory
 valuation is verified, legacy openings are reconciled, or a consumer is enabled.
@@ -46,9 +50,10 @@ purchase cost or stock carrying value. Do not treat it as COGS evidence.
    unknown units, missing/legacy snapshots and nonzero fixed-order shipping
    without allocation evidence. Fixed freight now uses reviewed manual shares;
    its remainder stays explicitly unallocated. Still required:
-   reconciled inventory carrying layers, transactional FIFO/stock cost
-   attribution and integration of reviewed weight
-   evidence into the future invoice consumer. Aggregate loaded-vs-ordered
+   actual opening/historical-consumption reconciliation and posted purchase/
+   opening capitalization evidence. Transactional stock cost attribution and
+   reviewed weight checks are available in the closed-gate handler.
+   Aggregate loaded-vs-ordered
    control and Commercial approval are implemented (the user's designated
    approver, not finance), not financially activated.
    The user specified that the permitted aggregate overweight must be stated
@@ -63,11 +68,20 @@ purchase cost or stock carrying value. Do not treat it as COGS evidence.
    The user approved only the limited measurement/document-evidence connection
    in warehouse/logistics/order surfaces. Changes to reservation, physical stock,
    selling prices, payment timing or live financial activation remain excluded.
-2. **Implement staged transactional consumers/handlers.** Invoice recognition
-   must post AR first, attach a real receivable item and COGS evidence, then
-   settle/release only that loading's approved hold. Original event identity,
-   retry/backoff, posting/error provenance, cancellation/reversal and no
-   double-debit for historical paid orders must be tested together.
+2. **Complete the staged financial pipeline.** Base-currency loading invoice,
+   real receivable, fixed carrying-layer consumption and optional own-hold
+   settlement now have a transactional handler and rollback-only integration
+   tests. There is no automatic consumer or eligibility change. Stock layers
+   require approved documents and matching original posted inventory journals;
+   documentary FIFO or staff cost attestations alone cannot supply them.
+   Stock ledger/remaining-layer value must reconcile, earlier late-recorded
+   trucks/layers cannot rewrite booked FIFO, and independent reversals/voids
+   of financially attached evidence are blocked. Remaining: closed-gate
+   purchase/opening capitalization from actual documents (the stock registry
+   currently links already-posted originals), foreign invoice/native inventory
+   carrying-value clearing, coordinated invoice/AR/stock/settlement returns,
+   shipment/fleet handlers, and separately approved worker retry/backoff and
+   error provenance. Real opening evidence and activation are still outstanding.
    Never flip event eligibility or start a consumer merely because arithmetic
    succeeds.
 3. **Complete foreign wallet refunds and partial receipt returns.** Preserve
