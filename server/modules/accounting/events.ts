@@ -8,6 +8,7 @@ import { decimal,exactMoney } from "./money";
 import { assertLedgerReady,assertEventBridgeReady } from "./readiness";
 import {inventoryCostCaptureSchema} from "@shared/accounting-loading-capture";
 import {capturedMetricPricing} from "./loading-pricing-evidence";
+import {readLoadingContractEvidence} from "./loading-weight-control";
 
 const positiveDecimal = decimalString.refine(v=>{
   try { return decimal(v).gt(0) && decimal(v).lt("1e30") && decimal(v).decimalPlaces()<=8; }
@@ -118,6 +119,7 @@ export async function recordOperationalEvent(tx:AccountingTransaction,input:Oper
     companyId,orderId:data.orderId,eventType:data.eventType,sourceId:identity,
     payload:{origin:"operator_recorded_measurement",input:data,order,fleet,actor:{id:actor.actorId,type:actor.actorType},
       ...(data.eventType==="LoadingCompleted"?{
+        contractEvidence:await readLoadingContractEvidence(tx,data.orderId),
         pricingEvidence:capturedMetricPricing(order),
         inventoryEvidence:{basis:"staff-document-attestation-not-verified-stock-valuation",costs:data.inventoryCosts??[],
           actorId:actor.actorId,actorType:actor.actorType},

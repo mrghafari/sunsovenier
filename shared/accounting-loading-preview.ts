@@ -18,6 +18,14 @@ export interface LoadingPreviewRow {
   factId:number;orderId:number;orderNumber:string|null;loadingReference:string;eventDate:string|null;currency:string|null;
   issues:LoadingPreviewIssue[];amounts:LoadingInvoiceAmounts|null;
   fixedShipping?:LoadingFixedShipping;
+  weightControl?:LoadingWeightControl;
+}
+export interface LoadingWeightControl {
+  status:"WITHIN_CONTRACT"|"CONTRACT_LIMIT_EXCEEDED"|"CONTRACT_TERMS_REQUIRED"|
+    "ORDER_WEIGHT_REQUIRED"|"INVALID_LOADING_HISTORY";
+  orderedWeightTons:string|null;loadedWeightTons:string|null;excessWeightTons:string|null;
+  allowedWeightTons:string|null;allowancePercent:string|null;contractNumber:string|null;
+  loadingCount:number;reviewDepartment:"commercial";postingAllowed:false;
 }
 export interface LoadingPreviewReport {
   company:{id:number;name:string};

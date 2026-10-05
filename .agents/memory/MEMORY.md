@@ -72,3 +72,4 @@
 - [Independent loading module](loading-module-boundary.md) — standalone management module, loading_-owned data, only menu/permission/route registration edits; analysis approval precedes coding.
 - [Contract bulk transport](contract-bulk-transport.md) — Kardex bulk-sale flags select bulk-category vehicles for contract sales; goods retain their contract price.
 - [Manual fixed freight](manual-fixed-freight.md) — fixed order freight is allocated by manually entered, finance-approved shares, capped by the original total.
+- [Contractual aggregate overweight](contract-weight-policy.md) — Commercial reviews cumulative order overweight; the order's own contractual allowance, not a company default, governs.

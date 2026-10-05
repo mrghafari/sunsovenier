@@ -11,6 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, Calculator, ShieldAlert, RotateCw } from "lucide-react";
 import {LoadingShippingApproval} from "./loading-shipping-approval";
+import { ContractWeightControlDisplay, type ContractWeightControl } from "../contract-weight-control-display";
 
 type Draft = { companyId: string; orderId: string };
 const blankDraft = (): Draft => ({ companyId: "", orderId: "" });
@@ -114,6 +115,7 @@ export function LoadingPreviewResult({ report, language, page, totalPages, chang
               {report.readOnly ? t(language, "readOnly") : "—"} · {report.postingAllowed === false ? t(language, "postingOff") : "—"}
             </div>
           </div>
+          {("weightControl" in row && row.weightControl) && <ContractWeightControlDisplay control={row.weightControl as ContractWeightControl} language={language}/>}
           {row.amounts ? <div className="mt-4 rounded-xl border border-[#dce7dc] bg-[#f3f7f0] p-3 md:p-4">
             <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
               <Amount label={t(language, "goods")} value={row.amounts.goods} currency={row.currency}/>

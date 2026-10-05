@@ -27,14 +27,16 @@ const copy = {
     international: "فروش بین‌المللی", seller: "فروشنده", buyer: "خریدار", registration: "شناسه / ثبت",
     tax: "شناسه مالیاتی", address: "نشانی", country: "کشور", city: "شهر", postal: "کد پستی",
     representative: "نماینده و سمت", contact: "اطلاعات تماس", website: "وب‌سایت", customer: "مشتری",
-    grade: "گرید / استاندارد", tolerance: "تلورانس", packaging: "بسته‌بندی / حمل", max: "حداکثر تعداد",
+    grade: "گرید / استاندارد", tolerance: "تلورانس کیفیت محصول", packaging: "بسته‌بندی / حمل", max: "حداکثر تعداد",
+    weightAllowance: "سقف اضافه‌وزن کل سفارش",
+    weightAllowanceUnknown: "در قرارداد مشخص نشده",
     price: "قیمت واحد (IQD)", unit: "واحد", quality: "کیفیت", quantityPackaging: "مقدار و بسته‌بندی",
     payment: "پرداخت", priceTitle: "قیمت", delivery: "تحویل و حمل", incoterm: "اینکوترم",
     location: "محل تحویل", deliveryDate: "تاریخ تحویل", law: "قانون حاکم و حل اختلاف",
     review: "این متن پیش‌نویس است و پیش از استفاده یا امضا باید توسط مشاور حقوقی بازبینی شود. هیچ‌یک از شروط، تضمین حقوقی یا تأیید نهایی طرفین تلقی نمی‌شود.",
     signature: "وضعیت: در انتظار بازبینی و امضای طرفین.", sellerSignature: "امضای فروشنده",
     buyerSignature: "امضای خریدار", paymentDays: "مهلت پرداخت", paymentMethod: "روش پرداخت",
-    daysSuffix: "روز", terms: ["تعاریف", "موضوع قرارداد", "کیفیت و بازرسی", "مقدار و بسته‌بندی", "قیمت و ارز",
+    daysSuffix: "روز", terms: ["تعاریف", "موضوع قرارداد", "کیفیت و بازرسی", "مقدار و بسته‌بندی", "سقف اضافه‌وزن کل سفارش", "قیمت و ارز",
       "روش و مهلت پرداخت", "تحویل و حمل", "انتقال مالکیت و ریسک", "بیمه", "بازرسی و اعلام ایراد",
       "تعهدات فروشنده", "تعهدات خریدار", "ضمانت و حدود مسئولیت", "فورس‌ماژور", "تحریم‌ها و انطباق قانونی",
       "محرمانگی", "خسارت قراردادی", "فسخ", "قانون حاکم و حل اختلاف", "زبان قرارداد",
@@ -45,6 +47,7 @@ const copy = {
       "فروشنده متعهد به فروش و خریدار متعهد به خرید محصولات زیر، در حدود سقف‌ها و قیمت‌های توافق‌شده، است:\n{items}",
       "محصول باید با مشخصات و تلورانس درج‌شده در مادهٔ ۲ منطبق باشد. فروشنده COA ارائه می‌کند و خریدار می‌تواند پیش از بارگیری بازرسی مستقل ترتیب دهد.",
       "سقف تعداد هر محصول حداکثر مقدار مجاز قرارداد است؛ سفارش‌های قطعی قبلی از ظرفیت باقیمانده کسر می‌شوند. بسته‌بندی مطابق مشخصات مادهٔ ۲ است.",
+      "سقف اضافه‌وزن تجمیعی کل سفارش نسبت به وزن سفارش‌شده: {weightAllowance}. این شرط مستقل از تلورانس کیفیت محصولات است.",
       "ارز فروش دینار عراق (IQD) است. قیمت واحد و حداکثر تعداد هر قلم در مادهٔ ۲ درج شده‌اند؛ هر تعدیل فقط با توافق کتبی طرفین معتبر است.",
       "روش پرداخت {method} و مهلت آن {days} روز است. جزئیات هر مرحله، زمان سررسید و تضمین‌های لازم باید پیش از امضا به‌طور روشن میان طرفین توافق شود.",
       "اینکوترم {incoterm}، محل تحویل {location} و تاریخ برنامه‌ریزی‌شدهٔ تحویل {deliveryDate} است. اسناد حمل و تحویل طبق توافق کتبی طرفین ارائه می‌شوند.",
@@ -74,7 +77,9 @@ const copy = {
     international: "International sale", seller: "Seller", buyer: "Buyer", registration: "Registration",
     tax: "Tax ID", address: "Address", country: "Country", city: "City", postal: "Postal code",
     representative: "Representative and title", contact: "Contact details", website: "Website", customer: "Customer",
-    grade: "Grade / standard", tolerance: "Tolerance", packaging: "Packaging / transport", max: "Maximum quantity",
+    grade: "Grade / standard", tolerance: "Product quality tolerance", packaging: "Packaging / transport", max: "Maximum quantity",
+    weightAllowance: "Aggregate order overweight allowance",
+    weightAllowanceUnknown: "Not specified in the contract",
     price: "Unit price (IQD)", unit: "units", quality: "Quality", quantityPackaging: "Quantity and packaging",
     payment: "Payment", priceTitle: "Price", delivery: "Delivery and transport", incoterm: "Incoterm",
     location: "Delivery location", deliveryDate: "Delivery date", law: "Governing law and dispute resolution",
@@ -82,7 +87,7 @@ const copy = {
     signature: "Status: pending review and signature by both parties.", sellerSignature: "Seller signature",
     buyerSignature: "Buyer signature", paymentDays: "Payment period", paymentMethod: "Payment method",
     daysSuffix: "days", terms: ["Definitions", "Subject matter", "Quality and inspection", "Quantity and packaging",
-      "Price and currency", "Payment method and period", "Delivery and transport", "Title and risk", "Insurance",
+      "Aggregate order overweight allowance", "Price and currency", "Payment method and period", "Delivery and transport", "Title and risk", "Insurance",
       "Inspection and notice of defects", "Seller obligations", "Buyer obligations", "Warranty and liability",
       "Force majeure", "Sanctions and compliance", "Confidentiality", "Contractual damages", "Termination",
       "Governing law and disputes", "Contract language", "Assignment", "Notices", "Entire agreement",
@@ -93,6 +98,7 @@ const copy = {
       "The Seller agrees to sell and the Buyer agrees to purchase the following Products, subject to the agreed caps and prices:\n{items}",
       "Products must meet the specifications and tolerances in Article 2. The Seller will provide a COA; the Buyer may arrange an independent pre-shipment inspection.",
       "Each product cap is the maximum quantity permitted under this agreement; completed prior orders reduce the remaining capacity. Packaging follows Article 2.",
+      "Aggregate overweight allowance for the entire order, measured against ordered weight: {weightAllowance}. This is separate from product quality tolerances.",
       "The sale currency is Iraqi dinars (IQD). Unit prices and maximum quantities appear in Article 2. Any adjustment is effective only by written agreement.",
       "The payment method is {method}, with a period of {days} days. Installments, due dates, and required security must be expressly agreed before signature.",
       "The selected Incoterm is {incoterm}, the delivery location is {location}, and the scheduled delivery date is {deliveryDate}. Shipping documents follow the parties’ written agreement.",
@@ -122,14 +128,16 @@ const copy = {
     international: "بيع دولي", seller: "البائع", buyer: "المشتري", registration: "التسجيل",
     tax: "الرقم الضريبي", address: "العنوان", country: "البلد", city: "المدينة", postal: "الرمز البريدي",
     representative: "الممثل وصفته", contact: "بيانات الاتصال", website: "الموقع الإلكتروني", customer: "العميل",
-    grade: "الدرجة / المعيار", tolerance: "السماحية", packaging: "التعبئة / النقل", max: "الكمية القصوى",
+    grade: "الدرجة / المعيار", tolerance: "سماحية جودة المنتج", packaging: "التعبئة / النقل", max: "الكمية القصوى",
+    weightAllowance: "حد زيادة وزن الطلب الإجمالي",
+    weightAllowanceUnknown: "غير محدد في العقد",
     price: "سعر الوحدة (IQD)", unit: "وحدة", quality: "الجودة", quantityPackaging: "الكمية والتعبئة",
     payment: "الدفع", priceTitle: "السعر", delivery: "التسليم والنقل", incoterm: "شرط إنكوترمز",
     location: "مكان التسليم", deliveryDate: "تاريخ التسليم", law: "القانون الحاكم وتسوية النزاعات",
     review: "هذه الوثيقة مسودة ويجب مراجعتها من مستشار قانوني مؤهل قبل استخدامها أو توقيعها. ولا يُفترض أن أي شرط مصدّق قانونياً أو معتمد نهائياً من الطرفين.",
     signature: "الحالة: بانتظار المراجعة والتوقيع من الطرفين.", sellerSignature: "توقيع البائع",
     buyerSignature: "توقيع المشتري", paymentDays: "مهلة الدفع", paymentMethod: "طريقة الدفع",
-    daysSuffix: "أيام", terms: ["التعريفات", "موضوع العقد", "الجودة والفحص", "الكمية والتعبئة", "السعر والعملة",
+    daysSuffix: "أيام", terms: ["التعريفات", "موضوع العقد", "الجودة والفحص", "الكمية والتعبئة", "حد زيادة وزن الطلب الإجمالي", "السعر والعملة",
       "طريقة الدفع ومدته", "التسليم والنقل", "الملكية والمخاطر", "التأمين", "الفحص والإبلاغ عن العيوب",
       "التزامات البائع", "التزامات المشتري", "الضمان والمسؤولية", "القوة القاهرة", "العقوبات والامتثال",
       "السرية", "التعويضات التعاقدية", "الإنهاء", "القانون وتسوية النزاعات", "لغة العقد", "التنازل",
@@ -140,6 +148,7 @@ const copy = {
       "يوافق البائع على بيع المنتجات التالية ويوافق المشتري على شرائها ضمن الحدود والأسعار المتفق عليها:\n{items}",
       "يجب أن تطابق المنتجات المواصفات والسماحيات في المادة ٢. يقدم البائع شهادة تحليل، ويجوز للمشتري ترتيب فحص مستقل قبل الشحن.",
       "الحد الأقصى لكل منتج هو الكمية القصوى المسموح بها؛ وتُخصم الطلبات السابقة المؤكدة من السعة المتبقية. تكون التعبئة وفق المادة ٢.",
+      "حد زيادة الوزن الإجمالي للطلب، مقارنةً بالوزن المطلوب: {weightAllowance}. وهذا الشرط مستقل عن سماحيات جودة المنتجات.",
       "عملة البيع هي الدينار العراقي (IQD). ترد أسعار الوحدات والكميات القصوى في المادة ٢. ولا يسري أي تعديل إلا باتفاق خطي.",
       "طريقة الدفع هي {method} ومدته {days} يوماً. ويجب الاتفاق صراحةً قبل التوقيع على الدفعات ومواعيد الاستحقاق والضمانات المطلوبة.",
       "شرط إنكوترمز المختار هو {incoterm}، ومكان التسليم {location}، وتاريخ التسليم المخطط {deliveryDate}. تقدم مستندات الشحن وفق اتفاق الطرفين المكتوب.",
@@ -169,7 +178,9 @@ const copy = {
     international: "Uluslararası satış", seller: "Satıcı", buyer: "Alıcı", registration: "Tescil",
     tax: "Vergi numarası", address: "Adres", country: "Ülke", city: "Şehir", postal: "Posta kodu",
     representative: "Temsilci ve unvan", contact: "İletişim bilgileri", website: "İnternet sitesi", customer: "Müşteri",
-    grade: "Kalite / standart", tolerance: "Tolerans", packaging: "Ambalaj / taşıma", max: "Azami miktar",
+    grade: "Kalite / standart", tolerance: "Ürün kalite toleransı", packaging: "Ambalaj / taşıma", max: "Azami miktar",
+    weightAllowance: "Toplam sipariş fazla ağırlık sınırı",
+    weightAllowanceUnknown: "Sözleşmede belirtilmemiş",
     price: "Birim fiyat (IQD)", unit: "birim", quality: "Kalite", quantityPackaging: "Miktar ve ambalaj",
     payment: "Ödeme", priceTitle: "Fiyat", delivery: "Teslimat ve taşıma", incoterm: "Incoterm",
     location: "Teslim yeri", deliveryDate: "Teslim tarihi", law: "Uygulanacak hukuk ve uyuşmazlık çözümü",
@@ -177,7 +188,7 @@ const copy = {
     signature: "Durum: tarafların incelemesi ve imzası bekleniyor.", sellerSignature: "Satıcı imzası",
     buyerSignature: "Alıcı imzası", paymentDays: "Ödeme süresi", paymentMethod: "Ödeme yöntemi",
     daysSuffix: "gün", terms: ["Tanımlar", "Sözleşmenin konusu", "Kalite ve inceleme", "Miktar ve ambalaj",
-      "Fiyat ve para birimi", "Ödeme yöntemi ve süresi", "Teslimat ve taşıma", "Mülkiyet ve risk", "Sigorta",
+      "Toplam sipariş fazla ağırlık sınırı", "Fiyat ve para birimi", "Ödeme yöntemi ve süresi", "Teslimat ve taşıma", "Mülkiyet ve risk", "Sigorta",
       "İnceleme ve ayıp bildirimi", "Satıcının yükümlülükleri", "Alıcının yükümlülükleri", "Garanti ve sorumluluk",
       "Mücbir sebep", "Yaptırımlar ve uyum", "Gizlilik", "Sözleşmesel tazminat", "Fesih",
       "Uygulanacak hukuk ve uyuşmazlıklar", "Sözleşme dili", "Devir", "Bildirimler", "Sözleşmenin bütünü",
@@ -188,6 +199,7 @@ const copy = {
       "Satıcı aşağıdaki Ürünleri satmayı, Alıcı ise kararlaştırılan limit ve fiyatlar dahilinde satın almayı kabul eder:\n{items}",
       "Ürünler 2. maddede yer alan özellik ve toleranslara uygun olmalıdır. Satıcı COA sunar; Alıcı sevkiyat öncesinde bağımsız inceleme yaptırabilir.",
       "Her ürün limiti sözleşme kapsamında izin verilen azami miktardır; tamamlanmış önceki siparişler kalan kapasiteden düşülür. Ambalaj 2. maddeye uygun olur.",
+      "Sipariş edilen ağırlığa göre siparişin toplam fazla ağırlık sınırı: {weightAllowance}. Bu koşul ürün kalite toleranslarından bağımsızdır.",
       "Satış para birimi Irak dinarıdır (IQD). Birim fiyatlar ve azami miktarlar 2. maddede belirtilmiştir. Her fiyat değişikliği ancak yazılı anlaşmayla geçerlidir.",
       "Ödeme yöntemi {method}, süresi {days} gündür. Taksitler, vadeler ve gerekli teminatlar imzadan önce açıkça kararlaştırılmalıdır.",
       "Seçilen Incoterm {incoterm}, teslim yeri {location}, planlanan teslim tarihi {deliveryDate} şeklindedir. Taşıma belgeleri tarafların yazılı anlaşmasına göre sunulur.",
@@ -235,6 +247,9 @@ export function buildContractDraftText(draft: ShopContractDraftData, context: Co
       : dealType === "iraq" ? labels.iraqExport : labels.international;
   const methods = labels.methods;
   const method = methods[draft.payment.method];
+  const aggregateWeightAllowance = (draft as ShopContractDraftData & {
+    aggregateWeightAllowance?: { basis: "percent"; value: string };
+  }).aggregateWeightAllowance;
   const values: Record<string, string> = {
     items: context.items.map((item) => {
       const details = draft.productDetails[String(item.productId)];
@@ -247,6 +262,9 @@ export function buildContractDraftText(draft: ShopContractDraftData, context: Co
     deliveryDate: formatDate(draft.delivery.date, language, draft.version),
     language: languageName(language),
     languageLabel: languageName(language),
+    weightAllowance: aggregateWeightAllowance?.basis === "percent"
+      ? `${aggregateWeightAllowance.value}%`
+      : labels.weightAllowanceUnknown,
   };
   const law = dealType === "iran"
     ? text(language, {

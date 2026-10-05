@@ -4,6 +4,7 @@ import {AccountingError} from "./access";
 import {loadingPreviewFiltersSchema,type LoadingPreviewReport} from "@shared/accounting-loading-preview";
 import {calculateLoadingInvoicePreview} from "./loading-invoice-calculation";
 import {decimal,exactMoney} from "./money";
+import {calculateLoadingWeightControl,readLoadingContractEvidence,capturedContractEvidence} from "./loading-weight-control";
 export async function readLoadingPreviews(input:unknown,callerTx?:AccountingTransaction):Promise<LoadingPreviewReport>{
   const parsed=loadingPreviewFiltersSchema.safeParse(input);
   if(!parsed.success)throw new AccountingError(parsed.error.issues[0].message);
@@ -17,6 +18,15 @@ export async function readLoadingPreviews(input:unknown,callerTx?:AccountingTran
     const facts=(await tx.execute(sql`select id,company_id as "companyId",order_id as "orderId",source_id as "sourceId",payload
       from accounting_operational_facts where ${where} order by id desc limit ${f.pageSize} offset ${(f.page-1)*f.pageSize}`)).rows;
     const orderIds=[...new Set(facts.map(x=>Number(x.orderId)))];
+    // Do not calculate aggregate weight from a paginated subset.
+    const history=orderIds.length?(await tx.execute(sql`select order_id as "orderId",payload
+      from accounting_operational_facts where company_id=${f.companyId} and event_type='LoadingCompleted'
+      and order_id in (${sql.join(orderIds.map(id=>sql`${id}`),sql`,`)}) order by id`)).rows:[];
+    const weightControls=new Map<number,ReturnType<typeof calculateLoadingWeightControl>>();
+    for(const orderId of orderIds){
+      const entries=history.filter(h=>Number(h.orderId)===orderId).map(h=>h.payload);
+      weightControls.set(orderId,calculateLoadingWeightControl(entries,capturedContractEvidence(entries,await readLoadingContractEvidence(tx,orderId))));
+    }
     const approvals=orderIds.length?(await tx.execute(sql`select fact_id as "factId",order_id as "orderId",currency,
       order_shipping_total::text as "orderTotal",amount::text as amount,evidence_reference as "evidenceReference",
       reason,actor_id as "actorId",actor_type as "actorType",approved_at as "approvedAt"
@@ -29,6 +39,7 @@ export async function readLoadingPreviews(input:unknown,callerTx?:AccountingTran
         factId:fact.id,companyId:fact.companyId,orderId:fact.orderId,currency:String(approval.currency),
         orderTotal:String(approval.orderTotal),amount:String(approval.amount),
       }:undefined);
+      row.weightControl=weightControls.get(fact.orderId);
       const order=(x.payload as {order?:{shippingMode?:string;shippingPriceBasis?:string;shippingPrice?:string}})?.order;
       if(row.currency&&order?.shippingMode==="SELLER_ARRANGED"&&order.shippingPriceBasis==="fixed"&&
         row.issues.filter(issue=>issue!=="FIXED_SHIPPING_ALLOCATION_REQUIRED").length===0){

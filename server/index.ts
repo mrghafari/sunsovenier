@@ -20,6 +20,7 @@ import { incompletePaymentCleaner } from "./incomplete-payment-cleaner";
 import { setupVite, serveStatic, log } from "./vite";
 import passport from "./passport-config";
 import { createAccountingRouter } from "./modules/accounting/router";
+import { createCommercialAccountingRouter } from "./modules/accounting/commercial-router";
 import { createLoadingRouter } from "./modules/loading/router";
 import { monitoringService } from "./monitoring-service";
 import { sequenceSyncService } from "./sequence-sync";
@@ -381,6 +382,7 @@ app.use((req, res, next) => {
 
     // Accounting owns only its API namespace; no business workflow is changed.
     app.use('/api/accounting', createAccountingRouter());
+    app.use('/api/commercial', createCommercialAccountingRouter());
     app.use('/api/loading', createLoadingRouter());
 
     // Register routes BEFORE Vite middleware to ensure API routes take precedence

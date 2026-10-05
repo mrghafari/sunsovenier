@@ -14,6 +14,8 @@
 - Capture-only loading entry linked to frozen shop orders, with exact measured
   line weights, explicit kg/ton price conversion and documented inventory-cost
   attestations. This is not verified inventory valuation or invoice issuance.
+- Contract-based cumulative order-weight control and immutable Commercial
+  review evidence, with a four-language Commercial sales review surface.
 
 These foundations do not mean a loading creates a live invoice, inventory
 valuation is verified, legacy openings are reconciled, or a consumer is enabled.
@@ -40,16 +42,19 @@ purchase cost or stock carrying value. Do not treat it as COGS evidence.
    unknown units, missing/legacy snapshots and nonzero fixed-order shipping
    without allocation evidence. Fixed freight now uses reviewed manual shares;
    its remainder stays explicitly unallocated. Still required:
-   actual FIFO/stock cost attribution; aggregate
-   loaded-vs-ordered weight/tolerance controls and aggregate excess-weight
-   Commercial department approval (the user's designated approver, not finance).
+   actual FIFO/stock cost attribution and integration of reviewed weight
+   evidence into the future invoice consumer. Aggregate loaded-vs-ordered
+   control and Commercial approval are implemented (the user's designated
+   approver, not finance), not financially activated.
    The user specified that the permitted aggregate overweight must be stated
    in the contract and that this contractual condition is the governing limit,
    rather than a general company tolerance. Use the agreement version belonging
    to the order; missing or unverifiable terms are unknown, not an assumed zero
    or default percentage. Do not reinterpret product-quality tolerance as an
-   aggregate order-weight allowance. This contract-based control remains to be
-   implemented; Commercial review cannot silently change contractual limits.
+   aggregate order-weight allowance. The report includes every captured loading,
+   not just the visible page. New captures freeze their contract evidence; missing
+   terms cannot become known retroactively. A new loading requires a new review
+   of the cumulative total. Commercial review cannot change contractual limits.
    The user approved only the limited measurement/document-evidence connection
    in warehouse/logistics/order surfaces. Changes to reservation, physical stock,
    selling prices, payment timing or live financial activation remain excluded.
@@ -158,6 +163,20 @@ overflow. Rollback-only DB tests cover scope, pagination, legacy data and absenc
 of journals, receivables, wallet mutations or activation.
 
 ## Accounting action history
+
+Commercial weight reviews also have their own immutable evidence registry,
+available under Commercial → Weight reviews (`/mrg/shop?unit=sales&tab=weight-reviews`).
+Its active-role authorization checks Commercial permissions independently of
+Accounting and preserves custom-user UUIDs rather than inventing numeric IDs.
+Numeric admin approvals additionally appear in the existing accounting audit;
+custom-user approvals retain their real UUID in the Commercial registry, since
+the legacy accounting audit's actor column supports numeric IDs only.
+Development migrations are applied; no real order has been approved in testing,
+no financial gate has been enabled, and publishing remains a separate decision.
+Rollback-only DB tests cover contractual limits, namespace identity, scope,
+exact retries, changed history, immutable evidence and no financial effects.
+Four-language component smoke tests and the frontend/server builds pass.
+The signed-in UI still requires an authenticated browser verification.
 
 `GET /api/accounting/v2/audit` and `/audit/csv` expose selected-company accounting
 audit **metadata only**: actor namespace/ID, exact action and entity identifiers,

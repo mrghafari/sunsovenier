@@ -25,7 +25,7 @@ const labels = {
     seller: "فروشنده", buyer: "خریدار", customer: "مشتری انتخاب‌شده", name: "نام شرکت", country: "کشور", registration: "شناسه ملی / ثبت",
     address: "آدرس", representative: "نماینده و سمت", contact: "تماس / ایمیل", companySource: "اطلاعات فروشنده از مدیریت اطلاعات شرکت خوانده می‌شود و هنگام ثبت در قرارداد نگهداری خواهد شد.", refreshSeller: "دریافت دوباره از اطلاعات شرکت", sellerLoading: "در حال دریافت اطلاعات شرکت…", sellerError: "دریافت اطلاعات شرکت ناموفق بود؛ قرارداد جدید را تا رفع مشکل ثبت نکنید.", oldDeal: "نوع معاملهٔ قدیمی: صادرات به عراق. برای تغییر، یکی از سه نوع جدید را انتخاب کنید.",
     products: "محصول و کیفیت", productHint: "کالا، سقف تعداد و قیمت واحد از فهرست محصولات قرارداد خوانده می‌شود.", grade: "گرید / استاندارد",
-    tolerance: "تلورانس مجاز (%)", packaging: "بسته‌بندی / نوع حمل", payment: "قیمت و پرداخت", currency: "ارز فروش: دینار عراق (IQD)",
+    tolerance: "تلورانس کیفیت محصول (%)", aggregateAllowance: "سقف اضافه‌وزن کل سفارش (%)", allowanceHint: "این شرط مستقل از تلورانس کیفیت هر محصول است. خالی یعنی در قرارداد مشخص نشده؛ ۰٪ یعنی هیچ اضافه‌وزنی مجاز نیست.", packaging: "بسته‌بندی / نوع حمل", payment: "قیمت و پرداخت", currency: "ارز فروش: دینار عراق (IQD)",
     method: "روش پرداخت", advance: "پیش‌پرداخت + مانده", lc: "اعتبار اسنادی (LC)", tt: "حواله بانکی (TT)", credit: "فروش اعتباری / مدت‌دار",
     days: "مهلت پرداخت (روز)", delivery: "تحویل و حمل", incoterm: "اینکوترم انتخاب‌شده", location: "محل تحویل",
     deliveryDate: "تاریخ تحویل", city: "شهر داوری / حل اختلاف", preview: "پیش‌نویس متن قرارداد",
@@ -39,7 +39,7 @@ const labels = {
     seller: "Seller", buyer: "Buyer", customer: "Selected customer", name: "Company name", country: "Country", registration: "Registration ID",
     address: "Address", representative: "Representative and title", contact: "Phone / email", companySource: "Seller details come from Company Information and are saved with the contract.", refreshSeller: "Refresh from Company Information", sellerLoading: "Loading company details…", sellerError: "Company details could not be loaded; do not save a new contract until this is resolved.", oldDeal: "Legacy transaction type: export to Iraq. Choose one of the three new types to change it.",
     products: "Products and quality", productHint: "Products, quantity caps and unit prices come from the contract items.", grade: "Grade / standard",
-    tolerance: "Allowed tolerance (%)", packaging: "Packaging / transport", payment: "Price and payment", currency: "Sale currency: Iraqi dinar (IQD)",
+    tolerance: "Product quality tolerance (%)", aggregateAllowance: "Aggregate order overweight allowance (%)", allowanceHint: "Separate from each product’s quality tolerance. Blank means not specified in the contract; 0% means no overweight is allowed.", packaging: "Packaging / transport", payment: "Price and payment", currency: "Sale currency: Iraqi dinar (IQD)",
     method: "Payment method", advance: "Advance + balance", lc: "Letter of credit (LC)", tt: "Bank transfer (TT)", credit: "Credit / deferred",
     days: "Payment period (days)", delivery: "Delivery and transport", incoterm: "Selected Incoterm", location: "Delivery location",
     deliveryDate: "Delivery date", city: "Arbitration / dispute city", preview: "Contract text preview",
@@ -53,7 +53,7 @@ const labels = {
     seller: "البائع", buyer: "المشتري", customer: "العميل المحدد", name: "اسم الشركة", country: "البلد", registration: "رقم التسجيل",
     address: "العنوان", representative: "الممثل وصفته", contact: "الهاتف / البريد الإلكتروني", companySource: "تُستمد بيانات البائع من إدارة معلومات الشركة وتُحفظ مع العقد.", refreshSeller: "تحديث من معلومات الشركة", sellerLoading: "جارٍ تحميل بيانات الشركة…", sellerError: "تعذّر تحميل بيانات الشركة؛ لا تحفظ العقد الجديد قبل حل المشكلة.", oldDeal: "نوع معاملة قديم: تصدير إلى العراق. اختر أحد الأنواع الثلاثة الجديدة لتغييره.",
     products: "المنتجات والجودة", productHint: "تُستمد المنتجات وحدود الكميات وأسعار الوحدات من بنود العقد.", grade: "الدرجة / المعيار",
-    tolerance: "نسبة التفاوت المسموحة (%)", packaging: "التعبئة / النقل", payment: "السعر والدفع", currency: "عملة البيع: الدينار العراقي (IQD)",
+    tolerance: "سماحية جودة المنتج (%)", aggregateAllowance: "حد زيادة وزن الطلب الإجمالي (%)", allowanceHint: "هذا الشرط مستقل عن سماحية جودة كل منتج. الخانة الفارغة تعني أنه غير محدد في العقد؛ ٠٪ تعني عدم السماح بأي زيادة.", packaging: "التعبئة / النقل", payment: "السعر والدفع", currency: "عملة البيع: الدينار العراقي (IQD)",
     method: "طريقة الدفع", advance: "دفعة مقدمة + المتبقي", lc: "اعتماد مستندي (LC)", tt: "تحويل مصرفي (TT)", credit: "بيع آجل",
     days: "مهلة الدفع (أيام)", delivery: "التسليم والنقل", incoterm: "شرط إنكوترمز المختار", location: "مكان التسليم",
     deliveryDate: "تاريخ التسليم", city: "مدينة التحكيم / النزاع", preview: "معاينة نص العقد",
@@ -67,7 +67,7 @@ const labels = {
     seller: "Satıcı", buyer: "Alıcı", customer: "Seçilen müşteri", name: "Şirket adı", country: "Ülke", registration: "Sicil numarası",
     address: "Adres", representative: "Temsilci ve unvan", contact: "Telefon / e-posta", companySource: "Satıcı bilgileri Şirket Bilgileri bölümünden alınır ve sözleşmeyle birlikte saklanır.", refreshSeller: "Şirket Bilgilerinden yenile", sellerLoading: "Şirket bilgileri yükleniyor…", sellerError: "Şirket bilgileri yüklenemedi; sorun çözülmeden yeni sözleşme kaydetmeyin.", oldDeal: "Eski işlem türü: Irak'a ihracat. Değiştirmek için üç yeni türden birini seçin.",
     products: "Ürünler ve kalite", productHint: "Ürünler, miktar limitleri ve birim fiyatlar sözleşme kalemlerinden alınır.", grade: "Sınıf / standart",
-    tolerance: "İzin verilen tolerans (%)", packaging: "Ambalaj / taşıma", payment: "Fiyat ve ödeme", currency: "Satış para birimi: Irak dinarı (IQD)",
+    tolerance: "Ürün kalite toleransı (%)", aggregateAllowance: "Toplam sipariş fazla ağırlık sınırı (%)", allowanceHint: "Her ürünün kalite toleransından bağımsızdır. Boş bırakılması sözleşmede belirtilmediği anlamına gelir; %0 fazla ağırlığa izin verilmediğini belirtir.", packaging: "Ambalaj / taşıma", payment: "Fiyat ve ödeme", currency: "Satış para birimi: Irak dinarı (IQD)",
     method: "Ödeme yöntemi", advance: "Peşinat + bakiye", lc: "Akreditif (LC)", tt: "Banka havalesi (TT)", credit: "Vadeli satış",
     days: "Ödeme süresi (gün)", delivery: "Teslimat ve taşıma", incoterm: "Seçilen Incoterm", location: "Teslimat yeri",
     deliveryDate: "Teslimat tarihi", city: "Tahkim / uyuşmazlık şehri", preview: "Sözleşme metni önizlemesi",
@@ -99,6 +99,10 @@ export default function ContractDraftBuilder({ value, onChange, context, languag
   sellerLoading?: boolean;
   sellerError?: boolean;
 }) {
+  type DraftWithWeightAllowance = ShopContractDraftData & {
+    aggregateWeightAllowance?: { basis: "percent"; value: string };
+  };
+  const allowanceDraft = value as DraftWithWeightAllowance;
   const tx = labels[language];
   const documentLanguage: ContractLanguage = value.language || "fa";
   const text = useMemo(() => buildContractDraftText(value, context), [value, context]);
@@ -172,6 +176,37 @@ export default function ContractDraftBuilder({ value, onChange, context, languag
           </div>
         </div>;
       })}
+    </fieldset>
+    <fieldset className={`space-y-2 p-4 ${contractTheme.panel}`}>
+      <legend className={`px-2 font-semibold ${contractTheme.text}`}>{tx.aggregateAllowance}</legend>
+      <p className="max-w-3xl text-xs leading-5 text-muted-foreground">{tx.allowanceHint}</p>
+      <div className="max-w-sm space-y-1.5">
+        <Label htmlFor="aggregate-weight-allowance">{tx.aggregateAllowance}</Label>
+        <div className="relative">
+          <Input
+            id="aggregate-weight-allowance"
+            type="text"
+            inputMode="decimal"
+            dir="ltr"
+            value={allowanceDraft.aggregateWeightAllowance?.value ?? ""}
+            placeholder={language === "fa" ? "تعیین‌نشده" : language === "ar" ? "غير محدد" : language === "tr" ? "Belirtilmedi" : "Not specified"}
+            maxLength={12}
+            aria-describedby="aggregate-weight-allowance-hint"
+            onChange={(event) => {
+              const next = event.target.value.trim();
+              if (next && !/^\d{1,3}(?:\.\d{0,8})?$/.test(next)) return;
+              if (next && Number(next) > 100) return;
+              const updated = { ...allowanceDraft };
+              if (next) updated.aggregateWeightAllowance = { basis: "percent", value: next };
+              else delete updated.aggregateWeightAllowance;
+              onChange(updated);
+            }}
+            className="pe-10 font-mono tabular-nums"
+          />
+          <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 end-3 flex items-center text-sm text-muted-foreground">%</span>
+        </div>
+        <p id="aggregate-weight-allowance-hint" className="text-xs text-muted-foreground">{tx.allowanceHint}</p>
+      </div>
     </fieldset>
     <fieldset className={`p-4 ${contractTheme.panel}`}><legend className={`px-2 font-semibold ${contractTheme.text}`}>{tx.payment}</legend><p className="mb-3 text-sm text-muted-foreground">{tx.currency}</p><div className="grid gap-4 sm:grid-cols-2">
       <div className="space-y-1.5"><Label htmlFor="draft-payment">{tx.method}</Label><Select value={value.payment.method} onValueChange={(method) => set("payment", { ...value.payment, method: method as ShopContractDraftData["payment"]["method"] })}><SelectTrigger id="draft-payment"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="advance">{tx.advance}</SelectItem><SelectItem value="lc">{tx.lc}</SelectItem><SelectItem value="tt">{tx.tt}</SelectItem><SelectItem value="credit">{tx.credit}</SelectItem></SelectContent></Select></div>

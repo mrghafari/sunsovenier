@@ -56,6 +56,8 @@ import ShopInvoiceManagement from "@/components/ShopInvoiceManagement";
 import AbandonedCartManagement from "@/pages/abandoned-cart-management";
 import BulkPurchaseProductCard from "@/components/BulkPurchaseProductCard";
 import OrderTrackingManagement from "@/pages/admin/order-tracking-management";
+import CommercialWeightReview from "@/components/admin/commercial-weight-review";
+import { commercialSelectionFromUrl, isLegacyContractsDeepLink, type SalesSection } from "@/components/admin/commercial-selection";
 
 type ShopLanguage = "en" | "ar" | "tr" | "fa";
 type ShopTranslation = Partial<Record<ShopLanguage, string>>;
@@ -79,6 +81,7 @@ const SHOP_TRANSLATIONS: Record<string, ShopTranslation> = {
   returnedItems: { en: "Returned Items", ar: "العناصر المرتجعة", tr: "İade Edilenler", fa: "اقلام برگشتی" },
   abandonedCart: { en: "Abandoned Cart", ar: "السلة المتروكة", tr: "Terk Edilmiş Sepet", fa: "سبدهای رهاشده" },
   salesReports: { en: "Sales Reports", ar: "تقارير المبيعات", tr: "Satış Raporları", fa: "گزارش‌های فروش" },
+  commercialWeightReviews: { en: "Weight reviews", ar: "مراجعات الوزن", tr: "Ağırlık incelemeleri", fa: "بازبینی وزن" },
   orderManagement: { en: "Order Management", ar: "إدارة الطلبات", tr: "Sipariş Yönetimi", fa: "مدیریت سفارش‌ها" },
   searchOrders: { en: "Search orders...", ar: "البحث في الطلبات...", tr: "Siparişlerde ara...", fa: "جستجوی سفارش‌ها..." },
   filterStatus: { en: "Filter by status", ar: "تصفية حسب الحالة", tr: "Duruma göre filtrele", fa: "فیلتر بر اساس وضعیت" },
@@ -471,33 +474,6 @@ function ProformaDeadlineSettings() {
   );
 }
 
-const storeSalesTabs = ["orders", "discounts", "inventory", "returns", "abandoned-cart", "bulk-purchases", "proforma-deadline"];
-const formerProcurementTabs = ["bulk-purchases", "proforma-deadline"];
-type SalesSection = "store" | "reports" | "invoices";
-
-function commercialSelectionFromUrl(search: string): { section: SalesSection; tab: string } {
-  const params = new URLSearchParams(search);
-  const unit = params.get("unit");
-  const tab = params.get("tab");
-  if (isLegacyContractsDeepLink(search)) return { section: "store", tab: "orders" };
-  if (unit === "procurement" && (!tab || formerProcurementTabs.includes(tab))) {
-    return { section: "store", tab: tab || "bulk-purchases" };
-  }
-  if (unit === "sales") {
-    if (tab === "reports" || (!tab && params.get("group") === "reports")) return { section: "reports", tab: "reports" };
-    if (tab === "invoices" || (!tab && params.get("group") === "invoices")) return { section: "invoices", tab: "invoices" };
-    if (tab && storeSalesTabs.includes(tab)) return { section: "store", tab };
-  }
-  return { section: "store", tab: "orders" };
-}
-
-function isLegacyContractsDeepLink(search: string): boolean {
-  const params = new URLSearchParams(search);
-  if (params.get("unit") !== "sales") return false;
-  return params.get("tab") === "contracts" ||
-    (params.get("group") === "contractual" && !params.has("tab"));
-}
-
 export default function ShopAdmin() {
   const initialUrlSelection = commercialSelectionFromUrl(typeof window === "undefined" ? "" : window.location.search);
   const [activeSection, setActiveSection] = useState<SalesSection>(initialUrlSelection.section);
@@ -764,6 +740,13 @@ export default function ShopAdmin() {
           >
             {tr("invoiceManagement")}
           </Button>
+          <Button
+            type="button"
+            variant={activeSection === "weight-reviews" ? "default" : "outline"}
+            onClick={() => setCommercialSelection("weight-reviews", "weight-reviews")}
+          >
+            {tr("commercialWeightReviews")}
+          </Button>
           </div>
         </div>
 
@@ -993,6 +976,10 @@ export default function ShopAdmin() {
           {/* Invoice Management Tab */}
           <TabsContent value="invoices" className="space-y-6">
             <ShopInvoiceManagement />
+          </TabsContent>
+
+          <TabsContent value="weight-reviews" className="space-y-6">
+            <CommercialWeightReview />
           </TabsContent>
 
           {/* Returns Tab */}

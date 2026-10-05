@@ -3,6 +3,14 @@ import { z } from "zod";
 const textField = (maxLength: number) => z.string().trim().max(maxLength)
   .refine((value) => !value.includes("\0"), "Text cannot contain a null character.");
 
+// This governs cumulative ORDER weight, not the product's quality tolerance.
+// An absent clause remains unknown; explicit "0" means no overweight allowance.
+export const aggregateWeightAllowanceSchema = z.object({
+  basis: z.literal("percent"),
+  value: z.string().regex(/^(?:0|[1-9]\d{0,2})(?:\.\d{1,8})?$/)
+    .refine(value => Number(value) <= 100, "Aggregate weight allowance must be between 0 and 100 percent."),
+}).strict();
+
 export const contractDraftLanguages = ["fa", "ar", "en", "tr"] as const;
 export type ContractDraftLanguage = typeof contractDraftLanguages[number];
 export type ShopContractLanguage = ContractDraftLanguage;
@@ -70,6 +78,7 @@ const contractDraftShape = z.object({
     contact: textField(300),
   }).strict(),
   productDetails: productDetailsSchema,
+  aggregateWeightAllowance: aggregateWeightAllowanceSchema.optional(),
   payment: z.object({
     method: z.enum(["advance", "lc", "tt", "credit"]),
     days: textField(100),

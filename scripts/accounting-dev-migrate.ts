@@ -37,6 +37,10 @@ try {
     "server/modules/accounting/0022_credit_approval.sql",
     "server/modules/accounting/0023_credit_orders.sql",
     "server/modules/accounting/0024_loading_shipping.sql",
+    "server/modules/accounting/0025_contract_loading_weight.sql",
+    "server/modules/accounting/0026_contract_weight_review_guards.sql",
+    "server/modules/accounting/0027_commercial_actor_namespaces.sql",
+    "server/modules/accounting/0028_weight_review_active_company.sql",
   ];
   for (const file of files) {
     const content = await readFile(file,"utf8");
