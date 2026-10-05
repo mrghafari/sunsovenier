@@ -2,6 +2,11 @@
 
 ## Delivered foundations
 
+- Documented shipment-cost capture and a separately closed-gate financial
+  workbench for external-carrier payables and frozen internal-fleet absorption.
+  Original native/base cost and dated official FX are retained; stale manager
+  plans, duplicate/conflicting commands and independent reversal are blocked.
+  This is not a live worker, carrier payment or approved real-world cutover.
 - Approved purchase/opening capitalization workbench: one original GL journal
   and every inventory carrying layer commit atomically, with documentary cost,
   supplier reference, dated official acquisition FX evidence, cumulative rounding,
@@ -95,10 +100,16 @@ purchase cost or stock carrying value. Do not treat it as COGS evidence.
    capitalization and foreign invoices with original base-stock costs now have
    transactional handlers. Remaining: actual documentary openings and reconciliation,
    coordinated invoice/AR/stock/settlement returns,
-   shipment/fleet handlers, and separately approved worker retry/backoff and
+    coordinated shipment-cost returns, and separately approved worker retry/backoff and
    error provenance. Real opening evidence and activation are still outstanding.
    Never flip event eligibility or start a consumer merely because arithmetic
    succeeds.
+    Shipment/fleet posting now has an explicit manager handler and four-language
+    capture/posting workbench, not an automatic consumer. The independent base
+    and foreign shipment cutovers remain closed; genuine opening/cutover evidence
+    must be reviewed before activation. A posted external cost recognizes the
+    carrier payable, not a bank payment. Carrier party IDs are explicitly
+    accountant-attested identifiers, not inferred from customer/vehicle IDs.
 3. **Complete foreign wallet refunds and partial receipt returns.** Preserve
    pooled native/base book values, original allocations and settlement evidence,
    protect holds/other currencies, and recognize realized FX explicitly.

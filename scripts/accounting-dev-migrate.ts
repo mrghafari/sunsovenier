@@ -53,6 +53,8 @@ try {
     "server/modules/accounting/0038_inventory_capitalization.sql",
     "server/modules/accounting/0039_capitalization_document_cost_cast.sql",
     "server/modules/accounting/0040_foreign_loading_invoices.sql",
+     "server/modules/accounting/0041_shipment_costs.sql",
+     "server/modules/accounting/0042_shipment_provenance.sql",
   ];
   for (const file of files) {
     const content = await readFile(file,"utf8");

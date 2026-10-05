@@ -75,3 +75,4 @@
 - [Contract bulk transport](contract-bulk-transport.md) — Kardex bulk-sale flags select bulk-category vehicles for contract sales; goods retain their contract price.
 - [Manual fixed freight](manual-fixed-freight.md) — fixed order freight is allocated by manually entered, finance-approved shares, capped by the original total.
 - [Contractual aggregate overweight](contract-weight-policy.md) — Commercial reviews cumulative order overweight; the order's own contractual allowance, not a company default, governs.
+- [Freight return independence](freight-return-independence.md) — a sales return does not itself erase incurred freight or the carrier payable; freight corrections need their own evidence.

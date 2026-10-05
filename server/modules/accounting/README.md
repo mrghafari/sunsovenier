@@ -1,5 +1,81 @@
 # Centralized accounting — integration boundary
 
+## Shipment-cost capture and staged posting
+
+Accounting → Shipment costs is a four-language, RBAC-controlled workbench.
+`GET /api/accounting/v2/shipment-costs` accepts company, optional numeric order,
+page and page size and returns a consistent read-only snapshot. Unknown/malformed
+facts remain blocked, not zero-valued costs. Native and base values stay exact
+decimal strings. A captured cost is not a journal or an approved financial cutover.
+
+Managers can document a cost using `POST /api/accounting/v2/shipment-costs/capture`
+with `{companyId,event}`. The event uses the existing strict operational-event
+schema and must be `ShipmentCostRecorded`, identify a real same-company order and
+an existing measured loading's **original** loading reference. Server validation
+rejects future dates and mismatched company/order scope. External captures require
+an actual carrier reference, actual cost, currency and cost-document reference.
+Internal captures freeze the configured fleet rate/basis/center; per-km rates
+require measured distance. Capture atomically retains the fact, audit and
+ineligible outbox event; it does not change native order, stock, price or wallet.
+The immutable reference supports exact retries and rejects changed evidence.
+
+`POST /api/accounting/v2/shipment-costs` requires active accounting management,
+same-origin requests, a reviewed `expectedPlanHash`, a reason and—for external
+costs—an explicitly entered accounting carrier party ID. The hash includes the
+current official FX evidence and posting account IDs; changed values require a
+fresh GET and manager review, not an automatic mutation retry.
+
+The independent `accounting_shipment_cutovers` gate is absent/closed by default.
+Activation requires a real reviewed opening/cutover evidence reference and
+date; foreign costs have a separate readiness flag. No gate is editable through
+this workbench and no real company is enabled by migrations or tests.
+Financial dates must be on/after the reviewed shipment boundary and cannot
+precede the measured loading. This is a dated cost boundary, not an enrollment
+or change of the legacy order/payment workflow.
+
+External posting creates Dr SHIPPING_EXPENSE / Cr CARRIER_PAYABLE with the
+explicit carrier party; it does **not** pay the carrier. Internal posting creates
+Dr SHIPPING_EXPENSE / Cr FLEET_COST_ABSORBED using the original measured tons or
+distance and frozen fleet center/rate, never a subsequently edited fleet setting.
+Foreign cost uses a documented central-bank rate effective on/before the cost
+date. Both native and original base valuation and FX provenance are immutable;
+reports never revalue these historical costs at today's rate.
+
+Journal, immutable command/provenance and accounting audit commit in one
+transaction. DB guards verify same-company/source/loading, exact measured-line
+totals, carrier documents, active mappings/period, native/base journal amounts,
+manager and closed-gate policy. Exact command retries return the existing journal
+even after pausing a gate; conflicting retries cannot adopt an unrelated journal.
+Independent reversals of attached cost journals are blocked pending a coordinated
+return handler. Existing attributed shipping-margin and fleet-cost reports read
+these journals without guessed allocations or fabricated revenue.
+
+**Assumptions:** carrier party IDs follow the existing accounting carrier-party
+namespace and are explicitly accountant-attested alongside the documentary
+carrier reference. This does not create a carrier master or infer IDs from
+customers, vehicles or the operational logistics module. Missing identity/evidence
+must be resolved by an accountant before posting. Opening reconciliation, actual
+financial activation, production migration and publishing require separate approval.
+
+Development migrations `0041_shipment_costs.sql` and
+`0042_shipment_provenance.sql` are applied by the existing explicit runner.
+For production, apply them in order after the existing accounting migrations,
+using the approved production migration process; do not run the development
+runner there. No production migration or activation was performed.
+
+Verification: `npm run test:accounting:shipment` runs exact arithmetic, API and
+four-language capture SSR checks; `npm run test:accounting:shipment:db` runs
+rollback-only financial/idempotency/FX/immutability tests and shipping-report
+regressions. Fixture cutovers are enabled only inside the rolled-back transaction.
+
+Manual checklist (with authenticated test access): select a company; capture
+documented external/internal evidence against a measured loading; confirm
+capture-only status and closed-gate blockers; retry the same reference; verify
+viewer restrictions and all four language/RTL states. Only in an approved isolated
+financial test company, review and post a plan, inspect its journal/payable or
+fleet allocation, edit FX/mapping between review and submission to confirm stale
+rejection, and reconcile reports. Signed-in browser verification is still outstanding.
+
 ## Staged credit approval (not live financial completion)
 
 The accounting panel now includes four-language credit exposure and explicit

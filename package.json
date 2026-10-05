@@ -22,7 +22,9 @@
     "accounting:seed:dev": "NODE_ENV=development tsx scripts/accounting-dev-seed.ts",
     "test:accounting": "tsx --test server/modules/accounting/money.test.ts server/modules/accounting/reports.test.ts server/modules/accounting/customer-reports.test.ts server/modules/accounting/receipt-workbench.test.ts server/modules/accounting/manual-documents.test.ts client/src/components/admin/accounting/accounting-logic.test.ts",
     "test:accounting:db": "ACCOUNTING_DB_TEST=1 tsx --test --test-concurrency=1 server/modules/accounting/integrity.test.ts server/modules/accounting/outbox.test.ts server/modules/accounting/wallet.test.ts server/modules/accounting/receipts.test.ts server/modules/accounting/receipt-returns.test.ts server/modules/accounting/reports-db.test.ts server/modules/accounting/customer-reports-db.test.ts server/modules/accounting/manual-documents-db.test.ts server/modules/accounting/foreign-manual-expenses.test.ts",
-    "test:accounting:documents": "tsx --test server/modules/accounting/manual-documents.test.ts && node client/src/components/admin/accounting/run-documents-ssr-smoke.mjs"
+    "test:accounting:documents": "tsx --test server/modules/accounting/manual-documents.test.ts && node client/src/components/admin/accounting/run-documents-ssr-smoke.mjs",
+    "test:accounting:shipment": "tsx --test server/modules/accounting/shipment-cost-calculation.test.ts && node client/src/components/admin/accounting/run-accounting-shipment-costs-smoke.mjs && node client/src/components/admin/accounting/run-accounting-shipment-cost-capture-ssr-smoke.mjs",
+    "test:accounting:shipment:db": "ACCOUNTING_DB_TEST=1 tsx --test --test-concurrency=1 server/modules/accounting/shipment-costs-db.test.ts server/modules/accounting/shipping-reports-db.test.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1130.0",
