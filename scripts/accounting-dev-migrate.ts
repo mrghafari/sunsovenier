@@ -50,6 +50,8 @@ try {
     "server/modules/accounting/0035_stock_book_currency_guard.sql",
     "server/modules/accounting/0036_loading_fifo_chronology.sql",
     "server/modules/accounting/0037_stock_ledger_parity.sql",
+    "server/modules/accounting/0038_inventory_capitalization.sql",
+    "server/modules/accounting/0039_capitalization_document_cost_cast.sql",
   ];
   for (const file of files) {
     const content = await readFile(file,"utf8");

@@ -38,3 +38,12 @@ receivable or hold writes can survive even though the operation failed.
 release it before rethrowing, and test a caught downstream failure followed by
 queries and a successful operation on the same transaction. A caller's ability
 to roll back does not replace the operation's atomicity guarantee.
+
+A successful migration does not prove that every PL/pgSQL guard expression runs.
+
+**Why:** PostgreSQL can defer expression resolution until the trigger path is
+executed; incompatible documentary and ledger amount types may surface only
+when a real multi-record operation forces its deferred evidence checks.
+
+**How to apply:** Exercise positive and negative source paths inside rollback-only
+transactions and force deferred constraints before declaring a new guard ready.

@@ -2,6 +2,15 @@
 
 ## Delivered foundations
 
+- Approved purchase/opening capitalization workbench: one original GL journal
+  and every inventory carrying layer commit atomically, with documentary cost,
+  supplier reference, dated official acquisition FX evidence, cumulative rounding,
+  immutable provenance and command-idempotent retry. Dedicated supplier-invoice
+  liability recognition is not a bank payment or a supplier master/statement.
+  Base-currency opening evidence is required; foreign openings cannot be
+  manufactured from current/acquisition rates. All capitalization activation
+  remains closed; no real opening, physical stock change or funds are seeded.
+
 - Immutable, balanced ledger, fiscal closing, reversal, source idempotency, RBAC
   and accounting action capture.
 - Reference setup, country packs, currency/rate/tax/account mapping management.

@@ -24,6 +24,7 @@ import {readLoadingPreviews} from "./loading-previews";
 import {readInventoryDocumentMetadata,readInventoryDocuments,readInventoryDocument,saveInventoryDocument,actInventoryDocument} from "./inventory-documents";
 import {readInventoryFifo} from "./inventory-fifo";
 import {readLoadingInvoiceWorkbench,issueLoadingInvoice} from "./loading-invoices";
+import {readCapitalizationWorkbench,capitalizeInventoryDocument} from "./inventory-capitalization";
 import {stockBookMetadata,registerStockBook} from "./loading-invoice-stock";
 import {approveLoadingShipping} from "./loading-shipping";
 import {readLoadingCaptureContext,captureMeasuredLoading} from "./loading-capture";
@@ -278,6 +279,12 @@ export function createAccountingRouter() {
   });
   router.get("/v2/loading-invoices",async(req,res,next)=>{
     try{res.set("Cache-Control","private, no-store");res.json(await readLoadingInvoiceWorkbench(req.query));}catch(e){next(e);}
+  });
+  router.get("/v2/inventory-capitalizations",async(req,res,next)=>{
+    try{res.set("Cache-Control","private, no-store");res.json(await readCapitalizationWorkbench(req.query));}catch(e){next(e);}
+  });
+  router.post("/v2/inventory-capitalizations",async(req,res,next)=>{
+    try{assertAccountingOrigin(req);res.json(await capitalizeInventoryDocument(req.body,res.locals.accountingAccess));}catch(e){next(e);}
   });
   router.post("/v2/loading-invoices",async(req,res,next)=>{
     try{assertAccountingOrigin(req);res.json(await issueLoadingInvoice(req.body,res.locals.accountingAccess));}catch(e){next(e);}
