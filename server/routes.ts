@@ -42,6 +42,8 @@ import { db, pool } from "./db";
 import { sql, eq, and, or, ne, isNull, isNotNull, desc, gte, inArray, asc } from "drizzle-orm";
 import { findCorruptedOrders, getDataIntegrityStats, validateOrderIntegrity, markCorruptedOrderAsDeleted } from './data-integrity-tools';
 import { z } from "zod";
+import {readSiteLanguageSettings,saveSiteLanguageSettings} from "./site-language-settings";
+import {languageForVisitorCountry,siteLanguageSettingsUpdateSchema,type SiteLanguageSettings} from "@shared/site-language-settings";
 import { normalizeBlogPublishDate, parseNewBlogPost } from "./blog-post-input";
 import * as schema from "@shared/schema";
 import { iranProvinces } from "../client/src/lib/iran-locations";
@@ -30253,37 +30255,27 @@ ${message ? `Additional Requirements:\n${message}` : ''}
 
   // Language settings - public read
   app.get("/api/public/language-settings", async (req, res) => {
+    res.set("Cache-Control","no-store");
     try {
-      const { pool } = await import('./db');
-      const result = await pool.query(
-        `SELECT setting_value FROM shop_settings WHERE setting_key = 'language_settings' LIMIT 1`
-      );
-      if (result.rows.length > 0) {
-        res.json({ success: true, data: JSON.parse(result.rows[0].setting_value) });
-      } else {
-        // Default: all languages enabled
-        res.json({ success: true, data: { en: true, ar: true, ku: true, tr: true, fa: true } });
-      }
+      res.json({success:true,data:await readSiteLanguageSettings()});
     } catch (error) {
-      res.json({ success: true, data: { en: true, ar: true, ku: true, tr: true, fa: true } });
+      console.error("[LANGUAGE SETTINGS] Read failed",error);
+      res.status(500).json({success:false,message:"Unable to load site language settings"});
     }
   });
 
-  const geoLanguageCache = new Map<string, { countryCode: string; language: "en" | "ar" | "tr" | "fa"; expiresAt: number }>();
+  const geoLanguageCache = new Map<string, { countryCode: string; expiresAt: number }>();
 
   // Detect a first-time visitor's language from their IP country. Manual
   // language choices are handled and preserved by the client.
   app.get("/api/public/detect-language", async (req, res) => {
-    const languageForCountry = (countryCode: string): "en" | "ar" | "tr" | "fa" => {
-      switch (countryCode.toUpperCase()) {
-        case "IR": return "fa";
-        case "IQ": return "ar";
-        case "TR": return "tr";
-        default: return "en";
-      }
-    };
-
+    res.set("Cache-Control","no-store");
+    let settings:SiteLanguageSettings|undefined;
     try {
+      settings=await readSiteLanguageSettings();
+      if(settings.initialLanguageMode==="fixed"){
+        return res.json({success:true,data:{countryCode:null,language:settings.defaultLanguage,mode:"fixed"}});
+      }
       const countryHeaderNames = [
         "cf-ipcountry",
         "x-vercel-ip-country",
@@ -30299,7 +30291,7 @@ ${message ? `Additional Requirements:\n${message}` : ''}
       if (headerCountry) {
         return res.json({
           success: true,
-          data: { countryCode: headerCountry, language: languageForCountry(headerCountry) },
+          data: { countryCode: headerCountry, language: languageForVisitorCountry(settings,headerCountry),mode:"ip" },
         });
       }
 
@@ -30312,7 +30304,7 @@ ${message ? `Additional Requirements:\n${message}` : ''}
       if (cached && cached.expiresAt > Date.now()) {
         return res.json({
           success: true,
-          data: { countryCode: cached.countryCode, language: cached.language },
+          data: { countryCode: cached.countryCode, language: languageForVisitorCountry(settings,cached.countryCode),mode:"ip" },
         });
       }
 
@@ -30343,34 +30335,31 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         }
       }
 
-      const language = languageForCountry(countryCode);
+      const language = languageForVisitorCountry(settings,countryCode);
       geoLanguageCache.set(clientIp, {
         countryCode,
-        language,
         expiresAt: Date.now() + 24 * 60 * 60 * 1000,
       });
-      res.json({ success: true, data: { countryCode: countryCode || null, language } });
+      res.json({ success: true, data: { countryCode: countryCode || null, language,mode:"ip" } });
     } catch (error) {
-      console.warn("[LANGUAGE DETECTION] Falling back to English:", error);
-      res.json({ success: true, data: { countryCode: null, language: "en" } });
+      console.warn("[LANGUAGE DETECTION] Detection unavailable:", error);
+      if(!settings)return res.status(500).json({success:false,message:"Unable to load site language settings"});
+      res.json({ success: true, data: { countryCode: null, language: settings.defaultLanguage,mode:settings.initialLanguageMode } });
     }
   });
 
   // Language settings - admin update
   app.put("/api/admin/language-settings", requireAuth, async (req, res) => {
     try {
-      const { en, ar, ku, tr, fa } = req.body;
-      if (en === false && ar === false && ku === false && tr === false && fa === false) {
-        return res.status(400).json({ success: false, message: "حداقل یک زبان باید فعال باشد" });
+      const parsed=siteLanguageSettingsUpdateSchema.safeParse(req.body);
+      if(!parsed.success){
+        return res.status(400).json({success:false,message:"تنظیمات نامعتبر است؛ حداقل یک زبان سایت باید فعال باشد"});
       }
-      const value = JSON.stringify({ en: !!en, ar: !!ar, ku: !!ku, tr: !!tr, fa: !!fa });
-      const { pool } = await import('./db');
-      await pool.query(`
-        INSERT INTO shop_settings (setting_key, setting_value, setting_type, display_name, category, is_public)
-        VALUES ('language_settings', $1, 'json', 'تنظیمات زبان‌های سایت', 'appearance', true)
-        ON CONFLICT (setting_key) DO UPDATE SET setting_value = $1, updated_at = NOW()
-      `, [value]);
-      res.json({ success: true, message: "تنظیمات زبان با موفقیت ذخیره شد", data: { en: !!en, ar: !!ar, ku: !!ku, tr: !!tr, fa: !!fa } });
+      let settings:SiteLanguageSettings;
+      if(parsed.data.defaultLanguage!==undefined&&parsed.data[parsed.data.defaultLanguage]===false)
+        return res.status(400).json({success:false,message:"زبان اولیه باید از زبان‌های فعال سایت انتخاب شود"});
+      settings=await saveSiteLanguageSettings(parsed.data);
+      res.json({ success: true, message: "تنظیمات زبان با موفقیت ذخیره شد", data: settings });
     } catch (error) {
       console.error("Error updating language settings:", error);
       res.status(500).json({ success: false, message: "خطا در ذخیره تنظیمات زبان" });

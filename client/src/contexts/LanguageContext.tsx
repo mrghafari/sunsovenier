@@ -1,9 +1,11 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { Language, translations, Translation, getDirection } from '@/lib/i18n';
+import {readManualSiteLanguage,resolveInitialSiteLanguage} from "@/lib/site-language-preference";
 
 interface LanguageContextType {
   language: Language;
   setLanguage: (language: Language) => void;
+  setAutomaticLanguage: (language: Language) => void;
   t: Translation;
   direction: 'ltr' | 'rtl';
 }
@@ -15,67 +17,70 @@ interface LanguageProviderProps {
 }
 
 export function LanguageProvider({ children }: LanguageProviderProps) {
-  const [language, setLanguage] = useState<Language>(() => {
-    // Preserve explicit user choices. Otherwise English is used briefly until
-    // IP-based detection completes.
-    const saved = localStorage.getItem('language') as Language;
-    const wasManuallySelected = localStorage.getItem('language-manually-selected') === 'true';
-    return wasManuallySelected && saved && (saved === 'en' || saved === 'ar' || saved === 'tr' || saved === 'fa')
-      ? saved
-      : 'en';
-  });
+  const [manualLanguage]=useState(()=>readManualSiteLanguage(localStorage));
+  const [language, setLanguage] = useState<Language>(manualLanguage??"en");
+  const [ready,setReady]=useState(Boolean(manualLanguage));
 
   const chooseLanguage = useCallback((nextLanguage: Language) => {
     localStorage.setItem('language-manually-selected', 'true');
+    localStorage.setItem('language',nextLanguage);
     setLanguage(nextLanguage);
   }, []);
+  const setAutomaticLanguage=useCallback((nextLanguage:Language)=>{
+    localStorage.removeItem("language-manually-selected");
+    setLanguage(nextLanguage);
+  },[]);
 
   const direction = getDirection(language);
   const t = translations[language];
 
   // Save language preference and update document direction
   useEffect(() => {
+    if(!ready)return;
     localStorage.setItem('language', language);
     document.documentElement.dir = direction;
     document.documentElement.lang = language;
     document.documentElement.className = `lang-${language}`;
-  }, [language, direction]);
+  }, [language, direction,ready]);
 
   useEffect(() => {
-    if (localStorage.getItem('language-manually-selected') === 'true') return;
+    if (manualLanguage) return;
 
     const controller = new AbortController();
-    fetch('/api/public/detect-language', { signal: controller.signal })
-      .then((response) => response.ok ? response.json() : null)
-      .then((result) => {
-        const detected = result?.data?.language as Language | undefined;
-        if (
-          localStorage.getItem('language-manually-selected') !== 'true' &&
-          detected &&
-          ['en', 'ar', 'tr', 'fa'].includes(detected)
-        ) {
-          setLanguage(detected);
-        }
-      })
+    let mounted=true;
+    const timeout=setTimeout(()=>controller.abort(),6000);
+    resolveInitialSiteLanguage(null,async()=>{
+      const response=await fetch('/api/public/detect-language',{signal:controller.signal,cache:"no-store"});
+      if(!response.ok)throw new Error("Initial language settings unavailable");
+      const result=await response.json();
+      if(!result.success)throw new Error("Initial language settings unavailable");
+      return result?.data?.language;
+    }).then(detected=>{
+      if(mounted&&!readManualSiteLanguage(localStorage))setLanguage(detected);
+    })
       .catch((error) => {
-        if (error?.name !== 'AbortError') {
-          console.warn('[LANGUAGE] IP detection failed; using English');
-        }
+        if(mounted)console.warn('[LANGUAGE] Initial language unavailable; using English',error);
+      }).finally(()=>{
+        clearTimeout(timeout);
+        if(mounted)setReady(true);
       });
 
-    return () => controller.abort();
-  }, []);
+    return () => {mounted=false;clearTimeout(timeout);controller.abort();};
+  }, [manualLanguage]);
 
   const value = {
     language,
     setLanguage: chooseLanguage,
+    setAutomaticLanguage,
     t,
     direction,
   };
 
   return (
     <LanguageContext.Provider value={value}>
-      {children}
+      {ready?children:<div className="flex min-h-screen items-center justify-center">
+        <span role="status" aria-label="Loading site language" className="h-7 w-7 animate-spin rounded-full border-2 border-current border-t-transparent"/>
+      </div>}
     </LanguageContext.Provider>
   );
 }

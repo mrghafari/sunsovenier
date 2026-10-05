@@ -84,6 +84,82 @@ const ku: Dictionary = {
   'Please select an image file.': 'تکایە فایلێکی وێنە هەڵبژێرە',
 };
 
+Object.assign(en, {
+  'Could not save language settings. Please try again.': 'Could not save language settings. Please try again.',
+  'Language settings could not be loaded.': 'Language settings could not be loaded.',
+  'The server returned an unexpected response.': 'The server returned an unexpected response.',
+  'Try again': 'Try again',
+  'The latest language settings could not be refreshed. Your current edits are still available.': 'The latest language settings could not be refreshed. Your current edits are still available.',
+  'Enable language': 'Enable language',
+  'First-visit language policy': 'First-visit language policy',
+  'Choose which language a visitor sees when they first arrive. Their saved manual language choice always takes priority on later visits.': 'Choose which language a visitor sees when they first arrive. Their saved manual language choice always takes priority on later visits.',
+  'Initial language method': 'Initial language method',
+  'Use visitor country (IP)': 'Use visitor country (IP)',
+  'Always use selected language': 'Always use selected language',
+  'IP mode uses the visitor’s country for the first visit. If unavailable or that language is disabled, the selected language is used.': 'IP mode uses the visitor’s country for the first visit. If unavailable or that language is disabled, the selected language is used.',
+  'Fixed mode shows the selected language on a visitor’s first visit.': 'Fixed mode shows the selected language on a visitor’s first visit.',
+  'Fallback language': 'Fallback language',
+  'Selected initial language': 'Selected initial language',
+  'This language is used when country detection cannot choose an enabled language, and as the fixed first-visit language.': 'This language is used when country detection cannot choose an enabled language, and as the fixed first-visit language.',
+});
+
+Object.assign(fa, {
+  'Could not save language settings. Please try again.': 'ذخیره تنظیمات زبان انجام نشد. لطفاً دوباره تلاش کنید.',
+  'Language settings could not be loaded.': 'بارگذاری تنظیمات زبان انجام نشد.',
+  'The server returned an unexpected response.': 'پاسخ غیرمنتظره‌ای از سرور دریافت شد.',
+  'Try again': 'تلاش دوباره',
+  'The latest language settings could not be refreshed. Your current edits are still available.': 'تنظیمات زبان به‌روز نشد. ویرایش‌های فعلی شما حفظ شده‌اند.',
+  'Enable language': 'فعال‌سازی زبان',
+  'First-visit language policy': 'سیاست زبان در نخستین بازدید',
+  'Choose which language a visitor sees when they first arrive. Their saved manual language choice always takes priority on later visits.': 'زبان نمایش‌داده‌شده به بازدیدکننده در ورود نخست را انتخاب کنید. انتخاب دستی ذخیره‌شدهٔ او در بازدیدهای بعدی همیشه اولویت دارد.',
+  'Initial language method': 'روش انتخاب زبان اولیه',
+  'Use visitor country (IP)': 'استفاده از کشور بازدیدکننده (IP)',
+  'Always use selected language': 'همیشه استفاده از زبان انتخاب‌شده',
+  'IP mode uses the visitor’s country for the first visit. If unavailable or that language is disabled, the selected language is used.': 'در حالت IP، کشور بازدیدکننده برای تعیین زبان نخستین بازدید استفاده می‌شود. اگر اطلاعات در دسترس نباشد یا آن زبان غیرفعال باشد، زبان انتخاب‌شده به‌کار می‌رود.',
+  'Fixed mode shows the selected language on a visitor’s first visit.': 'در حالت ثابت، زبان انتخاب‌شده در نخستین بازدید نمایش داده می‌شود.',
+  'Fallback language': 'زبان جایگزین',
+  'Selected initial language': 'زبان اولیه انتخاب‌شده',
+  'This language is used when country detection cannot choose an enabled language, and as the fixed first-visit language.': 'اگر تشخیص کشور نتواند زبان فعالی را تعیین کند، و نیز در حالت ثابت برای نخستین بازدید، از این زبان استفاده می‌شود.',
+});
+
+Object.assign(ar, {
+  'Could not save language settings. Please try again.': 'تعذر حفظ إعدادات اللغة. يُرجى المحاولة مرة أخرى.',
+  'Language settings could not be loaded.': 'تعذر تحميل إعدادات اللغة.',
+  'The server returned an unexpected response.': 'أعاد الخادم استجابة غير متوقعة.',
+  'Try again': 'حاول مرة أخرى',
+  'The latest language settings could not be refreshed. Your current edits are still available.': 'تعذر تحديث إعدادات اللغة الأخيرة. لا تزال تعديلاتك الحالية متاحة.',
+  'Enable language': 'تفعيل اللغة',
+  'First-visit language policy': 'سياسة اللغة في الزيارة الأولى',
+  'Choose which language a visitor sees when they first arrive. Their saved manual language choice always takes priority on later visits.': 'اختر اللغة التي يراها الزائر عند دخوله لأول مرة. يظل اختياره اليدوي المحفوظ هو الأولوية في الزيارات اللاحقة.',
+  'Initial language method': 'طريقة تحديد اللغة الأولية',
+  'Use visitor country (IP)': 'استخدام بلد الزائر (IP)',
+  'Always use selected language': 'استخدام اللغة المحددة دائماً',
+  'IP mode uses the visitor’s country for the first visit. If unavailable or that language is disabled, the selected language is used.': 'يستخدم وضع IP بلد الزائر لتحديد اللغة في الزيارة الأولى. إذا تعذر تحديد البلد أو كانت لغته معطلة، تُستخدم اللغة المحددة.',
+  'Fixed mode shows the selected language on a visitor’s first visit.': 'يعرض الوضع الثابت اللغة المحددة في الزيارة الأولى للزائر.',
+  'Fallback language': 'اللغة الاحتياطية',
+  'Selected initial language': 'اللغة الأولية المحددة',
+  'This language is used when country detection cannot choose an enabled language, and as the fixed first-visit language.': 'تُستخدم هذه اللغة عندما يتعذر على تحديد البلد اختيار لغة مفعّلة، وكذلك كلغة الزيارة الأولى في الوضع الثابت.',
+});
+
+Object.assign(tr, {
+  'Could not save language settings. Please try again.': 'Dil ayarları kaydedilemedi. Lütfen tekrar deneyin.',
+  'Language settings could not be loaded.': 'Dil ayarları yüklenemedi.',
+  'The server returned an unexpected response.': 'Sunucu beklenmeyen bir yanıt verdi.',
+  'Try again': 'Tekrar deneyin',
+  'The latest language settings could not be refreshed. Your current edits are still available.': 'Dil ayarları yenilenemedi. Mevcut düzenlemeleriniz korunuyor.',
+  'Enable language': 'Dili etkinleştir',
+  'First-visit language policy': 'İlk ziyaret dili politikası',
+  'Choose which language a visitor sees when they first arrive. Their saved manual language choice always takes priority on later visits.': 'Ziyaretçinin ilk gelişinde göreceği dili seçin. Sonraki ziyaretlerde kaydedilmiş manuel dil tercihi her zaman önceliklidir.',
+  'Initial language method': 'İlk dil belirleme yöntemi',
+  'Use visitor country (IP)': 'Ziyaretçinin ülkesini kullan (IP)',
+  'Always use selected language': 'Her zaman seçilen dili kullan',
+  'IP mode uses the visitor’s country for the first visit. If unavailable or that language is disabled, the selected language is used.': 'IP modu, ilk ziyarette ziyaretçinin ülkesini kullanır. Ülke belirlenemezse veya ilgili dil devre dışıysa seçilen dil kullanılır.',
+  'Fixed mode shows the selected language on a visitor’s first visit.': 'Sabit mod, ziyaretçinin ilk ziyaretinde seçilen dili gösterir.',
+  'Fallback language': 'Yedek dil',
+  'Selected initial language': 'Seçilen ilk dil',
+  'This language is used when country detection cannot choose an enabled language, and as the fixed first-visit language.': 'Ülke tespiti etkin bir dil seçemediğinde ve sabit modda ilk ziyaret dili olarak bu dil kullanılır.',
+});
+
 export const contentManagementTranslations: Record<ContentManagementLanguage, Dictionary> = { en, fa, ar, ku, tr };
 
 const additionalTranslations: Record<string, Dictionary> = {

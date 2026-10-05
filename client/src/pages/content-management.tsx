@@ -16,6 +16,12 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { translateContentManagement } from "./content-management-translations";
+import {
+  normalizeSiteLanguageSettings,
+  siteLanguages,
+  type SiteLanguage,
+  type SiteLanguageSettings,
+} from "@shared/site-language-settings";
 
 interface ContentItem {
   id: number;
@@ -1985,65 +1991,97 @@ s0.parentNode.insertBefore(s1,s0);
 function LanguageSettingsTab() {
   const { language: interfaceLanguage, direction } = useLanguage();
   const tx = (value: string) => translateContentManagement(interfaceLanguage, value);
-  const { data: langData, isLoading } = useQuery({
+  const { data: langData, isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey: ['/api/public/language-settings'],
     staleTime: 0,
   });
 
-  const [settings, setSettings] = useState<Record<string, boolean>>({ en: true, ar: true, ku: true, tr: true, fa: true });
+  const [settings, setSettings] = useState<SiteLanguageSettings | null>(null);
 
   useEffect(() => {
-    if ((langData as any)?.data) {
-      setSettings((langData as any).data);
+    if (!settings && (langData as any)?.success === true && (langData as any)?.data) {
+      setSettings(normalizeSiteLanguageSettings((langData as any).data));
     }
-  }, [langData]);
+  }, [langData, settings]);
 
   const mutation = useMutation({
-    mutationFn: async (data: Record<string, boolean>) => {
+    mutationFn: async (data: SiteLanguageSettings): Promise<SiteLanguageSettings> => {
       const res = await fetch('/api/admin/language-settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify(data),
       });
-      const json = await res.json();
-      if (!json.success) throw new Error(json.message);
-      return json;
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success || !json?.data) {
+        throw new Error(json?.message || tx('Could not save language settings. Please try again.'));
+      }
+      return normalizeSiteLanguageSettings(json.data);
     },
-    onSuccess: () => {
+    onSuccess: (savedSettings) => {
+      setSettings(savedSettings);
       queryClient.invalidateQueries({ queryKey: ['/api/public/language-settings'] });
     },
   });
 
   const LANGUAGES = [
-    { code: 'en', name: 'English', nativeName: 'انگلیسی', flag: '🇬🇧' },
-    { code: 'ar', name: 'Arabic', nativeName: 'عربی', flag: '🇸🇦' },
-    { code: 'ku', name: 'Kurdish', nativeName: 'کوردی', flag: '🇮🇶' },
-    { code: 'tr', name: 'Turkish', nativeName: 'ترکی', flag: '🇹🇷' },
-    { code: 'fa', name: 'Persian', nativeName: 'فارسی', flag: '🇮🇷' },
-  ];
+    { code: 'en', name: 'English', nativeName: 'English', flag: 'EN' },
+    { code: 'ar', name: 'Arabic', nativeName: 'العربية', flag: 'AR' },
+    { code: 'ku', name: 'Kurdish', nativeName: 'کوردی', flag: 'KU' },
+    { code: 'tr', name: 'Turkish', nativeName: 'Türkçe', flag: 'TR' },
+    { code: 'fa', name: 'Persian', nativeName: 'فارسی', flag: 'FA' },
+  ] as const;
 
-  const enabledCount = Object.values(settings).filter(Boolean).length;
+  const enabledRuntimeLanguages = settings
+    ? siteLanguages.filter((code) => settings[code])
+    : [];
 
   const handleToggle = (code: string, checked: boolean) => {
-    if (!checked && enabledCount <= 1) return;
-    setSettings(prev => ({ ...prev, [code]: checked }));
+    if (!settings || mutation.isPending) return;
+    const next = { ...settings, [code]: checked };
+    const remainingRuntimeLanguages = siteLanguages.filter((language) => next[language]);
+    if (remainingRuntimeLanguages.length === 0) return;
+    if (code === settings.defaultLanguage && !checked) {
+      next.defaultLanguage = remainingRuntimeLanguages[0];
+    }
+    setSettings(next);
+    mutation.reset();
   };
 
   const handleSave = () => {
-    mutation.mutate(settings);
+    if (settings && !mutation.isPending) mutation.mutate(settings);
   };
 
-  if (isLoading) {
+  const hasSettingsData=(langData as any)?.success===true&&Boolean((langData as any)?.data);
+  if (isLoading || (!settings && (isFetching || hasSettingsData))) {
     return (
-      <div dir={direction} className="flex items-center justify-center p-12">
-        <RefreshCw className="w-6 h-6 animate-spin text-gray-400" />
+      <div dir={direction} className="space-y-4 rounded-lg border p-6" aria-busy="true">
+        <div className="h-6 w-48 animate-pulse rounded bg-muted" />
+        <div className="h-4 w-72 max-w-full animate-pulse rounded bg-muted" />
+        <div className="h-16 animate-pulse rounded-lg bg-muted" />
+        <div className="h-16 animate-pulse rounded-lg bg-muted" />
       </div>
     );
   }
 
+  if (!settings || (langData && (langData as any).success !== true && !isError)) {
+    return (
+      <div dir={direction} className="rounded-lg border border-destructive/30 bg-destructive/5 p-6">
+        <p className="font-medium">{tx('Language settings could not be loaded.')}</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {isError ? (error as Error)?.message : tx('The server returned an unexpected response.')}
+        </p>
+        <Button className="mt-4" variant="outline" onClick={() => refetch()} disabled={isFetching}>
+          {isFetching ? tx('Loading...') : tx('Try again')}
+        </Button>
+      </div>
+    );
+  }
+
+  const editingDisabled = mutation.isPending;
+
   return (
-    <Card>
+    <Card dir={direction}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Globe className="w-5 h-5" />
@@ -2053,14 +2091,20 @@ function LanguageSettingsTab() {
           {tx('Enable or disable languages shown in the site language menu. At least one language must remain enabled.')}
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-5">
+        {isError && (
+          <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+            {tx('The latest language settings could not be refreshed. Your current edits are still available.')}
+          </p>
+        )}
         {LANGUAGES.map(lang => {
           const isEnabled = settings[lang.code] !== false;
-          const isLast = enabledCount === 1 && isEnabled;
+          const isLastRuntimeLanguage = siteLanguages.includes(lang.code as SiteLanguage)
+            && enabledRuntimeLanguages.length === 1 && isEnabled;
           return (
-            <div key={lang.code} className="flex items-center justify-between p-4 border rounded-lg">
+            <div key={lang.code} className="flex items-center justify-between gap-4 rounded-lg border p-4">
               <div className="flex items-center gap-3">
-                <span className="text-2xl">{lang.flag}</span>
+                <span className="flex h-10 w-10 items-center justify-center rounded-md bg-muted text-xs font-semibold tracking-wide text-muted-foreground">{lang.flag}</span>
                 <div>
                   <p className="font-medium">{lang.nativeName}</p>
                   <p className="text-sm text-gray-500">{lang.name}</p>
@@ -2073,21 +2117,85 @@ function LanguageSettingsTab() {
                 <Switch
                   checked={isEnabled}
                   onCheckedChange={(checked) => handleToggle(lang.code, checked)}
-                  disabled={isLast}
+                  disabled={editingDisabled || isLastRuntimeLanguage}
+                  aria-label={`${tx('Enable language')}: ${lang.name}`}
                 />
               </div>
             </div>
           );
         })}
 
+        <section className="space-y-4 rounded-lg border border-border/80 bg-muted/30 p-4 sm:p-5">
+          <div>
+            <h3 className="font-semibold">{tx('First-visit language policy')}</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {tx('Choose which language a visitor sees when they first arrive. Their saved manual language choice always takes priority on later visits.')}
+            </p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="initial-language-mode">{tx('Initial language method')}</Label>
+              <Select
+                value={settings.initialLanguageMode}
+                onValueChange={(value: 'ip' | 'fixed') => {
+                  setSettings((current) => current ? { ...current, initialLanguageMode: value } : current);
+                  mutation.reset();
+                }}
+                disabled={editingDisabled}
+              >
+                <SelectTrigger id="initial-language-mode">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ip">{tx('Use visitor country (IP)')}</SelectItem>
+                  <SelectItem value="fixed">{tx('Always use selected language')}</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                {settings.initialLanguageMode === 'ip'
+                  ? tx('IP mode uses the visitor’s country for the first visit. If unavailable or that language is disabled, the selected language is used.')
+                  : tx('Fixed mode shows the selected language on a visitor’s first visit.')}
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="initial-default-language">
+                {settings.initialLanguageMode === 'ip' ? tx('Fallback language') : tx('Selected initial language')}
+              </Label>
+              <Select
+                value={settings.defaultLanguage}
+                onValueChange={(value: SiteLanguage) => {
+                  setSettings((current) => current ? { ...current, defaultLanguage: value } : current);
+                  mutation.reset();
+                }}
+                disabled={editingDisabled || enabledRuntimeLanguages.length === 0}
+              >
+                <SelectTrigger id="initial-default-language">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {LANGUAGES.filter(({ code }) => siteLanguages.includes(code as SiteLanguage) && settings[code])
+                    .map(({ code, name, nativeName }) => (
+                      <SelectItem key={code} value={code}>{nativeName} · {name}</SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                {tx('This language is used when country detection cannot choose an enabled language, and as the fixed first-visit language.')}
+              </p>
+            </div>
+          </div>
+        </section>
+
         {mutation.isError && (
-          <p className="text-sm text-red-600 text-center">{(mutation.error as Error).message}</p>
+          <p role="alert" className="text-sm text-destructive text-center">
+            {(mutation.error as Error).message || tx('Could not save language settings. Please try again.')}
+          </p>
         )}
         {mutation.isSuccess && (
-          <p className="text-sm text-green-600 text-center">{tx('Language settings saved successfully')}</p>
+          <p role="status" className="text-sm text-green-700 text-center">{tx('Language settings saved successfully')}</p>
         )}
 
-        <Button onClick={handleSave} disabled={mutation.isPending} className="w-full mt-2">
+        <Button onClick={handleSave} disabled={editingDisabled} className="w-full mt-2">
           {mutation.isPending ? <><RefreshCw className="w-4 h-4 animate-spin ml-2" />{tx('Saving...')}</> : <><Save className="w-4 h-4 ml-2" />{tx('Save Settings')}</>}
         </Button>
       </CardContent>
