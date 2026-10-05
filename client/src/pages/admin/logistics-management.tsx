@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import {canAdminConfirmDelivery,isSiteAdminDeliveryRole,isFourDigitDeliveryCode,normalizeDeliveryConfirmationCode} from "@shared/admin-delivery-confirmation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -827,6 +828,7 @@ const LogisticsManagement = () => {
   const [deliveryConfirmStep, setDeliveryConfirmStep] = useState<1 | 2>(1);
   const [deliveryConfirmDialogOpen, setDeliveryConfirmDialogOpen] = useState(false);
   const [deliveryVerificationCode, setDeliveryVerificationCode] = useState("");
+  const [isSubmittingDeliveryVerification,setIsSubmittingDeliveryVerification] = useState(false);
   const [deliveryGps, setDeliveryGps] = useState<GeolocationCoordinates | null>(null);
   const [isCapturingDeliveryGps, setIsCapturingDeliveryGps] = useState(false);
   const gpsCopy = {
@@ -1030,6 +1032,13 @@ const LogisticsManagement = () => {
   });
 
   const user = (adminUser as any)?.user;
+  const isDeliverySiteAdmin = isSiteAdminDeliveryRole(user?.roleName);
+  const adminDeliveryCopy = {
+    fa: {action:"تأیید تحویل با کد",invalid:"کد تحویل باید دقیقاً چهار رقم باشد",busy:"در حال تأیید…",help:"کد چهاررقمی تحویل مشتری را وارد کنید. تأیید ادمین به GPS نیاز ندارد و سفارش را به پایان می‌رساند."},
+    en: {action:"Confirm delivery with code",invalid:"Enter exactly four digits",busy:"Confirming…",help:"Enter the customer's four-digit delivery code. Admin confirmation does not require GPS and completes the order."},
+    ar: {action:"تأكيد التسليم بالرمز",invalid:"أدخل أربعة أرقام بالضبط",busy:"جارٍ التأكيد…",help:"أدخل رمز تسليم العميل المكون من أربعة أرقام. تأكيد المسؤول لا يتطلب GPS وينهي الطلب."},
+    tr: {action:"Kodla teslimatı onayla",invalid:"Tam olarak dört rakam girin",busy:"Onaylanıyor…",help:"Müşterinin dört haneli teslimat kodunu girin. Yönetici onayı GPS gerektirmez ve siparişi tamamlar."},
+  }[language];
 
   // Company information query for logo
   const { data: companyInfo } = useQuery({
@@ -2879,6 +2888,9 @@ const LogisticsManagement = () => {
 
   // Handle delivery completion - open two-step confirmation
   const handleDeliveredStart = (orderManagementId: number) => {
+    if (!isDeliverySiteAdmin || !canAdminConfirmDelivery(getConfirmingDeliveryOrder(orderManagementId) || {})) return;
+    setDeliveryVerificationCode("");
+    setDeliveryGps(null);
     setConfirmingDeliveryOrderId(orderManagementId);
     // Admins enter the one-time delivery code directly; browser GPS is not required.
     setDeliveryConfirmStep(2);
@@ -2893,7 +2905,8 @@ const LogisticsManagement = () => {
   };
 
   const handleDeliveryConfirmStep2 = async () => {
-    if (!confirmingDeliveryOrderId || !deliveryVerificationCode.trim()) return;
+    if (!confirmingDeliveryOrderId || !isFourDigitDeliveryCode(deliveryVerificationCode) || isSubmittingDeliveryVerification) return;
+    setIsSubmittingDeliveryVerification(true);
     
     console.log('🚚 [DELIVERY] Starting delivery completion for order:', confirmingDeliveryOrderId);
     
@@ -2906,7 +2919,7 @@ const LogisticsManagement = () => {
         },
         credentials: 'include',
         body: JSON.stringify({
-          verificationCode: deliveryVerificationCode.trim(),
+          verificationCode: normalizeDeliveryConfirmationCode(deliveryVerificationCode),
           customerLocation: confirmingOrder?.shippingAddress || confirmingOrder?.customerAddress || '',
           isVerified: true,
           verifiedAt: new Date().toISOString(),
@@ -2943,6 +2956,8 @@ const LogisticsManagement = () => {
         description: error instanceof Error ? error.message : t('deliveryUpdateError'),
         variant: "destructive"
       });
+    } finally {
+      setIsSubmittingDeliveryVerification(false);
     }
   };
 
@@ -2954,9 +2969,9 @@ const LogisticsManagement = () => {
     setDeliveryGps(null);
   };
 
-  const getConfirmingDeliveryOrder = () => {
+  const getConfirmingDeliveryOrder = (orderId = confirmingDeliveryOrderId) => {
     const allOrders = logisticsOrdersResponse?.pages.flatMap((page: any) => page.orders || []) || [];
-    return allOrders.find((order: any) => order.id === confirmingDeliveryOrderId);
+    return allOrders.find((order: any) => order.id === orderId);
   };
 
   // Send or resend delivery code using configured notification channels (Email/SMS/WhatsApp)
@@ -3390,7 +3405,9 @@ const LogisticsManagement = () => {
                           <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => handleShowOrderDetails(order)}><Eye className="me-1 h-3.5 w-3.5" />{t('details')}</Button>
                           <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => handleVehicleAssignment(order)}><Truck className="me-1 h-3.5 w-3.5" />{t('assign')}</Button>
                           <Button size="sm" className="h-7 bg-blue-600 px-2 text-xs hover:bg-blue-700" onClick={() => handleSendDeliveryCode(order.id, !!order.deliveryCode)} disabled={resendingCodes[order.id]}><Send className="me-1 h-3.5 w-3.5" />{order.deliveryCode ? t('resendCode') : t('sendCode')}</Button>
-                          <Button size="sm" className="h-7 bg-emerald-600 px-2 text-xs hover:bg-emerald-700" onClick={() => handleDeliveredStart(order.id)}><CheckCircle className="me-1 h-3.5 w-3.5" />{t('markDelivered')}</Button>
+                          {isDeliverySiteAdmin && canAdminConfirmDelivery(getConfirmingDeliveryOrder(order.id) || {}) && (
+                            <Button size="sm" className="h-7 bg-emerald-600 px-2 text-xs hover:bg-emerald-700" onClick={() => handleDeliveredStart(order.id)} disabled={isSubmittingDeliveryVerification} data-testid={`button-delivery-confirm-${order.id}`}><CheckCircle className="me-1 h-3.5 w-3.5" />{adminDeliveryCopy.action}</Button>
+                          )}
                           {gpsActions(order)}
                         </div></TableCell>
                       </TableRow>
@@ -3887,9 +3904,10 @@ const LogisticsManagement = () => {
                           : "bg-green-600 hover:bg-green-700 text-white"}
                         onClick={() => handleDeliveredStart(order.id)}
                         data-testid={`button-delivery-confirm-${order.id}`}
+                        disabled={!isDeliverySiteAdmin || !canAdminConfirmDelivery(getConfirmingDeliveryOrder(order.id) || {}) || isSubmittingDeliveryVerification}
                       >
                         <CheckCircle className="w-4 h-4 mr-2" />
-                        {confirmingDeliveryOrderId === order.id ? "در حال تایید..." : "تحویل شد"}
+                        {confirmingDeliveryOrderId === order.id ? adminDeliveryCopy.busy : adminDeliveryCopy.action}
                       </Button>
                       {order.hasGpsLocation && (
                         <div className="border border-gray-300 rounded-lg p-1.5 bg-gray-50 h-fit">
@@ -7400,15 +7418,21 @@ const LogisticsManagement = () => {
                   </p>
                   <div className="space-y-2 rounded-lg border border-blue-200 bg-blue-50 p-3">
                     <Label htmlFor="delivery-verification-code">{t('deliveryCode')}</Label>
+                    <p className="text-sm text-blue-800">{adminDeliveryCopy.help}</p>
                     <Input
                       id="delivery-verification-code"
                       value={deliveryVerificationCode}
-                      onChange={(event) => setDeliveryVerificationCode(event.target.value)}
+                      onChange={(event) => setDeliveryVerificationCode(normalizeDeliveryConfirmationCode(event.target.value))}
                       placeholder={gpsCopy.code}
                       inputMode="numeric"
+                      maxLength={4}
+                      pattern="[0-9]{4}"
+                      dir="ltr"
+                      disabled={isSubmittingDeliveryVerification}
                       autoComplete="one-time-code"
                       data-testid="input-delivery-verification-code"
                     />
+                    {deliveryVerificationCode && !isFourDigitDeliveryCode(deliveryVerificationCode) && <p role="alert" className="text-sm text-red-700">{adminDeliveryCopy.invalid}</p>}
                     {deliveryGps && (
                       <p className="flex items-center gap-2 text-sm text-green-700">
                         <MapPin className="h-4 w-4" />
@@ -7423,6 +7447,7 @@ const LogisticsManagement = () => {
           <AlertDialogFooter className="flex gap-2 flex-row-reverse">
             <AlertDialogCancel 
               onClick={handleDeliveryConfirmCancel}
+              disabled={isSubmittingDeliveryVerification}
               className="flex-1"
             >
               {t('cancel')}
@@ -7440,11 +7465,11 @@ const LogisticsManagement = () => {
             ) : (
               <Button 
                 onClick={handleDeliveryConfirmStep2}
-                disabled={!deliveryVerificationCode.trim()}
+                disabled={!isFourDigitDeliveryCode(deliveryVerificationCode) || isSubmittingDeliveryVerification}
                 className="flex-1 bg-red-600 hover:bg-red-700"
                 data-testid="button-delivery-step2"
               >
-                {t('finalDeliveryConfirm')}
+                {isSubmittingDeliveryVerification ? adminDeliveryCopy.busy : t('finalDeliveryConfirm')}
               </Button>
             )}
           </AlertDialogFooter>

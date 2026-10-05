@@ -80,6 +80,7 @@ import { calculateAuthoritativeShippingCost, isActiveCanonicalShippingMethod } f
 import { assertShippingQuoteBindings, signShippingQuote, verifyShippingQuote, type ShippingQuoteClaims } from "./shipping-quote";
 import {requiresBulkContractTransport,eligibleTransportTemplates} from "@shared/bulk-transport";
 import {validateSelectedBulkTemplate} from "./bulk-order-transport";
+import {canAdminConfirmDelivery,isSiteAdminDeliveryRole,isFourDigitDeliveryCode,normalizeDeliveryConfirmationCode} from "@shared/admin-delivery-confirmation";
 import {
   normalizeProductWeightUpdates,
   type ProductWeightField,
@@ -34592,8 +34593,7 @@ ${message ? `Additional Requirements:\n${message}` : ''}
         : `SELECT cr.name FROM custom_users cu JOIN custom_roles cr ON cr.id = cu.role_id WHERE cu.id = $1 AND cu.is_active = true AND cr.is_active = true`,
       [session[identityColumn]]
     ).then((result) => {
-      const roleName = String(result.rows[0]?.name || '').toLowerCase().replace(/\s+/g, '_');
-      if (['admin', 'super_admin', 'supper_admin'].includes(roleName)) return next();
+      if (isSiteAdminDeliveryRole(result.rows[0]?.name)) return next();
       return res.status(403).json({ success: false, message: "دسترسی کافی وجود ندارد" });
     }).catch((error) => {
       console.error("Site admin access check failed:", error);
@@ -50837,9 +50837,12 @@ momtazchem.com
   // Verify delivery with customer code
   app.post('/api/order-management/:orderId/verify-delivery', requireSiteAdminDeliveryConfirmation, async (req, res) => {
     try {
-      const orderId = parseInt(req.params.orderId);
+      const orderId = Number(req.params.orderId);
+      if (!Number.isSafeInteger(orderId) || orderId <= 0) {
+        return res.status(400).json({ success: false, message: 'شناسه سفارش معتبر نیست' });
+      }
       const { 
-        verificationCode, 
+        verificationCode: submittedCode,
         customerLocation, 
         isVerified, 
         verifiedAt, 
@@ -50851,6 +50854,18 @@ momtazchem.com
         carrierLocationCapturedAt,
         carrierLocationSource
       } = req.body;
+      if (!isFourDigitDeliveryCode(submittedCode)) {
+        return res.status(400).json({ success: false, message: 'کد تحویل باید دقیقاً چهار رقم باشد' });
+      }
+      const verificationCode = normalizeDeliveryConfirmationCode(submittedCode);
+      const session = req.session as any;
+      const attempt = checkDeliveryCodeRateLimit(
+        session.adminId ? `admin:${session.adminId}` : `custom-admin:${session.customUserId}`,
+        String(orderId),
+      );
+      if (!attempt.allowed) {
+        return res.status(429).json({ success: false, message: 'تعداد تلاش‌های ناموفق زیاد است؛ ۱۵ دقیقه بعد دوباره تلاش کنید' });
+      }
       
       console.log(`✅ [VERIFICATION] Processing delivery verification for order ${orderId}`);
       
@@ -50885,13 +50900,22 @@ momtazchem.com
         const [currentOrder] = await tx.select()
           .from(orderManagement)
           .where(eq(orderManagement.id, orderId))
-          .limit(1);
+          .limit(1).for('update');
         if (!currentOrder) throw new Error('ORDER_NOT_FOUND');
         if (!currentOrder.customerOrderId) throw new Error('CUSTOMER_ORDER_NOT_FOUND');
         if (currentOrder.isVerified || ['delivered', 'logistics_delivered', 'completed'].includes(currentOrder.currentStatus)) {
           throw new Error('DELIVERY_ALREADY_VERIFIED');
         }
-        if (currentOrder.currentStatus !== 'logistics_dispatched') throw new Error('INVALID_DELIVERY_STATUS');
+        if (!canAdminConfirmDelivery(currentOrder)) throw new Error('INVALID_DELIVERY_STATUS');
+        const [customerOrder] = await tx.select({ id: customerOrders.id, status: customerOrders.status })
+          .from(customerOrders).where(eq(customerOrders.id, currentOrder.customerOrderId)).limit(1).for('update');
+        if (!customerOrder) throw new Error('CUSTOMER_ORDER_NOT_FOUND');
+        if (['cancelled', 'canceled', 'failed', 'deleted', 'financial_rejected'].includes(customerOrder.status)) {
+          throw new Error('INVALID_DELIVERY_STATUS');
+        }
+        if (['delivered', 'completed', 'logistics_delivered'].includes(customerOrder.status)) {
+          throw new Error('DELIVERY_ALREADY_VERIFIED');
+        }
         if (!currentOrder.deliveryCode || verificationCode !== currentOrder.deliveryCode) {
           throw new Error('INVALID_DELIVERY_CODE');
         }
@@ -50955,15 +50979,17 @@ momtazchem.com
         return res.status(404).json({ success: false, message: 'سفارش مرتبط یافت نشد' });
       }
       if (updatedOrder === false) {
+        recordDeliveryCodeFailure(attempt.key);
         return res.status(400).json({ success: false, message: 'کد تحویل اشتباه است' });
       }
       if (updatedOrder === 'already-verified') {
         return res.status(409).json({ success: false, message: 'این تحویل قبلاً تأیید شده است' });
       }
       if (updatedOrder === 'invalid-status') {
-        return res.status(409).json({ success: false, message: 'وضعیت سفارش برای تأیید تحویل معتبر نیست' });
+        return res.status(409).json({ success: false, message: 'فقط سفارش ارسال‌شده یا سفارش دارای خودروی اختصاص‌یافته قابل تأیید تحویل است' });
       }
 
+      clearDeliveryCodeAttempts(attempt.key);
       res.json({
         success: true,
         message: 'تحویل با موفقیت تایید شد',
