@@ -43,7 +43,13 @@ purchase cost or stock carrying value. Do not treat it as COGS evidence.
    actual FIFO/stock cost attribution; aggregate
    loaded-vs-ordered weight/tolerance controls and aggregate excess-weight
    Commercial department approval (the user's designated approver, not finance).
-   The tolerance threshold has not yet been selected.
+   The user specified that the permitted aggregate overweight must be stated
+   in the contract and that this contractual condition is the governing limit,
+   rather than a general company tolerance. Use the agreement version belonging
+   to the order; missing or unverifiable terms are unknown, not an assumed zero
+   or default percentage. Do not reinterpret product-quality tolerance as an
+   aggregate order-weight allowance. This contract-based control remains to be
+   implemented; Commercial review cannot silently change contractual limits.
    The user approved only the limited measurement/document-evidence connection
    in warehouse/logistics/order surfaces. Changes to reservation, physical stock,
    selling prices, payment timing or live financial activation remain excluded.
