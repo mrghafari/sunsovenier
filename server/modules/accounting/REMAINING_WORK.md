@@ -22,10 +22,15 @@ valuation is verified, legacy openings are reconciled, or a consumer is enabled.
 
 The user selected **reviewed manual allocation** for fixed-order freight:
 finance enters and approves each loading's share; combined approvals must not
-exceed the immutable order freight total. The shipping-approval migration/service
-draft is not applied or exposed through a route/UI yet; the current preview still
-blocks nonzero fixed freight without approved evidence. Work shifted to the user's
-bulk-contract transport request before this accounting feature was finished.
+exceed the immutable order freight total. The reviewed approval service and
+four-language form are available in Accounting → Reports → Loading preview;
+the development migration is applied. The report exposes the fixed order total,
+approved shares, unallocated remainder and each loading's approval provenance.
+Currency precision, snapshot consistency, immutable approvals, idempotency and
+the combined cap are enforced. A zero share requires explicit approval.
+This records allocation evidence only: it does not issue invoices, post journals,
+move stock, debit wallets or activate consumers. Production migration and
+activation remain separate decisions.
 The customer cart/contract amount is sales consideration, not verified supplier
 purchase cost or stock carrying value. Do not treat it as COGS evidence.
 
@@ -33,8 +38,9 @@ purchase cost or stock carrying value. Do not treat it as COGS evidence.
    captured tons × locked per-ton prices, line-rounded goods/tax, explicit
    per-ton shipping, and due dates from captured payment terms. It rejects
    unknown units, missing/legacy snapshots and nonzero fixed-order shipping
-   without allocation evidence. Still required: a frozen, reviewed fixed-shipping
-   allocation/residual policy; actual FIFO/stock cost attribution; aggregate
+   without allocation evidence. Fixed freight now uses reviewed manual shares;
+   its remainder stays explicitly unallocated. Still required:
+   actual FIFO/stock cost attribution; aggregate
    loaded-vs-ordered weight/tolerance controls and excess-weight finance approval.
    The user approved only the limited measurement/document-evidence connection
    in warehouse/logistics/order surfaces. Changes to reservation, physical stock,

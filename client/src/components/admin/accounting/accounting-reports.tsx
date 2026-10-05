@@ -27,7 +27,7 @@ const nonBlank = (v: string) => v.trim() ? normalizeAccountingDigits(v.trim()) :
 const isDate = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(`${v}T00:00:00Z`)) && new Date(`${v}T00:00:00Z`).toISOString().slice(0, 10) === v;
 const validId = (v: string) => /^[1-9]\d*$/.test(v) && Number(v) <= 2147483647;
 
-export default function AccountingReports({ companies, onSetup }: { companies: { id: number; name: string }[]; onSetup: () => void }) {
+export default function AccountingReports({ companies, onSetup,canManage=false }: { companies: { id: number; name: string }[]; onSetup: () => void;canManage?:boolean }) {
  const { language, direction } = useLanguage();
  const t = (k: ReportCopyKey) => reportCopy(language, k);
  const [report, setReport] = useState<AccountingReportName>("journal");
@@ -110,7 +110,7 @@ export default function AccountingReports({ companies, onSetup }: { companies: {
             <button type="button" role="tab" aria-selected={auditView} onClick={()=>{setCustomerView(false);setCostView(false);setShippingView(false);setLoadingPreviewView(false);setAuditView(true);setApplied(undefined);setExportError("");setFormError("");}} className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${auditView?"bg-[#20484a] text-[#f4f2e7]":"bg-[#edf1eb] text-[#52655b] hover:bg-[#e0e8df]"}`}>{language==="fa"?"تاریخچه حسابرسی":language==="ar"?"سجل التدقيق":language==="tr"?"Denetim geçmişi":"Audit history"}</button>
           </div>
     </div>
-      {customerView ? <div className="p-4 md:p-6"><CustomerAccountingReports companies={companies}/></div> : shippingView ? <div className="p-4 md:p-6"><ShippingMarginReports companies={companies}/></div> : loadingPreviewView ? <div className="p-4 md:p-6"><AccountingLoadingPreview companies={companies}/></div> : auditView ? <div className="p-4 md:p-6"><AccountingAuditHistory companies={companies}/></div> : <div className="space-y-5 p-4 md:p-6">
+      {customerView ? <div className="p-4 md:p-6"><CustomerAccountingReports companies={companies}/></div> : shippingView ? <div className="p-4 md:p-6"><ShippingMarginReports companies={companies}/></div> : loadingPreviewView ? <div className="p-4 md:p-6"><AccountingLoadingPreview companies={companies} canManage={canManage}/></div> : auditView ? <div className="p-4 md:p-6"><AccountingAuditHistory companies={companies}/></div> : <div className="space-y-5 p-4 md:p-6">
      <div role="note" className="rounded-xl border border-[#e6c8bc] bg-[#f8ece6] px-4 py-3 text-xs leading-5 text-[#79473f]">{t("warning")}</div>
      <form onSubmit={e=>{e.preventDefault();apply();}} className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <Field label={t("company")}><select value={draft.companyId} onChange={e=>companyChange(e.target.value)} className={inputClass}><option value="">{t("company")}</option>{companies.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>

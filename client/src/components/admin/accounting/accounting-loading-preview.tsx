@@ -10,13 +10,14 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, Calculator, ShieldAlert, RotateCw } from "lucide-react";
+import {LoadingShippingApproval} from "./loading-shipping-approval";
 
 type Draft = { companyId: string; orderId: string };
 const blankDraft = (): Draft => ({ companyId: "", orderId: "" });
 const clean = (value: string) => value.trim() ? normalizeAccountingDigits(value.trim()) : undefined;
 const inputClass = "h-10 w-full rounded-lg border border-[#d4ddd4] bg-[#f7f9f5] px-3 text-sm text-[#29423f] outline-none focus:border-[#60877a] focus:ring-2 focus:ring-[#60877a]/15 disabled:opacity-60";
 
-export default function AccountingLoadingPreview({ companies }: { companies: { id: number; name: string }[] }) {
+export default function AccountingLoadingPreview({ companies,canManage=false }: { companies: { id: number; name: string }[];canManage?:boolean }) {
   const { language, direction } = useLanguage();
   const [draft, setDraft] = useState<Draft>(blankDraft);
   const [applied, setApplied] = useState<LoadingPreviewFilters>();
@@ -85,12 +86,13 @@ export default function AccountingLoadingPreview({ companies }: { companies: { i
         <AlertDescription className="mt-2 flex flex-wrap items-center gap-3"><span>{query.error instanceof Error ? query.error.message : t(language, "failed")}</span>
           <Button type="button" variant="outline" size="sm" onClick={() => query.refetch()}>{t(language, "retry")}</Button></AlertDescription></Alert> :
       !reportMatches ? <div role="status" className="rounded-xl border border-[#e6d9c4] bg-[#f8f1e5] px-4 py-3 text-sm leading-6 text-[#806844]">{t(language, "stale")}</div> :
-      <LoadingPreviewResult report={report!} language={language} page={currentFilters!.page} totalPages={totalPages} changePage={changePage}/>}
+       <LoadingPreviewResult report={report!} language={language} page={currentFilters!.page} totalPages={totalPages} changePage={changePage} canManage={canManage} onApproved={()=>query.refetch()}/>}
   </section>;
 }
 
-export function LoadingPreviewResult({ report, language, page, totalPages, changePage }: {
+export function LoadingPreviewResult({ report, language, page, totalPages, changePage,canManage=false,onApproved }: {
   report: LoadingPreviewReport; language: ReturnType<typeof useLanguage>["language"]; page: number; totalPages: number; changePage: (page: number) => void;
+  canManage?:boolean;onApproved?:()=>Promise<unknown>;
 }) {
   return <div dir={language === "fa" || language === "ar" ? "rtl" : "ltr"} className="space-y-5">
     <section className="overflow-hidden rounded-2xl border border-[#dce4dc] bg-[#fbfcf8]">
@@ -135,6 +137,7 @@ export function LoadingPreviewResult({ report, language, page, totalPages, chang
               </table>
             </div>
           </div> : <div className="mt-4 rounded-lg border border-[#e6d9c4] bg-[#f8f1e5] px-3 py-2 text-xs leading-5 text-[#806844]">{t(language, "nullAmounts")}</div>}
+          {row.fixedShipping&&<LoadingShippingApproval row={row} companyId={report.company.id} language={language} canManage={canManage} onApproved={onApproved}/>}
           <div className="mt-3">
             <p className="mb-2 text-[10px] font-bold uppercase tracking-[.12em] text-[#829087]">{t(language, "issues")}</p>
             {row.issues.length ? <div className="flex flex-wrap gap-2">{row.issues.map((issue, index) =>

@@ -292,7 +292,7 @@ export default function AccountingManagement() {
           <button type="button" role="tab" aria-selected={activePanel === "documents"} onClick={() => setActivePanel("documents")} className={`rounded-lg px-4 py-2 text-sm font-semibold ${activePanel === "documents" ? "bg-[#20484a] text-[#f4f2e7]" : "bg-[#e6ece4] text-[#52655b]"}`}>{language === "fa" ? "اسناد دستی و هزینه‌ها" : language === "ar" ? "المستندات اليدوية والمصروفات" : language === "tr" ? "Manuel belgeler ve giderler" : "Manual docs & expenses"}</button>
         </div>
         {activePanel === "credit" ? <div className="mt-5"><AccountingCredit companies={companyRows.map(row => ({ id: rowId(row), name: asText(row, "name") }))} canManage={canManage}/></div> :
-         activePanel === "reports" ? <div className="mt-5"><AccountingReports companies={companyRows.map(row => ({ id: rowId(row), name: asText(row, "name") }))} onSetup={() => setActivePanel("setup")} /></div> :
+         activePanel === "reports" ? <div className="mt-5"><AccountingReports companies={companyRows.map(row => ({ id: rowId(row), name: asText(row, "name") }))} onSetup={() => setActivePanel("setup")} canManage={canManage}/></div> :
          activePanel === "receipts" ? <div className="mt-5"><AccountingReceipts companies={companyRows.map(row => ({ id: rowId(row), name: asText(row, "name") }))} canManage={canManage} onReports={() => setActivePanel("reports")} /></div> :
          activePanel === "documents" ? <div className="mt-5"><AccountingDocuments companies={companyRows.map(row => ({ id: rowId(row), name: asText(row, "name") }))} canManage={canManage} /></div> :
         <div className="mt-6 grid items-start gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">

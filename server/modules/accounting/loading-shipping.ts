@@ -29,7 +29,9 @@ export async function approveLoadingShipping(input:unknown,actor:AccountingAcces
       typeof order.shippingPrice!=="string")
       throw new AccountingError("A valid fixed-shipping loading snapshot is required",409,"SHIPPING_SNAPSHOT_REQUIRED");
     const precision=currencies.find(c=>c.code===preview.currency)!.decimals;
-    const total=exactMoney(order.shippingPrice,precision),amount=exactMoney(d.amount,precision);
+    let total:string,amount:string;
+    try{total=exactMoney(order.shippingPrice,precision);amount=exactMoney(d.amount,precision);}
+    catch{throw new AccountingError("Shipping amounts must match the currency precision",400,"INVALID_SHIPPING_AMOUNT");}
     if(!decimal(total).gt(0))throw new AccountingError("No nonzero fixed shipping requires approval");
     const prior=(await tx.execute(sql`select amount::text as amount,evidence_reference,reason
       from accounting_loading_shipping where fact_id=${d.factId}`)).rows[0];

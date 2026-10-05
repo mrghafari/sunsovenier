@@ -20,6 +20,7 @@ import {accountingCostReportCsv} from "./cost-report-csv";
 import {readShippingMarginReport} from "./shipping-reports";
 import {shippingMarginCsv} from "./shipping-report-csv";
 import {readLoadingPreviews} from "./loading-previews";
+import {approveLoadingShipping} from "./loading-shipping";
 import {readLoadingCaptureContext,captureMeasuredLoading} from "./loading-capture";
 import {readAccountingAudit,accountingAuditCsv} from "./audit-reports";
 import {readCustomerReport} from "./customer-reports";
@@ -75,6 +76,10 @@ export function createAccountingRouter() {
   });
   router.get("/v2/loading-previews",async(req,res,next)=>{
     try{res.setHeader("Cache-Control","no-store");res.json(await readLoadingPreviews(req.query));}catch(e){next(e);}
+  });
+  router.post("/v2/loading-shipping/approve",async(req,res,next)=>{
+    try{res.setHeader("Cache-Control","no-store");res.json(await approveLoadingShipping(req.body,res.locals.accountingAccess));}
+    catch(e){next(e);}
   });
   router.get("/v2/loading-context",async(req,res,next)=>{
     try{res.setHeader("Cache-Control","no-store");res.json(await readLoadingCaptureContext(req.query,res.locals.accountingAccess));}catch(e){next(e);}

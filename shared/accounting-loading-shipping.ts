@@ -13,4 +13,8 @@ export interface LoadingFixedShipping {
   remaining:string;
   allocation:string|null;
   evidenceReference:string|null;
+  reason?:string|null;
+  approvedAt?:string|null;
+  actorId?:number|null;
+  actorType?:string|null;
 }

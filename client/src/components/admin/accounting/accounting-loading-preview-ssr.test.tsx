@@ -6,6 +6,24 @@ import type { Language } from "@/lib/i18n";
 import type { LoadingPreviewReport, LoadingPreviewRow } from "@shared/accounting-loading-preview";
 import { LoadingPreviewResult, LoadingPreviewSafetyNotice } from "./accounting-loading-preview";
 import { loadingPreviewCopy } from "./accounting-loading-preview-copy";
+import {LoadingShippingApproval} from "./loading-shipping-approval";
+import {shippingCopy} from "./loading-shipping-copy";
+
+for(const language of ["fa","en","ar","tr"] as const){
+  test(`manual freight approval respects viewer/manager/approved states in ${language}`,()=>{
+    const entry:LoadingPreviewRow={factId:1,orderId:2,orderNumber:"M2",loadingReference:"LOAD1",eventDate:"2026-10-05",
+      currency:"USD",amounts:null,issues:["FIXED_SHIPPING_ALLOCATION_REQUIRED"],fixedShipping:{
+        orderTotal:"100.00",approvedTotal:"40.00",remaining:"60.00",allocation:null,evidenceReference:null,
+      }};
+    const render=(canManage:boolean,approved=false)=>renderToStaticMarkup(<LoadingShippingApproval row={approved?
+      {...entry,fixedShipping:{...entry.fixedShipping!,allocation:"40.00",evidenceReference:"review-note-123"}}:entry}
+      companyId={1} language={language} canManage={canManage}/>);
+    assert.match(render(false),/60\.00/);assert.ok(!render(false).includes("<form"));
+    assert.ok(render(true).includes("<form"));assert.ok(render(true).includes(shippingCopy[language].confirmation));
+    assert.ok(!render(true,true).includes("<form"));assert.ok(render(true,true).includes("review-note-123"));
+    assert.ok(render(false).includes(shippingCopy[language].notice));
+  });
+}
 
 const row = (overrides: Partial<LoadingPreviewRow> = {}): LoadingPreviewRow => ({
   factId: 841, orderId: 1207, orderNumber: "MC-1207", loadingReference: "LOAD-841", eventDate: "2025-02-18",
