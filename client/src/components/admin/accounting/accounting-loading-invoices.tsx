@@ -142,7 +142,7 @@ function Workbench({ workbench, language, page, totalPages, changePage, canManag
     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e5eae3] bg-[#f3f7f0] px-4 py-4 md:px-5"><div><p className="text-[10px] font-bold uppercase tracking-[.16em] text-[#829087]">{workbench.company.name} · #{workbench.company.id}</p><h3 className="font-display text-lg font-semibold text-[#294540]">{t(language,"results")}</h3></div><span className="text-xs text-[#7a887d]">{t(language,"page")} {page} / {totalPages} · {workbench.pagination.totalRows} {t(language,"rows")}</span></div>
     {!workbench.rows.length ? <Empty text={t(language,"empty")}/> : <div className="divide-y divide-[#e8ede6]">{workbench.rows.map(plan=><article key={`${plan.factId}-${plan.planHash}`} className="space-y-4 p-4 md:p-5">
       <div className="flex flex-wrap items-start justify-between gap-4"><div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-2 xl:grid-cols-4"><Fact label={t(language,"fact")} value={`#${plan.factId}`} mono/><Fact label={t(language,"order")} value={`#${plan.orderId}`} mono/><Fact label={t(language,"date")} value={plan.eventDate||"—"} mono/><Fact label={t(language,"customer")} value={plan.customerId ? `#${plan.customerId}` : "—"} mono/><Fact label={t(language,"currency")} value={plan.currency||"—"} mono/><Fact label={t(language,"base")} value={plan.baseCurrency} mono/><Fact label={t(language,"baseCost")} value={plan.baseCost===null?"—":`${plan.baseCost} ${plan.baseCurrency}`} mono/></div>
-        <span className={`rounded-lg border px-3 py-2 text-[10px] font-bold uppercase tracking-[.08em] ${plan.postingAllowed&&!plan.posted?"border-[#cbdccf] bg-[#edf4eb] text-[#42634e]":"border-[#e6d9c4] bg-[#f8f1e5] text-[#806844]"}`}>{plan.posted?t(language,"posted"):plan.postingAllowed?t(language,"allowed"):t(language,"blocked")}</span></div>
+         <span className={`rounded-lg border px-3 py-2 text-[10px] font-bold uppercase tracking-[.08em] ${plan.posted?.returned?"border-[#cbdccf] bg-[#edf4eb] text-[#42634e]":plan.postingAllowed&&!plan.posted?"border-[#cbdccf] bg-[#edf4eb] text-[#42634e]":"border-[#e6d9c4] bg-[#f8f1e5] text-[#806844]"}`}>{plan.posted?.returned?t(language,"returned"):plan.posted?t(language,"posted"):plan.postingAllowed?t(language,"allowed"):t(language,"blocked")}</span></div>
        {plan.amounts ? <div className="rounded-xl border border-[#dce7dc] bg-[#f3f7f0] p-3"><p className="mb-2 text-[10px] font-bold uppercase tracking-[.1em] text-[#758179]">{t(language,"amounts")}</p><div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
         <Amount label={t(language,"goods")} value={plan.amounts.goods} currency={plan.currency}/><Amount label={t(language,"tax")} value={plan.amounts.tax} currency={plan.currency}/><Amount label={t(language,"shipping")} value={plan.amounts.shipping} currency={plan.currency}/><Amount label={t(language,"total")} value={plan.amounts.total} currency={plan.currency} strong/><Fact label={t(language,"due")} value={plan.amounts.dueDate||"—"} mono/>
       </div></div> : <p className="rounded-lg border border-dashed border-[#d7e0d7] bg-[#f7f9f5] px-3 py-2 text-xs text-[#758179]">{t(language,"amounts")}: —</p>}
@@ -151,7 +151,10 @@ function Workbench({ workbench, language, page, totalPages, changePage, canManag
         {plan.allocations.length ? <div className="mt-3 grid gap-2 md:grid-cols-2">{plan.allocations.map((allocation,index)=><div key={`${allocation.layerId}-${index}`} className="grid gap-2 rounded-lg border border-[#eadfc9] bg-[#fffaf0] p-3 sm:grid-cols-2"><Fact label={t(language,"document")} value={`#${allocation.documentId} · ${allocation.batchReference}`}/><Fact label={t(language,"quantity")} value={`${allocation.quantityTons} t`} mono/><Fact label={t(language,"documentedCost")} value={`${allocation.baseCost} ${plan.baseCurrency}`} mono/><Fact label={t(language,"order")} value={`#${allocation.orderItemId} · #${allocation.productId}`} mono/></div>)}</div> : <p className="mt-2 text-xs text-[#806844]">—</p>}
       </div>
       {!!plan.blockers.length && <div><p className="mb-2 text-[10px] font-bold uppercase tracking-[.12em] text-[#829087]">{t(language,"blockers")}</p><div className="flex flex-wrap gap-2">{plan.blockers.map(code=><span key={code} className="rounded-lg border border-[#e6d9c4] bg-[#f8f1e5] px-2.5 py-1.5 text-xs text-[#806844]">{blockerText(language,code)}</span>)}</div></div>}
-       {plan.posted ? <div className="rounded-lg border border-[#cbdccf] bg-[#edf4eb] px-3 py-2 text-xs text-[#42634e]">{t(language,"posted")} · {t(language,"invoiceRef")} #{plan.posted.invoiceId} · {t(language,"journalRef")} #{plan.posted.journalId} · {t(language,"cogsRef")} {plan.posted.cogsJournalId===null?"—":`#${plan.posted.cogsJournalId}`} · {t(language,"receivableRef")} #{plan.posted.receivableId}</div> :
+       {plan.posted ? <div className="space-y-2 rounded-lg border border-[#cbdccf] bg-[#edf4eb] px-3 py-2 text-xs text-[#42634e]">
+         <p>{t(language,"posted")} · {t(language,"invoiceRef")} #{plan.posted.invoiceId} · {t(language,"journalRef")} #{plan.posted.journalId} · {t(language,"cogsRef")} {plan.posted.cogsJournalId===null?"—":`#${plan.posted.cogsJournalId}`} · {t(language,"receivableRef")} #{plan.posted.receivableId}</p>
+         {plan.posted.returned&&<LoadingInvoiceReturnMarker language={language} returned={plan.posted.returned}/>}
+       </div> :
         <div className="grid gap-3 rounded-xl border border-[#dfe6de] bg-[#f8faf6] p-3 md:grid-cols-[1fr_auto] md:items-end">
           <div className="space-y-2"><Field label={t(language,"reason")}><input minLength={5} maxLength={500} value={reason[plan.factId]??""} onChange={event=>setReason({...reason,[plan.factId]:event.target.value})} className={inputClass} disabled={!canManage}/></Field>
             <label className="flex items-center gap-2 text-xs text-[#52665c]"><input type="checkbox" checked={settle[plan.factId]??false} onChange={event=>setSettle({...settle,[plan.factId]:event.target.checked})} disabled={!canManage} className="accent-[#20484a]"/>{t(language,"settle")}</label></div>
@@ -160,6 +163,18 @@ function Workbench({ workbench, language, page, totalPages, changePage, canManag
     </article>)}</div>}
     {workbench.pagination.totalRows>0 && <div className="flex items-center justify-end gap-2 border-t border-[#e5eae3] px-4 py-3"><Button type="button" variant="outline" size="sm" onClick={()=>changePage(page-1)} disabled={page<=1}>{t(language,"previous")}</Button><span className="px-1 text-xs tabular-nums text-[#687970]">{page} / {totalPages}</span><Button type="button" variant="outline" size="sm" onClick={()=>changePage(page+1)} disabled={page>=totalPages}>{t(language,"next")}</Button></div>}
   </section>;
+}
+
+export function LoadingInvoiceReturnMarker({language,returned}:{
+  language:string;returned:{id:number;returnDate:string;invoiceReversalId:number;cogsReversalId:number|null};
+}) {
+  return <p role="status" className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md border border-[#b8d0bd] bg-[#f7fbf5] px-3 py-2 font-semibold text-[#345b43]">
+    <span className="rounded border border-[#b8d0bd] bg-[#e9f3e9] px-2 py-1 text-[10px] font-extrabold tracking-[.08em]">{t(language,"returned")}</span>
+    <span dir="ltr" className="font-mono tabular-nums">#{returned.id}</span>
+    <span>{t(language,"returnDate")}:</span><bdi dir="ltr" className="font-mono tabular-nums">{returned.returnDate}</bdi>
+    <span>{t(language,"invoiceReversal")}:</span><bdi dir="ltr" className="font-mono tabular-nums">#{returned.invoiceReversalId}</bdi>
+    <span>{t(language,"cogsReversal")}:</span><bdi dir="ltr" className="font-mono tabular-nums">{returned.cogsReversalId===null?t(language,"unavailable"):`#${returned.cogsReversalId}`}</bdi>
+  </p>;
 }
 
 export function ForeignInvoiceValuationPanel({ plan, language }: { plan: LoadingInvoicePlan; language: string }) {

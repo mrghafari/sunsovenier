@@ -44,11 +44,16 @@ export async function readCreditExposure(companyId: number, walletId: number,
         select r.* from accounting_receivable_items r
         join accounting_journal_entries e on e.id=r.invoice_journal_id and e.status='posted' and e.company_id=r.company_id
         where r.company_id=${companyId} and r.customer_id=${customerId} and r.currency=${currency}
+          and not exists(select 1 from accounting_journal_entries reversal
+            where reversal.reversal_of_id=e.id and reversal.status='posted')
       ), ar_accounts as (
         select account_id from accounting_posting_rules where company_id=${companyId} and key='ACCOUNTS_RECEIVABLE'
         union
-        select l.account_id from items r join accounting_journal_lines l on l.entry_id=r.invoice_journal_id
+        select l.account_id from accounting_receivable_items r
+        join accounting_journal_entries original on original.id=r.invoice_journal_id and original.status='posted'
+        join accounting_journal_lines l on l.entry_id=r.invoice_journal_id
         where l.party_type='customer' and l.party_id=${customerId} and l.currency=${currency}
+          and r.company_id=${companyId} and r.customer_id=${customerId} and r.currency=${currency}
           and l.debit=r.amount and l.credit=0
       )
       select

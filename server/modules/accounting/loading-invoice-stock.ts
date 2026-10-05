@@ -78,7 +78,7 @@ export async function registerStockBook(input:unknown,actor:AccountingAccess,cal
 }
 export interface CarryingLayer {
   id:number;documentId:number;lineIndex:number;productId:number;batchReference:string;date:string;
-  quantityTons:string;baseCost:string;usedTons:string;usedCost:string;
+  quantityTons:string;baseCost:string;usedTons:string;usedCost:string;hasReturns?:boolean;
 }
 export function allocateCarryingLayers(layers:CarryingLayer[],lines:{orderItemId:number;productId:number;quantityTons:string}[],date:string,digits:number){
   const state=layers.map(x=>({...x,used:decimal(x.usedTons),cost:decimal(x.usedCost)}))
@@ -87,7 +87,7 @@ export function allocateCarryingLayers(layers:CarryingLayer[],lines:{orderItemId
   for(const l of state){
     const key=JSON.stringify([l.productId,l.batchReference]);
     if(keys.has(key))ambiguous.add(l.productId);keys.add(key);
-    if(l.used.gt(l.quantityTons)||l.cost.gt(l.baseCost))throw new AccountingError("Corrupt stock carrying capacity");
+    if(l.used.lt(0)||l.cost.lt(0)||l.used.gt(l.quantityTons)||l.cost.gt(l.baseCost))throw new AccountingError("Corrupt stock carrying capacity");
   }
   for(const line of lines){
     let need=decimal(line.quantityTons);if(!need.gt(0)||ambiguous.has(line.productId))return null;
@@ -95,7 +95,12 @@ export function allocateCarryingLayers(layers:CarryingLayer[],lines:{orderItemId
       if(l.productId!==line.productId||l.date>date)continue;
       const available=decimal(l.quantityTons).minus(l.used);if(!available.gt(0))continue;
       const take=Money.min(need,available),used=l.used.plus(take);
-      const cumulative=decimal(l.baseCost).times(used).div(l.quantityTons).toDecimalPlaces(digits);
+      // Returned middle allocations need not form the original rounded prefix.
+      // Keep their exact restored cost; allocate only the ACTUAL remaining book
+      // value instead of reconstructing a prefix that can yield negative COGS.
+      const cumulative=l.hasReturns
+        ? l.cost.plus(decimal(l.baseCost).minus(l.cost).times(take).div(available).toDecimalPlaces(digits))
+        : decimal(l.baseCost).times(used).div(l.quantityTons).toDecimalPlaces(digits);
       const cost=cumulative.minus(l.cost);
       if(cost.lt(0))throw new AccountingError("Corrupt stock carrying cost");
       allocations.push({layerId:l.id,documentId:l.documentId,lineIndex:l.lineIndex,productId:l.productId,
@@ -106,12 +111,21 @@ export function allocateCarryingLayers(layers:CarryingLayer[],lines:{orderItemId
   }
   return allocations;
 }
-export async function readCarryingLayers(tx:AccountingTransaction,companyId:number):Promise<CarryingLayer[]>{
+export async function readCarryingLayers(tx:AccountingTransaction,companyId:number,asOf?:string):Promise<CarryingLayer[]>{
   return (await tx.execute(sql`select b.id,b.document_id as "documentId",b.line_index as "lineIndex",b.product_id as "productId",
     d.lines->b.line_index->>'batchReference' as "batchReference",d.document_date::text as date,b.quantity_tons::text as "quantityTons",
     b.base_cost::text as "baseCost",
-    (select coalesce(sum(quantity_tons),0)::text from accounting_stock_consumptions where layer_id=b.id) as "usedTons",
-    (select coalesce(sum(base_cost),0)::text from accounting_stock_consumptions where layer_id=b.id) as "usedCost"
+    exists(select 1 from accounting_stock_consumptions s join accounting_loading_returns r
+      on r.invoice_id=s.invoice_id and r.invoice_reversal_id is not null
+      where s.layer_id=b.id ${asOf?sql`and r.return_date<=${asOf}::date`:sql``}) as "hasReturns",
+    ((select coalesce(sum(quantity_tons),0) from accounting_stock_consumptions where layer_id=b.id)-
+      (select coalesce(sum(s.quantity_tons),0) from accounting_stock_consumptions s
+        join accounting_loading_returns r on r.invoice_id=s.invoice_id and r.invoice_reversal_id is not null
+        where s.layer_id=b.id ${asOf?sql`and r.return_date<=${asOf}::date`:sql``}))::text as "usedTons",
+    ((select coalesce(sum(base_cost),0) from accounting_stock_consumptions where layer_id=b.id)-
+      (select coalesce(sum(s.base_cost),0) from accounting_stock_consumptions s
+        join accounting_loading_returns r on r.invoice_id=s.invoice_id and r.invoice_reversal_id is not null
+        where s.layer_id=b.id ${asOf?sql`and r.return_date<=${asOf}::date`:sql``}))::text as "usedCost"
     from accounting_stock_books b join accounting_inventory_documents d on d.id=b.document_id and d.status='approved'
     join accounting_journal_entries e on e.id=b.journal_id and e.status='posted'
     where b.company_id=${companyId} and not exists(select 1 from accounting_journal_entries r where r.reversal_of_id=e.id)

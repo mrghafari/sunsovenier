@@ -99,7 +99,7 @@ purchase cost or stock carrying value. Do not treat it as COGS evidence.
    of financially attached evidence are blocked. Closed-gate purchase/opening
    capitalization and foreign invoices with original base-stock costs now have
    transactional handlers. Remaining: actual documentary openings and reconciliation,
-   coordinated invoice/AR/stock/settlement returns,
+    settled/partial invoice/AR/stock/settlement returns,
     coordinated shipment-cost returns, and separately approved worker retry/backoff and
    error provenance. Real opening evidence and activation are still outstanding.
    Never flip event eligibility or start a consumer merely because arithmetic
@@ -110,6 +110,30 @@ purchase cost or stock carrying value. Do not treat it as COGS evidence.
     must be reviewed before activation. A posted external cost recognizes the
     carrier payable, not a bank payment. Carrier party IDs are explicitly
     accountant-attested identifiers, not inferred from customer/vehicle IDs.
+    Full returns of **unsettled** loading invoices now have a separate
+    closed-gate manager workbench and transactional handler. Documentary full
+    goods receipt, reason, nonfuture open-period date and a current reviewed
+    plan hash are required. Any wallet settlement, nonzero settled amount or
+    active receipt allocation (including uncleared cheques) blocks this stage.
+    Original native/base invoice lines, rate provenance and original COGS are
+    reversed exactly; the immutable invoice/AR/consumption records remain.
+    Returned measured capacity restores only the original allocated book value.
+    Rounded middle allocations use the actual remaining cost/quantity so future
+    COGS cannot become negative or rewrite historical allocation costs.
+    Current receivables exclude returned debt, historical aging follows actual
+    reversal dates, and completed returns cannot accept new payments/allocations.
+    Incurred freight and carrier payables are independent and are not reversed.
+    No native stock, price, wallet, hold or order status is changed.
+    Accounting → Loading returns includes four-language implementation progress,
+    explicitly separate from company balances, verified openings or activation.
+    Settled/partial returns and foreign refunds remain outstanding; no worker,
+    production migration, real company activation or publication is implied.
+    The additive loading-return migration is applied in development. Return
+    cutovers remain closed and no actual return/opening was seeded. Rollback-only
+    IQD/USD tests verify exact historical FX reversals, zero-cost rounding,
+    atomic failure recovery, original freight independence and dated debt.
+    The protected login boundary was browser-checked; the signed-in workbench
+    remains visually unverified (its API and rendered components are tested).
 3. **Complete foreign wallet refunds and partial receipt returns.** Preserve
    pooled native/base book values, original allocations and settlement evidence,
    protect holds/other currencies, and recognize realized FX explicitly.

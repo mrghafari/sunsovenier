@@ -50,9 +50,13 @@ async function planWithin(tx:AccountingTransaction,companyId:number,factId:numbe
   const existing=(await tx.execute(sql`select * from accounting_loading_invoices where fact_id=${factId} and company_id=${companyId}`)).rows[0];
   if(existing){
     const stored=existing.plan as LoadingInvoicePlan;
+    const returned=(await tx.execute(sql`select id,return_date::text,invoice_reversal_id,cogs_reversal_id
+      from accounting_loading_returns where invoice_id=${Number(existing.id)}`)).rows[0];
     return {...stored,postingAllowed:false,posted:{invoiceId:Number(existing.id),journalId:Number(existing.journal_id),
       cogsJournalId:existing.cogs_journal_id==null?null:Number(existing.cogs_journal_id),receivableId:Number(existing.receivable_id),
-      settlementId:existing.settlement_id==null?null:Number(existing.settlement_id)}};
+      settlementId:existing.settlement_id==null?null:Number(existing.settlement_id),
+      returned:returned?{id:Number(returned.id),returnDate:String(returned.return_date),
+        invoiceReversalId:Number(returned.invoice_reversal_id),cogsReversalId:returned.cogs_reversal_id==null?null:Number(returned.cogs_reversal_id)}:null}};
   }
   const p=obj(f.payload),input=obj(p.input),order=obj(p.order);
   const shipping=(await tx.execute(sql`select currency,order_shipping_total::text as total,amount::text as amount
@@ -126,7 +130,9 @@ async function planWithin(tx:AccountingTransaction,companyId:number,factId:numbe
   let allocations:LoadingInvoicePlan["allocations"]=[];
   let baseCost:string|null=null;
   // A failed evidence query is an API failure, not an observed stock shortfall.
-  const carryingLayers=await readCarryingLayers(tx,companyId);
+  const carryingLayers=await readCarryingLayers(tx,companyId,quoted.eventDate??undefined);
+  if(quoted.eventDate&&(await tx.execute(sql`select 1 from accounting_loading_returns where company_id=${companyId}
+    and return_date>${quoted.eventDate}::date`)).rows.length)blockers.add("BACKDATED_HISTORY_RECONCILIATION_REQUIRED");
   if(!(await tx.execute(sql`select accounting_stock_ledger_reconciled(${companyId}) as reconciled`)).rows[0]?.reconciled)
     blockers.add("STOCK_RECONCILIATION_REQUIRED");
   try{

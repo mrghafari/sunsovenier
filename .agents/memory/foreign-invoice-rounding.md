@@ -1,6 +1,6 @@
 ---
 name: Foreign invoice rounding
-description: Source-specific rounding and original carrying evidence for foreign loading invoices.
+description: Source-specific rounding, original carrying evidence and coordinated historical reversals of foreign invoices.
 ---
 
 Value the native customer receivable at the official rate documented for the
@@ -31,3 +31,16 @@ control-account residuals.
 **How to apply:** Keep native debt, base sales valuation, stock cost and payment
 FX distinct in the ledger and UI. Never change physical stock, selling prices
 or financial activation merely because the invoice arithmetic is supported.
+
+Exact reversal arithmetic alone is not sufficient for a newly supported
+historical-valued source: database provenance permissions must recognize its
+coordinated reversal without permitting arbitrary historical-value journals.
+
+**Why:** A foreign loading reversal could retain every original amount and rate
+yet be rejected because the historical-source proof did not cover reversals.
+Changing an official rate after the original invoice exposed the missing proof.
+
+**How to apply:** Test foreign reversals after a rate change, preserve existing
+source-specific permissions, and admit only exact original lines backed by an
+authorized atomic return command. Do not revalue at today's rate or weaken the
+general historical-cost checks to make the reversal pass.

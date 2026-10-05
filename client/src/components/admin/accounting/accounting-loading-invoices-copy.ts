@@ -40,6 +40,13 @@ const foreignValuationCopy:Record<Language,Record<string,string>>={
   ku:{foreignValuation:"هەڵسەنگاندنی پشتڕاستکراوی پسووڵەی بیانی",valuationUnavailable:"بەڵگەی فەرمیی بەرواردار بەردەست نییە؛ هیچ نرخ یان بەهایەکی بنەڕەت خەمڵێنراو نییە.",officialRate:"نرخی فەرمی",effectiveOn:"بەرواری کاریگەری نرخ",evidenceReference:"سەرچاوەی بەڵگە",rateId:"تۆماری نرخ",baseReceivable:"قەرز / داهاتی جێگیری دراوی بنەڕەت",baseGoods:"داهاتی کاڵای جێگیری دراوی بنەڕەت",baseTax:"باجی جێگیری دراوی بنەڕەت",baseShipping:"گواستنەوەی جێگیری دراوی بنەڕەت",rounding:"خڕکردنەوەی کۆکراوەی پێکهاتەکان کۆی جێگیر دەپارێزێت؛ داهاتی FXی بەدەستهاتوو نییە و تێچووی کۆگا دروست ناکات.",nativeDebt:"قەرزی کڕیار هەر بە بڕی پسووڵەی دراوی ڕەسەنە.",nativeReceivable:"قەرزی کڕیار بە دراوی پسووڵە",postedFrozen:"تۆمارەکانی پۆستکراو بەها ڕەسەنەکانیان دەپارێزن، تەنانەت ئەگەر نرخەکان بگۆڕێن.",foreignCostSeparation:"تێچووی بنەڕەتی کۆگا جیاوازە و لە سەرەوە پیشان دراوە؛ هەڵسەنگاندنی پسووڵە تێچووی ساختە دروست ناکات.",valuationStatus:"بەڵگەی پشتڕاستکراوی بەرواردار",notAvailable:"بەردەست نییە",account:"هەژمار",party:"لایەن",debit:"قەرزدار",credit:"قەرزخواز",baseDebit:"قەرزداری بنەڕەت",baseCredit:"قەرزخوازی بنەڕەت",lineRate:"نرخی هێڵ"},
 };
 export function loadingInvoiceText(language: string, key: string): string {
+  const returnedCopy: Record<string, Record<string, string>> = {
+    en:{returned:"RETURNED",returnDate:"Return date",invoiceReversal:"Invoice reversal",cogsReversal:"COGS reversal",unavailable:"Unavailable"},
+    fa:{returned:"مرجوع‌شده",returnDate:"تاریخ مرجوعی",invoiceReversal:"معکوس‌سازی فاکتور",cogsReversal:"معکوس‌سازی بهای تمام‌شده",unavailable:"در دسترس نیست"},
+    ar:{returned:"مُرتجع",returnDate:"تاريخ الإرجاع",invoiceReversal:"عكس الفاتورة",cogsReversal:"عكس تكلفة البضاعة",unavailable:"غير متاح"},
+    tr:{returned:"İADE EDİLDİ",returnDate:"İade tarihi",invoiceReversal:"Fatura ters kaydı",cogsReversal:"Maliyet ters kaydı",unavailable:"Mevcut değil"},
+  };
+  if (key in (returnedCopy[language] ?? {})) return returnedCopy[language][key];
   const locale = (language === "tr" ? "ku" : ["fa", "ar", "ku", "en"].includes(language) ? language : "en") as Language;
   return foreignValuationCopy[locale][key] ?? valuationCopy[locale][key] ?? copy[locale][key] ?? copy.en[key] ?? key;
 }

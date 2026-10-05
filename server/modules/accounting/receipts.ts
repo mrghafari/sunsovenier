@@ -221,9 +221,12 @@ export async function transitionCheque(receiptId:number,action:"deposited"|"clea
   return callerTx?run(callerTx):accountingDb.transaction(run);
 }
 export async function readReceivables(companyId:number){
-  const r=await accountingDb.execute(sql`select *, (amount-settled_amount)::text as open_amount,
-    case when settled_amount=amount then 'settled' when settled_amount>0 then 'partial' else 'open' end as status
-    from accounting_receivable_items where company_id=${companyId} order by due_on,id`);
+  const r=await accountingDb.execute(sql`select r.*,
+    case when exists(select 1 from accounting_journal_entries x where x.reversal_of_id=r.invoice_journal_id and x.status='posted')
+      then '0' else (r.amount-r.settled_amount)::text end as open_amount,
+    case when exists(select 1 from accounting_journal_entries x where x.reversal_of_id=r.invoice_journal_id and x.status='posted')
+      then 'reversed' when r.settled_amount=r.amount then 'settled' when r.settled_amount>0 then 'partial' else 'open' end as status
+    from accounting_receivable_items r where r.company_id=${companyId} order by r.due_on,r.id`);
   return r.rows;
 }
 // Full, evidence-backed return of one actual BANK/CASH receipt, not a wallet refund.

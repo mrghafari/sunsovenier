@@ -5,8 +5,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { loadingInvoiceCommandSchema, stockBookCommandSchema } from "@shared/accounting-loading-invoices";
 import { fetchLoadingInvoices, loadingInvoicesKey, loadingInvoicesUrl, stockBooksKey } from "./accounting-loading-invoices-api";
 import { loadingInvoiceBlockerText, loadingInvoiceText } from "./accounting-loading-invoices-copy";
-import { ForeignInvoiceValuationPanel, LoadingInvoiceSafetyNotice } from "./accounting-loading-invoices";
+import { ForeignInvoiceValuationPanel, LoadingInvoiceReturnMarker, LoadingInvoiceSafetyNotice } from "./accounting-loading-invoices";
 import type { LoadingInvoicePlan, LoadingInvoiceWorkbench } from "@shared/accounting-loading-invoices";
+Object.assign(globalThis, { React });
 
 test("loading invoice API URL carries validated company/order/page scope and query keys are isolated", () => {
   const url = new URL(loadingInvoicesUrl({ companyId: 12, orderId: 804, page: 3, pageSize: 20 }), "http://local");
@@ -89,6 +90,19 @@ test("ordinary base-currency plan keeps the legacy invoice presentation without 
   plan.foreignValuation=null;
   const html=renderToStaticMarkup(React.createElement(ForeignInvoiceValuationPanel,{plan,language:"en"}));
   assert.equal(html,"");
+});
+
+test("returned invoice keeps its immutable posted and reversal identifiers visible in four languages", () => {
+  const returned = { id: 901, returnDate: "2025-05-14", invoiceReversalId: 902, cogsReversalId: 903 };
+  for (const language of ["en", "fa", "ar", "tr"]) {
+    const html = renderToStaticMarkup(React.createElement(LoadingInvoiceReturnMarker, { language, returned }));
+    assert.ok(html.includes(loadingInvoiceText(language, "returned")));
+    assert.ok(html.includes(loadingInvoiceText(language, "returnDate")));
+    assert.ok(html.includes("2025-05-14"));
+    assert.ok(html.includes("#901"));
+    assert.ok(html.includes("#902"));
+    assert.ok(html.includes("#903"));
+  }
 });
 
 test("GET workbench API returns server foreign valuation unchanged and keeps authenticated GET semantics", async () => {

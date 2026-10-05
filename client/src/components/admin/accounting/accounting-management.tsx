@@ -16,6 +16,7 @@ import AccountingInventoryFifo from "./accounting-inventory-fifo";
 import AccountingLoadingInvoices from "./accounting-loading-invoices";
 import AccountingShipmentCosts from "./accounting-shipment-costs";
 import AccountingInventoryCapitalization from "./accounting-inventory-capitalization";
+import AccountingLoadingReturns from "./accounting-loading-returns";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -99,7 +100,7 @@ export default function AccountingManagement() {
   const seedMutation = useSeedAccounting();
   const [seedCountry,setSeedCountry]=useState<"IR"|"IQ">(language==="fa"?"IR":"IQ");
   const [activeResource, setActiveResource] = useState<AccountingResource>("companies");
-  const [activePanel, setActivePanel] = useState<"setup" | "reports" | "receipts" | "documents" | "inventory" | "fifo" | "credit" | "loading-invoices" | "capitalization" | "shipment-costs">("setup");
+  const [activePanel, setActivePanel] = useState<"setup" | "reports" | "receipts" | "documents" | "inventory" | "fifo" | "credit" | "loading-invoices" | "capitalization" | "shipment-costs" | "loading-returns">("setup");
   const [record, setRecord] = useState<AccountingRow | undefined>();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -299,6 +300,7 @@ export default function AccountingManagement() {
           <button type="button" role="tab" aria-selected={activePanel === "fifo"} onClick={() => setActivePanel("fifo")} className={`rounded-lg px-4 py-2 text-sm font-semibold ${activePanel === "fifo" ? "bg-[#20484a] text-[#f4f2e7]" : "bg-[#e6ece4] text-[#52655b]"}`}>{language === "fa" ? "ردیابی مستند FIFO" : language === "ar" ? "تتبع FIFO المستندي" : language === "tr" ? "FIFO belge izi" : "FIFO documentary trace"}</button>
           <button type="button" role="tab" aria-selected={activePanel === "loading-invoices"} onClick={() => setActivePanel("loading-invoices")} className={`rounded-lg px-4 py-2 text-sm font-semibold ${activePanel === "loading-invoices" ? "bg-[#20484a] text-[#f4f2e7]" : "bg-[#e6ece4] text-[#52655b]"}`}>{language === "fa" ? "فاکتور بارگیری و بهای تمام‌شده" : language === "ar" ? "فواتير التحميل والتكلفة" : String(language) === "ku" ? "پسووڵەی بارکردن و تێچوو" : "Loading invoice & COGS"}</button>
           <button type="button" role="tab" aria-selected={activePanel === "shipment-costs"} onClick={() => setActivePanel("shipment-costs")} className={`rounded-lg px-4 py-2 text-sm font-semibold ${activePanel === "shipment-costs" ? "bg-[#735b3e] text-[#fbf6ed]" : "bg-[#f0e9dd] text-[#685940]"}`}>{language === "fa" ? "ثبت هزینه حمل" : language === "ar" ? "ترحيل تكلفة الشحن" : language === "tr" ? "Sevkiyat maliyeti kaydı" : "Shipment cost posting"}</button>
+          <button type="button" role="tab" aria-selected={activePanel === "loading-returns"} onClick={() => setActivePanel("loading-returns")} className={`rounded-lg px-4 py-2 text-sm font-semibold ${activePanel === "loading-returns" ? "bg-[#735b3e] text-[#fbf6ed]" : "bg-[#f0e9dd] text-[#685940]"}`}>{language === "fa" ? "مرجوعی فاکتور بارگیری" : language === "ar" ? "مرتجعات فواتير التحميل" : language === "tr" ? "Yükleme faturası iadeleri" : "Loading invoice returns"}</button>
           <button type="button" role="tab" aria-selected={activePanel === "capitalization"} onClick={() => setActivePanel("capitalization")} className={`rounded-lg px-4 py-2 text-sm font-semibold ${activePanel === "capitalization" ? "bg-[#20484a] text-[#f4f2e7]" : "bg-[#e6ece4] text-[#52655b]"}`}>{language === "fa" ? "سرمایه‌ای‌سازی خرید" : language === "ar" ? "رسملة المشتريات" : language === "tr" ? "سەرمایەیی‌کردنی کڕین" : "Purchase capitalization"}</button>
         </div>
         {activePanel === "credit" ? <div className="mt-5"><AccountingCredit companies={companyRows.map(row => ({ id: rowId(row), name: asText(row, "name") }))} canManage={canManage}/></div> :
@@ -309,6 +311,7 @@ export default function AccountingManagement() {
           activePanel === "fifo" ? <div className="mt-5"><AccountingInventoryFifo companies={companyRows.map(row => ({ id: rowId(row), name: asText(row, "name") }))} /></div> :
           activePanel === "loading-invoices" ? <div className="mt-5"><AccountingLoadingInvoices companies={companyRows.map(row => ({ id: rowId(row), name: asText(row, "name") }))} canManage={canManage} /></div> :
          activePanel === "shipment-costs" ? <div className="mt-5"><AccountingShipmentCosts companies={companyRows.map(row => ({ id: rowId(row), name: asText(row, "name") }))} canManage={canManage} /></div> :
+          activePanel === "loading-returns" ? <div className="mt-5"><AccountingLoadingReturns companies={companyRows.map(row => ({ id: rowId(row), name: asText(row, "name") }))} canManage={canManage} /></div> :
            activePanel === "capitalization" ? <div className="mt-5"><AccountingInventoryCapitalization companies={companyRows.map(row => ({ id: rowId(row), name: asText(row, "name") }))} canManage={canManage} /></div> :
         <div className="mt-6 grid items-start gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
           <aside className="rounded-[22px] border border-[#dce2db] bg-[#e8ede7] p-3">

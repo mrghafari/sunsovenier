@@ -34,7 +34,8 @@ export interface LoadingInvoicePlan {
   amounts:LoadingInvoiceAmounts|null;allocations:StockBookAllocation[];baseCost:string|null;
   foreignValuation?:ForeignLoadingInvoiceValuation|null;
   blockers:LoadingInvoiceBlocker[];planHash:string;postingAllowed:boolean;
-  posted:{invoiceId:number;journalId:number;cogsJournalId:number|null;receivableId:number;settlementId:number|null}|null;
+  posted:{invoiceId:number;journalId:number;cogsJournalId:number|null;receivableId:number;settlementId:number|null;
+    returned?:{id:number;returnDate:string;invoiceReversalId:number;cogsReversalId:number|null}|null}|null;
 }
 export interface LoadingInvoiceWorkbench {
   company:{id:number;name:string;baseCurrency:string};rows:LoadingInvoicePlan[];

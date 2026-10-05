@@ -55,6 +55,7 @@ try {
     "server/modules/accounting/0040_foreign_loading_invoices.sql",
      "server/modules/accounting/0041_shipment_costs.sql",
      "server/modules/accounting/0042_shipment_provenance.sql",
+    "server/modules/accounting/0043_loading_returns.sql",
   ];
   for (const file of files) {
     const content = await readFile(file,"utf8");
