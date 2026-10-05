@@ -21,6 +21,7 @@ import {readShippingMarginReport} from "./shipping-reports";
 import {shippingMarginCsv} from "./shipping-report-csv";
 import {readLoadingPreviews} from "./loading-previews";
 import {readInventoryDocumentMetadata,readInventoryDocuments,readInventoryDocument,saveInventoryDocument,actInventoryDocument} from "./inventory-documents";
+import {readInventoryFifo} from "./inventory-fifo";
 import {approveLoadingShipping} from "./loading-shipping";
 import {readLoadingCaptureContext,captureMeasuredLoading} from "./loading-capture";
 import {readAccountingAudit,accountingAuditCsv} from "./audit-reports";
@@ -268,6 +269,9 @@ export function createAccountingRouter() {
   });
   router.get("/v2/inventory-documents/metadata",async(req,res,next)=>{
     try{res.json(await readInventoryDocumentMetadata(req.query.companyId));}catch(e){next(e);}
+  });
+  router.get("/v2/inventory-fifo-preview",async(req,res,next)=>{
+    try{res.json(await readInventoryFifo(req.query));}catch(e){next(e);}
   });
   router.get("/v2/inventory-documents",async(req,res,next)=>{
     try{res.json(await readInventoryDocuments(req.query));}catch(e){next(e);}

@@ -18,6 +18,8 @@
   review evidence, with a four-language Commercial sales review surface.
 - Four-language documentary purchase/opening inventory register with explicit
   batch quantities, currency-precise documented costs and review/withdrawal history.
+- Read-only documentary FIFO replay with purchase-layer provenance, exact
+  cumulative cost rounding and explicit unknown/shortfall states in four languages.
 
 These foundations do not mean a loading creates a live invoice, inventory
 valuation is verified, legacy openings are reconciled, or a consumer is enabled.
@@ -44,7 +46,8 @@ purchase cost or stock carrying value. Do not treat it as COGS evidence.
    unknown units, missing/legacy snapshots and nonzero fixed-order shipping
    without allocation evidence. Fixed freight now uses reviewed manual shares;
    its remainder stays explicitly unallocated. Still required:
-   actual FIFO/stock cost attribution and integration of reviewed weight
+   reconciled inventory carrying layers, transactional FIFO/stock cost
+   attribution and integration of reviewed weight
    evidence into the future invoice consumer. Aggregate loaded-vs-ordered
    control and Commercial approval are implemented (the user's designated
    approver, not finance), not financially activated.
@@ -98,6 +101,37 @@ purchase cost or stock carrying value. Do not treat it as COGS evidence.
    decisions and have not been performed.
 
 ## Read-only loading arithmetic
+
+### Documentary FIFO replay
+
+Accounting → FIFO documentary trace uses
+`GET /api/accounting/v2/inventory-fifo-preview`. All current approved inventory
+documents and all captured `LoadingCompleted` history in the selected company
+are replayed before any order filter or pagination. Draft/discarded/voided
+documents and other companies are excluded. Layer order is document date,
+document ID, then line index; outflows are event date then fact ID. Future-dated
+layers cannot supply earlier loadings. Allocations identify original document
+revision/reference/date, product/batch, measured tons and native-currency cost.
+Cumulative currency rounding conserves the original layer cost across splits;
+no selling price, catalog quantity, loading cost declaration or guessed FX is used.
+
+An unresolved earlier stock shortfall blocks later calculations for that product;
+an invalid prior capture blocks all subsequent replay. A malformed unknown date
+blocks the whole history. Repeated product/batch identities across documents
+are ambiguous, not additional stock. Partial allocations can show known
+documented portions, but the loading's total remains null until fully covered.
+Unknown shortage quantities are null, not zero. Native currency groups are never
+summed across currencies. Known rounding zeros remain distinct from missing costs.
+History above the explicit calculation limit fails rather than being truncated.
+
+This is `documentary_simulation`, with `postingAllowed:false` and
+`stockChanged:false` even when coverage is complete. Current approved sources
+are recalculated; these are not immutable historical financial allocations.
+Uncaptured historical movements, stock opening reconciliation, base carrying
+values and transactional invoice consumption remain unresolved. No allocation
+is persisted/reserved, no cost journal/receivable/wallet movement is created,
+and no outbox eligibility or processing/cutover flag changes. Production
+activation and publishing have not been performed.
 
 ### Documentary purchase and opening inventory source
 
