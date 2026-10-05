@@ -41,6 +41,10 @@ try {
     "server/modules/accounting/0026_contract_weight_review_guards.sql",
     "server/modules/accounting/0027_commercial_actor_namespaces.sql",
     "server/modules/accounting/0028_weight_review_active_company.sql",
+    "server/modules/accounting/0029_inventory_documents.sql",
+    "server/modules/accounting/0030_inventory_review_timestamp.sql",
+    "server/modules/accounting/0031_mixed_role_identity_comparison.sql",
+    "server/modules/accounting/0032_inventory_line_alias.sql",
   ];
   for (const file of files) {
     const content = await readFile(file,"utf8");

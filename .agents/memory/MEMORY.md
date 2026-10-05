@@ -16,6 +16,7 @@
 - [Warehouse template content language](warehouse-template-content-language.md) — legacy template language tags may not match their actual text; matching IDs alone does not ensure localized customer messages.
 - [Destructive super-admin actions](destructive-super-admin-actions.md) — require a verified active role and make multi-record deletion atomic with explicit targets.
 - [Legacy super-admin role](legacy-super-admin-role.md) — the active super-admin role may use the historical “Supper Admin” spelling; authorization must canonicalize only this known alias.
+- [Permission identity namespaces](permission-identity-namespaces.md) — compare canonical identity text across mixed role-grant namespaces; never invent numeric IDs for UUID actors.
 - [Warehouse settings authorization](warehouse-settings-authorization.md) — warehouse module permission, not department assignment alone, grants management access including administrators.
 - [Permissioned marketing email](permissioned-marketing-email.md) — campaign recipients require verified consent, global suppression, safe queueing, and explicit worker activation.
 - [Sender address previews](sender-address-previews.md) — show the effective SMTP sender; explicitly chosen invoice senders must not silently fall back.

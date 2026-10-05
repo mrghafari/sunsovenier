@@ -20,6 +20,7 @@ import {accountingCostReportCsv} from "./cost-report-csv";
 import {readShippingMarginReport} from "./shipping-reports";
 import {shippingMarginCsv} from "./shipping-report-csv";
 import {readLoadingPreviews} from "./loading-previews";
+import {readInventoryDocumentMetadata,readInventoryDocuments,readInventoryDocument,saveInventoryDocument,actInventoryDocument} from "./inventory-documents";
 import {approveLoadingShipping} from "./loading-shipping";
 import {readLoadingCaptureContext,captureMeasuredLoading} from "./loading-capture";
 import {readAccountingAudit,accountingAuditCsv} from "./audit-reports";
@@ -264,6 +265,21 @@ export function createAccountingRouter() {
   });
   router.post("/v2/manual-documents/:id/reverse",async(req,res,next)=>{
     try{res.json(await reverseManualDocument(req.params.id,req.body,res.locals.accountingAccess));}catch(e){next(e);}
+  });
+  router.get("/v2/inventory-documents/metadata",async(req,res,next)=>{
+    try{res.json(await readInventoryDocumentMetadata(req.query.companyId));}catch(e){next(e);}
+  });
+  router.get("/v2/inventory-documents",async(req,res,next)=>{
+    try{res.json(await readInventoryDocuments(req.query));}catch(e){next(e);}
+  });
+  router.get("/v2/inventory-documents/:id",async(req,res,next)=>{
+    try{res.json(await readInventoryDocument(req.params.id,req.query.companyId));}catch(e){next(e);}
+  });
+  router.post("/v2/inventory-documents",async(req,res,next)=>{
+    try{assertAccountingOrigin(req);res.json(await saveInventoryDocument(req.body,res.locals.accountingAccess));}catch(e){next(e);}
+  });
+  for(const action of ["approve","discard","void"] as const)router.post(`/v2/inventory-documents/:id/${action}`,async(req,res,next)=>{
+    try{assertAccountingOrigin(req);res.json(await actInventoryDocument(req.params.id,action,req.body,res.locals.accountingAccess));}catch(e){next(e);}
   });
   router.use((error: unknown,_req: Request,res: Response,_next: NextFunction) => {
     if (error instanceof AccountingError) return res.status(error.status).json({code:error.code,message:error.message});

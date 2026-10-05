@@ -16,6 +16,8 @@
   attestations. This is not verified inventory valuation or invoice issuance.
 - Contract-based cumulative order-weight control and immutable Commercial
   review evidence, with a four-language Commercial sales review surface.
+- Four-language documentary purchase/opening inventory register with explicit
+  batch quantities, currency-precise documented costs and review/withdrawal history.
 
 These foundations do not mean a loading creates a live invoice, inventory
 valuation is verified, legacy openings are reconciled, or a consumer is enabled.
@@ -96,6 +98,37 @@ purchase cost or stock carrying value. Do not treat it as COGS evidence.
    decisions and have not been performed.
 
 ## Read-only loading arithmetic
+
+### Documentary purchase and opening inventory source
+
+The user selected document entry inside Accounting and will provide actual
+documents separately. Accounting → Purchase & opening inventory uses
+`/api/accounting/v2/inventory-documents` to register those source records.
+Nothing is seeded: empty companies/records, missing documents and unavailable
+values remain explicit. Purchase records require a supplier; both purchase and
+opening records require a document reference, Gregorian date, documentary
+evidence reference, currency and positive measured-ton product/batch lines with
+exact documented costs. Foreign values remain in their original currency;
+no FX rate, base carrying amount, opening balance or selling-price cost is invented.
+
+Drafts support revisioned editing and retained-history discard. Review requires
+a staff-entered reason; approval freezes the document. Voiding retains the prior
+approval and adds attributed withdrawal evidence; financially used documents
+cannot be voided through this registry. Company, active-manager access, actual
+dates, unique source/active-document references, exact totals, decision timestamps,
+idempotency and immutable history are enforced server-side and by database guards.
+All transitions write accounting audit records atomically.
+
+Approval is **documentary only**, not posted inventory valuation, available
+stock, an opening reconciliation or FIFO allocation. The register creates no
+journal, AR, wallet movement, outbox event or native catalog/stock/reservation
+change. No purchase supplier payable or cost capitalization journal is issued
+here. Linking actual documented layers to reconciled stock carrying values and
+implementing controlled FIFO consumption remain part of steps 1–2.
+The UI includes real metadata, pagination, create/edit/detail/approve/discard/void,
+read-only role states, stale-revision reload and duplicate-submit protection in
+all four languages. The legacy Accounting identity interface remains numeric;
+this addition does not claim to migrate its UUID-incompatible staff-auth path.
 
 `GET /api/accounting/v2/loading-previews` accepts company, optional numeric order
 ID, page and page size. Existing accounting RBAC applies. The report enumerates

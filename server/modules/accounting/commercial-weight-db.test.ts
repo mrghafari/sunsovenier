@@ -68,6 +68,21 @@ test("contractual aggregate review is scoped, Commercial-only, immutable and sta
       await assert.rejects(()=>readCommercialWeight({companyId:2147483647,orderId:id},actor,tx),/not bound/);
       await assert.rejects(()=>approveCommercialWeight(awaitablePlaceholder,{...actor,canApprove:false},tx),/permission/);
     });
+    await t.test("numeric admin identities and text module-role grants are compatible",async()=>{
+      await tx.execute(sql`savepoint admin_review_check`);
+      try{
+        const role=(await tx.execute(sql`select id from admin_roles where is_active
+          and lower(regexp_replace(btrim(name),'[[:space:]-]+','_','g')) in ('super_admin','supper_admin','superadmin') limit 1`)).rows[0];
+        assert.ok(role);
+        const admin=Number((await tx.execute(sql`insert into users(username,email,password_hash,role_id)
+          values(${"disabled-commercial-fixture-"+randomUUID()},${randomUUID()+"@example.invalid"},'disabled-fixture',${role.id}) returning id`)).rows[0].id);
+        const r=await approveCommercialWeight(await command(),{actorId:String(admin),actorType:"admin",canApprove:true},tx);
+        assert.equal(r.approval?.actorId,String(admin));assert.equal(r.approval?.actorType,"admin");
+      }finally{
+        await tx.execute(sql`rollback to savepoint admin_review_check`);
+        await tx.execute(sql`release savepoint admin_review_check`);
+      }
+    });
     await t.test("Commercial approval preserves UUID identity and exact retries",async()=>{
       const c=await command(),approved=await approveCommercialWeight(c,actor,tx);
       assert.equal(approved.approved,true);assert.equal(approved.approval?.actorId,customId);
