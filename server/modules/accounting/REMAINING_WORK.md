@@ -99,7 +99,7 @@ purchase cost or stock carrying value. Do not treat it as COGS evidence.
    of financially attached evidence are blocked. Closed-gate purchase/opening
    capitalization and foreign invoices with original base-stock costs now have
    transactional handlers. Remaining: actual documentary openings and reconciliation,
-    settled/partial invoice/AR/stock/settlement returns,
+     partial-goods invoice/AR/stock returns and external cash payouts,
     coordinated shipment-cost returns, and separately approved worker retry/backoff and
    error provenance. Real opening evidence and activation are still outstanding.
    Never flip event eligibility or start a consumer merely because arithmetic
@@ -110,11 +110,12 @@ purchase cost or stock carrying value. Do not treat it as COGS evidence.
     must be reviewed before activation. A posted external cost recognizes the
     carrier payable, not a bank payment. Carrier party IDs are explicitly
     accountant-attested identifiers, not inferred from customer/vehicle IDs.
-    Full returns of **unsettled** loading invoices now have a separate
+    Full goods returns of loading invoices now have a separate
     closed-gate manager workbench and transactional handler. Documentary full
     goods receipt, reason, nonfuture open-period date and a current reviewed
-    plan hash are required. Any wallet settlement, nonzero settled amount or
-    active receipt allocation (including uncleared cheques) blocks this stage.
+    plan hash are required. Paid returns have an additional closed-by-default
+    cutover and explicit customer-credit acknowledgement. Unpaid returns retain
+    their existing path. Unconfirmed/uncleared cheque allocations still block.
     Original native/base invoice lines, rate provenance and original COGS are
     reversed exactly; the immutable invoice/AR/consumption records remain.
     Returned measured capacity restores only the original allocated book value.
@@ -123,10 +124,19 @@ purchase cost or stock carrying value. Do not treat it as COGS evidence.
     Current receivables exclude returned debt, historical aging follows actual
     reversal dates, and completed returns cannot accept new payments/allocations.
     Incurred freight and carrier payables are independent and are not reversed.
-    No native stock, price, wallet, hold or order status is changed.
+    Native stock, prices, holds and order status remain unchanged. For paid or
+    partially paid invoices, only the already-paid amount credits the customer's
+    explicitly linked active same-currency account. The full original sale/COGS
+    reverses and the unpaid remainder ceases to be debt; original settlements,
+    receipt allocations and their realized FX remain immutable history.
+    The customer credit reclassifies the exact original paid receivable carrying
+    value to customer prepaid liability, including proven zero-base minor units.
+    It is not a current-rate revaluation, payment reversal or bank payout.
+    Credit journal/native credit/invoice reversal must commit atomically;
+    incomplete commands, duplicate credits and independent credit reversals fail.
     Accounting → Loading returns includes four-language implementation progress,
     explicitly separate from company balances, verified openings or activation.
-    Settled/partial returns and foreign refunds remain outstanding; no worker,
+    Partial-goods returns and foreign cash refunds remain outstanding; no worker,
     production migration, real company activation or publication is implied.
     The additive loading-return migration is applied in development. Return
     cutovers remain closed and no actual return/opening was seeded. Rollback-only

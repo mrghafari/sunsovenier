@@ -54,6 +54,23 @@ test("return POST sends only the validated evidence command with session credent
   assert.equal(sentInit?.method, "POST");
 });
 
+test("paid full-goods return sends the explicit customer-credit acknowledgement only when supplied", async () => {
+  const command = {
+    companyId: 9, invoiceId: 77, expectedPlanHash: "c".repeat(64), returnDate: "2025-05-03",
+    goodsReceiptReference: "GRN-RETURN-208", reason: "All measured goods physically returned",
+  };
+  let sentBody = "";
+  globalThis.fetch = (async (_input, init) => {
+    sentBody = String(init?.body ?? "");
+    return new Response(JSON.stringify({ id: 6 }), { status: 201, headers: { "Content-Type": "application/json" } });
+  }) as typeof fetch;
+  await postLoadingReturn({ ...command, creditToCustomerConfirmed: true });
+  assert.deepEqual(JSON.parse(sentBody), { ...command, creditToCustomerConfirmed: true });
+  assert.throws(() => postLoadingReturn({ ...command, creditToCustomerConfirmed: false as never }));
+  await postLoadingReturn(command);
+  assert.deepEqual(JSON.parse(sentBody), command);
+});
+
 test("server error message is surfaced without a retry", async () => {
   globalThis.fetch = (async () => new Response(JSON.stringify({ message: "Plan changed" }), { status: 409 })) as typeof fetch;
   await assert.rejects(fetchLoadingReturns({ companyId: 9, page: 1, pageSize: 20 }), /Plan changed/);

@@ -45,6 +45,12 @@ async function postWithinTransaction(tx: AccountingTransaction, input: JournalIn
      where company_id=${data.companyId} and source_id=${data.sourceId}`)).rows[0]:undefined;
   const foreignInvoiceBook=data.sourceType==="LoadingCompleted"?(await tx.execute(sql`select * from accounting_foreign_loading_books
     where company_id=${data.companyId} and source_id=${data.sourceId}`)).rows[0]:undefined;
+  const returnCredit=data.sourceType==="LoadingReturnCredit"?(await tx.execute(sql`select plan->'creditEvidence' as proof
+    from accounting_loading_returns where id::text=${data.sourceId} and company_id=${data.companyId}
+      and customer_credit_journal_id is null and return_date=${data.entryDate}::date`)).rows[0]?.proof as
+      {amount:string;baseAmount:string;rate:string;currency:string;receivableAccountId:number;liabilityAccountId:number;valid:boolean}|undefined:undefined;
+  if(data.sourceType==="LoadingReturnCredit"&&(!returnCredit?.valid||data.lines.length!==2))
+    throw new AccountingError("A pending reviewed customer return credit is required",409,"RETURN_CREDIT_EVIDENCE_MISSING");
   const receiptValues=new Map<number,{base:string;rate:string}>();
   if(receiptBook){
     receiptValues.set(receiptBook.funding_account_id as number,{base:String(receiptBook.funding_base),rate:String(receiptBook.official_rate)});
@@ -59,7 +65,8 @@ async function postWithinTransaction(tx: AccountingTransaction, input: JournalIn
   }}:receiptBook?{...normalized,receiptCarryingProof:receiptBook}:
      chequeBook?{...normalized,chequeCarryingProof:chequeBook}:
      expenseBook?{...normalized,expenseCarryingProof:expenseBook}:
-     foreignInvoiceBook?{...normalized,foreignInvoiceProof:foreignInvoiceBook}:normalized)).digest("hex");
+     foreignInvoiceBook?{...normalized,foreignInvoiceProof:foreignInvoiceBook}:
+     returnCredit?{...normalized,returnCreditProof:returnCredit}:normalized)).digest("hex");
   const [existing] = await tx.select().from(entries).where(and(
     eq(entries.companyId,data.companyId),eq(entries.sourceType,data.sourceType),eq(entries.sourceId,data.sourceId),
   )).limit(1);
@@ -107,16 +114,21 @@ async function postWithinTransaction(tx: AccountingTransaction, input: JournalIn
        .find(l=>l.accountId===line.accountId&&l.currency===line.currency&&decimal(l.debit).eq(line.debit)&&
          decimal(l.credit).eq(line.credit)&&l.partyType===line.partyType&&l.partyId===line.partyId&&l.costCenterId===line.costCenterId):undefined;
      const reversalLine=data.reversalOfId?originalLines[lineIndex]:undefined;
+      const returnCreditLine=returnCredit&&line.currency===returnCredit.currency&&
+        ((line.accountId===returnCredit.receivableAccountId&&decimal(line.debit).eq(returnCredit.amount)&&decimal(line.credit).isZero())||
+         (line.accountId===returnCredit.liabilityAccountId&&decimal(line.credit).eq(returnCredit.amount)&&decimal(line.debit).isZero()));
      const historical=Boolean(walletHistorical||receiptValue||chequeLine?.valuationBasis==="historical_carrying"||expenseLine||foreignInvoiceLine||
-       reversalLine?.valuationBasis==="historical_carrying");
+        reversalLine?.valuationBasis==="historical_carrying"||returnCreditLine);
     const bookAmount=walletHistorical?String(line.accountId===book.liability_account_id?book.wallet_base:book.receivable_base):
        receiptValue?.base??(chequeLine?(decimal(line.debit).gt(0)?chequeLine.baseDebit:chequeLine.baseCredit):
          expenseLine?(decimal(line.debit).gt(0)?expenseLine.baseDebit:expenseLine.baseCredit):
          foreignInvoiceLine?(decimal(line.debit).gt(0)?foreignInvoiceLine.baseDebit:foreignInvoiceLine.baseCredit):
-         reversalLine?(decimal(line.debit).gt(0)?reversalLine.baseCredit:reversalLine.baseDebit):undefined);
+          reversalLine?(decimal(line.debit).gt(0)?reversalLine.baseCredit:reversalLine.baseDebit):
+          returnCreditLine?returnCredit.baseAmount:undefined);
     let rate = walletHistorical?String(line.accountId===book.liability_account_id?book.wallet_rate:book.receivable_rate):
        receiptValue?receiptValue.rate:chequeLine?chequeLine.exchangeRate:expenseLine?expenseLine.exchangeRate:
        foreignInvoiceLine?foreignInvoiceLine.exchangeRate:
+        returnCreditLine?returnCredit.rate:
       data.reversalOfId ? originalLines[lineIndex]?.exchangeRate : cachedRates.get(line.currency);
     if (data.reversalOfId && !rate) throw new AccountingError("Reversal line count does not match the original");
     if (!rate) {
@@ -140,7 +152,8 @@ async function postWithinTransaction(tx: AccountingTransaction, input: JournalIn
      (receiptBook&&["funding_base","receivable_base","wallet_base"].every(k=>decimal(String(receiptBook[k])).isZero()))||
       (chequeBook&&(chequeBook.lines as {baseDebit:string;baseCredit:string}[]).every(l=>decimal(l.baseDebit).isZero()&&decimal(l.baseCredit).isZero()))||
       (expenseBook&&(expenseBook.valuation as {lines:{baseDebit:string;baseCredit:string}[]}).lines.every(l=>decimal(l.baseDebit).isZero()&&decimal(l.baseCredit).isZero()))||
-      (data.reversalOfId&&originalLines.length>0&&originalLines.every(l=>l.valuationBasis==="historical_carrying"&&decimal(l.baseDebit).isZero()&&decimal(l.baseCredit).isZero()))){
+       (data.reversalOfId&&originalLines.length>0&&originalLines.every(l=>l.valuationBasis==="historical_carrying"&&decimal(l.baseDebit).isZero()&&decimal(l.baseCredit).isZero()))||
+       (returnCredit&&decimal(returnCredit.baseAmount).isZero())){
     if((book&&prepared.length!==2)||prepared.some(l=>!decimal(l.baseDebit).isZero()||!decimal(l.baseCredit).isZero()||l.valuationBasis!=="historical_carrying"))
       throw new AccountingError("Zero carrying value requires precisely proven native lines");
   }else assertBalanced(prepared);

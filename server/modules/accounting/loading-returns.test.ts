@@ -6,6 +6,8 @@ test("full return commands require documentary receipt, date, reviewed identity 
   const command={companyId:1,invoiceId:2,expectedPlanHash:"a".repeat(64),returnDate:"2026-06-04",
     goodsReceiptReference:"Verified goods receipt",reason:"Return all documented loading goods"};
   assert.ok(loadingReturnCommandSchema.safeParse(command).success);
+  assert.ok(loadingReturnCommandSchema.safeParse({...command,creditToCustomerConfirmed:true}).success);
+  assert.equal(loadingReturnCommandSchema.safeParse({...command,creditToCustomerConfirmed:false}).success,false);
   for(const changed of [{...command,amount:"1"},{...command,partial:true},
     {...command,processingReady:true},{...command,returnDate:"2026-02-31"},
     {...command,goodsReceiptReference:""},{...command,expectedPlanHash:""}])

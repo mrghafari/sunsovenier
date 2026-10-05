@@ -4,6 +4,7 @@ import {accountingLoadingInvoices} from "./loading-invoice-schema";
 export const accountingLoadingReturnCutovers=pgTable("accounting_loading_return_cutovers",{
   companyId:integer("company_id").primaryKey().references(()=>accountingCompanies.id),
   processingReady:boolean("processing_ready").notNull().default(false),
+  allowPaidReturns:boolean("allow_paid_returns").notNull().default(false),
   startsOn:date("starts_on"),reviewedBy:integer("reviewed_by"),evidenceReference:text("evidence_reference"),
 });
 export const accountingLoadingReturns=pgTable("accounting_loading_returns",{
@@ -13,6 +14,7 @@ export const accountingLoadingReturns=pgTable("accounting_loading_returns",{
   reason:text("reason").notNull(),commandHash:text("command_hash").notNull(),plan:jsonb("plan").notNull(),
   invoiceReversalId:integer("invoice_reversal_id").unique().references(()=>accountingJournalEntries.id),
   cogsReversalId:integer("cogs_reversal_id").unique().references(()=>accountingJournalEntries.id),
+  customerCreditJournalId:integer("customer_credit_journal_id").unique().references(()=>accountingJournalEntries.id),
   actorId:integer("actor_id").notNull(),actorType:text("actor_type").notNull(),
   createdAt:timestamp("created_at",{withTimezone:true}).notNull().defaultNow(),
 });

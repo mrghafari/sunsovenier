@@ -10,15 +10,27 @@ import {postJournalEntry,reverseJournalEntry} from "./postJournalEntry";
 import {saveInventoryDocument,actInventoryDocument,readInventoryDocumentMetadata} from "./inventory-documents";
 import {registerStockBook,readCarryingLayers} from "./loading-invoice-stock";
 import {readLoadingInvoiceWorkbench,issueLoadingInvoice} from "./loading-invoices";
-import {readLoadingReturns,returnLoadingInvoice} from "./loading-returns";
+import {readLoadingReturns,returnLoadingInvoice as returnOriginal} from "./loading-returns";
 import {readShipmentCosts,postShipmentCost,captureShipmentCost} from "./shipment-costs";
 import {recordOperationalEvent} from "./events";
 import {linkWallet,recordWalletMovement,prepareWalletOrder,approveWalletOrder} from "./wallet";
 import {decimal} from "./money";
-import {settleWalletReceivable} from "./wallet-settlement";
+import {settleWalletReceivable as settleOriginal} from "./wallet-settlement";
 import {readCustomerReport} from "./customer-reports";
 import {readCreditExposure} from "./credit-exposure";
 import {readReceiptOpenItems} from "./receipt-workbench";
+import {recordCustomerReceipt,returnCustomerReceipt} from "./receipts";
+async function settleWalletReceivable(...args:Parameters<typeof settleOriginal>){
+  try{return await settleOriginal(...args);}catch(error){
+    console.error("Settlement SQL cause:",(error as {cause?:{message?:string}}).cause?.message);throw error;
+  }
+}
+async function returnLoadingInvoice(...args:Parameters<typeof returnOriginal>){
+  try{return await returnOriginal(...args);}catch(error){
+    if((error as {cause?:unknown}).cause)console.error("Return SQL cause:",(error as {cause:{message?:string}}).cause.message);
+    throw error;
+  }
+}
 test("full unsettled loading returns preserve original books and never change native workflows (rollback-only)",
  {skip:process.env.ACCOUNTING_DB_TEST!=="1"},async t=>{
   const currencies=process.env.ACCOUNTING_RETURN_TEST_CURRENCY?[process.env.ACCOUNTING_RETURN_TEST_CURRENCY]:["IQD","USD"];
@@ -33,6 +45,10 @@ test("full unsettled loading returns preserve original books and never change na
         if(process.env.NODE_ENV==="production")throw new Error("No production migration dry run");
         await tx.execute(sql.raw(await readFile("server/modules/accounting/0043_loading_returns.sql","utf8")));
       }
+       if(process.env.ACCOUNTING_PAID_RETURN_MIGRATION_DRY_RUN==="1"){
+         if(process.env.NODE_ENV==="production")throw new Error("No production migration dry run");
+         await tx.execute(sql.raw(await readFile("server/modules/accounting/0044_paid_loading_returns.sql","utf8")));
+       }
       const role=(await tx.execute(sql`select id from admin_roles where is_active and
         lower(regexp_replace(btrim(name),'[[:space:]-]+','_','g')) in ('super_admin','supper_admin','admin') limit 1`)).rows[0];
       assert.ok(role);
@@ -271,6 +287,134 @@ test("full unsettled loading returns preserve original books and never change na
         const selectable=await readReceiptOpenItems({companyId,customerId,currency},tx);
         assert.equal(selectable.items.length,2);
         assert.ok(selectable.items.every(r=>r.id!==invoices[0].receivableId&&r.id!==invoices[1].receivableId));
+      });
+      await t.test(currency+": paid returns stay independently gated and require exact fresh credit review",async()=>{
+        await recordWalletMovement("topup",{companyId,walletId:customerId,sourceId:randomUUID(),entryDate:"2026-06-07",
+          amount:"100",channel:"BANK",evidenceReference:"Actual additional customer funding",reason:"Reviewed funding before original payment"},actor,tx);
+        await settleWalletReceivable({companyId,walletId:customerId,receivableId:invoices[2].receivableId!,
+          holdId:Number(holdBefore.id),sourceId:randomUUID(),entryDate:"2026-06-07",amount:"50",
+          reason:"Original partial payment from own held funds"},actor,tx);
+        assert.ok((await plans()).rows.find(p=>p.invoiceId===invoices[2].invoiceId)!.blockers.includes("PAID_RETURN_GATE_CLOSED"));
+        await rejected(()=>reverseJournalEntry(invoices[2].journalId!,"2026-06-08","No independent paid invoice reversal",actor,tx),/coordinated|standalone/);
+        await tx.execute(sql`update accounting_loading_return_cutovers set processing_ready=true,allow_paid_returns=true where company_id=${companyId}`);
+        const p=(await plans()).rows.find(p=>p.invoiceId===invoices[2].invoiceId)!;
+        assert.deepEqual(p.blockers,[]);assert.equal(p.customerCredit!.amount,"50.00000000");
+        assert.equal(decimal(p.customerCredit!.baseAmount).toFixed(),currency==="USD"?"75000":"50");
+        await rejected(async()=>returnLoadingInvoice(await command(p.invoiceId,"2026-06-08"),actor,tx),/Explicit review/);
+        const stale={...await command(p.invoiceId,"2026-06-08"),creditToCustomerConfirmed:true as const};
+        await recordWalletMovement("topup",{companyId,walletId:customerId,sourceId:randomUUID(),entryDate:"2026-06-07",
+          amount:"1",channel:"BANK",evidenceReference:"Intervening confirmed funding evidence",reason:"Current customer credit plan changed"},actor,tx);
+        await rejected(()=>returnLoadingInvoice(stale,actor,tx),/changed/);
+      });
+      await t.test(currency+": customer credit rolls back with failed completion and cannot be paid twice",async()=>{
+        const c={...await command(invoices[2].invoiceId,"2026-06-08"),creditToCustomerConfirmed:true as const};
+        const wallet=(await tx.execute(sql`select to_jsonb(w) data from customer_wallets w where id=${customerId}`)).rows[0].data;
+        const hold=(await tx.execute(sql`select to_jsonb(h) data from accounting_wallet_holds h where order_id=${orderId}`)).rows[0].data;
+        const settlements=(await tx.execute(sql`select jsonb_agg(to_jsonb(s) order by id) data from accounting_wallet_settlements s where company_id=${companyId}`)).rows[0].data;
+        const fxBefore=(await tx.execute(sql`select coalesce(sum(l.base_credit-l.base_debit),0)::text n from accounting_journal_lines l
+          join accounting_journal_entries j on j.id=l.entry_id where j.company_id=${companyId} and j.status='posted'
+            and l.account_id in (${accounts.get("FX_GAIN")!},${accounts.get("FX_LOSS")!})`)).rows[0].n;
+        const failure=`paid_return_failure_${actorId}`;
+        await tx.execute(sql`create function ${sql.identifier(failure)}() returns trigger language plpgsql as
+          $$ begin raise exception 'Paid return downstream failure'; end $$`);
+        await tx.execute(sql`create trigger ${sql.identifier(failure)} before update on accounting_loading_returns
+          for each row execute function ${sql.identifier(failure)}()`);
+        await assert.rejects(()=>returnLoadingInvoice(c,actor,tx),e=>/downstream failure/.test(String((e as {cause?:{message?:string}}).cause?.message)));
+        assert.deepEqual((await tx.execute(sql`select to_jsonb(w) data from customer_wallets w where id=${customerId}`)).rows[0].data,wallet);
+        assert.equal((await tx.execute(sql`select count(*)::integer n from accounting_loading_returns where invoice_id=${c.invoiceId}`)).rows[0].n,0);
+        await tx.execute(sql`drop trigger ${sql.identifier(failure)} on accounting_loading_returns`);
+        await tx.execute(sql`drop function ${sql.identifier(failure)}()`);
+        const result=await returnLoadingInvoice(c,actor,tx);assert.ok(result.customerCreditJournalId);
+        assert.equal((await returnLoadingInvoice(c,actor,tx)).duplicate,true);
+        const balance=(await tx.execute(sql`select balance::text n from customer_wallets where id=${customerId}`)).rows[0].n;
+        assert.equal(decimal(String(balance)).minus(String(wallet.balance)).toFixed(),"50");
+        assert.deepEqual((await tx.execute(sql`select to_jsonb(h) data from accounting_wallet_holds h where order_id=${orderId}`)).rows[0].data,hold);
+        assert.deepEqual((await tx.execute(sql`select jsonb_agg(to_jsonb(s) order by id) data from accounting_wallet_settlements s where company_id=${companyId}`)).rows[0].data,settlements);
+        assert.equal((await tx.execute(sql`select settled_amount::text n from accounting_receivable_items where id=${invoices[2].receivableId}`)).rows[0].n,"50.00000000");
+        assert.equal((await tx.execute(sql`select coalesce(sum(l.base_credit-l.base_debit),0)::text n from accounting_journal_lines l
+          join accounting_journal_entries j on j.id=l.entry_id where j.company_id=${companyId} and j.status='posted'
+            and l.account_id in (${accounts.get("FX_GAIN")!},${accounts.get("FX_LOSS")!})`)).rows[0].n,fxBefore);
+        await rejected(()=>reverseJournalEntry(result.customerCreditJournalId!,"2026-06-08","No independent credit reversal",actor,tx),/independently/);
+        assert.equal(decimal((await readCreditExposure(companyId,customerId,tx)).openReceivables).toFixed(),"10");
+        assert.equal((await tx.execute(sql`select accounting_stock_ledger_reconciled(${companyId}) ok`)).rows[0].ok,true);
+        assert.deepEqual((await tx.execute(sql`select to_jsonb(o) data from customer_orders o where id=${orderId}`)).rows[0].data,nativeBefore);
+      });
+      await t.test(currency+": fully bank-paid returns credit only that invoice, retaining cash receipt and original FX",async()=>{
+        const p=(await plans()).rows.find(p=>!p.returned&&decimal(p.originalAmount).eq("10"))!;
+        assert.ok(p);
+        const receipt=await recordCustomerReceipt({companyId,customerId,currency,sourceId:randomUUID(),entryDate:"2026-06-09",
+          method:"BANK",amount:"10",evidenceReference:"Confirmed original bank transfer",reason:"Actual full bank invoice collection",
+          allocations:[{receivableId:p.receivableId,amount:"10"}]},actor,tx);
+        const original=(await tx.execute(sql`select to_jsonb(r) data from accounting_customer_receipts r where id=${receipt.receipt.id}`)).rows[0].data;
+        const allocated=(await tx.execute(sql`select to_jsonb(a) data from accounting_receipt_allocations a where receipt_id=${receipt.receipt.id}`)).rows[0].data;
+        const bank=(await tx.execute(sql`select sum(l.base_debit-l.base_credit)::text n from accounting_journal_lines l
+          join accounting_journal_entries j on j.id=l.entry_id where j.company_id=${companyId} and j.status='posted' and l.account_id=${accounts.get("BANK")!}`)).rows[0].n;
+        const before=(await tx.execute(sql`select balance::text n from customer_wallets where id=${customerId}`)).rows[0].n;
+        const cmd={...await command(p.invoiceId,"2026-06-10"),creditToCustomerConfirmed:true as const};
+        const returned=await returnLoadingInvoice(cmd,actor,tx);assert.ok(returned.customerCreditJournalId);
+        assert.equal(decimal(String((await tx.execute(sql`select balance::text n from customer_wallets where id=${customerId}`)).rows[0].n)).minus(String(before)).toFixed(),"10");
+        assert.deepEqual((await tx.execute(sql`select to_jsonb(r) data from accounting_customer_receipts r where id=${receipt.receipt.id}`)).rows[0].data,original);
+        assert.deepEqual((await tx.execute(sql`select to_jsonb(a) data from accounting_receipt_allocations a where receipt_id=${receipt.receipt.id}`)).rows[0].data,allocated);
+        assert.equal((await tx.execute(sql`select sum(l.base_debit-l.base_credit)::text n from accounting_journal_lines l
+          join accounting_journal_entries j on j.id=l.entry_id where j.company_id=${companyId} and j.status='posted' and l.account_id=${accounts.get("BANK")!}`)).rows[0].n,bank);
+        const exposure=await readCreditExposure(companyId,customerId,tx);
+        assert.equal(decimal(exposure.openReceivables).toFixed(),"0");assert.equal(exposure.reconciled,true);
+        await rejected(()=>returnCustomerReceipt(Number(receipt.receipt.id),{sourceId:randomUUID(),entryDate:"2026-06-11",
+          evidenceReference:"Cannot refund the same original receipt twice",reason:"Already transferred to customer credit"},actor,tx));
+        assert.deepEqual((await tx.execute(sql`select to_jsonb(p) data from shop_products p where id=${productId}`)).rows[0].data,catalogBefore);
+      });
+      await t.test(currency+": full wallet-paid returns retain original payment, FX, holds and exact historical credit",async()=>{
+        const fact=(await recordOperationalEvent(tx,{eventType:"LoadingCompleted",orderId,sourceId:"full-paid-wallet-truck",
+          eventDate:"2026-06-11",weighbridgeReference:"Reviewed full-paid invoice goods",actualWeightTons:"0.1",
+          lines:[{orderItemId:orderId,actualWeightTons:"0.1"}]},actor)).factId;
+        const p=(await readLoadingInvoiceWorkbench({companyId,orderId},tx)).rows.find(p=>p.factId===fact)!;
+        assert.deepEqual(p.blockers,[]);
+        const issued=await issueLoadingInvoice({companyId,factId:fact,expectedPlanHash:p.planHash,
+          reason:"Actual full wallet-paid goods invoice"},actor,tx);
+        const payment=await settleWalletReceivable({companyId,walletId:customerId,receivableId:issued.receivableId!,
+          holdId:Number(holdBefore.id),sourceId:randomUUID(),entryDate:"2026-06-12",amount:"10",
+          reason:"Actual full own-hold invoice settlement"},actor,tx);
+        await tx.execute(sql`savepoint unavailable_credit_wallet`);
+        await tx.execute(sql`update customer_wallets set status='inactive' where id=${customerId}`);
+        assert.ok((await plans()).rows.find(r=>r.invoiceId===issued.invoiceId)!.blockers.includes("CREDIT_WALLET_UNAVAILABLE"));
+        await tx.execute(sql`rollback to savepoint unavailable_credit_wallet`);await tx.execute(sql`release savepoint unavailable_credit_wallet`);
+        const c={...await command(issued.invoiceId,"2026-06-13"),creditToCustomerConfirmed:true as const};
+        const before=(await tx.execute(sql`select balance::text n from customer_wallets where id=${customerId}`)).rows[0].n;
+        const plan=(await plans()).rows.find(r=>r.invoiceId===issued.invoiceId)!;
+        if(currency==="USD"){
+          await tx.execute(sql`update accounting_exchange_rates set rate=2500 where company_id=${companyId}`);
+          assert.equal((await plans()).rows.find(r=>r.invoiceId===issued.invoiceId)!.planHash,c.expectedPlanHash);
+        }
+        const result=await returnLoadingInvoice(c,actor,tx);assert.ok(result.customerCreditJournalId);
+        assert.equal(decimal(String((await tx.execute(sql`select balance::text n from customer_wallets where id=${customerId}`)).rows[0].n)).minus(String(before)).toFixed(),"10");
+        const actual=(await tx.execute(sql`select sum(base_credit)::text n from accounting_journal_lines where entry_id=${result.customerCreditJournalId}`)).rows[0].n;
+        assert.equal(decimal(String(actual)).toFixed(),decimal(plan.customerCredit!.baseAmount).toFixed());
+        assert.equal((await tx.execute(sql`select count(*)::integer n from accounting_journal_entries where reversal_of_id=${payment.journalId}`)).rows[0].n,0);
+        assert.equal((await tx.execute(sql`select count(*)::integer n from wallet_transactions where reference_type='accounting_journal' and reference_id=${result.customerCreditJournalId}`)).rows[0].n,1);
+        assert.equal((await returnLoadingInvoice(c,actor,tx)).duplicate,true);
+      });
+      if(currency==="USD")await t.test("USD: known zero paid base value is a proven native credit, not missing valuation or a general zero-journal bypass",async()=>{
+        await tx.execute(sql`update accounting_exchange_rates set rate=30 where company_id=${companyId}`);
+        const fact=(await recordOperationalEvent(tx,{eventType:"LoadingCompleted",orderId,sourceId:"zero-base-paid-credit",
+          eventDate:"2026-06-14",weighbridgeReference:"Original fractional measured goods",actualWeightTons:"0.0003",
+          lines:[{orderItemId:orderId,actualWeightTons:"0.0003"}]},actor)).factId;
+        const p=(await readLoadingInvoiceWorkbench({companyId,orderId},tx)).rows.find(p=>p.factId===fact)!;
+        assert.deepEqual(p.blockers,[]);
+        const issued=await issueLoadingInvoice({companyId,factId:fact,expectedPlanHash:p.planHash,
+          reason:"Original small foreign invoice carrying proof"},actor,tx);
+        await settleWalletReceivable({companyId,walletId:customerId,receivableId:issued.receivableId!,
+          sourceId:randomUUID(),entryDate:"2026-06-15",amount:"0.01",reason:"Actual partial minor-unit settlement"},actor,tx);
+        const plan=(await plans()).rows.find(r=>r.invoiceId===issued.invoiceId)!;
+        assert.deepEqual(plan.blockers,[]);assert.equal(decimal(plan.customerCredit!.baseAmount).toFixed(),"0");
+        const c={...await command(issued.invoiceId,"2026-06-16"),creditToCustomerConfirmed:true as const};
+        const result=await returnLoadingInvoice(c,actor,tx);assert.ok(result.customerCreditJournalId);
+        const sums=(await tx.execute(sql`select sum(debit)::text n,sum(base_debit)::text b from accounting_journal_lines
+          where entry_id=${result.customerCreditJournalId}`)).rows[0];
+        assert.equal(decimal(String(sums.n)).toFixed(),"0.01");assert.equal(decimal(String(sums.b)).toFixed(),"0");
+        await rejected(()=>postJournalEntry({companyId,entryDate:"2026-06-16",sourceType:"UnprovenZero",sourceId:randomUUID(),
+          description:"No general zero journal exception",lines:[{accountId:accounts.get("BANK")!,currency:"USD",debit:"0.01"},
+            {accountId:accounts.get("WALLET_LIABILITY")!,currency:"USD",credit:"0.01",partyType:"customer",partyId:customerId}]},actor,tx));
+        assert.equal((await readCreditExposure(companyId,customerId,tx)).reconciled,true);
       });
       finished=true;throw rollback;
     });}catch(error){if(error!==rollback){console.error("Loading return cause:",(error as {cause?:{message?:string}}).cause?.message);throw error;}}

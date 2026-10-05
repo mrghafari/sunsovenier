@@ -47,3 +47,14 @@ when a real multi-record operation forces its deferred evidence checks.
 
 **How to apply:** Exercise positive and negative source paths inside rollback-only
 transactions and force deferred constraints before declaring a new guard ready.
+
+Deferred receivable checks must resolve the latest invoice lifecycle, not assume
+an earlier insert callback still refers to collectible debt.
+
+**Why:** A valid full goods return can complete before an earlier foreign-debt
+callback runs. Retained payment counters are historical evidence; ordinary
+face-value-minus-payments no longer describes that returned invoice's debt.
+
+**How to apply:** Prove returned debt closes in both native and historical base
+values, including customer-credit reclassification. Keep valuation helpers for
+new collections strict so returned invoices cannot receive new allocations.
