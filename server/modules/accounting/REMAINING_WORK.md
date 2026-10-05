@@ -41,7 +41,9 @@ purchase cost or stock carrying value. Do not treat it as COGS evidence.
    without allocation evidence. Fixed freight now uses reviewed manual shares;
    its remainder stays explicitly unallocated. Still required:
    actual FIFO/stock cost attribution; aggregate
-   loaded-vs-ordered weight/tolerance controls and excess-weight finance approval.
+   loaded-vs-ordered weight/tolerance controls and aggregate excess-weight
+   Commercial department approval (the user's designated approver, not finance).
+   The tolerance threshold has not yet been selected.
    The user approved only the limited measurement/document-evidence connection
    in warehouse/logistics/order surfaces. Changes to reservation, physical stock,
    selling prices, payment timing or live financial activation remain excluded.

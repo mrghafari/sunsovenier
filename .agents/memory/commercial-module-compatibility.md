@@ -8,3 +8,9 @@ The admin-facing Shop module is presented as Commercial. Its Sales navigation is
 **Why:** Staff assignments, customer checkouts, old direct links and contract workflows depend on those identifiers and routes. Bulk configuration and proforma deadlines apply to shop products/checkout, not only contract orders; grouping them as contract settings would imply the wrong scope.
 
 **How to apply:** Keep shop-wide settings under regular shop sales and sales contracts under contract sales. Preserve old Procurement URL aliases, permission checks and public/shop APIs when changing labels or groups. Only change underlying identifiers as a separately planned, backward-compatible migration.
+
+کاربر خواست «اگر بشود کلیه کارهای بازرگانی را ببریم ذیل همان commercial و بخش فروش را همانجا احیا کنیم».
+
+**Why:** درخواست صریح کاربر هنگام تعیین بازرگانی به‌عنوان مسئول تأیید اضافه‌وزن تجمیعی سفارش.
+
+**How to apply:** برای تجمیع کارهای بازرگانی و احیای فروش از Commercial موجود شروع کن، نه ماژول موازی. محل فعلی قابلیت‌ها را بررسی کن؛ این درخواست را مجوز خودکار انتقال مالکیت حقوقی قراردادها یا تغییر گردش مالی، قیمت‌گذاری و موجودی ندان.
