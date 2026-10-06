@@ -13,6 +13,7 @@ export function usePersistentCart() {
   const { isAuthenticated, user } = useCustomerAuth();
   const [localCart, setLocalCart] = useState<{[key: number]: number}>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [isReady, setIsReady] = useState(false);
   const [previousAuth, setPreviousAuth] = useState<boolean>(false);
   const [cartLoaded, setCartLoaded] = useState<boolean>(false);
   const confirmedCart = useRef<{[key: number]: number}>({});
@@ -80,11 +81,13 @@ export function usePersistentCart() {
           setLocalCart({});
         }
       }
+      setIsReady(true);
     }
     
     // If user just logged in, reset cart loaded flag to force reload
     if (!previousAuth && isAuthenticated) {
       console.log('🔐 User just logged in, resetting cart loaded flag');
+      setIsReady(false);
       setCartLoaded(false);
     }
     
@@ -96,6 +99,7 @@ export function usePersistentCart() {
     const loadPersistentCart = async () => {
       if (isAuthenticated && user && user.id && !cartLoaded) {
         setIsLoading(true);
+        setIsReady(false);
         setCartLoaded(true);
         try {
           console.log('🛒 Loading persistent cart for customer:', user.id);
@@ -131,6 +135,7 @@ export function usePersistentCart() {
         } finally {
           if (mounted.current) {
             setIsLoading(false);
+            setIsReady(true);
           }
         }
       }
@@ -230,6 +235,7 @@ export function usePersistentCart() {
   return {
     cart: localCart,
     isLoading,
+    isReady,
     addToCart,
     updateQuantity,
     removeFromCart,

@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { accountingDb } from "./db";
 import {
   accountingCurrencies as currencies, accountingCompanies as companies, accountingAccounts as accounts,
@@ -19,7 +19,8 @@ export async function seedAccounting(actor: Omit<AccountingAccess,"actorType"> &
       {code:"IQD", name:"Iraqi dinar",decimals:0}, {code:"USD",name:"US dollar",decimals:2},
       {code:"IRR",name:"Iranian rial",decimals:0},
     ]).onConflictDoNothing();
-    let [company] = await tx.select().from(companies).where(eq(companies.countryCode,country.countryCode)).orderBy(companies.id).limit(1);
+    let [company] = await tx.select().from(companies).where(and(eq(companies.countryCode,country.countryCode),
+      isNull(companies.deletedAt))).orderBy(companies.id).limit(1);
     if (!company) [company] = await tx.insert(companies).values({
       name:"Momtazcom",countryCode:country.countryCode,timezone:country.timezone,baseCurrency:country.baseCurrency,
     }).returning();

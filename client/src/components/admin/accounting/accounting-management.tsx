@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, type Resolver } from "react-hook-form";
 import { accountingSettingsSchemas, type AccountingResource, type AccountingRow } from "@shared/accounting-api";
@@ -16,6 +16,7 @@ import AccountingInventoryFifo from "./accounting-inventory-fifo";
 import AccountingLoadingInvoices from "./accounting-loading-invoices";
 import AccountingShipmentCosts from "./accounting-shipment-costs";
 import AccountingInventoryCapitalization from "./accounting-inventory-capitalization";
+import CompanyDeleteControl from "./company-delete-control";
 import AccountingLoadingReturns from "./accounting-loading-returns";
 import AccountingWalletRefunds from "./accounting-wallet-refunds";
 import { walletRefundText } from "./accounting-wallet-refunds-copy";
@@ -85,6 +86,8 @@ export default function AccountingManagement() {
   const companiesQuery = useAccountingResource("companies");
   const currenciesQuery = useAccountingResource("currencies");
   const [companyId, setCompanyId] = useState<number | undefined>();
+  const selectedCompanyIdRef = useRef(companyId);
+  selectedCompanyIdRef.current = companyId;
   const accountsQuery = useAccountingResource("accounts", companyId);
   const centersQuery = useAccountingResource("cost-centers", companyId);
   const fiscalQuery = useAccountingResource("fiscal-years", companyId);
@@ -131,6 +134,7 @@ export default function AccountingManagement() {
     return rows.filter(row => Object.values(row).some(value => String(value ?? "").toLocaleLowerCase().includes(q)));
   }, [rows, search]);
   const canManage = Boolean(bootstrap.data?.access?.canManage);
+  const canDeleteCompanies = bootstrap.data?.access?.canDeleteCompanies === true;
   const viewer = accountingViewerCapabilities(canManage);
   const isCompanyScoped = !["companies", "currencies"].includes(activeResource);
   const hasCompany = Boolean(companyId);
@@ -382,7 +386,16 @@ export default function AccountingManagement() {
                             <td className="px-4 py-4 font-medium text-[#273d3a]">{displayName(row, activeResource, companyRows, currencyRows, language)}</td>
                             <td className="max-w-[340px] px-4 py-4 text-xs leading-5 text-[#6b7970]">{detailsFor(row, activeResource, txt)}</td>
                             <td className="px-4 py-4"><StatusPill row={row} resource={activeResource} txt={txt} /></td>
-                            <td className="px-4 py-4"><Button variant="outline" size="sm" onClick={() => openForm(row)} className="h-8 border-[#d9e1d8] bg-[#fbfcf8] text-xs text-[#365750] hover:bg-[#e9f0e9]" data-testid={`accounting-${viewer.rowAction}-${String(accountingRecordId(activeResource, row))}`}>{txt(viewer.rowAction)}</Button></td>
+                            <td className="px-4 py-4"><Button variant="outline" size="sm" onClick={() => openForm(row)} className="h-8 border-[#d9e1d8] bg-[#fbfcf8] text-xs text-[#365750] hover:bg-[#e9f0e9]" data-testid={`accounting-${viewer.rowAction}-${String(accountingRecordId(activeResource, row))}`}>{txt(viewer.rowAction)}</Button>{activeResource === "companies" && canDeleteCompanies && <CompanyDeleteControl company={row} language={language} onDeleted={deletedId => {
+                              if (selectedCompanyIdRef.current === deletedId) {
+                                setCompanyId(undefined);
+                                selectedCompanyIdRef.current = undefined;
+                                setDialogOpen(false);
+                                setRecord(undefined);
+                                setServerError("");
+                                reset(defaultsFor(activeResource, undefined, language, "IQ"));
+                              }
+                            }} />}</td>
                           </tr>)}
                         </tbody>
                       </table>

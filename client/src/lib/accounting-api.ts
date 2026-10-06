@@ -8,7 +8,12 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     headers: {"Content-Type":"application/json",...options?.headers},
   });
   const data = await response.json();
-  if (!response.ok) throw new Error(data.message || `Accounting request failed (${response.status})`);
+  if (!response.ok) {
+    const error = new Error(data.message || `Accounting request failed (${response.status})`) as Error & { code?: string; status?: number };
+    error.code = typeof data.code === "string" ? data.code : typeof data.error === "string" ? data.error : undefined;
+    error.status = response.status;
+    throw error;
+  }
   return data as T;
 }
 export function useAccountingBootstrap() {
@@ -33,5 +38,21 @@ export function useSeedAccounting() {
   return useMutation({
     mutationFn:(countryCode:"IQ"|"IR")=>request<{companyId:number;postingKeyCount:number}>("/seed",{method:"POST",body:JSON.stringify({countryCode})}),
     onSuccess:()=>client.invalidateQueries({queryKey:[base]}),
+  });
+}
+
+export type DeleteAccountingCompanyResult = { companyId: number; deleted: true; duplicate: boolean };
+export async function deleteAccountingCompanyRequest(companyId: number, confirmationName: string): Promise<DeleteAccountingCompanyResult> {
+  return request<DeleteAccountingCompanyResult>(`/settings/companies/${encodeURIComponent(companyId)}`, {
+    method: "DELETE",
+    body: JSON.stringify({ confirmationName, deleteConfirmed: true }),
+  });
+}
+export function useDeleteAccountingCompany() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ companyId, confirmationName }: { companyId: number; confirmationName: string }) =>
+      deleteAccountingCompanyRequest(companyId, confirmationName),
+    onSuccess: () => client.invalidateQueries({ queryKey: [base] }),
   });
 }

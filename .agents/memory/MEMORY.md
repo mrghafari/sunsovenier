@@ -82,3 +82,5 @@
 - [SQL valuation checks](sql-valuation-verification.md) — SQL function creation can pass before branch-specific name-resolution failures; execute rollback-only financial valuations.
 - [Drizzle array interpolation](drizzle-array-interpolation.md) — JavaScript arrays may expand as SQL lists, not PostgreSQL array parameters; verify generated membership queries.
 - [Legacy chart readiness](legacy-chart-readiness.md) — seeded fixture success does not prove persisted company settings are complete; check real-company readiness.
+- [Company deletion policy](company-deletion-policy.md) — super-admin-only logical removal with warning; retain evidence and block companies in use.
+- [Cart purchase mode](cart-purchase-mode.md) — choose ordinary or one contract before adding goods; no mode selector or unnecessary contract information in checkout.

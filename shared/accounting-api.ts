@@ -51,7 +51,7 @@ export const accountingSettingsSchemas = {
 export type AccountingResource = keyof typeof accountingSettingsSchemas;
 export const accountingResources = Object.keys(accountingSettingsSchemas) as AccountingResource[];
 export type AccountingRow = Record<string, string | number | boolean | null>;
-export type AccountingAccess = { actorId: number; actorType: "admin" | "custom"; canManage: boolean };
+export type AccountingAccess = { actorId: number; actorType: "admin" | "custom"; canManage: boolean; canDeleteCompanies?: boolean };
 export type AccountingBootstrap = {
   access: AccountingAccess;
   companies: AccountingRow[];

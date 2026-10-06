@@ -11,8 +11,8 @@ export const accountingCurrencies = pgTable("accounting_currencies", {
 export const accountingCompanies = pgTable("accounting_companies", {
   id: serial("id").primaryKey(), name: text("name").notNull(), countryCode: text("country_code").notNull(),
   timezone: text("timezone").notNull(), baseCurrency: text("base_currency").notNull().references(() => accountingCurrencies.code),
-  isActive: boolean("is_active").notNull().default(true), createdAt: createdAt(),
-});
+  isActive: boolean("is_active").notNull().default(true), deletedAt: timestamp("deleted_at", {withTimezone:true}), createdAt: createdAt(),
+},t=>[check("accounting_deleted_company_inactive",sql`${t.deletedAt} is null or ${t.isActive}=false`)]);
 export const accountingAccounts = pgTable("accounting_accounts", {
   id: serial("id").primaryKey(), companyId: integer("company_id").notNull().references(() => accountingCompanies.id),
   code: text("code").notNull(), nameFa: text("name_fa").notNull().default(""), nameAr: text("name_ar").notNull(), nameEn: text("name_en").notNull(),

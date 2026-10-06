@@ -5,6 +5,9 @@ import type { AccountingAccess } from "@shared/accounting-api";
 export class AccountingError extends Error {
   constructor(message: string, public status = 422, public code = "ACCOUNTING_VALIDATION") { super(message); this.name="AccountingError"; }
 }
+export function isAccountingSuperAdminRole(name:unknown):boolean {
+  return ["super_admin","supper_admin"].includes(String(name??"").trim().toLowerCase().replace(/[\s-]+/g,"_"));
+}
 export function assertAccountingOrigin(req:Request) {
   let originHost:string|undefined;
   try {
@@ -33,7 +36,10 @@ export async function resolveAccountingAccess(req: Request): Promise<AccountingA
   const actorType = admin ? "admin" as const : "custom" as const;
   // Only the historical, known "Supper Admin" alias is canonicalized.
   const normalized = String(role.name).trim().toLowerCase().replace(/[\s-]+/g, "_");
-  if (["super_admin","supper_admin","admin"].includes(normalized)) return { actorId, actorType, canManage: true };
+  if (["super_admin","supper_admin","admin"].includes(normalized)) return {
+    actorId, actorType, canManage:true,
+    canDeleteCompanies:admin&&isAccountingSuperAdminRole(role.name),
+  };
   if (admin) {
     const permissions = await pool.query(
       `SELECT can_view, can_edit, can_approve FROM module_permissions

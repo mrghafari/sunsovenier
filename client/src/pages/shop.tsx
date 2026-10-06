@@ -15,12 +15,15 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { ShopProduct, ShopCategory } from "@shared/shop-schema";
 import Checkout from "./checkout";
 import BilingualPurchaseForm from "@/components/bilingual-purchase-form";
 import PreCheckoutModal from "@/components/checkout/pre-checkout-modal";
+import ContractProductEntry, { contractProductCopy } from "@/components/checkout/contract-product-entry";
+import { canAddToCartMode, clearCartMode, contractAllowsProduct, readCartMode, writeCartMode, type CheckoutCartMode } from "@/components/checkout/cart-mode";
+import { contractQuantityLimit } from "@/lib/contract-cart";
 
 
 import CustomerAuth from "@/components/auth/customer-auth";
@@ -70,12 +73,7 @@ const Shop = () => {
     shopTitle: 'Shop Chemical Products - Momtazchem | Order Online',
     shopDescription: 'Browse and purchase premium chemical products online. Fuel additives, water treatment chemicals, paint thinners, and agricultural fertilizers. Secure checkout, fast delivery across Iraq and beyond.',
   };
-  const contractOnlyCopy = {
-    en: { badge: 'Only through contract', checkout: 'Open contract checkout' },
-    fa: { badge: 'فقط از طریق قرارداد', checkout: 'باز کردن تسویه قراردادی' },
-    ar: { badge: 'متاح عبر العقد فقط', checkout: 'فتح الدفع عبر العقد' },
-    tr: { badge: 'Yalnızca sözleşmeyle', checkout: 'Sözleşmeli satın almayı aç' },
-  }[language];
+  const contractOnlyCopy = contractProductCopy(language);
   const queryClient = useQueryClient();
   const { isAuthenticated, user: authenticatedCustomer, logout: customerLogout } = useCustomerAuth();
     
@@ -92,15 +90,21 @@ const Shop = () => {
   const { 
     cart, 
     isLoading: isCartLoading, 
+    isReady: isCartReady,
     addToCart: addToCartPersistent, 
     updateQuantity: updateCartQuantity, 
     removeFromCart: removeFromCartPersistent, 
-    keepOnlyProducts: keepOnlyCartProducts,
     clearCart: clearCartPersistent, 
     getTotalItems 
   } = usePersistentCart();
   const [showCheckout, setShowCheckout] = useState(false);
-  const [selectedCheckoutContractId, setSelectedCheckoutContractId] = useState<number | null>(null);
+  const [, setCheckoutCartMode] = useState<CheckoutCartMode>(() => readCartMode(Number(authenticatedCustomer?.id) || null));
+  const checkoutCartModeRef = useRef<CheckoutCartMode>(readCartMode(Number(authenticatedCustomer?.id) || null));
+  const [contractEntryProduct, setContractEntryProduct] = useState<ShopProduct | null>(null);
+  const [contractEntryOpen, setContractEntryOpen] = useState(false);
+  const [contractEntryId, setContractEntryId] = useState("");
+  const [logoutCartCleanupPending, setLogoutCartCleanupPending] = useState(false);
+  const contractAdditionInProgress = useRef(false);
   const addingProductsRef = useRef(new Set<number>());
   const [addingProducts, setAddingProducts] = useState<number[]>([]);
   const [showPreCheckout, setShowPreCheckout] = useState(false);
@@ -115,6 +119,21 @@ const Shop = () => {
   const [isLoadingCustomer, setIsLoadingCustomer] = useState(false);
   const [walletBalance, setWalletBalance] = useState<number>(0);
   const [showWalletBalance, setShowWalletBalance] = useState<boolean>(true);
+  const checkoutOwnerId = Number(authenticatedCustomer?.id || customer?.id) || null;
+  const { data: shopContracts = [], isLoading: shopContractsLoading, isError: shopContractsError, refetch: refetchShopContracts } = useQuery<any[]>({
+    queryKey: ["/api/shop/contracts/mine", checkoutOwnerId],
+    queryFn: async () => {
+      const response = await fetch("/api/shop/contracts/mine", { credentials: "include" });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || payload?.success !== true || !Array.isArray(payload.contracts)) {
+        throw new Error(payload?.message || "Could not load customer contracts");
+      }
+      return payload.contracts;
+    },
+    enabled: !!checkoutOwnerId,
+    retry: false,
+    staleTime: 30_000,
+  });
 
   // Advanced search state
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -140,10 +159,32 @@ const Shop = () => {
         quantity
       }));
       
-      const totalValue = cartItems.reduce((sum, item) => {
-        const product = currentProducts?.find(p => p.id === item.productId);
-        return sum + (product?.price || 0) * item.quantity;
-      }, 0);
+      const cartMode = checkoutCartModeRef.current;
+      let totalValue: number | null = 0;
+      if (cartMode) {
+        const agreement = shopContracts.find(contract =>
+          Number(contract.id) === cartMode.contractId &&
+          Number(contract.customerId) === cartMode.customerId &&
+          contract.isActive
+        );
+        if (!agreement) return;
+        for (const item of cartItems) {
+          const agreedItem = agreement.items?.find((entry: any) => Number(entry.productId) === item.productId);
+          const unitPrice = Number(agreedItem?.unitPrice);
+          if (!agreedItem || !Number.isFinite(unitPrice) || unitPrice < 0 ||
+            item.quantity > Number(agreedItem.remainingQuantity)) {
+            totalValue = null;
+            break;
+          }
+          totalValue += unitPrice * item.quantity;
+        }
+      } else {
+        totalValue = cartItems.reduce((sum, item) => {
+          const product = currentProducts?.find(p => p.id === item.productId);
+          return sum + (product?.price || 0) * item.quantity;
+        }, 0);
+      }
+      if (totalValue === null) return;
 
       await fetch('/api/cart/session', {
         method: 'POST',
@@ -431,8 +472,10 @@ const Shop = () => {
   }, [authenticatedCustomer, isAuthenticated]);
 
   useEffect(() => {
-    setSelectedCheckoutContractId(null);
-  }, [authenticatedCustomer?.id]);
+    const restored = readCartMode(checkoutOwnerId);
+    checkoutCartModeRef.current = restored;
+    setCheckoutCartMode(restored);
+  }, [checkoutOwnerId]);
 
   // Keyboard navigation for zoom modal
   useEffect(() => {
@@ -583,6 +626,9 @@ const Shop = () => {
 
   const handleLogout = async () => {
     try {
+      clearCartMode(checkoutCartModeRef.current?.customerId);
+      checkoutCartModeRef.current = null;
+      setCheckoutCartMode(null);
       // Use the hook logout instead of manual API call
       customerLogout();
       
@@ -591,8 +637,9 @@ const Shop = () => {
       setWalletBalance(0);
       
       // Clear cart after logout
+      setLogoutCartCleanupPending(true);
       setTimeout(() => {
-        clearCartPersistent();
+        void clearCartPersistent().finally(() => setLogoutCartCleanupPending(false));
       }, 500);
       
       toast({
@@ -674,9 +721,20 @@ const Shop = () => {
   };
 
   const addToCart = async (productId: number) => {
+    if (logoutCartCleanupPending) return;
     if (addingProductsRef.current.has(productId)) return;
-    if (selectedCheckoutContractId !== null) {
-      toast({ title: 'errorOccurred', description: language === 'fa' ? 'برای افزودن کالا به سبد قراردادی، چک‌اوت را باز کنید؛ برای خرید عادی ابتدا قرارداد را لغو کنید.' : 'Open checkout to add contract items, or select normal checkout first.', variant: 'destructive' });
+    if (contractAdditionInProgress.current) return;
+    if (!isCartReady) {
+      toast({ title: 'errorOccurred', description: language === 'fa' ? 'سبد خرید در حال همگام‌سازی است؛ کمی صبر کنید.' : language === 'ar' ? 'جارٍ مزامنة السلة؛ يرجى الانتظار.' : language === 'tr' ? 'Sepet eşitleniyor; lütfen bekleyin.' : 'Your cart is still syncing. Please wait before adding items.', variant: 'destructive' });
+      return;
+    }
+    if (checkoutCartModeRef.current && getTotalItems() === 0) {
+      clearCartMode(checkoutCartModeRef.current.customerId);
+      checkoutCartModeRef.current = null;
+      setCheckoutCartMode(null);
+    }
+    if (!canAddToCartMode(cart, checkoutCartModeRef.current)) {
+      toast({ title: 'errorOccurred', description: language === 'fa' ? 'این سبد به یک قرارداد اختصاص دارد. برای خرید عادی ابتدا سبد را خالی کنید.' : language === 'ar' ? 'هذه السلة مرتبطة بعقد. أفرغ السلة أولاً للشراء العادي.' : language === 'tr' ? 'Bu sepet bir sözleşmeye bağlı. Normal alışveriş için önce sepeti boşaltın.' : 'This cart belongs to a contract. Empty it before adding an ordinary purchase.', variant: 'destructive' });
       return;
     }
     const targetQuantity = getProductQuantity(productId);
@@ -749,6 +807,87 @@ const Shop = () => {
     });
   };
 
+  const eligibleContractsForProduct = (productId: number) => shopContracts.filter(contract =>
+      Number(contract.customerId) === checkoutOwnerId &&
+      contractAllowsProduct(contract, Number(productId)) &&
+      (!checkoutCartModeRef.current || getTotalItems() === 0 ||
+        Number(contract.id) === checkoutCartModeRef.current.contractId)
+    );
+  const hasEligibleContract = (product: ShopProduct) => !!checkoutOwnerId &&
+    eligibleContractsForProduct(Number(product.id)).length > 0;
+
+  const openContractEntry = async (product: ShopProduct) => {
+    if (logoutCartCleanupPending) return;
+    if (!isCartReady) {
+      toast({ title: 'errorOccurred', description: language === 'fa' ? 'سبد خرید در حال همگام‌سازی است؛ کمی صبر کنید.' : language === 'ar' ? 'جارٍ مزامنة السلة؛ يرجى الانتظار.' : language === 'tr' ? 'Sepet eşitleniyor; lütfen bekleyin.' : 'Your cart is still syncing. Please wait before choosing a contract.', variant: 'destructive' });
+      return;
+    }
+    if (!checkoutOwnerId) {
+      setContractEntryProduct(product);
+      setContractEntryOpen(true);
+      setContractEntryId("");
+      return;
+    }
+    if (getTotalItems() > 0 && !checkoutCartModeRef.current) {
+      toast({ title: 'errorOccurred', description: language === 'fa' ? 'سبد خرید فعلی خالی نیست. برای شروع سبد قراردادی، ابتدا آن را خالی کنید.' : language === 'ar' ? 'السلة الحالية غير فارغة. أفرغها أولاً لبدء سلة عقد.' : language === 'tr' ? 'Mevcut sepet boş değil. Sözleşmeli sepet başlatmak için önce boşaltın.' : 'Your current cart is not empty. Empty it before starting a contract cart.', variant: 'destructive' });
+      return;
+    }
+    setContractEntryProduct(product);
+    setContractEntryOpen(true);
+    setContractEntryId(checkoutCartModeRef.current ? String(checkoutCartModeRef.current.contractId) : "");
+  };
+
+  const addContractProduct = async () => {
+    const product = contractEntryProduct;
+    const contract = shopContracts.find(item =>
+      Number(item.id) === Number(contractEntryId) &&
+      Number(item.customerId) === checkoutOwnerId &&
+      item.isActive
+    );
+    if (!product || !contract || !checkoutOwnerId || contractAdditionInProgress.current) return;
+    if (!contractAllowsProduct(contract, product.id)) {
+      toast({ title: 'errorOccurred', description: language === 'fa' ? 'این قرارداد برای این کالا سهمیهٔ باقی‌مانده ندارد.' : language === 'ar' ? 'لا يتوفر لهذا المنتج رصيد متبقٍ في هذا العقد.' : language === 'tr' ? 'Bu sözleşmede ürün için kalan miktar yok.' : 'This contract has no remaining allowance for this product.', variant: 'destructive' });
+      return;
+    }
+    if (!canAddToCartMode(cart, checkoutCartModeRef.current, Number(contract.id))) {
+      toast({ title: 'errorOccurred', description: language === 'fa' ? 'برای تغییر قرارداد، ابتدا سبد را خالی کنید.' : language === 'ar' ? 'أفرغ السلة أولاً لتغيير العقد.' : language === 'tr' ? 'Sözleşmeyi değiştirmek için önce sepeti boşaltın.' : 'Empty the cart before switching contracts.', variant: 'destructive' });
+      return;
+    }
+    const item = contract.items.find((candidate: any) => Number(candidate.productId) === Number(product.id));
+    const contractRemaining = contractQuantityLimit(item) ?? 0;
+    const available = Math.min(Math.max(0, contractRemaining - (cart[product.id] || 0)), Number(product.stockQuantity) || 0);
+    const quantity = Math.min(getProductQuantity(product.id), available);
+    if (quantity < 1) {
+      toast({ title: 'errorOccurred', description: language === 'fa' ? 'موجودی یا سهمیهٔ قرارداد کافی نیست.' : language === 'ar' ? 'المخزون أو حصة العقد غير كافية.' : language === 'tr' ? 'Stok veya sözleşme kotası yetersiz.' : 'There is not enough stock or contract allowance.', variant: 'destructive' });
+      return;
+    }
+    const priorMode = checkoutCartModeRef.current;
+    const pendingMode = { customerId: checkoutOwnerId, contractId: Number(contract.id) };
+    checkoutCartModeRef.current = pendingMode;
+    setCheckoutCartMode(pendingMode);
+    contractAdditionInProgress.current = true;
+    try {
+      // Persist the chosen mode before reserving goods: storage failure must
+      // never leave a newly populated contractual cart without its agreement.
+      const nextMode = writeCartMode(checkoutOwnerId, Number(contract.id));
+      await addToCartPersistent(product.id, quantity);
+      checkoutCartModeRef.current = nextMode;
+      setCheckoutCartMode(nextMode);
+      setContractEntryOpen(false);
+      setShowCheckout(true);
+    } catch (error: any) {
+      if (getTotalItems() === 0) {
+        checkoutCartModeRef.current = priorMode;
+        setCheckoutCartMode(priorMode);
+      }
+      toast({ title: 'errorOccurred', description: error?.details?.available !== undefined
+        ? t.shop.onlyXAvailable.replace('{count}', String(error.details.available))
+        : t.shop.insufficientStock, variant: 'destructive' });
+    } finally {
+      contractAdditionInProgress.current = false;
+    }
+  };
+
   const removeFromCart = async (productId: number) => {
     const currentQuantityInCart = cart[productId] || 0;
     console.log(`🗑️ [REMOVE FROM CART] Product ${productId}, CurrentInCart: ${currentQuantityInCart}`);
@@ -786,11 +925,53 @@ const Shop = () => {
         };
       });
     }
+    if (!contractAdditionInProgress.current && addingProductsRef.current.size === 0 &&
+      getTotalItems() - (currentQuantityInCart > 1 ? 1 : currentQuantityInCart) <= 0) {
+      clearCartMode(checkoutCartModeRef.current?.customerId);
+      checkoutCartModeRef.current = null;
+      setCheckoutCartMode(null);
+    }
+  };
+
+  const removeCheckoutItem = async (productId: number) => {
+    const before = cart[productId] || 0;
+    await removeFromCartPersistent(productId);
+    if (!contractAdditionInProgress.current && addingProductsRef.current.size === 0 && getTotalItems() - before <= 0) {
+      clearCartMode(checkoutCartModeRef.current?.customerId);
+      checkoutCartModeRef.current = null;
+      setCheckoutCartMode(null);
+    }
+  };
+
+  const updateCheckoutItem = async (productId: number, quantity: number) => {
+    const before = cart[productId] || 0;
+    if (quantity <= 0) return removeCheckoutItem(productId);
+    await updateCartQuantity(productId, quantity);
+    if (!contractAdditionInProgress.current && addingProductsRef.current.size === 0 && getTotalItems() - before + quantity <= 0) {
+      clearCartMode(checkoutCartModeRef.current?.customerId);
+      checkoutCartModeRef.current = null;
+      setCheckoutCartMode(null);
+    }
   };
 
   // Use getTotalItems from hook
 
-  const getTotalPrice = () => {
+  const getTotalPrice = (): number | null => {
+    if (checkoutCartModeRef.current) {
+      const agreement = shopContracts.find(contract =>
+        Number(contract.id) === checkoutCartModeRef.current?.contractId &&
+        Number(contract.customerId) === checkoutCartModeRef.current?.customerId &&
+        contract.isActive
+      );
+      if (!agreement) return null;
+      return Object.entries(cart).reduce<number | null>((total, [productId, quantity]) => {
+        const agreedItem = agreement.items?.find((item: any) => Number(item.productId) === Number(productId));
+        const unitPrice = Number(agreedItem?.unitPrice);
+        if (!agreedItem || !Number.isFinite(unitPrice) || unitPrice < 0 ||
+          Number(quantity) > Number(agreedItem.remainingQuantity)) return null;
+        return total === null ? null : total + unitPrice * Number(quantity);
+      }, 0);
+    }
     return Object.entries(cart).reduce((total, [productId, qty]) => {
       const product = products.find(p => p.id === parseInt(productId));
       if (!product) return total;
@@ -891,7 +1072,8 @@ const Shop = () => {
   };
 
   // Calculate total savings
-  const getTotalSavings = () => {
+  const getTotalSavings = (): number | null => {
+    if (checkoutCartModeRef.current) return null;
     return Object.entries(cart).reduce((savings, [productId, qty]) => {
       const product = products.find(p => p.id === parseInt(productId));
       if (!product) return savings;
@@ -1924,23 +2106,31 @@ const Shop = () => {
                               ) : null}
                               
                              {product.contractOnly ? (
-                               <Button className="w-full" onClick={() => void openCheckout()}>
+                               <Button className="w-full" onClick={() => void openContractEntry(product)}>
                                  <FileText className="w-4 h-4 mr-2" />
                                  {contractOnlyCopy.checkout}
                                </Button>
                              ) : (
-                               <Button
-                                 className="w-full"
-                                 onClick={() => addToCart(product.id)}
-                                 disabled={
-                                   addingProducts.includes(product.id) ||
-                                   !product.inStock ||
-                                   getProductQuantity(product.id) > product.stockQuantity
-                                 }
-                               >
-                                 {addingProducts.includes(product.id) ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ShoppingCart className="w-4 h-4 mr-2" />}
-                                 {addingProducts.includes(product.id) ? addingLabel : !product.inStock || product.stockQuantity <= 0 ? t.shop.notAvailable : cart[product.id] && cart[product.id] > 0 ? t.shop.addMore : t.shop.addToCart}
-                               </Button>
+                               <div className="space-y-2">
+                                 <Button
+                                   className="w-full"
+                                   onClick={() => addToCart(product.id)}
+                                   disabled={
+                                     addingProducts.includes(product.id) ||
+                                     !product.inStock ||
+                                     getProductQuantity(product.id) > product.stockQuantity
+                                   }
+                                 >
+                                   {addingProducts.includes(product.id) ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ShoppingCart className="w-4 h-4 mr-2" />}
+                                   {addingProducts.includes(product.id) ? addingLabel : !product.inStock || product.stockQuantity <= 0 ? t.shop.notAvailable : cart[product.id] && cart[product.id] > 0 ? t.shop.addMore : t.shop.addToCart}
+                                 </Button>
+                                 {hasEligibleContract(product) && (
+                                   <Button type="button" variant="outline" className="w-full" onClick={() => void openContractEntry(product)}>
+                                     <FileText className="w-4 h-4 mr-2" />
+                                     {contractOnlyCopy.action}
+                                   </Button>
+                                 )}
+                               </div>
                              )}
                           </div>
                         </CardContent>
@@ -2496,23 +2686,31 @@ const Shop = () => {
                                   ) : null}
                                   
                                 {product.contractOnly ? (
-                                  <Button className="w-full" onClick={() => void openCheckout()}>
+                                  <Button className="w-full" onClick={() => void openContractEntry(product)}>
                                     <FileText className="w-4 h-4 mr-2" />
                                     {contractOnlyCopy.checkout}
                                   </Button>
                                 ) : (
-                                  <Button
-                                    className="w-full"
-                                    onClick={() => addToCart(product.id)}
-                                    disabled={
-                                      addingProducts.includes(product.id) ||
-                                      !product.inStock ||
-                                      getProductQuantity(product.id) > product.stockQuantity
-                                    }
-                                  >
-                                    {addingProducts.includes(product.id) ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ShoppingCart className="w-4 h-4 mr-2" />}
-                                    {addingProducts.includes(product.id) ? addingLabel : !product.inStock || product.stockQuantity <= 0 ? t.shop.notAvailable : cart[product.id] && cart[product.id] > 0 ? t.shop.addMore : t.shop.addToCart}
-                                  </Button>
+                                  <div className="space-y-2">
+                                    <Button
+                                      className="w-full"
+                                      onClick={() => addToCart(product.id)}
+                                      disabled={
+                                        addingProducts.includes(product.id) ||
+                                        !product.inStock ||
+                                        getProductQuantity(product.id) > product.stockQuantity
+                                      }
+                                    >
+                                      {addingProducts.includes(product.id) ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ShoppingCart className="w-4 h-4 mr-2" />}
+                                      {addingProducts.includes(product.id) ? addingLabel : !product.inStock || product.stockQuantity <= 0 ? t.shop.notAvailable : cart[product.id] && cart[product.id] > 0 ? t.shop.addMore : t.shop.addToCart}
+                                    </Button>
+                                    {hasEligibleContract(product) && (
+                                      <Button type="button" variant="outline" className="w-full" onClick={() => void openContractEntry(product)}>
+                                        <FileText className="w-4 h-4 mr-2" />
+                                        {contractOnlyCopy.action}
+                                      </Button>
+                                    )}
+                                  </div>
                                 )}
                               </div>
                             </div>
@@ -2592,11 +2790,12 @@ const Shop = () => {
             cart={cart}
             products={products}
             existingCustomer={customer}
-            initialContractId={selectedCheckoutContractId}
-            onContractSelected={setSelectedCheckoutContractId}
+            initialContractId={checkoutCartModeRef.current?.contractId ?? null}
             onOrderComplete={async () => {
-              clearCartPersistent();
-              setSelectedCheckoutContractId(null);
+              await clearCartPersistent();
+              clearCartMode(checkoutCartModeRef.current?.customerId);
+              checkoutCartModeRef.current = null;
+              setCheckoutCartMode(null);
               setShowCheckout(false);
               // Force refresh of products data from server
               await queryClient.invalidateQueries({ queryKey: ['/api/products'] });
@@ -2611,20 +2810,36 @@ const Shop = () => {
             }}
             onClose={() => setShowCheckout(false)}
             onUpdateQuantity={(productId, newQuantity) => {
-              if (newQuantity <= 0) {
-                return removeFromCartPersistent(productId);
-              } else {
-                return updateCartQuantity(productId, newQuantity);
-              }
+              return updateCheckoutItem(productId, newQuantity);
             }}
             onRemoveItem={(productId) => {
-              removeFromCartPersistent(productId);
+              void removeCheckoutItem(productId);
             }}
-            onKeepContractItems={keepOnlyCartProducts}
             onAddContractItem={(productId, quantity) => addToCartPersistent(productId, quantity)}
           />
         </div>
       )}
+
+      <ContractProductEntry
+        isOpen={contractEntryOpen}
+        onOpenChange={setContractEntryOpen}
+        productName={contractEntryProduct?.name}
+        productId={contractEntryProduct?.id ?? null}
+        contracts={shopContracts}
+        customerId={checkoutOwnerId}
+        cartItemCount={getTotalItems()}
+        currentContractId={checkoutCartModeRef.current?.contractId ?? null}
+        selectedContractId={contractEntryId}
+        onSelectContract={setContractEntryId}
+        onAdd={() => void addContractProduct()}
+        isAdding={contractAdditionInProgress.current}
+        isLoading={shopContractsLoading}
+        isError={shopContractsError}
+        onRetry={() => void refetchShopContracts()}
+        onLogin={() => { setContractEntryOpen(false); setAuthMode('login'); setShowAuth(true); }}
+        language={language}
+        direction={direction}
+      />
 
       {/* Pre-checkout Modal */}
       <PreCheckoutModal

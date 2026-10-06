@@ -20,7 +20,7 @@ import { getGuestDeliveryFields } from "@/lib/guest-delivery-fields";
 import { useLocation } from "wouter";
 import AuthModal from "@/components/checkout/auth-modal";
 import OrderReviewDialog from "@/components/checkout/order-review-dialog";
-import ContractSelector, { type ShopContract } from "@/components/checkout/contract-selector";
+import type { ShopContract } from "@/components/checkout/contract-selector";
 import { loadCustomerAddresses, saveCustomerAddress } from "@/lib/customer-addresses";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { translations, type Translation } from "@/lib/i18n";
@@ -137,7 +137,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [walletBalance, setWalletBalance] = useState(0);
-  const [selectedContractId, setSelectedContractId] = useState<number | null>(null);
+  const [selectedContractId] = useState<number | null>(null);
   const [selectedContractSnapshot, setSelectedContractSnapshot] = useState<ShopContract | undefined>();
   const shippingMethodBeforeContractPolicyRef = useRef<string | undefined>(undefined);
   const [walletAmountToUse, setWalletAmountToUse] = useState(0);
@@ -350,7 +350,7 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
       if (!Array.isArray(results)) throw new Error('Invalid contracts response');
       return results;
     },
-    enabled: !!isUserLoggedIn,
+    enabled: selectedContractId !== null && !!isUserLoggedIn,
     retry: false,
     staleTime: 30 * 1000,
     refetchOnWindowFocus: true,
@@ -2812,55 +2812,6 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
                     )}
                   </CardContent>
                 </Card>
-
-                {isUserLoggedIn && (
-                  <div className="space-y-3">
-                    <ContractSelector
-                      contracts={contracts}
-                      selectedContractId={selectedContractId}
-                      language={language}
-                      disabled={contractsLoading && contracts.length === 0}
-                      onSelect={(id) => {
-                        if (id === selectedContractId) return;
-                        if (id !== null) {
-                          setUseWallet(false);
-                          setWalletAmountToUse(0);
-                          setSecondaryPaymentMethod('');
-                          if (isWalletPaymentMethod(form.getValues('paymentMethod'))) {
-                            form.setValue('paymentMethod', getSupportedNonWalletPaymentMethod());
-                          }
-                        }
-                        shippingRequestSequenceRef.current++;
-                        setSelectedContractId(id);
-                        setSelectedContractSnapshot(id === null
-                          ? undefined
-                          : contracts.find(contract => Number(contract.id) === Number(id)));
-                        setPendingReview(null);
-                        setStandardShippingQuote(null);
-                        setShippingQuote(null);
-                        setCalculatedShippingCost(0);
-                        setPricedShippingDestination('');
-                        setPricedShippingCenterKey('');
-                        setShippingRouteUnavailable(false);
-                      }}
-                    />
-                    {contractValidationError && (
-                      <p role="alert" className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
-                        {contractValidationError}
-                      </p>
-                    )}
-                    {selectedContractId !== null && (
-                      <p role="note" className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
-                        {contractNonWalletPaymentNote}
-                      </p>
-                    )}
-                    {contractsError && selectedContractId === null && (
-                      <p role="alert" className="text-sm text-destructive">
-                        Could not load contracts. You can still continue with a normal purchase.
-                      </p>
-                    )}
-                  </div>
-                )}
 
                 {/* Payment is available only after delivery and its price are known. */}
                 {!finalPriceReady && (

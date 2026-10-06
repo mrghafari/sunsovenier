@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import {
   accountingSettingsSchemas, accountingResources, POSTING_KEYS,
   type AccountingResource, type AccountingAccess, type PostingKey,
@@ -30,6 +30,7 @@ export function resourceName(value: string): AccountingResource {
 export async function listResource(resource: AccountingResource, companyId?: number) {
   // Tables are drawn only from a fixed allowlist, never from user-provided SQL.
   const table = tables[resource];
+  if(resource==="companies")return accountingDb.select().from(schema.accountingCompanies).where(isNull(schema.accountingCompanies.deletedAt));
   if ("companyId" in table) {
     if (!companyId) throw new AccountingError("Select a company",422,"COMPANY_REQUIRED");
     return accountingDb.select().from(table).where(eq(table.companyId,companyId));
@@ -65,6 +66,12 @@ export async function saveResource(resource: AccountingResource, input: unknown,
     const identity = resource === "currencies" ? schema.accountingCurrencies.code : (table as Exclude<typeof table,typeof schema.accountingCurrencies>).id;
     const [before] = rowId === undefined ? [] : await tx.select().from(table).where(eq(identity,rowId as never)).limit(1);
     if (rowId !== undefined && !before) throw new AccountingError("Record not found",404,"NOT_FOUND");
+    if(resource==="companies"&&before&&"deletedAt" in before&&before.deletedAt!=null)
+      throw new AccountingError("Deleted company is not available for editing",404,"NOT_FOUND");
+    if("companyId" in data){
+      const [owner]=await tx.select().from(schema.accountingCompanies).where(eq(schema.accountingCompanies.id,data.companyId));
+      if(!owner||owner.deletedAt!=null)throw new AccountingError("Company not found",404,"NOT_FOUND");
+    }
     if ("companyId" in data && before && "companyId" in before && data.companyId !== before.companyId) throw new AccountingError("A record cannot move between companies");
     if (resource === "currencies" && before && "code" in data && data.code !== rowId) throw new AccountingError("Currency codes cannot be renamed");
     if ("companyId" in data) {

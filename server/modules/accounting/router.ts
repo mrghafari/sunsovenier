@@ -1,5 +1,5 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
-import {sql} from "drizzle-orm";
+import {sql,isNull} from "drizzle-orm";
 import { accountingDb } from "./db";
 import {z} from "zod";
 import { accountingCompanies, accountingCurrencies } from "./schema";
@@ -33,6 +33,7 @@ import {readPostingQueue,previewQueuedPosting,enqueueReviewedPosting,processRevi
 import {postingQueueScopeSchema} from "@shared/accounting-posting-queue";
 import {assertPipelineManager} from "./loading-invoice-stock";
 import {readZeroStart,activateZeroStart} from "./zero-start";
+import {deleteAccountingCompany} from "./company-deletion";
 import {readCapitalizationWorkbench,capitalizeInventoryDocument} from "./inventory-capitalization";
 import {stockBookMetadata,registerStockBook} from "./loading-invoice-stock";
 import {approveLoadingShipping} from "./loading-shipping";
@@ -60,7 +61,7 @@ export function createAccountingRouter() {
   });
   router.get("/v2/bootstrap", async (_req,res,next) => {
     try {
-      const companies = await accountingDb.select().from(accountingCompanies);
+      const companies = await accountingDb.select().from(accountingCompanies).where(isNull(accountingCompanies.deletedAt));
       const currencies = await accountingDb.select().from(accountingCurrencies);
       const integration=(await accountingDb.execute(sql`select exists(select 1 from accounting_companies
         where accounting_posting_enabled(id)) enabled`)).rows[0];
@@ -175,6 +176,10 @@ export function createAccountingRouter() {
       if (typeof id==="number" && (!Number.isSafeInteger(id)||id<=0)) throw new AccountingError("Invalid record ID");
       res.json(await saveResource(resource,req.body,res.locals.accountingAccess,id));
     } catch (error) { next(error); }
+  });
+  router.delete("/v2/settings/companies/:id",async(req,res,next)=>{
+    try{res.json(await deleteAccountingCompany(Number(req.params.id),req.body,res.locals.accountingAccess));}
+    catch(error){next(error);}
   });
   // Retire the mock-only accounting endpoints. Real shop/manual invoices remain untouched.
   router.all(["/invoices","/invoices/:id"],(_req,res) => {
