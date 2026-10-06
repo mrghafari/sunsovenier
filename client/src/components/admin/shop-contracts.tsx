@@ -7,6 +7,7 @@ import type { ShopContractDraftData } from "@shared/contract-draft";
 import ContractDraftBuilder, { buildContractDraftText, emptyContractDraft } from "./contract-draft-builder";
 import ContractSignedDocuments from "./contract-signed-documents";
 import ContractAddenda from "./contract-addenda";
+import ContractTextDialog, { contractTextCopy } from "./contract-text-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
@@ -67,6 +68,7 @@ export default function ShopContracts() {
     setRowUpload((current) => current && String(expanded) !== current.contractId ? null : current);
   }, [expanded]);
   const [endingContract, setEndingContract] = useState<Contract | null>(null);
+  const [textContract, setTextContract] = useState<Contract | null>(null);
   const [endError, setEndError] = useState("");
   const [contractTab, setContractTab] = useState<"current" | "ended">("current");
   const documentActions = {
@@ -257,6 +259,12 @@ export default function ShopContracts() {
                       {!Number(contract.addendumCount) && <Button variant="outline" className={contractTheme.outline} size="sm" onClick={() => openEdit(contract)}>{tx.edit}</Button>}
                       <Button variant="destructive" size="sm" onClick={() => { setEndError(""); setEndingContract(contract); }}>{tx.end}</Button>
                     </>}
+                    <div className="flex w-full justify-end">
+                      <Button type="button" size="sm" variant="outline" className={contractTheme.outline}
+                        onClick={() => setTextContract(contract)}>
+                        <FileText className="me-1 h-4 w-4" />{contractTextCopy[language].title}
+                      </Button>
+                    </div>
                   </div>
                 </TableCell>
               </TableRow>
@@ -307,6 +315,7 @@ export default function ShopContracts() {
          <TabsContent value="current">{renderContractTable(currentContracts, false)}</TabsContent>
          <TabsContent value="ended">{renderContractTable(endedContracts, true)}</TabsContent>
        </Tabs>}
+      <ContractTextDialog contract={textContract} onClose={() => setTextContract(null)} />
 
         <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { setFormError(""); setCreatingAddendumFor(null); } }}><DialogContent dir={direction} className={`max-h-[92vh] overflow-y-auto sm:max-w-4xl ${creatingAddendumFor ? "border-teal-700 bg-teal-50 dark:border-teal-300 dark:bg-teal-950" : ""}`}><DialogHeader><DialogTitle className={creatingAddendumFor ? contractTheme.text : undefined}>{creatingAddendumFor ? addendumLabels.title : editingId === null ? tx.createTitle : tx.editTitle}</DialogTitle><DialogDescription>{creatingAddendumFor ? {
           fa: "این متمم با ثبت، شرایط فروش قرارداد اصلی را به‌روزرسانی می‌کند؛ سفارش‌های قبلی تغییر نمی‌کنند.",
