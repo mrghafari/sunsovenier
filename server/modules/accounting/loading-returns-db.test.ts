@@ -80,7 +80,7 @@ test("full unsettled loading returns preserve original books and never change na
       await tx.execute(sql`insert into accounting_fiscal_years(company_id,name,starts_on,ends_on)
         values(${companyId},'Fixture period','2026-01-01','2026-12-31')`);
       const accounts=new Map<string,number>();
-      for(const key of ["BANK","WALLET_LIABILITY","ACCOUNTS_RECEIVABLE","SALES_REVENUE","TAX_PAYABLE","SHIPPING_REVENUE",
+      for(const key of ["BANK","CASH","WALLET_LIABILITY","ACCOUNTS_RECEIVABLE","SALES_REVENUE","TAX_PAYABLE","SHIPPING_REVENUE",
          "COGS","INVENTORY","OPENING_BALANCE_EQUITY","FX_GAIN","FX_LOSS","SHIPPING_EXPENSE","CARRIER_PAYABLE",
          "CHEQUES_ON_HAND","CHEQUE_CLEARING"]){
         const a=iraqChart.find(x=>x.key===key)!;assert.ok(a,key);
@@ -133,7 +133,7 @@ test("full unsettled loading returns preserve original books and never change na
       if(currency==="USD")await tx.execute(sql`insert into accounting_foreign_invoice_cutovers(company_id,processing_ready,reviewed_by,evidence_reference)
         values(${companyId},true,${actorId},'Rollback reviewed foreign valuation')`);
       const invoices:Awaited<ReturnType<typeof issueLoadingInvoice>>[]=[];
-      if(process.env.ACCOUNTING_COMPLETION_TEST==="1")
+      if(process.env.ACCOUNTING_COMPLETION_TEST==="1"&&process.env.ACCOUNTING_LINKED_PAYOUT_ONLY!=="1")
         await exercisePostingQueue(t,tx,{actor,companyId,factId:facts[0],currency});
       for(const factId of facts){
         const plan=(await readLoadingInvoiceWorkbench({companyId,orderId},tx)).rows.find(p=>p.factId===factId)!;
@@ -168,8 +168,9 @@ test("full unsettled loading returns preserve original books and never change na
       });
       await tx.execute(sql`insert into accounting_loading_return_cutovers(company_id,processing_ready,starts_on,reviewed_by,evidence_reference)
         values(${companyId},true,'2026-06-01',${actorId},'Rollback actual reviewed return opening')`);
-      await exercisePartialReturns(t,tx,{actor,companyId,customerId,orderItemId:orderId,invoiceId:invoices[1].invoiceId,
-        receivableId:invoices[1].receivableId!,currency});
+      if(process.env.ACCOUNTING_FULL_RETURN_GUARD_ONLY!=="1")
+        await exercisePartialReturns(t,tx,{actor,companyId,customerId,orderItemId:orderId,invoiceId:invoices[1].invoiceId,
+          receivableId:invoices[1].receivableId!,currency});
       if(process.env.ACCOUNTING_PARTIAL_RETURN_ONLY==="1"){finished=true;throw rollback;}
       await t.test(currency+": stale review, incorrect scope and unsettled/cheque protections cannot be bypassed",async()=>{
         const c=await command(invoices[1].invoiceId);
@@ -188,22 +189,15 @@ test("full unsettled loading returns preserve original books and never change na
         await tx.execute(sql`savepoint receipt_protection`);
         // A genuine received uncleared cheque allocates AR but must not be
         // silently erased by a sales return.
-        const receipt=Number((await tx.execute(sql`insert into accounting_customer_receipts(company_id,customer_id,currency,
-          source_id,entry_date,method,amount,wallet_credit,input,status) values(${companyId},${customerId},${currency},
-          ${randomUUID()},'2026-06-03','CHEQUE',1,0,'{}','received') returning id`)).rows[0].id);
-        const allocate=()=>tx.execute(sql`insert into accounting_receipt_allocations(receipt_id,receivable_id,amount)
-          values(${receipt},${invoices[1].receivableId},1)`);
-        if(currency==="IQD"){
-          await allocate();
-          assert.ok((await plans()).rows.find(p=>p.invoiceId===invoices[1].invoiceId)!.blockers.includes("RECEIPT_ALLOCATION_EXISTS"));
-          await rejected(()=>returnLoadingInvoice(c,actor,tx),/RECEIPT_ALLOCATION_EXISTS/);
-        }else{
-          // Never bypass the independent foreign-cheque carrying proof merely
-          // to manufacture an allocation in a loading-return test.
-          await rejected(allocate,/immutable receipt carrying value/);
-        }
+        await recordCustomerReceipt({companyId,customerId,currency,sourceId:randomUUID(),entryDate:"2026-06-03",
+          method:"CHEQUE",chequeNumber:randomUUID(),amount:"1",
+          allocations:[{receivableId:invoices[1].receivableId!,amount:"1"}],
+          evidenceReference:"Rollback genuine uncleared cheque proof",reason:"Rollback preserved cheque allocation"},actor,tx);
+        assert.ok((await plans()).rows.find(p=>p.invoiceId===invoices[1].invoiceId)!.blockers.includes("RECEIPT_ALLOCATION_EXISTS"));
+        await rejected(()=>returnLoadingInvoice(c,actor,tx),/RECEIPT_ALLOCATION_EXISTS/);
         await tx.execute(sql`rollback to savepoint receipt_protection`);await tx.execute(sql`release savepoint receipt_protection`);
       });
+      if(process.env.ACCOUNTING_FULL_RETURN_GUARD_ONLY==="1"){finished=true;throw rollback;}
       await t.test(currency+": a pending command cannot authorize an incomplete monetary reversal",async()=>{
         const p=(await plans()).rows.find(p=>p.invoiceId===invoices[1].invoiceId)!;
         await rejected(async()=>{

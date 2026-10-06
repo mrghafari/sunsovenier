@@ -4,7 +4,7 @@ import React, { type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { LanguageProvider } from "@/contexts/LanguageContext";
-import AccountingPostingQueue, { postingBlockersAreClosedGates } from "./accounting-posting-queue";
+import AccountingPostingQueue, { postingBlockersAreClosedGates,postingSourceCanBeStaged } from "./accounting-posting-queue";
 import { postingQueueText } from "./accounting-posting-queue-copy";
 
 Object.defineProperty(globalThis, "React", { configurable: true, value: React });
@@ -40,7 +40,10 @@ test("actual queue component preserves closed documentary/financial gates and fo
     assert.ok(postingQueueText(language, "terminalReview").length > 40);
   }
   assert.equal(postingBlockersAreClosedGates(["CUTOVER_CLOSED"]), true);
-  assert.equal(postingBlockersAreClosedGates(["PERIOD_CLOSED", "FOREIGN_CUTOVER_CLOSED"]), true);
+  assert.equal(postingBlockersAreClosedGates(["PERIOD_CLOSED", "FOREIGN_CUTOVER_CLOSED"]), false);
+  assert.equal(postingSourceCanBeStaged([]),true,"A fully ready source must remain stageable after activation");
+  assert.equal(postingSourceCanBeStaged(["FOREIGN_CUTOVER_CLOSED"]),true);
+  assert.equal(postingSourceCanBeStaged(["PERIOD_CLOSED"]),false,"A closed accounting period requires fresh review, not a queued intent");
   assert.equal(postingBlockersAreClosedGates([]), false);
   assert.equal(postingBlockersAreClosedGates(["CUTOVER_CLOSED", "OPENING_EVIDENCE_REQUIRED"]), false);
   assert.equal(postingBlockersAreClosedGates(["POSTING_MAPPING_REQUIRED"]), false);

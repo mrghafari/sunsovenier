@@ -15,6 +15,9 @@ export const postingQueueScopeSchema=z.object({
   pageSize:z.coerce.number().int().min(1).max(100).default(20),
 }).strict();
 export type PostingQueueCommand=z.infer<typeof postingQueueCommandSchema>;
+export const POSTING_QUEUE_STAGEABLE_BLOCKERS=new Set<string>([
+  "CUTOVER_CLOSED","FOREIGN_INVOICE_CUTOVER_CLOSED","FOREIGN_CUTOVER_CLOSED",
+]);
 export const postingSourceSchema=z.object({
   companyId:z.number().int().positive().max(2147483647),
   factId:z.number().int().positive().max(2147483647),kind:z.enum(["LOADING_INVOICE","SHIPMENT_COST"]),

@@ -77,5 +77,6 @@
 - [Contractual aggregate overweight](contract-weight-policy.md) — Commercial reviews cumulative order overweight; the order's own contractual allowance, not a company default, governs.
 - [Freight return independence](freight-return-independence.md) — a sales return does not itself erase incurred freight or the carrier payable; freight corrections need their own evidence.
 - [Paid return credit](paid-return-credit-policy.md) — paid invoice returns first restore the customer's account credit; bank payouts are separate and require evidence.
+- [Return-credit attribution](return-credit-attribution.md) — linked payouts consume existing return credit without reopening debt; later withdrawals conservatively reduce attribution.
 - [Partial-return evidence](partial-return-evidence.md) — preserve original payment counters; collection caps and dated reports use posted debt reductions and restorations.
 - [SQL valuation checks](sql-valuation-verification.md) — SQL function creation can pass before branch-specific name-resolution failures; execute rollback-only financial valuations.

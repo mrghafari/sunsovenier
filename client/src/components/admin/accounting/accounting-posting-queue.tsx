@@ -1,6 +1,6 @@
 import { useRef, useState, type ReactNode } from "react";
 import type { PostingQueueCommand } from "@shared/accounting-posting-queue";
-import { postingQueueSubmitSchema } from "@shared/accounting-posting-queue";
+import { postingQueueSubmitSchema, POSTING_QUEUE_STAGEABLE_BLOCKERS } from "@shared/accounting-posting-queue";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { normalizeAccountingDigits } from "./accounting-logic";
 import { postingQueueText as t } from "./accounting-posting-queue-copy";
@@ -13,9 +13,11 @@ import { AlertCircle, FileCheck2, RefreshCw, ShieldAlert } from "lucide-react";
 type Company = { id: number; name: string };
 type Pending = { payload: { sourceId: string; reviewConfirmed: true; posting: PostingQueueCommand }; companyId: number };
 const inputClass = "h-10 w-full rounded-lg border border-[#d4ddd4] bg-[#f7f9f5] px-3 text-sm text-[#29423f] outline-none focus:border-[#60877a] focus:ring-2 focus:ring-[#60877a]/15 disabled:opacity-60";
-const allowedGateBlockers = new Set(["CUTOVER_CLOSED", "FOREIGN_INVOICE_CUTOVER_CLOSED", "FOREIGN_CUTOVER_CLOSED", "PERIOD_CLOSED"]);
 export function postingBlockersAreClosedGates(blockers: readonly string[]) {
-  return blockers.length > 0 && blockers.every(code => allowedGateBlockers.has(code));
+  return blockers.length > 0 && blockers.every(code => POSTING_QUEUE_STAGEABLE_BLOCKERS.has(code));
+}
+export function postingSourceCanBeStaged(blockers:readonly string[]) {
+  return blockers.length===0||postingBlockersAreClosedGates(blockers);
 }
 const makeSourceId = () => globalThis.crypto?.randomUUID?.() ?? `posting-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 const pendingKey = "accounting-posting-queue:pending:v1";
@@ -63,7 +65,7 @@ export default function AccountingPostingQueue({ companies, defaultCompanyId, ca
     ? { companyId, factId, kind } : undefined;
   const scopeFingerprint = source ? JSON.stringify(source) : "";
   const currentPlan = plan && scopeFingerprint && reviewedScope === scopeFingerprint ? plan : undefined;
-  const gateOnly = Boolean(currentPlan && postingBlockersAreClosedGates(currentPlan.blockers));
+  const gateOnly = Boolean(currentPlan && postingSourceCanBeStaged(currentPlan.blockers));
   const notPosted = Boolean(currentPlan && !currentPlan.posted);
   const reasonValid = reason.trim().length >= 5 && reason.trim().length <= 500;
   const carrierValid = kind !== "SHIPMENT_COST" || carrierText.trim() === "" || (/^\d+$/.test(normalizeAccountingDigits(carrierText.trim())) && Number(normalizeAccountingDigits(carrierText.trim())) > 0);

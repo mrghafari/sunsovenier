@@ -211,9 +211,10 @@ purchase cost or stock carrying value. Do not treat it as COGS evidence.
    inventory rules. Native finance changes are limited to the new-order branch;
    old orders retain their previous route. Both new finance branches require
    accounting management permission and same-origin requests.
-   Still required before activation: actual AR/cheque opening evidence, complete
-   invoice/COGS/settlement consumers, coordinated reversal/cancellation of issued
-   documents and full signed-in/multi-currency end-to-end verification.
+   Still required before activation: actual AR/cheque opening evidence and
+   signed-in/multi-currency end-to-end verification. The invoice/COGS/settlement
+   handlers, coordinated returns and reviewed-command processing engine are
+   implemented; do not describe those technical paths as deferred features.
 5. **Reconcile openings and approve a cutover.** Obtain actual opening/stock/
    wallet/AR/asset evidence, reconcile native balances with GL and freeze the
    old/new order boundary. Never manufacture zeros or conversion rates.

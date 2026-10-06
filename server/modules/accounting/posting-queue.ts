@@ -1,6 +1,6 @@
 import {createHash,randomUUID} from "node:crypto";
 import {sql} from "drizzle-orm";
-import {postingQueueSubmitSchema,postingQueueScopeSchema,postingSourceSchema,postingQueueCommandSchema,
+import {postingQueueSubmitSchema,postingQueueScopeSchema,postingSourceSchema,postingQueueCommandSchema,POSTING_QUEUE_STAGEABLE_BLOCKERS,
   type PostingQueueCommand,type PostingQueueHistory,type PostingBatchResult} from "@shared/accounting-posting-queue";
 import type {AccountingAccess} from "@shared/accounting-api";
 import {accountingDb,type AccountingTransaction} from "./db";
@@ -39,8 +39,7 @@ export async function enqueueReviewedPosting(input:unknown,actor:AccountingAcces
       return {id:Number(old.id),duplicate:true};
     }
     const plan=await sourcePlan(tx,{...d.posting.command,kind:d.posting.kind});
-    const permitted=new Set(["CUTOVER_CLOSED","FOREIGN_INVOICE_CUTOVER_CLOSED","FOREIGN_CUTOVER_CLOSED"]);
-    if(plan.posted||plan.blockers.some(x=>!permitted.has(x)))
+    if(plan.posted||plan.blockers.some(x=>!POSTING_QUEUE_STAGEABLE_BLOCKERS.has(x)))
       throw new AccountingError("Original source requires review or is already posted",409,"SOURCE_NOT_READY");
     if(plan.planHash!==d.posting.command.expectedPlanHash)
       throw new AccountingError("Review a fresh source plan",409,"STALE_QUEUE_PLAN");
