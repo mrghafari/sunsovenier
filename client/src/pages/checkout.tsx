@@ -4078,64 +4078,6 @@ export default function Checkout({ cart, products, onOrderComplete }: CheckoutPr
           })),
         ]}
         selectedAddressId={reviewAddressId}
-        onSelectAddress={(id) => {
-          const key = String(id);
-          setReviewAddressId(key);
-          setPendingReview(null);
-          if (key === 'primary') {
-            setDeliveryAddressChoice('primary');
-            setSelectedAddress(null);
-            setShowSecondAddress(false);
-            setNewAddressCountry('');
-            form.setValue('secondDeliveryAddress', '');
-            form.setValue('secondDeliveryCity', '');
-            form.setValue('secondDeliveryProvince', '');
-            form.setValue('secondDeliveryPostalCode', '');
-            form.setValue('recipientAddress', '');
-            form.setValue('recipientMobile', customerData?.customer?.phone || '');
-            form.setValue('sameAsShipping', true);
-            if (isUserLoggedIn && customerData?.customer) {
-              const primary = customerData.customer;
-              form.setValue('billingAddress1', primary.address || '');
-              form.setValue('billingCity', primary.city || '');
-              form.setValue('billingState', primary.province || primary.state || '');
-              form.setValue('billingPostalCode', primary.postalCode || '');
-              form.setValue('billingCountry', primary.country || '');
-            }
-          } else {
-            const saved = savedCustomerAddresses.find(address => key === `saved:${address.id}`);
-            const next = saved
-              ? { address: saved.address, city: saved.city, province: saved.state || '', postalCode: saved.postalCode || '' }
-              : secondAddressDraft;
-            if (next) {
-              setDeliveryAddressChoice(key);
-              setSelectedAddress(saved || null);
-              form.setValue('secondDeliveryAddress', next.address);
-              form.setValue('secondDeliveryCity', next.city);
-              form.setValue('secondDeliveryProvince', next.province);
-              form.setValue('secondDeliveryPostalCode', next.postalCode);
-              form.setValue('recipientAddress', '');
-              if (saved) {
-                setNewAddressCountry(saved.country || '');
-                const region = provinces.find((item: any) => canonicalGeographyName(item) === saved.state || geographyName(item) === saved.state);
-                setSelectedSecondaryProvinceId(region?.id ?? null);
-                form.setValue('recipientMobile', saved.phone || '');
-                form.setValue('billingCountry', saved.country);
-                form.setValue('billingAddress1', saved.address);
-                form.setValue('billingCity', saved.city);
-                form.setValue('billingState', saved.state || '');
-                form.setValue('billingPostalCode', saved.postalCode || '');
-              } else if (secondAddressDraft) {
-                setNewAddressCountry(secondAddressDraft.country);
-                setNewAddressTitle(secondAddressDraft.title);
-                setNewAddressPhone(key === 'new' ? secondAddressDraft.phone : '');
-                form.setValue('recipientMobile', key === 'legacy' ? secondAddressDraft.phone : '');
-                const region = provinces.find((item: any) => canonicalGeographyName(item) === next.province || geographyName(item) === next.province);
-                setSelectedSecondaryProvinceId(region?.id ?? null);
-              }
-            }
-          }
-        }}
         onConfirm={() => {
           confirmingOrderRef.current = true;
           void form.handleSubmit(onSubmit, () => { confirmingOrderRef.current = false; })();

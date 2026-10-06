@@ -2092,7 +2092,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
         // First create the order
         const orderResponse = await apiRequest("/api/customers/orders", {
           method: "POST",
-          body: orderData
+          body: { ...orderData, language }
         });
         
         // Then upload the receipt file
@@ -2128,7 +2128,7 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
         
         const response = await apiRequest(endpoint, {
           method: "POST",
-          body: orderData
+      body: { ...orderData, language }
         });
         return response;
       }
@@ -4031,11 +4031,6 @@ export default function BilingualPurchaseForm({ cart, products, onOrderComplete,
           })),
         ]}
         selectedAddressId={reviewAddressId}
-        onSelectAddress={(id) => {
-          const key = String(id);
-          setReviewAddressId(key);
-          selectDeliveryAddress(key);
-        }}
         onConfirm={() => {
           confirmingOrderRef.current = true;
           void form.handleSubmit(onSubmit, () => { confirmingOrderRef.current = false; })();

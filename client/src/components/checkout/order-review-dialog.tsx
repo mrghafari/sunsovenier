@@ -10,7 +10,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { cn } from "@/lib/utils";
 
 export type CheckoutLanguage = "en" | "fa" | "ar" | "tr";
 
@@ -35,7 +34,6 @@ export interface OrderReviewItem {
 export interface OrderReviewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSelectAddress: (id: string | number) => void;
   onConfirm: () => void;
   onRefresh?: () => void;
   refreshPending?: boolean;
@@ -60,7 +58,6 @@ const copy = {
     description: "Check your delivery address and order details before placing the order.",
     items: "Items",
     address: "Delivery address",
-    chooseAddress: "Choose an address",
     noAddresses: "No delivery addresses are available.",
     shipping: "Shipping",
     payment: "Payment",
@@ -78,14 +75,13 @@ const copy = {
     refreshDescription: "The delivery address changed. Wait for shipping to update, then review the new total.",
     selected: "Selected",
     free: "Free",
-    notSelected: "Select an address to continue",
+    notSelected: "Go back to the cart to select a delivery address",
   },
   fa: {
     title: "مرور سفارش",
     description: "پیش از ثبت سفارش، آدرس تحویل و جزئیات سفارش را بررسی کنید.",
     items: "اقلام",
     address: "آدرس تحویل",
-    chooseAddress: "یک آدرس انتخاب کنید",
     noAddresses: "آدرس تحویلی موجود نیست.",
     shipping: "ارسال",
     payment: "پرداخت",
@@ -103,14 +99,13 @@ const copy = {
     refreshDescription: "آدرس تحویل تغییر کرده است. پس از محاسبه دوباره هزینه ارسال، خلاصه جدید را بررسی کنید.",
     selected: "انتخاب‌شده",
     free: "رایگان",
-    notSelected: "برای ادامه یک آدرس انتخاب کنید",
+    notSelected: "برای انتخاب آدرس تحویل به سبد خرید برگردید",
   },
   ar: {
     title: "مراجعة الطلب",
     description: "تحقق من عنوان التسليم وتفاصيل الطلب قبل إتمامه.",
     items: "المنتجات",
     address: "عنوان التسليم",
-    chooseAddress: "اختر عنواناً",
     noAddresses: "لا توجد عناوين تسليم متاحة.",
     shipping: "الشحن",
     payment: "الدفع",
@@ -128,14 +123,13 @@ const copy = {
     refreshDescription: "تغيّر عنوان التسليم. انتظر تحديث تكلفة الشحن ثم راجع المجموع الجديد.",
     selected: "محدد",
     free: "مجاناً",
-    notSelected: "اختر عنواناً للمتابعة",
+    notSelected: "ارجع إلى السلة لاختيار عنوان التسليم",
   },
   tr: {
     title: "Siparişi incele",
     description: "Siparişi vermeden önce teslimat adresinizi ve ayrıntıları kontrol edin.",
     items: "Ürünler",
     address: "Teslimat adresi",
-    chooseAddress: "Bir adres seçin",
     noAddresses: "Kullanılabilir teslimat adresi yok.",
     shipping: "Kargo",
     payment: "Ödeme",
@@ -153,7 +147,7 @@ const copy = {
     refreshDescription: "Teslimat adresi değişti. Kargo fiyatı yenilendikten sonra yeni toplamı inceleyin.",
     selected: "Seçili",
     free: "Ücretsiz",
-    notSelected: "Devam etmek için bir adres seçin",
+    notSelected: "Teslimat adresi seçmek için sepete dönün",
   },
 } as const;
 
@@ -172,7 +166,6 @@ function Amount({ value, language }: { value: number; language: CheckoutLanguage
 export default function OrderReviewDialog({
   open,
   onOpenChange,
-  onSelectAddress,
   onConfirm,
   onRefresh,
   refreshPending = false,
@@ -192,7 +185,8 @@ export default function OrderReviewDialog({
 }: OrderReviewDialogProps) {
   const t = copy[language];
   const direction = rtlLanguages.has(language) ? "rtl" : "ltr";
-  const hasSelectedAddress = addresses.some((address) => String(address.id) === String(selectedAddressId));
+  const selectedAddress = addresses.find((address) => String(address.id) === String(selectedAddressId));
+  const hasSelectedAddress = Boolean(selectedAddress);
   const disabled = confirmDisabled || confirming || needsRefresh || !hasSelectedAddress;
   const paymentLabels: Record<string, string> = {
     fib_online: language === 'fa' ? 'پرداخت آنلاین' : 'Online payment',
@@ -269,49 +263,24 @@ export default function OrderReviewDialog({
                   <MapPin className="h-4 w-4" aria-hidden="true" />
                   {t.address}
                 </h2>
-                {!hasSelectedAddress && addresses.length > 0 && (
+                {!hasSelectedAddress && (
                   <span className="text-xs font-medium text-destructive">{t.notSelected}</span>
                 )}
               </div>
-              {addresses.length > 0 ? (
-                <div role="radiogroup" aria-label={t.chooseAddress} className="grid gap-2.5">
-                  {addresses.map((address) => {
-                    const isSelected = String(address.id) === String(selectedAddressId);
-                    const addressId = `order-review-address-${String(address.id).replace(/[^a-zA-Z0-9_-]/g, "-")}`;
-                    return (
-                      <label
-                        key={address.id}
-                        htmlFor={addressId}
-                        className={cn(
-                          "flex cursor-pointer gap-3 rounded-lg border p-3.5 transition-colors",
-                          "hover:border-primary/60 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2",
-                          isSelected ? "border-primary bg-primary/5" : "border-border/70 bg-card"
-                        )}
-                      >
-                        <input
-                          id={addressId}
-                          type="radio"
-                          name="order-review-address"
-                          value={String(address.id)}
-                          checked={isSelected}
-                          onChange={() => onSelectAddress(address.id)}
-                          className="mt-1 h-4 w-4 accent-primary"
-                          aria-label={address.label}
-                        />
-                        <span className="min-w-0 flex-1">
-                          <span className="flex flex-wrap items-center gap-2 font-medium">
-                            {address.label}
-                            {isSelected && <span className="text-xs font-normal text-primary">{t.selected}</span>}
-                          </span>
-                          <span className="mt-1 block text-sm leading-5 text-muted-foreground">
-                            {[address.address, address.city, address.province, address.postalCode, address.country].filter(Boolean).join(", ")}
-                          </span>
-                          {address.phone && <span className="mt-1 block text-xs text-muted-foreground">{address.phone}</span>}
-                        </span>
-                        {isSelected && <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />}
-                      </label>
-                    );
-                  })}
+              {selectedAddress ? (
+                <div className="flex gap-3 rounded-lg border border-primary bg-primary/5 p-3.5">
+                  <div className="min-w-0 flex-1">
+                    <p className="flex flex-wrap items-center gap-2 font-medium">
+                      {selectedAddress.label}
+                      <span className="text-xs font-normal text-primary">{t.selected}</span>
+                    </p>
+                    <p className="mt-1 text-sm leading-5 text-muted-foreground">
+                      {[selectedAddress.address, selectedAddress.city, selectedAddress.province,
+                        selectedAddress.postalCode, selectedAddress.country].filter(Boolean).join(", ")}
+                    </p>
+                    {selectedAddress.phone && <p className="mt-1 text-xs text-muted-foreground">{selectedAddress.phone}</p>}
+                  </div>
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
                 </div>
               ) : (
                 <p className="rounded-lg border border-dashed px-4 py-5 text-sm text-muted-foreground">{t.noAddresses}</p>

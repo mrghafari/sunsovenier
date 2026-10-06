@@ -11,6 +11,7 @@ import fs from "fs";
 import puppeteer from "puppeteer";
 import nodemailer from "nodemailer";
 import crypto from "crypto";
+import { customerOrderErrorResponse } from "./customer-order-errors";
 import { emailService } from "./email-service";
 import { storage } from "./storage";
 import { insertLeadSchema, insertLeadActivitySchema } from "@shared/schema";
@@ -19981,10 +19982,10 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
   app.post("/api/customers/orders", async (req, res) => {
     let contractHoldId: string | null = null;
     let contractOrderId: number | null = null;
+    const orderRequestId = crypto.randomUUID();
     console.log('🚀 [ENDPOINT] /api/customers/orders called with timestamp:', req.query.t);
     console.log('🚀 [ENDPOINT] Request method:', req.method);
     console.log('🚀 [ENDPOINT] Request URL:', req.url);
-    console.log('🚀 [ENDPOINT] Request headers:', JSON.stringify(req.headers, null, 2));
     
     try {
       if (req.body?.contractId != null &&
@@ -20144,6 +20145,20 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         });
       }
 
+      // Verify the wallet's accounting/legacy boundary before numbering,
+      // reservations or money writes, not after starting order creation.
+      let accountingCustomerWalletDeferred = false;
+      if (["wallet_full", "wallet_partial"].includes(orderData.paymentMethod)) {
+        const requestedWallet = Math.min(
+          Math.round(totalAmount),
+          Math.max(0, Math.round(parseFloat(orderData.walletAmountUsed || 0))),
+        );
+        if (requestedWallet > 0 && Math.max(0, Math.round(totalAmount) - requestedWallet) <= 1) {
+          const accountingWallet = await import("./modules/accounting/wallet");
+          accountingCustomerWalletDeferred = await accountingWallet.shouldDeferWalletCheckout(Number(crmCustomerId || 0));
+        }
+      }
+
       const reservationModule = await import("./cart-inventory-reservation");
       if (!req.sessionID) {
         return res.status(400).json({ success: false, message: "جلسه سبد خرید معتبر نیست" });
@@ -20182,7 +20197,6 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
       // Handle payment method processing
       let finalPaymentStatus = "pending";
       let walletAmountUsed = 0;
-      let accountingCustomerWalletDeferred = false;
       let remainingAmount = totalAmount;
       let finalPaymentMethod = orderData.paymentMethod || "traditional";
 
@@ -20236,8 +20250,6 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
             // CRITICAL: For wallet_partial payments, RESERVE funds instead of deducting
             // Actual deduction happens ONLY after bank payment is confirmed
             if (Math.round(remainingAmount) <= 1) {
-              const accountingWallet = await import("./modules/accounting/wallet");
-              accountingCustomerWalletDeferred = await accountingWallet.shouldDeferWalletCheckout(Number(customerId && crmCustomerId || 0));
               if (accountingCustomerWalletDeferred) {
                 walletAmountUsed = 0;
                 finalPaymentStatus = "pending";
@@ -21331,11 +21343,11 @@ Use the canonical page URL when citing Momtazchem. Product availability, prices,
         error: 'UNSUPPORTED_PAYMENT_METHOD'
       });
     } catch (error) {
-      console.error("❌ [ORDER CREATION ERROR] Full error details:"); console.error("Error message:", error instanceof Error ? error.message : String(error)); console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace");
-      res.status(500).json({
-        success: false,
-        message: "Failed to create order"
-      });
+      const failure = customerOrderErrorResponse(error, req.body?.language, orderRequestId);
+      console.error(`❌ [ORDER CREATION ERROR] Reference: ${orderRequestId}; code: ${failure.body.code}`);
+      console.error("Error message:", error instanceof Error ? error.message : "Unknown order error");
+      console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace");
+      res.status(failure.status).json(failure.body);
     } finally {
       if (contractOrderId !== null && (res.statusCode < 200 || res.statusCode >= 300)) {
         try {

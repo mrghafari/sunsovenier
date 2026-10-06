@@ -134,21 +134,38 @@ export async function recordWalletMovement(kind:"topup"|"refund",input:MovementI
   return callerTx?run(callerTx):accountingDb.transaction(run);
 }
 
-export async function shouldDeferWalletCheckout(crmCustomerId:number) {
-  const tables=await accountingDb.execute(sql`select to_regclass('public.accounting_wallet_cutovers') as relation`);
+export async function shouldDeferWalletCheckout(
+  crmCustomerId:number,
+  reader:Pick<typeof accountingDb,"execute">=accountingDb,
+) {
+  const tables=await reader.execute(sql`select to_regclass('public.accounting_wallet_cutovers') as relation`);
   if(!tables.rows[0].relation) return false;
-  const gate=await accountingDb.execute(sql`select g.company_id from accounting_source_bindings b
+  const gate=await reader.execute(sql`select g.company_id from accounting_source_bindings b
     join accounting_wallet_cutovers g on g.company_id=b.company_id and g.pipeline_ready
     where b.source_module='shop' and b.capture_enabled`);
   if(!gate.rows.length) return false;
-  const r=await accountingDb.execute(sql`select w.id from accounting_source_bindings b
+  const r=await reader.execute(sql`select w.id from accounting_source_bindings b
     join accounting_wallet_cutovers g on g.company_id=b.company_id and g.pipeline_ready
     join accounting_wallet_links l on l.company_id=b.company_id
     join customer_wallets w on w.id=l.wallet_id and w.customer_id=l.customer_id and w.currency=l.currency
     where b.source_module='shop' and b.capture_enabled and l.customer_id=${crmCustomerId}
     and w.status='active' and w.currency='IQD'`);
-  if(r.rows.length!==1) throw new AccountingError("An explicitly authenticated CRM prepaid account link is required",409,"WALLET_LINK_REQUIRED");
-  return true;
+  if(r.rows.length===1) return true;
+  if(r.rows.length===0) {
+    // Independent zero opening does not migrate existing balances. Only an
+    // unlinked, active IQD wallet demonstrably older than every active cutover
+    // may retain the legacy checkout. New/unknown/linked wallets fail closed.
+    const legacy=await reader.execute(sql`select w.id from customer_wallets w
+      where w.customer_id=${crmCustomerId} and w.status='active' and w.currency='IQD'
+      and w.created_at < (
+        select min(g.enabled_at) from accounting_source_bindings b
+        join accounting_wallet_cutovers g on g.company_id=b.company_id and g.pipeline_ready
+        where b.source_module='shop' and b.capture_enabled
+      )
+      and not exists(select 1 from accounting_wallet_links l where l.wallet_id=w.id)`);
+    if(legacy.rows.length===1) return false;
+  }
+  throw new AccountingError("An explicitly authenticated CRM prepaid account link is required",409,"WALLET_LINK_REQUIRED");
 }
 export async function prepareWalletOrder(orderId:number,crmCustomerId:number,callerTx?:AccountingTransaction) {
   const run=async(tx:AccountingTransaction)=>{
