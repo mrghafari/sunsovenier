@@ -171,21 +171,22 @@ test("new prepaid wallet integration: rollback-only",{skip:process.env.ACCOUNTIN
         await rejects(()=>approveWalletOrder(fixture+4,"Insufficient funds",actor,tx));
         assert.equal((await tx.execute(sql`select count(*) as n from accounting_wallet_holds where wallet_id=${fixture}`)).rows[0].n,"1");
       });
-      await t.test("refund cannot spend blocked funds; allowed refund debits liability, not revenue",async()=>{
+      await t.test("new legacy refunds cannot bypass documented payout evidence and cutover",async()=>{
         await rejects(()=>recordWalletMovement("refund",{...input,sourceId:"refund-over",amount:"30"},actor,tx));
-        const r=await recordWalletMovement("refund",{...input,sourceId:"refund-1",amount:"10",reason:"Return excess prepaid funds"},actor,tx);
-        assert.ok(r.journalId);assert.equal(await balance(),"90.00");
-        assert.equal((await recordWalletMovement("refund",{...input,sourceId:"refund-1",amount:"10",reason:"Return excess prepaid funds"},actor,tx)).duplicate,true);
+        await assert.rejects(()=>recordWalletMovement("refund",
+          {...input,sourceId:"refund-1",amount:"10",reason:"Return excess prepaid funds"},actor,tx),
+          (error:any)=>error.code==="DOCUMENTED_PAYOUT_REQUIRED");
+        assert.equal(await balance(),"100.00");
       });
       await t.test("cancellation releases a hold in the native transaction and never refunds twice",async()=>{
         await tx.execute(sql`update customer_orders set status='cancelled' where id=${fixture}`);
         assert.equal((await tx.execute(sql`select status from accounting_wallet_holds where order_id=${fixture}`)).rows[0].status,"released");
-        assert.equal(await balance(),"90.00");
+        assert.equal(await balance(),"100.00");
         await rejects(()=>approveWalletOrder(fixture,"Retry after cancellation",actor,tx));
       });
       await t.test("gateway funding uses its mapped asset and GL drift fails closed",async()=>{
         await recordWalletMovement("topup",{...input,sourceId:"gateway-1",channel:"GATEWAY",amount:"10"},actor,tx);
-        assert.equal(await balance(),"100.00");
+        assert.equal(await balance(),"110.00");
         await tx.execute(sql`savepoint simulated_drift`);
         const bank=(await tx.execute(sql`select account_id from accounting_posting_rules where company_id=${company} and key='BANK'`)).rows[0].account_id as number;
         const liability=(await tx.execute(sql`select account_id from accounting_posting_rules where company_id=${company} and key='WALLET_LIABILITY'`)).rows[0].account_id as number;
@@ -197,14 +198,14 @@ test("new prepaid wallet integration: rollback-only",{skip:process.env.ACCOUNTIN
         await rejects(()=>recordWalletMovement("topup",{...input,sourceId:"drift-check",amount:"10"},actor,tx));
         await tx.execute(sql`rollback to savepoint simulated_drift`);
         await tx.execute(sql`release savepoint simulated_drift`);
-        assert.equal(await balance(),"100.00");
+        assert.equal(await balance(),"110.00");
       });
       await t.test("legacy/native writes cannot corrupt a financially controlled prepaid wallet",async()=>{
         await rejects(async()=>{await tx.execute(sql`update customer_wallets set balance=99 where id=${fixture}`);});
         await rejects(async()=>{await tx.execute(sql`insert into wallet_transactions(wallet_id,customer_id,
           transaction_type,amount,currency,balance_before,balance_after,description,status)
           values(${fixture},${fixture},'debit',1,'IQD',100,99,'Unsafe legacy debit','completed')`);});
-        assert.equal(await balance(),"100.00");
+        assert.equal(await balance(),"110.00");
       });
       finished=true;throw sentinel;
     });

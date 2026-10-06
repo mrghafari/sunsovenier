@@ -49,6 +49,8 @@ async function postWithinTransaction(tx: AccountingTransaction, input: JournalIn
     from accounting_loading_returns where id::text=${data.sourceId} and company_id=${data.companyId}
       and customer_credit_journal_id is null and return_date=${data.entryDate}::date`)).rows[0]?.proof as
       {amount:string;baseAmount:string;rate:string;currency:string;receivableAccountId:number;liabilityAccountId:number;valid:boolean}|undefined:undefined;
+  const refundBook=data.sourceType==="WalletRefund"?(await tx.execute(sql`select id,valuation from accounting_wallet_refund_books
+    where company_id=${data.companyId} and source_id=${data.sourceId}`)).rows[0]:undefined;
   if(data.sourceType==="LoadingReturnCredit"&&(!returnCredit?.valid||data.lines.length!==2))
     throw new AccountingError("A pending reviewed customer return credit is required",409,"RETURN_CREDIT_EVIDENCE_MISSING");
   const receiptValues=new Map<number,{base:string;rate:string}>();
@@ -66,7 +68,8 @@ async function postWithinTransaction(tx: AccountingTransaction, input: JournalIn
      chequeBook?{...normalized,chequeCarryingProof:chequeBook}:
      expenseBook?{...normalized,expenseCarryingProof:expenseBook}:
      foreignInvoiceBook?{...normalized,foreignInvoiceProof:foreignInvoiceBook}:
-     returnCredit?{...normalized,returnCreditProof:returnCredit}:normalized)).digest("hex");
+     returnCredit?{...normalized,returnCreditProof:returnCredit}:
+     refundBook?{...normalized,refundCarryingProof:refundBook}:normalized)).digest("hex");
   const [existing] = await tx.select().from(entries).where(and(
     eq(entries.companyId,data.companyId),eq(entries.sourceType,data.sourceType),eq(entries.sourceId,data.sourceId),
   )).limit(1);
@@ -114,21 +117,25 @@ async function postWithinTransaction(tx: AccountingTransaction, input: JournalIn
        .find(l=>l.accountId===line.accountId&&l.currency===line.currency&&decimal(l.debit).eq(line.debit)&&
          decimal(l.credit).eq(line.credit)&&l.partyType===line.partyType&&l.partyId===line.partyId&&l.costCenterId===line.costCenterId):undefined;
      const reversalLine=data.reversalOfId?originalLines[lineIndex]:undefined;
+      const refundLine=refundBook?(refundBook.valuation as {lines:import("@shared/accounting-wallet-refunds").RefundBookLine[]}).lines
+        .find(l=>l.accountId===line.accountId&&l.currency===line.currency&&decimal(l.debit).eq(line.debit)&&
+          decimal(l.credit).eq(line.credit)&&l.partyType===line.partyType&&l.partyId===line.partyId&&l.costCenterId===line.costCenterId):undefined;
       const returnCreditLine=returnCredit&&line.currency===returnCredit.currency&&
         ((line.accountId===returnCredit.receivableAccountId&&decimal(line.debit).eq(returnCredit.amount)&&decimal(line.credit).isZero())||
          (line.accountId===returnCredit.liabilityAccountId&&decimal(line.credit).eq(returnCredit.amount)&&decimal(line.debit).isZero()));
      const historical=Boolean(walletHistorical||receiptValue||chequeLine?.valuationBasis==="historical_carrying"||expenseLine||foreignInvoiceLine||
-        reversalLine?.valuationBasis==="historical_carrying"||returnCreditLine);
+         reversalLine?.valuationBasis==="historical_carrying"||returnCreditLine||refundLine);
     const bookAmount=walletHistorical?String(line.accountId===book.liability_account_id?book.wallet_base:book.receivable_base):
        receiptValue?.base??(chequeLine?(decimal(line.debit).gt(0)?chequeLine.baseDebit:chequeLine.baseCredit):
          expenseLine?(decimal(line.debit).gt(0)?expenseLine.baseDebit:expenseLine.baseCredit):
          foreignInvoiceLine?(decimal(line.debit).gt(0)?foreignInvoiceLine.baseDebit:foreignInvoiceLine.baseCredit):
           reversalLine?(decimal(line.debit).gt(0)?reversalLine.baseCredit:reversalLine.baseDebit):
-          returnCreditLine?returnCredit.baseAmount:undefined);
+           returnCreditLine?returnCredit.baseAmount:
+           refundLine?(decimal(line.debit).gt(0)?refundLine.baseDebit:refundLine.baseCredit):undefined);
     let rate = walletHistorical?String(line.accountId===book.liability_account_id?book.wallet_rate:book.receivable_rate):
        receiptValue?receiptValue.rate:chequeLine?chequeLine.exchangeRate:expenseLine?expenseLine.exchangeRate:
        foreignInvoiceLine?foreignInvoiceLine.exchangeRate:
-        returnCreditLine?returnCredit.rate:
+         returnCreditLine?returnCredit.rate:refundLine?refundLine.exchangeRate:
       data.reversalOfId ? originalLines[lineIndex]?.exchangeRate : cachedRates.get(line.currency);
     if (data.reversalOfId && !rate) throw new AccountingError("Reversal line count does not match the original");
     if (!rate) {
@@ -153,7 +160,8 @@ async function postWithinTransaction(tx: AccountingTransaction, input: JournalIn
       (chequeBook&&(chequeBook.lines as {baseDebit:string;baseCredit:string}[]).every(l=>decimal(l.baseDebit).isZero()&&decimal(l.baseCredit).isZero()))||
       (expenseBook&&(expenseBook.valuation as {lines:{baseDebit:string;baseCredit:string}[]}).lines.every(l=>decimal(l.baseDebit).isZero()&&decimal(l.baseCredit).isZero()))||
        (data.reversalOfId&&originalLines.length>0&&originalLines.every(l=>l.valuationBasis==="historical_carrying"&&decimal(l.baseDebit).isZero()&&decimal(l.baseCredit).isZero()))||
-       (returnCredit&&decimal(returnCredit.baseAmount).isZero())){
+        (returnCredit&&decimal(returnCredit.baseAmount).isZero())||
+        (refundBook&&(refundBook.valuation as {lines:{baseDebit:string;baseCredit:string}[]}).lines.every(l=>decimal(l.baseDebit).isZero()&&decimal(l.baseCredit).isZero()))){
     if((book&&prepared.length!==2)||prepared.some(l=>!decimal(l.baseDebit).isZero()||!decimal(l.baseCredit).isZero()||l.valuationBasis!=="historical_carrying"))
       throw new AccountingError("Zero carrying value requires precisely proven native lines");
   }else assertBalanced(prepared);
@@ -169,8 +177,8 @@ async function postWithinTransaction(tx: AccountingTransaction, input: JournalIn
   await tx.insert(audits).values({
     companyId:data.companyId,actorId:actor.actorId,actorType:actor.actorType,
     action:"post_journal",entityType:"journal",entityId:String(posted.id),after:{sourceType:data.sourceType,sourceId:data.sourceId,
-        ...(book||receiptBook||chequeBook||expenseBook||foreignInvoiceBook?{valuationBasis:"historical_carrying",
-          carryingProofId:book?.id??receiptBook?.id??chequeBook?.id??expenseBook?.document_id??foreignInvoiceBook?.fact_id}: {})},
+        ...(book||receiptBook||chequeBook||expenseBook||foreignInvoiceBook||refundBook?{valuationBasis:"historical_carrying",
+          carryingProofId:book?.id??receiptBook?.id??chequeBook?.id??expenseBook?.document_id??foreignInvoiceBook?.fact_id??refundBook?.id}: {})},
   });
   return {entry:posted,duplicate:false};
 }

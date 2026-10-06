@@ -57,6 +57,12 @@ try {
      "server/modules/accounting/0042_shipment_provenance.sql",
     "server/modules/accounting/0043_loading_returns.sql",
     "server/modules/accounting/0044_paid_loading_returns.sql",
+    "server/modules/accounting/0045_documented_wallet_refunds.sql",
+    "server/modules/accounting/0046_fx_gain_account_types.sql",
+    "server/modules/accounting/0047_payout_reference_integrity.sql",
+    "server/modules/accounting/0048_refund_pool_column_qualification.sql",
+    "server/modules/accounting/0049_refund_zero_rate_provenance.sql",
+    "server/modules/accounting/0050_documented_payout_source_guard.sql",
   ];
   for (const file of files) {
     const content = await readFile(file,"utf8");

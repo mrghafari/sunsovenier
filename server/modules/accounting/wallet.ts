@@ -67,6 +67,10 @@ export function nativeMoney(value:string) {
     throw new AccountingError("Amount exceeds existing wallet storage precision",422,"NATIVE_WALLET_PRECISION");
   return value;
 }
+function requireDocumentedPayout(kind:"topup"|"refund"){
+  if(kind==="refund")throw new AccountingError(
+    "New payouts require the documented bank/cash payout workflow",409,"DOCUMENTED_PAYOUT_REQUIRED");
+}
 export async function recordWalletMovement(kind:"topup"|"refund",input:MovementInput,actor:AccountingAccess,callerTx?:AccountingTransaction) {
   manager(actor);
   const parsed=walletMovementSchema.safeParse(input);
@@ -93,6 +97,9 @@ export async function recordWalletMovement(kind:"topup"|"refund",input:MovementI
       if(w.currency!==c.base_currency)throw new AccountingError(
         "Foreign-currency refunds require historical liability book value and realized FX",422,"FX_SETTLEMENT_NOT_READY");
     }
+    // Existing source retries above remain readable; new legacy refunds cannot
+    // bypass the independent evidence, balance, reference and cutover controls.
+    requireDocumentedPayout(kind);
     const liability=await account(tx,data.companyId,"WALLET_LIABILITY");
     const funding=await account(tx,data.companyId,data.channel);
     await reconciled(tx,w,data.companyId,liability);

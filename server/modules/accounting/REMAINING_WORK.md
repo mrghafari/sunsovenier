@@ -146,7 +146,7 @@ purchase cost or stock carrying value. Do not treat it as COGS evidence.
      and it cannot authorize or post a partial return. Full-return paid credit
      additionally checks the same native policy against its existing independent
      historical credit proof before posting.
-     Partial-goods financial posting and foreign cash refunds remain outstanding; no worker,
+     Partial-goods financial posting remains outstanding; no worker,
     production migration, real company activation or publication is implied.
     The additive loading-return migration is applied in development. Return
     cutovers remain closed and no actual return/opening was seeded. Rollback-only
@@ -154,9 +154,25 @@ purchase cost or stock carrying value. Do not treat it as COGS evidence.
     atomic failure recovery, original freight independence and dated debt.
     The protected login boundary was browser-checked; the signed-in workbench
     remains visually unverified (its API and rendered components are tested).
-3. **Complete foreign wallet refunds and partial receipt returns.** Preserve
-   pooled native/base book values, original allocations and settlement evidence,
-   protect holds/other currencies, and recognize realized FX explicitly.
+    Independent documented customer payouts now have BANK/CASH preview, atomic
+    native wallet debit and posted GL, company-scoped paginated history and a
+    four-language workbench. Historical pooled customer liability and funding
+    carrying values, not today's rates, determine explicit realized base FX.
+    Holds, native reservations, uncleared cheque funds, funding availability,
+    chronology, currency precision and a separately reviewed closed-by-default
+    cutover must pass. Final foreign zero-base residuals preserve proven incoming
+    rate evidence without changing their actual zero carrying values.
+    Actual bank transaction/cash voucher references are required independently
+    of reusable supporting documents and command IDs; duplicate actual references
+    and uncoordinated reversals are blocked. Historical legacy refunds remain,
+    but new legacy refund commands cannot bypass this evidence/approval path.
+    This is staff-attested recording of an already completed actual payout,
+    not a bank API call, invoice/receipt return, stock movement, or activation.
+3. **Complete partial receipt returns.** Independent base/foreign bank/cash
+   customer payouts are implemented above, but they do not return or reallocate
+   a receipt. Partial receipt returns still need reviewed original allocation
+   evidence, precise native/base carrying, correct reopened debt/customer credit,
+   protection of holds/other currencies, and explicit realized FX where incurred.
    No direct balance/status edits or independent reversal shortcuts.
 4. **Credit approval connection is staged, not activated.** New prepaid orders
    and explicitly registered new bank/cash credit orders have a finance approval

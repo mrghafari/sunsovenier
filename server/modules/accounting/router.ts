@@ -26,6 +26,7 @@ import {readInventoryFifo} from "./inventory-fifo";
 import {readLoadingInvoiceWorkbench,issueLoadingInvoice} from "./loading-invoices";
 import {readShipmentCosts,postShipmentCost,captureShipmentCost} from "./shipment-costs";
 import {readLoadingReturns,returnLoadingInvoice} from "./loading-returns";
+import {readWalletRefundPlan,recordDocumentedWalletRefund,readDocumentedWalletRefunds} from "./wallet-refunds";
 import {readCapitalizationWorkbench,capitalizeInventoryDocument} from "./inventory-capitalization";
 import {stockBookMetadata,registerStockBook} from "./loading-invoice-stock";
 import {approveLoadingShipping} from "./loading-shipping";
@@ -287,6 +288,15 @@ export function createAccountingRouter() {
   });
   router.post("/v2/loading-returns",async(req,res,next)=>{
     try{assertAccountingOrigin(req);res.json(await returnLoadingInvoice(req.body,res.locals.accountingAccess));}catch(e){next(e);}
+  });
+  router.post("/v2/wallet-refunds/preview",async(req,res,next)=>{
+    try{assertAccountingOrigin(req);res.set("Cache-Control","private, no-store");res.json(await readWalletRefundPlan(req.body));}catch(e){next(e);}
+  });
+  router.post("/v2/wallet-refunds",async(req,res,next)=>{
+    try{assertAccountingOrigin(req);res.set("Cache-Control","private, no-store");res.json(await recordDocumentedWalletRefund(req.body,res.locals.accountingAccess));}catch(e){next(e);}
+  });
+  router.get("/v2/wallet-refunds/history",async(req,res,next)=>{
+    try{res.set("Cache-Control","private, no-store");res.json(await readDocumentedWalletRefunds(req.query));}catch(e){next(e);}
   });
   router.get("/v2/shipment-costs",async(req,res,next)=>{
     try{res.set("Cache-Control","private, no-store");res.json(await readShipmentCosts(req.query));}catch(e){next(e);}
