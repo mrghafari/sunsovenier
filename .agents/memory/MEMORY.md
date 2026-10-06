@@ -81,3 +81,4 @@
 - [Partial-return evidence](partial-return-evidence.md) — preserve original payment counters; collection caps and dated reports use posted debt reductions and restorations.
 - [SQL valuation checks](sql-valuation-verification.md) — SQL function creation can pass before branch-specific name-resolution failures; execute rollback-only financial valuations.
 - [Drizzle array interpolation](drizzle-array-interpolation.md) — JavaScript arrays may expand as SQL lists, not PostgreSQL array parameters; verify generated membership queries.
+- [Legacy chart readiness](legacy-chart-readiness.md) — seeded fixture success does not prove persisted company settings are complete; check real-company readiness.

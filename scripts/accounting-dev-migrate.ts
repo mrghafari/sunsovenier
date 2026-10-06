@@ -70,6 +70,7 @@ try {
     "server/modules/accounting/0055_linked_return_payouts.sql",
     "server/modules/accounting/0056_reviewed_posting_queue.sql",
      "server/modules/accounting/0057_prospective_zero_start.sql",
+      "server/modules/accounting/0058_legacy_cheques_mapping.sql",
   ];
   for (const file of files) {
     const content = await readFile(file,"utf8");

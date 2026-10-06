@@ -1,9 +1,10 @@
 import {sql} from "drizzle-orm";
-import type {AccountingAccess} from "@shared/accounting-api";
+import {POSTING_KEYS,type AccountingAccess} from "@shared/accounting-api";
 import {zeroStartCommandSchema,type ZeroStartState} from "@shared/accounting-zero-start";
 import {accountingDb,type AccountingTransaction} from "./db";
 import {AccountingError} from "./access";
 import {assertPipelineManager} from "./loading-invoice-stock";
+import {expectedAccountTypes} from "./settings-service";
 
 export async function readZeroStart(companyId:number,tx?:AccountingTransaction):Promise<ZeroStartState>{
   if(!Number.isSafeInteger(companyId)||companyId<=0)throw new AccountingError("Valid company required");
@@ -45,12 +46,14 @@ export async function activateZeroStart(input:unknown,actor:AccountingAccess,cal
     if(binding&&Number(binding.company_id)!==d.companyId)
       throw new AccountingError("Preserve the existing shop company; do not silently redirect its history",409,"ZERO_START_SOURCE_COMPANY_CONFLICT");
     const ready=(await tx.execute(sql`select exists(select 1 from accounting_fiscal_years where company_id=${d.companyId}
-      and starts_on<=${d.startsOn}::date and ends_on>=${d.startsOn}::date) fiscal,
-      (select count(*) from accounting_posting_rules where company_id=${d.companyId}
-      and key in ('BANK','CASH','WALLET_LIABILITY','ACCOUNTS_RECEIVABLE','SALES_REVENUE','TAX_PAYABLE',
-      'SHIPPING_REVENUE','COGS','INVENTORY','OPENING_BALANCE_EQUITY','SHIPPING_EXPENSE','CARRIER_PAYABLE',
-      'CHEQUES_ON_HAND','CHEQUE_CLEARING','FX_GAIN','FX_LOSS')) mappings`)).rows[0];
-    if(!ready.fiscal||Number(ready.mappings)!==16)throw new AccountingError("Configure the fiscal period and all posting mappings first",409,"ZERO_START_SETTINGS_REQUIRED");
+      and starts_on<=${d.startsOn}::date and ends_on>=${d.startsOn}::date) fiscal`)).rows[0];
+    if(!ready.fiscal)throw new AccountingError(`No fiscal period covers the chosen opening date ${d.startsOn}`,409,"ZERO_START_SETTINGS_REQUIRED");
+    const rules=(await tx.execute(sql`select p.key,a.company_id,a.type,a.is_active,a.is_posting
+      from accounting_posting_rules p left join accounting_accounts a on a.id=p.account_id
+      where p.company_id=${d.companyId}`)).rows;
+    const missing=POSTING_KEYS.filter(key=>!rules.some(rule=>rule.key===key&&Number(rule.company_id)===d.companyId
+      &&rule.is_active===true&&rule.is_posting===true&&rule.type===expectedAccountTypes[key]));
+    if(missing.length)throw new AccountingError(`Missing or invalid posting mappings: ${missing.join(", ")}`,409,"ZERO_START_SETTINGS_REQUIRED");
     const ref=`User-declared independent zero opening; legacy excluded; ${d.startsOn}; ${d.reason}`.slice(0,500);
     await tx.execute(sql`insert into accounting_zero_starts(company_id,starts_on,first_order_id,
       excluded_wallet_ids,excluded_document_ids,actor_id,evidence_reference)

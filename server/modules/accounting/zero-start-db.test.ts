@@ -8,6 +8,7 @@ import {pool} from "../../db";
 import {iraqChart} from "./iraq-chart";
 import {activateZeroStart,readZeroStart} from "./zero-start";
 import {linkWallet} from "./wallet";
+import {POSTING_KEYS} from "@shared/accounting-api";
 
 test("independent zero start activates only an isolated book and preserves native balances (rollback-only)",
  {skip:process.env.ACCOUNTING_ZERO_START_DB_TEST!=="1"},async t=>{
@@ -23,9 +24,7 @@ test("independent zero start activates only an isolated book and preserves nativ
      values(${"ROLLBACK independent zero "+randomUUID()},'IQ','Asia/Baghdad','IQD') returning id`)).rows[0].id);
    await tx.execute(sql`insert into accounting_fiscal_years(company_id,name,starts_on,ends_on)
      values(${companyId},'Rollback zero-start period','2026-01-01','2026-12-31')`);
-   for(const key of ["BANK","CASH","WALLET_LIABILITY","ACCOUNTS_RECEIVABLE","SALES_REVENUE","TAX_PAYABLE",
-     "SHIPPING_REVENUE","COGS","INVENTORY","OPENING_BALANCE_EQUITY","SHIPPING_EXPENSE","CARRIER_PAYABLE",
-     "CHEQUES_ON_HAND","CHEQUE_CLEARING","FX_GAIN","FX_LOSS"]){
+   for(const key of POSTING_KEYS){
      const a=iraqChart.find(item=>item.key===key)!;assert.ok(a,key);
      const accountId=Number((await tx.execute(sql`insert into accounting_accounts(company_id,code,name_ar,name_en,type)
        values(${companyId},${a.code},${a.nameAr},${a.nameEn},${a.type}) returning id`)).rows[0].id);
@@ -58,6 +57,15 @@ test("independent zero start activates only an isolated book and preserves nativ
      await rejected(()=>activateZeroStart(command,{...actor,canManage:false},tx),/manager/i);
      await rejected(()=>activateZeroStart(command,{...actor,actorId:0,actorType:"system"},tx),/manager/i);
      assert.equal((await readZeroStart(companyId,tx)).approved,false);
+   });
+   await t.test("missing settings identify the exact fiscal period or mapping without activating",async()=>{
+     await rejected(()=>activateZeroStart({...command,startsOn:"2025-10-06"},actor,tx),/No fiscal period.*2025-10-06/);
+     await tx.execute(sql`savepoint missing_cheque_setting`);
+     await tx.execute(sql`delete from accounting_posting_rules where company_id=${companyId} and key='CHEQUES_ON_HAND'`);
+     await rejected(()=>activateZeroStart(command,actor,tx),/Missing or invalid posting mappings: CHEQUES_ON_HAND/);
+     assert.equal((await readZeroStart(companyId,tx)).approved,false);
+     await tx.execute(sql`rollback to savepoint missing_cheque_setting`);
+     await tx.execute(sql`release savepoint missing_cheque_setting`);
    });
    await t.test("late failure rolls back every financial gate and zero approval",async()=>{
      await tx.execute(sql`savepoint zero_late_failure`);
@@ -97,6 +105,22 @@ test("independent zero start activates only an isolated book and preserves nativ
        ${randomUUID()},${"a".repeat(64)},${actorId},'admin' from accounting_fiscal_years where company_id=${companyId}`),/Retrospective/);
      assert.equal((await tx.execute(sql`select processing_ready from accounting_foreign_invoice_cutovers where company_id=${companyId}`)).rows.length,0);
    });
+   const existingCompanyId=Number(process.env.ACCOUNTING_ZERO_START_VERIFY_EXISTING_COMPANY);
+   if(Number.isSafeInteger(existingCompanyId)&&existingCompanyId>0){
+     await t.test("existing company configuration supports the complete activation path without committing",async()=>{
+       await tx.execute(sql`savepoint existing_company_probe`);
+       try{
+         await tx.execute(sql`update accounting_source_bindings set company_id=${existingCompanyId} where source_module='shop'`);
+         const before=await readZeroStart(existingCompanyId,tx);
+         const walletsBefore=(await tx.execute(sql`select jsonb_agg(to_jsonb(w) order by id) snapshot from customer_wallets w`)).rows[0].snapshot;
+         const result=await activateZeroStart({...command,companyId:existingCompanyId},actor,tx);
+         assert.equal(result.approved,true);assert.equal(result.active,true);
+         assert.deepEqual((await tx.execute(sql`select jsonb_agg(to_jsonb(w) order by id) snapshot from customer_wallets w`)).rows[0].snapshot,walletsBefore);
+         await tx.execute(sql`rollback to savepoint existing_company_probe`);
+         assert.deepEqual(await readZeroStart(existingCompanyId,tx),before);
+       }finally{await tx.execute(sql`rollback to savepoint existing_company_probe`);await tx.execute(sql`release savepoint existing_company_probe`);}
+     });
+   }
    finished=true;throw rollback;
  });}catch(e){if(e!==rollback||!finished)throw e;}
  finally{await pool.end();}
